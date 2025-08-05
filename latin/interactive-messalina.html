@@ -1203,8 +1203,13 @@
                 targetContent.classList.add('active');
             }
 
-            // Reset analysis panel to default message when switching texts
+            // Reset analysis panel and reinitialize interactive features
             resetAnalysisPanel();
+            
+            // Reinitialize interactive features for the new content
+            setTimeout(() => {
+                initializeInteractiveFeatures();
+            }, 100);
         }
 
         // Reset analysis panel
@@ -1231,15 +1236,31 @@
 
         // Interactive analysis functionality
         document.addEventListener('DOMContentLoaded', function() {
+            initializeInteractiveFeatures();
+        });
+
+        function initializeInteractiveFeatures() {
             const highlights = document.querySelectorAll('.highlight');
             const analysisContents = document.querySelectorAll('.analysis-content');
             
+            // Remove any existing event listeners to prevent duplicates
             highlights.forEach(highlight => {
-                highlight.addEventListener('click', function() {
+                highlight.replaceWith(highlight.cloneNode(true));
+            });
+            
+            // Re-get the elements after cloning
+            const newHighlights = document.querySelectorAll('.highlight');
+            
+            newHighlights.forEach(highlight => {
+                highlight.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
                     const analysisId = this.dataset.analysis;
+                    console.log('Clicked element with analysis ID:', analysisId); // Debug line
                     
                     // Remove active class from all highlights
-                    highlights.forEach(h => h.classList.remove('active'));
+                    newHighlights.forEach(h => h.classList.remove('active'));
                     
                     // Add active class to clicked highlight
                     this.classList.add('active');
@@ -1253,8 +1274,38 @@
                     const targetAnalysis = document.getElementById(analysisId);
                     if (targetAnalysis) {
                         targetAnalysis.classList.add('active');
+                        console.log('Showing analysis for:', analysisId); // Debug line
+                    } else {
+                        console.log('No analysis found for ID:', analysisId); // Debug line
+                        // Show default message if no specific analysis found
+                        const defaultMessage = document.getElementById('default-message');
+                        if (defaultMessage) {
+                            defaultMessage.classList.add('active');
+                        }
                     }
                 });
             });
             
-            //
+            // Initialize modal
+            const modal = document.getElementById('infoModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Modal functions
+        function showInfoModal() {
+            document.getElementById('infoModal').style.display = 'block';
+        }
+
+        function closeInfoModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('infoModal');
+            if (event.target === modal) {
+                closeInfoModal();
+            }
+        }
