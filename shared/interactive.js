@@ -1,5 +1,6 @@
 // Interactive analysis functionality for all texts
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing interactive features...');
     initializeInteractiveFeatures();
 });
 
@@ -93,4 +94,31 @@ function loadAnalysisData() {
     
     panel.innerHTML = html;
     console.log('Analysis HTML created');
+}
+
+// Function to reveal translation (called by onclick in HTML)
+function revealTranslation(element) {
+    console.log('Revealing translation...');
+    element.classList.remove('blurred');
+    const content = element.querySelector('.translation-content');
+    if (content) {
+        content.style.filter = 'none';
+        content.style.userSelect = 'auto';
+    }
+    // Remove the click handler to prevent re-clicking the background
+    element.onclick = null;
+}
+
+// Function to hide translation
+function hideTranslation(event, element) {
+    event.stopPropagation(); // Prevent event bubbling
+    console.log('Hiding translation...');
+    element.classList.add('blurred');
+    const content = element.querySelector('.translation-content');
+    if (content) {
+        content.style.filter = 'blur(3px)';
+        content.style.userSelect = 'none';
+    }
+    // Restore the click handler
+    element.onclick = function() { revealTranslation(element); };
 }
