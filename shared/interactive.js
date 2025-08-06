@@ -1,7 +1,8 @@
 // Interactive analysis functionality for all texts
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing interactive features...');
-    initializeInteractiveFeatures();
+    // Add a small delay to ensure all scripts have loaded
+    setTimeout(initializeInteractiveFeatures, 100);
 });
 
 function initializeInteractiveFeatures() {
@@ -61,78 +62,21 @@ function loadAnalysisData() {
         return;
     }
     
-    // Check for section data - only check variables that might exist
+    // Simple check for generic textData variable
     let sectionData = null;
     
-    try {
-        if (typeof section1Data !== 'undefined') {
-            sectionData = section1Data;
-            console.log('Using section1Data');
-        }
-    } catch(e) {}
-    
-    try {
-        if (!sectionData && typeof section2Data !== 'undefined') {
-            sectionData = section2Data;
-            console.log('Using section2Data');
-        }
-    } catch(e) {}
-    
-    try {
-        if (!sectionData && typeof section3Data !== 'undefined') {
-            sectionData = section3Data;
-            console.log('Using section3Data');
-        }
-    } catch(e) {}
-    
-    try {
-        if (!sectionData && typeof section4Data !== 'undefined') {
-            sectionData = section4Data;
-            console.log('Using section4Data');
-        }
-    } catch(e) {}
-    
-    try {
-        if (!sectionData && typeof section5Data !== 'undefined') {
-            sectionData = section5Data;
-            console.log('Using section5Data');
-        }
-    } catch(e) {}
-    
-    try {
-        if (!sectionData && typeof section6Data !== 'undefined') {
-            sectionData = section6Data;
-            console.log('Using section6Data');
-        }
-    } catch(e) {}
-    
-    try {
-        if (!sectionData && typeof section7Data !== 'undefined') {
-            sectionData = section7Data;
-            console.log('Using section7Data');
-        }
-    } catch(e) {}
-    
-    try {
-        if (!sectionData && typeof section8Data !== 'undefined') {
-            sectionData = section8Data;
-            console.log('Using section8Data');
-        }
-    } catch(e) {}
-    
-    try {
-        if (!sectionData && typeof section9Data !== 'undefined') {
-            sectionData = section9Data;
-            console.log('Using section9Data');
-        }
-    } catch(e) {}
+    if (typeof textData !== 'undefined') {
+        sectionData = textData;
+        console.log('Using textData');
+    }
     
     if (!sectionData) {
-        console.error('No section data found');
+        console.error('No textData found');
         return;
     }
     
     console.log('Analysis data loaded, creating HTML...');
+    console.log('Section data keys:', Object.keys(sectionData));
     
     // Create default message
     let html = '<div class="analysis-content active" id="default-message">';
