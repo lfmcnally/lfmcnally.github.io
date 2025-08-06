@@ -1,162 +1,141 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Latin Texts - Classicalia</title>
-    <link rel="stylesheet" href="../../shared/styles.css">
-</head>
-<body>
-    <!-- Global Info Button -->
-    <button onclick="showInfoModal()" class="global-info-btn">ℹ️</button>
+// Interactive analysis functionality for all texts
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing interactive features...');
+    // Add a small delay to ensure all scripts have loaded
+    setTimeout(initializeInteractiveFeatures, 100);
+});
 
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <a href="../../index.html" style="text-decoration: none; color: inherit;">Classicalia</a>
-            </div>
-            <div class="author">by Lawrence McNally</div>
-            <div class="subtitle">Interactive Latin Texts</div>
+function initializeInteractiveFeatures() {
+    console.log('Initializing interactive features...');
+    
+    const highlights = document.querySelectorAll('.highlight');
+    console.log('Found highlights:', highlights.length);
+    
+    highlights.forEach(highlight => {
+        highlight.addEventListener('click', function(e) {
+            console.log('Highlight clicked:', this.dataset.analysis);
             
-            <div class="page-nav">
-                <a href="../../index.html" class="nav-link">← Back to Home</a>
-                <a href="../texts.html" class="nav-link">← Set Texts</a>
-                <a href="../vocabulary.html" class="nav-link">Vocabulary Tester</a>
-            </div>
-        </div>
-    </header>
-
-    <main class="landing-main">
-        <div class="landing-container">
-            <div class="welcome-section">
-                <h2>Interactive Latin Texts</h2>
-                <p>Choose a text below to explore interactive analysis with clickable highlights, literary devices, and detailed commentary.</p>
-            </div>
-
-            <div class="subjects-grid">
-                <!-- Messalina -->
-                <div class="subject-card">
-                    <div class="exam-badge">2025-26</div>
-                    <div class="subject-header">
-                        <h3>Messalina</h3>
-                        <div class="subject-icon">👸🏻</div>
-                    </div>
-                    <p><strong>Tacitus, Annals XI.26</strong><br>
-                    Interactive analysis of Messalina's scandalous affair with Silius. Explore Tacitus's masterful characterisation and dramatic narrative techniques.</p>
-                    
-                    <div class="section-grid">
-                        <a href="messalina/section1.html" class="section-btn available">1</a>
-                        <a href="messalina/section2.html" class="section-btn available">2</a>
-                    </div>
-                    
-                    <div class="section-info">
-                        <div class="section-status">
-                            <span class="available-indicator">●</span> Complete
-                        </div>
-                        <div class="section-count">2 of 9 sections available</div>
-                    </div>
-                </div>
-
-                <!-- Avunculus Meus -->
-                <div class="subject-card">
-                    <div class="exam-badge">2025-26</div>
-                    <div class="subject-header">
-                        <h3>Avunculus Meus</h3>
-                        <div class="subject-icon">📚</div>
-                    </div>
-                    <p><strong>Pliny, Letters VI.16</strong><br>
-                    Explore Pliny's vivid account of his uncle's heroic death during the eruption of Vesuvius. Interactive analysis of character portrayal and daily routine.</p>
-                    
-                    <div class="section-grid">
-                        <a href="avunculus/section1.html" class="section-btn available">1</a>
-                        <a href="avunculus/section2.html" class="section-btn available">2</a>
-                    </div>
-                    
-                    <div class="section-info">
-                        <div class="section-status">
-                            <span class="available-indicator">●</span> Complete
-                        </div>
-                        <div class="section-count">2 of 2 sections available</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="about-section">
-                <h3>How Interactive Texts Work</h3>
-                <p>Click on highlighted words and phrases to see instant analysis including translations, literary devices, grammatical points, and their effects. Each text includes multiple sections with reveal-able translations and comprehensive commentary.</p>
-            </div>
-        </div>
-    </main>
-
-    <!-- Info Modal -->
-    <div id="infoModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeInfoModal()">&times;</span>
+            const analysisId = this.dataset.analysis;
             
-            <div class="modal-header">
-                <h2>salve! 👋</h2>
-            </div>
-            
-            <div class="modal-body">
-                <div class="modal-text">
-                    <p>Thank you for checking out Classicalia! I'm Lawrence and I teach Latin and Classics in Bristol.</p>
-                    
-                    <p>I have a BA in Ancient History from King's College London, a PGCE in Latin with Classics from the University of Cambridge and an MEd (Transforming Practice) from Darwin College, Cambridge. I am particularly interested in Tacitean studies and the history of memory in classical antiquity. In 2021 I won the Classical Association's 'Outstanding New Teacher' award.</p>
-                    
-                    <p>I also enjoy creating teacher guides and student workbooks. Please feel free to use my resources!</p>
-                    
-                    <p>If you have any feedback, thoughts or questions, please don't hesitate to get in touch!</p>
-                </div>
-                
-                <div class="modal-image">
-                    <img src="../../images/lmc.jpg" alt="Lawrence McNally">
-                </div>
-            </div>
-            
-            <div class="modal-footer">
-                <div class="contact-items">
-                    <div class="contact-item">
-                        <div class="contact-icon">🐦</div>
-                        <div class="contact-info">
-                            <div class="contact-label">Follow me on Twitter</div>
-                            <div class="contact-value">@lfmcnally</div>
-                        </div>
-                    </div>
-                    
-                    <div class="contact-item">
-                        <div class="contact-icon">🎵</div>
-                        <div class="contact-info">
-                            <div class="contact-label">Follow me on TikTok</div>
-                            <div class="contact-value">@classicalcivilisation</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="modal-signature">
-                    <p>An open-source project made with ❤️</p>
-                    <p><strong>-Lawrence</strong></p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Modal functions
-        function showInfoModal() {
-            document.getElementById('infoModal').style.display = 'block';
-        }
-
-        function closeInfoModal() {
-            document.getElementById('infoModal').style.display = 'none';
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('infoModal');
-            if (event.target === modal) {
-                closeInfoModal();
+            // Show the analysis panel
+            const panel = document.getElementById('analysis-panel');
+            if (panel) {
+                panel.style.display = 'block';
+                console.log('Panel shown');
+            } else {
+                console.error('Panel not found');
             }
-        }
-    </script>
-</body>
-</html>
+            
+            // Remove active class from all highlights
+            highlights.forEach(h => h.classList.remove('active'));
+            
+            // Add active class to clicked highlight
+            this.classList.add('active');
+            
+            // Hide all analysis content
+            const analysisContents = document.querySelectorAll('.analysis-content');
+            analysisContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Show selected analysis
+            const targetAnalysis = document.getElementById(analysisId);
+            if (targetAnalysis) {
+                targetAnalysis.classList.add('active');
+                console.log('Showing analysis for:', analysisId);
+            } else {
+                console.error('Analysis not found for:', analysisId);
+            }
+        });
+    });
+    
+    // Load analysis data and create HTML
+    loadAnalysisData();
+}
+
+function loadAnalysisData() {
+    console.log('Loading analysis data...');
+    
+    const panel = document.getElementById('analysis-panel');
+    if (!panel) {
+        console.error('Analysis panel not found');
+        return;
+    }
+    
+    // Check for any available data variable
+    let sectionData = null;
+    
+    // Try the new generic name first, then fall back to specific names
+    if (typeof textData !== 'undefined') {
+        sectionData = textData;
+        console.log('Using textData');
+    } else if (typeof section1Data !== 'undefined') {
+        sectionData = section1Data;
+        console.log('Using section1Data');
+    } else if (typeof section2Data !== 'undefined') {
+        sectionData = section2Data;
+        console.log('Using section2Data');
+    }
+    
+    if (!sectionData) {
+        console.error('No section data found');
+        return;
+    }
+    
+    console.log('Analysis data loaded, creating HTML...');
+    console.log('Section data keys:', Object.keys(sectionData));
+    
+    // Create default message
+    let html = '<div class="analysis-content active" id="default-message">';
+    html += '<div class="analysis-title">Click on highlighted text</div>';
+    html += '<p>Select any highlighted word or phrase in the Latin text to see detailed analysis including:</p>';
+    html += '<ul><li>English translation</li><li>Literary devices</li><li>Grammatical points</li><li>Literary effects</li></ul>';
+    html += '</div>';
+    
+    // Add all analysis items
+    for (const id in sectionData) {
+        const data = sectionData[id];
+        html += '<div class="analysis-content" id="' + id + '">';
+        html += '<div class="analysis-title">' + data.title + '</div>';
+        html += '<div class="analysis-translation">' + data.translation + '</div>';
+        html += '<div class="analysis-device">';
+        html += '<div class="device-name">' + data.device + '</div>';
+        html += data.description;
+        html += '</div>';
+        html += '<div class="analysis-effect">';
+        html += '<div class="effect-title">Effect:</div>';
+        html += data.effect;
+        html += '</div>';
+        html += '</div>';
+    }
+    
+    panel.innerHTML = html;
+    console.log('Analysis HTML created');
+}
+
+// Function to reveal translation (called by onclick in HTML)
+function revealTranslation(element) {
+    console.log('Revealing translation...');
+    element.classList.remove('blurred');
+    const content = element.querySelector('.translation-content');
+    if (content) {
+        content.style.filter = 'none';
+        content.style.userSelect = 'auto';
+    }
+    // Remove the click handler to prevent re-clicking the background
+    element.onclick = null;
+}
+
+// Function to hide translation
+function hideTranslation(event, element) {
+    event.stopPropagation(); // Prevent event bubbling
+    console.log('Hiding translation...');
+    element.classList.add('blurred');
+    const content = element.querySelector('.translation-content');
+    if (content) {
+        content.style.filter = 'blur(3px)';
+        content.style.userSelect = 'none';
+    }
+    // Restore the click handler
+    element.onclick = function() { revealTranslation(element); };
+}
