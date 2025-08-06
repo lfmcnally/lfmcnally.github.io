@@ -337,7 +337,7 @@ const messalinaData = {
     },
 
     "discidiumne-tuum": {
-        title: "'discidiumne tuum' inquit 'novisti?",
+        title: "'discidiumne tuum' inquit 'novisti?'",
         translation: '"'Do you know about your divorce?' he said"',
         device: "Rhetorical Question",
         description: "Narcissus opens with a rhetorical question that assumes Claudius has been wronged, priming him to accept the story.",
