@@ -32,8 +32,8 @@ const textData = {
     },
     
     "abstract-nouns": {
-        title: "quaestione...defensionem...occasiones...delationem",
-        translation: '"trial...defense...opportunities...accusation"',
+        title: "quaestione...defensionem...<br>occasiones...delationem",
+        translation: '"trial...defense...<br>opportunities...accusation"',
         device: "Repetition of Abstract Nouns",
         description: "Repeated use of abstract nouns ending in '-io/-em' creates a rhythmic pattern that emphasizes the formal, legal nature of the political intrigue.",
         effect: "Adds tension and gravity to the scene while creating a sense of bureaucratic machinery grinding into motion against Messalina."
