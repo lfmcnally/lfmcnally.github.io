@@ -61,8 +61,23 @@ function loadAnalysisData() {
         return;
     }
     
-    if (typeof section1Data === 'undefined') {
-        console.error('section1Data not found');
+    // Automatically detect which section data is available
+    let sectionData = null;
+    const possibleDataSources = [
+        'section1Data', 'section2Data', 'section3Data', 'section4Data', 
+        'section5Data', 'section6Data', 'section7Data', 'section8Data', 'section9Data'
+    ];
+    
+    for (const dataSource of possibleDataSources) {
+        if (typeof window[dataSource] !== 'undefined') {
+            sectionData = window[dataSource];
+            console.log(`Using ${dataSource}`);
+            break;
+        }
+    }
+    
+    if (!sectionData) {
+        console.error('No section data found');
         return;
     }
     
@@ -76,8 +91,8 @@ function loadAnalysisData() {
     html += '</div>';
     
     // Add all analysis items
-    for (const id in section1Data) {
-        const data = section1Data[id];
+    for (const id in sectionData) {
+        const data = sectionData[id];
         html += '<div class="analysis-content" id="' + id + '">';
         html += '<div class="analysis-title">' + data.title + '</div>';
         html += '<div class="analysis-translation">' + data.translation + '</div>';
