@@ -1,439 +1,135 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Messalina - Classicalia</title>
-    <link rel="stylesheet" href="../../shared/styles.css">
-    <style>
-        .interactive-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem 20px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            position: relative;
-        }
+// Interactive analysis functionality for all texts
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait a moment for all scripts to load, then initialize
+    setTimeout(function() {
+        loadAnalysisData();
+        initializeInteractiveFeatures();
+    }, 100);
+});
 
-        .text-panel {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-            max-width: 800px;
-            width: 100%;
-            margin: 0 auto;
-            position: relative;
-        }
+function loadAnalysisData() {
+    const panel = document.getElementById('analysis-panel');
+    if (!panel) return;
+    
+    // Check for the specific data variable (messalinaData, avunculusData, etc.)
+    let analysisData = null;
+    if (typeof messalinaData !== 'undefined') {
+        analysisData = messalinaData;
+    }
+    // Future:// Interactive analysis functionality for all texts
+document.addEventListener('DOMContentLoaded', function() {
+    // Add a longer delay to ensure all scripts load
+    setTimeout(function() {
+        initializeInteractiveFeatures();
+    }, 500);
+});
 
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 1rem;
-        }
-
-        .latin-text {
-            font-size: 1.2rem;
-            line-height: 1.8;
-            color: #333;
-            margin-bottom: 2rem;
-        }
-
-        .analysis-panel {
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-            width: 380px;
-            height: fit-content;
-            position: absolute;
-            top: 0;
-            left: calc(100% + 2rem);
-            z-index: 100;
-        }
-
-        .analysis-content {
-            display: none;
-        }
-
-        .analysis-content.active {
-            display: block;
-        }
-
-        .analysis-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 1rem;
-        }
-
-        .analysis-translation {
-            background: #e3f2fd;
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            font-weight: 500;
-        }
-
-        .analysis-device {
-            background: #f3e5f5;
-            padding: 1rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-        }
-
-        .device-name {
-            font-weight: 600;
-            color: #7b1fa2;
-            margin-bottom: 0.5rem;
-        }
-
-        .analysis-effect {
-            background: #e8f5e8;
-            padding: 1rem;
-            border-radius: 6px;
-        }
-
-        .effect-title {
-            font-weight: 600;
-            color: #2e7d32;
-            margin-bottom: 0.5rem;
-        }
-
-        /* Clickable highlights */
-        .highlight {
-            cursor: pointer;
-            padding: 2px 4px;
-            border-radius: 3px;
-            transition: all 0.2s ease;
-        }
-
-        .highlight:hover {
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            transform: translateY(-1px);
-        }
-
-        .highlight.active {
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3);
-        }
-
-        /* Color coding */
-        .literary-device {
-            background: #ffebee;
-            border-bottom: 2px solid #e91e63;
-        }
-
-        .grammar-point {
-            background: #e3f2fd;
-            border-bottom: 2px solid #2196f3;
-        }
-
-        .key-vocab {
-            background: #e8f5e8;
-            border-bottom: 2px solid #4caf50;
-        }
-
-        .character-analysis {
-            background: #f3e5f5;
-            border-bottom: 2px solid #9c27b0;
-        }
-
-        .contrast {
-            background: #fff3e0;
-            border-bottom: 2px solid #ff9800;
-        }
-
-        .instructions {
-            background: transparent;
-            padding: 0;
-            border-radius: 0;
-            margin-bottom: 2rem;
-            border-left: 4px solid #28a745;
-            padding-left: 1.5rem;
-        }
-
-        .legend {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 3px;
-        }
-
-        /* Translation reveal box */
-        .section-translation {
-            background: #f8f9fa;
-            padding: 1.5rem;
-            border-radius: 8px;
-            border-left: 4px solid #007bff;
-            margin: 1.5rem 0;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .section-translation.blurred .translation-content {
-            filter: blur(4px);
-            user-select: none;
-            pointer-events: none;
-        }
-
-        .section-translation.blurred::before {
-            content: "Click to reveal translation";
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 123, 255, 0.9);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            z-index: 2;
-            pointer-events: none;
-        }
-
-        .section-translation:hover {
-            background: #e9ecef;
-        }
-
-        .section-translation.revealed {
-            background: #e8f5e8;
-            border-left-color: #28a745;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .section-translation.revealed::after {
-            content: "Click to hide translation";
-            display: block;
-            text-align: center;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(40, 167, 69, 0.3);
-            color: #28a745;
-            font-size: 0.85rem;
-            font-weight: 500;
-            font-style: normal;
-        }
-
-        .translation-content {
-            font-style: italic;
-            color: #666;
-            line-height: 1.6;
-        }
-
-        @media (max-width: 768px) {
-            .interactive-container {
-                flex-direction: column;
-                align-items: center;
-            }
+function initializeInteractiveFeatures() {
+    console.log('Initializing interactive features...');
+    
+    const highlights = document.querySelectorAll('.highlight');
+    console.log('Found highlights:', highlights.length);
+    
+    // Load analysis data first
+    loadAnalysisData();
+    
+    highlights.forEach(highlight => {
+        highlight.addEventListener('click', function(e) {
+            console.log('Highlight clicked:', this.dataset.analysis);
             
-            .analysis-panel {
-                position: static !important;
-                width: 100% !important;
-                max-width: 800px;
-                margin-top: 2rem;
-                left: auto !important;
-                top: auto !important;
-            }
-
-            .page-nav {
-                flex-direction: column;
-                gap: 0.5rem;
-                align-items: center;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Global Info Button -->
-    <button onclick="showInfoModal()" class="global-info-btn">ℹ️</button>
-
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <a href="../../index.html" style="text-decoration: none; color: inherit;">Classicalia</a>
-            </div>
-            <div class="author">by Lawrence McNally</div>
-            <div class="subtitle">Interactive Messalina Analysis</div>
+            const analysisId = this.dataset.analysis;
             
-            <div class="page-nav">
-                <a href="../../index.html" class="nav-link">← Back to Home</a>
-                <a href="index.html" class="nav-link">← Interactive Texts</a>
-                <a href="../texts.html" class="nav-link">Set Texts</a>
-                <a href="../vocabulary.html" class="nav-link">Vocabulary Tester</a>
-            </div>
-        </div>
-    </header>
-
-    <main>
-        <!-- Instructions Section -->
-        <div style="max-width: 800px; margin: 0 auto; padding: 2rem 20px 0 20px;">
-            <div style="background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); margin-bottom: 2rem;">
-                <div class="instructions">
-                    <strong>How to use:</strong> Click on any highlighted word or phrase in the Latin text below to see detailed analysis including translation, literary devices, and effects.
-                </div>
-
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-color literary-device"></div>
-                        <span>Literary Devices</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color grammar-point"></div>
-                        <span>Grammar & Syntax</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color key-vocab"></div>
-                        <span>Key Vocabulary</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color character-analysis"></div>
-                        <span>Character Analysis</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-color contrast"></div>
-                        <span>Contrast & Opposition</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="interactive-container">
-            <!-- Text Panel -->
-            <div class="text-panel">
-                <h2 class="section-title">Messalina - Section 1</h2>
-
-                <div class="latin-text">
-                    <span class="highlight character-analysis" data-analysis="messalina-intro">Messalina</span> 
-                    <span class="highlight literary-device" data-analysis="novo-insano">novo et quasi insano amore</span> 
-                    <span class="highlight key-vocab" data-analysis="incensa">incensa est</span>. 
-                    nam in <span class="highlight key-vocab" data-analysis="silius">C. Silium</span>, 
-                    <span class="highlight literary-device" data-analysis="superlative">iuventutis Romanae pulcherrimum</span>, 
-                    ita <span class="highlight key-vocab" data-analysis="exarserat">exarserat</span> 
-                    ut <span class="highlight grammar-point" data-analysis="result-clause">Iuniam Silanam, nobilem feminam, matrimonio eius, exturbaret</span> 
-                    <span class="highlight literary-device" data-analysis="alliteration">liberoque adultero potiretur</span>. 
-                    neque <span class="highlight character-analysis" data-analysis="silius-awareness">Silius flagitii aut periculi nescius erat</span>: 
-                    sed <span class="highlight grammar-point" data-analysis="indirect-statement">intellexit</span> 
-                    <span class="highlight contrast" data-analysis="conditional-contrast">exitium, si abnueret, fore certum</span> 
-                    et, <span class="highlight contrast" data-analysis="conditional-hope">si consentiret, nonnullam facinoris celandi spem esse</span>; 
-                    simulque se <span class="highlight key-vocab" data-analysis="rewards">magna praemia accepturum</span>. 
-                    igitur placuit <span class="highlight literary-device" data-analysis="decision-infinitives">neglegere futura praesentibus frui</span>.
-                </div>
-
-                <div class="section-translation blurred" onclick="revealTranslation(this)">
-                    <div class="translation-content">
-                        <strong>Translation:</strong> Messalina was inflamed with a new and almost insane love. For she had burned with love for C. Silius, the most handsome of the Roman youth, to such an extent that she drove Junia Silana, a noble woman, from her marriage, and got possession of an unrestricted adulterer. Silius was not unaware of the disgrace or the danger: but he realised that ruin would be certain if he rejected her, and if he agreed, there was some hope of concealing the crime; and at the same time he would receive great rewards. Therefore he decided to ignore future events and enjoy the present circumstances.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Analysis Panel -->
-            <div class="analysis-panel" id="analysis-panel" style="display: none;">
-                <!-- All analysis content will be loaded from messalina-data.js -->
-            </div>
-        </div>
-    </main>
-
-    <!-- Info Modal -->
-    <div id="infoModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeInfoModal()">&times;</span>
-            
-            <div class="modal-header">
-                <h2>salve! 👋</h2>
-            </div>
-            
-            <div class="modal-body">
-                <div class="modal-text">
-                    <p>Thank you for checking out Classicalia! I'm Lawrence and I teach Latin and Classics in Bristol.</p>
-                    
-                    <p>I have a BA in Ancient History from King's College London, a PGCE in Latin with Classics from the University of Cambridge and an MEd (Transforming Practice) from Darwin College, Cambridge. I am particularly interested in Tacitean studies and the history of memory in classical antiquity. In 2021 I won the Classical Association's 'Outstanding New Teacher' award.</p>
-                    
-                    <p>I also enjoy creating teacher guides and student workbooks. Please feel free to use my resources!</p>
-                    
-                    <p>If you have any feedback, thoughts or questions, please don't hesitate to get in touch!</p>
-                </div>
-                
-                <div class="modal-image">
-                    <img src="../../images/lmc.jpg" alt="Lawrence McNally">
-                </div>
-            </div>
-            
-            <div class="modal-footer">
-                <div class="contact-items">
-                    <div class="contact-item">
-                        <div class="contact-icon">🐦</div>
-                        <div class="contact-info">
-                            <div class="contact-label">Follow me on Twitter</div>
-                            <div class="contact-value">@lfmcnally</div>
-                        </div>
-                    </div>
-                    
-                    <div class="contact-item">
-                        <div class="contact-icon">🎵</div>
-                        <div class="contact-info">
-                            <div class="contact-label">Follow me on TikTok</div>
-                            <div class="contact-value">@classicalcivilisation</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="modal-signature">
-                    <p>An open-source project made with ❤️</p>
-                    <p><strong>-Lawrence</strong></p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Load the data and interactive functionality -->
-    <script src="data/messalina-data.js"></script>
-    <script src="../../shared/interactive.js"></script>
-    <script>
-        // Modal functions
-        function showInfoModal() {
-            document.getElementById('infoModal').style.display = 'block';
-        }
-
-        function closeInfoModal() {
-            document.getElementById('infoModal').style.display = 'none';
-        }
-
-        // Translation reveal/hide function
-        function revealTranslation(element) {
-            if (element.classList.contains('revealed')) {
-                element.classList.remove('revealed');
-                element.classList.add('blurred');
+            // Show the analysis panel
+            const panel = document.getElementById('analysis-panel');
+            if (panel) {
+                panel.style.display = 'block';
+                console.log('Panel shown');
             } else {
-                element.classList.remove('blurred');
-                element.classList.add('revealed');
+                console.error('Panel not found');
             }
-        }
+            
+            // Remove active class from all highlights
+            highlights.forEach(h => h.classList.remove('active'));
+            
+            // Add active class to clicked highlight
+            this.classList.add('active');
+            
+            // Hide all analysis content
+            const analysisContents = document.querySelectorAll('.analysis-content');
+            analysisContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Show selected analysis
+            const targetAnalysis = document.getElementById(analysisId);
+            if (targetAnalysis) {
+                targetAnalysis.classList.add('active');
+                console.log('Showing analysis for:', analysisId);
+            } else {
+                console.error('Analysis not found for:', analysisId);
+            }
+        });
+    });
+}
 
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('infoModal');
-            if (event.target === modal) {
-                closeInfoModal();
-            }
-        }
-    </script>
-</body>
-</html>
+function loadAnalysisData() {
+    console.log('Loading analysis data...');
+    
+    const panel = document.getElementById('analysis-panel');
+    if (!panel) {
+        console.error('Analysis panel not found');
+        return;
+    }
+    
+    // Check for data (try both window.messalinaData and messalinaData)
+    let analysisData = null;
+    if (typeof window.messalinaData !== 'undefined') {
+        analysisData = window.messalinaData;
+        console.log('Found window.messalinaData');
+    } else if (typeof messalinaData !== 'undefined') {
+        analysisData = messalinaData;
+        console.log('Found messalinaData');
+    }
+    
+    if (!analysisData) {
+        console.error('No analysis data found');
+        return;
+    }
+    
+    console.log('Analysis data loaded, creating HTML...');
+    
+    // Create default message
+    let html = `
+        <div class="analysis-content active" id="default-message">
+            <div class="analysis-title">Click on highlighted text</div>
+            <p>Select any highlighted word or phrase in the Latin text to see detailed analysis including:</p>
+            <ul>
+                <li>English translation</li>
+                <li>Literary devices</li>
+                <li>Grammatical points</li>
+                <li>Literary effects</li>
+            </ul>
+        </div>
+    `;
+    
+    // Add all analysis items
+    for (const [id, data] of Object.entries(analysisData)) {
+        html += `
+            <div class="analysis-content" id="${id}">
+                <div class="analysis-title">${data.title}</div>
+                <div class="analysis-translation">${data.translation}</div>
+                <div class="analysis-device">
+                    <div class="device-name">${data.device}</div>
+                    ${data.description}
+                </div>
+                <div class="analysis-effect">
+                    <div class="effect-title">Effect:</div>
+                    ${data.effect}
+                </div>
+            </div>
+        `;
+    }
+    
+    panel.innerHTML = html;
+    console.log('Analysis HTML created');
+}
