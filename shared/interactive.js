@@ -61,37 +61,71 @@ function loadAnalysisData() {
         return;
     }
     
-    // Check for section data using direct variable checks
+    // Check for section data - only check variables that might exist
     let sectionData = null;
     
-    if (typeof section1Data !== 'undefined') {
-        sectionData = section1Data;
-        console.log('Using section1Data');
-    } else if (typeof section2Data !== 'undefined') {
-        sectionData = section2Data;
-        console.log('Using section2Data');
-    } else if (typeof section3Data !== 'undefined') {
-        sectionData = section3Data;
-        console.log('Using section3Data');
-    } else if (typeof section4Data !== 'undefined') {
-        sectionData = section4Data;
-        console.log('Using section4Data');
-    } else if (typeof section5Data !== 'undefined') {
-        sectionData = section5Data;
-        console.log('Using section5Data');
-    } else if (typeof section6Data !== 'undefined') {
-        sectionData = section6Data;
-        console.log('Using section6Data');
-    } else if (typeof section7Data !== 'undefined') {
-        sectionData = section7Data;
-        console.log('Using section7Data');
-    } else if (typeof section8Data !== 'undefined') {
-        sectionData = section8Data;
-        console.log('Using section8Data');
-    } else if (typeof section9Data !== 'undefined') {
-        sectionData = section9Data;
-        console.log('Using section9Data');
-    }
+    try {
+        if (typeof section1Data !== 'undefined') {
+            sectionData = section1Data;
+            console.log('Using section1Data');
+        }
+    } catch(e) {}
+    
+    try {
+        if (!sectionData && typeof section2Data !== 'undefined') {
+            sectionData = section2Data;
+            console.log('Using section2Data');
+        }
+    } catch(e) {}
+    
+    try {
+        if (!sectionData && typeof section3Data !== 'undefined') {
+            sectionData = section3Data;
+            console.log('Using section3Data');
+        }
+    } catch(e) {}
+    
+    try {
+        if (!sectionData && typeof section4Data !== 'undefined') {
+            sectionData = section4Data;
+            console.log('Using section4Data');
+        }
+    } catch(e) {}
+    
+    try {
+        if (!sectionData && typeof section5Data !== 'undefined') {
+            sectionData = section5Data;
+            console.log('Using section5Data');
+        }
+    } catch(e) {}
+    
+    try {
+        if (!sectionData && typeof section6Data !== 'undefined') {
+            sectionData = section6Data;
+            console.log('Using section6Data');
+        }
+    } catch(e) {}
+    
+    try {
+        if (!sectionData && typeof section7Data !== 'undefined') {
+            sectionData = section7Data;
+            console.log('Using section7Data');
+        }
+    } catch(e) {}
+    
+    try {
+        if (!sectionData && typeof section8Data !== 'undefined') {
+            sectionData = section8Data;
+            console.log('Using section8Data');
+        }
+    } catch(e) {}
+    
+    try {
+        if (!sectionData && typeof section9Data !== 'undefined') {
+            sectionData = section9Data;
+            console.log('Using section9Data');
+        }
+    } catch(e) {}
     
     if (!sectionData) {
         console.error('No section data found');
