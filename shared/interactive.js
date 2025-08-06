@@ -62,16 +62,23 @@ function loadAnalysisData() {
         return;
     }
     
-    // Simple check for generic textData variable
+    // Check for any available data variable
     let sectionData = null;
     
+    // Try the new generic name first, then fall back to specific names
     if (typeof textData !== 'undefined') {
         sectionData = textData;
         console.log('Using textData');
+    } else if (typeof section1Data !== 'undefined') {
+        sectionData = section1Data;
+        console.log('Using section1Data');
+    } else if (typeof section2Data !== 'undefined') {
+        sectionData = section2Data;
+        console.log('Using section2Data');
     }
     
     if (!sectionData) {
-        console.error('No textData found');
+        console.error('No section data found');
         return;
     }
     
