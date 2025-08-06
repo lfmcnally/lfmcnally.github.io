@@ -79,9 +79,84 @@
                         <div class="section-count">2 of 2 sections available</div>
                     </div>
                 </div>
-
-                <!-- Remove A Level example placeholder -->
             </div>
 
             <div class="about-section">
                 <h3>How Interactive Texts Work</h3>
+                <p>Click on highlighted words and phrases to see instant analysis including translations, literary devices, grammatical points, and their effects. Each text includes multiple sections with reveal-able translations and comprehensive commentary.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Info Modal -->
+    <div id="infoModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeInfoModal()">&times;</span>
+            
+            <div class="modal-header">
+                <h2>salve! 👋</h2>
+            </div>
+            
+            <div class="modal-body">
+                <div class="modal-text">
+                    <p>Thank you for checking out Classicalia! I'm Lawrence and I teach Latin and Classics in Bristol.</p>
+                    
+                    <p>I have a BA in Ancient History from King's College London, a PGCE in Latin with Classics from the University of Cambridge and an MEd (Transforming Practice) from Darwin College, Cambridge. I am particularly interested in Tacitean studies and the history of memory in classical antiquity. In 2021 I won the Classical Association's 'Outstanding New Teacher' award.</p>
+                    
+                    <p>I also enjoy creating teacher guides and student workbooks. Please feel free to use my resources!</p>
+                    
+                    <p>If you have any feedback, thoughts or questions, please don't hesitate to get in touch!</p>
+                </div>
+                
+                <div class="modal-image">
+                    <img src="../../images/lmc.jpg" alt="Lawrence McNally">
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <div class="contact-items">
+                    <div class="contact-item">
+                        <div class="contact-icon">🐦</div>
+                        <div class="contact-info">
+                            <div class="contact-label">Follow me on Twitter</div>
+                            <div class="contact-value">@lfmcnally</div>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">🎵</div>
+                        <div class="contact-info">
+                            <div class="contact-label">Follow me on TikTok</div>
+                            <div class="contact-value">@classicalcivilisation</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-signature">
+                    <p>An open-source project made with ❤️</p>
+                    <p><strong>-Lawrence</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Modal functions
+        function showInfoModal() {
+            document.getElementById('infoModal').style.display = 'block';
+        }
+
+        function closeInfoModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('infoModal');
+            if (event.target === modal) {
+                closeInfoModal();
+            }
+        }
+    </script>
+</body>
+</html>
