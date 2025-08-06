@@ -1,4 +1,4 @@
-const textData = {
+const section1Data = {
     "messalina-intro": {
         title: "Messalina",
         translation: "The empress Messalina",
