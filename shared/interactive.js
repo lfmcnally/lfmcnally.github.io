@@ -39,7 +39,7 @@
                     <div class="exam-badge">2025-26</div>
                     <div class="subject-header">
                         <h3>Messalina</h3>
-                        <div class="subject-icon">👑</div>
+                        <div class="subject-icon">👸🏻</div>
                     </div>
                     <p><strong>Tacitus, Annals XI.26</strong><br>
                     Interactive analysis of Messalina's scandalous affair with Silius. Explore Tacitus's masterful characterisation and dramatic narrative techniques.</p>
@@ -69,7 +69,7 @@
                     <div class="exam-badge">2025-26</div>
                     <div class="subject-header">
                         <h3>Avunculus Meus</h3>
-                        <div class="subject-icon">🌋</div>
+                        <div class="subject-icon">📚</div>
                     </div>
                     <p><strong>Pliny, Letters VI.16</strong><br>
                     Explore Pliny's vivid account of his uncle's heroic death during the eruption of Vesuvius. Interactive analysis of character portrayal and daily routine.</p>
