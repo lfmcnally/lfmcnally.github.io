@@ -61,19 +61,36 @@ function loadAnalysisData() {
         return;
     }
     
-    // Automatically detect which section data is available
+    // Check for section data using direct variable checks
     let sectionData = null;
-    const possibleDataSources = [
-        'section1Data', 'section2Data', 'section3Data', 'section4Data', 
-        'section5Data', 'section6Data', 'section7Data', 'section8Data', 'section9Data'
-    ];
     
-    for (const dataSource of possibleDataSources) {
-        if (typeof window[dataSource] !== 'undefined') {
-            sectionData = window[dataSource];
-            console.log(`Using ${dataSource}`);
-            break;
-        }
+    if (typeof section1Data !== 'undefined') {
+        sectionData = section1Data;
+        console.log('Using section1Data');
+    } else if (typeof section2Data !== 'undefined') {
+        sectionData = section2Data;
+        console.log('Using section2Data');
+    } else if (typeof section3Data !== 'undefined') {
+        sectionData = section3Data;
+        console.log('Using section3Data');
+    } else if (typeof section4Data !== 'undefined') {
+        sectionData = section4Data;
+        console.log('Using section4Data');
+    } else if (typeof section5Data !== 'undefined') {
+        sectionData = section5Data;
+        console.log('Using section5Data');
+    } else if (typeof section6Data !== 'undefined') {
+        sectionData = section6Data;
+        console.log('Using section6Data');
+    } else if (typeof section7Data !== 'undefined') {
+        sectionData = section7Data;
+        console.log('Using section7Data');
+    } else if (typeof section8Data !== 'undefined') {
+        sectionData = section8Data;
+        console.log('Using section8Data');
+    } else if (typeof section9Data !== 'undefined') {
+        sectionData = section9Data;
+        console.log('Using section9Data');
     }
     
     if (!sectionData) {
