@@ -1,9 +1,6 @@
 // Interactive analysis functionality for all texts
 document.addEventListener('DOMContentLoaded', function() {
-    // Add a longer delay to ensure all scripts load
-    setTimeout(function() {
-        initializeInteractiveFeatures();
-    }, 500);
+    initializeInteractiveFeatures();
 });
 
 function initializeInteractiveFeatures() {
@@ -79,17 +76,7 @@ function loadAnalysisData() {
         return;
     }
     
-    // Check for data (try both window.messalinaData and messalinaData)
-    let analysisData = null;
-    if (typeof window.messalinaData !== 'undefined') {
-        analysisData = window.messalinaData;
-        console.log('Found window.messalinaData');
-    } else if (typeof messalinaData !== 'undefined') {
-        analysisData = messalinaData;
-        console.log('Found messalinaData');
-    }
-    
-    if (!analysisData) {
+    if (!messalinaData) {
         console.error('No analysis data found');
         return;
     }
@@ -104,8 +91,8 @@ function loadAnalysisData() {
     html += '</div>';
     
     // Add all analysis items
-    for (const id in analysisData) {
-        const data = analysisData[id];
+    for (const id in messalinaData) {
+        const data = messalinaData[id];
         html += '<div class="analysis-content" id="' + id + '">';
         html += '<div class="analysis-title">' + data.title + '</div>';
         html += '<div class="analysis-translation">' + data.translation + '</div>';
