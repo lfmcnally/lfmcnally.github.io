@@ -47,20 +47,13 @@
                     <div class="section-grid">
                         <a href="messalina/section1.html" class="section-btn available">1</a>
                         <a href="messalina/section2.html" class="section-btn available">2</a>
-                        <div class="section-btn coming-soon" title="Coming Soon">3</div>
-                        <div class="section-btn coming-soon" title="Coming Soon">4</div>
-                        <div class="section-btn coming-soon" title="Coming Soon">5</div>
-                        <div class="section-btn coming-soon" title="Coming Soon">6</div>
-                        <div class="section-btn coming-soon" title="Coming Soon">7</div>
-                        <div class="section-btn coming-soon" title="Coming Soon">8</div>
                     </div>
                     
                     <div class="section-info">
                         <div class="section-status">
-                            <span class="available-indicator">●</span> Available
-                            <span class="coming-soon-indicator">●</span> Coming Soon
+                            <span class="available-indicator">●</span> Complete
                         </div>
-                        <div class="section-count">2 of 8 sections available</div>
+                        <div class="section-count">2 of 9 sections available</div>
                     </div>
                 </div>
 
