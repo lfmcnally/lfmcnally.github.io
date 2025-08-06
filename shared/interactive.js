@@ -20,11 +20,27 @@ function initializeInteractiveFeatures() {
             console.log('Highlight clicked:', this.dataset.analysis);
             
             const analysisId = this.dataset.analysis;
+            const sectionId = this.dataset.section;
             
             // Show the analysis panel
             const panel = document.getElementById('analysis-panel');
             if (panel) {
                 panel.style.display = 'block';
+                
+                // Position panel relative to the section title if section info is available
+                if (sectionId) {
+                    const sectionTitle = document.getElementById(sectionId);
+                    if (sectionTitle) {
+                        const rect = sectionTitle.getBoundingClientRect();
+                        const textPanel = document.querySelector('.text-panel');
+                        const textPanelRect = textPanel.getBoundingClientRect();
+                        
+                        // Calculate position relative to text panel
+                        const topOffset = rect.top - textPanelRect.top;
+                        panel.style.top = topOffset + 'px';
+                    }
+                }
+                
                 console.log('Panel shown');
             } else {
                 console.error('Panel not found');
