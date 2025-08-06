@@ -1,4 +1,4 @@
-const textData = {
+const section2Data = {
     "non-furtim": {
         title: "non furtim sed multis cum comitibus",
         translation: '"not secretly but with many companions"',
