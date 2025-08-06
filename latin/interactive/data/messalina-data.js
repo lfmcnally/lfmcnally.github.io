@@ -1,5 +1,5 @@
 // Analysis data for Messalina interactive text
-const messalinaData = {
+window.messalinaData = {
     "messalina-intro": {
         title: "Messalina",
         translation: "The empress Messalina",
