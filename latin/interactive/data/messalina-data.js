@@ -1,5 +1,5 @@
 // Analysis data for Messalina interactive text
-const messalinaData = {
+window.messalinaData = {
     "messalina-intro": {
         title: "Messalina",
         translation: "The empress Messalina",
@@ -110,5 +110,77 @@ const messalinaData = {
         device: "Balanced Infinitives + Antithesis",
         description: "Two infinitives balance each other; 'futura' vs 'praesentibus' creates antithesis between future and present.",
         effect: "The balanced structure mirrors his balanced decision, while the antithesis shows his choice to live for the moment despite future consequences - a fatally shortsighted decision."
+    },
+
+    "illa-non-furtim": {
+        title: "illa non furtim sed multis cum comitibus ventitat domum",
+        translation: '"she visited the house frequently, not secretly, but with many companions"',
+        device: "Antithesis + Frequentative Verb",
+        description: "'non furtim sed' creates stark contrast, whilst 'ventitat' (frequentative of venio) emphasises repeated visits.",
+        effect: "Shows Messalina's brazen confidence and escalating recklessness - she's no longer trying to hide the affair."
+    },
+
+    "egredienti-adhaeret": {
+        title: "egredienti adhaeret",
+        translation: '"clung to him when he went out"',
+        device: "Physical Metaphor",
+        description: "'adhaeret' (sticks to/clings to) suggests obsessive, possessive behaviour.",
+        effect: "Creates an image of desperate, clingy behaviour that would be inappropriate for an empress in public."
+    },
+
+    "dat-opes": {
+        title: "dat opes honoresque",
+        translation: '"gave him honours and gifts"',
+        device: "Zeugma + Climax",
+        description: "Single verb 'dat' governs both nouns, building to the most shocking revelation about imperial property.",
+        effect: "Shows how she's abusing her imperial position to shower her lover with state resources."
+    },
+
+    "servi-liberti": {
+        title: "servi, liberti, paratus principis apud adulterum saepe videbantur",
+        translation: '"slaves, freedmen, and imperial furnishings were often seen at the adulterer\'s house"',
+        device: "Tricolon + Metonymy",
+        description: "Three groups escalating in significance; 'paratus' represents all imperial luxury.",
+        effect: "The climactic 'paratus principis' shows she's essentially moving the imperial household to her lover's house - the ultimate scandal."
+    },
+
+    "claudius-ignarus": {
+        title: "Claudius matrimonii sui ignarus",
+        translation: '"Claudius was unaware of his own marriage"',
+        device: "Dramatic Irony",
+        description: "The emperor doesn't know what everyone else can see - his wife's public adultery.",
+        effect: "Creates pathos for Claudius whilst emphasising the magnitude of Messalina's betrayal and public humiliation."
+    },
+
+    "messalina-facilitate": {
+        title: "Messalina propter facilitate adulteriorum ad novas libidines versa est",
+        translation: '"Messalina, because of the easiness of the adulteries, turned to new lusts"',
+        device: "Progression + Euphemism",
+        description: "Shows escalation from simple adultery to more extreme desires; 'libidines' is deliberately vague.",
+        effect: "Suggests Messalina's appetite for scandal and transgression is insatiable - simple adultery no longer satisfies her."
+    },
+
+    "silius-fatali": {
+        title: "Silius, sive fatali insania an ipsa pericula remedium imminentium periculorum ratus",
+        translation: '"Silius, whether because of his fateful folly or thinking that the very dangers were a cure for the imminent dangers"',
+        device: "Disjunctive Question + Paradox",
+        description: "'sive...an' presents alternatives; 'pericula remedium periculorum' is paradoxical.",
+        effect: "Shows Silius's twisted logic - thinking more danger might somehow solve his dangerous situation."
+    },
+
+    "abrumpi-dissimulationem": {
+        title: "abrumpi dissimultationem urgebat",
+        translation: '"pressed for the concealment to be cast aside"',
+        device: "Violent Metaphor",
+        description: "'abrumpi' (to break off/snap) suggests violent, sudden action rather than gradual revelation.",
+        effect: "Shows Silius wants to abandon all pretence dramatically - a reckless escalation."
+    },
+
+    "non-exspectandum": {
+        title: "non exspectandum, dum princeps senesceret",
+        translation: '"they should not wait whilst the emperor grows old"',
+        device: "Gerundive + Euphemism",
+        description: "'non exspectandum' shows urgent necessity; 'senesceret' euphemistically refers to Claudius's death.",
+        effect: "Reveals their treasonous thinking - they're planning for Claudius's death and their own rise to power."
     }
 };
