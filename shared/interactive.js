@@ -184,5 +184,291 @@ const messalinaData = {
         device: "Gerundive + Euphemism",
         description: "'non exspectandum' shows urgent necessity; 'senesceret' euphemistically refers to Claudius's death.",
         effect: "Reveals their treasonous thinking - they're planning for Claudius's death and their own rise to power."
+    },
+
+    "caelibem-orbum": {
+        title: "caelibem, orbum",
+        translation: '"single, childless"',
+        device: "Asyndeton",
+        description: "Terse adjectives with no conjunction stress his availability for marriage.",
+        effect: "Presents Silius as a viable replacement for Claudius, making their plan seem less outrageous."
+    },
+
+    "nuptiis-adoptando": {
+        title: "nuptiis et adoptando Britannico paratum",
+        translation: '"ready for marriage and adopting Britannicus"',
+        device: "Zeugma + Shock Value",
+        description: "'paratum' governing two clauses builds to the shocking idea of usurping Claudius's fatherly role.",
+        effect: "Underscores their treasonous intent to supplant Claudius entirely, both as husband and father."  
+    },
+
+    "eandem-potentiam": {
+        title: "eandem Messalinae potentiam mansuram esse",
+        translation: '"the same power for Messalina would remain"',
+        device: "Indirect Statement",  
+        description: "Future infinitive 'mansuram esse' in indirect statement presents her power as a sure thing.",
+        effect: "Shows Messalina's confidence that her imperial status will continue, revealing her arrogance."
+    },  
+
+    "addita-securitate": {
+        title: "addita securitate, si praevenirent Claudium",
+        translation: '"with added security, if they forestalled Claudius"',
+        device: "Conditional Clause",
+        description: "'si' clause presents striking down Claudius as a condition for their security.",
+        effect: "Bluntly lays out their murderous logic - Claudius must be eliminated for their plan to work."
+    },
+
+    "insidiis-incautus": {
+        title: "insidiis incautus sed ad iram celer esset",
+        translation: '"was oblivious to treachery but swift to anger"',
+        device: "Antithesis", 
+        description: "Claudius's dangerous unawareness contrasted with his quickness to anger once provoked.",
+        effect: "Sets up Claudius as an easy target for betrayal but a formidable foe if roused - hence their need to act first."
+    },  
+
+    "messalina-non-amore": {
+        title: "Messalina, non amore in maritum, sed verita ne Silius summa adeptus se sperneret",
+        translation: '"Messalina hesitated for a long time, not (because of) love for her husband, but fearing that Silius, if he obtained supreme power, might reject her"',
+        device: "Antithesis + Complex Syntax",
+        description: "'non amore...sed' sets up a misleading expectation before the second clause reveals her true selfish motive.", 
+        effect: "Messalina's hesitation is not from affection but fear of losing her lover - underscoring her self-centered nature."
+    },
+
+    "diu-haesitavit": {
+        title: "diu haesitavit", 
+        translation: '"hesitated for a long time"',
+        device: "Imperfect Tense",
+        description: "The imperfect 'haesitavit' stresses the duration of her uncertainty.",
+        effect: "Builds narrative tension as her fateful decision hangs in the balance."  
+    },
+    
+    "nomen-matrimonii": {
+        title: "nomen enim matrimonii concupivit ob magnitudinem infamiae",
+        translation: '"for she craved the title of marriage because of the magnitude of the disgrace"',
+        device: "Surprising Motivation",
+        description: "Messalina desires marriage not despite but because of the scandalous disgrace it will bring.",
+        effect: "Reveals her twisted values - she's attracted to the infamy, showing how far she's fallen morally."  
+    },
+
+    "sacrificii-gratia": {
+        title: "sacrificii gratia Claudius Ostia proficisceretur",
+        translation: '"Claudius set out for Ostia for the purpose of a sacrifice"',  
+        device: "Religious Pretext", 
+        description: "Claudius's religious duty provides the perfect cover for Messalina's plan.",
+        effect: "The contrast between sacred rites and profane scandal heightens the shock; also makes Claudius seem more oblivious."
+    },
+
+    "cuncta-nuptiarum": {
+        title: "cuncta nuptiarum sollemnia celebrat",
+        translation: '"she celebrated all the rites of marriage"',
+        device: "Irony + Totality",
+        description: "'cuncta' (all) stresses that every ritual was observed, making a mockery of the sacred rites.",
+        effect: "Heightens the sacrilege and audacity of Messalina's sham marriage, revealing her utter shamelessness."
+    },
+
+    "igitur-domus": {
+        title: "igitur domus principis inhorruit",
+        translation: '"therefore the emperor\'s household shuddered"',
+        device: "Personification",
+        description: "The house itself is given human emotion, shuddering in horror at Messalina's actions.",
+        effect: "Conveys the deep sense of shock and revulsion felt by all at this unprecedented scandal."
+    },
+
+    "maximeque-ei": {
+        title: "maximeque ei qui potentiam habebant timuereunt ne res verterentur",
+        translation: '"and particularly those who held any power feared lest the state be overturned"',
+        device: "Alliteration",
+        description: "'potentiam...timuereunt...verterentur' repeats 't' sounds, linking power, fear, and upheaval.",
+        effect: "The alliteration connects the powerful men's self-interest with their fear of political chaos."
+    },
+
+    "spem-tamen": {
+        title: "spem tamen habebant, si Claudio de atrocitate sceleris persuasissent, Messalinam posse opprimi sine quaestione damnatam",
+        translation: '"nevertheless they had (some) hope, (that) if they convinced Claudius about the enormity of the crime, Messalina could be condemned without a trial (and) overthrown"',
+        device: "Conditional Clause + Asyndeton",
+        description: "'si' sets up hopeful condition; asyndeton in 'opprimi damnatam' emphasizes swift justice.",
+        effect: "Shows influential men plotting to bring Messalina down decisively if they can sway Claudius."
+    },
+
+    "periculum-esse": {
+        title: "periculum esse ne ille defensionem audiret, neve clausae aures etiam confitenti non essent",
+        translation: '"there was a danger that Claudius might listen to her defence or that his ears might not be closed to her, even if she confessed"',
+        device: "Parallelism + Litotes",
+        description: "Two parallel 'ne' clauses present Claudius listening as a danger; litotes 'non essent' for emphasis.",
+        effect: "Expresses the plotters' fear that Claudius's love for Messalina might lead him to forgive her if given a chance."
+    },
+
+    "narcissus-occasiones": {
+        title: "Narcissus, occasiones quarenes",
+        translation: '"Narcissus, looking for opportunities"',
+        device: "Character Introduction",
+        description: "Narcissus is introduced as a schemer on the lookout for chances to act against Messalina.",
+        effect: "Sets up Narcissus as a key player who will help bring about Messalina's downfall."
+    },
+
+    "caesar-moraretur": {
+        title: "Caesar diu apud Ostiam moraretur",
+        translation: '"Caesar was delaying for a long time at Ostia"',
+        device: "Ominous Delay",
+        description: "Claudius's extended absence creates a window of opportunity for both Messalina's marriage and Narcissus's plot.",
+        effect: "Builds a sense of suspense - key events are unfolding while Claudius is away and unaware."
+    },
+
+    "duas-paelices": {
+        title: "duas eius paelices largitione et promissis perpulit delationem subrire",
+        translation: '"compelled two of his mistresses by means of largesse and promises to submit an accusation"',
+        device: "Wealth + Deception",
+        description: "Narcissus uses gifts and promises to manipulate Claudius's mistresses into denouncing Messalina.",
+        effect: "Reveals the treacherous intrigues surrounding Claudius and his susceptibility to rumors from his inner circle." 
+    },
+
+    "calpurnia-secretum": {
+        title: "Calpurnia (id alteri paelici nomen), ubi datum est secretum, ad genua Caesaris provoluta nupsisse Messalinam Silio exclamat",
+        translation: '"Calpurnia (that was the name of one of the two mistresses), when she was given a secret audience, fell down at the knees of Caesar, shouted that Messalina had married Silius"',
+        device: "Dramatic Revelation",
+        description: "Calpurnia's physical supplication and emotional outburst make her accusation seem genuine and urgent.",
+        effect: "The shocking news is delivered in a way that makes it credible, helping to turn Claudius against Messalina."
+    },
+
+    "calpurnia-cieri": {
+        title: "Calpurnia cieri Narcissum postulat",
+        translation: '"Calpurnia demanded that Narcissus be summoned"',
+        device: "Strategic Support",
+        description: "Calpurnia calls for Narcissus to back up her story, putting his influence into play.",
+        effect: "Shows the mistresses and Narcissus working together to convince Claudius of Messalina's guilt."
+    }    "caelibem-orbum": {
+        title: "caelibem, orbum",
+        translation: '"single, childless"',
+        device: "Asyndeton",
+        description: "Terse adjectives with no conjunction stress his availability for marriage.",
+        effect: "Presents Silius as a viable replacement for Claudius, making their plan seem less outrageous."
+    },
+
+    "nuptiis-adoptando": {
+            "igitur-domus": {
+        title: "igitur domus principis inhorruit",
+        translation: '"therefore the emperor\'s household shuddered"',
+        device: "Personification",
+        description: "The house itself is given human emotion, shuddering in horror at Messalina's actions.",
+        effect: "Conveys the deep sense of shock and revulsion felt by all at this unprecedented scandal."
+    },
+
+    "maximeque-ei": {
+        title: "maximeque ei qui potentiam habebant timuereunt ne res verterentur",
+        translation: '"and particularly those who held any power feared lest the state be overturned"',
+        device: "Alliteration",
+        description: "'potentiam...timuereunt...verterentur' repeats 't' sounds, linking power, fear, and upheaval.",
+        effect: "The alliteration connects the powerful men's self-interest with their fear of political chaos."
+    },
+
+    "spem-tamen": {
+        title: "spem tamen habebant, si Claudio de atrocitate sceleris persuasissent, Messalinam posse opprimi sine quaestione damnatam",
+        translation: '"nevertheless they had (some) hope, (that) if they convinced Claudius about the enormity of the crime, Messalina could be condemned without a trial (and) overthrown"',
+        device: "Conditional Clause + Asyndeton",
+        description: "'si' sets up hopeful condition; asyndeton in 'opprimi damnatam' emphasizes swift justice.",
+        effect: "Shows influential men plotting to bring Messalina down decisively if they can sway Claudius."
+    },
+
+    "periculum-esse": {
+        title: "periculum esse ne ille defensionem audiret, neve clausae aures etiam confitenti non essent",
+        translation: '"there was a danger that Claudius might listen to her defence or that his ears might not be closed to her, even if she confessed"',
+        device: "Parallelism + Litotes",
+        description: "Two parallel 'ne' clauses present Claudius listening as a danger; litotes 'non essent' for emphasis.",
+        effect: "Expresses the plotters' fear that Claudius's love for Messalina might lead him to forgive her if given a chance."
+    },
+
+    "narcissus-occasiones": {
+        title: "Narcissus, occasiones quarenes",
+        translation: '"Narcissus, looking for opportunities"',
+        device: "Character Introduction",
+        description: "Narcissus is introduced as a schemer on the lookout for chances to act against Messalina.",
+        effect: "Sets up Narcissus as a key player who will help bring about Messalina's downfall."
+    },
+
+    "caesar-moraretur": {
+        title: "Caesar diu apud Ostiam moraretur",
+        translation: '"Caesar was delaying for a long time at Ostia"',
+        device: "Ominous Delay",
+        description: "Claudius's extended absence creates a window of opportunity for both Messalina's marriage and Narcissus's plot.",
+        effect: "Builds a sense of suspense - key events are unfolding while Claudius is away and unaware."
+    },
+
+    "duas-paelices": {
+        title: "duas eius paelices largitione et promissis perpulit delationem subrire",
+        translation: '"compelled two of his mistresses by means of largesse and promises to submit an accusation"',
+        device: "Wealth + Deception",
+        description: "Narcissus uses gifts and promises to manipulate Claudius's mistresses into denouncing Messalina.",
+        effect: "Reveals the treacherous intrigues surrounding Claudius and his susceptibility to rumors from his inner circle." 
+    },
+
+    "calpurnia-secretum": {
+        title: "Calpurnia (id alteri paelici nomen), ubi datum est secretum, ad genua Caesaris provoluta nupsisse Messalinam Silio exclamat",
+        translation: '"Calpurnia (that was the name of one of the two mistresses), when she was given a secret audience, fell down at the knees of Caesar, shouted that Messalina had married Silius"',
+        device: "Dramatic Revelation",
+        description: "Calpurnia's physical supplication and emotional outburst make her accusation seem genuine and urgent.",
+        effect: "The shocking news is delivered in a way that makes it credible, helping to turn Claudius against Messalina."
+    },
+
+    "calpurnia-cieri": {
+        title: "Calpurnia cieri Narcissum postulat",
+        translation: '"Calpurnia demanded that Narcissus be summoned"',
+        device: "Strategic Support",
+        description: "Calpurnia calls for Narcissus to back up her story, putting his influence into play.",
+        effect: "Shows the mistresses and Narcissus working together to convince Claudius of Messalina's guilt."
+    },
+
+    "discidiumne-tuum": {
+        title: "'discidiumne tuum' inquit 'novisti?",
+        translation: '"'Do you know about your divorce?' he said"',
+        device: "Rhetorical Question",
+        description: "Narcissus opens with a rhetorical question that assumes Claudius has been wronged, priming him to accept the story.",
+        effect: "The leading question gets Claudius to start seeing himself as a victim before the full case is presented."
+    },
+
+    "nam-matrimonium": {
+        title: "nam matrimonium Silii vidit populus et senatus et milites",
+        translation: '"for the people, the senate and the soldiers have seen Silius' marriage"',
+        device: "Tricolon",
+        description: "The triplet of 'populus et senatus et milites' emphasizes that all of Roman society witnessed the sham wedding.",
+        effect: "Stresses the public nature of the scandal, making it impossible for Claudius to ignore or cover up."
+    },
+    
+    "ac-nisi-celeriter": {
+        title: "ac nisi celeriter agis, tenet urbem maritus",
+        translation: '"and unless you act quickly, the husband will control the city"',
+        device: "Urgent Threat",
+        description: "Narcissus warns Claudius he must act swiftly to prevent Silius from seizing power through the marriage.",
+        effect: "Frames inaction as a dire threat to Claudius's rule, spurring him to decisive action against Messalina and Silius."
+    },
+
+    "non-solum-rumor": {
+        title: "non solum rumor interea, sed undique nuntii ad Messalinam contendunt",
+        translation: '"meanwhile, (there was) not only rumour, but from all sides messengers were hastening to Messalina"',
+        device: "Negative Parallelism",
+        description: "'non solum rumor...sed' construction contrasts vague rumors with concrete messengers racing to Messalina.",
+        effect: "Creates a sense of escalating crisis - the scandal is spreading rapidly and Messalina is soon to be besieged."
+    },
+
+    "claudium-cognovisse": {
+        title: "Claudium omnia cognovisse et venire promptum ultioni adferrent",
+        translation: '"reported that Claudius knew everything and was coming eager for revenge"',
+        device: "Indirect Speech + Revenge",
+        description: "The messengers' reports are given in indirect speech, culminating in the Emperor's vengeful return.",
+        effect// Analysis data for Messalina interactive text
+const messalinaData = {
+    "messalina-intro": {
+        title: "Messalina",
+        translation: "The empress Messalina",
+        device: "Character Introduction",
+        description: "Opening with her name immediately establishes her as the focus and sets up her agency in the narrative.",
+        effect: "Tacitus places Messalina at the center of the action from the very first word, emphasizing her role as the driving force behind the scandal."
+    },
+    
+    "novo-insano": {
+        title: "novo et quasi insano amore",
+        translation: '"with a new and almost insane love"',
+        device: "Alliteration + Hyperbole",
+        description: "The repetition of 'n' sounds (novo...insano) creates alliteration, while 'quasi insano' uses hyperbole to emphasize the extremity of her passion.",
+        effect: "The alliteration makes the phrase memorable and rhythmic, while the hyperbole immediately signals that this
     }
 };
