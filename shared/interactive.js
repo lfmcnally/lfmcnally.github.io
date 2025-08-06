@@ -1,23 +1,5 @@
 // Interactive analysis functionality for all texts
 document.addEventListener('DOMContentLoaded', function() {
-    // Wait a moment for all scripts to load, then initialize
-    setTimeout(function() {
-        loadAnalysisData();
-        initializeInteractiveFeatures();
-    }, 100);
-});
-
-function loadAnalysisData() {
-    const panel = document.getElementById('analysis-panel');
-    if (!panel) return;
-    
-    // Check for the specific data variable (messalinaData, avunculusData, etc.)
-    let analysisData = null;
-    if (typeof messalinaData !== 'undefined') {
-        analysisData = messalinaData;
-    }
-    // Future:// Interactive analysis functionality for all texts
-document.addEventListener('DOMContentLoaded', function() {
     // Add a longer delay to ensure all scripts load
     setTimeout(function() {
         initializeInteractiveFeatures();
@@ -99,35 +81,27 @@ function loadAnalysisData() {
     console.log('Analysis data loaded, creating HTML...');
     
     // Create default message
-    let html = `
-        <div class="analysis-content active" id="default-message">
-            <div class="analysis-title">Click on highlighted text</div>
-            <p>Select any highlighted word or phrase in the Latin text to see detailed analysis including:</p>
-            <ul>
-                <li>English translation</li>
-                <li>Literary devices</li>
-                <li>Grammatical points</li>
-                <li>Literary effects</li>
-            </ul>
-        </div>
-    `;
+    let html = '<div class="analysis-content active" id="default-message">';
+    html += '<div class="analysis-title">Click on highlighted text</div>';
+    html += '<p>Select any highlighted word or phrase in the Latin text to see detailed analysis including:</p>';
+    html += '<ul><li>English translation</li><li>Literary devices</li><li>Grammatical points</li><li>Literary effects</li></ul>';
+    html += '</div>';
     
     // Add all analysis items
-    for (const [id, data] of Object.entries(analysisData)) {
-        html += `
-            <div class="analysis-content" id="${id}">
-                <div class="analysis-title">${data.title}</div>
-                <div class="analysis-translation">${data.translation}</div>
-                <div class="analysis-device">
-                    <div class="device-name">${data.device}</div>
-                    ${data.description}
-                </div>
-                <div class="analysis-effect">
-                    <div class="effect-title">Effect:</div>
-                    ${data.effect}
-                </div>
-            </div>
-        `;
+    for (const id in analysisData) {
+        const data = analysisData[id];
+        html += '<div class="analysis-content" id="' + id + '">';
+        html += '<div class="analysis-title">' + data.title + '</div>';
+        html += '<div class="analysis-translation">' + data.translation + '</div>';
+        html += '<div class="analysis-device">';
+        html += '<div class="device-name">' + data.device + '</div>';
+        html += data.description;
+        html += '</div>';
+        html += '<div class="analysis-effect">';
+        html += '<div class="effect-title">Effect:</div>';
+        html += data.effect;
+        html += '</div>';
+        html += '</div>';
     }
     
     panel.innerHTML = html;
