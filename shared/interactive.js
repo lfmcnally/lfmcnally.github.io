@@ -30,11 +30,17 @@ function initializeInteractiveFeatures() {
                     if (sectionTitle) {
                         const rect = sectionTitle.getBoundingClientRect();
                         const textPanel = document.querySelector('.text-panel');
-                        const textPanelRect = textPanel.getBoundingClientRect();
-                        
-                        // Calculate position relative to text panel
-                        const topOffset = rect.top - textPanelRect.top;
-                        panel.style.top = topOffset + 'px';
+                        if (textPanel) {
+                            const textPanelRect = textPanel.getBoundingClientRect();
+                            
+                            // Calculate position relative to text panel
+                            const topOffset = rect.top - textPanelRect.top;
+                            panel.style.top = topOffset + 'px';
+                        } else {
+                            console.error('Text panel not found');
+                        }
+                    } else {
+                        console.error('Section title not found for:', sectionId);
                     }
                 }
                 
