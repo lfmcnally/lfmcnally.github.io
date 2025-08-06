@@ -4,14 +4,14 @@ const section1Data = {
         translation: "The empress Messalina",
         device: "Character Introduction",
         description: "Opening with her name immediately establishes her as the focus and sets up her agency in the narrative.",
-        effect: "Tacitus places Messalina at the center of the action from the very first word, emphasizing her role as the driving force behind the scandal."
+        effect: "Tacitus places Messalina at the center of the action from the very first word, emphasising her role as the driving force behind the scandal."
     },
     
     "novo-insano": {
         title: "novo et quasi insano amore",
         translation: '"with a new and almost insane love"',
         device: "Alliteration + Hyperbole",
-        description: "The repetition of 'n' sounds (novo...insano) creates alliteration, while 'quasi insano' uses hyperbole to emphasize the extremity of her passion.",
+        description: "The repetition of 'n' sounds (novo...insano) creates alliteration, while 'quasi insano' uses hyperbole to emphasise the extremity of her passion.",
         effect: "The alliteration makes the phrase memorable and rhythmic, while the hyperbole immediately signals that this is not ordinary love but dangerous obsession that will lead to disaster."
     },
     
@@ -27,7 +27,7 @@ const section1Data = {
         title: "C. Silium",
         translation: '"Gaius Silius"',
         device: "Historical Figure",
-        description: "Gaius Silius was a real Roman politician and the object of Messalina's obsession.",
+        description: "Gaius Silius was a real Roman politician and the object of Messalina's obsession. He was the consul-elect for the next year.",
         effect: "Using his full formal name (praenomen + nomen) gives gravity and historical authenticity to the account."
     },
     
@@ -36,7 +36,7 @@ const section1Data = {
         translation: '"the most handsome of Roman youth"',
         device: "Superlative",
         description: "'pulcherrimum' is the superlative form of 'pulcher' (beautiful/handsome).",
-        effect: "The superlative emphasizes Silius's exceptional attractiveness, explaining why Messalina became so obsessed and making her actions seem more understandable (though not excusable)."
+        effect: "The superlative emphasises Silius's exceptional attractiveness (a real hottie!), explaining why Messalina became so obsessed and making her actions seem more understandable (though not excusable)."
     },
     
     "exarserat": {
@@ -52,7 +52,7 @@ const section1Data = {
         translation: '"so that she drove out..."',
         device: "Result Clause",
         description: "'ut' + imperfect subjunctive shows the consequence of her burning passion.",
-        effect: "The result clause emphasizes how her obsession led directly to destructive actions - she destroyed another woman's marriage to get what she wanted."
+        effect: "The result clause emphasises how her obsession led directly to destructive actions - she destroyed another woman's marriage to get what she wanted."
     },
     
     "alliteration": {
@@ -67,13 +67,13 @@ const section1Data = {
         title: "Silius flagitii aut periculi nescius erat",
         translation: '"Silius was not unaware of the disgrace or danger"',
         device: "Litotes",
-        description: "'neque...nescius' (not unaware) is a double negative emphasizing that he fully understood the risks.",
+        description: "'neque...nescius' (not unaware) is a double negative emphasising that he fully understood the risks.",
         effect: "This shows Silius was not a naive victim but made a calculated decision despite knowing the dangers, making him complicit in the scandal."
     },
     
     "indirect-statement": {
         title: "intellexit", 
-        translation: '"he realized"',
+        translation: '"he realised"',
         device: "Indirect Statement Introduction",
         description: "Introduces the complex indirect statement showing his reasoning process.",
         effect: "Takes us inside Silius's mind to show his calculating, rational analysis of an impossible situation."
@@ -83,7 +83,7 @@ const section1Data = {
         title: "exitium, si abnueret, fore certum",
         translation: '"that ruin, if he refused, would be certain"',
         device: "Conditional Clause + Hyperbaton",
-        description: "'si abnueret' is embedded within the main clause, while 'certum' emphasizes the certainty of destruction.", 
+        description: "'si abnueret' is embedded within the main clause, while 'certum' emphasises the certainty of destruction.", 
         effect: "The embedded conditional and strong 'certum' show he had no real choice - refusal meant certain death."
     },
     
