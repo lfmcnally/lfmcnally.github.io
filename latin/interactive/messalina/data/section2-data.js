@@ -1,242 +1,114 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Messalina - Section 1</title>
-    <link rel="stylesheet" href="../../../shared/styles.css">
-</head>
-<body>
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <a href="../../../index.html" style="text-decoration: none; color: inherit;">Classicalia</a>
-            </div>
-            <div class="author">by Lawrence McNally</div>
-            <div class="subtitle">Interactive Messalina Analysis</div>
-            
-            <div class="page-nav">
-                <a href="../../../index.html" class="nav-link">← Back to Home</a>
-                <a href="../index.html" class="nav-link">← Interactive Texts</a>
-                <a href="../../texts.html" class="nav-link">Set Texts</a>
-                <a href="../../vocabulary.html" class="nav-link">Vocabulary Tester</a>
-            </div>
-        </div>
-    </header>
+// Analysis data for Messalina Section 2 interactive text
+const textData = {
+    "non-furtim": {
+        title: "illa non furtim sed multis cum comitibus",
+        translation: '"she not secretly but with many companions"',
+        device: "Contrast + Emphasis",
+        description: "The phrase 'non furtim sed' creates a stark contrast between secretive behavior and open, public actions. 'multis cum comitibus' emphasizes the brazen nature of her visits.",
+        effect: "Shows Messalina's increasing boldness and lack of shame - she's moved from secret meetings to public displays of her affair, demonstrating her growing power and recklessness."
+    },
     
-    <!-- Separate info card above main content -->
-    <div class="info-card-container">
-        <div class="color-legend">
-            <div class="legend-title">How to use: Click on numbers above words for vocabulary, or click on highlighted words for literary analysis.</div>
-            <div class="legend-items">
-                <div class="legend-item">
-                    <div class="legend-color literary-device"></div>
-                    <span>Literary Devices</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color grammar-point"></div>
-                    <span>Grammar & Syntax</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color key-vocab"></div>
-                    <span>Key Vocabulary</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color character-analysis"></div>
-                    <span>Character Analysis</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color contrast"></div>
-                    <span>Contrast & Opposition</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <main>
-        <!-- Main interactive content -->
-        <div class="interactive-container">
-            <div class="text-panel">
-                <h2 class="section-title">Messalina - Section 1</h2>
-                
-                <div class="latin-text">
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="messalina">1</span>
-                        <span class="highlight character-analysis" data-analysis="messalina-intro">Messalina</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="novo">3</span>
-                        <span class="highlight literary-device" data-analysis="novo-insano">novo</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="et">4</span>
-                        <span class="highlight literary-device" data-analysis="novo-insano">et</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="quasi">5</span>
-                        <span class="highlight literary-device" data-analysis="novo-insano">quasi</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="insano">6</span>
-                        <span class="highlight literary-device" data-analysis="novo-insano">insano</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="amore">7</span>
-                        <span class="highlight literary-device" data-analysis="novo-insano">amore</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="incensa-est">2</span>
-                        <span class="highlight key-vocab" data-analysis="incensa">incensa est</span>
-                    </span>. 
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="nam">1</span>
-                        nam
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="in">2</span>
-                        in
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="c-silium">3</span>
-                        <span class="highlight key-vocab" data-analysis="silius">C. Silium</span>
-                    </span>, 
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="iuventutis">5</span>
-                        <span class="highlight literary-device" data-analysis="superlative">iuventutis</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="romanae">6</span>
-                        <span class="highlight literary-device" data-analysis="superlative">Romanae</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="pulcherrimum">4</span>
-                        <span class="highlight literary-device" data-analysis="superlative">pulcherrimum</span>
-                    </span>, 
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="ita">7</span>
-                        ita
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="exarserat">8</span>
-                        <span class="highlight key-vocab" data-analysis="exarserat">exarserat</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="ut">9</span>
-                        ut
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="iuniam">10</span>
-                        <span class="highlight grammar-point" data-analysis="result-clause">Iuniam</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="silanam">11</span>
-                        <span class="highlight grammar-point" data-analysis="result-clause">Silanam</span>
-                    </span>, 
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="nobilem">13</span>
-                        <span class="highlight grammar-point" data-analysis="result-clause">nobilem</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="feminam">12</span>
-                        <span class="highlight grammar-point" data-analysis="result-clause">feminam</span>
-                    </span>, 
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="matrimonio">15</span>
-                        <span class="highlight grammar-point" data-analysis="result-clause">matrimonio</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="eius">14</span>
-                        <span class="highlight grammar-point" data-analysis="result-clause">eius</span>
-                    </span>,
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="exturbaret">16</span>
-                        <span class="highlight grammar-point" data-analysis="result-clause">exturbaret</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="liberoque">17</span>
-                        <span class="highlight literary-device" data-analysis="alliteration">liberoque</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="adultero">18</span>
-                        <span class="highlight literary-device" data-analysis="alliteration">adultero</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="potiretur">19</span>
-                        <span class="highlight literary-device" data-analysis="alliteration">potiretur</span>
-                    </span>. 
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="neque">1</span>
-                        neque
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="silius-nescius">2</span>
-                        <span class="highlight character-analysis" data-analysis="silius-awareness">Silius flagitii aut periculi nescius erat</span>
-                    </span>: 
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="sed">1</span>
-                        sed
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="intellexit">2</span>
-                        <span class="highlight grammar-point" data-analysis="indirect-statement">intellexit</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="exitium">3</span>
-                        <span class="highlight contrast" data-analysis="conditional-contrast">exitium, si abnueret, fore certum</span>
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="et">4</span>
-                        et
-                    </span>, 
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="si-consentiret">5</span>
-                        <span class="highlight contrast" data-analysis="conditional-hope">si consentiret, nonnullam facinoris celandi spem esse</span>
-                    </span>; 
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="simulque">6</span>
-                        simulque
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="se">7</span>
-                        se
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="magna-praemia">8</span>
-                        <span class="highlight key-vocab" data-analysis="rewards">magna praemia accepturum</span>
-                    </span>. 
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="igitur">1</span>
-                        igitur
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="placuit">2</span>
-                        placuit
-                    </span>
-                    <span class="translation-word">
-                        <span class="translation-number" data-vocab="neglegere-futura">3</span>
-                        <span class="highlight literary-device" data-analysis="decision-infinitives">neglegere futura praesentibus frui</span>
-                    </span>.
-                </div>
-                
-                <div class="section-translation blurred" onclick="revealTranslation(this)">
-                    <div class="translation-content">
-                        <strong>Section 1 Translation:</strong> Messalina was inflamed with a new and almost insane love. For she had burned with love for C. Silius, the most handsome of the Roman youth, to such an extent that she drove Junia Silana, a noble woman, from her marriage, and got possession of an unrestricted adulterer.
-                    </div>
-                    <div class="translation-hide-btn">
-                        <button onclick="hideTranslation(event, this.closest('.section-translation'))">Click to hide translation</button>
-                    </div>
-                </div>
-                
-                <div class="navigation">
-                    <a href="section2.html" class="btn btn-latin">Next Section</a>
-                </div>
-            </div>
-            
-            <div class="analysis-panel" id="analysis-panel"></div>
-        </div>
-    </main>
+    "ventitat": {
+        title: "ventitat",
+        translation: '"she visits frequently"',
+        device: "Frequentative Verb",
+        description: "The frequentative form of 'venire' emphasizes repeated, habitual action - this isn't occasional but constant visiting.",
+        effect: "Reinforces the obsessive, compulsive nature of Messalina's behavior and shows how the affair has become a regular, public routine."
+    },
     
-    <script src="data/section1-data.js"></script>
-    <script src="../../../shared/interactive.js"></script>
-</body>
-</html>
+    "egredienti-adhaeret": {
+        title: "egredienti adhaeret",
+        translation: '"clings to him when he goes out"',
+        device: "Present Participle + Vivid Present",
+        description: "The present participle 'egredienti' with the present tense 'adhaeret' creates a vivid, ongoing scene of physical attachment.",
+        effect: "Creates an image of desperate, clingy behavior that's both physically and emotionally possessive, showing Messalina's complete abandonment of imperial dignity."
+    },
+    
+    "dat-opes": {
+        title: "dat opes honoresque",
+        translation: '"gives wealth and honors"',
+        device: "Hendiadys + Asyndeton",
+        description: "'opes honoresque' combines two related concepts (wealth and honors) while the rapid 'dat' shows the speed and generosity of her gifts.",
+        effect: "Shows how Messalina is essentially buying Silius's affection and loyalty, using imperial resources for personal gain, highlighting corruption of power."
+    },
+    
+    "postremo": {
+        title: "postremo",
+        translation: '"finally"',
+        device: "Climactic Adverb",
+        description: "Marks the culmination of the escalating list of Messalina's increasingly bold actions.",
+        effect: "Signals that what follows is the most shocking example yet - the ultimate violation of imperial boundaries."
+    },
+    
+    "imperial-items": {
+        title: "servi, liberti, paratus principis",
+        translation: '"slaves, freedmen, furnishings of the emperor"',
+        device: "Tricolon + Climax",
+        description: "Three-part list building from people (servi, liberti) to objects (paratus), all belonging to the emperor.",
+        effect: "Shows the complete transfer of imperial household to Silius's house - this is essentially moving the imperial court to her lover's residence, the ultimate scandal."
+    },
+    
+    "apud-adulterum": {
+        title: "apud adulterum",
+        translation: '"at the adulterer's house"',
+        device: "Blunt Terminology",
+        description: "Tacitus uses the stark term 'adulterum' rather than Silius's name, reducing him to his role in the scandal.",
+        effect: "The clinical term emphasizes the illegality and immorality of the situation - imperial property being seen at a criminal's house."
+    },
+    
+    "claudius-ignarus": {
+        title: "at Claudius matrimonii sui ignarus",
+        translation: '"but Claudius was unaware of his own marriage"',
+        device: "Dramatic Irony + Pathos",
+        description: "'at' introduces sharp contrast, while 'ignarus' emphasizes Claudius's complete obliviousness to his own situation.",
+        effect: "Creates both dramatic irony (readers know what Claudius doesn't) and pathos for the cuckolded emperor, highlighting his weakness and isolation."
+    },
+    
+    "iam-messalina": {
+        title: "iam Messalina propter facilitate adulteriorum",
+        translation: '"now Messalina because of the easiness of the adulteries"',
+        device: "Temporal Progression + Causal Phrase",
+        description: "'iam' marks a new phase, while 'facilitate' suggests how easy adultery has become for her.",
+        effect: "Shows character development - success in adultery has made her bolder and hungrier for new thrills. The ease of corruption leads to greater corruption."
+    },
+    
+    "novas-libidines": {
+        title: "ad novas libidines versa est",
+        translation: '"turned to new lusts"',
+        device: "Euphemism + Escalation",
+        description: "'novas libidines' is a euphemistic way of describing increasingly perverse sexual behavior, while 'versa est' shows active choice.",
+        effect: "Suggests Messalina is actively seeking more extreme and dangerous pleasures - the affair with Silius is no longer enough to satisfy her."
+    },
+    
+    "fatali-insania": {
+        title: "sive fatali insania",
+        translation: '"whether by fatal madness"',
+        device: "Alliteration + Personification",
+        description: "The 'f' sounds in 'fatali...insania' create alliteration, while 'fatali' suggests destiny or doom.",
+        effect: "Presents Silius's motivation as either divinely ordained madness or calculated risk - either way, it's dangerous and irrational."
+    },
+    
+    "ipsa-pericula": {
+        title: "an ipsa pericula remedium imminentium periculorum ratus",
+        translation: '"or thinking the very dangers were a cure for imminent dangers"',
+        device: "Paradox + Wordplay",
+        description: "'pericula...periculorum' creates a play on words, while the logic that danger cures danger is paradoxical.",
+        effect: "Shows the twisted logic of desperate people - Silius thinks taking bigger risks will somehow solve his dangerous situation."
+    },
+    
+    "abrumpi-dissimulationem": {
+        title: "abrumpi dissimultationem urgebat",
+        translation: '"pressed for the concealment to be broken off"',
+        device: "Military Metaphor",
+        description: "'urgebat' (pressed/pushed) uses military terminology, while 'abrumpi' suggests violent breaking.",
+        effect: "Shows Silius actively pushing for exposure - he wants to bring their secret into the open, which is either brave or suicidal."
+    },
+    
+    "non-exspectandum": {
+        title: "quippe non exspectandum, dum princeps senesceret",
+        translation: '"certainly they should not wait while the emperor grows old"',
+        device: "Urgent Reasoning + Euphemism",
+        description: "'quippe' introduces his reasoning, while 'senesceret' is a euphemism for Claudius dying of old age.",
+        effect: "Reveals the ultimate plan - they're waiting for Claudius to die naturally so they can legitimize their relationship, but Silius thinks this is taking too long."
+    }
+};
