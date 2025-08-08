@@ -4,7 +4,7 @@ const textData = {
         title: "haec inter medios labores urbisque fremitum",
         translation: '"these things among the midst of labours and the city's noise"',
         device: "Juxtaposition",
-        description: "The opening creates a striking contrast between intense scholarly activity and the chaos of urban life, with 'fremitum' evoking Rome's constant background bustle.",
+        description: "The opening creates a striking contrast between intense scholarly activity and the chaos of urban life, with 'fremitum' evoking Rome\\'s constant background bustle.",
         effect: "Establishes the remarkable nature of the uncle's concentration - he could maintain rigorous study even amidst the distractions and demands of city life."
     },
 
@@ -13,7 +13,7 @@ const textData = {
         translation: '"in retreat"',
         device: "Spatial Contrast",
         description: "The ablative 'secessu' creates a stark opposition to the urban chaos just described, suggesting peaceful withdrawal from public life.",
-        effect: "Emphasises the uncle's need for different environments to support different types of scholarly activity - city vs. countryside each had their place."
+        effect: "Emphasises the uncle\\'s need for different environments to support different types of scholarly activity - city vs. countryside each had their place."
     },
 
     "solum": {
@@ -37,7 +37,7 @@ const textData = {
         translation: '"was taken away"',
         device: "Passive Construction",
         description: "The verb 'eximebatur' (was taken away) suggests study was the natural state - anything else constituted an interruption or loss.",
-        effect: "Reinforces the impression that scholarship was the uncle's default mode of existence, with all other activities being temporary departures from this norm."
+        effect: "Reinforces the impression that scholarship was the uncle\\'s default mode of existence, with all other activities being temporary departures from this norm."
     },
 
     "cum-dico": {
@@ -45,7 +45,7 @@ const textData = {
         translation: '"when I say"',
         device: "Parenthetical Clarification",
         description: "Pliny interrupts his narrative to provide technical clarification about bathing terminology.",
-        effect: "Creates scholarly precision whilst showing Pliny's own careful attention to accuracy - a trait he inherited from his uncle."
+        effect: "Creates scholarly precision whilst showing Pliny\\'s own careful attention to accuracy - a trait he inherited from his uncle."
     },
 
     "interioribus": {
@@ -53,7 +53,7 @@ const textData = {
         translation: '"inner rooms"',
         device: "Technical Specification",
         description: "The clarification distinguishes between different parts of the bath complex, showing detailed knowledge of Roman bathing practices.",
-        effect: "Demonstrates both Pliny's precision and the uncle's ability to find scholarly opportunities even in the most private spaces."
+        effect: "Demonstrates both Pliny\\'s precision and the uncle\\'s ability to find scholarly opportunities even in the most private spaces."
     },
 
     "dum": {
@@ -61,7 +61,7 @@ const textData = {
         translation: '"while"',
         device: "Temporal Conjunction",
         description: "Introduces simultaneous actions, showing how the uncle maximised every moment for intellectual activity.",
-        effect: "Emphasises the uncle's skill at multitasking - even personal care became an opportunity for productive work."
+        effect: "Emphasises the uncle\\'s skill at multitasking - even personal care became an opportunity for productive work."
     },
 
     "destringitur-tergitur": {
@@ -84,8 +84,8 @@ const textData = {
         title: "itinere",
         translation: '"on a journey"',
         device: "Spatial Transition",
-        description: "Travel, normally dead time for most Romans, became the uncle's most productive scholarly period.",
-        effect: "Shows how he transformed potential limitations into opportunities, turning travel's constraints into focused study time."
+        description: "Travel, normally dead time for most Romans, became the uncle\\'s most productive scholarly period.",
+        effect: "Shows how he transformed potential limitations into opportunities, turning travel\\'s constraints into focused study time."
     },
 
     "quasi-solutus": {
@@ -93,7 +93,7 @@ const textData = {
         translation: '"as if released"',
         device: "Metaphor",
         description: "The comparison suggests travel freed him from daily obligations like a prisoner released from chains.",
-        effect: "Paradoxically presents travel restrictions as liberation, showing how the uncle's priorities differed from conventional Roman values."
+        effect: "Paradoxically presents travel restrictions as liberation, showing how the uncle\\'s priorities differed from conventional Roman values."
     },
 
     "ceteris-curis": {
@@ -109,7 +109,7 @@ const textData = {
         translation: '"for this alone"',
         device: "Emphatic Isolation",
         description: "The dative construction with 'uni' emphasises exclusive devotion to scholarship during travel.",
-        effect: "Shows the uncle's ability to achieve complete focus by eliminating distractions - travel became pure scholarly opportunity."
+        effect: "Shows the uncle\\'s ability to achieve complete focus by eliminating distractions - travel became pure scholarly opportunity."
     },
 
     "vacabat": {
@@ -117,7 +117,7 @@ const textData = {
         translation: '"he had time for"',
         device: "Verb of Devotion",
         description: "The verb 'vacabat' with dative denotes complete and exclusive dedication to a single pursuit.",
-        effect: "Suggests the uncle didn't just study while travelling - he was entirely devoted to it, as if nothing else existed."
+        effect: "Suggests the uncle didn\\'t just study while travelling - he was entirely devoted to it, as if nothing else existed."
     },
 
     "ad-latus-notarius": {
@@ -125,7 +125,7 @@ const textData = {
         translation: '"at his side a secretary with book and writing tablets"',
         device: "Visual Imagery",
         description: "Creates a detailed picture of the travelling study setup, showing systematic preparation for scholarly work.",
-        effect: "Demonstrates the uncle's methodical approach to maximising learning opportunities - even travel required proper scholarly equipment."
+        effect: "Demonstrates the uncle\\'s methodical approach to maximising learning opportunities - even travel required proper scholarly equipment."
     },
 
     "manus-manicis": {
@@ -133,7 +133,7 @@ const textData = {
         translation: '"hands were protected with mittens in winter"',
         device: "Alliteration",
         description: "The repetition of 'm' sounds (manus, manicis, muniebantur) reinforces the protective, careful effort to preserve writing ability.",
-        effect: "The sound pattern emphasises the meticulous attention to practical details that supported the uncle's scholarly obsession."
+        effect: "The sound pattern emphasises the meticulous attention to practical details that supported the uncle\\'s scholarly obsession."
     },
 
     "ut-ne-quidem": {
@@ -141,7 +141,7 @@ const textData = {
         translation: '"so that not even the harshness of weather might snatch away any study time"',
         device: "Purpose Clause",
         description: "The negative purpose clause with 'ne...quidem' emphasises that even natural forces could not interfere with learning.",
-        effect: "Shows the uncle's determination to overcome any obstacle to scholarship - he fought against nature itself to preserve study time."
+        effect: "Shows the uncle\\'s determination to overcome any obstacle to scholarship - he fought against nature itself to preserve study time."
     },
 
     "qua-ex-causa": {
@@ -149,7 +149,7 @@ const textData = {
         translation: '"for which reason"',
         device: "Causal Phrase",
         description: "This formal transitional phrase justifies what might otherwise seem like eccentric behaviour in using a sedan chair.",
-        effect: "Demonstrates how all the uncle's seemingly unusual choices had rational, scholarly motivations rather than laziness or pretension."
+        effect: "Demonstrates how all the uncle\\'s seemingly unusual choices had rational, scholarly motivations rather than laziness or pretension."
     },
 
     "Romae": {
@@ -165,7 +165,7 @@ const textData = {
         translation: '"also"',
         device: "Emphatic Addition",
         description: "The word emphasises total commitment to learning regardless of location - city and country both demanded maximum efficiency.",
-        effect: "Demonstrates the consistency of the uncle's approach - no situation was exempt from the drive to optimise scholarly activity."
+        effect: "Demonstrates the consistency of the uncle\\'s approach - no situation was exempt from the drive to optimise scholarly activity."
     },
 
     "sella": {
@@ -181,7 +181,7 @@ const textData = {
         translation: '"I recall"',
         device: "Personal Testimony",
         description: "Pliny shifts to direct personal experience, making the account more vivid and credible through eyewitness testimony.",
-        effect: "Adds authenticity whilst showing the reader that these weren't just general habits but specific encounters the author experienced personally."
+        effect: "Adds authenticity whilst showing the reader that these weren\\'t just general habits but specific encounters the author experienced personally."
     },
 
     "correptum": {
@@ -189,7 +189,7 @@ const textData = {
         translation: '"rebuked"',
         device: "Strong Emotion",
         description: "The perfect passive participle suggests sharp, immediate criticism showing how seriously the uncle took lost study time.",
-        effect: "Reveals the uncle's passionate intensity about learning - he couldn't tolerate waste even in his own nephew's behaviour."
+        effect: "Reveals the uncle\\'s passionate intensity about learning - he couldn\\'t tolerate waste even in his own nephew\\'s behaviour."
     },
 
     "ambularem": {
@@ -205,7 +205,7 @@ const textData = {
         translation: '"you could have"',
         device: "Direct Reproach",
         description: "The imperfect of 'posse' in direct speech creates immediate, personal criticism.",
-        effect: "Makes the uncle's voice heard directly, showing his characteristic bluntness when confronting inefficiency."
+        effect: "Makes the uncle\\'s voice heard directly, showing his characteristic bluntness when confronting inefficiency."
     },
 
     "inquit": {
@@ -213,7 +213,7 @@ const textData = {
         translation: '"he said"',
         device: "Speech Introduction",
         description: "The simple verb of speaking introduces direct quotation, making the uncle's personality vivid through his own words.",
-        effect: "Creates immediacy and authenticity by letting the uncle speak for himself rather than through Pliny's paraphrase."
+        effect: "Creates immediacy and authenticity by letting the uncle speak for himself rather than through Pliny\\'s paraphrase."
     },
 
     "has-horas": {
@@ -221,7 +221,7 @@ const textData = {
         translation: '"these hours"',
         device: "Temporal Specificity",
         description: "The demonstrative emphasises the particular time that was lost, making the waste concrete and immediate.",
-        effect: "Shows the uncle's acute awareness of time as a finite resource - every hour had measurable value for scholarly purposes."
+        effect: "Shows the uncle\\'s acute awareness of time as a finite resource - every hour had measurable value for scholarly purposes."
     },
 
     "perdere": {
@@ -229,7 +229,7 @@ const textData = {
         translation: '"to waste"',
         device: "Strong Vocabulary",
         description: "The infinitive 'perdere' suggests complete loss or destruction rather than mere inefficiency.",
-        effect: "Reveals the uncle's view that unproductive time wasn't just neutral but actively harmful - a positive loss rather than mere absence of gain."
+        effect: "Reveals the uncle\\'s view that unproductive time wasn\\'t just neutral but actively harmful - a positive loss rather than mere absence of gain."
     },
 
     "perire-omne-tempus": {
@@ -237,7 +237,7 @@ const textData = {
         translation: '"all time to perish"',
         device: "Metaphor of Death",
         description: "The verb 'perire' (to die/perish) treats wasted time as actual destruction, making inefficiency seem tragic.",
-        effect: "Shows the uncle's philosophical view that time was literally life itself - wasting it was equivalent to dying a little."
+        effect: "Shows the uncle\\'s philosophical view that time was literally life itself - wasting it was equivalent to dying a little."
     },
 
     "arbitrabatur": {
@@ -245,7 +245,7 @@ const textData = {
         translation: '"he used to think"',
         device: "Indirect Statement",
         description: "The deponent verb introduces the uncle's settled conviction about time, showing this was fundamental belief rather than passing opinion.",
-        effect: "Presents the uncle's attitude as reasoned judgement rather than obsessive compulsion - he had philosophical grounds for his behaviour."
+        effect: "Presents the uncle\\'s attitude as reasoned judgement rather than obsessive compulsion - he had philosophical grounds for his behaviour."
     },
 
     "impenderetur": {
@@ -261,6 +261,6 @@ const textData = {
         translation: '"farewell"',
         device: "Epistolary Closure",
         description: "The simple, conventional closing contrasts with the extraordinary behaviour described throughout the letter.",
-        effect: "Returns to normal social conventions after describing highly unconventional scholarly obsession, suggesting Pliny found his uncle's extremism both admirable and somewhat alien."
+        effect: "Returns to normal social conventions after describing highly unconventional scholarly obsession, suggesting Pliny found his uncle\\'s extremism both admirable and somewhat alien."
     }
 };
