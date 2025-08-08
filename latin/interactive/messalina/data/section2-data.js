@@ -50,7 +50,7 @@ const textData = {
     
     "apud-adulterum": {
         title: "apud adulterum",
-        translation: '"at the adulterer's house"',
+        translation: '"at the adulterer\'s house"',
         device: "Blunt Terminology",
         description: "Tacitus uses the stark term 'adulterum' rather than Silius's name, reducing him to his role in the scandal.",
         effect: "The clinical term emphasizes the illegality and immorality of the situation - imperial property being seen at a criminal's house."
