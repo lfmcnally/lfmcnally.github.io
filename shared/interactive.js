@@ -1,38 +1,57 @@
 // Interactive analysis functionality for all texts
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing interactive features...');
-    // Add a small delay to ensure all scripts have loaded
     setTimeout(() => {
         positionNumbers();
         initializeInteractiveFeatures();
     }, 100);
 });
 
-// Position numbers relative to latin-text container
+// IMPROVED: Position numbers with baseline alignment
 function positionNumbers() {
     const latinText = document.querySelector('.latin-text');
     if (!latinText) return;
     
-    const latinTextRect = latinText.getBoundingClientRect();
     const numbers = document.querySelectorAll('.number');
+    const lines = new Map();
     
+    // First pass: group numbers by their text line
     numbers.forEach(number => {
         const wordContainer = number.closest('.word-container');
         if (!wordContainer) return;
         
         const wordRect = wordContainer.getBoundingClientRect();
+        // Round to nearest 50px to group by lines (adjust this value as needed)
+        const lineKey = Math.round(wordRect.top / 50) * 50;
         
-        // Position number above the word, relative to the latin-text container
-        const leftPosition = wordRect.left + (wordRect.width / 2) - (number.offsetWidth / 2);
-        const topPosition = wordRect.top - 25; // 25px above the word
+        if (!lines.has(lineKey)) {
+            lines.set(lineKey, []);
+        }
         
-        number.style.left = leftPosition + 'px';
-        number.style.top = topPosition + 'px';
+        lines.get(lineKey).push({
+            number: number,
+            wordRect: wordRect,
+            wordContainer: wordContainer
+        });
+    });
+    
+    // Second pass: position all numbers in each line at consistent height
+    lines.forEach((lineItems, lineKey) => {
+        // Find the consistent top position for this line
+        const baselineTop = lineKey - 30; // 30px above the line
+        
+        lineItems.forEach(({number, wordRect}) => {
+            const leftPosition = wordRect.left + (wordRect.width / 2) - (number.offsetWidth / 2);
+            
+            number.style.left = leftPosition + 'px';
+            number.style.top = baselineTop + 'px';
+        });
     });
 }
 
-// Call positioning function on window resize
+// Call positioning function on window resize and scroll
 window.addEventListener('resize', positionNumbers);
+window.addEventListener('scroll', positionNumbers);
 
 function initializeInteractiveFeatures() {
     console.log('Initializing interactive features...');
@@ -46,7 +65,7 @@ function initializeInteractiveFeatures() {
     // Handle style analysis highlights
     highlights.forEach(highlight => {
         highlight.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent bubbling to number
+            e.stopPropagation();
             console.log('Highlight clicked:', this.dataset.analysis);
             
             const analysisId = this.dataset.analysis;
@@ -57,7 +76,7 @@ function initializeInteractiveFeatures() {
     // Handle vocabulary numbers
     numbers.forEach(number => {
         number.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent bubbling
+            e.stopPropagation();
             console.log('Number clicked:', this.dataset.vocab);
             
             const vocabId = this.dataset.vocab;
@@ -84,7 +103,10 @@ function showStyleAnalysis(analysisId) {
     document.querySelectorAll('.number').forEach(n => n.classList.remove('active'));
     
     // Add active class to clicked highlight
-    document.querySelector(`[data-analysis="${analysisId}"]`).classList.add('active');
+    const clickedElement = document.querySelector(`[data-analysis="${analysisId}"]`);
+    if (clickedElement) {
+        clickedElement.classList.add('active');
+    }
     
     // Hide all analysis content
     const analysisContents = document.querySelectorAll('.analysis-content');
@@ -117,7 +139,10 @@ function showVocabulary(vocabId) {
     document.querySelectorAll('.number').forEach(n => n.classList.remove('active'));
     
     // Add active class to clicked number
-    document.querySelector(`[data-vocab="${vocabId}"]`).classList.add('active');
+    const clickedNumber = document.querySelector(`[data-vocab="${vocabId}"]`);
+    if (clickedNumber) {
+        clickedNumber.classList.add('active');
+    }
     
     // Hide all analysis content
     const analysisContents = document.querySelectorAll('.analysis-content');
@@ -222,13 +247,12 @@ function revealTranslation(element) {
         content.style.filter = 'none';
         content.style.userSelect = 'auto';
     }
-    // Remove the click handler to prevent re-clicking the background
     element.onclick = null;
 }
 
 // Function to hide translation
 function hideTranslation(event, element) {
-    event.stopPropagation(); // Prevent event bubbling
+    event.stopPropagation();
     console.log('Hiding translation...');
     element.classList.add('blurred');
     const content = element.querySelector('.translation-content');
@@ -236,6 +260,5 @@ function hideTranslation(event, element) {
         content.style.filter = 'blur(3px)';
         content.style.userSelect = 'none';
     }
-    // Restore the click handler
     element.onclick = function() { revealTranslation(element); };
 }
