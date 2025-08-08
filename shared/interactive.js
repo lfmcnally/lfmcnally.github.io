@@ -9,48 +9,112 @@ function initializeInteractiveFeatures() {
     console.log('Initializing interactive features...');
     
     const highlights = document.querySelectorAll('.highlight');
-    console.log('Found highlights:', highlights.length);
+    const translationNumbers = document.querySelectorAll('.translation-number');
     
+    console.log('Found highlights:', highlights.length);
+    console.log('Found translation numbers:', translationNumbers.length);
+    
+    // Handle style analysis highlights
     highlights.forEach(highlight => {
         highlight.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent bubbling to translation number
             console.log('Highlight clicked:', this.dataset.analysis);
             
             const analysisId = this.dataset.analysis;
+            showStyleAnalysis(analysisId);
+        });
+    });
+    
+    // Handle vocabulary translation numbers
+    translationNumbers.forEach(number => {
+        number.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent bubbling
+            console.log('Translation number clicked:', this.dataset.vocab);
             
-            // Show the analysis panel
-            const panel = document.getElementById('analysis-panel');
-            if (panel) {
-                panel.style.display = 'block';
-                console.log('Panel shown');
-            } else {
-                console.error('Panel not found');
-            }
-            
-            // Remove active class from all highlights
-            highlights.forEach(h => h.classList.remove('active'));
-            
-            // Add active class to clicked highlight
-            this.classList.add('active');
-            
-            // Hide all analysis content
-            const analysisContents = document.querySelectorAll('.analysis-content');
-            analysisContents.forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // Show selected analysis
-            const targetAnalysis = document.getElementById(analysisId);
-            if (targetAnalysis) {
-                targetAnalysis.classList.add('active');
-                console.log('Showing analysis for:', analysisId);
-            } else {
-                console.error('Analysis not found for:', analysisId);
-            }
+            const vocabId = this.dataset.vocab;
+            showVocabulary(vocabId);
         });
     });
     
     // Load analysis data and create HTML
     loadAnalysisData();
+}
+
+function showStyleAnalysis(analysisId) {
+    const panel = document.getElementById('analysis-panel');
+    if (!panel) {
+        console.error('Panel not found');
+        return;
+    }
+    
+    // Show the analysis panel
+    panel.style.display = 'block';
+    
+    // Remove active class from all highlights and numbers
+    document.querySelectorAll('.highlight').forEach(h => h.classList.remove('active'));
+    document.querySelectorAll('.translation-number').forEach(n => n.classList.remove('active'));
+    
+    // Add active class to clicked highlight
+    document.querySelector(`[data-analysis="${analysisId}"]`).classList.add('active');
+    
+    // Hide all analysis content
+    const analysisContents = document.querySelectorAll('.analysis-content');
+    analysisContents.forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Show selected analysis
+    const targetAnalysis = document.getElementById(analysisId);
+    if (targetAnalysis) {
+        targetAnalysis.classList.add('active');
+        console.log('Showing style analysis for:', analysisId);
+    } else {
+        console.error('Analysis not found for:', analysisId);
+    }
+}
+
+function showVocabulary(vocabId) {
+    const panel = document.getElementById('analysis-panel');
+    if (!panel) {
+        console.error('Panel not found');
+        return;
+    }
+    
+    // Show the analysis panel
+    panel.style.display = 'block';
+    
+    // Remove active class from all highlights and numbers
+    document.querySelectorAll('.highlight').forEach(h => h.classList.remove('active'));
+    document.querySelectorAll('.translation-number').forEach(n => n.classList.remove('active'));
+    
+    // Add active class to clicked number
+    document.querySelector(`[data-vocab="${vocabId}"]`).classList.add('active');
+    
+    // Hide all analysis content
+    const analysisContents = document.querySelectorAll('.analysis-content');
+    analysisContents.forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Show vocabulary
+    const vocabContent = document.getElementById('vocab-content');
+    if (vocabContent) {
+        vocabContent.classList.add('active');
+        
+        // Update vocabulary content
+        const vocabTitle = document.getElementById('vocab-title');
+        const vocabTranslation = document.getElementById('vocab-translation');
+        
+        if (typeof vocabData !== 'undefined' && vocabData[vocabId]) {
+            vocabTitle.textContent = vocabId.replace(/-/g, ' ');
+            vocabTranslation.textContent = vocabData[vocabId];
+        } else {
+            vocabTitle.textContent = 'Vocabulary';
+            vocabTranslation.textContent = 'Definition not found';
+        }
+        
+        console.log('Showing vocabulary for:', vocabId);
+    }
 }
 
 function loadAnalysisData() {
@@ -87,16 +151,23 @@ function loadAnalysisData() {
     
     // Create default message
     let html = '<div class="analysis-content active" id="default-message">';
-    html += '<div class="analysis-title">Click on highlighted text</div>';
-    html += '<p>Select any highlighted word or phrase in the Latin text to see detailed analysis including:</p>';
-    html += '<ul><li>English translation</li><li>Literary devices</li><li>Grammatical points</li><li>Literary effects</li></ul>';
+    html += '<div class="analysis-title">Click on highlighted text or numbers</div>';
+    html += '<p>Select any highlighted word or phrase for literary analysis, or click numbers above words for vocabulary.</p>';
+    html += '</div>';
+    
+    // Create vocabulary content container
+    html += '<div class="analysis-content" id="vocab-content">';
+    html += '<div class="analysis-title">Vocabulary</div>';
+    html += '<div class="vocab-word" id="vocab-title"></div>';
+    html += '<div class="vocab-meaning" id="vocab-translation"></div>';
     html += '</div>';
     
     // Add all analysis items
     for (const id in sectionData) {
         const data = sectionData[id];
         html += '<div class="analysis-content" id="' + id + '">';
-        html += '<div class="analysis-title">' + data.title + '</div>';
+        html += '<div class="analysis-title">Literary Analysis</div>';
+        html += '<div class="analysis-word">' + data.title + '</div>';
         html += '<div class="analysis-translation">' + data.translation + '</div>';
         html += '<div class="analysis-device">';
         html += '<div class="device-name">' + data.device + '</div>';
