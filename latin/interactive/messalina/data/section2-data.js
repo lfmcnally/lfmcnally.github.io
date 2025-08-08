@@ -97,7 +97,7 @@ const textData = {
     },
     
     "abrumpi-dissimulationem": {
-        title: "abrumpi dissimultationem urgebat",
+        title: "abrumpi dissimulationem urgebat",
         translation: '"pressed for the concealment to be broken off"',
         device: "Military Metaphor",
         description: "'urgebat' (pressed/pushed) uses military terminology, while 'abrumpi' suggests violent breaking.",
