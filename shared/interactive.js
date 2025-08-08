@@ -9,15 +9,15 @@ function initializeInteractiveFeatures() {
     console.log('Initializing interactive features...');
     
     const highlights = document.querySelectorAll('.highlight');
-    const translationNumbers = document.querySelectorAll('.translation-number');
+    const numbers = document.querySelectorAll('.number'); // Changed from .translation-number
     
     console.log('Found highlights:', highlights.length);
-    console.log('Found translation numbers:', translationNumbers.length);
+    console.log('Found numbers:', numbers.length);
     
     // Handle style analysis highlights
     highlights.forEach(highlight => {
         highlight.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent bubbling to translation number
+            e.stopPropagation(); // Prevent bubbling to number
             console.log('Highlight clicked:', this.dataset.analysis);
             
             const analysisId = this.dataset.analysis;
@@ -25,11 +25,11 @@ function initializeInteractiveFeatures() {
         });
     });
     
-    // Handle vocabulary translation numbers
-    translationNumbers.forEach(number => {
+    // Handle vocabulary numbers
+    numbers.forEach(number => {
         number.addEventListener('click', function(e) {
             e.stopPropagation(); // Prevent bubbling
-            console.log('Translation number clicked:', this.dataset.vocab);
+            console.log('Number clicked:', this.dataset.vocab);
             
             const vocabId = this.dataset.vocab;
             showVocabulary(vocabId);
@@ -52,7 +52,7 @@ function showStyleAnalysis(analysisId) {
     
     // Remove active class from all highlights and numbers
     document.querySelectorAll('.highlight').forEach(h => h.classList.remove('active'));
-    document.querySelectorAll('.translation-number').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.number').forEach(n => n.classList.remove('active')); // Changed from .translation-number
     
     // Add active class to clicked highlight
     document.querySelector(`[data-analysis="${analysisId}"]`).classList.add('active');
@@ -85,7 +85,7 @@ function showVocabulary(vocabId) {
     
     // Remove active class from all highlights and numbers
     document.querySelectorAll('.highlight').forEach(h => h.classList.remove('active'));
-    document.querySelectorAll('.translation-number').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.number').forEach(n => n.classList.remove('active')); // Changed from .translation-number
     
     // Add active class to clicked number
     document.querySelector(`[data-vocab="${vocabId}"]`).classList.add('active');
