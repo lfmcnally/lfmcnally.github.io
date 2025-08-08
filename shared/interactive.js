@@ -2,14 +2,43 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing interactive features...');
     // Add a small delay to ensure all scripts have loaded
-    setTimeout(initializeInteractiveFeatures, 100);
+    setTimeout(() => {
+        positionNumbers();
+        initializeInteractiveFeatures();
+    }, 100);
 });
+
+// Position numbers relative to latin-text container
+function positionNumbers() {
+    const latinText = document.querySelector('.latin-text');
+    if (!latinText) return;
+    
+    const latinTextRect = latinText.getBoundingClientRect();
+    const numbers = document.querySelectorAll('.number');
+    
+    numbers.forEach(number => {
+        const wordContainer = number.closest('.word-container');
+        if (!wordContainer) return;
+        
+        const wordRect = wordContainer.getBoundingClientRect();
+        
+        // Position number above the word, relative to the latin-text container
+        const leftPosition = wordRect.left + (wordRect.width / 2) - (number.offsetWidth / 2);
+        const topPosition = wordRect.top - 25; // 25px above the word
+        
+        number.style.left = leftPosition + 'px';
+        number.style.top = topPosition + 'px';
+    });
+}
+
+// Call positioning function on window resize
+window.addEventListener('resize', positionNumbers);
 
 function initializeInteractiveFeatures() {
     console.log('Initializing interactive features...');
     
     const highlights = document.querySelectorAll('.highlight');
-    const numbers = document.querySelectorAll('.number'); // Changed from .translation-number
+    const numbers = document.querySelectorAll('.number');
     
     console.log('Found highlights:', highlights.length);
     console.log('Found numbers:', numbers.length);
@@ -52,7 +81,7 @@ function showStyleAnalysis(analysisId) {
     
     // Remove active class from all highlights and numbers
     document.querySelectorAll('.highlight').forEach(h => h.classList.remove('active'));
-    document.querySelectorAll('.number').forEach(n => n.classList.remove('active')); // Changed from .translation-number
+    document.querySelectorAll('.number').forEach(n => n.classList.remove('active'));
     
     // Add active class to clicked highlight
     document.querySelector(`[data-analysis="${analysisId}"]`).classList.add('active');
@@ -85,7 +114,7 @@ function showVocabulary(vocabId) {
     
     // Remove active class from all highlights and numbers
     document.querySelectorAll('.highlight').forEach(h => h.classList.remove('active'));
-    document.querySelectorAll('.number').forEach(n => n.classList.remove('active')); // Changed from .translation-number
+    document.querySelectorAll('.number').forEach(n => n.classList.remove('active'));
     
     // Add active class to clicked number
     document.querySelector(`[data-vocab="${vocabId}"]`).classList.add('active');
