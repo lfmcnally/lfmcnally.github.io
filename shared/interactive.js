@@ -2,56 +2,19 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded, initializing interactive features...');
     setTimeout(() => {
-        positionNumbers();
         initializeInteractiveFeatures();
     }, 100);
 });
 
-// IMPROVED: Position numbers with baseline alignment
+// Simplified positioning - numbers now position themselves via CSS
 function positionNumbers() {
-    const latinText = document.querySelector('.latin-text');
-    if (!latinText) return;
-    
-    const numbers = document.querySelectorAll('.number');
-    const lines = new Map();
-    
-    // First pass: group numbers by their text line
-    numbers.forEach(number => {
-        const wordContainer = number.closest('.word-container');
-        if (!wordContainer) return;
-        
-        const wordRect = wordContainer.getBoundingClientRect();
-        // Round to nearest 50px to group by lines (adjust this value as needed)
-        const lineKey = Math.round(wordRect.top / 50) * 50;
-        
-        if (!lines.has(lineKey)) {
-            lines.set(lineKey, []);
-        }
-        
-        lines.get(lineKey).push({
-            number: number,
-            wordRect: wordRect,
-            wordContainer: wordContainer
-        });
-    });
-    
-    // Second pass: position all numbers in each line at consistent height
-    lines.forEach((lineItems, lineKey) => {
-        // Find the consistent top position for this line
-        const baselineTop = lineKey - 30; // 30px above the line
-        
-        lineItems.forEach(({number, wordRect}) => {
-            const leftPosition = wordRect.left + (wordRect.width / 2) - (number.offsetWidth / 2);
-            
-            number.style.left = leftPosition + 'px';
-            number.style.top = baselineTop + 'px';
-        });
-    });
+    // Numbers now position themselves via CSS - no JavaScript needed
+    console.log('Numbers positioned via CSS');
 }
 
-// Call positioning function on window resize and scroll
-window.addEventListener('resize', positionNumbers);
-window.addEventListener('scroll', positionNumbers);
+// No need for resize/scroll listeners since CSS handles positioning
+// window.addEventListener('resize', positionNumbers);
+// window.addEventListener('scroll', positionNumbers);
 
 function initializeInteractiveFeatures() {
     console.log('Initializing interactive features...');
