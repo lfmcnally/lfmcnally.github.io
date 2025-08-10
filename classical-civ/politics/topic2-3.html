@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2.3 Sulla's Dictatorship - Classicalia</title>
+    <link rel="stylesheet" href="../../shared/styles.css">
+    <link rel="stylesheet" href="styles/politics-base.css">
+    <link rel="stylesheet" href="styles/interactive-elements.css">
+    <link rel="stylesheet" href="styles/components.css">
+    
+    <style>
+        /* Proscription List Interactive */
+        .proscription-simulator {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+            position: relative;
+        }
+        
+        .proscription-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+        
+        .proscription-scroll {
+            background: #ffffff;
+            color: #2c3e50;
+            border-radius: 6px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border: 2px solid #dc3545;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .proscription-scroll::before {
+            content: '📜';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #dc3545;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .proscribed-name {
+            cursor: pointer;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            border-left: 4px solid #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+        
+        .proscribed-name:hover {
+            background: rgba(220, 53, 69, 0.2);
+            transform: translateX(5px);
+        }
+        
+        .proscribed-name.revealed {
+            background: rgba(220, 53, 69, 0.25);
+            border-left-color: #c82333;
+        }
+        
+        .victim-details {
+            display: none;
+            background: #f8f9fa;
+            padding: 1rem;
+            margin-top: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            border-left: 3px solid #dc3545;
+        }
+        
+        .victim-details.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Civil War Timeline */
+        .civil-war-timeline {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .timeline-path {
+            position: relative;
+            margin: 2rem 0;
+        }
+        
+        .timeline-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #dc3545;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+        
+        .timeline-battle {
+            position: relative;
+            margin: 3rem 0;
+            cursor: pointer;
+            z-index: 2;
+        }
+        
+        .timeline-battle:nth-child(even) .battle-card {
+            margin-left: 55%;
+        }
+        
+        .timeline-battle:nth-child(odd) .battle-card {
+            margin-right: 55%;
+        }
+        
+        .battle-card {
+            background: #ffffff;
+            color: #2c3e50;
+            padding: 1.5rem;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .battle-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            border-color: #dc3545;
+        }
+        
+        .battle-marker {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border: 3px solid #dc3545;
+            border-radius: 50%;
+            z-index: 3;
+        }
+        
+        .battle-details {
+            display: none;
+            background: #f8f9fa;
+            color: #2c3e50;
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            border: 1px solid #e9ecef;
+        }
+        
+        .battle-details.active {
+            display: block;
+            animation: slideIn 0.4s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Constitutional Reform Tracker */
+        .reform-tracker {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .reform-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .reform-category {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .reform-category:hover {
+            border-color: #007bff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .reform-category.active {
+            border-color: #007bff;
+            background: #e3f2fd;
+        }
+        
+        .reform-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            display: block;
+            color: #007bff;
+        }
+        
+        .reform-details {
+            display: none;
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            border: 1px solid #e9ecef;
+        }
+        
+        .reform-details.active {
+            display: block;
+            animation: expandIn 0.4s ease;
+        }
+        
+        @keyframes expandIn {
+            from { opacity: 0; max-height: 0; }
+            to { opacity: 1; max-height: 500px; }
+        }
+        
+        /* Dictatorship Comparison */
+        .dictator-comparison {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .dictator-profile {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .dictator-profile:hover {
+            border-color: #6f42c1;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .profile-image {
+            width: 60px;
+            height: 60px;
+            background: #e9ecef;
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #6f42c1;
+        }
+        
+        /* Showcase headers */
+        .showcase-header {
+            color: #2c3e50;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .timeline-battle:nth-child(even) .battle-card,
+            .timeline-battle:nth-child(odd) .battle-card {
+                margin: 0;
+            }
+            
+            .timeline-line {
+                left: 30px;
+            }
+            
+            .battle-marker {
+                left: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Global Info Button -->
+    <button onclick="showInfoModal()" class="global-info-btn">ℹ️</button>
+
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <a href="../../index.html" style="text-decoration: none; color: inherit;">Classicalia</a>
+            </div>
+            <div class="author">by Lawrence McNally</div>
+            <div class="subtitle">Politics of the Late Republic - Topic 2.3</div>
+            
+            <div class="page-nav">
+                <a href="../../index.html" class="nav-link">← Back to Home</a>
+                <a href="../index.html" class="nav-link">← Classical Civilisation</a>
+                <a href="topic2.html" class="nav-link">← Topic 2 Overview</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="info-card-container">
+        <div class="color-legend">
+            <div class="legend-title">How to use: Click on highlighted terms for definitions, figures for biographical information, or concepts for detailed explanations. Explore the interactive elements to understand how Sulla's dictatorship transformed the Roman Republic.</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #fff3cd; border-color: #ffeaa7;"></div>
+                    <span>Key Terms</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #d1ecf1; border-color: #bee5eb;"></div>
+                    <span>Historical Figures</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: #d4edda; border-color: #c3e6cb;"></div>
+                    <span>Key Concepts</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <main>
+        <div class="topic-container">
+            <div class="content-panel">
+                <h1 class="topic-title">2.3 Sulla's Dictatorship</h1>
+                
+                <div class="section-intro">
+                    <h3>Learning Objectives</h3>
+                    <p>By the end of this section, you will understand how <span class="key-figure" data-info="sulla">Lucius Cornelius Sulla</span> used military force to seize control of Rome, established the precedent for <span class="key-concept" data-concept="proscriptions">proscriptions</span> and systematic political murder, implemented constitutional reforms as <span class="key-term" data-definition="dictator-rei-publicae">dictator rei publicae constituendae</span>, and why his voluntary abdication failed to restore Republican stability.</p>
+                </div>
+
+                <!-- Background and Rise -->
+                <div class="content-section">
+                    <h3>The Patrician Revolutionary</h3>
+                    
+                    <p>The career of <span class="key-figure" data-info="sulla">Lucius Cornelius Sulla</span> marked the definitive end of the Roman Republic as a constitutional system. Born into patrician nobility but lacking early wealth or influence, Sulla's rise combined traditional aristocratic values with revolutionary methods that would destroy the very institutions he claimed to defend.</p>
+
+                    <p>Sulla first gained recognition serving under <span class="key-figure" data-info="marius">Marius</span> during the <span class="key-term" data-definition="jugurthine-war">Jugurthine War</span>, where his diplomatic skills secured <span class="key-figure" data-info="jugurtha">Jugurtha's</span> capture. This achievement became a source of lasting tension with Marius, as Sulla claimed primary credit for ending the war that had made Marius famous.</p>
+
+                    <p>During the <span class="key-term" data-definition="social-war">Social War</span> (91-88 BC), when Rome's Italian allies rebelled to demand citizenship, Sulla distinguished himself as a military commander and built his political profile. His election as consul in 88 BC came with the prestigious <span class="key-term" data-definition="mithridatic-command">Mithridatic command</span>—the expected leadership of Rome's campaign against the eastern king <span class="key-figure" data-info="mithridates">Mithridates VI of Pontus</span>.</p>
+
+                    <p>However, the radical tribune <span class="key-figure" data-info="sulpicius">Publius Sulpicius Rufus</span> proposed transferring this command to Marius, using popular assemblies to override senatorial authority. This humiliation would drive Sulla to take the most fateful decision in Republican history.</p>
+                </div>
+
+                <!-- Civil War Timeline -->
+                <div class="civil-war-timeline">
+                    <div class="showcase-header">
+                        ⚔️ The Sullan Civil Wars: Rome Tears Itself Apart (88-82 BC)
+                    </div>
+                    <p style="text-align: center; margin-bottom: 2rem; color: #2c3e50;">Click on any battle to explore the escalating violence that destroyed Republican traditions and established military force as the arbiter of political power.</p>
+                    
+                    <div class="timeline-path">
+                        <div class="timeline-line"></div>
+                        
+                        <div class="timeline-battle" onclick="showBattle('first-march')">
+                            <div class="battle-marker"></div>
+                            <div class="battle-card">
+                                <h4>First March on Rome (88 BC)</h4>
+                                <p><strong>Sulla breaks the ultimate taboo</strong></p>
+                                <p>First time a Roman general leads legions against Rome itself</p>
+                                <div class="battle-details" id="battle-first-march">
+                                    <h5>The Unthinkable Becomes Reality</h5>
+                                    <p>Sulla's march on Rome with six legions shattered the most sacred principle of Republican government—that armies existed to defend the state, not threaten it. His violation of the <span class="key-term" data-definition="pomerium">pomerium</span> (the sacred boundary of Rome) with armed troops was an act of religious sacrilege as well as political revolution.</p>
+                                    <p>The march succeeded because resistance collapsed. Most senators fled the city, Marius lacked military forces in Rome, and urban citizens could not oppose disciplined legions. Sulla's propaganda portrayed him as defending legitimate senatorial authority against illegal popular legislation.</p>
+                                    <p><strong>Casualties:</strong> Minimal military resistance, but enormous constitutional damage</p>
+                                    <p><strong>Consequences:</strong> Established precedent that military force could override civilian authority; Marius and Sulpicius declared enemies of the state</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-battle" onclick="showBattle('marian-return')">
+                            <div class="battle-marker"></div>
+                            <div class="battle-card">
+                                <h4>Marian Counter-Revolution (87 BC)</h4>
+                                <p><strong>Violence begets violence</strong></p>
+                                <p>Marius and Cinna seize Rome in Sulla's absence</p>
+                                <div class="battle-details" id="battle-marian-return">
+                                    <h5>Terror Comes to Rome</h5>
+                                    <p>While Sulla campaigned against Mithridates, <span class="key-figure" data-info="marius">Marius</span> allied with consul <span class="key-figure" data-info="cinna">Lucius Cornelius Cinna</span> to retake Rome. Their forces included veteran soldiers, freed slaves, and Italian allies who had supported Sulpicius's citizenship legislation.</p>
+                                    <p>The siege of Rome revealed new horrors of civil conflict. Marius's army combined desperation with ruthless determination, and when the city fell, systematic massacres targeted Sulla's supporters and conservative senators.</p>
+                                    <p>Marius's brief seventh consulship (86 BC) was marked by proscription lists—the first systematic political murders in Roman history. Though Marius died early in 86 BC, <span class="key-figure" data-info="cinna">Cinna</span> continued the reign of terror.</p>
+                                    <p><strong>Casualties:</strong> Hundreds of senators and equestrians executed</p>
+                                    <p><strong>Consequences:</strong> Established precedent for proscriptions; demonstrated that political defeat meant death</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-battle" onclick="showBattle('brundisium')">
+                            <div class="battle-marker"></div>
+                            <div class="battle-card">
+                                <h4>Landing at Brundisium (83 BC)</h4>
+                                <p><strong>Sulla returns for revenge</strong></p>
+                                <p>Five veteran legions land in southern Italy</p>
+                                <div class="battle-details" id="battle-brundisium">
+                                    <h5>The Avenger Returns</h5>
+                                    <p>Having concluded peace with Mithridates (though not a complete victory), Sulla returned to Italy with five battle-hardened legions and a burning desire for vengeance. His landing at <span class="key-term" data-definition="brundisium">Brundisium</span> in spring 83 BC marked the beginning of the final phase of civil war.</p>
+                                    <p>Sulla's army was smaller than the forces opposing him, but his veterans were disciplined professionals who had campaigned together for years. More importantly, prominent Romans began joining his cause, including the young <span class="key-figure" data-info="pompey">Pompey</span> who raised three legions in Picenum.</p>
+                                    <p>The psychological impact was enormous. Sulla represented legitimacy and order to those exhausted by years of Marian-Cinnan chaos. His promise of constitutional restoration attracted moderates who had initially opposed him.</p>
+                                    <p><strong>Forces:</strong> 5 legions initially, growing to 23 legions with allied support</p>
+                                    <p><strong>Consequences:</strong> Triggered mass defections from Marian forces; restored Sullan faction's credibility</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-battle" onclick="showBattle('sacriportus')">
+                            <div class="battle-marker"></div>
+                            <div class="battle-card">
+                                <h4>Battle of Sacriportus (82 BC)</h4>
+                                <p><strong>Marian resistance crumbles</strong></p>
+                                <p>Decisive defeat of consul Marius the Younger</p>
+                                <div class="battle-details" id="battle-sacriportus">
+                                    <h5>The End of Marian Dreams</h5>
+                                    <p>At <span class="key-term" data-definition="sacriportus">Sacriportus</span>, near Signia, Sulla faced the army of <span class="key-figure" data-info="marius-the-younger">Gaius Marius the Younger</span> (son of the great Marius). The battle demonstrated the superior discipline and experience of Sulla's eastern veterans.</p>
+                                    <p>The defeat was catastrophic for the Marian cause. Young Marius fled to Praeneste where he was besieged, and much of his army defected to Sulla. The victory opened the path to Rome and broke Marian morale across Italy.</p>
+                                    <p>Sulla's clemency toward defeated enemies in this phase contrasted sharply with his later brutality, suggesting his reign of terror was calculated policy rather than uncontrolled vengeance.</p>
+                                    <p><strong>Casualties:</strong> Thousands of Marian soldiers killed or captured</p>
+                                    <p><strong>Consequences:</strong> Collapse of main Marian army; siege of Praeneste begins</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-battle" onclick="showBattle('colline-gate')">
+                            <div class="battle-marker"></div>
+                            <div class="battle-card">
+                                <h4>Battle of the Colline Gate (82 BC)</h4>
+                                <p><strong>The final reckoning</strong></p>
+                                <p>Sulla's ultimate victory outside Rome's walls</p>
+                                <div class="battle-details" id="battle-colline-gate">
+                                    <h5>Democracy Dies at Rome's Gates</h5>
+                                    <p>The decisive battle occurred just outside Rome at the <span class="key-term" data-definition="colline-gate">Colline Gate</span>, where Sulla faced the last desperate Marian army led by <span class="key-figure" data-info="pontius-telesinus">Pontius Telesinus</span> and the Samnites—Rome's ancient Italian enemies who saw this as their final chance to destroy the city.</p>
+                                    <p>The battle was ferocious and nearly lost. Sulla's left wing collapsed, and he personally led charges to prevent complete defeat. Only the discipline of his veteran right wing, commanded by <span class="key-figure" data-info="crassus">Marcus Licinius Crassus</span>, secured victory as darkness fell.</p>
+                                    <p>The aftermath was horrific. Sulla ordered the systematic massacre of prisoners, and the sounds of mass execution in the nearby Villa Publica were audible to senators meeting in the Temple of Bellona. When senators asked about the noise, Sulla replied: "Pay no attention—it's just some criminals being punished."</p>
+                                    <p><strong>Casualties:</strong> 50,000+ killed in battle and subsequent massacres</p>
+                                    <p><strong>Consequences:</strong> End of organised resistance; beginning of Sulla's reign of terror</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Proscription Simulator -->
+                <div class="proscription-simulator">
+                    <div class="proscription-header">
+                        <h3>📜 The Proscription Lists: State-Sanctioned Murder</h3>
+                        <p>Sulla's proscriptions were the first systematic political purges in Roman history. Click on names below to discover the fates of those condemned to death without trial.</p>
+                    </div>
+                    
+                    <div class="proscription-scroll">
+                        <h4 style="text-align: center; margin-bottom: 1rem;">PROSCRIPTI - ENEMIES OF THE PEOPLE</h4>
+                        <p style="text-align: center; font-style: italic; margin-bottom: 1.5rem;">"These men are condemned. Any citizen may kill them for reward. Their property is forfeit to the state."</p>
+                        
+                        <div class="proscribed-name" onclick="revealVictim('pontius-telesinus')">
+                            <strong>Pontius Telesinus</strong> - Samnite General
+                            <div class="victim-details" id="victim-pontius-telesinus">
+                                <p><strong>Crime:</strong> Leading Samnite forces against Rome at Colline Gate</p>
+                                <p><strong>Fate:</strong> Killed in battle, head displayed in Forum as warning to other Italian rebels</p>
+                                <p><strong>Significance:</strong> Represented last hope of non-Roman Italy to destroy Rome; his death ended centuries of Italian resistance</p>
+                            </div>
+                        </div>
+                        
+                        <div class="proscribed-name" onclick="revealVictim('sertorius')">
+                            <strong>Quintus Sertorius</strong> - Marian General
+                            <div class="victim-details" id="victim-sertorius">
+                                <p><strong>Crime:</strong> Continuing resistance to Sulla in Spain</p>
+                                <p><strong>Fate:</strong> Escaped to Spain, established independent state, assassinated by his own lieutenant in 72 BC</p>
+                                <p><strong>Significance:</strong> Proved that talented generals could create rival Roman states in the provinces</p>
+                            </div>
+                        </div>
+                        
+                        <div class="proscribed-name" onclick="revealVictim('marius-gratidianus')">
+                            <strong>Marcus Marius Gratidianus</strong> - Marius's Nephew
+                            <div class="victim-details" id="victim-marius-gratidianus">
+                                <p><strong>Crime:</strong> Kinship with Marius and popular economic policies</p>
+                                <p><strong>Fate:</strong> Tortured and mutilated by Catilina at the tomb of Lutatius Catulus, whom Marius had killed</p>
+                                <p><strong>Significance:</strong> Demonstrated that even family connections to enemies meant death; showed ritualistic nature of revenge</p>
+                            </div>
+                        </div>
+                        
+                        <div class="proscribed-name" onclick="revealVictim('mucius-scaevola')">
+                            <strong>Quintus Mucius Scaevola Pontifex</strong> - Pontifex Maximus
+                            <div class="victim-details" id="victim-mucius-scaevola">
+                                <p><strong>Crime:</strong> Supporting Marian cause and opposing Sulla's return</p>
+                                <p><strong>Fate:</strong> Murdered while clinging to altar of Vesta—violation of sacred asylum</p>
+                                <p><strong>Significance:</strong> Showed that not even Rome's highest religious office provided protection; desecration of sacred law</p>
+                            </div>
+                        </div>
+                        
+                        <div class="proscribed-name" onclick="revealVictim('caesars-uncle')">
+                            <strong>Gaius Julius Caesar Strabo</strong> - Uncle of Julius Caesar
+                            <div class="victim-details" id="victim-caesars-uncle">
+                                <p><strong>Crime:</strong> Association with Marian faction through family connections</p>
+                                <p><strong>Fate:</strong> Executed, leaving young Julius Caesar vulnerable as a marked man</p>
+                                <p><strong>Significance:</strong> Nearly included Julius Caesar himself on proscription lists; showed how civil war could destroy entire family lines</p>
+                            </div>
+                        </div>
+                        
+                        <div class="proscribed-name" onclick="revealVictim('carbo')">
+                            <strong>Gnaeus Papirius Carbo</strong> - Three-time Consul
+                            <div class="victim-details" id="victim-carbo">
+                                <p><strong>Crime:</strong> Leading Marian resistance as consul and general</p>
+                                <p><strong>Fate:</strong> Fled to Africa, captured and executed by Pompey on Sulla's orders</p>
+                                <p><strong>Significance:</strong> Showed that exile provided no safety; Pompey's ruthless efficiency earned him the nickname "teenage butcher"</p>
+                            </div>
+                        </div>
+                        
+                        <div class="proscribed-name" onclick="revealVictim('random-rich')">
+                            <strong>Marcus Aufidius</strong> - Wealthy Equestrian
+                            <div class="victim-details" id="victim-random-rich">
+                                <p><strong>Crime:</strong> Possessing valuable estates coveted by Sulla's supporters</p>
+                                <p><strong>Fate:</strong> Murdered for his property; estates sold at fraction of value to reward loyalty</p>
+                                <p><strong>Significance:</strong> Proved that wealth alone could be a death sentence; proscriptions became method of economic redistribution</p>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; margin-top: 2rem; font-style: italic; color: #c0392b;">
+                            <p><strong>Total Estimated Deaths: 2,000+ Senators and Equestrians</strong></p>
+                            <p>Plus thousands of lesser citizens, slaves, and supporters</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Constitutional Reform Tracker -->
+                <div class="reform-tracker">
+                    <div class="showcase-header">
+                        🏛️ Sulla's Constitutional Reforms: Restoring the Republic by Destroying It
+                    </div>
+                    <p style="text-align: center; margin-bottom: 2rem; color: #2c3e50;">Click on each category to explore how Sulla's reforms attempted to prevent future Mariuses—while creating the conditions for future Caesars.</p>
+                    
+                    <div class="reform-categories">
+                        <div class="reform-category" onclick="showReform('senate')">
+                            <div class="reform-icon">🏛️</div>
+                            <h4>Senate Enhancement</h4>
+                            <p>Doubling senatorial membership and restoring aristocratic control</p>
+                            <div class="reform-details" id="reform-senate">
+                                <h5>Creating a Sullan Senate</h5>
+                                <p>Sulla expanded the Senate from approximately 300 to 600 members, primarily through appointing his own supporters and loyalists. This diluted traditional senatorial families whilst ensuring his faction dominated the expanded body.</p>
+                                <p><strong>Judicial Reforms:</strong> Returned jury service in the courts (quaestiones) exclusively to senators, reversing Gracchan legislation that had given equestrians judicial power. This restored senatorial control over prosecution of provincial governors and other major crimes.</p>
+                                <p><strong>Provincial Commands:</strong> Required praetors and consuls to remain in Rome during their year of office, taking provincial commands only afterward as promagistrates. This separated civil and military authority.</p>
+                                <p><strong>Long-term Impact:</strong> Created a more compliant Senate in the short term, but the expansion with political appointees actually weakened traditional senatorial authority and prestige.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="reform-category" onclick="showReform('tribunate')">
+                            <div class="reform-icon">⚖️</div>
+                            <h4>Tribunate Restriction</h4>
+                            <p>Neutering the tribunes of the plebs as a source of popularis power</p>
+                            <div class="reform-details" id="reform-tribunate">
+                                <h5>Destroying Popular Power</h5>
+                                <p>Sulla systematically dismantled tribunician authority, the office that had launched the careers of the Gracchi, Saturninus, and Sulpicius. His restrictions were designed to make the tribunate powerless and unattractive.</p>
+                                <p><strong>Legislative Ban:</strong> Tribunes were prohibited from proposing legislation to the popular assemblies, eliminating their ability to bypass senatorial opposition through direct appeals to the people.</p>
+                                <p><strong>Career Dead-end:</strong> Tribunes were barred from seeking higher magistracies, making the office a terminal position that ambitious politicians would avoid.</p>
+                                <p><strong>Veto Limitations:</strong> Though tribunes retained their traditional veto power, the legislative ban made this largely irrelevant since they couldn't propose alternative measures.</p>
+                                <p><strong>Long-term Failure:</strong> These restrictions were gradually reversed. Pompey and Crassus restored tribunician power in 70 BC, and later popularis politicians like Caesar used the tribunate more effectively than ever.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="reform-category" onclick="showReform('cursus')">
+                            <div class="reform-icon">🎯</div>
+                            <h4>Career Structure</h4>
+                            <p>Formalizing the cursus honorum with strict age requirements</p>
+                            <div class="reform-details" id="reform-cursus">
+                                <h5>Bureaucratic Control</h5>
+                                <p>Sulla formalized the <span class="key-term" data-definition="cursus-honorum">cursus honorum</span> (course of offices) with strict regulations designed to prevent rapid political advancement and ensure experienced leadership.</p>
+                                <p><strong>Age Requirements:</strong> Set minimum ages for each office—30 for quaestor, 39 for praetor, 42 for consul—preventing young firebrands from gaining power too quickly.</p>
+                                <p><strong>Mandatory Intervals:</strong> Required two-year gaps between holding consecutive magistracies, slowing political careers and giving the Senate more time to assess candidates.</p>
+                                <p><strong>Office Sequence:</strong> Mandated that candidates hold quaestorship before praetorship, and praetorship before consulship, creating a predictable career ladder.</p>
+                                <p><strong>Numbers Increase:</strong> Raised annual magistrates from 8 to 20 praetors and maintained 2 consuls, providing more administrative positions for the expanded Senate.</p>
+                                <p><strong>Unintended Consequences:</strong> Created more competition for the consulship, the only office that mattered for true distinction, intensifying rather than reducing political rivalry.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="reform-category" onclick="showReform('military')">
+                            <div class="reform-icon">⚔️</div>
+                            <h4>Military Limitations</h4>
+                            <p>Attempting to prevent generals from using armies against the state</p>
+                            <div class="reform-details" id="reform-military">
+                                <h5>Closing the Stable After the Horses Bolted</h5>
+                                <p>Having used military force to seize power, Sulla attempted to prevent future generals from following his example—an effort doomed by its own contradictions.</p>
+                                <p><strong>Provincial Boundaries:</strong> Strictly defined provincial commands and prohibited governors from leading armies outside their assigned territories without Senate permission.</p>
+                                <p><strong>Treason Laws:</strong> Expanded definitions of treason (maiestas) to include actions that diminished state authority, theoretically making it illegal to march on Rome.</p>
+                                <p><strong>Command Restrictions:</strong> Limited the duration of provincial commands and required Senate approval for extensions, preventing generals from building long-term client relationships with troops.</p>
+                                <p><strong>Fundamental Flaw:</strong> Sulla's reforms could not address the root problem—professional armies loyal to their commanders rather than the state. The very system Marius had created made these restrictions unenforceable.</p>
+                                <p><strong>Future Violations:</strong> Pompey, Caesar, and others would repeatedly violate these restrictions, proving that constitutional law cannot constrain those who control military force.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dictatorship Comparison -->
+                <div class="dictator-comparison">
+                    <div class="showcase-header">
+                        👑 Dictatorship: Traditional vs Revolutionary
+                    </div>
+                    <p style="text-align: center; margin-bottom: 2rem; color: #2c3e50;">Sulla transformed the ancient office of dictator from emergency leadership into unlimited personal power.</p>
+                    
+                    <div class="comparison-grid">
+                        <div class="dictator-profile">
+                            <div class="profile-image">⚖️</div>
+                            <h4>Traditional Dictator</h4>
+                            <ul style="text-align: left;">
+                                <li>Appointed for 6-month maximum</li>
+                                <li>Specific military emergency</li>
+                                <li>Limited to assigned task</li>
+                                <li>Appointed by consul with Senate approval</li>
+                                <li>Resigned when task completed</li>
+                                <li>Subject to later accountability</li>
+                            </ul>
+                            <p style="margin-top: 1rem;"><strong>Last used:</strong> 202 BC (Hannibalic War)</p>
+                        </div>
+                        
+                        <div class="dictator-profile">
+                            <div class="profile-image">👑</div>
+                            <h4>Sulla's Dictatorship</h4>
+                            <ul style="text-align: left;">
+                                <li>No time limit specified</li>
+                                <li>Constitutional reform mandate</li>
+                                <li>Unlimited power scope</li>
+                                <li>Self-appointed through military force</li>
+                                <li>Voluntarily abdicated (unprecedented)</li>
+                                <li>Immunity from prosecution</li>
+                            </ul>
+                            <p style="margin-top: 1rem;"><strong>Duration:</strong> 82-79 BC (3+ years)</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f8f9fa; border: 1px solid #e9ecef; padding: 1.5rem; border-radius: 6px; margin-top: 2rem;">
+                        <h4 style="color: #2c3e50;">The Revolutionary Precedent</h4>
+                        <p>Sulla's dictatorship established that supreme power could be seized through military force and used for unlimited political transformation. His voluntary resignation paradoxically made the precedent more dangerous—it suggested that dictatorial power could be temporary and legitimate, encouraging future ambitious generals to follow his example.</p>
+                    </div>
+                </div>
+
+                <!-- Scholarship Analysis -->
+                <div class="scholarship-box">
+                    <div class="scholarship-title">The Sullan Paradox: Restorer or Destroyer?</div>
+                    <div class="scholarship-content">
+                        <p>Modern historians debate whether Sulla should be understood as a conservative restorer of Republican traditions or a revolutionary destroyer of constitutional government. His own propaganda emphasized restoration, but his methods were unprecedented and destructive.</p>
+                        
+                        <p><strong>Conservative Interpretation:</strong> Sulla genuinely sought to restore traditional senatorial government and prevent future popularis revolutions. His reforms strengthened aristocratic institutions and his voluntary abdication proved his republican intentions.</p>
+                        
+                        <p><strong>Revolutionary Interpretation:</strong> Sulla's methods—military seizure of power, systematic proscriptions, unlimited dictatorship—destroyed the Republican system he claimed to defend. His reforms failed because they addressed symptoms rather than causes.</p>
+                        
+                        <p><strong>The Tragic Hero View:</strong> Sulla understood that the Republic was dying but believed authoritarian methods could revive it. His tragedy was using the disease to cure itself—employing illegal means to restore legal government.</p>
+                        
+                        <p>The most compelling interpretation sees Sulla as transitional—neither purely conservative nor revolutionary, but a figure caught between the old Republican world and the new imperial reality that his own actions helped create.</p>
+                    </div>
+                </div>
+
+                <!-- Legacy Analysis -->
+                <div class="consequence-analysis">
+                    <div class="consequence-title">The Sullan Legacy: Lessons for Future Strongmen</div>
+                    <div class="consequence-content">
+                        <p>Sulla's career provided a template for future Roman strongmen, demonstrating both the possibilities and limitations of using military force for political transformation. His precedents would be studied and adapted by Pompey, Caesar, and Augustus.</p>
+                        
+                        <div class="consequence-grid">
+                            <div class="consequence-item">
+                                <h4>Military Supremacy</h4>
+                                <p>Proved that disciplined armies could overcome constitutional opposition and popular resistance. Future generals learned that military victory translated into political authority.</p>
+                            </div>
+                            
+                            <div class="consequence-item">
+                                <h4>Systematic Terror</h4>
+                                <p>Established proscriptions as an effective method for eliminating political opposition and redistributing wealth to supporters. The precedent made future civil wars more brutal.</p>
+                            </div>
+                            
+                            <div class="consequence-item">
+                                <h4>Constitutional Manipulation</h4>
+                                <p>Showed how ancient offices could be transformed for unprecedented purposes. Later strongmen would similarly manipulate Republican institutions to legitimize autocratic power.</p>
+                            </div>
+                            
+                            <div class="consequence-item">
+                                <h4>The Abdication Model</h4>
+                                <p>His voluntary retirement suggested that temporary dictatorship could be legitimate and limited, making the precedent more attractive to future ambitious politicians.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="primary-source">
+                            Sulla showed that the Republic could be conquered. Later generals learned from both his successes and his failures.
+                            <div class="source-citation">— Modern historian's assessment</div>
+                        </div>
+                        
+                        <p>Ultimately, Sulla's reforms failed because they could not resolve the fundamental contradiction he had created: professional armies loyal to generals rather than the state made constitutional government impossible, yet his solutions required constitutional means to implement. He had broken the machine he was trying to repair.</p>
+                    </div>
+                </div>
+
+                <!-- Assessment Prompt -->
+                <div class="assessment-prompt">
+                    <h4>Critical Analysis Question</h4>
+                    <p><strong>Did Sulla's voluntary abdication prove his republican sincerity, or did it simply make his precedent more dangerous for future strongmen?</strong></p>
+                    <p>Consider: the effectiveness of his constitutional reforms, the precedent set by his methods, the reaction of contemporaries, and the careers of Pompey and Caesar who followed his example.</p>
+                </div>
+
+                <div class="topic-navigation">
+                    <a href="topic2-2.html" class="btn btn-civ-secondary">← 2.2 Marius and Military Reform</a>
+                    <a href="topic2-4.html" class="btn btn-civ">Next: 2.4 Pompey and Extraordinary Commands →</a>
+                </div>
+            </div>
+            
+            <div class="sidebar" id="info-panel">
+                <div class="sidebar-content active" id="default-message">
+                    <div class="sidebar-title">Interactive Content</div>
+                    <p>Click on highlighted terms, figures, or concepts for detailed information. Explore the interactive timeline, proscription lists, and constitutional reforms to understand how Sulla's dictatorship transformed the Roman Republic.</p>
+                    <p><strong>Current section:</strong> Sulla's Dictatorship</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Info Modal -->
+    <div id="infoModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close" onclick="closeInfoModal()">&times;</span>
+            
+            <div class="modal-header">
+                <h2>salve! 👋</h2>
+            </div>
+            
+            <div class="modal-body">
+                <div class="modal-text">
+                    <p>Thank you for checking out Classicalia! I'm Lawrence and I teach Latin and Classics in Bristol.</p>
+                    
+                    <p>I have a BA in Ancient History from King's College London, a PGCE in Latin with Classics from the University of Cambridge and an MEd (Transforming Practice) from Darwin College, Cambridge. I am particularly interested in Tacitean studies and the history of memory in classical antiquity. In 2021 I won the Classical Association's 'Outstanding New Teacher' award.</p>
+                    
+                    <p>I also enjoy creating teacher guides and student workbooks. Please feel free to use my resources!</p>
+                    
+                    <p>If you have any feedback, thoughts or questions, please don't hesitate to get in touch!</p>
+                </div>
+                
+                <div class="modal-image">
+                    <img src="../../images/lmc.jpg" alt="Lawrence McNally">
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <div class="contact-items">
+                    <div class="contact-item">
+                        <div class="contact-icon">🐦</div>
+                        <div class="contact-info">
+                            <div class="contact-label">Follow me on Twitter</div>
+                            <div class="contact-value">@lfmcnally</div>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">🎵</div>
+                        <div class="contact-info">
+                            <div class="contact-label">Follow me on TikTok</div>
+                            <div class="contact-value">@classicalcivilisation</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-signature">
+                    <p>An open-source project made with ❤️</p>
+                    <p><strong>-Lawrence</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Battle timeline functionality
+        function showBattle(battleId) {
+            // Hide all battle details
+            document.querySelectorAll('.battle-details').forEach(detail => {
+                detail.classList.remove('active');
+            });
+            
+            // Show selected battle details
+            const battleDetail = document.getElementById('battle-' + battleId);
+            if (battleDetail) {
+                battleDetail.classList.add('active');
+            }
+        }
+
+        // Proscription list functionality
+        function revealVictim(victimId) {
+            const victimElement = document.querySelector(`[onclick="revealVictim('${victimId}')"]`);
+            const detailsElement = document.getElementById('victim-' + victimId);
+            
+            if (victimElement && detailsElement) {
+                victimElement.classList.toggle('revealed');
+                detailsElement.classList.toggle('active');
+            }
+        }
+
+        // Constitutional reform functionality
+        function showReform(reformId) {
+            // Remove active class from all categories and details
+            document.querySelectorAll('.reform-category').forEach(category => {
+                category.classList.remove('active');
+            });
+            document.querySelectorAll('.reform-details').forEach(detail => {
+                detail.classList.remove('active');
+            });
+            
+            // Add active class to clicked category
+            event.target.closest('.reform-category').classList.add('active');
+            
+            // Show corresponding reform details
+            const reformDetail = document.getElementById('reform-' + reformId);
+            if (reformDetail) {
+                reformDetail.classList.add('active');
+            }
+        }
+
+        // Interactive content functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            setupInteractiveContent();
+        });
+
+        function setupInteractiveContent() {
+            document.querySelectorAll('.key-term').forEach(term => {
+                term.addEventListener('click', function() {
+                    const definition = this.dataset.definition;
+                    showDefinition(definition);
+                });
+            });
+
+            document.querySelectorAll('.key-figure').forEach(figure => {
+                figure.addEventListener('click', function() {
+                    const info = this.dataset.info;
+                    showFigureInfo(info);
+                });
+            });
+
+            document.querySelectorAll('.key-concept').forEach(concept => {
+                concept.addEventListener('click', function() {
+                    const conceptId = this.dataset.concept;
+                    showConceptExplanation(conceptId);
+                });
+            });
+        }
+
+        function showDefinition(termId) {
+            const definitions = {
+                'jugurthine-war': {
+                    term: 'Jugurthine War',
+                    definition: 'Roman conflict against Jugurtha of Numidia (112-105 BC) that revealed senatorial corruption.',
+                    context: 'The war\'s prolongation due to bribery and incompetence created the crisis that brought Marius to power and launched Sulla\'s career through his diplomatic capture of Jugurtha.'
+                },
+                'social-war': {
+                    term: 'Social War',
+                    definition: 'Rebellion of Italian allies (91-88 BC) demanding Roman citizenship.',
+                    context: 'Also called the Italian War, this conflict arose when Rome\'s allies, who had fought alongside Romans for centuries, demanded equal citizenship rights. Sulla distinguished himself as a commander in this war.'
+                },
+                'mithridatic-command': {
+                    term: 'Mithridatic Command',
+                    definition: 'Military appointment to fight King Mithridates VI of Pontus in the east.',
+                    context: 'This prestigious and potentially lucrative command was the prize that sparked the final conflict between Marius and Sulla, leading to the first march on Rome.'
+                },
+                'pomerium': {
+                    term: 'Pomerium',
+                    definition: 'Sacred boundary of Rome that generals could not cross with armed troops.',
+                    context: 'Crossing the pomerium with an army was both illegal and sacrilegious. Sulla\'s violation of this boundary marked the first time a Roman general had threatened the city itself.'
+                },
+                'dictator-rei-publicae': {
+                    term: 'Dictator Rei Publicae Constituendae',
+                    definition: 'Dictator for the purpose of re-establishing the Republic—Sulla\'s unprecedented title.',
+                    context: 'This office had no time limit and unlimited power, transforming the traditional emergency dictatorship into a tool for constitutional revolution.'
+                },
+                'brundisium': {
+                    term: 'Brundisium',
+                    definition: 'Port city in southern Italy where Sulla landed with his army in 83 BC.',
+                    context: 'Modern Brindisi, this was the traditional landing point for armies returning from the east. Sulla\'s arrival here marked the beginning of the final phase of civil war.'
+                },
+                'sacriportus': {
+                    term: 'Sacriportus',
+                    definition: 'Site of Sulla\'s decisive victory over Marius the Younger in 82 BC.',
+                    context: 'This battle near Signia broke the main Marian army and opened the path to Rome, demonstrating the superior discipline of Sulla\'s eastern veterans.'
+                },
+                'colline-gate': {
+                    term: 'Colline Gate',
+                    definition: 'Northern gate of Rome where Sulla won his final victory in 82 BC.',
+                    context: 'The battle here was nearly lost but secured Sulla\'s ultimate triumph. The subsequent massacre of prisoners marked the beginning of his reign of terror.'
+                },
+                'cursus-honorum': {
+                    term: 'Cursus Honorum',
+                    definition: 'The formal sequence of public offices in a Roman political career.',
+                    context: 'Sulla formalized this system with strict age requirements and mandatory intervals between offices, attempting to prevent rapid political advancement by ambitious individuals.'
+                }
+            };
+
+            if (definitions[termId]) {
+                const def = definitions[termId];
+                showSidebar('Key Term', `
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; border-left: 3px solid #dc3545;">
+                        <h4>${def.term}</h4>
+                        <p><strong>Definition:</strong> ${def.definition}</p>
+                        <p><strong>Historical Context:</strong> ${def.context}</p>
+                    </div>
+                `);
+            }
+        }
+
+        function showFigureInfo(figureId) {
+            const figures = {
+                'sulla': {
+                    name: 'Lucius Cornelius Sulla',
+                    dates: '138-78 BC',
+                    role: 'General, dictator, constitutional reformer',
+                    significance: 'First Roman to march on Rome with an army. His career established the precedent that military force could override civilian authority and that constitutional government could be suspended for political reform.'
+                },
+                'marius': {
+                    name: 'Gaius Marius',
+                    dates: '157-86 BC',
+                    role: 'General, consul, military reformer',
+                    significance: 'Sulla\'s former commander and later bitter enemy. Their rivalry defined Roman politics for two decades and led to the first civil wars.'
+                },
+                'jugurtha': {
+                    name: 'Jugurtha',
+                    dates: 'c. 160-104 BC',
+                    role: 'King of Numidia',
+                    significance: 'His capture by Sulla\'s diplomatic efforts created the first tension between Sulla and Marius over credit for ending the Jugurthine War.'
+                },
+                'mithridates': {
+                    name: 'Mithridates VI Eupator',
+                    dates: 'c. 135-63 BC',
+                    role: 'King of Pontus',
+                    significance: 'His invasion of Roman Asia and massacre of Romans created the prestigious eastern command that sparked the final Marius-Sulla conflict.'
+                },
+                'sulpicius': {
+                    name: 'Publius Sulpicius Rufus',
+                    dates: 'c. 124-88 BC',
+                    role: 'Tribune and popularis politician',
+                    significance: 'His proposal to transfer the Mithridatic command from Sulla to Marius triggered Sulla\'s first march on Rome and was killed during Sulla\'s occupation of the city.'
+                },
+                'cinna': {
+                    name: 'Lucius Cornelius Cinna',
+                    dates: 'c. 130-84 BC',
+                    role: 'Consul and popularis leader',
+                    significance: 'Allied with Marius to seize Rome during Sulla\'s absence, ruling through terror until his assassination by his own troops in 84 BC.'
+                },
+                'pompey': {
+                    name: 'Gnaeus Pompeius Magnus',
+                    dates: '106-48 BC',
+                    role: 'General and political leader',
+                    significance: 'Raised an army at age 23 to support Sulla\'s return, earning the nickname "teenage butcher" for his ruthless efficiency in eliminating enemies.'
+                },
+                'marius-the-younger': {
+                    name: 'Gaius Marius the Younger',
+                    dates: 'c. 109-82 BC',
+                    role: 'Son of Gaius Marius and consul',
+                    significance: 'Led the final Marian resistance against Sulla but was decisively defeated at Sacriportus and later died during the siege of Praeneste.'
+                },
+                'pontius-telesinus': {
+                    name: 'Pontius Telesinus',
+                    dates: 'died 82 BC',
+                    role: 'Samnite general and Marian ally',
+                    significance: 'Led the Samnites at the Battle of the Colline Gate in a final attempt to destroy Rome. His defeat ended centuries of Italian resistance to Roman dominance.'
+                },
+                'crassus': {
+                    name: 'Marcus Licinius Crassus',
+                    dates: 'c. 115-53 BC',
+                    role: 'General and future triumvir',
+                    significance: 'Commanded Sulla\'s right wing at the Colline Gate, securing victory when the battle seemed lost. Later became one of Rome\'s richest men and formed the First Triumvirate with Pompey and Caesar.'
+                }
+            };
