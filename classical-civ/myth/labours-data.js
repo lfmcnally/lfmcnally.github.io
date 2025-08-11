@@ -191,11 +191,11 @@ function createTimeline() {
     
     let timelineHTML = `
         <div class="timeline-track">
-            <div class="timeline-section peloponnese">
-                <div class="timeline-label">Peloponnese</div>
+            <div class="timeline-section">
+                <div class="timeline-label">Labours 1-6</div>
                 <div class="timeline-items">`;
     
-    // Add Peloponnese labours (1-6)
+    // Add first 6 labours
     laboursData.slice(0, 6).forEach(labour => {
         timelineHTML += `
             <div class="timeline-item" data-labour="${labour.number}" onclick="showLabourDetail(${labour.number})">
@@ -207,28 +207,12 @@ function createTimeline() {
     timelineHTML += `
                 </div>
             </div>
-            <div class="timeline-section distant">
-                <div class="timeline-label">Distant Lands</div>
+            <div class="timeline-section">
+                <div class="timeline-label">Labours 7-12</div>
                 <div class="timeline-items">`;
     
-    // Add Distant labours (7-10)
-    laboursData.slice(6, 10).forEach(labour => {
-        timelineHTML += `
-            <div class="timeline-item" data-labour="${labour.number}" onclick="showLabourDetail(${labour.number})">
-                <div class="timeline-emoji">${labour.icon}</div>
-                <div class="timeline-number">${labour.number}</div>
-            </div>`;
-    });
-    
-    timelineHTML += `
-                </div>
-            </div>
-            <div class="timeline-section supernatural">
-                <div class="timeline-label">Supernatural</div>
-                <div class="timeline-items">`;
-    
-    // Add Supernatural labours (11-12)
-    laboursData.slice(10, 12).forEach(labour => {
+    // Add second 6 labours
+    laboursData.slice(6, 12).forEach(labour => {
         timelineHTML += `
             <div class="timeline-item" data-labour="${labour.number}" onclick="showLabourDetail(${labour.number})">
                 <div class="timeline-emoji">${labour.icon}</div>
@@ -273,26 +257,26 @@ function showLabourDetail(labourNumber) {
         </div>
         
         <div class="labour-detail-reveals">
-            <button class="reveal-btn" onclick="revealSection(this, 'difficulty')">
+            <button class="reveal-btn" id="difficulty-btn-${labour.number}" onclick="toggleSection(this, 'difficulty', ${labour.number})">
                 🤔 Reveal Chief Difficulty
             </button>
-            <div class="reveal-content difficulty" style="display: none;">
+            <div class="reveal-content difficulty" id="difficulty-content-${labour.number}" style="display: none;">
                 <div class="reveal-label">Chief Difficulty:</div>
                 <div>${labour.difficulty}</div>
             </div>
             
-            <button class="reveal-btn" onclick="revealSection(this, 'solution')">
+            <button class="reveal-btn" id="solution-btn-${labour.number}" onclick="toggleSection(this, 'solution', ${labour.number})">
                 💡 Reveal How Heracles Succeeded
             </button>
-            <div class="reveal-content solution" style="display: none;">
+            <div class="reveal-content solution" id="solution-content-${labour.number}" style="display: none;">
                 <div class="reveal-label">How Heracles Succeeded:</div>
                 <div>${labour.solution}</div>
             </div>
             
-            <button class="reveal-btn" onclick="revealSection(this, 'significance')">
+            <button class="reveal-btn" id="significance-btn-${labour.number}" onclick="toggleSection(this, 'significance', ${labour.number})">
                 ⭐ Reveal Significance
             </button>
-            <div class="reveal-content significance" style="display: none;">
+            <div class="reveal-content significance" id="significance-content-${labour.number}" style="display: none;">
                 <div class="reveal-label">Significance:</div>
                 <div>${labour.significance}</div>
             </div>
@@ -312,9 +296,50 @@ function closeLabourDetail() {
     });
 }
 
+function toggleSection(button, type, labourNumber) {
+    const content = document.getElementById(`${type}-content-${labourNumber}`);
+    const btn = document.getElementById(`${type}-btn-${labourNumber}`);
+    
+    if (content.style.display === 'none') {
+        // Show the content
+        content.style.display = 'block';
+        btn.textContent = getHideButtonText(type);
+    } else {
+        // Hide the content
+        content.style.display = 'none';
+        btn.textContent = getRevealButtonText(type);
+    }
+}
+
+function getRevealButtonText(type) {
+    const buttonTexts = {
+        'difficulty': '🤔 Reveal Chief Difficulty',
+        'solution': '💡 Reveal How Heracles Succeeded',
+        'significance': '⭐ Reveal Significance'
+    };
+    return buttonTexts[type];
+}
+
+function getHideButtonText(type) {
+    const buttonTexts = {
+        'difficulty': '🤔 Hide Chief Difficulty',
+        'solution': '💡 Hide How Heracles Succeeded',
+        'significance': '⭐ Hide Significance'
+    };
+    return buttonTexts[type];
+}
+
+// Backward compatibility function for the old reveal system
 function revealSection(button, type) {
-    button.style.display = 'none';
-    button.nextElementSibling.style.display = 'block';
+    const labourNumber = getCurrentLabourNumber();
+    if (labourNumber) {
+        toggleSection(button, type, labourNumber);
+    }
+}
+
+function getCurrentLabourNumber() {
+    const activeItem = document.querySelector('.timeline-item.active');
+    return activeItem ? parseInt(activeItem.dataset.labour) : null;
 }
 
 // Initialize timeline when page loads
