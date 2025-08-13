@@ -29,6 +29,38 @@ const zeusTempleData = {
         ]
     },
     
+    // Unique and interesting elements (streamlined version)
+    uniqueFeatures: {
+        title: "Unique & Interesting Elements",
+        features: [
+            {
+                category: "Accessibility Innovation",
+                detail: "First major temple to use ramps instead of steps - possibly for bringing sacrificial animals or wheeled offerings"
+            },
+            {
+                category: "Optical Illusions",
+                detail: "Columns lean inward by 6.5cm and the stylobate curves upward to correct visual distortion"
+            },
+            {
+                category: "Hidden Workshop",
+                detail: "Phidias' workshop discovered nearby - same dimensions as temple cella to test the statue's fit"
+            },
+            {
+                category: "Athletic Connection",
+                detail: "Olympic victors took oaths here and bit the statue's knee for good luck"
+            },
+            {
+                category: "Political Statement",
+                detail: "Built from war spoils to legitimize Elis' control over the Olympic Games"
+            },
+            {
+                category: "Scale Wonder",
+                detail: "The cult statue was so tall that if Zeus stood up, he would have broken through the roof"
+            }
+        ]
+    },
+    
+    // Detailed information for each architectural element
     decorations: {
         "east-pediment": {
             title: "East Pediment - The Chariot Race",
@@ -157,56 +189,264 @@ const zeusTempleData = {
                 "Showed Zeus as both powerful ruler and benevolent father"
             ]
         }
-    },
-    
-    architecture: {
-        order: "Doric",
-        plan: "Peripteral (surrounded by columns)",
-        
-        layout: {
-            pronaos: "Front porch (east)",
-            naos: "Main chamber housing cult statue",
-            opisthodomos: "Rear porch (west)",
-            peristyle: "6 x 13 columns surrounding cella"
-        },
-        
-        innovations: [
-            "Use of ramps instead of steps for accessibility",
-            "Interior two-story colonnade to support roof and frame statue",
-            "Combination of limestone structure with marble sculpture"
-        ],
-        
-        opticalRefinements: [
-            "Slight curvature of stylobate",
-            "Entasis (swelling) of columns",
-            "Inward lean of columns",
-            "Corner columns slightly thicker"
-        ]
-    },
-    
-    religiousFunction: {
-        festivals: [
-            "Olympic Games (every 4 years)",
-            "Monthly sacrifices",
-            "Victory dedications"
-        ],
-        
-        rituals: [
-            "Olympic victor sacrifices",
-            "Oath-taking by athletes before games",
-            "Consultation of Olympic oracle"
-        ],
-        
-        offerings: "Winners dedicated statues, crowns, and armor. The temple treasury held countless dedications from across the Greek world."
-    },
-    
-    historicalContext: {
-        construction: "Built from spoils of Elis' victory over Pisa, asserting control over Olympic sanctuary",
-        
-        politicalMessage: "Demonstrated Elis' wealth and piety, legitimizing their administration of Olympics",
-        
-        destruction: "Damaged by earthquakes in 522 and 551 CE, stones later quarried for other buildings",
-        
-        rediscovery: "German excavations from 1875 revealed foundation and fallen sculptures"
     }
 };
+
+// Function to generate the Zeus temple content for the main HTML
+function generateZeusContent() {
+    return `
+        <div class="temple-content-wrapper">
+            <!-- Overview Section -->
+            <div class="content-section">
+                <h3>Overview</h3>
+                <p>${zeusTempleData.overview.description}</p>
+                
+                <div class="info-grid">
+                    <div class="info-card">
+                        <h4>Dimensions</h4>
+                        <ul>
+                            <li><strong>Size:</strong> ${zeusTempleData.overview.dimensions.length} × ${zeusTempleData.overview.dimensions.width}</li>
+                            <li><strong>Height:</strong> ${zeusTempleData.overview.dimensions.height}</li>
+                            <li><strong>Columns:</strong> ${zeusTempleData.overview.dimensions.columns} (Doric)</li>
+                        </ul>
+                    </div>
+                    <div class="info-card">
+                        <h4>Construction</h4>
+                        <ul>
+                            <li><strong>Date:</strong> ${zeusTempleData.date}</li>
+                            <li><strong>Architect:</strong> ${zeusTempleData.architect}</li>
+                            <li><strong>Materials:</strong> ${zeusTempleData.overview.materials}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Interactive Temple Visualization -->
+            <div class="content-section">
+                <h3>Sculptural Decorations</h3>
+                <p style="text-align: center; color: #6c757d; font-style: italic;">
+                    Click on the colored dots to explore the temple's decoration
+                </p>
+                
+                ${createZeusTempleInteractive()}
+            </div>
+            
+            <!-- Unique Features Section (Streamlined) -->
+            <div class="content-section">
+                <h3>${zeusTempleData.uniqueFeatures.title}</h3>
+                <div class="unique-features-grid">
+                    ${zeusTempleData.uniqueFeatures.features.map(feature => `
+                        <div class="unique-feature-card">
+                            <div class="feature-category">${feature.category}</div>
+                            <div class="feature-detail">${feature.detail}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Function to create the interactive temple visualization
+function createZeusTempleInteractive() {
+    return `
+        <div class="temple-interactive-container">
+            <div class="temple-diagram-wrapper">
+                <img src="images/zeus-temple-reconstruction.jpg" alt="Temple of Zeus at Olympia reconstruction" class="temple-base-image">
+                
+                <!-- Interactive Hotspots -->
+                <div class="hotspot pediment-spot" 
+                     style="left: 20%; top: 25%; background: #dc3545;" 
+                     onclick="showZeusDecoration('west-pediment')"
+                     data-tooltip="West Pediment - Centauromachy">
+                    <div class="hotspot-pulse"></div>
+                </div>
+                
+                <div class="hotspot pediment-spot" 
+                     style="left: 80%; top: 25%; background: #dc3545;" 
+                     onclick="showZeusDecoration('east-pediment')"
+                     data-tooltip="East Pediment - Chariot Race">
+                    <div class="hotspot-pulse"></div>
+                </div>
+                
+                <div class="hotspot metopes-spot" 
+                     style="left: 50%; top: 35%; background: #28a745;" 
+                     onclick="showZeusDecoration('metopes')"
+                     data-tooltip="Metopes - Twelve Labours">
+                    <div class="hotspot-pulse"></div>
+                </div>
+                
+                <div class="hotspot statue-spot" 
+                     style="left: 50%; top: 50%; background: #ffd700;" 
+                     onclick="showZeusDecoration('cult-statue')"
+                     data-tooltip="Cult Statue of Zeus">
+                    <div class="hotspot-pulse"></div>
+                </div>
+            </div>
+            
+            <div class="temple-legend">
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #dc3545;"></span>
+                    <span>Pediments - Mythological Scenes</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #28a745;"></span>
+                    <span>Metopes - Labours of Heracles</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #ffd700;"></span>
+                    <span>Interior - Cult Statue</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="zeus-decoration-detail" class="decoration-detail">
+            <!-- Details will be loaded here when hotspots are clicked -->
+        </div>
+    `;
+}
+
+// Function to show decoration details when hotspots are clicked
+function showZeusDecoration(decorationId) {
+    const detailDiv = document.getElementById('zeus-decoration-detail');
+    const data = zeusTempleData.decorations[decorationId];
+    
+    if (!data) return;
+    
+    let detailHTML = ``;
+    
+    if (decorationId === 'east-pediment' || decorationId === 'west-pediment') {
+        detailHTML = `
+            <div class="decoration-detail-content">
+                <h4>${data.title}</h4>
+                <div class="detail-meta">
+                    <span><strong>Date:</strong> ${data.date}</span> | 
+                    <span><strong>Dimensions:</strong> ${data.dimensions}</span>
+                </div>
+                <p>${data.description}</p>
+                
+                <div class="detail-grid">
+                    <div class="detail-section">
+                        <h5>Composition</h5>
+                        <ul>
+                            ${Object.entries(data.composition).map(([key, value]) => 
+                                `<li><strong>${key.charAt(0).toUpperCase() + key.slice(1)}:</strong> ${value}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h5>Significance</h5>
+                        <ul>
+                            ${data.significance.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="narrative-box">
+                    <h5>Narrative</h5>
+                    <p>${data.narrative}</p>
+                </div>
+                
+                <p class="style-note"><strong>Artistic Style:</strong> ${data.style}</p>
+            </div>
+        `;
+    } else if (decorationId === 'metopes') {
+        detailHTML = `
+            <div class="decoration-detail-content">
+                <h4>${data.title}</h4>
+                <div class="detail-meta">
+                    <span><strong>Date:</strong> ${data.date}</span> | 
+                    <span><strong>Size:</strong> ${data.dimensions} each</span> | 
+                    <span><strong>Total:</strong> ${data.totalNumber} metopes</span>
+                </div>
+                <p>${data.description}</p>
+                
+                <div class="metopes-arrangement">
+                    <div class="metope-group">
+                        <h5>East Porch (Labours 1-6)</h5>
+                        <ol>
+                            ${data.arrangement.eastPorch.map(labour => `<li>${labour}</li>`).join('')}
+                        </ol>
+                    </div>
+                    <div class="metope-group">
+                        <h5>West Porch (Labours 7-12)</h5>
+                        <ol start="7">
+                            ${data.arrangement.westPorch.map(labour => `<li>${labour}</li>`).join('')}
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="detail-highlight">
+                    <h5>Artistic Program</h5>
+                    <p>${data.artisticProgram}</p>
+                </div>
+                
+                <div class="detail-grid">
+                    <div class="detail-section">
+                        <h5>Iconography</h5>
+                        <ul>
+                            ${Object.entries(data.iconography).map(([key, value]) => 
+                                `<li><strong>${key.charAt(0).toUpperCase() + key.slice(1)}:</strong> ${value}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h5>Significance</h5>
+                        <ul>
+                            ${data.significance.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+                
+                <p class="museum-note"><strong>Current Status:</strong> ${data.survivalStatus}</p>
+            </div>
+        `;
+    } else if (decorationId === 'cult-statue') {
+        detailHTML = `
+            <div class="decoration-detail-content">
+                <h4>${data.title}</h4>
+                <div class="detail-meta">
+                    <span><strong>Artist:</strong> ${data.artist}</span> | 
+                    <span><strong>Date:</strong> ${data.date}</span> | 
+                    <span><strong>Height:</strong> ${data.height}</span>
+                </div>
+                <p><strong>Materials:</strong> ${data.materials}</p>
+                <p>${data.description}</p>
+                
+                <div class="detail-grid">
+                    <div class="detail-section">
+                        <h5>Appearance</h5>
+                        <ul>
+                            ${Object.entries(data.appearance).map(([key, value]) => 
+                                `<li><strong>${key.replace(/([A-Z])/g, ' $1').trim()}:</strong> ${value}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h5>Significance</h5>
+                        <ul>
+                            ${data.significance.map(item => `<li>${item}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="detail-highlight">
+                    <h5>Impact on Ancient Religion</h5>
+                    <p>${data.impact}</p>
+                </div>
+                
+                <div class="construction-note">
+                    <p><strong>Construction Method:</strong> ${data.construction}</p>
+                    <p><strong>Historical Fate:</strong> ${data.fate}</p>
+                </div>
+            </div>
+        `;
+    }
+    
+    detailDiv.innerHTML = detailHTML;
+    detailDiv.classList.add('active');
+    detailDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
