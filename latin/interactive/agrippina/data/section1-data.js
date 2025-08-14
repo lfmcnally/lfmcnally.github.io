@@ -4,231 +4,231 @@ const textData = {
         title: "Gaio Vipstano C. Fonteio consulibus",
         translation: "In the consulships of Gaius Vipstanus and C. Fonteius",
         device: "Ablative Absolute",
-        description: "Tacitus opens with a traditional Roman dating formula using the ablative absolute construction, establishing historical context whilst maintaining the annalistic tradition.",
-        effect: "Creates an official, documentary tone that contrasts sharply with the sordid domestic drama that follows, emphasising the gap between public dignity and private corruption."
+        description: "Traditional Roman dating formula using the ablative absolute construction. This annalistic convention anchors the narrative in historical time, recording events year by year as in official records.",
+        effect: "Creates documentary authority whilst ironically framing a sordid domestic drama within the dignified structure of state annals - the public record contains private corruption."
     },
     
     "diu-meditatum": {
         title: "diu meditatum",
         translation: "long contemplated",
-        device: "Temporal Emphasis",
-        description: "The juxtaposition of 'diu' (for a long time) with 'meditatum' (contemplated) emphasises the premeditated nature of the crime, showing this was not an impulsive act.",
-        effect: "Establishes Nero's calculated malevolence from the opening, whilst the delayed revelation of the crime's nature creates suspense."
+        device: "Juxtaposition",
+        description: "The adverb 'diu' (for a long time) placed directly next to 'meditatum' (contemplated) emphasises premeditation. The perfect passive participle suggests the crime has been thoroughly planned.",
+        effect: "Establishes that this is calculated evil, not impulsive action. The long gestation period makes the crime more chilling - this is cold, deliberate matricide."
     },
     
     "scelus-word": {
         title: "scelus",
         translation: "crime",
-        device: "Loaded Vocabulary",
-        description: "Tacitus uses the morally charged term 'scelus' rather than a neutral word like 'factum', immediately condemning the action before revealing what it is.",
-        effect: "The historian's moral judgement is embedded in the vocabulary choice, guiding the reader's interpretation before the facts are presented."
+        device: "Choice of Words (Diction)",
+        description: "Tacitus chooses the morally loaded 'scelus' (wickedness, crime) rather than neutral terms like 'factum' (deed) or 'consilium' (plan). This is judgement embedded in vocabulary.",
+        effect: "The historian passes moral verdict before revealing what actually happened - we know this is evil before we know what 'this' is, priming our interpretation."
     },
     
     "vetustate-imperii": {
         title: "vetustate imperii",
-        translation: "duration of his power",
-        device: "Causal Analysis",
-        description: "The phrase suggests that length of rule breeds corruption, a recurring theme in Tacitus about how absolute power degrades character over time.",
-        effect: "Implies that tyranny is progressive rather than innate, showing how unchecked power inevitably corrupts even those who might have begun well."
+        translation: "by the duration of his power",
+        device: "Abstract Noun + Genitive",
+        description: "Uses abstract noun 'vetustate' (long duration) with genitive 'imperii' rather than saying Nero had ruled for a long time. This construction emphasises the corrupting nature of prolonged power.",
+        effect: "Suggests power corruption is progressive and inevitable - the longer one rules absolutely, the more depraved one becomes. Time itself becomes corrosive."
     },
     
     "audacia-nero": {
         title: "audacia",
         translation: "daring",
-        device: "Character Development",
-        description: "The term 'audacia' (boldness/recklessness) charts Nero's moral decline - what might once have been courage has become criminal rashness.",
-        effect: "Shows how power transforms virtues into vices, as confidence becomes arrogance and then murderous boldness."
+        device: "Loaded Diction",
+        description: "'Audacia' can mean boldness (positive) or recklessness (negative). In Tacitus, it almost always carries negative connotations of dangerous rashness, especially in imperial contexts.",
+        effect: "Charts Nero's moral decline - what might once have been courage has become criminal boldness. The word suggests both confidence and moral blindness."
     },
     
     "flagrantior-in-dies": {
         title: "flagrantior in dies",
-        translation: "daily more ardent",
-        device: "Metaphorical Intensification",
-        description: "The comparative 'flagrantior' (more burning) uses fire imagery to describe passion, whilst 'in dies' (day by day) emphasises gradual escalation.",
-        effect: "Creates a sense of inexorable momentum towards disaster, with passion as a destructive fire that grows beyond control."
+        translation: "daily more burning",
+        device: "Metaphor + Climactic Structure",
+        description: "The comparative 'flagrantior' uses fire imagery for passion, whilst 'in dies' (day by day) creates a sense of gradual but inexorable increase. The metaphor of burning desire is conventional but effective.",
+        effect: "Passion as destructive fire that intensifies beyond control - each day brings greater heat until conflagration is inevitable. The gradual build suggests helpless momentum."
     },
     
     "amore-poppaeae": {
         title: "amore Poppaeae",
         translation: "love for Poppaea",
-        device: "Ironic Word Choice",
-        description: "Tacitus uses 'amor' for what is clearly destructive lust, ironically applying the noble term to a relationship that will lead to matricide.",
-        effect: "The perversion of love into a motive for murder highlights the moral inversion at Nero's court."
+        device: "Irony",
+        description: "Tacitus uses 'amor' (love) for what is clearly destructive lust. The noble word is ironically applied to a passion that will lead to matricide - the perversion of love into its opposite.",
+        effect: "The corruption of Rome's moral vocabulary mirrors the corruption of its rulers - even 'love' becomes a euphemism for murderous obsession."
     },
     
     "matrimonium-discidium": {
         title: "matrimonium et discidium",
         translation: "marriage and divorce",
-        device: "Antithetical Pairing",
-        description: "The juxtaposition of 'matrimonium' (marriage) and 'discidium' (divorce) encapsulates Poppaea's dual agenda in a balanced phrase.",
-        effect: "The pairing shows how destruction (divorce) is inseparable from creation (marriage) in this corrupt relationship."
+        device: "Antithesis",
+        description: "Sharp juxtaposition of opposing concepts - 'matrimonium' (joining) and 'discidium' (separation). The balanced structure emphasises how Poppaea's desires require both creation and destruction.",
+        effect: "Shows that in this corrupt world, building something new (marriage) requires destroying something existing (Octavia's position) - construction and demolition are inseparable."
     },
     
     "incolumi-agrippina": {
         title: "incolumi Agrippina",
         translation: "while Agrippina was unharmed",
-        device: "Ablative Absolute with Threat",
-        description: "The participle 'incolumi' (unharmed/safe) is ominous in context, implying that Agrippina's safety is the obstacle to be removed.",
-        effect: "Creates dramatic irony as the reader understands that Agrippina's 'safety' is precisely what is threatened."
+        device: "Ablative Absolute with Irony",
+        description: "The participle 'incolumi' (safe, unharmed) is ominous in context. The ablative absolute construction makes Agrippina's safety a temporal condition - implying it's temporary.",
+        effect: "Heavy dramatic irony - the reader knows Agrippina's 'safety' is precisely what's threatened. Her being 'unharmed' is presented as an obstacle to be removed."
     },
     
     "crebris-criminationibus": {
         title: "crebris criminationibus",
         translation: "with frequent accusations",
         device: "Alliteration",
-        description: "The harsh 'cr' sounds in 'crebris criminationibus' create an aggressive, grating effect that mirrors Poppaea's persistent nagging.",
-        effect: "The sound pattern reinforces the sense of relentless verbal assault, making the reader feel the wearing effect of constant criticism."
+        description: "The harsh repetition of 'cr' sounds creates an aggressive, grating effect. The adjective 'crebris' (frequent, repeated) emphasises the relentless nature of Poppaea's verbal assault.",
+        effect: "The sound pattern mimics the wearing effect of constant criticism - we hear the repetitive, grinding nature of her nagging in the consonant clusters."
     },
     
     "per-facetias": {
         title: "per facetias",
-        translation: "in jest",
-        device: "Manipulative Rhetoric",
-        description: "Poppaea alternates between serious accusations and jest, a classic manipulation technique that keeps the victim off-balance.",
-        effect: "Shows Poppaea's psychological sophistication - she can retreat behind humour if challenged whilst still planting poisonous ideas."
+        translation: "through jests",
+        device: "Psychological Manipulation",
+        description: "Poppaea alternates between serious accusations and jokes ('facetiae' = witticisms). This is a classic manipulation technique - serious attacks disguised as humour, allowing deniability.",
+        effect: "Shows Poppaea's sophistication - she can retreat behind 'just joking' if challenged, whilst still planting poisonous ideas. Nero can't respond without seeming humourless."
     },
     
     "pupillum-insult": {
         title: "pupillum",
         translation: "ward",
-        device: "Emasculating Insult",
-        description: "Calling the emperor a 'pupillus' (ward/minor) attacks Nero's masculinity and autonomy, the two things he most values.",
-        effect: "This calculated insult strikes at Nero's deepest insecurities about his authority and manhood, making him more susceptible to manipulation."
+        device: "Diction - Emasculating Insult",
+        description: "A 'pupillus' is a minor under guardianship, unable to act independently. For an emperor to be called this attacks both his masculinity and his authority - the two things Nero most values.",
+        effect: "Calculated to trigger Nero's deepest insecurities. He killed Britannicus partly to avoid seeming the younger brother; now he's painted as a child to his mother."
     },
     
     "obnoxius-word": {
         title: "obnoxius",
         translation: "submissive",
         device: "Political Vocabulary",
-        description: "The term 'obnoxius' implies not just obedience but shameful subservience, suggesting Nero is enslaved to his mother.",
-        effect: "Transforms the normal Roman virtue of filial piety into a source of shame and weakness."
+        description: "'Obnoxius' originally meant 'liable to punishment' but came to mean 'slavishly subject to'. It's particularly shameful when applied to a free Roman, let alone an emperor.",
+        effect: "Transforms normal Roman filial piety into shameful servitude. Nero isn't dutiful; he's enslaved. The word makes maternal respect seem like weakness."
     },
     
     "imperii-libertatis": {
         title: "non modo imperii sed libertatis",
-        translation: "not only of supreme power but even of freedom",
-        device: "Climactic Gradation",
-        description: "The structure moves from the greater (imperium) to the lesser but more fundamental (libertas), reversing normal expectations.",
-        effect: "Suggests that Nero lacks even the basic freedom of a common citizen, let alone the power of an emperor - a devastating rhetorical blow."
+        translation: "not only of power but even of freedom",
+        device: "Climactic Structure (Anti-climax)",
+        description: "Normally we'd expect escalation from lesser to greater, but here it moves from 'imperium' (supreme power) to 'libertas' (basic freedom) - a rhetorical reversal that's more devastating.",
+        effect: "Suggests Nero lacks even what the lowest citizen has - freedom. The reversal makes the insult more cutting: he's not just not an emperor, he's not even free."
     },
     
     "rhetorical-questions": {
         title: "cur... an... an...",
         translation: "why... or... or...",
-        device: "Rhetorical Question Series",
-        description: "Poppaea uses a barrage of rhetorical questions to overwhelm Nero's defences, each one more provocative than the last.",
-        effect: "The questions force Nero to confront uncomfortable possibilities whilst giving Poppaea deniability - she's 'just asking questions'."
+        device: "Rhetorical Questions (Anaphora)",
+        description: "Series of rhetorical questions with repeated 'an' creating anaphora. Each question is more provocative than the last, building pressure without allowing response time.",
+        effect: "Interrogation technique that overwhelms defences - Nero must confront uncomfortable possibilities whilst Poppaea maintains deniability through 'just asking questions'."
     },
     
     "scilicet-sarcasm": {
         title: "scilicet",
         translation: "of course",
-        device: "Sarcastic Particle",
-        description: "The word 'scilicet' drips with sarcasm, making Poppaea's supposed self-deprecation actually an attack on Nero's judgement.",
-        effect: "The false humility makes the accusation more cutting - she pretends to accept blame whilst actually blaming Nero."
+        device: "Sarcasm/Irony",
+        description: "The particle 'scilicet' (evidently, of course) drips with sarcasm here. Poppaea pretends to accept that her beauty is inadequate whilst actually attacking Nero's judgement.",
+        effect: "False self-deprecation that's actually accusation - she pretends to blame herself whilst making Nero feel guilty for not appreciating her qualities."
     },
     
     "formam-beauty": {
         title: "formam",
         translation: "beauty",
-        device: "Physical Attraction",
-        description: "Poppaea begins with her physical beauty, knowing this is what actually attracts Nero, before moving to nobler qualities.",
-        effect: "Shows her understanding of Nero's superficiality whilst maintaining a pretence of deeper values."
+        device: "Strategic Word Order",
+        description: "Poppaea leads with 'formam' (physical beauty) because she knows this is what actually attracts Nero. She mentions superficial qualities before noble ones, understanding his priorities.",
+        effect: "Reveals both characters - Poppaea's manipulative intelligence in knowing what to emphasise, and Nero's shallow nature in being susceptible to such appeals."
     },
     
     "triumphales-avos": {
         title: "triumphales avos",
         translation: "ancestors who had triumphs",
-        device: "Aristocratic Pride",
-        description: "Reference to ancestors who celebrated triumphs emphasises Poppaea's noble lineage, contrasting with Nero's freed slave ancestry.",
-        effect: "Subtly reminds Nero that she's sacrificing social status to be with him, increasing his sense of obligation."
+        device: "Historical Prestige",
+        description: "Reference to ancestors who celebrated military triumphs - the highest honour in Rome. Poppaea's family could claim genuine aristocratic achievement, unlike Nero's freed slave ancestry through Claudius.",
+        effect: "Subtle class superiority - reminds Nero she's sacrificing social status to be with him, increasing his sense of obligation and making rejection seem ungrateful."
     },
     
     "fecunditatem-word": {
         title: "fecunditatem",
         translation: "fertility",
         device: "Dynastic Concern",
-        description: "Fertility was crucial for imperial succession; Poppaea implies Octavia is barren whilst she could provide heirs.",
-        effect: "Appeals to Nero's political anxieties about succession, making the personal political."
+        description: "Fertility was crucial for imperial succession. Octavia had produced no heirs, whilst Poppaea implies she could. This transforms personal desire into political necessity.",
+        effect: "Makes the affair seem like duty rather than pleasure - Nero needs heirs for stability. The personal becomes political, justifying private immorality through public need."
     },
     
     "timeri-passive": {
         title: "timeri",
-        translation: "was it feared",
+        translation: "is it feared",
         device: "Impersonal Passive",
-        description: "The passive construction 'timeri' avoids naming who fears, creating a sense of vague, pervasive anxiety.",
-        effect: "Suggests mysterious forces working against their relationship, increasing Nero's paranoia."
+        description: "The passive infinitive 'timeri' avoids naming who fears. This vague construction creates paranoid atmosphere - unnamed forces work against them.",
+        effect: "Feeds Nero's paranoia - if even Poppaea's loyalty is feared by mysterious 'them', what else are 'they' planning? The vagueness makes the threat seem pervasive."
     },
     
     "iniurias-iram": {
         title: "iniurias patrum, iram populi",
-        translation: "injustices of the senators, anger of the people",
-        device: "Political Threat",
-        description: "Poppaea invokes both Senate and people, the twin pillars of Roman authority, as victims of Agrippina's misrule.",
-        effect: "Transforms personal desire into political necessity - removing Agrippina becomes a duty to Rome."
+        translation: "injuries of the fathers, anger of the people",
+        device: "Parallel Structure (Balance)",
+        description: "Balanced phrases with matching noun-genitive patterns. 'Patres' (senators) and 'populus' (people) represent the twin sources of Roman authority - SPQR itself.",
+        effect: "Suggests universal disapproval of Agrippina - both Senate and People suffer under her. Removing her becomes not personal vendetta but public service."
     },
     
     "superbiam-avaritiam": {
         title: "superbiam avaritiamque",
         translation: "pride and greed",
-        device: "Vice Pairing",
-        description: "These two vices were particularly associated with tyranny in Roman political discourse, making Agrippina seem a tyrant.",
-        effect: "Uses traditional Roman moral vocabulary to justify an immoral act - matricide becomes almost virtuous."
+        device: "Vice Pairing (Hendiadys)",
+        description: "These two vices were stereotypically associated with tyranny in Roman political discourse. The '-que' enclitic bonds them as an inseparable pair of tyrannical characteristics.",
+        effect: "Uses traditional Republican anti-tyranny vocabulary to justify the ultimate anti-Republican act (matricide). Moral language is weaponised for immoral purposes."
     },
     
     "non-nisi": {
         title: "non nisi",
         translation: "nothing except",
-        device: "Double Negative",
-        description: "The emphatic 'non nisi' construction creates an absolute statement about Agrippina's impossible standards.",
-        effect: "Makes compromise seem impossible, forcing a binary choice between mother and lover."
+        device: "Litotes/Double Negative",
+        description: "The emphatic double negative construction 'non...nisi' (not...except) creates absolute statement. This is litotes in reverse - overstatement through negation.",
+        effect: "Makes compromise impossible - Agrippina will accept ONLY a hostile daughter-in-law. The absolute construction forces binary choice: mother or lover."
     },
     
     "infestam-word": {
         title: "infestam",
         translation: "hostile",
         device: "Military Metaphor",
-        description: "The word 'infestam' comes from military vocabulary, suggesting Poppaea would be an enemy in Nero's own household.",
-        effect: "Frames the domestic situation in terms of war, making violent action seem more justified."
+        description: "'Infestam' comes from military vocabulary - it means 'hostile' in the sense of an enemy army. Domestic relations are described in terms of warfare.",
+        effect: "Frames family dynamics as military conflict, making violent resolution seem more natural. If marriage is war, then killing becomes a tactical necessity."
     },
     
     "quoquo-terrarum": {
         title: "quoquo terrarum",
         translation: "anywhere in the world",
-        device: "Hyperbolic Devotion",
-        description: "The indefinite 'quoquo' with partitive genitive 'terrarum' expresses unlimited willingness to suffer exile.",
-        effect: "Her exaggerated devotion contrasts with Agrippina's supposed hostility, making Poppaea seem the victim."
+        device: "Hyperbole + Partitive Genitive",
+        description: "The indefinite 'quoquo' (wherever) with partitive genitive 'terrarum' (of lands) expresses unlimited geographical scope. This is deliberate exaggeration of devotion.",
+        effect: "Poppaea's theatrical willingness to suffer exile anywhere makes her seem the selfless victim, contrasting with Agrippina's possessive control."
     },
     
     "audiret-viseret": {
         title: "audiret potius... quam viseret",
         translation: "would rather hear... than see",
-        device: "Preference Construction",
-        description: "The contrast between hearing insults from afar and seeing dangers up close shows Poppaea's supposed selflessness.",
-        effect: "Positions Poppaea as protective and self-sacrificing, inverting the reality of her manipulative agenda."
+        device: "Antithesis with Preference",
+        description: "Contrast between distant hearing of insults and present witnessing of dangers. The 'potius...quam' construction emphasises her supposed self-sacrifice.",
+        effect: "Inverts reality - the manipulator poses as protector. She'd rather suffer exile than watch Nero in danger, painting herself as noble whilst plotting murder."
     },
     
     "lacrimis-arte": {
         title: "lacrimis et arte adulterae",
         translation: "tears and skill of the adulteress",
-        device: "Manipulative Performance",
-        description: "Tacitus exposes the theatrical nature of Poppaea's appeal, combining genuine emotion (tears) with calculated technique (art).",
-        effect: "The narrator's intervention reminds us this is performance, not genuine feeling, whilst 'adulterae' provides moral judgement."
+        device: "Narratorial Intrusion + Zeugma",
+        description: "Tacitus breaks in to expose the performance - 'tears' (genuine emotion) and 'art' (calculated technique) are yoked together. The narrator labels her 'adultera' (adulteress) for moral clarity.",
+        effect: "The mask slips - Tacitus reminds us this is theatre, not genuine feeling. The combination of real tears and fake emotion shows sophisticated manipulation."
     },
     
     "caedem-word": {
         title: "caedem",
         translation: "murder",
         device: "Climactic Revelation",
-        description: "The word 'caedem' finally reveals what the 'scelus' mentioned at the beginning actually entails - matricide.",
-        effect: "The delayed revelation creates maximum impact, showing how unthinkable the crime was even to those who wanted Agrippina gone."
+        description: "The word 'caedem' (slaughter, murder) finally specifies what the opening's 'scelus' entails. The delayed revelation of matricide as the ultimate crime creates maximum impact.",
+        effect: "Even those wanting Agrippina gone hadn't imagined actual murder - the unthinkable is named. The word's violence contrasts with the sophisticated manipulation preceding it."
     },
     
     "odia-word": {
         title: "odia",
-        translation: "hatred",
-        device: "Emotional Culmination",
-        description: "The plural 'odia' suggests multiple, complex resentments rather than simple anger, showing the depth of the estrangement.",
-        effect: "The final word emphasises that this is not just political calculation but deep personal hatred, making the coming tragedy inevitable."
+        translation: "hatreds",
+        device: "Plural for Emphasis",
+        description: "The plural 'odia' (hatreds) rather than singular suggests multiple, complex resentments. This isn't simple anger but layers of accumulated grievance.",
+        effect: "The final word emphasises that matricide springs not from calculation but deep emotional poison. Multiple hatreds have festered into something monstrous."
     }
 };
