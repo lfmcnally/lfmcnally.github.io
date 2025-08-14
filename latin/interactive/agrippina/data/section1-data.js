@@ -230,5 +230,221 @@ const textData = {
         device: "Plural for Emphasis",
         description: "The plural 'odia' (hatreds) rather than singular suggests multiple, complex resentments. This isn't simple anger but layers of accumulated grievance.",
         effect: "The final word emphasises that matricide springs not from calculation but deep emotional poison. Multiple hatreds have festered into something monstrous."
+    },
+    
+    "nero-delayed": {
+        title: "Nero distulit",
+        translation: "Nero postponed",
+        device: "Word Order - Delayed Subject",
+        description: "Tacitus delays 'Nero' until after the crime is mentioned, building suspense. The verb 'distulit' (postponed) ironically suggests this has already been delayed too long.",
+        effect: "Creates narrative tension - we know about the crime before we know who commits it. The 'postponement' is over; action is imminent."
+    },
+    
+    "non-ultra": {
+        title: "non ultra",
+        translation: "no longer",
+        device: "Emphatic Negation",
+        description: "The combination 'non ultra' (not beyond, no further) creates a sense of finality. The time for hesitation has passed.",
+        effect: "Marks a turning point - this is the moment when thought becomes action, when long contemplation finally yields to deed."
+    },
+    
+    "coalita-audacia": {
+        title: "coalita audacia",
+        translation: "boldness having grown strong",
+        device: "Personification",
+        description: "The verb 'coalita' (grown together, strengthened) treats 'audacia' as if it were a living thing that grows and strengthens over time, like a plant or muscle.",
+        effect: "Makes Nero's corruption seem organic and inevitable - his boldness has naturally matured into something monstrous through exercise."
+    },
+    
+    "et-connective": {
+        title: "et flagrantior",
+        translation: "and more burning",
+        device: "Polysyndeton",
+        description: "The repeated use of 'et' (and) to connect causes creates a sense of accumulation - multiple factors pile up to drive Nero to action.",
+        effect: "Suggests overwhelming pressure from multiple sources - not just one cause but a convergence of forces pushing toward catastrophe."
+    },
+    
+    "haud-sperans": {
+        title: "haud sperans",
+        translation: "having no hope",
+        device: "Litotes",
+        description: "'Haud' (not at all) with 'sperans' (hoping) is emphatic negation. Tacitus could have said 'desperans' (despairing) but chooses this construction for emphasis.",
+        effect: "The complete absence of hope makes Poppaea more desperate and therefore more dangerous - she has nothing to lose."
+    },
+    
+    "aliquando-timing": {
+        title: "aliquando",
+        translation: "sometimes",
+        device: "Temporal Variatio",
+        description: "The adverb 'aliquando' shows Poppaea varies her tactics - sometimes serious, sometimes joking. This variation keeps Nero off-balance.",
+        effect: "Shows calculated psychological warfare - unpredictability is part of the strategy, preventing Nero from developing defences."
+    },
+    
+    "principem-title": {
+        title: "principem",
+        translation: "emperor",
+        device: "Ironic Honorific",
+        description: "She uses his official title 'princeps' (first citizen, emperor) immediately before undermining it by calling him 'pupillum' (ward) - the contrast is deliberate.",
+        effect: "The juxtaposition of highest title with most demeaning insult maximises the humiliation - 'emperor' becomes mockery."
+    },
+    
+    "qui-relative": {
+        title: "qui iussis alienis obnoxius",
+        translation: "who (was) submissive to others' commands",
+        device: "Relative Clause Expansion",
+        description: "The relative clause expands on why he's a 'ward' - providing evidence for the insult. The structure mimics legal argumentation.",
+        effect: "Makes the insult seem reasoned rather than emotional - she's not just name-calling but providing logical proof of his subordination."
+    },
+    
+    "etiam-intensifier": {
+        title: "etiam",
+        translation: "even",
+        device: "Intensifying Particle",
+        description: "The particle 'etiam' (even, also) intensifies the shocking claim that Nero lacks basic freedom - it's not just power he lacks.",
+        effect: "Amplifies the insult through apparent surprise - as if even Poppaea is shocked by how low Nero has fallen."
+    },
+    
+    "enim-explanatory": {
+        title: "cur enim",
+        translation: "for why",
+        device: "Explanatory Particle",
+        description: "'Enim' (for, you see) is postpositive, creating a confiding tone as if Poppaea is reasoning through the problem with Nero.",
+        effect: "Creates false intimacy - she's not attacking but 'thinking together' with him, making her manipulation seem like mutual reasoning."
+    },
+    
+    "suas-emphasis": {
+        title: "nuptias suas",
+        translation: "her marriage",
+        device: "Emphatic Possessive",
+        description: "The possessive 'suas' (her own) emphasises ownership - these are HER nuptials being denied, HER life being wasted.",
+        effect: "Makes it personal - not just 'marriage' in abstract but specifically her happiness, her future, her desires being thwarted."
+    },
+    
+    "an-alternative": {
+        title: "an fecunditatem",
+        translation: "or (was it) her fertility",
+        device: "Alternative Questions",
+        description: "The particle 'an' introduces alternatives in rhetorical questions. Each 'an' presents another possible 'failing' that might displease Nero.",
+        effect: "Creates a catalogue of virtues disguised as self-doubt - she lists all her qualities whilst pretending to question them."
+    },
+    
+    "verum-animum": {
+        title: "verum animum",
+        translation: "true heart",
+        device: "Moral Vocabulary",
+        description: "'Verum animum' (true/loyal heart) appeals to Roman values of fidelity and sincerity, contrasting with the deception all around.",
+        effect: "Ironic given that Poppaea is currently deceiving Nero - she claims the virtue she most lacks, making truth itself a lie."
+    },
+    
+    "ne-fear-clause": {
+        title: "timeri ne",
+        translation: "that it was feared that",
+        device: "Fear Clause (Substantive)",
+        description: "The 'ne' clause after 'timeri' expresses what is feared. The indirect construction maintains vagueness about who fears.",
+        effect: "Grammatical complexity mirrors psychological complexity - the sentence structure itself creates confusion about agency and responsibility."
+    },
+    
+    "saltem-concessive": {
+        title: "saltem",
+        translation: "at least",
+        device: "Concessive Particle",
+        description: "'Saltem' (at least, at any rate) suggests this is the minimum that might happen - there could be worse revelations.",
+        effect: "Implies escalating threats - if this is the least that might be revealed, what worse secrets does Agrippina hide?"
+    },
+    
+    "adversus-plus-acc": {
+        title: "adversus superbiam",
+        translation: "against the pride",
+        device: "Preposition Choice",
+        description: "'Adversus' + accusative suggests active opposition or hostility, more aggressive than simple 'contra' (against).",
+        effect: "Makes the people's anger seem militant and directed - not just discontent but active hostility toward Agrippina."
+    },
+    
+    "quod-si-conditional": {
+        title: "quod si",
+        translation: "but if",
+        device: "Transitional Conditional",
+        description: "'Quod si' (but if) introduces a new hypothetical, shifting the argument. It's more literary than simple 'si' alone.",
+        effect: "Marks rhetorical escalation - having established the problem, Poppaea now poses an ultimatum scenario."
+    },
+    
+    "ipsa-pronoun": {
+        title: "ipsa",
+        translation: "she herself",
+        device: "Emphatic Pronoun",
+        description: "The intensive 'ipsa' emphasises Poppaea herself as subject - she personally will take action if necessary.",
+        effect: "Makes it personal and immediate - not a vague threat but a specific promise of what she herself will do."
+    },
+    
+    "othonis-previous": {
+        title: "Othonis coniugio",
+        translation: "to marriage with Otho",
+        device: "Historical Detail",
+        description: "Otho was Poppaea's current husband, whom she was willing to leave for Nero. This reminds Nero she has other options.",
+        effect: "Subtle threat - she can return to her legitimate husband, leaving Nero. She's not desperate; she has alternatives."
+    },
+    
+    "potius-quam": {
+        title: "potius... quam",
+        translation: "rather... than",
+        device: "Comparative Construction",
+        description: "This construction emphasises preference through contrast. She'd choose disgrace over danger.",
+        effect: "Makes her seem protective and noble - she'd rather suffer personally than watch Nero suffer, inverting her actual predatory nature."
+    },
+    
+    "periculis-immixta": {
+        title: "periculis eius immixta",
+        translation: "involved in his dangers",
+        device: "Word Order - Framing",
+        description: "'Periculis' (dangers) and 'immixta' (mixed up in) frame 'eius' (his), literally surrounding 'his' with danger.",
+        effect: "The word order enacts the meaning - Nero is literally surrounded by dangers in the sentence structure as in life."
+    },
+    
+    "haec-atque-talia": {
+        title: "haec atque talia",
+        translation: "these and similar things",
+        device: "Summarising Formula",
+        description: "Standard phrase suggesting this is just a sample of her arguments - she said more in this vein.",
+        effect: "Implies exhausting repetition - this manipulation went on and on until resistance was worn down."
+    },
+    
+    "penetrantia-metaphor": {
+        title: "penetrantia",
+        translation: "penetrating",
+        device: "Military/Sexual Metaphor",
+        description: "The verb 'penetro' suggests forced entry, used in military (breaking through defences) and sexual contexts.",
+        effect: "Makes Poppaea's words seem like weapons that breach Nero's psychological defences - or a seduction that overcomes resistance."
+    },
+    
+    "nemo-absolute": {
+        title: "nemo prohibebat",
+        translation: "no one prevented",
+        device: "Absolute Negation",
+        description: "'Nemo' (no one) is more absolute than 'non quis' - absolutely nobody stood in her way.",
+        effect: "Emphasises Nero's isolation - he has no advisors or friends to protect him from manipulation."
+    },
+    
+    "cupientibus-cunctis": {
+        title: "cupientibus cunctis",
+        translation: "with everyone desiring",
+        device: "Ablative Absolute + Alliteration",
+        description: "The soft 'c' sounds in 'cupientibus cunctis' create cohesion. The ablative absolute explains why no one intervened.",
+        effect: "Universal complicity - everyone wanted Agrippina gone, making matricide seem like public service rather than private crime."
+    },
+    
+    "credente-nullo": {
+        title: "credente nullo",
+        translation: "with no one believing",
+        device: "Parallel Ablative Absolute",
+        description: "Parallel to 'cupientibus cunctis' but with opposite meaning - all want her gone, none think it will happen.",
+        effect: "Dramatic irony - everyone underestimates how far hatred can go. The unthinkable is about to become reality."
+    },
+    
+    "filii-odia": {
+        title: "filii odia",
+        translation: "the son's hatreds",
+        device: "Delayed Revelation + Hyperbaton",
+        description: "The genitive 'filii' is separated from 'odia' by other words, delaying the shocking revelation that a son could hate his mother.",
+        effect: "The separation enacts the estrangement - even in the sentence, son and hatred are pulled apart, reflecting the unnatural perversion of family bonds."
     }
 };
