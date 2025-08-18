@@ -465,21 +465,27 @@ const textData = {
 // Vocabulary definitions for complex terms
 const vocabData = {
     "enervating": {
-        word: "enervating",
-        definition: "Causing one to feel drained of energy or vitality; weakening",
-        context: "Describes the exhausting final stages of starvation"
+        title: "enervating",
+        translation: "Causing one to feel drained of energy or vitality; weakening",
+        device: "Vocabulary",
+        description: "From Latin 'enervare' meaning to weaken or destroy the strength of.",
+        effect: "Describes the exhausting final stages of starvation - the body literally losing all energy."
     },
     
     "surreptitiously": {
-        word: "surreptitiously",
-        definition: "In a way that attempts to avoid notice or attention; secretively",
-        context: "Shows the shameful secrecy of wiping hands after touching the sick"
+        title: "surreptitiously",
+        translation: "In a way that attempts to avoid notice or attention; secretively",
+        device: "Vocabulary",
+        description: "From Latin 'surrepticius' meaning stolen, furtive, or clandestine.",
+        effect: "Shows the shameful secrecy of wiping hands after touching the sick - the guilt in natural revulsion."
     },
     
     "inured": {
-        word: "inured",
-        definition: "Accustomed to something unpleasant through prolonged exposure",
-        context: "Describes how journalists become hardened to suffering"
+        title: "inured",
+        translation: "Accustomed to something unpleasant through prolonged exposure",
+        device: "Vocabulary",
+        description: "From Latin 'in + ure' meaning to harden or habituate through use or practice.",
+        effect: "Describes how journalists become hardened to suffering - professional detachment as defense mechanism."
     }
 };
 
