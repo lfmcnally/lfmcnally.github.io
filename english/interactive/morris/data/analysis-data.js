@@ -3,127 +3,163 @@ const analysisData = {
         "opening-hook": {
             type: "structure",
             technique: "Opening with failure",
-            explanation: "Morris immediately undermines the explorers' credibility by starting with their previous failure. The word 'farce' sets a mocking tone before we even learn about the current incident."
+            explanation: "Starting with 'ended in farce' immediately undermines the explorers' credibility. The word 'farce' sets a mocking tone before we even learn about the current incident."
         },
         
         "dramatic-threat": {
             type: "language",
-            technique: "Dramatic verb choices",
-            explanation: "'Threatened to send in military planes to intercept' creates an image of international incident and incompetence. The explorers appear as troublemakers rather than heroes."
+            technique: "Dramatic imagery",
+            explanation: "'Threatened to send in military planes' creates an image of international incident and incompetence."
+        },
+        
+        "icebound": {
+            type: "language",
+            technique: "Environmental adjective",
+            explanation: "'Icebound' emphasizes the harsh, frozen conditions they repeatedly choose to enter unprepared."
         },
         
         "time-marker": {
             type: "structure",
             technique: "Temporal transition",
-            explanation: "'Yesterday' creates immediacy and links this new failure to their pattern of mishaps, suggesting this is just the latest in a series."
+            explanation: "'Yesterday' creates immediacy and news urgency, linking this failure to their pattern of mishaps."
         },
         
-        "neutral-label": {
-            type: "voice",
-            technique: "Apparent objectivity",
-            explanation: "Morris uses the neutral term 'British explorers' here, but this objectivity is undermined by the surrounding critical context."
+        "new-adventure": {
+            type: "language",
+            technique: "Ironic word choice",
+            explanation: "Calling it a 'new adventure' when it ends in disaster creates irony - their adventures are disasters."
         },
         
         "almost-tragedy": {
             type: "language",
             technique: "Near-miss language",
-            explanation: "'Almost led to tragedy' emphasizes how close to disaster they came, implying recklessness rather than bad luck."
+            explanation: "'Almost led to tragedy' emphasizes how close to death they came, implying recklessness."
         },
         
         "dramatic-verb": {
             type: "language",
-            technique: "Action verb",
-            explanation: "'Plunged' is more dramatic than 'crashed' or 'landed', emphasizing the violence and lack of control in their descent."
+            technique: "Violent verb",
+            explanation: "'Plunged' is more dramatic than 'crashed' or 'landed', emphasizing violence and lack of control."
         },
         
         "rescue-verb": {
             type: "language",
-            technique: "Passive rescue imagery",
-            explanation: "'Plucked from the icy water' makes them seem helpless, like children being rescued rather than competent explorers."
+            technique: "Passive imagery",
+            explanation: "'Plucked' makes them seem helpless, like objects being retrieved rather than competent explorers."
+        },
+        
+        "icy-water": {
+            type: "language",
+            technique: "Harsh conditions",
+            explanation: "'Icy water' emphasizes the lethal environment they put themselves in."
         },
         
         "duration-emphasis": {
             type: "purpose",
             technique: "Time cost emphasis",
-            explanation: "'Nine-hour rescue' highlights the extensive time and resources required, building the case about waste before mentioning money."
+            explanation: "'Nine-hour' highlights the extensive time required, building the case about waste before mentioning money."
         },
         
-        "cost-setup": {
-            type: "purpose",
-            technique: "Resource listing",
-            explanation: "Listing three separate rescue services (Royal Navy, RAF, British coastguards) emphasizes the scale and expense of the operation."
+        "tripling": {
+            type: "language",
+            technique: "Rule of three",
+            explanation: "Listing three services (Royal Navy, RAF, British coastguards) emphasizes the scale of resources needed."
         },
         
-        "critical-tone": {
+        "resentment": {
             type: "voice",
-            technique: "Reported criticism",
-            explanation: "'Resentment in some quarters' introduces public anger while maintaining journalistic distance - Morris reports the criticism without directly making it."
+            technique: "Emotional language",
+            explanation: "'Resentment' is stronger than 'concern' or 'questions' - it shows active anger from the public."
         },
         
         "cost-emphasis": {
             type: "purpose",
             technique: "Financial impact",
-            explanation: "'Tens of thousands of pounds' puts a specific price on their adventure, making abstract waste concrete for taxpaying readers."
+            explanation: "'Tens of thousands of pounds' puts a specific price on their adventure for taxpaying readers."
         },
         
-        "expert-opinion": {
+        "experts": {
             type: "audience",
             technique: "Authority appeal",
-            explanation: "'Experts questioned' brings in professional judgment, appealing to readers who value informed opinion over adventure."
+            explanation: "Starting with 'Experts' brings professional judgment to criticize amateur adventurers."
         },
         
-        "technical-detail": {
+        "wisdom": {
             type: "language",
-            technique: "Specific technical information",
-            explanation: "Naming the exact helicopter model and its single engine highlights the specific poor judgment - they chose the wrong equipment."
+            technique: "Judgment word",
+            explanation: "Questioning their 'wisdom' directly challenges their intelligence and decision-making."
         },
         
-        "hostile-environment": {
+        "small-helicopter": {
             type: "language",
-            technique: "Environmental emphasis",
-            explanation: "'Hostile environment' underscores the danger and their poor judgment in entering it unprepared."
+            technique: "Diminutive adjective",
+            explanation: "'Small' emphasizes the inadequacy of their equipment for such a journey."
+        },
+        
+        "single-engine": {
+            type: "language",
+            technique: "Technical vulnerability",
+            explanation: "'Single engine' highlights the specific danger - no backup if it fails over the ocean."
+        },
+        
+        "hostile": {
+            type: "language",
+            technique: "Personification",
+            explanation: "'Hostile environment' makes Antarctica seem actively aggressive, emphasizing their poor judgment."
         },
         
         "confusion": {
             type: "voice",
             technique: "Undermining purpose",
-            explanation: "'Confusion about what exactly the men were trying to achieve' suggests they lack clear goals - they're not serious explorers."
+            explanation: "'Confusion' suggests they lack clear goals - they're not serious explorers with a mission."
         },
         
         "trusty-irony": {
             type: "voice",
             technique: "Ironic quotation",
-            explanation: "Quotation marks around 'trusty helicopter' signal Morris's skepticism - the helicopter that just crashed was hardly trustworthy."
+            explanation: "Quotation marks around 'trusty helicopter' signal Morris's skepticism - it just crashed."
+        },
+        
+        "did-not-know": {
+            type: "voice",
+            technique: "Domestic ignorance",
+            explanation: "Even his wife 'did not know' their plans, suggesting poor planning and communication."
         },
         
         "boys-messing": {
             type: "voice",
-            technique: "Diminishing quote",
-            explanation: "The wife's phrase 'boys messing about' becomes the article's defining judgment - they're not men or explorers, but boys playing with expensive toys."
+            technique: "Infantilizing quote",
+            explanation: "'Boys messing about' reduces them from men and explorers to children playing with toys."
         },
         
         "drama-begins": {
             type: "structure",
-            technique: "Chronological marker",
-            explanation: "'The drama began' shifts to narrative mode, building tension while maintaining the sense of unnecessary spectacle."
+            technique: "Narrative shift",
+            explanation: "'The drama began' shifts to storytelling mode, making it sound like unnecessary theatre."
         },
         
         "nickname": {
             type: "language",
             technique: "Trivializing detail",
-            explanation: "'Also known as Q' adds a James Bond pretension that seems absurd given their incompetence."
+            explanation: "'Also known as Q' adds James Bond pretension that seems absurd given their incompetence."
         },
         
         "ditched": {
             type: "language",
-            technique: "Aviation terminology",
-            explanation: "'Ditched' is technical aviation language for emergency water landing, adding authenticity while emphasizing the emergency."
+            technique: "Aviation jargon",
+            explanation: "'Ditched' is technical aviation language for emergency water landing, adding authenticity."
+        },
+        
+        "distances": {
+            type: "language",
+            technique: "Precise geography",
+            explanation: "Specific distances ('100 miles... 36 miles') emphasize how far from help they were."
         },
         
         "scrambled": {
             type: "language",
-            technique: "Desperate action",
-            explanation: "'Scrambled' suggests panic and desperation rather than calm, professional emergency response."
+            technique: "Panic verb",
+            explanation: "'Scrambled' suggests desperate, undignified panic rather than calm emergency response."
         },
         
         "direct-quote": {
