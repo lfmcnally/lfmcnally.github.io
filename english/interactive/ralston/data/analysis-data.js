@@ -58,6 +58,14 @@ const textData = {
         effect: "Builds trust in narrator's expertise. If an expert can be trapped, anyone could be - increases tension."
     },
     
+    "alliteration-friction": {
+        title: "the friction contact stays solid between the walls and my hands, feet, and back",
+        translation: "Alliteration",
+        device: "Language - Sound Pattern",
+        description: "Alliteration with 'f' sounds (friction, feet) creates a sense of physical contact and pressure.",
+        effect: "The repeated 'f' sounds mimic the huffing breath of exertion and the scraping friction described."
+    },
+    
     "expert-explanation": {
         title: "stemming or chimneying",
         translation: "Technical terminology",
@@ -92,6 +100,14 @@ const textData = {
         effect: "Creates physical empathy - we understand the complexity and skill required. Makes us invested in his actions."
     },
     
+    "parallel-structure": {
+        title: "I press my back against the south wall and lock my left knee",
+        translation: "Parallel construction",
+        device: "Language - Repetition",
+        description: "Series of 'I + verb' constructions showing methodical, sequential actions.",
+        effect: "Creates rhythm of deliberate movement. Each action carefully considered and executed in order."
+    },
+    
     "methodical": {
         title: "I kick at the boulder to test how stuck it is",
         translation: "Safety check",
@@ -108,21 +124,29 @@ const textData = {
         effect: "Creates dread in reader who recognises this as ominous while narrator remains unaware of full threat."
     },
     
-    "climbing-simile": {
+    "simile-house": {
         title: "akin to climbing down from the roof of a house",
-        translation: "Domestic comparison",
-        device: "Language - Accessible Simile",
-        description: "Domestic simile makes technical movement relatable to non-climbers.",
-        effect: "Everyday comparison contrasts with extreme situation about to unfold. Last moment of normalcy."
+        translation: "Domestic simile",
+        device: "Language - Simile",
+        description: "Compares technical climbing manoeuvre to everyday domestic activity.",
+        effect: "Makes extreme sport relatable through familiar comparison. Last touch of normalcy before disaster."
     },
     
     // Paragraph 5 - The Turning Point
-    "turning-point": {
-        title: "I feel the stone respond to my adjusting grip with a scraping quake as my body's weight applies enough torque to disturb it from its position",
-        translation: "The fatal moment",
-        device: "Multiple - Purpose/Language/Structure",
-        description: "The moment everything changes. Technical language maintains documentary feel even as disaster strikes.",
-        effect: "Sentence structure mimics the physics - cause and effect in real time. Reader experiences the horror unfolding."
+    "personification-stone": {
+        title: "the stone respond",
+        translation: "Stone personified",
+        device: "Language - Personification",
+        description: "The boulder 'responds' as if it has agency and awareness.",
+        effect: "Makes the rock seem alive and malevolent, actively participating in his entrapment."
+    },
+    
+    "onomatopoeia": {
+        title: "scraping quake",
+        translation: "Sound effect",
+        device: "Language - Onomatopoeia",
+        description: "'Scraping' mimics the grinding sound of stone on stone. 'Quake' suggests vibration.",
+        effect: "Reader hears and feels the ominous movement. Sound signals imminent danger."
     },
     
     "instant-recognition": {
@@ -149,12 +173,12 @@ const textData = {
         effect: "Backlit creates ominous silhouette - death approaching. Makes scene visual and dramatic."
     },
     
-    "primal-fear": {
-        title: "Fear shoots my hands over my head",
-        translation: "Involuntary reaction",
-        device: "Voice - Raw Fear",
-        description: "Fear becomes active agent - it 'shoots' his hands up. Loss of conscious control.",
-        effect: "Shows shift from controlled expert to primal fear response. Body takes over in survival mode."
+    "metaphor-shoots": {
+        title: "Fear shoots",
+        translation: "Fear as projectile",
+        device: "Language - Metaphor",
+        description: "Fear becomes an active force that 'shoots' his hands upward like a bullet.",
+        effect: "Shows involuntary speed of reaction. Fear takes control of his body."
     },
     
     "hopeless": {
@@ -182,12 +206,36 @@ const textData = {
         effect: "'Dilates' is precisely accurate - time perception does change in crisis. Dream comparison makes it relatable."
     },
     
+    "simile-dreaming": {
+        title: "as if I'm dreaming",
+        translation: "Dream simile",
+        device: "Language - Simile",
+        description: "Compares time dilation to dream state where time moves differently.",
+        effect: "Captures surreal quality of trauma. Makes altered perception relatable."
+    },
+    
     "slow-motion": {
         title: "In slow motion: the rock smashes my left hand against the south wall; my eyes register the collision, and I yank my left arm back as the rock ricochets; the boulder then crushes my right hand and ensnares my right arm at the wrist, palm in, thumb up, fingers extended; the rock slides another foot down the wall with my arm in tow, tearing the skin off the lateral side of my forearm",
         translation: "Blow-by-blow account",
         device: "Multiple - Purpose/Language/Structure",
         description: "Detailed sequential description of impact. Clinical detail maintains documentary tone while describing personal catastrophe.",
         effect: "Colon introduces litany of horror. Reader experiences each impact. Medical precision maintains objectivity."
+    },
+    
+    "repetition-yank": {
+        title: "I yank",
+        translation: "Repeated verb",
+        device: "Language - Repetition",
+        description: "Repeats 'yank' from earlier desperate attempt, showing futile repetition.",
+        effect: "Emphasises desperate, instinctive pulling motion. Same action, no result."
+    },
+    
+    "tripling": {
+        title: "palm in, thumb up, fingers extended",
+        translation: "Rule of three",
+        device: "Language - Tripling",
+        description: "Three precise details about hand position, building complete picture.",
+        effect: "Forensic detail shows how clearly this moment is burned into memory. Clinical precision amid chaos."
     },
     
     "silence": {
@@ -231,6 +279,22 @@ const textData = {
         effect: "Vivid verb makes pain visual and dynamic. Shows extremity of situation."
     },
     
+    "sensory-imagery": {
+        title: "The flaring agony",
+        translation: "Sensory description",
+        device: "Language - Imagery",
+        description: "'Flaring' suggests fire, heat, and spreading pain - visual and tactile.",
+        effect: "Makes pain visceral and visual. Reader can almost feel the burning sensation."
+    },
+    
+    "onomatopoeia-growl": {
+        title: "I grimace and growl",
+        translation: "Animal sounds",
+        device: "Language - Onomatopoeia",
+        description: "'Growl' is primal, animalistic sound of pain and frustration.",
+        effect: "Shows regression from articulate expert to wordless animal in pain."
+    },
+    
     "internal-dialogue": {
         title: 'My mind commands my body, "Get your hand out of there!"',
         translation: "Mind-body split",
@@ -239,11 +303,27 @@ const textData = {
         effect: "Fragmentation of self under extreme stress. Exclamation mark conveys panic."
     },
     
+    "repetition-three": {
+        title: "I yank my arm three times",
+        translation: "Repeated action",
+        device: "Language - Repetition",
+        description: "Repetition of yanking action shows desperate, futile attempt.",
+        effect: "Reader feels the rhythm of pull, pull, pull - then nothing. Emphasises futility."
+    },
+    
+    "rule-of-three": {
+        title: "three times",
+        translation: "Specific number",
+        device: "Language - Rule of Three",
+        description: "Specific number three - the classic number of attempts in stories.",
+        effect: "Three attempts before accepting failure is archetypal. Shows he tried but not endlessly."
+    },
+    
     "futile-action": {
-        title: "three times in a naive attempt",
+        title: "naive attempt",
         translation: "Futile effort",
         device: "Language - Self-Aware",
-        description: "'Naive' shows he knows it's hopeless even as he tries. Specific number emphasises futility.",
+        description: "'Naive' shows he knows it's hopeless even as he tries. Self-aware even in panic.",
         effect: "Maintains analytical voice even in panic. Shows dual perspective - actor and observer."
     },
     
@@ -264,12 +344,36 @@ const textData = {
         effect: "Informal language shows psychological breakdown. Voice becoming less controlled."
     },
     
+    "personification-anxiety": {
+        title: "Anxiety has my brain",
+        translation: "Anxiety personified",
+        device: "Language - Personification",
+        description: "Anxiety becomes an entity that possesses and controls his brain.",
+        effect: "Shows loss of control. Mental state becomes external force acting upon him."
+    },
+    
+    "sensory-heat": {
+        title: "searing-hot pain",
+        translation: "Temperature imagery",
+        device: "Language - Sensory Imagery",
+        description: "Pain described through temperature - 'searing-hot' like being burned.",
+        effect: "Makes abstract pain concrete through familiar sensation of burning."
+    },
+    
     "shared-reference": {
         title: "probably apocryphal story in which an adrenaline-stoked mom lifts an overturned car to free her baby",
         translation: "Cultural myth",
         device: "Audience - Shared Knowledge",
         description: "References shared cultural myth about superhuman strength in crisis.",
         effect: "Connects to common story everyone's heard. Shows desperate hope while acknowledging it's probably false."
+    },
+    
+    "parenthetical": {
+        title: "story in which an adrenaline-stoked mom lifts an overturned car to free her baby",
+        translation: "Aside/anecdote",
+        device: "Language - Parenthetical",
+        description: "Parenthetical anecdote about superhuman strength interrupts action.",
+        effect: "Shows his mind grasping at any hope, even myths. Analytical mind still working despite panic."
     },
     
     "analytical-desperation": {
@@ -288,12 +392,28 @@ const textData = {
         effect: "Reader feels physical strain through accumulated verbs. Conveys desperate physical effort and building exhaustion."
     },
     
+    "tripling-verbs": {
+        title: "I shove against the large boulder, heaving against it, pushing with my left hand, lifting with my knees",
+        translation: "Verb accumulation",
+        device: "Language - Tripling/Crescendo",
+        description: "Series of increasingly desperate action verbs: shove, heave, push, lift.",
+        effect: "Creates sense of frantic, escalating effort. Reader feels exhaustion building."
+    },
+    
     "desperate-dialogue": {
-        title: '"Come on... move!"',
+        title: 'grunting, "Come on... move!"',
         translation: "Pleading with rock",
         device: "Voice - Desperate",
-        description: "Speaking to boulder as if it could respond. Ellipsis shows effort between words.",
-        effect: "Shows psychological state - treating inanimate object as negotiable. Reveals depth of desperation."
+        description: "Speaking to boulder as if it could respond. Shows psychological state.",
+        effect: "Treating inanimate object as negotiable. Reveals depth of desperation."
+    },
+    
+    "ellipsis-effort": {
+        title: '"Come on... move!"',
+        translation: "Ellipsis for strain",
+        device: "Language - Punctuation",
+        description: "Ellipsis shows pause for breath/effort between desperate words.",
+        effect: "Reader hears the strain and effort. Gaps show physical exertion interrupting speech."
     },
     
     "final-defeat": {
