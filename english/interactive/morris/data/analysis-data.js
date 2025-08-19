@@ -20,7 +20,7 @@ const textData = {
         title: "icebound",
         translation: "Environmental adjective",
         device: "Language",
-        description: "'Icebound' emphasizes the harsh, frozen conditions they repeatedly choose to enter unprepared.",
+        description: "'Icebound' emphasises the harsh, frozen conditions they repeatedly choose to enter unprepared.",
         effect: "Highlights the dangerous environment they keep entering recklessly."
     },
     
@@ -44,7 +44,7 @@ const textData = {
         title: "almost led to tragedy",
         translation: "Near-miss language",
         device: "Language",
-        description: "'Almost led to tragedy' emphasizes how close to death they came, implying recklessness.",
+        description: "'Almost led to tragedy' emphasises how close to death they came, implying recklessness.",
         effect: "Highlights the life-threatening consequences of their poor judgment."
     },
     
@@ -52,7 +52,7 @@ const textData = {
         title: "plunged",
         translation: "Violent verb",
         device: "Language",
-        description: "'Plunged' is more dramatic than 'crashed' or 'landed', emphasizing violence and lack of control.",
+        description: "'Plunged' is more dramatic than 'crashed' or 'landed', emphasising violence and lack of control.",
         effect: "Makes the crash sound violent and uncontrolled."
     },
     
@@ -68,7 +68,7 @@ const textData = {
         title: "icy water",
         translation: "Harsh conditions",
         device: "Language",
-        description: "'Icy water' emphasizes the lethal environment they put themselves in.",
+        description: "'Icy water' emphasises the lethal environment they put themselves in.",
         effect: "Reminds readers of the deadly conditions."
     },
     
@@ -84,8 +84,8 @@ const textData = {
         title: "the Royal Navy, the RAF and British coastguards",
         translation: "Rule of three",
         device: "Purpose",
-        description: "Listing three services (Royal Navy, RAF, British coastguards) emphasizes the scale of resources needed.",
-        effect: "Emphasizes how many organizations had to help."
+        description: "Listing three services (Royal Navy, RAF, British coastguards) emphasises the scale of resources needed.",
+        effect: "Emphasises how many organisations had to help."
     },
     
     "resentment": {
@@ -108,7 +108,7 @@ const textData = {
         title: "Experts",
         translation: "Authority appeal",
         device: "Audience",
-        description: "Starting with 'Experts' brings professional judgment to criticize amateur adventurers.",
+        description: "Starting with 'Experts' brings professional judgment to criticise amateur adventurers.",
         effect: "Uses authority to validate criticism."
     },
     
@@ -124,7 +124,7 @@ const textData = {
         title: "small helicopter",
         translation: "Diminutive adjective",
         device: "Language",
-        description: "'Small' emphasizes the inadequacy of their equipment for such a journey.",
+        description: "'Small' emphasises the inadequacy of their equipment for such a journey.",
         effect: "Highlights inadequate equipment."
     },
     
@@ -140,7 +140,7 @@ const textData = {
         title: "hostile environment",
         translation: "Personification",
         device: "Language",
-        description: "'Hostile environment' makes Antarctica seem actively aggressive, emphasizing their poor judgment.",
+        description: "'Hostile environment' makes Antarctica seem actively aggressive, emphasising their poor judgment.",
         effect: "Makes Antarctica sound actively dangerous."
     },
     
@@ -170,10 +170,10 @@ const textData = {
     
     "boys-messing": {
         title: "boys messing about with a helicopter",
-        translation: "Infantilizing quote",
+        translation: "Infantilising quote",
         device: "Voice",
         description: "'Boys messing about' reduces them from men and explorers to children playing with toys.",
-        effect: "Infantilizes grown men into irresponsible boys."
+        effect: "Infantilises grown men into irresponsible boys."
     },
     
     "drama-begins": {
@@ -186,7 +186,7 @@ const textData = {
     
     "nickname": {
         title: "also known as Q",
-        translation: "Trivializing detail",
+        translation: "Trivialising detail",
         device: "Language",
         description: "'Also known as Q' adds James Bond pretension that seems absurd given their incompetence.",
         effect: "James Bond reference seems pretentious given the failure."
@@ -204,7 +204,7 @@ const textData = {
         title: "100 miles off Antarctica, about 36 miles north of Smith Island",
         translation: "Precise geography",
         device: "Language",
-        description: "Specific distances ('100 miles... 36 miles') emphasize how far from help they were.",
+        description: "Specific distances ('100 miles... 36 miles') emphasise how far from help they were.",
         effect: "Shows how remote and dangerous their location was."
     },
     
@@ -244,8 +244,8 @@ const textData = {
         title: "nothing short of a miracle",
         translation: "Contrasting perspective",
         device: "Voice",
-        description: "An Antarctic explorer calling survival 'a miracle' emphasizes how lucky they were, not how skilled.",
-        effect: "Expert opinion emphasizes luck over skill."
+        description: "An Antarctic explorer calling survival 'a miracle' emphasises how lucky they were, not how skilled.",
+        effect: "Expert opinion emphasises luck over skill."
     },
     
     "credentials": {
@@ -317,7 +317,7 @@ const textData = {
         translation: "Direct expert criticism",
         device: "Language",
         description: "'I wouldn't use a helicopter like that' is damning professional judgment - they made a basic error that any expert would avoid.",
-        effect: "Expert directly criticizes their basic judgment."
+        effect: "Expert directly criticises their basic judgment."
     },
     
     "excellent-irony": {
@@ -349,7 +349,7 @@ const textData = {
         translation: "Domestic comedy ending",
         device: "Voice",
         description: "The wife's comment about 'bottoms kicked' reduces the explorers to naughty schoolboys, ending on domestic comedy rather than heroic adventure.",
-        effect: "Final infantilization - naughty boys getting punished."
+        effect: "Final infantilisation - naughty boys getting punished."
     }
 };
 
@@ -376,7 +376,7 @@ const vocabData = {
         translation: "Fell suddenly",
         device: "Vocabulary",
         description: "Fell or dived suddenly and uncontrollably",
-        effect: "Emphasizes violent, uncontrolled descent."
+        effect: "Emphasises violent, uncontrolled descent."
     },
     
     "hostile": {
