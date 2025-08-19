@@ -61,7 +61,7 @@ const analysisData = {
         },
         
         "tripling": {
-            type: "language",
+            type: "purpose",
             technique: "Rule of three",
             explanation: "Listing three services (Royal Navy, RAF, British coastguards) emphasizes the scale of resources needed."
         },
@@ -277,42 +277,3 @@ const analysisData = {
         "floes": "Sheets of floating ice"
     }
 };
-
-// Function to handle interactive highlighting
-function initializeInteractive() {
-    document.querySelectorAll('.highlight').forEach(span => {
-        span.addEventListener('click', function() {
-            const analysisKey = this.getAttribute('data-analysis');
-            if (analysisKey && analysisData.analyses[analysisKey]) {
-                showAnalysis(analysisData.analyses[analysisKey]);
-            }
-        });
-    });
-}
-
-// Function to display analysis panel
-function showAnalysis(analysis) {
-    const panel = document.getElementById('analysis-panel');
-    if (panel) {
-        panel.innerHTML = `
-            <div class="analysis-content">
-                <button class="close-btn" onclick="closeAnalysis()">×</button>
-                <h3 class="${analysis.type}">${analysis.type.charAt(0).toUpperCase() + analysis.type.slice(1)}</h3>
-                <h4>${analysis.technique}</h4>
-                <p>${analysis.explanation}</p>
-            </div>
-        `;
-        panel.classList.add('active');
-    }
-}
-
-// Function to close analysis panel
-function closeAnalysis() {
-    const panel = document.getElementById('analysis-panel');
-    if (panel) {
-        panel.classList.remove('active');
-    }
-}
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeInteractive);
