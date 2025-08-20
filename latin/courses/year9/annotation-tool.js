@@ -202,8 +202,9 @@ class AnnotationTool {
         this.startX = e.clientX - rect.left + window.scrollX;
         this.startY = e.clientY - rect.top + window.scrollY;
         
-        this.ctx.beginPath();
         this.setupBrush();
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.startX, this.startY);
     }
 
     draw(e) {
@@ -215,8 +216,6 @@ class AnnotationTool {
         
         this.ctx.lineTo(currentX, currentY);
         this.ctx.stroke();
-        this.ctx.beginPath();
-        this.ctx.moveTo(currentX, currentY);
     }
 
     stopDrawing() {
@@ -230,16 +229,18 @@ class AnnotationTool {
             case 'highlighter':
                 this.ctx.globalCompositeOperation = 'multiply';
                 this.ctx.strokeStyle = this.currentColor;
-                this.ctx.lineWidth = 20;
+                this.ctx.lineWidth = 24;
                 this.ctx.lineCap = 'round';
-                this.ctx.globalAlpha = 0.5;
+                this.ctx.lineJoin = 'round';
+                this.ctx.globalAlpha = 0.3;
                 break;
                 
             case 'pen':
                 this.ctx.globalCompositeOperation = 'source-over';
                 this.ctx.strokeStyle = this.currentColor;
-                this.ctx.lineWidth = 3;
+                this.ctx.lineWidth = 2;
                 this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
                 this.ctx.globalAlpha = 1;
                 break;
                 
@@ -247,6 +248,7 @@ class AnnotationTool {
                 this.ctx.globalCompositeOperation = 'destination-out';
                 this.ctx.lineWidth = 25;
                 this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
                 this.ctx.globalAlpha = 1;
                 break;
         }
