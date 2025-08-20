@@ -163,6 +163,8 @@ class AnnotationTool {
         if (this.isActive) {
             toolbar.classList.remove('hidden');
             canvas.classList.remove('hidden');
+            // Set initial tool state
+            document.body.setAttribute('data-annotation-tool', this.currentTool);
             this.updateCursor();
             this.resizeCanvas();
             console.log('Annotation mode activated');
@@ -170,6 +172,8 @@ class AnnotationTool {
             // Only hide toolbar, keep canvas visible
             toolbar.classList.add('hidden');
             this.toolbarVisible = false;
+            // Remove tool state - allows all clicks through
+            document.body.removeAttribute('data-annotation-tool');
             // Canvas stays visible with annotations
             document.body.style.cursor = 'auto';
             console.log('Toolbar hidden, annotations remain visible');
@@ -181,6 +185,8 @@ class AnnotationTool {
         toolbar.classList.add('hidden');
         this.toolbarVisible = false;
         this.currentTool = 'pointer';
+        // Remove tool state to allow clicks through
+        document.body.setAttribute('data-annotation-tool', 'pointer');
         document.body.style.cursor = 'auto';
         console.log('Toolbar hidden, switched to pointer mode');
     }
@@ -190,6 +196,8 @@ class AnnotationTool {
             const toolbar = document.getElementById('annotationToolbar');
             toolbar.classList.remove('hidden');
             this.toolbarVisible = true;
+            // Restore tool state
+            document.body.setAttribute('data-annotation-tool', this.currentTool);
             this.updateCursor();
             console.log('Toolbar shown');
         }
