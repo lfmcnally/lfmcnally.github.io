@@ -205,9 +205,8 @@ class AnnotationTool {
         if (!this.isActive || e.target.closest('.annotation-toolbar')) return;
         
         this.isDrawing = true;
-        const rect = this.canvas.getBoundingClientRect();
-        this.startX = e.clientX - rect.left;
-        this.startY = e.clientY - rect.top + window.scrollY;
+        this.startX = e.clientX;
+        this.startY = e.clientY + window.scrollY;
         
         this.setupBrush();
         this.ctx.beginPath();
@@ -217,9 +216,8 @@ class AnnotationTool {
     draw(e) {
         if (!this.isDrawing || !this.isActive) return;
         
-        const rect = this.canvas.getBoundingClientRect();
-        const currentX = e.clientX - rect.left;
-        const currentY = e.clientY - rect.top + window.scrollY;
+        const currentX = e.clientX;
+        const currentY = e.clientY + window.scrollY;
         
         this.ctx.lineTo(currentX, currentY);
         this.ctx.stroke();
