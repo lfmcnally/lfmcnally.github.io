@@ -237,7 +237,7 @@ class AnnotationTool {
                 this.ctx.lineWidth = 24;
                 this.ctx.lineCap = 'round';
                 this.ctx.lineJoin = 'round';
-                this.ctx.globalAlpha = 0.3;
+                this.ctx.globalAlpha = 0.15;
                 break;
                 
             case 'pen':
