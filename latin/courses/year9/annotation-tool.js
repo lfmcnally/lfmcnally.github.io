@@ -11,10 +11,10 @@ class AnnotationTool {
         this.isDrawing = false;
         this.canvas = null;
         this.ctx = null;
-        this.tempCanvas = null; // For highlighter
-        this.tempCtx = null;
         this.startX = 0;
         this.startY = 0;
+        this.lastX = 0;
+        this.lastY = 0;
         
         this.colors = {
             yellow: '#ffeb3b',
@@ -88,10 +88,6 @@ class AnnotationTool {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         
-        // Create temporary canvas for highlighter
-        this.tempCanvas = document.createElement('canvas');
-        this.tempCtx = this.tempCanvas.getContext('2d');
-        
         this.resizeCanvas();
         
         // Resize canvas when window resizes
@@ -110,13 +106,8 @@ class AnnotationTool {
         this.canvas.style.width = rect.width + 'px';
         this.canvas.style.height = rect.height + 'px';
         
-        // Set temp canvas size
-        this.tempCanvas.width = rect.width * dpr;
-        this.tempCanvas.height = rect.height * dpr;
-        
-        // Scale the drawing contexts so everything draws at the correct size
+        // Scale the drawing context so everything draws at the correct size
         this.ctx.scale(dpr, dpr);
-        this.tempCtx.scale(dpr, dpr);
     }
 
     bindEvents() {
@@ -246,23 +237,12 @@ class AnnotationTool {
         this.isDrawing = true;
         this.startX = e.clientX;
         this.startY = e.clientY + window.scrollY;
+        this.lastX = this.startX;
+        this.lastY = this.startY;
         
-        if (this.currentTool === 'highlighter') {
-            // Clear temp canvas and set up for highlighting
-            this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
-            this.tempCtx.globalCompositeOperation = 'source-over';
-            this.tempCtx.strokeStyle = this.currentColor;
-            this.tempCtx.lineWidth = 24;
-            this.tempCtx.lineCap = 'round';
-            this.tempCtx.lineJoin = 'round';
-            this.tempCtx.globalAlpha = 1; // Full opacity on temp canvas
-            this.tempCtx.beginPath();
-            this.tempCtx.moveTo(this.startX, this.startY);
-        } else {
-            this.setupBrush();
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.startX, this.startY);
-        }
+        this.setupBrush();
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.startX, this.startY);
     }
 
     draw(e) {
@@ -272,33 +252,38 @@ class AnnotationTool {
         const currentX = e.clientX;
         const currentY = e.clientY + window.scrollY;
         
-        if (this.currentTool === 'highlighter') {
-            // Draw to temp canvas
-            this.tempCtx.lineTo(currentX, currentY);
-            this.tempCtx.stroke();
-        } else {
+        // Calculate distance from last point
+        const distance = Math.sqrt((currentX - this.lastX) ** 2 + (currentY - this.lastY) ** 2);
+        
+        if (this.currentTool === 'highlighter' && distance > 2) {
+            // For highlighter, draw individual circles to avoid overlap gradients
+            this.ctx.beginPath();
+            this.ctx.arc(currentX, currentY, 12, 0, Math.PI * 2);
+            this.ctx.fill();
+        } else if (this.currentTool !== 'highlighter') {
+            // For pen and eraser, use normal line drawing
             this.ctx.lineTo(currentX, currentY);
             this.ctx.stroke();
         }
+        
+        this.lastX = currentX;
+        this.lastY = currentY;
     }
 
     stopDrawing() {
         if (!this.isDrawing) return;
         this.isDrawing = false;
-        
-        if (this.currentTool === 'highlighter') {
-            // Copy from temp canvas to main canvas with transparency
-            this.ctx.save();
-            this.ctx.globalAlpha = 0.2;
-            this.ctx.drawImage(this.tempCanvas, 0, 0);
-            this.ctx.restore();
-        } else {
-            this.ctx.beginPath();
-        }
+        this.ctx.beginPath();
     }
 
     setupBrush() {
         switch (this.currentTool) {
+            case 'highlighter':
+                this.ctx.globalCompositeOperation = 'source-over';
+                this.ctx.fillStyle = this.currentColor;
+                this.ctx.globalAlpha = 0.2;
+                break;
+                
             case 'pen':
                 this.ctx.globalCompositeOperation = 'source-over';
                 this.ctx.strokeStyle = this.currentColor;
