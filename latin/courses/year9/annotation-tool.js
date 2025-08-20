@@ -138,6 +138,20 @@ class AnnotationTool {
         document.addEventListener('mousemove', (e) => this.draw(e));
         document.addEventListener('mouseup', () => this.stopDrawing());
         
+        // Prevent context menu when right-clicking during drawing
+        document.addEventListener('contextmenu', (e) => {
+            if (this.isDrawing || (this.toolbarVisible && this.currentTool !== 'pointer')) {
+                e.preventDefault();
+            }
+        });
+        
+        // Prevent text selection during drawing
+        document.addEventListener('selectstart', (e) => {
+            if (this.isDrawing || (this.toolbarVisible && this.currentTool !== 'pointer')) {
+                e.preventDefault();
+            }
+        });
+        
         // Keyboard shortcut (A key to toggle)
         document.addEventListener('keydown', (e) => {
             if (e.key === 'a' || e.key === 'A') {
