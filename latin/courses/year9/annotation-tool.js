@@ -4,7 +4,8 @@
 class AnnotationTool {
     constructor() {
         this.isActive = false;
-        this.currentTool = 'highlighter';
+        this.toolbarVisible = false;
+        this.currentTool = 'pointer';
         this.currentColor = '#ffeb3b'; // Yellow default
         this.annotations = [];
         this.isDrawing = false;
@@ -40,6 +41,9 @@ class AnnotationTool {
         toolbar.className = 'annotation-toolbar hidden';
         toolbar.innerHTML = `
             <div class="annotation-tools">
+                <button class="tool-btn" data-tool="pointer" title="Pointer (Normal Interaction)">
+                    <span class="tool-icon">👆</span>
+                </button>
                 <button class="tool-btn active" data-tool="highlighter" title="Highlighter">
                     <span class="tool-icon">🖍️</span>
                 </button>
@@ -66,8 +70,8 @@ class AnnotationTool {
                 <button class="action-btn" id="clearAll" title="Clear All">
                     <span class="tool-icon">🗑️</span>
                 </button>
-                <button class="action-btn" id="closeAnnotations" title="Close">
-                    <span class="tool-icon">❌</span>
+                <button class="action-btn" id="hideToolbar" title="Hide Toolbar">
+                    <span class="tool-icon">👁️</span>
                 </button>
             </div>
         `;
@@ -134,8 +138,8 @@ class AnnotationTool {
                 this.clearAll();
             }
             
-            if (e.target.closest('#closeAnnotations')) {
-                this.toggle();
+            if (e.target.closest('#hideToolbar')) {
+                this.hideToolbar();
             }
         });
 
@@ -162,20 +166,42 @@ class AnnotationTool {
 
     toggle() {
         this.isActive = !this.isActive;
+        this.toolbarVisible = this.isActive;
         const toolbar = document.getElementById('annotationToolbar');
         const canvas = document.getElementById('annotationCanvas');
         
         if (this.isActive) {
             toolbar.classList.remove('hidden');
             canvas.classList.remove('hidden');
-            document.body.style.cursor = this.getCursor();
+            this.updateCursor();
             this.resizeCanvas();
             console.log('Annotation mode activated');
         } else {
+            // Only hide toolbar, keep canvas visible
             toolbar.classList.add('hidden');
-            canvas.classList.add('hidden');
+            this.toolbarVisible = false;
+            // Canvas stays visible with annotations
             document.body.style.cursor = 'auto';
-            console.log('Annotation mode deactivated');
+            console.log('Toolbar hidden, annotations remain visible');
+        }
+    }
+
+    hideToolbar() {
+        const toolbar = document.getElementById('annotationToolbar');
+        toolbar.classList.add('hidden');
+        this.toolbarVisible = false;
+        this.currentTool = 'pointer';
+        document.body.style.cursor = 'auto';
+        console.log('Toolbar hidden, switched to pointer mode');
+    }
+
+    showToolbar() {
+        if (this.isActive || document.getElementById('annotationCanvas').classList.contains('hidden') === false) {
+            const toolbar = document.getElementById('annotationToolbar');
+            toolbar.classList.remove('hidden');
+            this.toolbarVisible = true;
+            this.updateCursor();
+            console.log('Toolbar shown');
         }
     }
 
@@ -214,7 +240,8 @@ class AnnotationTool {
     }
 
     startDrawing(e) {
-        if (!this.isActive || e.target.closest('.annotation-toolbar')) return;
+        if (!this.toolbarVisible || e.target.closest('.annotation-toolbar')) return;
+        if (this.currentTool === 'pointer') return; // Don't draw in pointer mode
         
         this.isDrawing = true;
         this.startX = e.clientX;
@@ -239,7 +266,8 @@ class AnnotationTool {
     }
 
     draw(e) {
-        if (!this.isDrawing || !this.isActive) return;
+        if (!this.isDrawing || !this.toolbarVisible) return;
+        if (this.currentTool === 'pointer') return; // Don't draw in pointer mode
         
         const currentX = e.clientX;
         const currentY = e.clientY + window.scrollY;
