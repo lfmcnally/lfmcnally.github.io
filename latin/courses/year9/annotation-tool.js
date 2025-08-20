@@ -236,10 +236,10 @@ class AnnotationTool {
             case 'highlighter':
                 this.ctx.globalCompositeOperation = 'source-over';
                 this.ctx.strokeStyle = this.currentColor;
-                this.ctx.lineWidth = 20;
+                this.ctx.lineWidth = 24;
                 this.ctx.lineCap = 'round';
                 this.ctx.lineJoin = 'round';
-                this.ctx.globalAlpha = 0.2;
+                this.ctx.globalAlpha = 0.3;
                 break;
                 
             case 'pen':
