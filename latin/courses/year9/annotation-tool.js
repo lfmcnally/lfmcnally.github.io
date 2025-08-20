@@ -10,9 +10,10 @@ class AnnotationTool {
         this.isDrawing = false;
         this.canvas = null;
         this.ctx = null;
+        this.tempCanvas = null; // For highlighter
+        this.tempCtx = null;
         this.startX = 0;
         this.startY = 0;
-        this.currentPath = []; // For highlighter path tracking
         
         this.colors = {
             yellow: '#ffeb3b',
@@ -82,6 +83,11 @@ class AnnotationTool {
         
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
+        
+        // Create temporary canvas for highlighter
+        this.tempCanvas = document.createElement('canvas');
+        this.tempCtx = this.tempCanvas.getContext('2d');
+        
         this.resizeCanvas();
         
         // Resize canvas when window resizes
@@ -100,8 +106,13 @@ class AnnotationTool {
         this.canvas.style.width = rect.width + 'px';
         this.canvas.style.height = rect.height + 'px';
         
-        // Scale the drawing context so everything draws at the correct size
+        // Set temp canvas size
+        this.tempCanvas.width = rect.width * dpr;
+        this.tempCanvas.height = rect.height * dpr;
+        
+        // Scale the drawing contexts so everything draws at the correct size
         this.ctx.scale(dpr, dpr);
+        this.tempCtx.scale(dpr, dpr);
     }
 
     bindEvents() {
@@ -210,8 +221,16 @@ class AnnotationTool {
         this.startY = e.clientY + window.scrollY;
         
         if (this.currentTool === 'highlighter') {
-            // Start a new path for highlighter
-            this.currentPath = [{x: this.startX, y: this.startY}];
+            // Clear temp canvas and set up for highlighting
+            this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
+            this.tempCtx.globalCompositeOperation = 'source-over';
+            this.tempCtx.strokeStyle = this.currentColor;
+            this.tempCtx.lineWidth = 24;
+            this.tempCtx.lineCap = 'round';
+            this.tempCtx.lineJoin = 'round';
+            this.tempCtx.globalAlpha = 1; // Full opacity on temp canvas
+            this.tempCtx.beginPath();
+            this.tempCtx.moveTo(this.startX, this.startY);
         } else {
             this.setupBrush();
             this.ctx.beginPath();
@@ -226,9 +245,9 @@ class AnnotationTool {
         const currentY = e.clientY + window.scrollY;
         
         if (this.currentTool === 'highlighter') {
-            // Add point to path
-            this.currentPath.push({x: currentX, y: currentY});
-            this.drawHighlightPath();
+            // Draw to temp canvas
+            this.tempCtx.lineTo(currentX, currentY);
+            this.tempCtx.stroke();
         } else {
             this.ctx.lineTo(currentX, currentY);
             this.ctx.stroke();
@@ -240,33 +259,14 @@ class AnnotationTool {
         this.isDrawing = false;
         
         if (this.currentTool === 'highlighter') {
-            this.currentPath = [];
+            // Copy from temp canvas to main canvas with transparency
+            this.ctx.save();
+            this.ctx.globalAlpha = 0.2;
+            this.ctx.drawImage(this.tempCanvas, 0, 0);
+            this.ctx.restore();
         } else {
             this.ctx.beginPath();
         }
-    }
-
-    drawHighlightPath() {
-        if (this.currentPath.length < 2) return;
-        
-        // Clear and redraw the entire highlight path to avoid overlapping
-        this.ctx.save();
-        this.ctx.globalCompositeOperation = 'source-over';
-        this.ctx.strokeStyle = this.currentColor;
-        this.ctx.lineWidth = 24;
-        this.ctx.lineCap = 'round';
-        this.ctx.lineJoin = 'round';
-        this.ctx.globalAlpha = 0.2;
-        
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.currentPath[0].x, this.currentPath[0].y);
-        
-        for (let i = 1; i < this.currentPath.length; i++) {
-            this.ctx.lineTo(this.currentPath[i].x, this.currentPath[i].y);
-        }
-        
-        this.ctx.stroke();
-        this.ctx.restore();
     }
 
     setupBrush() {
