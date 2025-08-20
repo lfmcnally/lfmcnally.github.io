@@ -6,7 +6,7 @@ class AnnotationTool {
         this.isActive = false;
         this.toolbarVisible = false;
         this.currentTool = 'pointer';
-        this.currentColor = '#ffeb3b'; // Yellow default
+        this.currentColor = '#333333'; // Black default
         this.annotations = [];
         this.isDrawing = false;
         this.canvas = null;
@@ -17,6 +17,7 @@ class AnnotationTool {
         this.lastY = 0;
         
         this.colors = {
+            black: '#333333',
             yellow: '#ffeb3b',
             green: '#4caf50',
             blue: '#2196f3',
@@ -41,11 +42,8 @@ class AnnotationTool {
         toolbar.className = 'annotation-toolbar hidden';
         toolbar.innerHTML = `
             <div class="annotation-tools">
-                <button class="tool-btn" data-tool="pointer" title="Pointer (Normal Interaction)">
+                <button class="tool-btn active" data-tool="pointer" title="Pointer (Normal Interaction)">
                     <span class="tool-icon">👆</span>
-                </button>
-                <button class="tool-btn active" data-tool="highlighter" title="Highlighter">
-                    <span class="tool-icon">🖍️</span>
                 </button>
                 <button class="tool-btn" data-tool="pen" title="Pen">
                     <span class="tool-icon">✏️</span>
@@ -57,7 +55,8 @@ class AnnotationTool {
                 <div class="tool-divider"></div>
                 
                 <div class="color-palette">
-                    <button class="color-btn active" data-color="yellow" style="background: #ffeb3b" title="Yellow"></button>
+                    <button class="color-btn active" data-color="black" style="background: #333333" title="Black"></button>
+                    <button class="color-btn" data-color="yellow" style="background: #ffeb3b" title="Yellow"></button>
                     <button class="color-btn" data-color="green" style="background: #4caf50" title="Green"></button>
                     <button class="color-btn" data-color="blue" style="background: #2196f3" title="Blue"></button>
                     <button class="color-btn" data-color="red" style="background: #f44336" title="Red"></button>
@@ -252,19 +251,8 @@ class AnnotationTool {
         const currentX = e.clientX;
         const currentY = e.clientY + window.scrollY;
         
-        // Calculate distance from last point
-        const distance = Math.sqrt((currentX - this.lastX) ** 2 + (currentY - this.lastY) ** 2);
-        
-        if (this.currentTool === 'highlighter' && distance > 2) {
-            // For highlighter, draw individual circles to avoid overlap gradients
-            this.ctx.beginPath();
-            this.ctx.arc(currentX, currentY, 12, 0, Math.PI * 2);
-            this.ctx.fill();
-        } else if (this.currentTool !== 'highlighter') {
-            // For pen and eraser, use normal line drawing
-            this.ctx.lineTo(currentX, currentY);
-            this.ctx.stroke();
-        }
+        this.ctx.lineTo(currentX, currentY);
+        this.ctx.stroke();
         
         this.lastX = currentX;
         this.lastY = currentY;
@@ -278,12 +266,6 @@ class AnnotationTool {
 
     setupBrush() {
         switch (this.currentTool) {
-            case 'highlighter':
-                this.ctx.globalCompositeOperation = 'source-over';
-                this.ctx.fillStyle = this.currentColor;
-                this.ctx.globalAlpha = 0.2;
-                break;
-                
             case 'pen':
                 this.ctx.globalCompositeOperation = 'source-over';
                 this.ctx.strokeStyle = this.currentColor;
