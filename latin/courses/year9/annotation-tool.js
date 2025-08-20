@@ -12,6 +12,7 @@ class AnnotationTool {
         this.ctx = null;
         this.startX = 0;
         this.startY = 0;
+        this.currentPath = []; // For highlighter path tracking
         
         this.colors = {
             yellow: '#ffeb3b',
@@ -208,9 +209,14 @@ class AnnotationTool {
         this.startX = e.clientX;
         this.startY = e.clientY + window.scrollY;
         
-        this.setupBrush();
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.startX, this.startY);
+        if (this.currentTool === 'highlighter') {
+            // Start a new path for highlighter
+            this.currentPath = [{x: this.startX, y: this.startY}];
+        } else {
+            this.setupBrush();
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.startX, this.startY);
+        }
     }
 
     draw(e) {
@@ -219,27 +225,52 @@ class AnnotationTool {
         const currentX = e.clientX;
         const currentY = e.clientY + window.scrollY;
         
-        this.ctx.lineTo(currentX, currentY);
-        this.ctx.stroke();
+        if (this.currentTool === 'highlighter') {
+            // Add point to path
+            this.currentPath.push({x: currentX, y: currentY});
+            this.drawHighlightPath();
+        } else {
+            this.ctx.lineTo(currentX, currentY);
+            this.ctx.stroke();
+        }
     }
 
     stopDrawing() {
         if (!this.isDrawing) return;
         this.isDrawing = false;
+        
+        if (this.currentTool === 'highlighter') {
+            this.currentPath = [];
+        } else {
+            this.ctx.beginPath();
+        }
+    }
+
+    drawHighlightPath() {
+        if (this.currentPath.length < 2) return;
+        
+        // Clear and redraw the entire highlight path to avoid overlapping
+        this.ctx.save();
+        this.ctx.globalCompositeOperation = 'source-over';
+        this.ctx.strokeStyle = this.currentColor;
+        this.ctx.lineWidth = 24;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        this.ctx.globalAlpha = 0.2;
+        
         this.ctx.beginPath();
+        this.ctx.moveTo(this.currentPath[0].x, this.currentPath[0].y);
+        
+        for (let i = 1; i < this.currentPath.length; i++) {
+            this.ctx.lineTo(this.currentPath[i].x, this.currentPath[i].y);
+        }
+        
+        this.ctx.stroke();
+        this.ctx.restore();
     }
 
     setupBrush() {
         switch (this.currentTool) {
-            case 'highlighter':
-                this.ctx.globalCompositeOperation = 'source-over';
-                this.ctx.strokeStyle = this.currentColor;
-                this.ctx.lineWidth = 24;
-                this.ctx.lineCap = 'round';
-                this.ctx.lineJoin = 'round';
-                this.ctx.globalAlpha = 0.15;
-                break;
-                
             case 'pen':
                 this.ctx.globalCompositeOperation = 'source-over';
                 this.ctx.strokeStyle = this.currentColor;
