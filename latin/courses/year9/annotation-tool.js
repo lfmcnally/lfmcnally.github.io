@@ -90,10 +90,17 @@ class AnnotationTool {
     resizeCanvas() {
         if (!this.canvas) return;
         
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = document.documentElement.scrollHeight;
-        this.canvas.style.width = window.innerWidth + 'px';
-        this.canvas.style.height = document.documentElement.scrollHeight + 'px';
+        // Set actual canvas size for high DPI displays
+        const dpr = window.devicePixelRatio || 1;
+        const rect = { width: window.innerWidth, height: document.documentElement.scrollHeight };
+        
+        this.canvas.width = rect.width * dpr;
+        this.canvas.height = rect.height * dpr;
+        this.canvas.style.width = rect.width + 'px';
+        this.canvas.style.height = rect.height + 'px';
+        
+        // Scale the drawing context so everything draws at the correct size
+        this.ctx.scale(dpr, dpr);
     }
 
     bindEvents() {
@@ -199,7 +206,7 @@ class AnnotationTool {
         
         this.isDrawing = true;
         const rect = this.canvas.getBoundingClientRect();
-        this.startX = e.clientX - rect.left + window.scrollX;
+        this.startX = e.clientX - rect.left;
         this.startY = e.clientY - rect.top + window.scrollY;
         
         this.setupBrush();
@@ -211,7 +218,7 @@ class AnnotationTool {
         if (!this.isDrawing || !this.isActive) return;
         
         const rect = this.canvas.getBoundingClientRect();
-        const currentX = e.clientX - rect.left + window.scrollX;
+        const currentX = e.clientX - rect.left;
         const currentY = e.clientY - rect.top + window.scrollY;
         
         this.ctx.lineTo(currentX, currentY);
@@ -227,21 +234,24 @@ class AnnotationTool {
     setupBrush() {
         switch (this.currentTool) {
             case 'highlighter':
-                this.ctx.globalCompositeOperation = 'multiply';
+                this.ctx.globalCompositeOperation = 'source-over';
                 this.ctx.strokeStyle = this.currentColor;
-                this.ctx.lineWidth = 24;
+                this.ctx.lineWidth = 20;
                 this.ctx.lineCap = 'round';
                 this.ctx.lineJoin = 'round';
-                this.ctx.globalAlpha = 0.3;
+                this.ctx.globalAlpha = 0.2;
                 break;
                 
             case 'pen':
                 this.ctx.globalCompositeOperation = 'source-over';
                 this.ctx.strokeStyle = this.currentColor;
-                this.ctx.lineWidth = 2;
+                this.ctx.lineWidth = 3;
                 this.ctx.lineCap = 'round';
                 this.ctx.lineJoin = 'round';
                 this.ctx.globalAlpha = 1;
+                // Enable smooth scaling
+                this.ctx.imageSmoothingEnabled = true;
+                this.ctx.imageSmoothingQuality = 'high';
                 break;
                 
             case 'eraser':
