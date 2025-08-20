@@ -45,7 +45,7 @@
         <div class="lesson-container">
             <div class="lesson-header">
                 <span class="lesson-number">LESSON 1.2</span>
-                <h1 class="lesson-title">Present Tense: <em>porto</em></h1>
+                <h1 class="lesson-title">Present Tensev4: <em>porto</em></h1>
                 <p class="lesson-subtitle">First conjugation verbs in the present tense</p>
             </div>
 
@@ -379,6 +379,133 @@
         function closeInfoModal() {
             document.getElementById('infoModal').style.display = 'none';
         }
+
+        // Vocabulary Sidebar Functions
+        let vocabSidebarOpen = localStorage.getItem('vocabSidebarOpen') === 'true';
+        const currentChapter = 1; // Set this for each lesson
+
+        function initVocabSidebar() {
+            const sidebar = document.getElementById('vocabSidebar');
+            const toggle = document.getElementById('vocabToggle');
+            
+            // Set initial state
+            if (vocabSidebarOpen) {
+                sidebar.classList.add('open');
+                toggle.classList.add('hidden');
+            }
+            
+            loadVocabulary(currentChapter);
+        }
+
+        function toggleVocabSidebar() {
+            const sidebar = document.getElementById('vocabSidebar');
+            const toggle = document.getElementById('vocabToggle');
+            
+            vocabSidebarOpen = !vocabSidebarOpen;
+            localStorage.setItem('vocabSidebarOpen', vocabSidebarOpen);
+            
+            if (vocabSidebarOpen) {
+                sidebar.classList.add('open');
+                toggle.classList.add('hidden');
+            } else {
+                sidebar.classList.remove('open');
+                toggle.classList.remove('hidden');
+            }
+        }
+
+        function loadVocabulary(chapter = 'all') {
+            const vocabList = document.getElementById('vocabList');
+            const searchTerm = document.getElementById('vocabSearch').value.toLowerCase();
+            
+            let filteredVocab = vocabularyData || [];
+            
+            // Filter by chapter
+            if (chapter !== 'all') {
+                filteredVocab = filteredVocab.filter(word => word.chapter === parseInt(chapter));
+            }
+            
+            // Filter by search term
+            if (searchTerm) {
+                filteredVocab = filteredVocab.filter(word => 
+                    word.latin.toLowerCase().includes(searchTerm) || 
+                    word.english.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Sort by latin word
+            filteredVocab.sort((a, b) => a.latin.localeCompare(b.latin));
+            
+            // Generate HTML
+            vocabList.innerHTML = filteredVocab.map(word => `
+                <div class="vocab-item">
+                    <div class="vocab-latin">${word.latin}</div>
+                    <div class="vocab-english">${word.english}</div>
+                    <div class="vocab-info">${word.info}</div>
+                    <div class="vocab-chapter">Ch. ${word.chapter}</div>
+                </div>
+            `).join('');
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, checking vocabularyData...');
+            
+            // Check if vocabularyData is loaded
+            if (typeof vocabularyData === 'undefined') {
+                console.error('vocabularyData not loaded - check vocabulary-data.js path');
+                console.log('Trying to load from different path...');
+            } else {
+                console.log('vocabularyData loaded successfully:', vocabularyData.length, 'words');
+            }
+            
+            // Initialize vocab sidebar
+            initVocabSidebar();
+            
+            // Toggle button
+            const toggleBtn = document.getElementById('vocabToggle');
+            if (toggleBtn) {
+                console.log('Toggle button found');
+                toggleBtn.addEventListener('click', function() {
+                    console.log('Vocab toggle clicked');
+                    toggleVocabSidebar();
+                });
+            } else {
+                console.error('Toggle button not found');
+            }
+            
+            const closBtn = document.getElementById('closeSidebar');
+            if (closBtn) {
+                closBtn.addEventListener('click', toggleVocabSidebar);
+            }
+            
+            // Search and filter
+            const searchInput = document.getElementById('vocabSearch');
+            const chapterFilter = document.getElementById('chapterFilter');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    const chapter = chapterFilter.value;
+                    loadVocabulary(chapter);
+                });
+            }
+            
+            if (chapterFilter) {
+                chapterFilter.addEventListener('change', (e) => {
+                    loadVocabulary(e.target.value);
+                });
+            }
+            
+            // Keyboard shortcut (V key)
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'v' || e.key === 'V') {
+                    if (!e.target.matches('input, textarea')) {
+                        e.preventDefault();
+                        console.log('V key pressed');
+                        toggleVocabSidebar();
+                    }
+                }
+            });
+        });
     </script>
 
     <!-- Info Modal -->
