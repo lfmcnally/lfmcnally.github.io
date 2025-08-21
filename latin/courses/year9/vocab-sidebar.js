@@ -1,418 +1,150 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2.1 The Genitive Case - Classicalia</title>
-    <link rel="stylesheet" href="../../../../../shared/styles.css">
-    <link rel="stylesheet" href="../lesson-styles.css">
-    <script src="../../../../../shared/vocabulary-data.js"></script>
-    <script src="../vocab-sidebar.js"></script>
-    <script src="../annotation-tool.js"></script>
-    <script>
-        // Set the current chapter for this lesson
-        document.addEventListener('DOMContentLoaded', function() {
-            // Wait for vocab sidebar to load, then set chapter
-            setTimeout(function() {
-                // Set current chapter if the function exists
-                if (typeof setCurrentChapter === 'function') {
-                    setCurrentChapter(2); // Chapter 2 for this lesson
-                }
-                
-                // Ensure vocabulary sidebar shows Chapter 2 by default
-                const chapterFilter = document.getElementById('chapterFilter');
-                if (chapterFilter) {
-                    chapterFilter.value = '2';
-                    // Call loadVocabulary directly with chapter 2
-                    if (typeof loadVocabulary === 'function') {
-                        loadVocabulary(2);
-                    }
-                }
-            }, 300); // Longer delay to ensure vocab-sidebar.js has loaded
-            
-            // Add annotation button click handler
-            const annotationToggle = document.getElementById('annotationToggle');
-            if (annotationToggle) {
-                annotationToggle.addEventListener('click', function() {
-                    console.log('Annotation button clicked');
-                    if (typeof annotationTool !== 'undefined') {
-                        annotationTool.toggle();
-                    }
-                });
-            }
+// Vocabulary Sidebar Functionality
+// Save this as: latin/courses/year9/vocab-sidebar.js
+
+// Vocabulary Sidebar Functions
+let vocabSidebarOpen = localStorage.getItem('vocabSidebarOpen') === 'true';
+let currentChapter = 1; // Default - will be overridden by lesson
+
+// Function to set the current chapter (call this from each lesson)
+function setCurrentChapter(chapter) {
+    currentChapter = chapter;
+}
+
+function initVocabSidebar() {
+    const sidebar = document.getElementById('vocabSidebar');
+    const toggle = document.getElementById('vocabToggle');
+    
+    // Set initial state
+    if (vocabSidebarOpen) {
+        sidebar.classList.add('open');
+        toggle.classList.add('hidden');
+    }
+    
+    loadVocabulary(currentChapter);
+}
+
+function toggleVocabSidebar() {
+    const sidebar = document.getElementById('vocabSidebar');
+    const toggle = document.getElementById('vocabToggle');
+    
+    vocabSidebarOpen = !vocabSidebarOpen;
+    localStorage.setItem('vocabSidebarOpen', vocabSidebarOpen);
+    
+    if (vocabSidebarOpen) {
+        sidebar.classList.add('open');
+        toggle.classList.add('hidden');
+    } else {
+        sidebar.classList.remove('open');
+        toggle.classList.remove('hidden');
+    }
+}
+
+function loadVocabulary(chapter = 'all') {
+    const vocabList = document.getElementById('vocabList');
+    const searchInput = document.getElementById('vocabSearch');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    
+    let filteredVocab = vocabularyData || [];
+    
+    // Filter by chapter
+    if (chapter !== 'all') {
+        filteredVocab = filteredVocab.filter(word => word.chapter === parseInt(chapter));
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+        filteredVocab = filteredVocab.filter(word => 
+            word.latin.toLowerCase().includes(searchTerm) || 
+            word.english.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    // Sort by latin word
+    filteredVocab.sort((a, b) => a.latin.localeCompare(b.latin));
+    
+    // Generate HTML
+    vocabList.innerHTML = filteredVocab.map(word => `
+        <div class="vocab-item">
+            <div class="vocab-top-line">
+                <span class="vocab-latin">${word.latin}</span>
+                <span class="vocab-info">${word.info}</span>
+                <span class="vocab-chapter">Ch. ${word.chapter}</span>
+            </div>
+            <div class="vocab-english">${word.english}</div>
+        </div>
+    `).join('');
+}
+
+// Initialize vocabulary sidebar when DOM is loaded
+function initVocabEvents() {
+    console.log('Initializing vocabulary sidebar...');
+    
+    // Check if vocabularyData is loaded
+    if (typeof vocabularyData === 'undefined') {
+        console.error('vocabularyData not loaded - check vocabulary-data.js path');
+        // Create fallback data for testing
+        window.vocabularyData = [
+            {latin: "ad", english: "to, towards, at", info: "+ accusative - preposition", chapter: 1},
+            {latin: "aedifico", english: "build", info: "aedificare, aedificavi, aedificatus - verb 1", chapter: 1},
+            {latin: "ambulo", english: "walk", info: "ambulare, ambulavi - verb 1", chapter: 1}
+        ];
+        console.log('Using fallback vocabulary data');
+    } else {
+        console.log('vocabularyData loaded successfully:', vocabularyData.length, 'words');
+    }
+    
+    // Initialize vocab sidebar
+    initVocabSidebar();
+    
+    // Toggle button
+    const toggleBtn = document.getElementById('vocabToggle');
+    if (toggleBtn) {
+        console.log('Toggle button found');
+        toggleBtn.addEventListener('click', function() {
+            console.log('Vocab toggle clicked');
+            toggleVocabSidebar();
         });
-    </script>
-</head>
-<body>
-    <!-- Global Info Button -->
-    <button onclick="showInfoModal()" class="global-info-btn">ℹ️</button>
-
-    <header class="header">
-        <div class="header-content">
-            <div class="logo">
-                <a href="../../../../index.html">Classicalia</a>
-            </div>
-            <div class="author">by Lawrence McNally</div>
-            <div class="subtitle">Year 9 Latin • Chapter 2</div>
-            
-            <div class="page-nav">
-                <a href="../../../../index.html" class="nav-link">← Home</a>
-                <a href="../index.html" class="nav-link">← Year 9 Latin</a>
-            </div>
-        </div>
-    </header>
-
-    <main>
-        <div class="lesson-container">
-            <div class="lesson-header">
-                <span class="lesson-number">LESSON 2.1</span>
-                <h1 class="lesson-title">The Genitive Case v2</h1>
-                <p class="lesson-subtitle">Understanding possession and the 'of' case</p>
-            </div>
-
-            <!-- Teaching Section -->
-            <div class="content-section">
-                <h2>What is the Genitive Case?</h2>
-                
-                <p class="grammar-text">
-                    The <strong>genitive case</strong> means <em>'of'</em>. It is used to show <strong>possession</strong> 
-                    (ownership) or that something is <strong>part</strong> of something else. Think of it as showing 
-                    that one thing belongs to another.
-                </p>
-
-                <p class="grammar-text">
-                    The term "genitive" comes from Latin <em>genesis</em> meaning "origin" - things that are owned 
-                    by somebody can be thought of as originating from them in a sense! The key thing to remember 
-                    is that it's the <strong>possessor</strong> that goes into the genitive, not the thing possessed.
-                </p>
-
-                <div class="info-note">
-                    <strong>Key Point:</strong> In "the house of the master", the master (possessor) goes into the genitive, 
-                    whilst the house (thing possessed) stays nominative or accusative depending on its job in the sentence.
-                </div>
-            </div>
-
-            <!-- Genitive Endings Table -->
-            <div class="content-section">
-                <h2>Genitive Endings</h2>
-                
-                <p class="grammar-text">
-                    Here are the genitive endings for both declensions. Notice how they're different from the 
-                    nominative and accusative endings you already know:
-                </p>
-
-                <table class="conjugation-table">
-                    <thead>
-                        <tr>
-                            <th>Number</th>
-                            <th>Case</th>
-                            <th>1st Declension (f.)</th>
-                            <th>2nd Declension (m.)</th>
-                            <th>Meaning</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="number-col">Singular</td>
-                            <td class="person-col">Nominative</td>
-                            <td class="ending-col unrevealed" onclick="revealCell(this)" style="color: #dc3545;">
-                                <div class="content">puell-a</div>
-                            </td>
-                            <td class="ending-col unrevealed" onclick="revealCell(this)" style="color: #007bff;">
-                                <div class="content">domin-us</div>
-                            </td>
-                            <td class="meaning-col unrevealed" onclick="revealCell(this)">
-                                <div class="content">Subject</div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="number-col"></td>
-                            <td class="person-col">Accusative</td>
-                            <td class="ending-col unrevealed" onclick="revealCell(this)" style="color: #dc3545;">
-                                <div class="content">puell-am</div>
-                            </td>
-                            <td class="ending-col unrevealed" onclick="revealCell(this)" style="color: #007bff;">
-                                <div class="content">domin-um</div>
-                            </td>
-                            <td class="meaning-col unrevealed" onclick="revealCell(this)">
-                                <div class="content">Object</div>
-                            </td>
-                        </tr>
-                        <tr style="background-color: #e8f5e8;">
-                            <td class="number-col"></td>
-                            <td class="person-col"><strong>Genitive</strong></td>
-                            <td class="ending-col unrevealed" onclick="revealCell(this)" style="color: #dc3545;">
-                                <div class="content">puell-ae</div>
-                            </td>
-                            <td class="ending-col unrevealed" onclick="revealCell(this)" style="color: #007bff;">
-                                <div class="content">domin-i</div>
-                            </td>
-                            <td class="meaning-col unrevealed" onclick="revealCell(this)">
-                                <div class="content">Of</div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="number-col">Plural</td>
-                            <td class="person-col">Nominative</td>
-                            <td class="ending-col unrevealed" onclick="revealCell(this)" style="color: #dc3545;">
-                                <div class="content">puell-ae</div>
-                            </td>
-                            <td class="ending-col unrevealed" onclick="revealCell(this)" style="color: #007bff;">
-                                <div class="content">domin-i</div>
-                            </td>
-                            <td class="meaning-col unrevealed" onclick="revealCell(this)">
-                                <div class="content">Subject (plural)</div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="number-col"></td>
-                            <td class="person-col">Accusative</td>
-                            <td class="ending-col unrevealed" onclick="revealCell(this)" style="color: #dc3545;">
-                                <div class="content">puell-as</div>
-                            </td>
-                            <td class="ending-col unrevealed" onclick="revealCell(this)" style="color: #007bff;">
-                                <div class="content">domin-os</div>
-                            </td>
-                            <td class="meaning-col unrevealed" onclick="revealCell(this)">
-                                <div class="content">Object (plural)</div>
-                            </td>
-                        </tr>
-                        <tr style="background-color: #e8f5e8;">
-                            <td class="number-col"></td>
-                            <td class="person-col"><strong>Genitive</strong></td>
-                            <td class="ending-col unrevealed" onclick="revealCell(this)" style="color: #dc3545;">
-                                <div class="content">puell-arum</div>
-                            </td>
-                            <td class="ending-col unrevealed" onclick="revealCell(this)" style="color: #007bff;">
-                                <div class="content">domin-orum</div>
-                            </td>
-                            <td class="meaning-col unrevealed" onclick="revealCell(this)">
-                                <div class="content">Of (plural)</div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <button class="reveal-btn" onclick="toggleAllCells()">Reveal All Endings</button>
-
-                <div class="info-note">
-                    <strong>Watch Out!</strong> Some endings look the same - <em>puell-ae</em> could be genitive 
-                    singular OR nominative plural. Use context clues (especially the verb) to work out which!
-                </div>
-            </div>
-
-            <!-- Translation Methods -->
-            <div class="content-section">
-                <h2>How to Translate the Genitive</h2>
-                
-                <p class="grammar-text">
-                    The genitive can be translated into English in two main ways. Both mean exactly the same thing:
-                </p>
-
-                <div class="example-grid">
-                    <div class="example-card" onclick="toggleCard(this)">
-                        <div class="vocab-latin">villa domini</div>
-                        <div class="vocab-english">Method 1: Using 'of'</div>
-                        <div class="case-examples hidden">
-                            <div><strong>Translation:</strong> the house of the master</div>
-                            <div><em>More formal-sounding</em></div>
-                        </div>
-                    </div>
-                    
-                    <div class="example-card" onclick="toggleCard(this)">
-                        <div class="vocab-latin">villa domini</div>
-                        <div class="vocab-english">Method 2: Using 's</div>
-                        <div class="case-examples hidden">
-                            <div><strong>Translation:</strong> the master's house</div>
-                            <div><em>More natural-sounding</em></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="info-note">
-                    <strong>Word Order:</strong> In Latin, the genitive usually comes immediately after the noun 
-                    it describes: <em>gladius domini</em> = the master's sword, <em>epistula puellae</em> = the girl's letter.
-                </div>
-            </div>
-
-            <!-- Practice Examples Section -->
-            <div class="content-section">
-                <h2>Practice Examples</h2>
-                
-                <p class="grammar-text">
-                    Let's see the genitive in action! Click each sentence to reveal the breakdown and translation. 
-                    Pay attention to how you can tell whether an ending is genitive or not:
-                </p>
-
-                <div class="practice-box">
-                    <div class="practice-title">Using Context Clues</div>
-                    <div class="sentence-practice">
-                        <div class="latin-sentence" onclick="toggleTranslation(this)">
-                            servus domini laborat.
-                            <div class="translation hidden">
-                                <strong>Breakdown:</strong> servus (slave - nom sg), domini (of the master - gen sg), laborat (works - 3rd sg)<br>
-                                <strong>Translation:</strong> The slave of the master works. / The master's slave works.
-                            </div>
-                        </div>
-                        
-                        <div class="latin-sentence" onclick="toggleTranslation(this)">
-                            puellae equum amant.
-                            <div class="translation hidden">
-                                <strong>Breakdown:</strong> puellae (girls - nom pl), equum (horse - acc sg), amant (love - 3rd pl)<br>
-                                <strong>Translation:</strong> The girls love the horse.<br>
-                                <em>Note: puellae is nominative plural here, not genitive, because the verb is plural!</em>
-                            </div>
-                        </div>
-                        
-                        <div class="latin-sentence" onclick="toggleTranslation(this)">
-                            ancilla vinum nautarum portat.
-                            <div class="translation hidden">
-                                <strong>Breakdown:</strong> ancilla (slave-girl - nom sg), vinum (wine - acc sg), nautarum (of the sailors - gen pl), portat (carries - 3rd sg)<br>
-                                <strong>Translation:</strong> The slave-girl carries the wine of the sailors. / The slave-girl carries the sailors' wine.
-                            </div>
-                        </div>
-
-                        <div class="latin-sentence" onclick="toggleTranslation(this)">
-                            domini cibum consumunt.
-                            <div class="translation hidden">
-                                <strong>Breakdown:</strong> domini (masters - nom pl), cibum (food - acc sg), consumunt (eat - 3rd pl)<br>
-                                <strong>Translation:</strong> The masters eat the food.<br>
-                                <em>Note: domini is nominative plural here because consumunt is plural - if it were genitive singular, we'd need a singular verb!</em>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="info-note">
-                    <strong>Logic Check:</strong> Always ask yourself "does this make sense?" If you translate 
-                    <em>domini</em> as genitive in the last example, you'd get "The food of the master eats" - 
-                    which is nonsense! Context is key.
-                </div>
-            </div>
-
-            <!-- Vocabulary Practice -->
-            <div class="content-section">
-                <h2>Quick Practice</h2>
-                
-                <div class="practice-box">
-                    <div class="practice-title">Translate These Phrases</div>
-                    <div class="sentence-practice">
-                        <div class="latin-sentence" onclick="toggleTranslation(this)">
-                            gladius servi
-                            <div class="translation hidden">the sword of the slave / the slave's sword</div>
-                        </div>
-                        
-                        <div class="latin-sentence" onclick="toggleTranslation(this)">
-                            equi amicorum
-                            <div class="translation hidden">the horses of the friends / the friends' horses</div>
-                        </div>
-                        
-                        <div class="latin-sentence" onclick="toggleTranslation(this)">
-                            cena ancillae
-                            <div class="translation hidden">the dinner of the slave-girl / the slave-girl's dinner</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Navigation -->
-            <div class="nav-buttons">
-                <a href="2-0.html" class="nav-btn nav-prev">← Previous: Chapter 2 Introduction</a>
-                <a href="2-2.html" class="nav-btn nav-next">Next: The Dative Case →</a>
-            </div>
-        </div>
-    </main>
-
-    <!-- Vocabulary Sidebar -->
-    <div id="vocabSidebar" class="vocab-sidebar">
-        <div class="vocab-header">
-            <h3>Vocabulary</h3>
-            <button id="closeSidebar" class="close-sidebar">×</button>
-        </div>
-        
-        <div class="vocab-search">
-            <input type="text" id="vocabSearch" placeholder="Search vocabulary..." />
-            <select id="chapterFilter">
-                <option value="2">Chapter 2</option>
-                <option value="1">Chapter 1</option>
-                <option value="all">All Chapters</option>
-            </select>
-        </div>
-        
-        <div id="vocabList" class="vocab-list">
-            <!-- Vocabulary will be loaded here -->
-        </div>
-    </div>
-
-    <!-- Vocabulary Toggle Button -->
-    <button id="vocabToggle" class="vocab-toggle">📚</button>
-
-    <!-- Annotation Toggle Button -->
-    <button id="annotationToggle" class="annotation-toggle">✏️</button>
-
-    <script>
-        function revealCell(cell) {
-            if (cell.classList.contains('unrevealed')) {
-                cell.classList.remove('unrevealed');
-                cell.classList.add('revealed');
-            } else if (cell.classList.contains('revealed')) {
-                cell.classList.remove('revealed');
-                cell.classList.add('unrevealed');
+    } else {
+        console.error('Toggle button not found');
+    }
+    
+    const closBtn = document.getElementById('closeSidebar');
+    if (closBtn) {
+        closBtn.addEventListener('click', toggleVocabSidebar);
+    }
+    
+    // Search and filter
+    const searchInput = document.getElementById('vocabSearch');
+    const chapterFilter = document.getElementById('chapterFilter');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const chapter = chapterFilter ? chapterFilter.value : currentChapter;
+            loadVocabulary(chapter);
+        });
+    }
+    
+    if (chapterFilter) {
+        chapterFilter.addEventListener('change', (e) => {
+            loadVocabulary(e.target.value);
+        });
+    }
+    
+    // Keyboard shortcut (V key)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'v' || e.key === 'V') {
+            if (!e.target.matches('input, textarea')) {
+                e.preventDefault();
+                console.log('V key pressed');
+                toggleVocabSidebar();
             }
         }
+    });
+}
 
-        function toggleAllCells() {
-            const unrevealed = document.querySelectorAll('.unrevealed');
-            const revealed = document.querySelectorAll('.revealed');
-            
-            if (unrevealed.length > 0) {
-                unrevealed.forEach(cell => {
-                    cell.classList.remove('unrevealed');
-                    cell.classList.add('revealed');
-                });
-            } else {
-                revealed.forEach(cell => {
-                    cell.classList.remove('revealed');
-                    cell.classList.add('unrevealed');
-                });
-            }
-        }
-
-        function toggleCard(card) {
-            const examples = card.querySelector('.case-examples');
-            examples.classList.toggle('hidden');
-            card.classList.toggle('expanded');
-        }
-
-        function toggleTranslation(sentence) {
-            const translation = sentence.querySelector('.translation');
-            translation.classList.toggle('hidden');
-            sentence.classList.toggle('revealed');
-        }
-
-        // Modal
-        function showInfoModal() {
-            document.getElementById('infoModal').style.display = 'block';
-        }
-
-        function closeInfoModal() {
-            document.getElementById('infoModal').style.display = 'none';
-        }
-    </script>
-
-    <!-- Info Modal -->
-    <div id="infoModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeInfoModal()">&times;</span>
-            <div class="modal-header">
-                <h2>salve! 👋</h2>
-            </div>
-            <div class="modal-body">
-                <div class="modal-text">
-                    <p>Thank you for checking out Classicalia!</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</body>
-</html>
+// Auto-initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initVocabEvents);
+} else {
+    initVocabEvents();
+}
