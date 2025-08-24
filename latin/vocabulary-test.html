@@ -287,6 +287,136 @@
             .header, .test-actions, .setup-panel, .print-btn {
                 display: none;
             }
+            
+            body {
+                margin: 0;
+                padding: 0;
+            }
+            
+            .test-container {
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            
+            .test-area {
+                box-shadow: none;
+                padding: 0;
+                border: none;
+            }
+            
+            .test-header {
+                background: none;
+                border: 2px solid #000;
+                padding: 10px;
+                margin-bottom: 15px;
+                page-break-inside: avoid;
+            }
+            
+            .test-header h2 {
+                font-size: 18pt;
+                margin: 0 0 5px 0;
+            }
+            
+            .student-info {
+                display: flex;
+                justify-content: space-between;
+                margin-top: 10px;
+                font-size: 11pt;
+            }
+            
+            .student-info-field {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+            
+            .student-info-field strong {
+                font-weight: bold;
+            }
+            
+            .student-info-field .field-value {
+                border-bottom: 1px solid #000;
+                min-width: 150px;
+                padding-bottom: 2px;
+            }
+            
+            .test-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 11pt;
+            }
+            
+            .test-table th {
+                background: none;
+                border: 1px solid #000;
+                padding: 8px;
+                font-weight: bold;
+                text-align: left;
+            }
+            
+            .test-table td {
+                border: 1px solid #000;
+                padding: 8px;
+                height: 30px;
+                vertical-align: top;
+            }
+            
+            .test-table tr {
+                page-break-inside: avoid;
+            }
+            
+            .latin-word {
+                font-size: 12pt;
+                font-weight: bold;
+                margin-bottom: 2px;
+            }
+            
+            .word-info {
+                font-size: 9pt;
+                color: #333;
+            }
+            
+            .answer-input {
+                display: none;
+            }
+            
+            .answer-cell {
+                position: relative;
+            }
+            
+            .answer-space {
+                display: block;
+                height: 25px;
+                border-bottom: 1px dotted #999;
+                margin-top: 5px;
+            }
+            
+            .results-box {
+                display: none !important;
+            }
+            
+            .feedback-icon, .correct-answer {
+                display: none !important;
+            }
+            
+            .correct, .incorrect {
+                background: none !important;
+            }
+            
+            /* Force single page for standard tests */
+            @page {
+                size: A4;
+                margin: 1.5cm;
+            }
+            
+            .print-only {
+                display: block !important;
+            }
+        }
+        
+        .print-only {
+            display: none;
         }
     </style>
 </head>
@@ -344,6 +474,18 @@
 
                 <button class="start-test-btn" id="startTestBtn" disabled>Start Test</button>
             </div>
+            
+            <!-- Print Options -->
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #dee2e6;">
+                <h4 style="color: #495057; font-size: 1rem; margin-bottom: 1rem;">Print Options</h4>
+                <div class="control-group">
+                    <label for="studentName">Student Name (for printed test)</label>
+                    <input type="text" id="studentName" placeholder="Enter name..." style="padding: 0.5rem; border: 1px solid #dee2e6; border-radius: 4px; font-size: 1rem; width: 100%;">
+                </div>
+                <button class="print-blank-btn" id="printBlankBtn" disabled style="margin-top: 1rem; background: #17a2b8; color: white; border: none; padding: 0.75rem 2rem; border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; width: 100%;">
+                    🖨️ Print Blank Test
+                </button>
+            </div>
         </div>
 
         <!-- Test Area -->
@@ -395,6 +537,7 @@
         document.getElementById('startTestBtn').addEventListener('click', startTest);
         document.getElementById('markBtn').addEventListener('click', markTest);
         document.getElementById('resetBtn').addEventListener('click', resetTest);
+        document.getElementById('printBlankBtn').addEventListener('click', printBlankTest);
 
         function handleChapterSelect() {
             const chapter = document.getElementById('chapterSelect').value;
@@ -457,9 +600,160 @@
             if (toValue) {
                 toIndex = parseInt(toValue);
                 document.getElementById('startTestBtn').disabled = false;
+                document.getElementById('printBlankBtn').disabled = false;
             } else {
                 document.getElementById('startTestBtn').disabled = true;
+                document.getElementById('printBlankBtn').disabled = true;
             }
+        }
+
+        function printBlankTest() {
+            const chapterWords = vocabularyData.filter(word => word.chapter == selectedChapter);
+            testWords = chapterWords.slice(fromIndex, toIndex + 1);
+            
+            // Get student name and date
+            const studentName = document.getElementById('studentName').value || '________________________';
+            const testDate = new Date().toLocaleDateString('en-GB');
+            const fromWord = chapterWords[fromIndex].latin;
+            const toWord = chapterWords[toIndex].latin;
+            
+            // Create print version
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Latin Vocabulary Test</title>
+                    <style>
+                        @page {
+                            size: A4;
+                            margin: 1.5cm;
+                        }
+                        body {
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        .test-header {
+                            border: 2px solid #000;
+                            padding: 15px;
+                            margin-bottom: 20px;
+                        }
+                        .test-header h2 {
+                            margin: 0 0 10px 0;
+                            font-size: 20pt;
+                            text-align: center;
+                        }
+                        .student-info {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-top: 15px;
+                            font-size: 12pt;
+                        }
+                        .student-info-field {
+                            display: flex;
+                            align-items: center;
+                            gap: 5px;
+                        }
+                        .field-value {
+                            border-bottom: 1px solid #000;
+                            min-width: 150px;
+                            padding-bottom: 2px;
+                            display: inline-block;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-size: 11pt;
+                        }
+                        th {
+                            border: 1px solid #000;
+                            padding: 10px;
+                            text-align: left;
+                            background: #f0f0f0;
+                            font-weight: bold;
+                        }
+                        td {
+                            border: 1px solid #000;
+                            padding: 8px;
+                            vertical-align: top;
+                            height: 30px;
+                        }
+                        .latin-word {
+                            font-weight: bold;
+                            font-size: 12pt;
+                        }
+                        .word-info {
+                            font-size: 9pt;
+                            color: #555;
+                            margin-top: 2px;
+                        }
+                        .answer-space {
+                            height: 25px;
+                        }
+                        .score-box {
+                            margin-top: 20px;
+                            border: 2px solid #000;
+                            padding: 10px;
+                            text-align: center;
+                            font-size: 14pt;
+                            font-weight: bold;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="test-header">
+                        <h2>Latin Vocabulary Test</h2>
+                        <div style="text-align: center; font-size: 14pt; margin-bottom: 10px;">
+                            Chapter ${selectedChapter}: ${fromWord} to ${toWord}
+                        </div>
+                        <div class="student-info">
+                            <div class="student-info-field">
+                                <strong>Name:</strong>
+                                <span class="field-value">${studentName}</span>
+                            </div>
+                            <div class="student-info-field">
+                                <strong>Date:</strong>
+                                <span class="field-value">${testDate}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 40%">Latin Word</th>
+                                <th style="width: 60%">English Translation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${testWords.map(word => `
+                                <tr>
+                                    <td>
+                                        <div class="latin-word">${word.latin}</div>
+                                        <div class="word-info">${word.info}</div>
+                                    </td>
+                                    <td>
+                                        <div class="answer-space"></div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <div class="score-box">
+                        Score: _____ / ${testWords.length}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            
+            // Trigger print dialog
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
         }
 
         function startTest() {
