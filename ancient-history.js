@@ -1181,3 +1181,25 @@ const ancientHistoryEvents = {
     {year: "192 CE", event: "Assassination of Emperor Commodus", category: "imperial"},
     {year: "406 CE", event: "Vandals complete crossing of frozen Rhine into Gaul", category: "military"}
   ]
+};
+
+// Function to get today's events
+function getTodayInHistory() {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const dateKey = `${month}-${day}`;
+  
+  return ancientHistoryEvents[dateKey] || [{year: "N/A", event: "No recorded events for this date", category: "none"}];
+}
+
+// Function to get events for a specific date
+function getEventsForDate(month, day) {
+  const dateKey = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return ancientHistoryEvents[dateKey] || [{year: "N/A", event: "No recorded events for this date", category: "none"}];
+}
+
+// Export for use in other scripts
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { ancientHistoryEvents, getTodayInHistory, getEventsForDate };
+} 
