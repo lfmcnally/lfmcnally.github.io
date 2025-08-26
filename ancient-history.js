@@ -1005,7 +1005,7 @@ const ancientHistoryEvents = {
     {year: "333 BCE", event: "Battle of Issus: Alexander defeats Darius III", category: "military"}
   ],
   "11-05": [
-    {year: "605 CE", event: "Traditional date for Gunpowder Plot (beyond period)", category: "exclude"}
+     {year: "63 BCE", event: "Cicero exposes Catiline conspiracy in the Senate", category: "political"}
   ],
   "11-06": [
     {year: "355 CE", event: "Julian proclaimed Caesar by Constantius II", category: "imperial"}
@@ -1079,7 +1079,7 @@ const ancientHistoryEvents = {
     {year: "375 CE", event: "Valentinian II proclaimed Emperor aged 4", category: "imperial"}
   ],
   "11-29": [
-    {year: "1268 CE", event: "Conradin executed (beyond period)", category: "exclude"}
+    {year: "62 BCE", event: "Cicero delivers his fourth Catiline oration", category: "political"}
   ],
   "11-30": [
     {year: "147 BCE", event: "Viriathus becomes leader of Lusitanian resistance", category: "military"}
@@ -1090,7 +1090,7 @@ const ancientHistoryEvents = {
     {year: "406 CE", event: "Vandals, Alans, and Suebi begin crossing frozen Rhine", category: "military"}
   ],
   "12-02": [
-    {year: "805 CE", event: "Austerlitz battle (beyond period)", category: "exclude"}
+   {year: "293 CE", event: "Narses becomes sacred bedchamber official", category: "political"}
   ],
   "12-03": [
     {year: "311 CE", event: "Diocletian meets Galerius at Carnuntum", category: "political"}
@@ -1114,7 +1114,7 @@ const ancientHistoryEvents = {
     {year: "480 CE", event: "Death of Julius Nepos, last legitimate Western Emperor", category: "death"}
   ],
   "12-10": [
-    {year: "1041 CE", event: "Michael V becomes Byzantine Emperor (beyond period)", category: "exclude"}
+     {year: "508 BCE", event: "Traditional date for dedication of Temple of Jupiter Optimus Maximus", category: "religious"}
   ],
   "12-11": [
     {year: "361 CE", event: "Julian enters Constantinople as sole emperor", category: "imperial"}
@@ -1123,7 +1123,7 @@ const ancientHistoryEvents = {
     {year: "627 CE", event: "Battle of Nineveh (late period)", category: "military"}
   ],
   "12-13": [
-    {year: "1545 CE", event: "Council of Trent opens (beyond period)", category: "exclude"}
+    {year: "115 CE", event: "Earthquake strikes Antioch during Trajan's stay", category: "disaster"}
   ],
   "12-14": [
     {year: "557 CE", event: "Constantinople earthquake", category: "disaster"}
