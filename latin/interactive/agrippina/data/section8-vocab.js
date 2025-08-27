@@ -17,7 +17,7 @@ const vocabData = {
     "molium": "of moles, piers (genitive plural)",
     "obiectus": "projections (accusative plural)",
     "proximas": "nearest (accusative feminine plural)",
-    "scaphas": "boats (accusative plural)"has": "boats (accusative plural)",
+    "scaphas": "boats (accusative plural)",
     "scandere": "to climb (infinitive)",
     "alii": "others (nominative plural)",
     "quantum": "as far as",
