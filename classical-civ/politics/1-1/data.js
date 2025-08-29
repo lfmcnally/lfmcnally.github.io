@@ -410,6 +410,96 @@ const figures = {
         dates: 'Traditional dates: ruled 535-509 BC',
         role: 'Last King of Rome',
         significance: 'His tyrannical rule and the crimes of his family led to the overthrow of the monarchy. He became the archetypal tyrant in Roman memory, and fear of his return shaped Republican institutions.'
+    },
+    'venus': {
+        name: 'Venus',
+        dates: 'Goddess (eternal)',
+        role: 'Goddess of love and beauty',
+        significance: 'Divine mother of Aeneas and ancestress of the Roman people through him. The Julian family, including Julius Caesar and Augustus, claimed direct descent from Venus, using this divine ancestry to justify their political dominance.'
+    },
+    'ascanius': {
+        name: 'Ascanius/Iulus',
+        dates: 'Mythical (c. 1150 BC)',
+        role: 'Son of Aeneas, founder of Alba Longa',
+        significance: 'Founded Alba Longa and established the royal line that would produce Rome\'s founders. His alternative name Iulus provided the Julian family with their claimed divine ancestry.'
+    },
+    'mars': {
+        name: 'Mars',
+        dates: 'God (eternal)',
+        role: 'God of war',
+        significance: 'Father of Romulus and Remus, making him the divine father of Rome itself. As patron deity of Rome, Mars guaranteed military success and protected the Roman state.'
+    },
+    'amulius': {
+        name: 'Amulius',
+        dates: 'Mythical (8th century BC)',
+        role: 'Usurper king of Alba Longa',
+        significance: 'His usurpation of his brother Numitor\'s throne and attempt to prevent rivals by forcing Rhea Silvia into religious service exemplified tyrannical abuse of power that Romans associated with monarchy.'
+    },
+    'numitor': {
+        name: 'Numitor',
+        dates: 'Mythical (8th century BC)',
+        role: 'Rightful king of Alba Longa',
+        significance: 'Grandfather of Romulus and Remus. His restoration to power by his grandsons represented the triumph of legitimate authority over tyrannical usurpation.'
+    },
+    'rhea-silvia': {
+        name: 'Rhea Silvia',
+        dates: 'Mythical (8th century BC)',
+        role: 'Vestal Virgin, mother of Romulus and Remus',
+        significance: 'Forced into religious celibacy by Amulius but chosen by Mars to bear the founders of Rome. Her story showed how divine will could overcome human tyranny.'
+    },
+    'romulus': {
+        name: 'Romulus',
+        dates: 'Traditional dates: 771-717 BC',
+        role: 'Founder and first king of Rome',
+        significance: 'Established Rome\'s basic institutions including the Senate and citizen assemblies. His fratricide of Remus created a troubling precedent of violence for political necessity that haunted the Republic.'
+    },
+    'remus': {
+        name: 'Remus',
+        dates: 'Traditional dates: 771-753 BC',
+        role: 'Twin brother of Romulus',
+        significance: 'His death at Romulus\'s hands established the primacy of state boundaries and law over family bonds, a tension that would recur throughout Roman history.'
+    },
+    'julius-caesar': {
+        name: 'Gaius Julius Caesar',
+        dates: '100-44 BC',
+        role: 'Dictator, general, politician',
+        significance: 'Claimed descent from Venus through Iulus/Ascanius. His crossing of traditional boundaries of Republican government while claiming to defend popular libertas led to civil war and his assassination.'
+    },
+    'augustus': {
+        name: 'Augustus (Octavian)',
+        dates: '63 BC - AD 14',
+        role: 'First Roman Emperor',
+        significance: 'Adopted son of Caesar who claimed the same divine ancestry. Successfully transformed the Republic into the Principate while maintaining Republican forms and claiming to restore the Republic.'
+    },
+    'numa': {
+        name: 'Numa Pompilius',
+        dates: 'Traditional dates: 753-673 BC',
+        role: 'Second king of Rome',
+        significance: 'Established Rome\'s religious institutions and calendar. His peaceful reign provided a model of pious leadership that contrasted with military strongmen.'
+    },
+    'servius': {
+        name: 'Servius Tullius',
+        dates: 'Traditional dates: 578-535 BC',
+        role: 'Sixth king of Rome',
+        significance: 'Created the census and reorganized Roman society on wealth-based classes. His constitutional reforms provided the framework for Republican institutions.'
+    },
+    'sextus-tarquinius': {
+        name: 'Sextus Tarquinius',
+        dates: '6th century BC',
+        role: 'Son of Tarquinius Superbus',
+        significance: 'His rape of Lucretia catalyzed the revolt against the monarchy. He embodied the corruption and abuse of power that Romans associated with tyranny.'
+    },
+    'collatinus': {
+        name: 'Lucius Tarquinius Collatinus',
+        dates: '6th century BC',
+        role: 'Husband of Lucretia, first consul',
+        significance: 'Despite being one of the Republic\'s founders, he was forced into exile due to his Tarquin name, showing Republican fear of monarchical associations.'
+    },
+    'polybius': {
+        name: 'Polybius',
+        dates: 'c. 200-118 BC',
+        role: 'Greek historian of Rome',
+        significance: 'His analysis of Rome\'s mixed constitution provided the theoretical framework for understanding Republican government as a balance of monarchical, aristocratic, and democratic elements.'
     }
 };
 
@@ -439,6 +529,26 @@ const concepts = {
         concept: 'Gravitas',
         explanation: 'Serious-minded dignity and sense of responsibility. The weight of character expected of Roman leaders.',
         importance: 'Gravitas distinguished proper Roman behaviour from Greek "levity" or Eastern "luxury". It was essential for political credibility and helped maintain the Republic\'s conservative character even as it expanded.'
+    },
+    'patricians': {
+        concept: 'Patricians',
+        explanation: 'The hereditary aristocratic class of Rome, claiming descent from the original senators appointed by Romulus.',
+        importance: 'Initially monopolized political and religious offices. Their conflict with plebeians shaped early Republican development, eventually leading to power-sharing arrangements that defined the Republic\'s political structure.'
+    },
+    'plebeians': {
+        concept: 'Plebeians',
+        explanation: 'The common citizens of Rome, originally excluded from political office and religious positions.',
+        importance: 'Their struggle for political rights created Republican institutions like the tribunate and established precedents for popular political action that populares politicians would later exploit.'
+    },
+    'struggle-orders': {
+        concept: 'Struggle of the Orders',
+        explanation: 'The centuries-long conflict (494-287 BC) between patricians and plebeians for political equality.',
+        importance: 'Created uniquely Roman solutions like the tribunate, mixed magistracies, and the principle that law must be written and public. These compromises provided both stability and precedents for later conflicts.'
+    },
+    'pudicitia': {
+        concept: 'Pudicitia',
+        explanation: 'Sexual virtue and modesty, especially female chastity but also male sexual restraint.',
+        importance: 'Lucretia\'s pudicitia made her rape a political crisis. This virtue linked personal morality to state welfare—sexual corruption indicated political corruption, justifying revolution against the Tarquins.'
     }
 };
 
