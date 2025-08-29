@@ -447,7 +447,11 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeTimeline();
     initializeFamilyTree();
     initializeSPQR();
-    setupInteractiveContent();
+    
+    // Delay to ensure all content is rendered before setting up listeners
+    setTimeout(() => {
+        setupInteractiveContent();
+    }, 100);
 });
 
 // Timeline Functions
@@ -672,9 +676,14 @@ function showSPQRContent(letterId) {
 
 // Interactive Content Functions
 function setupInteractiveContent() {
-    // Key terms
+    // Key terms - remove old listeners first
     document.querySelectorAll('.key-term').forEach(term => {
-        term.addEventListener('click', function() {
+        // Clone node to remove all event listeners
+        const newTerm = term.cloneNode(true);
+        term.parentNode.replaceChild(newTerm, term);
+        
+        newTerm.addEventListener('click', function(e) {
+            e.stopPropagation();
             const definition = this.dataset.definition;
             showDefinition(definition);
         });
@@ -682,7 +691,11 @@ function setupInteractiveContent() {
 
     // Historical figures
     document.querySelectorAll('.key-figure').forEach(figure => {
-        figure.addEventListener('click', function() {
+        const newFigure = figure.cloneNode(true);
+        figure.parentNode.replaceChild(newFigure, figure);
+        
+        newFigure.addEventListener('click', function(e) {
+            e.stopPropagation();
             const info = this.dataset.info;
             showFigureInfo(info);
         });
@@ -690,7 +703,11 @@ function setupInteractiveContent() {
 
     // Key concepts
     document.querySelectorAll('.key-concept').forEach(concept => {
-        concept.addEventListener('click', function() {
+        const newConcept = concept.cloneNode(true);
+        concept.parentNode.replaceChild(newConcept, concept);
+        
+        newConcept.addEventListener('click', function(e) {
+            e.stopPropagation();
             const conceptId = this.dataset.concept;
             showConceptExplanation(conceptId);
         });
