@@ -759,25 +759,35 @@ function initializeRivalry() {
     
     if (!profilesContainer || !stagesContainer || !detailsContainer) return;
     
-    // Create rival profiles
-    rivalProfilesData.forEach(rival => {
-        const profileEl = document.createElement('div');
-        profileEl.className = `rival-profile ${rival.id}`;
-        profileEl.innerHTML = `
-            <img src="${rival.image}" alt="${rival.name}" class="rival-portrait" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <div class="rival-portrait-fallback" style="display: none;">👨‍⚔️</div>
-            <h4>${rival.name}</h4>
-            <p><strong>${rival.title}</strong></p>
-            ${rival.points.map(point => `<p>• ${point}</p>`).join('')}
-        `;
-        profilesContainer.appendChild(profileEl);
-    });
+    // Create first rival profile (Marius)
+    const mariusProfile = document.createElement('div');
+    mariusProfile.className = 'rival-profile marius';
+    mariusProfile.innerHTML = `
+        <img src="${rivalProfilesData[0].image}" alt="${rivalProfilesData[0].name}" class="rival-portrait" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="rival-portrait-fallback" style="display: none;">👨‍⚔️</div>
+        <h4>${rivalProfilesData[0].name}</h4>
+        <p><strong>${rivalProfilesData[0].title}</strong></p>
+        ${rivalProfilesData[0].points.map(point => `<p>• ${point}</p>`).join('')}
+    `;
+    profilesContainer.appendChild(mariusProfile);
     
     // Add versus symbol
     const versusEl = document.createElement('div');
     versusEl.className = 'versus-symbol';
     versusEl.textContent = 'VS';
     profilesContainer.appendChild(versusEl);
+    
+    // Create second rival profile (Sulla)
+    const sullaProfile = document.createElement('div');
+    sullaProfile.className = 'rival-profile sulla';
+    sullaProfile.innerHTML = `
+        <img src="${rivalProfilesData[1].image}" alt="${rivalProfilesData[1].name}" class="rival-portrait" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="rival-portrait-fallback" style="display: none;">👨‍💼</div>
+        <h4>${rivalProfilesData[1].name}</h4>
+        <p><strong>${rivalProfilesData[1].title}</strong></p>
+        ${rivalProfilesData[1].points.map(point => `<p>• ${point}</p>`).join('')}
+    `;
+    profilesContainer.appendChild(sullaProfile);
     
     // Create conflict stages
     conflictStages.forEach(stage => {
