@@ -121,6 +121,31 @@ function loadModalContent() {
 function loadCommonData() {
     loadNavigationLinks();
     loadModalContent();
+    populateChapterFilter();
+}
+
+// Function to populate chapter filter dropdown
+function populateChapterFilter() {
+    const chapterFilter = document.getElementById('chapterFilter');
+    if (chapterFilter && typeof vocabularyData !== 'undefined') {
+        // Get unique chapter numbers from vocabulary data
+        const chapters = [...new Set(vocabularyData.map(word => word.chapter))].sort((a, b) => a - b);
+        
+        // Build options HTML
+        let optionsHTML = '';
+        chapters.forEach(chapter => {
+            optionsHTML += `<option value="${chapter}">Chapter ${chapter}</option>`;
+        });
+        optionsHTML += '<option value="all">All Chapters</option>';
+        
+        // Set the HTML
+        chapterFilter.innerHTML = optionsHTML;
+        
+        // Set the current chapter if it's been set
+        if (typeof currentChapter !== 'undefined') {
+            chapterFilter.value = currentChapter;
+        }
+    }
 }
 
 // Modal control functions
