@@ -270,10 +270,13 @@ function loadLessonData() {
     // Load Study Checklist
     const checklist = document.getElementById('study-checklist');
     if (checklist) {
-        checklist.innerHTML = lessonData.checklist.map(item => `
-            <label class="checklist-item">
-                <input type="checkbox"> ${item}
-            </label>
+        checklist.innerHTML = lessonData.checklist.map((item, index) => `
+            <div class="checklist-row">
+                <label class="checklist-item">
+                    <input type="checkbox" onchange="toggleDoNow(${index})"> ${item}
+                </label>
+                <button class="do-now-btn" id="do-now-${index}" style="display: none;">Do now</button>
+            </div>
         `).join('');
     }
 
