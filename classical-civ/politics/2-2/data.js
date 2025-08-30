@@ -261,7 +261,7 @@ const rivalProfilesData = [
         id: 'marius',
         name: 'Gaius Marius',
         title: 'The Popularis General',
-        image: 'images/marius.jpg',
+        image: '../images/marius.jpg',
         points: [
             'Novus homo from Arpinum',
             'Seven-time consul',
@@ -274,7 +274,7 @@ const rivalProfilesData = [
         id: 'sulla',
         name: 'Lucius Cornelius Sulla',
         title: 'The Optimate Champion',
-        image: 'images/sulla.jpg',
+        image: '../images/sulla.jpg',
         points: [
             'Patrician aristocrat',
             'Brilliant military tactician',
