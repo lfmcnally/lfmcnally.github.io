@@ -158,3 +158,136 @@ function markAsDoingNow(index) {
         button.textContent = 'Doing now';
     }
 }
+
+// Vocabulary Sidebar Functions
+let vocabSidebarOpen = localStorage.getItem('vocabSidebarOpen') === 'true';
+let currentChapter = 1; // Default - will be overridden by lesson
+
+// Function to set the current chapter (call this from each lesson)
+function setCurrentChapter(chapter) {
+    currentChapter = chapter;
+    // Update the chapter filter if it exists
+    const chapterFilter = document.getElementById('chapterFilter');
+    if (chapterFilter) {
+        chapterFilter.value = chapter;
+    }
+}
+
+function initVocabSidebar() {
+    const sidebar = document.getElementById('vocabSidebar');
+    const toggle = document.getElementById('vocabToggle');
+    
+    // Set initial state
+    if (vocabSidebarOpen) {
+        sidebar.classList.add('open');
+        toggle.classList.add('hidden');
+    }
+    
+    loadVocabulary(currentChapter);
+}
+
+function toggleVocabSidebar() {
+    const sidebar = document.getElementById('vocabSidebar');
+    const toggle = document.getElementById('vocabToggle');
+    
+    vocabSidebarOpen = !vocabSidebarOpen;
+    localStorage.setItem('vocabSidebarOpen', vocabSidebarOpen);
+    
+    if (vocabSidebarOpen) {
+        sidebar.classList.add('open');
+        toggle.classList.add('hidden');
+    } else {
+        sidebar.classList.remove('open');
+        toggle.classList.remove('hidden');
+    }
+}
+
+function loadVocabulary(chapter = 'all') {
+    const vocabList = document.getElementById('vocabList');
+    const searchInput = document.getElementById('vocabSearch');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    
+    // Check if vocabularyData exists
+    if (typeof vocabularyData === 'undefined') {
+        vocabList.innerHTML = '<p style="padding: 1rem; color: #666;">Vocabulary data not loaded.</p>';
+        return;
+    }
+    
+    let filteredVocab = vocabularyData || [];
+    
+    // Filter by chapter
+    if (chapter !== 'all' && chapter !== '') {
+        filteredVocab = filteredVocab.filter(word => word.chapter === parseInt(chapter));
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+        filteredVocab = filteredVocab.filter(word => 
+            word.latin.toLowerCase().includes(searchTerm) || 
+            word.english.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    // Sort by latin word
+    filteredVocab.sort((a, b) => a.latin.localeCompare(b.latin));
+    
+    // Generate HTML
+    vocabList.innerHTML = filteredVocab.map(word => `
+        <div class="vocab-item">
+            <div class="vocab-top-line">
+                <span class="vocab-latin">${word.latin}</span>
+                <span class="vocab-info">${word.info}</span>
+                <span class="vocab-chapter">Ch. ${word.chapter}</span>
+            </div>
+            <div class="vocab-english">${word.english}</div>
+        </div>
+    `).join('');
+    
+    if (filteredVocab.length === 0) {
+        vocabList.innerHTML = '<p style="padding: 1rem; color: #666;">No vocabulary found.</p>';
+    }
+}
+
+// Initialize vocabulary sidebar events
+function initVocabEvents() {
+    // Initialize vocab sidebar
+    initVocabSidebar();
+    
+    // Toggle button
+    const toggleBtn = document.getElementById('vocabToggle');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', toggleVocabSidebar);
+    }
+    
+    const closeBtn = document.getElementById('closeSidebar');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', toggleVocabSidebar);
+    }
+    
+    // Search and filter
+    const searchInput = document.getElementById('vocabSearch');
+    const chapterFilter = document.getElementById('chapterFilter');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const chapter = chapterFilter ? chapterFilter.value : currentChapter;
+            loadVocabulary(chapter);
+        });
+    }
+    
+    if (chapterFilter) {
+        chapterFilter.addEventListener('change', (e) => {
+            loadVocabulary(e.target.value);
+        });
+    }
+    
+    // Keyboard shortcut (V key)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'v' || e.key === 'V') {
+            if (!e.target.matches('input, textarea')) {
+                e.preventDefault();
+                toggleVocabSidebar();
+            }
+        }
+    });
+}
