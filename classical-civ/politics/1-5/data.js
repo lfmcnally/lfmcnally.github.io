@@ -109,8 +109,17 @@ const factionsData = {
     }
 };
 
-// Beard Analysis Content
+// Beard Analysis Content - Updated with image HTML
 const beardAnalysisContent = `
+    <div class="scholar-profile">
+        <img src="../images/beard.jpg" alt="Mary Beard" class="scholar-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div class="scholar-image-fallback" style="display: none;">📚</div>
+        <div class="scholar-info">
+            <div class="scholar-name">Professor Mary Beard</div>
+            <div class="scholar-description">Cambridge University classicist and popular historian, author of <em>SPQR: A History of Ancient Rome</em> (2015)</div>
+        </div>
+    </div>
+    
     <p>Historian <strong><span class="key-figure" data-info="mary-beard">Mary Beard</span></strong> in <em>SPQR</em> (2015) argues that Roman political labels like "popularis" and "optimate" functioned primarily as <strong>weapons of political discourse</strong> rather than meaningful ideological categories.</p>
     
     <p><strong>Beard's key argument:</strong> These terms were "political insults and rallying cries" designed to discredit opponents and justify actions. Calling someone a "demagogue" or "enemy of the people" was more important than actual policy differences.</p>
@@ -471,7 +480,7 @@ function initializeTimeline() {
     });
 }
 
-// Initialize Politicians
+// Initialize Politicians - UPDATED WITH IMAGES
 function initializePoliticians() {
     const cardsContainer = document.getElementById('politician-cards');
     if (!cardsContainer) return;
@@ -481,7 +490,8 @@ function initializePoliticians() {
         cardEl.className = 'politician-card';
         cardEl.onclick = () => showPoliticianInfo(politician.id);
         cardEl.innerHTML = `
-            <div class="politician-portrait-fallback">${politician.icon}</div>
+            <img src="../images/${politician.id}.jpg" alt="${politician.name}" class="politician-portrait" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="politician-portrait-fallback" style="display: none;">${politician.icon}</div>
             <div class="politician-name">${politician.name}</div>
             <div class="politician-label">${politician.label}</div>
             <div class="politician-description">${politician.description}</div>
