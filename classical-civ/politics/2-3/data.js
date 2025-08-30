@@ -504,7 +504,7 @@ function initializeProscriptions() {
     proscriptionVictims.forEach(victim => {
         const victimEl = document.createElement('div');
         victimEl.className = 'proscribed-name';
-        victimEl.onclick = () => revealVictim(victim.id);
+        victimEl.addEventListener('click', () => revealVictim(victim.id));
         victimEl.innerHTML = `
             <strong>${victim.name}</strong> - ${victim.title}
             <div class="victim-details" id="victim-${victim.id}">
@@ -637,7 +637,7 @@ function showBattle(battleId) {
 
 // Reveal Victim Function
 function revealVictim(victimId) {
-    const victimElement = document.querySelector(`[onclick*="${victimId}"]`);
+    const victimElement = event.target.closest('.proscribed-name');
     const detailsElement = document.getElementById('victim-' + victimId);
     
     if (victimElement && detailsElement) {
