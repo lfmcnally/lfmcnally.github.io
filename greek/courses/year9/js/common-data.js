@@ -200,6 +200,11 @@ function loadCommonData() {
     loadAlphabet();
     loadDiphthongs();
     populateChapterFilter();
+    
+    // Initialize vocabulary sidebar if the function exists
+    if (typeof initializeVocabSidebar === 'function') {
+        initializeVocabSidebar();
+    }
 }
 
 // Function to populate chapter filter dropdown
