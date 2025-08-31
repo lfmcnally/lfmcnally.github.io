@@ -37,13 +37,13 @@ const lessonData = {
                 caseName: "Nominative",
                 latin: "puella",
                 english: "the girl (subject)",
-                usage: "The girl walks"
+                usage: "<b>The girl</b> walks"
             },
             {
                 caseName: "Accusative",
                 latin: "puellam",
                 english: "the girl (object)",
-                usage: "I see the girl"
+                usage: "I see <b>the girl</b>"
             }
         ]
     },
@@ -58,13 +58,13 @@ const lessonData = {
                 caseName: "Nominative",
                 latin: "dominus",
                 english: "the master (subject)",
-                usage: "The master walks"
+                usage: "<b>The master</b> walks"
             },
             {
                 caseName: "Accusative",
                 latin: "dominum",
                 english: "the master (object)",
-                usage: "I see the master"
+                usage: "I see <b>the master</b>"
             }
         ]
     },
