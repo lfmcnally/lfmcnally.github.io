@@ -205,9 +205,9 @@ function loadCommonData() {
 // Function to populate chapter filter dropdown
 function populateChapterFilter() {
     const chapterFilter = document.getElementById('chapterFilter');
-    if (chapterFilter && typeof vocabularyData !== 'undefined') {
-        // Get unique chapter numbers from vocabulary data
-        const chapters = [...new Set(vocabularyData.map(word => word.chapter))].sort((a, b) => a - b);
+    if (chapterFilter && typeof greekVocabularyData !== 'undefined') {
+        // Get unique chapter numbers from Greek vocabulary data
+        const chapters = [...new Set(greekVocabularyData.map(word => word.chapter))].sort((a, b) => a - b);
         
         // Build options HTML
         let optionsHTML = '';
