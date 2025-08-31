@@ -29,6 +29,29 @@ function initializeVocabSidebar() {
         });
     }
     
+    // Add keyboard shortcut (press 'v' to toggle)
+    document.addEventListener('keydown', function(e) {
+        // Check if 'v' key is pressed and no input is focused
+        if (e.key === 'v' || e.key === 'V') {
+            // Don't trigger if user is typing in an input field
+            const activeElement = document.activeElement;
+            const isInputField = activeElement.tagName === 'INPUT' || 
+                                activeElement.tagName === 'TEXTAREA' || 
+                                activeElement.contentEditable === 'true';
+            
+            if (!isInputField) {
+                e.preventDefault();
+                if (sidebar.classList.contains('open')) {
+                    sidebar.classList.remove('open');
+                    toggleBtn.classList.remove('hidden');
+                } else {
+                    sidebar.classList.add('open');
+                    toggleBtn.classList.add('hidden');
+                }
+            }
+        }
+    });
+    
     // Load vocabulary data
     loadVocabulary();
     
