@@ -248,7 +248,7 @@ function loadGodsGrid() {
     if (container) {
         container.innerHTML = lessonData.gods.map(god => `
             <div class="god-card" onclick="showGodDetails('${god.id}')">
-                <div class="god-image-placeholder">Image: ${god.greek}</div>
+                <img src="../../images/${god.id}.jpg" alt="${god.greek}" class="god-image">
                 <h4>${god.greek}</h4>
                 <div class="god-names">${god.greek} / ${god.roman}</div>
                 <div class="god-domain">${god.domain}</div>
