@@ -192,18 +192,18 @@ const lessonData = {
     grammarTips: {
         title: "Remember about 'sum':",
         points: [
-            "🚫 NO PATTERN: Sum doesn't follow -o, -s, -t, -mus, -tis, -nt like regular verbs",
-            "📝 MEMORIZE: These 6 forms are so common, you'll know them by heart soon",
-            "🔄 NO OBJECT: Sum never has an accusative object - everything stays nominative",
-            "➡️ LINKING: Sum links the subject to a description or identity",
-            "❓ QUESTIONS: Often used in questions - 'quis es?' (who are you?)",
-            "✨ SUPER COMMON: You'll see sum in almost every Latin text you read!"
+            "🚫 No pattern: Sum doesn't follow -o, -s, -t, -mus, -tis, -nt like regular verbs",
+            "📝 Memorise: These 6 forms are so common, you'll know them by heart soon",
+            "🔄 No object: Sum never has an accusative object - everything stays nominative",
+            "➡️ Linking: Sum links the subject to a description or identity",
+            "❓ Questions: Often used in questions - 'quis es?' (who are you?)",
+            "✨ Super common: You'll see sum in almost every Latin text you read!"
         ]
     },
 
     // Study Checklist
     checklist: [
-        "Memorize all 6 forms of sum",
+        "Memorise all 6 forms of sum",
         "Understand why sum is irregular",
         "Practice the example sentences",
         "Learn the common question phrases",
@@ -227,7 +227,7 @@ const lessonData = {
             },
             {
                 heading: "Remember:",
-                items: "No pattern! Just memorize these 6 forms."
+                items: "No pattern! Just memorise these 6 forms."
             },
             {
                 heading: "Never forget:",
