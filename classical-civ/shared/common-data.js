@@ -209,24 +209,6 @@ function navigateToLesson(lesson) {
     window.location.href = `../${lesson}/index.html`;
 }
 
-// Checklist functionality
-function markAsDoingNow(index) {
-    const button = document.getElementById(`do-now-${index}`);
-    const allButtons = document.querySelectorAll('.do-now-btn');
-    
-    // Remove active state from all buttons
-    allButtons.forEach(btn => {
-        btn.classList.remove('active');
-        btn.textContent = 'Do now';
-    });
-    
-    // Toggle this button
-    if (button && !button.classList.contains('active')) {
-        button.classList.add('active');
-        button.textContent = 'Doing now!';
-    }
-}
-
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     loadCommonData();
