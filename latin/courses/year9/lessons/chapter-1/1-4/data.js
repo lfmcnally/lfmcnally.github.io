@@ -73,25 +73,25 @@ const lessonData = {
                 caseName: "Nom. Singular",
                 latin: "puella",
                 english: "the girl (subject)",
-                number: "one"
-            },
-            {
-                caseName: "Nom. Plural",
-                latin: "puellae",
-                english: "the girls (subject)",
-                number: "many"
+                number: "singular"
             },
             {
                 caseName: "Acc. Singular",
                 latin: "puellam",
                 english: "the girl (object)",
-                number: "one"
+                number: "singular"
+            },
+            {
+                caseName: "Nom. Plural",
+                latin: "puellae",
+                english: "the girls (subject)",
+                number: "plural"
             },
             {
                 caseName: "Acc. Plural",
                 latin: "puellas",
                 english: "the girls (object)",
-                number: "many"
+                number: "plural"
             }
         ]
     },
@@ -103,25 +103,25 @@ const lessonData = {
                 caseName: "Nom. Singular",
                 latin: "dominus",
                 english: "the master (subject)",
-                number: "one"
-            },
-            {
-                caseName: "Nom. Plural",
-                latin: "domini",
-                english: "the masters (subject)",
-                number: "many"
+                number: "singular"
             },
             {
                 caseName: "Acc. Singular",
                 latin: "dominum",
                 english: "the master (object)",
-                number: "one"
+                number: "singular"
+            },
+            {
+                caseName: "Nom. Plural",
+                latin: "domini",
+                english: "the masters (subject)",
+                number: "plural"
             },
             {
                 caseName: "Acc. Plural",
                 latin: "dominos",
                 english: "the masters (object)",
-                number: "many"
+                number: "plural"
             }
         ]
     },
