@@ -107,14 +107,9 @@ const lessonData = {
    // Example Sentences (interactive)
     examples: [
         {
-            latin: "dominus sum.",
-            english: "I am the master.",
-            explanation: "sum = 1st person singular, dominus stays nominative"
-        },
-        {
-            latin: "clamo.",
-            english: "I shout.",
-            explanation: "clamo = 1st person singular of clamare (regular verb for comparison)"
+            latin: "dominus sum; clamas",
+            english: "I am the master; you are shouting.",
+            explanation: "sum = 1st person singular, dominus stays nominative, clamas = 2nd personal singular"
         },
         {
             latin: "ancilla pugnat.",
