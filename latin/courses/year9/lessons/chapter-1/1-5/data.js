@@ -46,7 +46,7 @@ const lessonData = {
             {
                 person: "3rd Person",
                 latin: "est",
-                english: "he/she/it is",
+                english: "he/she/it is OR there is",
                 note: "Like English 'is'"
             }
         ],
@@ -66,7 +66,7 @@ const lessonData = {
             {
                 person: "3rd Person",
                 latin: "sunt",
-                english: "they are",
+                english: "they are OR there are",
                 note: "Back to 's' sound"
             }
         ]
@@ -104,37 +104,37 @@ const lessonData = {
         }
     ],
 
-    // Example Sentences (interactive)
+   // Example Sentences (interactive)
     examples: [
         {
-            latin: "sum discipulus.",
-            english: "I am a student.",
-            explanation: "sum = 1st person singular, discipulus stays nominative"
+            latin: "dominus sum.",
+            english: "I am the master.",
+            explanation: "sum = 1st person singular, dominus stays nominative"
         },
         {
-            latin: "es bonus amicus.",
-            english: "You are a good friend.",
-            explanation: "es = 2nd person singular, bonus amicus stays nominative"
+            latin: "clamo.",
+            english: "I shout.",
+            explanation: "clamo = 1st person singular of clamare (regular verb for comparison)"
         },
         {
-            latin: "Roma est magna.",
-            english: "Rome is great.",
-            explanation: "est = 3rd person singular, magna agrees with Roma"
+            latin: "ancilla pugnat.",
+            english: "The slave-girl fights.",
+            explanation: "pugnat = 3rd person singular, ancilla is nominative"
         },
         {
-            latin: "sumus Romani.",
-            english: "We are Romans.",
-            explanation: "sumus = 1st person plural, Romani is nominative plural"
+            latin: "puella dea est.",
+            english: "The girl is a goddess.",
+            explanation: "est = 3rd person singular, both puella and dea stay nominative"
         },
         {
-            latin: "estis in villa.",
-            english: "You (pl.) are in the house.",
-            explanation: "estis = 2nd person plural, in + ablative for location"
+            latin: "dominus et servus pugnant, sed amici sunt.",
+            english: "The master and slave fight, but they are friends.",
+            explanation: "pugnant = 3rd person plural (regular verb), sunt = 3rd person plural of sum"
         },
         {
-            latin: "pueri sunt in horto.",
-            english: "The boys are in the garden.",
-            explanation: "sunt = 3rd person plural, pueri is nominative plural"
+            latin: "servi sunt et laborant.",
+            english: "There are slaves and they work.",
+            explanation: "sunt = 'there are' (showing existence), laborant = 3rd person plural"
         }
     ],
 
