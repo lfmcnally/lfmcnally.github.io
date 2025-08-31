@@ -75,6 +75,40 @@ const lessonData = {
         ]
     },
 
+    // Interactive Verb Practice
+    verbPractice: [
+        {
+            latin: "ambulat",
+            english: "he/she walks",
+            person: "3rd singular"
+        },
+        {
+            latin: "clamamus",
+            english: "we shout",
+            person: "1st plural"
+        },
+        {
+            latin: "laborant",
+            english: "they work",
+            person: "3rd plural"
+        },
+        {
+            latin: "navigas",
+            english: "you sail",
+            person: "2nd singular"
+        },
+        {
+            latin: "necatis",
+            english: "you (pl.) kill",
+            person: "2nd plural"
+        },
+        {
+            latin: "paro",
+            english: "I prepare",
+            person: "1st singular"
+        }
+    ],
+
     // Textbook Exercises
     exercises: [
         {
@@ -290,6 +324,21 @@ function loadLessonData() {
         `;
     }
 
+    // Load Verb Practice Grid
+    const verbGrid = document.getElementById('verb-grid');
+    if (verbGrid) {
+        verbGrid.innerHTML = lessonData.verbPractice.map((verb, index) => `
+            <div class="verb-card" onclick="toggleVerbTranslation(${index})">
+                <div class="verb-latin">${verb.latin}</div>
+                <div class="verb-translation" id="verb-${index}" style="display: none;">
+                    <div class="verb-english">${verb.english}</div>
+                    <div class="verb-person">${verb.person}</div>
+                </div>
+                <div class="verb-hint" id="verb-hint-${index}">Click to translate</div>
+            </div>
+        `).join('');
+    }
+
     // Load Navigation Links
     const additionalSites = document.getElementById('additional-sites-links');
     if (additionalSites) {
@@ -333,5 +382,19 @@ function loadLessonData() {
                 </a>
             </div>
         `).join('');
+    }
+}
+
+// Function to toggle verb translation visibility
+function toggleVerbTranslation(index) {
+    const translation = document.getElementById(`verb-${index}`);
+    const hint = document.getElementById(`verb-hint-${index}`);
+    
+    if (translation.style.display === 'none') {
+        translation.style.display = 'block';
+        hint.style.display = 'none';
+    } else {
+        translation.style.display = 'none';
+        hint.style.display = 'block';
     }
 }
