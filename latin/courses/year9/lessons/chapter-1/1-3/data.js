@@ -37,13 +37,13 @@ const lessonData = {
                 caseName: "Nominative",
                 latin: "puella",
                 english: "the girl (subject)",
-                usage: "<b>The girl</b> walks"
+                usage: "The girl walks"
             },
             {
                 caseName: "Accusative",
                 latin: "puellam",
                 english: "the girl (object)",
-                usage: "I see <b>the girl</b>"
+                usage: "I see the girl"
             }
         ]
     },
@@ -58,13 +58,13 @@ const lessonData = {
                 caseName: "Nominative",
                 latin: "dominus",
                 english: "the master (subject)",
-                usage: "<b>The master</b> walks"
+                usage: "The master walks"
             },
             {
                 caseName: "Accusative",
                 latin: "dominum",
                 english: "the master (object)",
-                usage: "I see <b>the master</b>"
+                usage: "I see the master"
             }
         ]
     },
@@ -251,11 +251,14 @@ function loadLessonData() {
     // Load Example Sentences
     const examplesList = document.getElementById('examples-list');
     if (examplesList) {
-        examplesList.innerHTML = lessonData.examples.map(ex => `
-            <div class="example-item">
+        examplesList.innerHTML = lessonData.examples.map((ex, index) => `
+            <div class="example-item" onclick="toggleTranslation(${index})">
                 <div class="example-latin">${ex.latin}</div>
-                <div class="example-english">${ex.english}</div>
-                <div class="example-explanation">${ex.explanation}</div>
+                <div class="example-content" id="example-${index}" style="display: none;">
+                    <div class="example-english">${ex.english}</div>
+                    <div class="example-explanation">${ex.explanation}</div>
+                </div>
+                <div class="click-hint" id="hint-${index}">Click to reveal translation</div>
             </div>
         `).join('');
     }
@@ -349,5 +352,19 @@ function loadLessonData() {
                 </a>
             </div>
         `).join('');
+    }
+}
+
+// Function to toggle translation visibility
+function toggleTranslation(index) {
+    const content = document.getElementById(`example-${index}`);
+    const hint = document.getElementById(`hint-${index}`);
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        hint.style.display = 'none';
+    } else {
+        content.style.display = 'none';
+        hint.style.display = 'block';
     }
 }
