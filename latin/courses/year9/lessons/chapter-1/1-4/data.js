@@ -325,11 +325,14 @@ function loadLessonData() {
     // Load Example Sentences
     const examplesList = document.getElementById('examples-list');
     if (examplesList) {
-        examplesList.innerHTML = lessonData.examples.map(ex => `
-            <div class="example-item">
+        examplesList.innerHTML = lessonData.examples.map((ex, index) => `
+            <div class="example-item" onclick="toggleTranslation(${index})">
                 <div class="example-latin">${ex.latin}</div>
-                <div class="example-english">${ex.english}</div>
-                <div class="example-explanation">${ex.explanation}</div>
+                <div class="example-content" id="example-${index}" style="display: none;">
+                    <div class="example-english">${ex.english}</div>
+                    <div class="example-explanation">${ex.explanation}</div>
+                </div>
+                <div class="click-hint" id="hint-${index}">Click to reveal translation</div>
             </div>
         `).join('');
     }
@@ -380,5 +383,19 @@ function loadLessonData() {
             refHtml += `<p style="margin-top: 0.75rem;"><strong>${item.type}:</strong><br>${item.examples}</p>`;
         });
         quickRef.innerHTML = refHtml;
+    }
+}
+
+// Function to toggle translation visibility
+function toggleTranslation(index) {
+    const content = document.getElementById(`example-${index}`);
+    const hint = document.getElementById(`hint-${index}`);
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        hint.style.display = 'none';
+    } else {
+        content.style.display = 'none';
+        hint.style.display = 'block';
     }
 }
