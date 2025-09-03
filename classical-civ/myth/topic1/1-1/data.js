@@ -1,513 +1,840 @@
-/* FILE 3: style.css - Complete file with exercise styles */
-
-/* Lesson 1-1 Specific Styles: Introduction to Ancient Religion */
-
-/* Comparison Section */
-.comparison-section {
-    margin-bottom: 2rem;
-}
-
-.comparison-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.comparison-card {
-    background: white;
-    border: 2px solid rgba(0, 102, 255, 0.1);
-    border-radius: 12px;
-    padding: 1.5rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.comparison-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(0, 102, 255, 0.15);
-    border-color: #0066ff;
-}
-
-.comparison-card.active {
-    border-color: #0066ff;
-    background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
-    box-shadow: 0 6px 20px rgba(0, 102, 255, 0.2);
-}
-
-.comparison-title {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #0066ff;
-    margin-bottom: 1rem;
-    text-align: center;
-}
-
-.comparison-features {
-    list-style: none;
-    padding: 0;
-}
-
-.comparison-features li {
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #f0f0f0;
-    position: relative;
-    padding-left: 1.5rem;
-}
-
-.comparison-features li:before {
-    content: "•";
-    position: absolute;
-    left: 0;
-    font-size: 1.2rem;
-    color: #0066ff;
-}
-
-/* Transaction Flow */
-.transaction-section {
-    background: #f8f9fa;
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-}
-
-.transaction-flow {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    margin: 2rem 0;
-}
-
-.transaction-step {
-    background: white;
-    border: 2px solid rgba(0, 102, 255, 0.1);
-    padding: 1.5rem;
-    border-radius: 12px;
-    flex: 1;
-    margin: 0 0.5rem;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    text-align: center;
-}
-
-.transaction-step:hover {
-    transform: translateY(-3px);
-    border-color: #0066ff;
-    box-shadow: 0 6px 16px rgba(0, 102, 255, 0.2);
-}
-
-.transaction-step.active {
-    border-color: #0066ff;
-    background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
-}
-
-.transaction-step h4 {
-    margin-top: 0;
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
-    color: #0066ff;
-}
-
-.transaction-step p {
-    margin: 0;
-    font-size: 0.9rem;
-    color: #666;
-}
-
-.arrow {
-    font-size: 2rem;
-    color: #0066ff;
-}
-
-/* Terms Grid */
-.terms-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-    margin: 1.5rem 0;
-}
-
-.term-card {
-    background: linear-gradient(135deg, #f0f7ff 0%, #e1f0ff 100%);
-    border-left: 4px solid #0066ff;
-    padding: 1.5rem;
-    border-radius: 0 12px 12px 0;
-    transition: all 0.3s ease;
-}
-
-.term-card:hover {
-    transform: translateX(5px);
-    box-shadow: 0 4px 12px rgba(0, 102, 255, 0.15);
-}
-
-.term-card h4 {
-    color: #0066ff;
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
-}
-
-.term-card p {
-    color: #555;
-    line-height: 1.6;
-}
-
-/* Differences Grid */
-.differences-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
-    margin: 1.5rem 0;
-}
-
-.difference-card {
-    background: white;
-    border: 2px solid rgba(0, 102, 255, 0.1);
-    border-radius: 12px;
-    padding: 1.5rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: center;
-}
-
-.difference-card:hover {
-    border-color: #0066ff;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgba(0, 102, 255, 0.2);
-}
-
-.difference-card.active {
-    border-color: #0066ff;
-    background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%);
-}
-
-.difference-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 0.5rem;
-}
-
-.difference-subtitle {
-    color: #666;
-    font-size: 0.85rem;
-    font-style: italic;
-}
-
-/* Detail Box */
-.detail-box {
-    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-    border: 1px solid rgba(0, 102, 255, 0.1);
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-top: 1.5rem;
-    animation: fadeIn 0.3s ease;
-}
-
-.detail-box h4 {
-    color: #0066ff;
-    margin-bottom: 1rem;
-}
-
-.detail-box p {
-    color: #555;
-    line-height: 1.7;
-    margin-bottom: 1rem;
-}
-
-.detail-box ul {
-    margin-left: 1.5rem;
-    color: #555;
-}
-
-.detail-box li {
-    margin-bottom: 0.5rem;
-}
-
-/* Interactive Text Elements */
-.key-term {
-    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-    border: 1px solid #ffc107;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 600;
-    color: #856404;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-block;
-}
-
-.key-term:hover {
-    background: linear-gradient(135deg, #ffeaa7 0%, #ffd93d 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+// Lesson 1.1: Introduction to Ancient Religion - Data File
+
+const lessonData = {
+    // Learning Objectives
+    learningObjectives: {
+        intro: "By the end of this section, you will understand:",
+        objectives: [
+            "The fundamental differences between ancient polytheistic religion and modern monotheism",
+            "The key terminology used to describe religious practices",
+            "The transactional nature of the relationship between mortals and immortals",
+            "The anthropomorphic nature of ancient gods and their human characteristics",
+            "How ancient religion was communal rather than personal",
+            "Why ritual action mattered more than belief or faith"
+        ]
+    },
+
+    // Comparison Data
+    comparisonData: {
+        polytheism: {
+            title: "Ancient Polytheism",
+            features: [
+                "Many gods with specific domains",
+                "Transactional worship (do ut des)",
+                "Communal rather than personal",
+                "Focus on ritual action",
+                "Gods are anthropomorphic",
+                "No concept of sin or salvation"
+            ],
+            details: {
+                title: "The Polytheistic Worldview",
+                content: `Ancient Greeks and Romans lived in a world populated by hundreds of gods, each with specific powers and responsibilities. 
+                This system offered flexibility - if one god didn't answer your prayers, you could try another. 
+                It also explained the complexity and contradictions of life through the competing interests of different deities.`,
+                keyPoints: [
+                    "Specialisation: Each god had a specific domain (sea, war, love, etc.)",
+                    "Hierarchy: Zeus/Jupiter ruled as king, but all gods had independent power",
+                    "Local variations: Different cities might worship the same god differently",
+                    "Syncretism: New gods could be absorbed from conquered peoples"
+                ]
+            }
+        },
+        monotheism: {
+            title: "Modern Monotheism",
+            features: [
+                "One omnipotent God",
+                "Worship based on faith and love",
+                "Personal relationship with God",
+                "Focus on belief and morality",
+                "God as transcendent being",
+                "Concepts of sin and redemption"
+            ],
+            details: {
+                title: "The Monotheistic Revolution",
+                content: `Modern monotheistic religions (Christianity, Islam, Judaism) represent a fundamental shift in religious thinking. 
+                One omnipotent, omniscient God replaces the diverse pantheon. 
+                This creates a unified moral system and a personal relationship between the individual and the divine.`,
+                keyPoints: [
+                    "Universal morality: One God means one set of moral laws",
+                    "Personal salvation: Individual relationship with God matters",
+                    "Sacred texts: Written scripture provides authoritative guidance",
+                    "Exclusive worship: Other gods are false or demons"
+                ]
+            }
+        }
+    },
+
+    // Transaction Steps
+    transactionSteps: [
+        {
+            id: 'offering',
+            title: '1. Offering',
+            subtitle: 'Sacrifices, votive gifts, festivals',
+            details: 'The worshipper provides something valuable - animal sacrifice (especially oxen for major requests), libations of wine, votive offerings, or funding for temples and festivals. The value of the offering often reflected the importance of the request.'
+        },
+        {
+            id: 'prayer',
+            title: '2. Prayer',
+            subtitle: 'Specific request to appropriate deity',
+            details: 'Prayers were formulaic and specific. The worshipper would invoke the god by name and epithets, remind them of past offerings, state the current offering, and make a clear request. Vague prayers were unlikely to be answered.'
+        },
+        {
+            id: 'favour',
+            title: '3. Divine Favour',
+            subtitle: 'Gods grant request (or not)',
+            details: 'Gods might grant the request, ignore it, or even punish presumption. Success reinforced the relationship; failure might mean trying a different god, making a better offering, or accepting divine will. There was no guarantee of response.'
+        }
+    ],
+
+    // Key Terms
+    keyTerms: [
+        {
+            term: 'Hiera (ἱερά)',
+            definition: 'Greek term meaning "holy affairs" - the closest equivalent to our word "religion". It encompassed all sacred activities including sacrifices, festivals, and temple worship.',
+            id: 'hiera'
+        },
+        {
+            term: 'Religio',
+            definition: 'Roman term meaning "the correct worship of the state gods". It emphasised proper ritual performance rather than personal belief or faith.',
+            id: 'religio'
+        },
+        {
+            term: 'Epithets',
+            definition: 'Descriptive phrases added to gods\' names to specify their particular aspect or power, such as Athena Nike (Victory) or Zeus Xenios (protector of guests).',
+            id: 'epithets'
+        },
+        {
+            term: 'Pantheon',
+            definition: 'The collective term for all gods worshipped by a culture. The Greek and Roman pantheons included hundreds of deities, from major Olympians to minor local gods.',
+            id: 'pantheon'
+        }
+    ],
+
+    // Key Differences
+    keyDifferences: [
+        {
+            id: 'sin',
+            title: 'No Sin or Salvation',
+            subtitle: 'Click to explore the ancient view of morality and afterlife',
+            details: {
+                title: 'No Concept of Sin or Salvation',
+                content: `Ancient religion lacked the Christian concepts of original sin, redemption, or eternal salvation. 
+                The afterlife was generally seen as a shadowy existence in Hades, not a reward or punishment for earthly behaviour.
+                Good and bad alike went to the same grey underworld, though a few exceptional heroes might reach the Elysian Fields. 
+                This wasn't based on moral behaviour but on exceptional deeds or divine favour.
+                Without concepts of sin and salvation, ancient religion focused on maintaining good relationships with the gods for earthly benefits rather than securing a blessed afterlife.`
+            }
+        },
+        {
+            id: 'dogma',
+            title: 'Religion Without Dogma',
+            subtitle: 'Click to learn about flexibility in ancient belief',
+            details: {
+                title: 'Religion Without Dogma',
+                content: `There was no central religious authority, no sacred book like the Bible, and no fixed set of beliefs that all worshippers had to accept. 
+                Different cities had different traditions about the gods.
+                Myths varied from place to place - Athens told different stories about Athena than other cities. 
+                This flexibility allowed Greek and Roman religion to absorb new gods and practices as their civilisations expanded.
+                Without orthodoxy (correct belief), the focus was on orthopraxy (correct practice). 
+                What mattered was performing rituals properly, not believing specific doctrines about the nature of divinity.`
+            }
+        },
+        {
+            id: 'civic',
+            title: 'Civic and Political Religion',
+            subtitle: 'Click to understand religion\'s role in public life',
+            details: {
+                title: 'Civic and Political Dimension',
+                content: `Religion was inseparable from civic life. Religious festivals were state occasions that reinforced social cohesion and political authority. 
+                Magistrates performed sacrifices on behalf of the community.
+                Military campaigns began with taking the auspices (reading divine will through bird signs). 
+                Political meetings opened with prayers. Treaties were sworn before the gods.
+                This integration of religion and state would have seemed natural to ancient peoples but alien to modern secular societies. 
+                There was no concept of separation between church and state - they were one and the same.`
+            }
+        }
+    ],
+
+    // Exercises
+    exercises: [
+        {
+            id: 'exercise1',
+            title: 'Exercise 1: Understanding Polytheism and Key Terms',
+            placement: 'after-comparison',
+            questions: [
+                {
+                    id: 'q1-1',
+                    text: 'What is the main difference between ancient polytheistic religion and modern monotheistic religion? Give two specific examples to support your answer.',
+                    type: 'long-answer'
+                },
+                {
+                    id: 'q1-2',
+                    text: 'Match the following terms to their correct definitions:\n\na) Hiera\nb) Religio\nc) Pantheon\nd) Anthropomorphic\n\n1. ( ) The collective term for all gods worshipped by a culture\n2. ( ) Greek term meaning "holy affairs"\n3. ( ) Having human form and characteristics\n4. ( ) Roman term meaning "correct worship of the state gods"',
+                    type: 'matching'
+                },
+                {
+                    id: 'q1-3',
+                    text: 'Why didn\'t the ancient Greeks have a word that directly translates to our modern word "religion"? What does this tell us about their worldview?',
+                    type: 'long-answer'
+                },
+                {
+                    id: 'q1-4',
+                    text: 'True or False: Ancient gods were considered morally perfect beings who set examples for humans to follow. Explain your answer briefly.',
+                    type: 'true-false'
+                },
+                {
+                    id: 'q1-5',
+                    text: 'If you were an ancient Greek farmer worried about your harvest, which god would you pray to and why? What does this tell us about how the ancients chose which god to worship?',
+                    type: 'long-answer'
+                }
+            ]
+        },
+        {
+            id: 'exercise2',
+            title: 'Exercise 2: Transactional Worship and Ritual Practice',
+            placement: 'after-transaction',
+            questions: [
+                {
+                    id: 'q2-1',
+                    text: 'Explain what the Latin phrase "do ut des" means and how it relates to ancient religious practice. Give an example.',
+                    type: 'long-answer'
+                },
+                {
+                    id: 'q2-2',
+                    text: 'Put these steps of ancient worship in the correct order:\n\n( ) The god might grant the favour requested\n( ) The worshipper makes an offering or sacrifice\n( ) The worshipper states a specific prayer or request\n( ) The worshipper chooses the appropriate god for their need',
+                    type: 'ordering'
+                },
+                {
+                    id: 'q2-3',
+                    text: 'What are epithets and why were they important in ancient prayer? Provide an example of a god with different epithets.',
+                    type: 'long-answer'
+                },
+                {
+                    id: 'q2-4',
+                    text: 'Compare ancient religious practice to modern Christianity. Which focused more on correct ritual action and which focuses more on personal faith? Explain your answer.',
+                    type: 'long-answer'
+                },
+                {
+                    id: 'q2-5',
+                    text: 'A Roman sailor is about to embark on a dangerous voyage. Describe the religious steps he might take, including: which god(s) he would approach, what offerings he might make, and what he would expect in return.',
+                    type: 'scenario'
+                }
+            ]
+        },
+        {
+            id: 'exercise3',
+            title: 'Exercise 3: Synthesis and Application',
+            placement: 'after-summary',
+            questions: [
+                {
+                    id: 'q3-1',
+                    text: 'Explain three ways in which ancient religion was "communal and civic" rather than "personal and private" as mentioned in the lesson summary.',
+                    type: 'long-answer'
+                },
+                {
+                    id: 'q3-2',
+                    text: 'The lesson states that ancient gods were "anthropomorphic." Using examples from the lesson, explain what this means and why it made the gods "more relatable to their worshippers."',
+                    type: 'long-answer'
+                },
+                {
+                    id: 'q3-3',
+                    text: 'Read this scenario: A Greek merchant\'s ship has been destroyed in a storm despite his sacrifices to Poseidon. According to ancient religious thinking, what might be the possible explanations for this? (Give at least two)',
+                    type: 'scenario'
+                },
+                {
+                    id: 'q3-4',
+                    text: 'How does the quotation from Pindar ("The race of gods is one thing, the race of men quite another... yet we have some likeness to the immortals") reflect the ancient Greek understanding of the relationship between gods and humans?',
+                    type: 'analysis'
+                },
+                {
+                    id: 'q3-5',
+                    text: 'Based on everything you\'ve learned in this lesson, write a paragraph explaining why understanding ancient polytheistic religion is "essential for making sense of ancient literature, art, and history."',
+                    type: 'essay'
+                }
+            ]
+        }
+    ],
+
+    // Study Checklist
+    studyChecklist: [
+        "Understand polytheism vs monotheism",
+        "Learn key terms: hiera, religio, pantheon, epithets",
+        "Grasp the concept of 'do ut des' transactions",
+        "Understand anthropomorphism in ancient gods",
+        "Know why ritual mattered more than belief",
+        "Recognise communal vs personal worship",
+        "Understand the absence of sin/salvation concepts",
+        "Learn about civic religion's role"
+    ],
+
+    // Definitions for interactive terms
+    definitions: {
+        'polytheism': {
+            term: 'Polytheism',
+            definition: 'The worship of multiple gods, each with different powers and responsibilities.',
+            context: 'Ancient polytheism offered flexibility and explained life\'s contradictions through divine conflicts.'
+        },
+        'hiera': {
+            term: 'Hiera (ἱερά)',
+            definition: 'Greek term meaning "holy affairs" or "sacred matters".',
+            context: 'The absence of a direct equivalent to our word "religion" shows how differently the Greeks conceptualised their relationship with the divine.'
+        },
+        'religio': {
+            term: 'Religio',
+            definition: 'Latin term meaning "the correct worship of the state gods".',
+            context: 'For Romans, religio was about performing rituals correctly to maintain the pax deorum (peace with the gods).'
+        },
+        'pantheon': {
+            term: 'Pantheon',
+            definition: 'The collective term for all gods worshipped by a culture.',
+            context: 'The Greek and Roman pantheons included major Olympian gods, minor deities, personified concepts, and local spirits.'
+        },
+        'epithets': {
+            term: 'Epithets',
+            definition: 'Additional names or phrases that specify a particular aspect or power of a god.',
+            context: 'Epithets were crucial for effective prayer. Zeus Xenios protected guests, while Zeus Horkios oversaw oaths.'
+        },
+        'do-ut-des': {
+            term: 'Do Ut Des',
+            definition: 'Latin phrase meaning "I give so that you might give".',
+            context: 'This principle governed ancient worship. Religion was transactional - offerings and sacrifices were investments expecting divine returns.'
+        },
+        'anthropomorphism': {
+            term: 'Anthropomorphism',
+            definition: 'The attribution of human form, emotions, and behaviours to gods.',
+            context: 'Made gods relatable and understandable to worshippers. Gods\' human flaws explained why prayers might go unanswered.'
+        }
+    },
+
+    // Figure Information
+    figures: {
+        'zeus': {
+            name: 'Zeus/Jupiter',
+            role: 'King of the gods, ruler of the sky',
+            significance: 'The most powerful Olympian, Zeus maintained order among gods and mortals. Despite his authority, he was notorious for his many affairs with mortal women.'
+        },
+        'poseidon': {
+            name: 'Poseidon/Neptune',
+            role: 'God of the sea, earthquakes, and horses',
+            significance: 'Brother of Zeus, ruler of the oceans. Sailors and sea-traders depended on his favour for safe voyages.'
+        },
+        'demeter': {
+            name: 'Demeter/Ceres',
+            role: 'Goddess of agriculture and the harvest',
+            significance: 'Essential for agricultural societies, Demeter controlled crop growth. Her grief over losing Persephone explained the seasons.'
+        },
+        'apollo': {
+            name: 'Apollo/Apollo',
+            role: 'God of music, poetry, prophecy, and the sun',
+            significance: 'One of the most complex Olympians, Apollo represented both creative arts and rational thought. His oracle at Delphi was the most important prophetic shrine.'
+        },
+        'athena': {
+            name: 'Athena/Minerva',
+            role: 'Goddess of wisdom, warfare, and crafts',
+            significance: 'Born from Zeus\'s head fully grown and armed. Patron of Athens, she represented strategic warfare and intelligence.'
+        }
+    },
+
+    // Primary Sources
+    primarySources: [
+        {
+            text: "The race of gods is one thing, the race of men quite another... yet we have some likeness to the immortals, in our minds or in our nature.",
+            citation: "Pindar, Nemean Odes 6.1-4"
+        },
+        {
+            text: "If you make a vow to a god, do not delay in fulfilling it, for the god has no pleasure in fools.",
+            citation: "Traditional Roman religious maxim"
+        },
+        {
+            text: "Homer and Hesiod have attributed to the gods all things that among men are shameful and blameworthy - theft and adultery and mutual deception.",
+            citation: "Xenophanes, Fragment 11 (6th century BC critique)"
+        }
+    ]
+};
+
+// Function to load lesson data into HTML
+function loadLessonData() {
+    // Load learning objectives
+    loadLearningObjectives();
+    
+    // Load comparison grid
+    loadComparisonGrid();
+    
+    // Load transaction flow
+    loadTransactionFlow();
+    
+    // Load terms grid
+    loadTermsGrid();
+    
+    // Load differences grid
+    loadDifferencesGrid();
+    
+    // Load study checklist
+    loadStudyChecklist();
+    
+    // Load main content sections
+    loadConceptsContent();
+    loadPracticesContent();
+    loadAnthropomorphismContent();
+    loadSummaryContent();
+}
+
+// Load Learning Objectives
+function loadLearningObjectives() {
+    const container = document.getElementById('learning-objectives');
+    if (container) {
+        let html = `<p>${lessonData.learningObjectives.intro}</p><ul>`;
+        lessonData.learningObjectives.objectives.forEach(obj => {
+            html += `<li>${obj}</li>`;
+        });
+        html += '</ul>';
+        container.innerHTML = html;
+    }
+}
+
+// Load Comparison Grid
+function loadComparisonGrid() {
+    const container = document.getElementById('comparison-grid');
+    if (container) {
+        container.innerHTML = `
+            <div class="comparison-card" onclick="showComparisonDetails('polytheism')">
+                <h3 class="comparison-title">${lessonData.comparisonData.polytheism.title}</h3>
+                <ul class="comparison-features">
+                    ${lessonData.comparisonData.polytheism.features.map(f => `<li>${f}</li>`).join('')}
+                </ul>
+            </div>
+            <div class="comparison-card" onclick="showComparisonDetails('monotheism')">
+                <h3 class="comparison-title">${lessonData.comparisonData.monotheism.title}</h3>
+                <ul class="comparison-features">
+                    ${lessonData.comparisonData.monotheism.features.map(f => `<li>${f}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+}
+
+// Load Transaction Flow
+function loadTransactionFlow() {
+    const container = document.getElementById('transaction-flow');
+    if (container) {
+        let html = '';
+        lessonData.transactionSteps.forEach((step, index) => {
+            if (index > 0) html += '<div class="arrow">→</div>';
+            html += `
+                <div class="transaction-step" onclick="showTransactionDetails('${step.id}')">
+                    <h4>${step.title}</h4>
+                    <p>${step.subtitle}</p>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+}
+
+// Load Terms Grid
+function loadTermsGrid() {
+    const container = document.getElementById('terms-grid');
+    if (container) {
+        container.innerHTML = lessonData.keyTerms.map(term => `
+            <div class="term-card">
+                <h4>${term.term}</h4>
+                <p>${term.definition}</p>
+            </div>
+        `).join('');
+    }
+}
+
+// Load Differences Grid
+function loadDifferencesGrid() {
+    const container = document.getElementById('differences-grid');
+    if (container) {
+        container.innerHTML = lessonData.keyDifferences.map(diff => `
+            <div class="difference-card" onclick="showDifferenceDetails('${diff.id}')">
+                <div class="difference-title">${diff.title}</div>
+                <div class="difference-subtitle">${diff.subtitle}</div>
+            </div>
+        `).join('');
+    }
+}
+
+// Load Study Checklist
+function loadStudyChecklist() {
+    const container = document.getElementById('study-checklist');
+    if (container) {
+        container.innerHTML = lessonData.studyChecklist.map((item, index) => `
+            <div class="checklist-row">
+                <label class="checklist-item">
+                    <input type="checkbox"> ${item}
+                </label>
+                <button class="do-now-btn" id="do-now-${index}" onclick="markAsDoingNow(${index})">Do now</button>
+            </div>
+        `).join('');
+    }
+}
+
+// Load Concepts Content
+function loadConceptsContent() {
+    const container = document.getElementById('concepts-content');
+    if (container) {
+        container.innerHTML = `
+            <p>Ancient Greek and Roman religion was fundamentally different from modern Christianity. The Greeks and Romans were 
+            <span class="key-term" data-definition="polytheism">polytheistic</span>, meaning they worshipped multiple gods rather than a single deity. 
+            Interestingly, the Greeks didn't actually have a word for 'religion' as we understand it. Instead, they used 
+            <span class="key-term" data-definition="hiera">hiera</span> meaning "holy affairs" and the Romans used 
+            <span class="key-term" data-definition="religio">religio</span> meaning "the correct worship of the state gods".</p>
+            
+            <h4>The Nature of the Gods</h4>
+            <p>The most striking aspect of ancient gods was their <span class="key-concept" data-concept="anthropomorphism">anthropomorphic</span> nature. 
+            Unlike the abstract, perfect deity of monotheistic religions, Greek and Roman gods looked and behaved like humans. 
+            They experienced human emotions - jealousy, anger, lust, pride - and displayed human weaknesses.</p>
+            
+            <div class="primary-source">
+                "${lessonData.primarySources[0].text}"
+                <div class="source-citation">— ${lessonData.primarySources[0].citation}</div>
+            </div>
+            
+            <p>The collective term for all the gods together was the <span class="key-term" data-definition="pantheon">pantheon</span>. 
+            Each god had specific responsibilities - <span class="key-figure" data-info="poseidon">Poseidon</span> controlled the sea, 
+            <span class="key-figure" data-info="demeter">Demeter</span> governed agriculture, 
+            <span class="key-figure" data-info="apollo">Apollo</span> presided over music and prophecy.</p>
+        `;
+    }
+}
+
+// Load Practices Content
+function loadPracticesContent() {
+    const container = document.getElementById('practices-content');
+    if (container) {
+        container.innerHTML = `
+            <h4>Communal vs Private Worship</h4>
+            <p>Unlike modern Christianity with its emphasis on personal prayer and individual salvation, ancient religion was primarily communal. 
+            Sacrifices and offerings were made at temples and shrines, and festivals involved the whole city. 
+            There was no concept of regular weekly worship like Sunday church services.</p>
+            
+            <h4>The Importance of Ritual Action</h4>
+            <p>Greek and Roman religion was not about faith or belief in the modern sense. What mattered was performing the correct rituals in the proper way. 
+            The phrase <span class="key-term" data-definition="do-ut-des">do ut des</span> ("I give so that you might give") perfectly captures this transactional approach.</p>
+            
+            <div class="primary-source">
+                "${lessonData.primarySources[1].text}"
+                <div class="source-citation">— ${lessonData.primarySources[1].citation}</div>
+            </div>
+            
+            <h4>Choosing the Right God</h4>
+            <p>With hundreds of gods available, choosing the right deity for your needs was crucial. 
+            This specificity extended to <span class="key-term" data-definition="epithets">epithets</span> - additional names that specified which aspect of a god you were invoking. 
+            <span class="key-figure" data-info="zeus">Zeus</span> had dozens of epithets: Zeus Xenios protected guests and strangers, Zeus Horkios oversaw oaths.</p>
+        `;
+    }
+}
+
+// Load Anthropomorphism Content
+function loadAnthropomorphismContent() {
+    const container = document.getElementById('anthropomorphism-content');
+    if (container) {
+        container.innerHTML = `
+            <p>Perhaps the most distinctive feature of Greek and Roman gods was their anthropomorphic nature. 
+            Unlike the transcendent, perfect God of Christianity, ancient deities had human forms, human emotions, and human flaws.</p>
+            
+            <h4>Divine Behaviour and Morality</h4>
+            <p>The gods' behaviour often scandalised later Christian writers. 
+            <span class="key-figure" data-info="zeus">Zeus/Jupiter</span> was a serial adulterer. 
+            <span class="key-figure" data-info="apollo">Apollo</span> could be vindictive when his pride was wounded.</p>
+            
+            <p>This apparent immorality served several purposes:</p>
+            <ul>
+                <li>It made the gods more relatable and understandable to humans</li>
+                <li>It explained the unpredictability of divine favour</li>
+                <li>It reflected the complexities of human nature and society</li>
+                <li>It provided entertaining stories that transmitted cultural values</li>
+            </ul>
+            
+            <div class="primary-source">
+                "${lessonData.primarySources[2].text}"
+                <div class="source-citation">— ${lessonData.primarySources[2].citation}</div>
+            </div>
+        `;
+    }
+}
+
+// Load Summary Content
+function loadSummaryContent() {
+    const container = document.getElementById('summary-content');
+    if (container) {
+        container.innerHTML = `
+            <p>To understand Greek and Roman mythology and religion, we must set aside modern assumptions about what religion means. For the ancients:</p>
+            <ul>
+                <li>Religion was about action (ritual) not belief (faith)</li>
+                <li>Gods were powerful but flawed beings, not moral exemplars</li>
+                <li>Worship was transactional, not devotional</li>
+                <li>Religious practice was communal and civic, not personal and private</li>
+                <li>Multiple gods meant multiple options for divine assistance</li>
+                <li>Success in life depended on maintaining good relationships with the gods</li>
+            </ul>
+            <p>This religious framework shaped every aspect of ancient life, from politics and warfare to agriculture and family life. 
+            Understanding it is essential for making sense of ancient literature, art, and history.</p>
+        `;
+    }
+}
+
+// Exercise Functions
+function loadExercises() {
+    lessonData.exercises.forEach(exercise => {
+        let targetElement;
+        
+        // Determine where to place each exercise
+        switch(exercise.placement) {
+            case 'after-comparison':
+                targetElement = document.querySelector('.comparison-section');
+                break;
+            case 'after-transaction':
+                targetElement = document.querySelector('.transaction-section');
+                break;
+            case 'after-summary':
+                targetElement = document.querySelector('.summary-section');
+                break;
+        }
+        
+        if (targetElement) {
+            const exerciseHTML = createExerciseHTML(exercise);
+            targetElement.insertAdjacentHTML('afterend', exerciseHTML);
+        }
+    });
+    
+    // Initialize exercise interactions
+    initializeExercises();
+}
+
+function createExerciseHTML(exercise) {
+    const questionsHTML = exercise.questions.map((q, index) => `
+        <div class="question-item">
+            <div class="question-number">Question ${index + 1}</div>
+            <div class="question-text">${q.text.replace(/\n/g, '<br>')}</div>
+            <div class="answer-space">
+                <textarea placeholder="Type your answer here..." rows="${q.type === 'essay' ? 6 : 3}"></textarea>
+            </div>
+        </div>
+    `).join('');
+    
+    return `
+        <div class="exercise-container" id="${exercise.id}">
+            <div class="exercise-header" onclick="toggleExercise('${exercise.id}')">
+                <span class="exercise-icon">▶</span>
+                <span class="exercise-title">${exercise.title}</span>
+                <span class="exercise-badge">${exercise.questions.length} questions</span>
+            </div>
+            <div class="exercise-content">
+                <div class="exercise-instructions">
+                    Answer all questions based on the content you've just learned. Take your time and refer back to the lesson if needed.
+                </div>
+                ${questionsHTML}
+                <div class="exercise-actions">
+                    <button class="check-answers-btn" onclick="checkAnswers('${exercise.id}')">Check My Answers</button>
+                    <button class="save-progress-btn" onclick="saveProgress('${exercise.id}')">Save Progress</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function toggleExercise(exerciseId) {
+    const exercise = document.getElementById(exerciseId);
+    const content = exercise.querySelector('.exercise-content');
+    const icon = exercise.querySelector('.exercise-icon');
+    
+    if (content.classList.contains('open')) {
+        content.classList.remove('open');
+        icon.style.transform = 'rotate(0deg)';
+    } else {
+        content.classList.add('open');
+        icon.style.transform = 'rotate(90deg)';
+    }
+}
+
+function initializeExercises() {
+    // Set up auto-save
+    document.querySelectorAll('.answer-space textarea').forEach(textarea => {
+        textarea.addEventListener('input', function() {
+            // Auto-save to localStorage every few seconds
+            clearTimeout(this.saveTimer);
+            this.saveTimer = setTimeout(() => {
+                saveProgress(this.closest('.exercise-container').id, true);
+            }, 2000);
+        });
+    });
+    
+    // Load any saved progress
+    loadSavedProgress();
+}
+
+function saveProgress(exerciseId, silent = false) {
+    const exercise = document.getElementById(exerciseId);
+    const answers = {};
+    
+    exercise.querySelectorAll('.question-item').forEach((item, index) => {
+        const textarea = item.querySelector('textarea');
+        answers[`q${index}`] = textarea.value;
+    });
+    
+    localStorage.setItem(`lesson1-1-${exerciseId}`, JSON.stringify(answers));
+    
+    if (!silent) {
+        showNotification('Progress saved!');
+    }
+}
+
+function loadSavedProgress() {
+    lessonData.exercises.forEach(exercise => {
+        const saved = localStorage.getItem(`lesson1-1-${exercise.id}`);
+        if (saved) {
+            const answers = JSON.parse(saved);
+            const exerciseEl = document.getElementById(exercise.id);
+            if (exerciseEl) {
+                exerciseEl.querySelectorAll('.question-item').forEach((item, index) => {
+                    const textarea = item.querySelector('textarea');
+                    if (answers[`q${index}`]) {
+                        textarea.value = answers[`q${index}`];
+                    }
+                });
+            }
+        }
+    });
+}
+
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => notification.remove(), 300);
+    }, 2000);
+}
+
+function checkAnswers(exerciseId) {
+    showNotification('Answer checking coming soon!');
+}
+
+// Interactive Functions
+function showComparisonDetails(type) {
+    const detailsDiv = document.getElementById('comparison-details');
+    const data = lessonData.comparisonData[type];
+    
+    if (data && data.details) {
+        detailsDiv.innerHTML = `
+            <h4>${data.details.title}</h4>
+            <p>${data.details.content}</p>
+            <ul>
+                ${data.details.keyPoints.map(point => `<li><strong>${point}</strong></li>`).join('')}
+            </ul>
+        `;
+        detailsDiv.style.display = 'block';
+        
+        // Update active state
+        document.querySelectorAll('.comparison-card').forEach(card => card.classList.remove('active'));
+        event.target.closest('.comparison-card').classList.add('active');
+    }
+}
+
+function showTransactionDetails(stepId) {
+    const detailsDiv = document.getElementById('transaction-details');
+    const step = lessonData.transactionSteps.find(s => s.id === stepId);
+    
+    if (step) {
+        detailsDiv.innerHTML = `<strong>${step.title.split('. ')[1]}:</strong> ${step.details}`;
+        detailsDiv.style.display = 'block';
+        
+        // Update active state
+        document.querySelectorAll('.transaction-step').forEach(step => step.classList.remove('active'));
+        event.target.closest('.transaction-step').classList.add('active');
+    }
+}
+
+function showDifferenceDetails(diffId) {
+    const detailsDiv = document.getElementById('difference-details');
+    const diff = lessonData.keyDifferences.find(d => d.id === diffId);
+    
+    if (diff && diff.details) {
+        detailsDiv.innerHTML = `
+            <h4>${diff.details.title}</h4>
+            <p>${diff.details.content}</p>
+        `;
+        detailsDiv.style.display = 'block';
+        
+        // Update active state
+        document.querySelectorAll('.difference-card').forEach(card => card.classList.remove('active'));
+        event.target.closest('.difference-card').classList.add('active');
+    }
+}
+
+// Setup Interactive Content
+function setupInteractiveContent() {
+    // Key terms
+    document.querySelectorAll('.key-term').forEach(term => {
+        term.addEventListener('click', function() {
+            const definition = this.dataset.definition;
+            showDefinition(definition);
+        });
+    });
+
+    // Historical figures
+    document.querySelectorAll('.key-figure').forEach(figure => {
+        figure.addEventListener('click', function() {
+            const info = this.dataset.info;
+            showFigureInfo(info);
+        });
+    });
+
+    // Key concepts
+    document.querySelectorAll('.key-concept').forEach(concept => {
+        concept.addEventListener('click', function() {
+            const conceptId = this.dataset.concept;
+            showConceptInfo(conceptId);
+        });
+    });
+}
+
+function showDefinition(termId) {
+    const def = lessonData.definitions[termId];
+    if (def) {
+        showInfoPanel('Key Term', `
+            <h4>${def.term}</h4>
+            <p><strong>Definition:</strong> ${def.definition}</p>
+            <p><strong>Context:</strong> ${def.context}</p>
+        `);
+    }
+}
+
+function showFigureInfo(figureId) {
+    const fig = lessonData.figures[figureId];
+    if (fig) {
+        showInfoPanel('Divine Figure', `
+            <h4>${fig.name}</h4>
+            <p><strong>Role:</strong> ${fig.role}</p>
+            <p><strong>Significance:</strong> ${fig.significance}</p>
+        `);
+    }
+}
+
+function showConceptInfo(conceptId) {
+    const def = lessonData.definitions[conceptId];
+    if (def) {
+        showInfoPanel('Key Concept', `
+            <h4>${def.term}</h4>
+            <p><strong>Explanation:</strong> ${def.definition}</p>
+            <p><strong>Importance:</strong> ${def.context}</p>
+        `);
+    }
+}
+
+function showInfoPanel(title, content) {
+    const infoContent = document.getElementById('info-content');
+    if (infoContent) {
+        infoContent.innerHTML = `
+            <h4 style="color: #0066ff; margin-bottom: 0.5rem;">${title}</h4>
+            ${content}
+        `;
+    }
 }
-
-.key-figure {
-    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-    border: 1px solid #17a2b8;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 600;
-    color: #0c5460;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-block;
-}
-
-.key-figure:hover {
-    background: linear-gradient(135deg, #bee5eb 0%, #9dd7e5 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(23, 162, 184, 0.3);
-}
-
-.key-concept {
-    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-    border: 1px solid #28a745;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-weight: 600;
-    color: #155724;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-block;
-}
-
-.key-concept:hover {
-    background: linear-gradient(135deg, #c3e6cb 0%, #a8dab5 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
-}
-
-/* Primary Source Quote */
-.primary-source {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border-left: 4px solid #6c757d;
-    padding: 1.5rem;
-    margin: 1.5rem 0;
-    font-style: italic;
-    border-radius: 0 12px 12px 0;
-    position: relative;
-}
-
-.primary-source::before {
-    content: '"';
-    font-size: 4rem;
-    color: #6c757d;
-    position: absolute;
-    top: -10px;
-    left: 10px;
-    opacity: 0.3;
-}
-
-.source-citation {
-    font-size: 0.85rem;
-    color: #6c757d;
-    margin-top: 1rem;
-    font-weight: 600;
-    font-style: normal;
-}
-
-/* Sample elements in sidebar */
-.sample-term {
-    background: #fff3cd;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-weight: 600;
-    color: #856404;
-}
-
-.sample-figure {
-    background: #d1ecf1;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-weight: 600;
-    color: #0c5460;
-}
-
-.sample-concept {
-    background: #d4edda;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-weight: 600;
-    color: #155724;
-}
-
-/* Info Panel Content */
-#info-content {
-    padding: 1rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-    margin-top: 1rem;
-}
-
-#info-content h4 {
-    color: #0066ff;
-    margin-bottom: 0.5rem;
-}
-
-#info-content p {
-    color: #555;
-    line-height: 1.5;
-    margin-bottom: 0.5rem;
-}
-
-/* Exercise Styles */
-.exercise-container {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    margin: 2rem 0;
-    overflow: hidden;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
-    transition: all 0.3s ease;
-}
-
-.exercise-container:hover {
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
-    transform: translateY(-2px);
-}
-
-/* Exercise Header */
-.exercise-header {
-    display: flex;
-    align-items: center;
-    padding: 1.5rem;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.3s ease;
-}
-
-.exercise-header:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.exercise-icon {
-    font-size: 1rem;
-    color: white;
-    margin-right: 1rem;
-    transition: transform 0.3s ease;
-    display: inline-block;
-}
-
-.exercise-title {
-    color: white;
-    font-size: 1.2rem;
-    font-weight: 600;
-    flex-grow: 1;
-}
-
-.exercise-badge {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-
-/* Exercise Content */
-.exercise-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    background: rgba(255, 255, 255, 0.95);
-}
-
-.exercise-content.open {
-    max-height: 3000px;
-}
-
-.exercise-instructions {
-    padding: 1.5rem;
-    background: rgba(102, 126, 234, 0.1);
-    border-bottom: 1px solid rgba(102, 126, 234, 0.2);
-    color: #4a5568;
-    font-style: italic;
-}
-
-/* Questions */
-.question-item {
-    padding: 1.5rem;
-    border-bottom: 1px solid rgba(102, 126, 234, 0.1);
-    transition: background 0.3s ease;
-}
-
-.question-item:hover {
-    background: rgba(102, 126, 234, 0.03);
-}
-
-.question-item:last-of-type {
-    border-bottom: none;
-}
-
-.question-number {
-    font-weight: 600;
-    color: #667eea;
-    margin-bottom: 0.5rem;
-    font-size: 0.95rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.question-text {
-    color: #2d3748;
-    line-height: 1.7;
-    margin-bottom: 1rem;
-    white-space: pre-wrap;
-}
-
-/* Answer Space */
-.answer-space {
-    margin-top: 1rem;
-}
-
-.answer-space textarea {
-    width: 100%;
-    padding: 1rem;
-    border: 2px solid rgba(102, 126, 234, 0.2);
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 0.95rem;
-    line-height: 1.6;
-    resize: vertical;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    background: white;
-}
-
-.answer-space textarea:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.answer-space textarea::placeholder {
-    color: #a0aec0;
-    font-style: italic;
-}
-
-/* Exercise Actions */
-.exercise-actions {
-    padding: 1.5rem;
-    background: rgba(102, 126, 234, 0.05);
-    display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
-}
-
-.check-answers-btn,
-.save-progress-btn {
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 0.95rem;
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.check-answers-btn {
-    background: #667eea;
-    color: white;
-}
-
-.check-answers-
