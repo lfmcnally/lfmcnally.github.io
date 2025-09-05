@@ -3,15 +3,45 @@ let currentTestWords = [];
 let currentQuestionIndex = 0;
 let score = 0;
 let questionsAnswered = 0;
-let selectedChapter = 'all';
-let selectedLength = 10;
+let selectedChapter = null;
+let fromIndex = null;
+let toIndex = null;
 
-// Get words for specific chapter
-function getWordsForChapter(chapter) {
-    if (chapter === 'all') {
-        return vocabularyData;
+// Spaced repetition variables
+let incorrectWords = []; // Words that were answered incorrectly
+let reviewQueue = []; // Queue for words to be reviewed
+let questionsUntilReview = 3; // Number of questions between reviews
+let questionsSinceLastReview = 0;
+
+// Practice mode - initialized from the setup panel
+function initializePractice(practiceWords, chapter, fromIdx, toIdx) {
+    selectedChapter = chapter;
+    fromIndex = fromIdx;
+    toIndex = toIdx;
+    
+    // Shuffle the words for practice
+    currentTestWords = [...practiceWords];
+    shuffleArray(currentTestWords);
+    
+    currentQuestionIndex = 0;
+    score = 0;
+    questionsAnswered = 0;
+    incorrectWords = [];
+    reviewQueue = [];
+    questionsSinceLastReview = 0;
+    
+    // Hide completion message
+    document.getElementById('completion-message').classList.add('hidden');
+    
+    loadQuestion();
+}
+
+// Utility function to shuffle array
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
     }
-    return vocabularyData.filter(word => word.chapter == chapter);
 }
 
 function updateDisplay() {
@@ -27,54 +57,25 @@ function updateDisplay() {
     document.getElementById('progress-fill').style.width = progress + '%';
 }
 
-function createNewTest() {
-    const availableWords = getWordsForChapter(selectedChapter);
-    
-    if (availableWords.length === 0) {
-        alert('No words available for the selected chapter.');
+function loadQuestion() {
+    // Check if we should show a review question instead
+    if (shouldShowReviewQuestion()) {
+        loadReviewQuestion();
         return;
     }
     
-    // Determine test length
-    let testLength = selectedLength;
-    if (selectedLength === 'all' || selectedLength > availableWords.length) {
-        testLength = availableWords.length;
+    // Check if we've finished all questions
+    if (currentQuestionIndex >= currentTestWords.length) {
+        // If there are still words in review queue, continue with reviews only
+        if (reviewQueue.length > 0) {
+            loadReviewQuestion();
+            return;
+        } else {
+            showCompletion();
+            return;
+        }
     }
     
-    const shuffled = [...availableWords];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    
-    currentTestWords = shuffled.slice(0, testLength);
-    currentQuestionIndex = 0;
-    score = 0;
-    questionsAnswered = 0;
-    
-    // Hide completion message
-    document.getElementById('completion-message').classList.add('hidden');
-    
-    // Update chapter info
-    updateChapterInfo();
-    
-    loadQuestion();
-}
-
-function updateChapterInfo() {
-    const infoDiv = document.getElementById('chapter-info');
-    const detailsDiv = document.getElementById('chapter-details');
-    
-    if (selectedChapter === 'all') {
-        infoDiv.classList.add('hidden');
-    } else {
-        const wordCount = getWordsForChapter(selectedChapter).length;
-        detailsDiv.innerHTML = `<strong>Chapter ${selectedChapter}</strong><br>${wordCount} words available`;
-        infoDiv.classList.remove('hidden');
-    }
-}
-
-function loadQuestion() {
     const word = currentTestWords[currentQuestionIndex];
     document.getElementById('latin-word').textContent = word.latin;
     document.getElementById('word-info').textContent = word.info;
@@ -92,6 +93,50 @@ function loadQuestion() {
     document.getElementById('answer-input').focus();
 }
 
+function shouldShowReviewQuestion() {
+    return reviewQueue.length > 0 && 
+           questionsSinceLastReview >= questionsUntilReview && 
+           currentQuestionIndex < currentTestWords.length;
+}
+
+function loadReviewQuestion() {
+    if (reviewQueue.length === 0) return;
+    
+    // Get the next review word
+    const reviewWord = reviewQueue.shift();
+    
+    document.getElementById('latin-word').textContent = reviewWord.latin;
+    document.getElementById('word-info').textContent = reviewWord.info + ' (Review)';
+    document.getElementById('answer-input').value = '';
+    
+    const feedback = document.getElementById('feedback');
+    feedback.innerHTML = '';
+    feedback.className = 'feedback';
+    
+    document.getElementById('check-btn').classList.remove('hidden');
+    document.getElementById('next-btn').classList.add('hidden');
+    document.getElementById('reveal-btn').classList.remove('hidden');
+    
+    // Store that this is a review question
+    reviewWord.isReview = true;
+    
+    // Set the current word to the review word temporarily
+    currentTestWords.reviewWord = reviewWord;
+    
+    updateDisplay();
+    document.getElementById('answer-input').focus();
+    
+    questionsSinceLastReview = 0;
+}
+
+function getCurrentWord() {
+    // Check if we're showing a review question
+    if (currentTestWords.reviewWord && currentTestWords.reviewWord.isReview) {
+        return currentTestWords.reviewWord;
+    }
+    return currentTestWords[currentQuestionIndex];
+}
+
 function checkAnswer() {
     const userAnswer = document.getElementById('answer-input').value.trim();
     
@@ -101,7 +146,7 @@ function checkAnswer() {
         return;
     }
     
-    const word = currentTestWords[currentQuestionIndex];
+    const word = getCurrentWord();
     const correctAnswer = word.english.toLowerCase();
     const userAnswerLower = userAnswer.toLowerCase();
     
@@ -133,16 +178,42 @@ function checkAnswer() {
         if (isCorrect) break;
     }
     
+    const isReviewQuestion = word.isReview;
+    
     if (isCorrect) {
-        feedback.innerHTML = `<strong>Correct!</strong> ✓<br><small>"${word.latin}" = "${word.english}"</small>`;
+        let feedbackText = `<strong>Correct!</strong> ✓<br><small>"${word.latin}" = "${word.english}"</small>`;
+        if (isReviewQuestion) {
+            feedbackText += '<br><em>Great! You remembered this one!</em>';
+        }
+        feedback.innerHTML = feedbackText;
         feedback.className = 'feedback feedback-correct';
         score++;
     } else {
-        feedback.innerHTML = `<strong>Incorrect</strong> ✗<br>You wrote: "<em>${userAnswer}</em>"<br>Correct: "<strong>${word.english}</strong>"`;
+        let feedbackText = `<strong>Incorrect</strong> ✗<br>You wrote: "<em>${userAnswer}</em>"<br>Correct: "<strong>${word.english}</strong>"`;
+        feedback.innerHTML = feedbackText;
         feedback.className = 'feedback feedback-incorrect';
+        
+        // Add to incorrect words for review (only if not already a review question)
+        if (!isReviewQuestion) {
+            addWordForReview(word);
+            feedbackText += '<br><em>Don\'t worry - you\'ll see this word again soon!</em>';
+            feedback.innerHTML = feedbackText;
+        } else {
+            // If it's a review question and still incorrect, add it back to the review queue
+            addWordForReview(word);
+            feedbackText += '<br><em>Added back to review - keep practicing!</em>';
+            feedback.innerHTML = feedbackText;
+        }
     }
     
     questionsAnswered++;
+    questionsSinceLastReview++;
+    
+    // Clear the review word marker
+    if (isReviewQuestion) {
+        delete currentTestWords.reviewWord;
+    }
+    
     updateDisplay();
     
     document.getElementById('check-btn').classList.add('hidden');
@@ -150,17 +221,33 @@ function checkAnswer() {
     document.getElementById('reveal-btn').classList.add('hidden');
 }
 
-function nextQuestion() {
-    currentQuestionIndex++;
-    if (currentQuestionIndex < currentTestWords.length) {
-        loadQuestion();
-    } else {
-        showCompletion();
+function addWordForReview(word) {
+    // Don't add duplicates to the review queue
+    const isAlreadyInQueue = reviewQueue.some(reviewWord => reviewWord.latin === word.latin);
+    const isAlreadyInIncorrect = incorrectWords.some(incorrectWord => incorrectWord.latin === word.latin);
+    
+    if (!isAlreadyInQueue) {
+        // Add to review queue (will appear in a few questions)
+        reviewQueue.push({...word, isReview: true});
+    }
+    
+    if (!isAlreadyInIncorrect) {
+        incorrectWords.push({...word});
     }
 }
 
+function nextQuestion() {
+    // Only increment question index if we weren't showing a review question
+    if (!getCurrentWord().isReview) {
+        currentQuestionIndex++;
+    }
+    
+    loadQuestion();
+}
+
 function showCompletion() {
-    const percentage = Math.round((score / currentTestWords.length) * 100);
+    const totalQuestions = questionsAnswered;
+    const percentage = Math.round((score / totalQuestions) * 100);
     let message = "";
     
     if (percentage >= 90) {
@@ -173,9 +260,22 @@ function showCompletion() {
         message = "Keep studying! Practice makes perfect! 💪";
     }
     
-    const chapterText = selectedChapter === 'all' ? 'all chapters' : `Chapter ${selectedChapter}`;
+    const chapterWords = vocabularyData.filter(word => word.chapter == selectedChapter);
+    const fromWord = chapterWords[fromIndex].latin;
+    const toWord = chapterWords[toIndex].latin;
     
-    document.getElementById('final-message').innerHTML = `Final Score: ${score}/${currentTestWords.length} (${percentage}%)<br>${message}<br><small>Test: ${chapterText}</small>`;
+    let reviewMessage = '';
+    if (incorrectWords.length > 0) {
+        reviewMessage = `<br><small>You reviewed ${incorrectWords.length} word(s) that needed extra practice.</small>`;
+    }
+    
+    document.getElementById('final-message').innerHTML = `
+        Final Score: ${score}/${totalQuestions} (${percentage}%)
+        <br>${message}
+        <br><small>Range: Chapter ${selectedChapter} (${fromWord} to ${toWord})</small>
+        ${reviewMessage}
+        <br><br><button class="btn" onclick="resetPractice()" style="margin-top: 1rem;">New Practice Session</button>
+    `;
     document.getElementById('completion-message').classList.remove('hidden');
     
     document.getElementById('check-btn').classList.add('hidden');
@@ -183,11 +283,42 @@ function showCompletion() {
     document.getElementById('reveal-btn').classList.add('hidden');
 }
 
+function resetPractice() {
+    // Show setup panel, hide quiz area
+    document.getElementById('setupPanel').style.display = 'block';
+    document.getElementById('quizArea').classList.remove('active');
+    document.getElementById('completion-message').classList.add('hidden');
+    
+    // Reset all variables
+    currentTestWords = [];
+    currentQuestionIndex = 0;
+    score = 0;
+    questionsAnswered = 0;
+    incorrectWords = [];
+    reviewQueue = [];
+    questionsSinceLastReview = 0;
+}
+
 function revealAnswer() {
-    const word = currentTestWords[currentQuestionIndex];
+    const word = getCurrentWord();
     const feedback = document.getElementById('feedback');
-    feedback.innerHTML = `<strong>Answer:</strong> "${word.english}"`;
+    
+    let feedbackText = `<strong>Answer:</strong> "${word.english}"`;
+    if (word.isReview) {
+        feedbackText += '<br><em>This was a review question - try to remember it next time!</em>';
+        // Add it back to review queue since they needed to reveal it
+        addWordForReview(word);
+    }
+    
+    feedback.innerHTML = feedbackText;
     feedback.className = 'feedback feedback-revealed';
+    
+    questionsSinceLastReview++;
+    
+    // Clear the review word marker
+    if (word.isReview) {
+        delete currentTestWords.reviewWord;
+    }
     
     document.getElementById('check-btn').classList.add('hidden');
     document.getElementById('next-btn').classList.remove('hidden');
@@ -195,34 +326,6 @@ function revealAnswer() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Chapter button handlers
-    document.querySelectorAll('.chapter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Remove active class from all chapter buttons
-            document.querySelectorAll('.chapter-btn').forEach(b => b.classList.remove('active'));
-            // Add active class to clicked button
-            this.classList.add('active');
-            // Update selected chapter
-            selectedChapter = this.dataset.chapter;
-            // Create new test
-            createNewTest();
-        });
-    });
-    
-    // Length button handlers
-    document.querySelectorAll('.length-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Remove active class from all length buttons
-            document.querySelectorAll('.length-btn').forEach(b => b.classList.remove('active'));
-            // Add active class to clicked button
-            this.classList.add('active');
-            // Update selected length
-            selectedLength = this.dataset.length === 'all' ? 'all' : parseInt(this.dataset.length);
-            // Create new test
-            createNewTest();
-        });
-    });
-    
     // Enter key support
     document.getElementById('answer-input').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -236,7 +339,4 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    
-    // Initialize
-    createNewTest();
 });
