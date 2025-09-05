@@ -3,6 +3,8 @@ let currentTestWords = [];
 let currentQuestionIndex = 0;
 let score = 0;
 let questionsAnswered = 0;
+
+// Shared setup variables (used by both practice setup and quiz)
 let selectedChapter = null;
 let fromIndex = null;
 let toIndex = null;
