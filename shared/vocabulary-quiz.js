@@ -203,7 +203,7 @@ function checkAnswer() {
         } else {
             // If it's a review question and still incorrect, add it back to the review queue
             addWordForReview(word);
-            feedbackText += '<br><em>Added back to review - keep practicing!</em>';
+            feedbackText += '<br><em>Added back to review - keep practising!</em>';
             feedback.innerHTML = feedbackText;
         }
     }
