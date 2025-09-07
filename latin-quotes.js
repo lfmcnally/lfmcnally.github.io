@@ -1858,3 +1858,402 @@ const latinQuotes = {
     quote: "Omnium sanctorum",
     translation: "Of all saints",
     author: "Liturgical",
+    source: "All Saints Day"
+  },
+
+  "11-02": {
+    quote: "Ora et labora",
+    translation: "Pray and work",
+    author: "St. Benedict",
+    source: "Benedictine Motto"
+  },
+  "11-03": {
+    quote: "Ora pro nobis",
+    translation: "Pray for us",
+    author: "Liturgical",
+    source: "Traditional"
+  },
+  "11-04": {
+    quote: "Orbis terrarum",
+    translation: "Circle of lands",
+    author: "Traditional",
+    source: "The World"
+  },
+  "11-05": {
+    quote: "Memento, memento",
+    translation: "Remember, remember",
+    author: "Traditional",
+    source: "Guy Fawkes Day"
+  },
+  "11-06": {
+    quote: "Pace tua",
+    translation: "With your peace",
+    author: "Traditional",
+    source: "Polite Expression"
+  },
+  "11-07": {
+    quote: "Panem nostrum quotidianum",
+    translation: "Our daily bread",
+    author: "Vulgate",
+    source: "Lord's Prayer"
+  },
+  "11-08": {
+    quote: "Pari passu",
+    translation: "With equal step",
+    author: "Legal Term",
+    source: "Traditional"
+  },
+  "11-09": {
+    quote: "Pars pro toto",
+    translation: "Part for the whole",
+    author: "Rhetorical",
+    source: "Traditional"
+  },
+  "11-10": {
+    quote: "Passim",
+    translation: "Here and there",
+    author: "Academic",
+    source: "Citation Term"
+  },
+  "11-11": {
+    quote: "Pater patriae",
+    translation: "Father of the fatherland",
+    author: "Roman Title",
+    source: "Traditional"
+  },
+  "11-12": {
+    quote: "Pax vobiscum",
+    translation: "Peace be with you",
+    author: "Liturgical",
+    source: "Traditional"
+  },
+  "11-13": {
+    quote: "Per angusta ad augusta",
+    translation: "Through difficulties to honors",
+    author: "Traditional",
+    source: "Latin Motto"
+  },
+  "11-14": {
+    quote: "Per capita",
+    translation: "By heads",
+    author: "Statistical",
+    source: "Traditional"
+  },
+  "11-15": {
+    quote: "Per contra",
+    translation: "On the contrary",
+    author: "Traditional",
+    source: "Common Expression"
+  },
+  "11-16": {
+    quote: "Per diem",
+    translation: "By the day",
+    author: "Business",
+    source: "Traditional"
+  },
+  "11-17": {
+    quote: "Per fas et nefas",
+    translation: "Through right and wrong",
+    author: "Traditional",
+    source: "Latin Expression"
+  },
+  "11-18": {
+    quote: "Per se",
+    translation: "By itself",
+    author: "Traditional",
+    source: "Common Expression"
+  },
+  "11-19": {
+    quote: "Persona non grata",
+    translation: "Unwelcome person",
+    author: "Diplomatic",
+    source: "Traditional"
+  },
+  "11-20": {
+    quote: "Petitio principii",
+    translation: "Begging the question",
+    author: "Logic",
+    source: "Traditional"
+  },
+  "11-21": {
+    quote: "Pia desideria",
+    translation: "Pious wishes",
+    author: "Traditional",
+    source: "Latin Expression"
+  },
+  "11-22": {
+    quote: "Pluralitas non est ponenda sine necessitate",
+    translation: "Plurality should not be posited without necessity",
+    author: "William of Ockham",
+    source: "Ockham's Razor"
+  },
+  "11-23": {
+    quote: "Plus ultra",
+    translation: "Further beyond",
+    author: "Spanish Motto",
+    source: "Traditional"
+  },
+  "11-24": {
+    quote: "Post meridiem",
+    translation: "After midday",
+    author: "Traditional",
+    source: "Time Designation"
+  },
+  "11-25": {
+    quote: "Post mortem",
+    translation: "After death",
+    author: "Medical",
+    source: "Traditional"
+  },
+  "11-26": {
+    quote: "Post scriptum",
+    translation: "After writing",
+    author: "Traditional",
+    source: "Letter Writing"
+  },
+  "11-27": {
+    quote: "Prima facie",
+    translation: "At first face",
+    author: "Legal Term",
+    source: "Traditional"
+  },
+  "11-28": {
+    quote: "Primum non nocere",
+    translation: "First, do no harm",
+    author: "Hippocratic",
+    source: "Medical Ethics"
+  },
+  "11-29": {
+    quote: "Principiis obsta",
+    translation: "Resist the beginnings",
+    author: "Ovid",
+    source: "Remedia Amoris"
+  },
+  "11-30": {
+    quote: "Pro forma",
+    translation: "For form",
+    author: "Business",
+    source: "Traditional"
+  },
+
+  // DECEMBER
+  "12-01": {
+    quote: "Kalendae Decembres",
+    translation: "The Kalends of December",
+    author: "Traditional",
+    source: "Roman Calendar"
+  },
+  "12-02": {
+    quote: "Pro patria",
+    translation: "For country",
+    author: "Traditional",
+    source: "Patriotic Motto"
+  },
+  "12-03": {
+    quote: "Pro rata",
+    translation: "For the rate",
+    author: "Business",
+    source: "Traditional"
+  },
+  "12-04": {
+    quote: "Pro tempore",
+    translation: "For the time",
+    author: "Traditional",
+    source: "Temporary Position"
+  },
+  "12-05": {
+    quote: "Propria manu",
+    translation: "By one's own hand",
+    author: "Traditional",
+    source: "Signature Term"
+  },
+  "12-06": {
+    quote: "Proxime accessit",
+    translation: "He came next",
+    author: "Academic",
+    source: "Second Prize"
+  },
+  "12-07": {
+    quote: "Pulvis et umbra sumus",
+    translation: "We are dust and shadow",
+    author: "Horace",
+    source: "Odes IV.7"
+  },
+  "12-08": {
+    quote: "Quaere verum",
+    translation: "Seek the truth",
+    author: "Traditional",
+    source: "Latin Motto"
+  },
+  "12-09": {
+    quote: "Qualis rex, talis grex",
+    translation: "As the king, so the flock",
+    author: "Traditional",
+    source: "Latin Proverb"
+  },
+  "12-10": {
+    quote: "Quando omni flunkus moritati",
+    translation: "When all else fails, play dead",
+    author: "Red Green Show",
+    source: "Modern Latin"
+  },
+  "12-11": {
+    quote: "Quantum satis",
+    translation: "As much as enough",
+    author: "Medical",
+    source: "Prescription Term"
+  },
+  "12-12": {
+    quote: "Quem di diligunt adulescens moritur",
+    translation: "Whom the gods love dies young",
+    author: "Plautus",
+    source: "Bacchides"
+  },
+  "12-13": {
+    quote: "Qui desiderat pacem, praeparet bellum",
+    translation: "Who desires peace, let him prepare for war",
+    author: "Vegetius",
+    source: "De Re Militari"
+  },
+  "12-14": {
+    quote: "Qui dormit non peccat",
+    translation: "Who sleeps does not sin",
+    author: "Traditional",
+    source: "Medieval Proverb"
+  },
+  "12-15": {
+    quote: "Qui tacet consentire videtur",
+    translation: "Who is silent seems to consent",
+    author: "Legal Maxim",
+    source: "Canon Law"
+  },
+  "12-16": {
+    quote: "Quid novi?",
+    translation: "What's new?",
+    author: "Traditional",
+    source: "Common Greeting"
+  },
+  "12-17": {
+    quote: "Quidquid latine dictum sit, altum videtur",
+    translation: "Whatever is said in Latin seems profound",
+    author: "Modern",
+    source: "Humorous Saying"
+  },
+  "12-18": {
+    quote: "Quieta non movere",
+    translation: "Not to move quiet things",
+    author: "Traditional",
+    source: "Conservative Principle"
+  },
+  "12-19": {
+    quote: "Quod demonstrandum",
+    translation: "Which is to be demonstrated",
+    author: "Mathematical",
+    source: "Q.E.D."
+  },
+  "12-20": {
+    quote: "Quod licet Iovi, non licet bovi",
+    translation: "What is permitted to Jupiter is not permitted to an ox",
+    author: "Traditional",
+    source: "Latin Proverb"
+  },
+  "12-21": {
+    quote: "Bruma",
+    translation: "Winter solstice",
+    author: "Traditional",
+    source: "Shortest Day"
+  },
+  "12-22": {
+    quote: "Quorum",
+    translation: "Of whom",
+    author: "Parliamentary",
+    source: "Traditional"
+  },
+  "12-23": {
+    quote: "Quot homines, tot sententiae",
+    translation: "As many men, so many opinions",
+    author: "Terence",
+    source: "Phormio"
+  },
+  "12-24": {
+    quote: "Vigilia Natalis",
+    translation: "Christmas Eve",
+    author: "Liturgical",
+    source: "Traditional"
+  },
+  "12-25": {
+    quote: "Gloria in altissimis Deo",
+    translation: "Glory to God in the highest",
+    author: "Vulgate",
+    source: "Luke 2:14"
+  },
+  "12-26": {
+    quote: "Raptus regaliter",
+    translation: "Royally snatched",
+    author: "Traditional",
+    source: "Boxing Day"
+  },
+  "12-27": {
+    quote: "Ratio decidendi",
+    translation: "Reason for deciding",
+    author: "Legal Term",
+    source: "Traditional"
+  },
+  "12-28": {
+    quote: "Rebus sic stantibus",
+    translation: "Things thus standing",
+    author: "Legal Term",
+    source: "Traditional"
+  },
+  "12-29": {
+    quote: "Requiescat in pace",
+    translation: "May he rest in peace",
+    author: "Traditional",
+    source: "Epitaph"
+  },
+  "12-30": {
+    quote: "Res ipsa loquitur",
+    translation: "The thing speaks for itself",
+    author: "Legal Maxim",
+    source: "Tort Law"
+  },
+  "12-31": {
+    quote: "Anno concludente",
+    translation: "With the year ending",
+    author: "Traditional",
+    source: "New Year's Eve"
+  }
+};
+
+// Function to get today's quote
+function getTodayQuote() {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const dateKey = `${month}-${day}`;
+  
+  return latinQuotes[dateKey] || {
+    quote: "Carpe diem",
+    translation: "Seize the day",
+    author: "Horace",
+    source: "Odes"
+  };
+}
+
+// Function to get quote for a specific date
+function getQuoteForDate(month, day) {
+  const dateKey = `${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  return latinQuotes[dateKey] || {
+    quote: "Veritas vos liberabit",
+    translation: "The truth will set you free",
+    author: "Vulgate",
+    source: "John 8:32"
+  };
+}
+
+// Export for use in other scripts
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { latinQuotes, getTodayQuote, getQuoteForDate };
+}
+
+    
