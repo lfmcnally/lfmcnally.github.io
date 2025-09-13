@@ -266,6 +266,7 @@
             gap: 1rem;
             justify-content: center;
             margin-bottom: 2rem;
+            flex-wrap: wrap;
         }
 
         .control-btn {
@@ -312,6 +313,26 @@
             background: #f57c00;
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+        }
+
+        .sound-btn {
+            background: #9c27b0;
+            color: white;
+        }
+
+        .sound-btn:hover {
+            background: #7b1fa2;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(156, 39, 176, 0.3);
+        }
+
+        .sound-btn.muted {
+            background: #757575;
+        }
+
+        .sound-btn.muted:hover {
+            background: #616161;
+            box-shadow: 0 6px 20px rgba(117, 117, 117, 0.3);
         }
 
         /* Settings Section */
@@ -538,6 +559,9 @@
                     <button class="control-btn calibrate-btn" onclick="calibrateNoise()">
                         <span>🎚️</span> Calibrate
                     </button>
+                    <button class="control-btn sound-btn" id="soundBtn" onclick="toggleSound()">
+                        <span id="soundIcon">🔊</span> <span id="soundText">Sound On</span>
+                    </button>
                 </div>
             </div>
 
@@ -587,6 +611,8 @@
         let calibrationOffset = 0;
         let historyData = [];
         let animationId;
+        let soundEnabled = true;
+        let lastSoundTime = 0;
 
         const targetLevels = ['Silent', 'Quiet', 'Moderate'];
         
@@ -621,6 +647,100 @@
             loud: 'Please lower your voices.',
             tooLoud: 'Much too loud! Time to quiet down!'
         };
+
+        // Create audio context for sound generation
+        let soundContext;
+        
+        function initSoundContext() {
+            if (!soundContext) {
+                soundContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playWarningChime() {
+            if (!soundEnabled) return;
+            initSoundContext();
+            
+            const oscillator = soundContext.createOscillator();
+            const gainNode = soundContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(soundContext.destination);
+            
+            oscillator.frequency.value = 880; // A5 note
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0, soundContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.3, soundContext.currentTime + 0.1);
+            gainNode.gain.linearRampToValueAtTime(0, soundContext.currentTime + 0.5);
+            
+            oscillator.start(soundContext.currentTime);
+            oscillator.stop(soundContext.currentTime + 0.5);
+        }
+
+        function playDangerAlert() {
+            if (!soundEnabled) return;
+            initSoundContext();
+            
+            const oscillator1 = soundContext.createOscillator();
+            const oscillator2 = soundContext.createOscillator();
+            const gainNode = soundContext.createGain();
+            
+            oscillator1.connect(gainNode);
+            oscillator2.connect(gainNode);
+            gainNode.connect(soundContext.destination);
+            
+            // Two-tone alert
+            oscillator1.frequency.value = 800;
+            oscillator2.frequency.value = 600;
+            oscillator1.type = 'square';
+            oscillator2.type = 'square';
+            
+            gainNode.gain.setValueAtTime(0.2, soundContext.currentTime);
+            
+            // Create alternating pattern
+            oscillator1.start(soundContext.currentTime);
+            oscillator1.stop(soundContext.currentTime + 0.2);
+            
+            oscillator2.start(soundContext.currentTime + 0.2);
+            oscillator2.stop(soundContext.currentTime + 0.4);
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const soundBtn = document.getElementById('soundBtn');
+            const soundIcon = document.getElementById('soundIcon');
+            const soundText = document.getElementById('soundText');
+            
+            if (soundEnabled) {
+                soundBtn.classList.remove('muted');
+                soundIcon.textContent = '🔊';
+                soundText.textContent = 'Sound On';
+            } else {
+                soundBtn.classList.add('muted');
+                soundIcon.textContent = '🔇';
+                soundText.textContent = 'Sound Off';
+            }
+            
+            // Save preference to localStorage
+            localStorage.setItem('noiseLevelSoundEnabled', soundEnabled);
+        }
+
+        // Load sound preference on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedSoundPref = localStorage.getItem('noiseLevelSoundEnabled');
+            if (savedSoundPref !== null) {
+                soundEnabled = savedSoundPref === 'true';
+                if (!soundEnabled) {
+                    const soundBtn = document.getElementById('soundBtn');
+                    const soundIcon = document.getElementById('soundIcon');
+                    const soundText = document.getElementById('soundText');
+                    soundBtn.classList.add('muted');
+                    soundIcon.textContent = '🔇';
+                    soundText.textContent = 'Sound Off';
+                }
+            }
+        });
 
         async function startMonitoring() {
             try {
@@ -743,8 +863,20 @@
             
             if (level === 'tooLoud') {
                 container.style.backgroundColor = '#ffebee';
+                // Play danger alert if we haven't played a sound recently
+                const now = Date.now();
+                if (now - lastSoundTime > 5000) { // Only play sound every 5 seconds max
+                    playDangerAlert();
+                    lastSoundTime = now;
+                }
             } else if (level === 'loud') {
                 container.style.backgroundColor = '#fff3e0';
+                // Play warning chime
+                const now = Date.now();
+                if (now - lastSoundTime > 5000) {
+                    playWarningChime();
+                    lastSoundTime = now;
+                }
             } else {
                 container.style.backgroundColor = 'white';
             }
