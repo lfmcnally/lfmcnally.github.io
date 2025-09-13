@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seating Plan Generator - Classicalia</title>
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+    <meta property="og:title" content="Seating Plan Generator - Classicalia">
+    <meta property="og:description" content="Create and randomize classroom seating arrangements">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0066ff 0%, #4d94ff 25%, #e6f0ff 60%, #ffffff 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Floating background shapes */
+        .bg-shapes {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(0, 102, 255, 0.05);
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .shape1 {
+            width: 400px;
+            height: 400px;
+            top: -200px;
+            right: -200px;
+            animation-delay: 0s;
+        }
+
+        .shape2 {
+            width: 300px;
+            height: 300px;
+            bottom: -150px;
+            left: -150px;
+            animation-delay: 5s;
+            background: rgba(0, 102, 255, 0.03);
+        }
+
+        .shape3 {
+            width: 250px;
+            height: 250px;
+            top: 50%;
+            right: 10%;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        /* Header */
+        header {
+            position: relative;
+            z-index: 10;
+            padding: 3rem 2rem 2rem;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff 0%, #e6f0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -3px;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        .logo:hover {
+            transform: scale(1.02);
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .author {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 300;
+        }
+
+        /* Main Content Container */
+        .seating-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 5;
+        }
+
+        /* Two Column Layout */
+        .layout-columns {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 2rem;
+        }
+
+        /* Left Panel */
+        .left-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 1.5rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .panel-section {
+            margin-bottom: 2rem;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 1rem;
+        }
+
+        /* Desk Templates */
+        .desk-templates {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .desk-template {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: grab;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .desk-template:hover {
+            border-color: #0066ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.2);
+        }
+
+        .desk-template.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .single-desk-template {
+            width: 100%;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f0f0;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .double-desk-template {
+            width: 100%;
+            height: 60px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px;
+            margin-bottom: 0.5rem;
+        }
+
+        .double-desk-template > div {
+            background: #f0f0f0;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Student List */
+        .student-input-container {
+            margin-bottom: 1rem;
+        }
+
+        .student-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            resize: vertical;
+            min-height: 120px;
+            font-family: inherit;
+        }
+
+        .student-input:focus {
+            outline: none;
+            border-color: #0066ff;
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+        }
+
+        .student-count {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        /* Control Buttons */
+        .control-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .control-btn {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .randomize-btn {
+            background: #0066ff;
+            color: white;
+        }
+
+        .randomize-btn:hover {
+            background: #0052cc;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 102, 255, 0.3);
+        }
+
+        .clear-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .clear-btn:hover {
+            background: #d32f2f;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.3);
+        }
+
+        .save-btn {
+            background: #4caf50;
+            color: white;
+        }
+
+        .save-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+        }
+
+        /* Main Classroom Area */
+        .classroom-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .classroom-header {
+            background: white;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .classroom-title {
+            font-size: 1.5rem;
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        .board {
+            background: #2c3e50;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+        }
+
+        /* Classroom Grid */
+        .classroom-grid {
+            min-height: 500px;
+            padding: 2rem;
+            background: #fafafa;
+            position: relative;
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .classroom-grid.drag-over {
+            background-color: #e3f2fd;
+        }
+
+        /* Desks */
+        .desk {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            transition: box-shadow 0.2s ease;
+        }
+
+        .desk:hover {
+            z-index: 10;
+        }
+
+        .desk.dragging {
+            opacity: 0.5;
+            z-index: 1000;
+        }
+
+        .single-desk {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .single-desk:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .double-desk {
+            width: 160px;
+            height: 80px;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2px;
+            padding: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .double-desk:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .desk-spot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f9f9f9;
+            border-radius: 4px;
+            padding: 0.25rem;
+            position: relative;
+        }
+
+        .student-name {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #333;
+            text-align: center;
+            word-break: break-word;
+            line-height: 1.2;
+        }
+
+        .desk-number {
+            font-size: 0.65rem;
+            color: #999;
+            margin-top: 0.25rem;
+        }
+
+        /* Desk Controls */
+        .desk-controls {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            display: flex;
+            gap: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .desk:hover .desk-controls {
+            opacity: 1;
+        }
+
+        .desk-control-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .delete-desk-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .delete-desk-btn:hover {
+            background: #d32f2f;
+            transform: scale(1.1);
+        }
+
+        .disable-desk-btn {
+            background: #ff9800;
+            color: white;
+        }
+
+        .disable-desk-btn:hover {
+            background: #f57c00;
+            transform: scale(1.1);
+        }
+
+        .desk.disabled {
+            opacity: 0.5;
+            background: #e0e0e0;
+        }
+
+        .desk.disabled .desk-spot {
+            background: #f0f0f0;
+        }
+
+        .desk.disabled .student-name {
+            color: #999;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #0066ff;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .info-text {
+            font-size: 0.85rem;
+            color: #1565c0;
+            line-height: 1.5;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .layout-columns {
+                grid-template-columns: 1fr;
+            }
+
+            .left-panel {
+                order: 2;
+            }
+
+            .classroom-container {
+                order: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 3rem;
+            }
+
+            .desk {
+                transform: scale(0.8);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Shapes -->
+    <div class="bg-shapes">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <h1 class="logo" onclick="window.location.href='../index.html'">Classicalia</h1>
+        <div class="subtitle">All things Classics, in one place</div>
+        <div class="author">by Lawrence McNally</div>
+    </header>
+
+    <!-- Seating Container -->
+    <div class="seating-container">
+        <div class="layout-columns">
+            <!-- Left Panel -->
+            <div class="left-panel">
+                <div class="panel-section">
+                    <h3 class="panel-title">🪑 Desk Types</h3>
+                    <div class="info-box">
+                        <p class="info-text">Drag desks to the classroom area. Right-click or use controls to disable/delete desks.</p>
+                    </div>
+                    <div class="desk-templates">
+                        <div class="desk-template" draggable="true" data-desk-type="single">
+                            <div class="single-desk-template">Single</div>
+                            <span style="font-size: 0.85rem; color: #666;">Single Desk</span>
+                        </div>
+                        <div class="desk-template" draggable="true" data-desk-type="double">
+                            <div class="double-desk-template">
+                                <div>A</div>
+                                <div>B</div>
+                            </div>
+                            <span style="font-size: 0.85rem; color: #666;">Double Desk</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3 class="panel-title">👥 Student Names</h3>
+                    <div class="student-input-container">
+                        <textarea 
+                            class="student-input" 
+                            id="studentNames" 
+                            placeholder="Enter student names, one per line:&#10;John Smith&#10;Jane Doe&#10;..."
+                        ></textarea>
+                        <div class="student-count" id="studentCount">0 students</div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3 class="panel-title">🎯 Actions</h3>
+                    <div class="control-buttons">
+                        <button class="control-btn randomize-btn" onclick="randomizeSeating()">
+                            <span>🎲</span> Randomize Seating
+                        </button>
+                        <button class="control-btn print-btn" onclick="printLayout()">
+                            <span>🖨️</span> Print / Export PDF
+                        </button>
+                        <button class="control-btn clear-btn" onclick="clearClassroom()">
+                            <span>🗑️</span> Clear All
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Classroom Area -->
+            <div class="classroom-container">
+                <div class="classroom-header">
+                    <div class="classroom-title">Classroom Layout</div>
+                </div>
+                <div class="board">FRONT OF CLASSROOM</div>
+                <div class="classroom-grid" id="classroomGrid">
+                    <!-- Desks will be added here dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seating Script -->
+    <script>
+        let deskIdCounter = 0;
+        let desks = [];
+        let draggedElement = null;
+        let draggedType = null;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDragAndDrop();
+            setupStudentInput();
+            loadSavedLayout();
+        });
+
+        // Setup drag and drop
+        function setupDragAndDrop() {
+            const templates = document.querySelectorAll('.desk-template');
+            const grid = document.getElementById('classroomGrid');
+
+            // Template drag start
+            templates.forEach(template => {
+                template.addEventListener('dragstart', (e) => {
+                    draggedType = template.dataset.deskType;
+                    draggedElement = null;
+                    template.classList.add('dragging');
+                });
+
+                template.addEventListener('dragend', (e) => {
+                    template.classList.remove('dragging');
+                });
+            });
+
+            // Grid drag events
+            grid.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                grid.classList.add('drag-over');
+            });
+
+            grid.addEventListener('dragleave', (e) => {
+                if (e.target === grid) {
+                    grid.classList.remove('drag-over');
+                }
+            });
+
+            grid.addEventListener('drop', (e) => {
+                e.preventDefault();
+                grid.classList.remove('drag-over');
+
+                const rect = grid.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                if (draggedType) {
+                    // Creating new desk from template
+                    createDesk(draggedType, x, y);
+                    draggedType = null;
+                } else if (draggedElement) {
+                    // Moving existing desk
+                    draggedElement.style.left = (x - offsetX) + 'px';
+                    draggedElement.style.top = (y - offsetY) + 'px';
+                    updateDeskPosition(draggedElement.dataset.deskId, x - offsetX, y - offsetY);
+                }
+            });
+        }
+
+        // Create a new desk
+        function createDesk(type, x, y) {
+            const desk = document.createElement('div');
+            desk.className = `desk ${type}-desk`;
+            desk.draggable = true;
+            desk.dataset.deskId = deskIdCounter++;
+            
+            // Position
+            desk.style.left = (x - (type === 'double' ? 80 : 40)) + 'px';
+            desk.style.top = (y - 40) + 'px';
+
+            // Create desk structure
+            if (type === 'single') {
+                desk.innerHTML = `
+                    <div class="desk-controls">
+                        <button class="desk-control-btn disable-desk-btn" onclick="toggleDeskDisabled(${desk.dataset.deskId})">✓</button>
+                        <button class="desk-control-btn delete-desk-btn" onclick="deleteDesk(${desk.dataset.deskId})">×</button>
+                    </div>
+                    <div class="desk-spot" data-spot="0">
+                        <span class="student-name"></span>
+                        <span class="desk-number">#${desk.dataset.deskId}</span>
+                    </div>
+                `;
+            } else {
+                desk.innerHTML = `
+                    <div class="desk-controls">
+                        <button class="desk-control-btn disable-desk-btn" onclick="toggleDeskDisabled(${desk.dataset.deskId})">✓</button>
+                        <button class="desk-control-btn delete-desk-btn" onclick="deleteDesk(${desk.dataset.deskId})">×</button>
+                    </div>
+                    <div class="desk-spot" data-spot="0">
+                        <span class="student-name"></span>
+                        <span class="desk-number">A</span>
+                    </div>
+                    <div class="desk-spot" data-spot="1">
+                        <span class="student-name"></span>
+                        <span class="desk-number">B</span>
+                    </div>
+                `;
+            }
+
+            // Desk drag events
+            desk.addEventListener('dragstart', (e) => {
+                draggedElement = desk;
+                draggedType = null;
+                const rect = desk.getBoundingClientRect();
+                const gridRect = document.getElementById('classroomGrid').getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+                desk.classList.add('dragging');
+            });
+
+            desk.addEventListener('dragend', (e) => {
+                desk.classList.remove('dragging');
+                draggedElement = null;
+            });
+
+            document.getElementById('classroomGrid').appendChild(desk);
+            
+            // Store desk data
+            desks.push({
+                id: desk.dataset.deskId,
+                type: type,
+                x: parseInt(desk.style.left),
+                y: parseInt(desk.style.top),
+                disabled: false,
+                students: type === 'single' ? [null] : [null, null]
+            });
+        }
+
+        // Delete desk
+        function deleteDesk(id) {
+            const desk = document.querySelector(`[data-desk-id="${id}"]`);
+            if (desk) {
+                desk.remove();
+                desks = desks.filter(d => d.id != id);
+            }
+        }
+
+        // Toggle desk disabled state
+        function toggleDeskDisabled(id) {
+            const desk = document.querySelector(`[data-desk-id="${id}"]`);
+            const deskData = desks.find(d => d.id == id);
+            
+            if (desk && deskData) {
+                desk.classList.toggle('disabled');
+                deskData.disabled = !deskData.disabled;
+                
+                // Clear students from disabled desks
+                if (deskData.disabled) {
+                    desk.querySelectorAll('.student-name').forEach(name => {
+                        name.textContent = '';
+                    });
+                    deskData.students = deskData.type === 'single' ? [null] : [null, null];
+                }
+            }
+        }
+
+        // Update desk position
+        function updateDeskPosition(id, x, y) {
+            const deskData = desks.find(d => d.id == id);
+            if (deskData) {
+                deskData.x = x;
+                deskData.y = y;
+            }
+        }
+
+        // Setup student input
+        function setupStudentInput() {
+            const input = document.getElementById('studentNames');
+            const count = document.getElementById('studentCount');
+            
+            input.addEventListener('input', () => {
+                const names = getStudentNames();
+                count.textContent = `${names.length} student${names.length !== 1 ? 's' : ''}`;
+            });
+        }
+
+        // Get student names from input
+        function getStudentNames() {
+            const input = document.getElementById('studentNames').value;
+            return input.split('\n').filter(name => name.trim().length > 0);
+        }
+
+        // Randomize seating
+        function randomizeSeating() {
+            const students = getStudentNames();
+            if (students.length === 0) {
+                alert('Please enter student names first!');
+                return;
+            }
+
+            // Get available spots
+            const availableSpots = [];
+            desks.forEach(desk => {
+                if (!desk.disabled) {
+                    const deskElement = document.querySelector(`[data-desk-id="${desk.id}"]`);
+                    if (deskElement) {
+                        const spots = deskElement.querySelectorAll('.desk-spot');
+                        spots.forEach((spot, index) => {
+                            availableSpots.push({
+                                deskId: desk.id,
+                                spotIndex: index,
+                                element: spot.querySelector('.student-name')
+                            });
+                        });
+                    }
+                }
+            });
+
+            if (availableSpots.length === 0) {
+                alert('Please add some desks to the classroom first!');
+                return;
+            }
+
+            // Clear all current assignments
+            availableSpots.forEach(spot => {
+                spot.element.textContent = '';
+            });
+            desks.forEach(desk => {
+                desk.students = desk.type === 'single' ? [null] : [null, null];
+            });
+
+            // Shuffle students
+            const shuffledStudents = [...students].sort(() => Math.random() - 0.5);
+
+            // Assign students to spots
+            const spotsToFill = Math.min(shuffledStudents.length, availableSpots.length);
+            for (let i = 0; i < spotsToFill; i++) {
+                const spot = availableSpots[i];
+                const student = shuffledStudents[i];
+                
+                spot.element.textContent = student;
+                
+                // Update desk data
+                const desk = desks.find(d => d.id == spot.deskId);
+                if (desk) {
+                    desk.students[spot.spotIndex] = student;
+                }
+            }
+
+            if (shuffledStudents.length > availableSpots.length) {
+                alert(`Note: ${shuffledStudents.length - availableSpots.length} student(s) could not be seated. Add more desks or disable fewer desks.`);
+            }
+        }
+
+        // Clear classroom
+        function clearClassroom() {
+            if (confirm('Are you sure you want to clear all desks?')) {
+                document.getElementById('classroomGrid').innerHTML = '';
+                desks = [];
+                deskIdCounter = 0;
+            }
+        }
+
+        // Print/Export layout
+        function printLayout() {
+            // Add timestamp to header for printing
+            const header = document.querySelector('.classroom-header');
+            const date = new Date().toLocaleString();
+            header.setAttribute('data-date', date);
+            
+            // Store current title
+            const titleElement = document.querySelector('.classroom-title');
+            const originalTitle = titleElement.textContent;
+            
+            // Get class name from user (optional)
+            const className = prompt('Enter class name (optional):', 'Classroom Seating Plan');
+            if (className) {
+                titleElement.textContent = className;
+            }
+            
+            // Trigger print dialog
+            window.print();
+            
+            // Restore original title
+            setTimeout(() => {
+                titleElement.textContent = originalTitle;
+            }, 100);
+        }
+
+        // Load saved layout
+        function loadSavedLayout() {
+            const saved = localStorage.getItem('classroomLayout');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    
+                    // Load students
+                    if (data.students && data.students.length > 0) {
+                        document.getElementById('studentNames').value = data.students.join('\n');
+                        document.getElementById('studentCount').textContent = `${data.students.length} student${data.students.length !== 1 ? 's' : ''}`;
+                    }
+                    
+                    // Load desks
+                    if (data.desks && data.desks.length > 0) {
+                        // Note: In a real implementation, you'd recreate the desks here
+                        // For now, this serves as a placeholder for the save functionality
+                        console.log('Layout loaded from:', data.timestamp);
+                    }
+                } catch (e) {
+                    console.error('Failed to load saved layout:', e);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
