@@ -571,7 +571,7 @@
                     <h3 class="panel-title">🎯 Actions</h3>
                     <div class="control-buttons">
                         <button class="control-btn randomize-btn" onclick="randomizeSeating()">
-                            <span>🎲</span> Randomise Seating
+                            <span>🎲</span> Randomize Seating
                         </button>
                         <button class="control-btn print-btn" onclick="printLayout()">
                             <span>🖨️</span> Print / Export PDF
@@ -859,32 +859,169 @@
 
         // Print/Export layout
         function printLayout() {
-            // Add timestamp to header for printing
-            const header = document.querySelector('.classroom-header');
-            const date = new Date().toLocaleDateString();
-            header.setAttribute('data-date', date);
-            
-            // Store current title
-            const titleElement = document.querySelector('.classroom-title');
-            const originalTitle = titleElement.textContent;
-            
-            // Get class name from user (optional)
+            // Get class name from user
             const className = prompt('Enter class name/period (optional):', '');
-            if (className) {
-                titleElement.textContent = `Seating Plan: ${className}`;
-                header.setAttribute('data-class', className);
-            } else {
-                titleElement.textContent = 'Classroom Seating Plan';
-                header.setAttribute('data-class', '_______________');
-            }
+            const date = new Date().toLocaleDateString();
             
-            // Trigger print dialog
-            window.print();
+            // Get the classroom grid element
+            const classroomGrid = document.getElementById('classroomGrid');
             
-            // Restore original title after a short delay
-            setTimeout(() => {
-                titleElement.textContent = originalTitle;
-            }, 100);
+            // Create a new window for printing
+            const printWindow = window.open('', '_blank');
+            
+            // Build the print document
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Seating Plan${className ? ': ' + className : ''}</title>
+                    <style>
+                        @page {
+                            size: landscape;
+                            margin: 0.5in;
+                        }
+                        
+                        * {
+                            margin: 0;
+                            padding: 0;
+                            box-sizing: border-box;
+                        }
+                        
+                        body {
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            background: white;
+                            padding: 0;
+                            margin: 0;
+                        }
+                        
+                        .print-header {
+                            text-align: center;
+                            margin-bottom: 20px;
+                        }
+                        
+                        .print-title {
+                            font-size: 24pt;
+                            font-weight: bold;
+                            margin-bottom: 10px;
+                        }
+                        
+                        .print-info {
+                            font-size: 10pt;
+                            color: #666;
+                            margin-bottom: 20px;
+                        }
+                        
+                        .board {
+                            background: #333;
+                            color: white;
+                            padding: 10px;
+                            text-align: center;
+                            font-weight: bold;
+                            font-size: 12pt;
+                            margin-bottom: 20px;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        
+                        .classroom-grid {
+                            position: relative;
+                            min-height: 6in;
+                            border: 1px solid #ccc;
+                            padding: 20px;
+                            background: white;
+                        }
+                        
+                        .desk {
+                            position: absolute;
+                            border: 2px solid #333;
+                            background: white;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        
+                        .single-desk {
+                            width: 70px;
+                            height: 70px;
+                            border-radius: 8px;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            padding: 5px;
+                        }
+                        
+                        .double-desk {
+                            width: 140px;
+                            height: 70px;
+                            border-radius: 8px;
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 2px;
+                            padding: 5px;
+                        }
+                        
+                        .desk.disabled {
+                            opacity: 0.2;
+                            border-style: dashed;
+                        }
+                        
+                        .desk-spot {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            background: #f9f9f9;
+                            border-radius: 4px;
+                            padding: 2px;
+                        }
+                        
+                        .student-name {
+                            font-size: 9pt;
+                            font-weight: 600;
+                            color: #000;
+                            text-align: center;
+                            word-break: break-word;
+                            line-height: 1.1;
+                        }
+                        
+                        .desk-number {
+                            font-size: 7pt;
+                            color: #666;
+                            margin-top: 2px;
+                        }
+                        
+                        .desk.disabled .student-name {
+                            display: none;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="print-header">
+                        <h1 class="print-title">Seating Plan${className ? ': ' + className : ''}</h1>
+                        <div class="print-info">
+                            Date: _______________ &nbsp;&nbsp;|&nbsp;&nbsp; 
+                            Class: ${className || '_______________'} &nbsp;&nbsp;|&nbsp;&nbsp; 
+                            Generated: ${date}
+                        </div>
+                    </div>
+                    <div class="board">FRONT OF CLASSROOM</div>
+                    <div class="classroom-grid">
+                        ${classroomGrid.innerHTML}
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            
+            // Wait for content to load then print
+            printWindow.onload = function() {
+                printWindow.print();
+                // Close the window after printing (optional - comment out if you want to keep it open)
+                printWindow.onafterprint = function() {
+                    printWindow.close();
+                };
+            };
         }
 
         // Load saved layout
