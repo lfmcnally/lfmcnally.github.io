@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noise Level Monitor - Classicalia</title>
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+    <meta property="og:title" content="Noise Level Monitor - Classicalia">
+    <meta property="og:description" content="Visual classroom noise level monitoring tool">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0066ff 0%, #4d94ff 25%, #e6f0ff 60%, #ffffff 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Floating background shapes */
+        .bg-shapes {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(0, 102, 255, 0.05);
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .shape1 {
+            width: 400px;
+            height: 400px;
+            top: -200px;
+            right: -200px;
+            animation-delay: 0s;
+        }
+
+        .shape2 {
+            width: 300px;
+            height: 300px;
+            bottom: -150px;
+            left: -150px;
+            animation-delay: 5s;
+            background: rgba(0, 102, 255, 0.03);
+        }
+
+        .shape3 {
+            width: 250px;
+            height: 250px;
+            top: 50%;
+            right: 10%;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        /* Header */
+        header {
+            position: relative;
+            z-index: 10;
+            padding: 3rem 2rem 2rem;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff 0%, #e6f0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -3px;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        .logo:hover {
+            transform: scale(1.02);
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .author {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 300;
+        }
+
+        /* Main Content Container */
+        .noise-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 5;
+        }
+
+        /* App-style container */
+        .app-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .app-header {
+            background: white;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .app-title {
+            font-size: 1.5rem;
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        /* Noise Display Section */
+        .noise-display-section {
+            padding: 3rem 2rem;
+            text-align: center;
+            background: white;
+        }
+
+        /* Visual Meter */
+        .meter-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto 3rem;
+        }
+
+        .level-indicator {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .meter-background {
+            width: 100%;
+            height: 80px;
+            background: #f0f0f0;
+            border-radius: 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .meter-zones {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+
+        .zone {
+            flex: 1;
+            height: 100%;
+            position: relative;
+        }
+
+        .zone-silent { background: #4caf50; }
+        .zone-quiet { background: #8bc34a; }
+        .zone-moderate { background: #ffeb3b; }
+        .zone-loud { background: #ff9800; }
+        .zone-too-loud { background: #f44336; }
+
+        .zone-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .meter-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            transition: width 0.3s ease;
+            border-radius: 40px;
+        }
+
+        .meter-needle {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 90%;
+            background: #333;
+            border-radius: 2px;
+            transition: left 0.1s ease;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        /* Emoji Display */
+        .emoji-display {
+            font-size: 8rem;
+            margin: 2rem 0;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .emoji-display.silent { animation: none; }
+        .emoji-display.quiet { animation-duration: 3s; }
+        .emoji-display.moderate { animation-duration: 2s; }
+        .emoji-display.loud { animation-duration: 1s; }
+        .emoji-display.too-loud { animation-duration: 0.5s; }
+
+        /* Status Message */
+        .status-message {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .status-description {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        .status-silent { color: #4caf50; }
+        .status-quiet { color: #8bc34a; }
+        .status-moderate { color: #ffc107; }
+        .status-loud { color: #ff9800; }
+        .status-too-loud { color: #f44336; }
+
+        /* Control Buttons */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .control-btn {
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .start-btn {
+            background: #0066ff;
+            color: white;
+        }
+
+        .start-btn:hover {
+            background: #0052cc;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 102, 255, 0.3);
+        }
+
+        .stop-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .stop-btn:hover {
+            background: #d32f2f;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.3);
+        }
+
+        .calibrate-btn {
+            background: #ff9800;
+            color: white;
+        }
+
+        .calibrate-btn:hover {
+            background: #f57c00;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+        }
+
+        /* Settings Section */
+        .settings-section {
+            padding: 2rem;
+            background: #fafafa;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .setting-item {
+            text-align: center;
+        }
+
+        .setting-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .setting-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .setting-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            min-width: 40px;
+        }
+
+        .setting-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #e0e0e0;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            font-size: 1.2rem;
+        }
+
+        .setting-btn:hover {
+            background: #0066ff;
+            color: white;
+            border-color: #0066ff;
+        }
+
+        /* Microphone Permission Notice */
+        .permission-notice {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            color: #856404;
+        }
+
+        .permission-notice.error {
+            background: #f8d7da;
+            border-color: #f44336;
+            color: #721c24;
+        }
+
+        .permission-notice.success {
+            background: #d4edda;
+            border-color: #4caf50;
+            color: #155724;
+        }
+
+        /* History Graph */
+        .history-section {
+            padding: 2rem;
+            background: white;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .history-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .history-graph {
+            width: 100%;
+            height: 150px;
+            background: #fafafa;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .history-bars {
+            display: flex;
+            align-items: flex-end;
+            height: 100%;
+            padding: 10px;
+            gap: 2px;
+        }
+
+        .history-bar {
+            flex: 1;
+            background: #0066ff;
+            border-radius: 2px 2px 0 0;
+            transition: height 0.3s ease;
+            min-height: 2px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 3rem;
+            }
+
+            .emoji-display {
+                font-size: 6rem;
+            }
+
+            .status-message {
+                font-size: 1.5rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .control-btn {
+                width: 200px;
+                justify-content: center;
+            }
+
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Shapes -->
+    <div class="bg-shapes">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <h1 class="logo" onclick="window.location.href='../index.html'">Classicalia</h1>
+        <div class="subtitle">All things Classics, in one place</div>
+        <div class="author">by Lawrence McNally</div>
+    </header>
+
+    <!-- Noise Monitor Container -->
+    <div class="noise-container">
+        <div class="app-container">
+            <div class="app-header">
+                <div class="app-title">🔊 Noise Level Monitor</div>
+            </div>
+
+            <!-- Noise Display Section -->
+            <div class="noise-display-section">
+                <!-- Permission Notice -->
+                <div class="permission-notice" id="permissionNotice">
+                    Click "Start Monitoring" to begin. Your browser will ask for microphone permission.
+                </div>
+
+                <!-- Emoji Display -->
+                <div class="emoji-display" id="emojiDisplay">🤫</div>
+
+                <!-- Status Message -->
+                <div class="status-message" id="statusMessage">Ready to Monitor</div>
+                <div class="status-description" id="statusDescription">Click start to begin monitoring classroom noise</div>
+
+                <!-- Visual Meter -->
+                <div class="meter-container">
+                    <div class="level-indicator">Noise Level</div>
+                    <div class="meter-background">
+                        <div class="meter-zones">
+                            <div class="zone zone-silent">
+                                <span class="zone-label">Silent</span>
+                            </div>
+                            <div class="zone zone-quiet">
+                                <span class="zone-label">Quiet</span>
+                            </div>
+                            <div class="zone zone-moderate">
+                                <span class="zone-label">Moderate</span>
+                            </div>
+                            <div class="zone zone-loud">
+                                <span class="zone-label">Loud</span>
+                            </div>
+                            <div class="zone zone-too-loud">
+                                <span class="zone-label">Too Loud!</span>
+                            </div>
+                        </div>
+                        <div class="meter-needle" id="meterNeedle" style="left: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- Control Buttons -->
+                <div class="controls">
+                    <button class="control-btn start-btn" id="startBtn" onclick="startMonitoring()">
+                        <span>▶</span> Start Monitoring
+                    </button>
+                    <button class="control-btn stop-btn" id="stopBtn" onclick="stopMonitoring()" style="display: none;">
+                        <span>⏹</span> Stop Monitoring
+                    </button>
+                    <button class="control-btn calibrate-btn" onclick="calibrateNoise()">
+                        <span>🎚️</span> Calibrate
+                    </button>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div class="settings-section">
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <div class="setting-label">Sensitivity</div>
+                        <div class="setting-control">
+                            <button class="setting-btn" onclick="adjustSensitivity(-1)">−</button>
+                            <span class="setting-value" id="sensitivityValue">5</span>
+                            <button class="setting-btn" onclick="adjustSensitivity(1)">+</button>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-label">Target Level</div>
+                        <div class="setting-control">
+                            <button class="setting-btn" onclick="adjustTarget(-1)">−</button>
+                            <span class="setting-value" id="targetValue">Quiet</span>
+                            <button class="setting-btn" onclick="adjustTarget(1)">+</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Graph -->
+            <div class="history-section">
+                <div class="history-title">Noise Level History (Last 30 seconds)</div>
+                <div class="history-graph">
+                    <div class="history-bars" id="historyBars">
+                        <!-- Bars will be added dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Noise Monitor Script -->
+    <script>
+        let audioContext;
+        let analyser;
+        let microphone;
+        let dataArray;
+        let isMonitoring = false;
+        let sensitivity = 5;
+        let targetLevel = 1; // 0=Silent, 1=Quiet, 2=Moderate
+        let calibrationOffset = 0;
+        let historyData = [];
+        let animationId;
+
+        const targetLevels = ['Silent', 'Quiet', 'Moderate'];
+        
+        const noiseThresholds = {
+            silent: 20,
+            quiet: 35,
+            moderate: 50,
+            loud: 65,
+            tooLoud: 80
+        };
+
+        const emojis = {
+            silent: '🤫',
+            quiet: '😊',
+            moderate: '😐',
+            loud: '😟',
+            tooLoud: '😱'
+        };
+
+        const messages = {
+            silent: 'Perfect Silence',
+            quiet: 'Nice and Quiet',
+            moderate: 'Getting Louder',
+            loud: 'Too Loud',
+            tooLoud: 'Way Too Loud!'
+        };
+
+        const descriptions = {
+            silent: 'Excellent! The classroom is perfectly quiet.',
+            quiet: 'Good noise level for independent work.',
+            moderate: 'Okay for group work, but getting a bit loud.',
+            loud: 'Please lower your voices.',
+            tooLoud: 'Much too loud! Time to quiet down!'
+        };
+
+        async function startMonitoring() {
+            try {
+                // Request microphone permission
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Set up Web Audio API
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                microphone = audioContext.createMediaStreamSource(stream);
+                
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+                
+                microphone.connect(analyser);
+                
+                isMonitoring = true;
+                
+                // Update UI
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-flex';
+                document.getElementById('permissionNotice').className = 'permission-notice success';
+                document.getElementById('permissionNotice').textContent = 'Microphone connected! Monitoring noise levels...';
+                
+                // Start monitoring loop
+                monitorNoise();
+                
+                // Start history tracking
+                setInterval(updateHistory, 1000);
+                
+            } catch (err) {
+                console.error('Error accessing microphone:', err);
+                document.getElementById('permissionNotice').className = 'permission-notice error';
+                document.getElementById('permissionNotice').textContent = 'Error: Could not access microphone. Please check permissions.';
+            }
+        }
+
+        function stopMonitoring() {
+            isMonitoring = false;
+            
+            if (microphone) {
+                microphone.disconnect();
+                microphone = null;
+            }
+            
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            
+            // Update UI
+            document.getElementById('startBtn').style.display = 'inline-flex';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('permissionNotice').className = 'permission-notice';
+            document.getElementById('permissionNotice').textContent = 'Click "Start Monitoring" to begin. Your browser will ask for microphone permission.';
+            
+            // Reset display
+            document.getElementById('emojiDisplay').textContent = '🤫';
+            document.getElementById('statusMessage').textContent = 'Ready to Monitor';
+            document.getElementById('statusDescription').textContent = 'Click start to begin monitoring classroom noise';
+            document.getElementById('meterNeedle').style.left = '0%';
+        }
+
+        function monitorNoise() {
+            if (!isMonitoring) return;
+            
+            analyser.getByteFrequencyData(dataArray);
+            
+            // Calculate average volume
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            let average = sum / dataArray.length;
+            
+            // Apply sensitivity and calibration
+            let adjustedLevel = (average * (sensitivity / 5)) + calibrationOffset;
+            
+            // Determine noise level
+            let level = getNoiseLevel(adjustedLevel);
+            updateDisplay(level, adjustedLevel);
+            
+            animationId = requestAnimationFrame(monitorNoise);
+        }
+
+        function getNoiseLevel(value) {
+            if (value < noiseThresholds.silent) return 'silent';
+            if (value < noiseThresholds.quiet) return 'quiet';
+            if (value < noiseThresholds.moderate) return 'moderate';
+            if (value < noiseThresholds.loud) return 'loud';
+            return 'tooLoud';
+        }
+
+        function updateDisplay(level, value) {
+            // Update emoji
+            const emojiElement = document.getElementById('emojiDisplay');
+            emojiElement.textContent = emojis[level];
+            emojiElement.className = `emoji-display ${level.replace('tooLoud', 'too-loud')}`;
+            
+            // Update status message
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.textContent = messages[level];
+            statusElement.className = `status-message status-${level.replace('tooLoud', 'too-loud')}`;
+            
+            // Update description
+            document.getElementById('statusDescription').textContent = descriptions[level];
+            
+            // Update meter needle position
+            const percentage = Math.min(100, (value / 100) * 100);
+            document.getElementById('meterNeedle').style.left = `${percentage}%`;
+            
+            // Change background color based on level
+            const container = document.querySelector('.noise-display-section');
+            container.style.transition = 'background-color 0.5s ease';
+            
+            if (level === 'tooLoud') {
+                container.style.backgroundColor = '#ffebee';
+            } else if (level === 'loud') {
+                container.style.backgroundColor = '#fff3e0';
+            } else {
+                container.style.backgroundColor = 'white';
+            }
+        }
+
+        function calibrateNoise() {
+            if (!isMonitoring) {
+                alert('Please start monitoring first, then calibrate during a quiet moment.');
+                return;
+            }
+            
+            // Get current noise level and set as baseline
+            analyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            let average = sum / dataArray.length;
+            
+            calibrationOffset = -average + 10; // Set current level as "quiet"
+            
+            // Visual feedback
+            const btn = document.querySelector('.calibrate-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span>✓</span> Calibrated!';
+            btn.style.background = '#4caf50';
+            
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.style.background = '';
+            }, 2000);
+        }
+
+        function adjustSensitivity(delta) {
+            sensitivity = Math.max(1, Math.min(10, sensitivity + delta));
+            document.getElementById('sensitivityValue').textContent = sensitivity;
+        }
+
+        function adjustTarget(delta) {
+            targetLevel = Math.max(0, Math.min(2, targetLevel + delta));
+            document.getElementById('targetValue').textContent = targetLevels[targetLevel];
+        }
+
+        function updateHistory() {
+            if (!isMonitoring) return;
+            
+            analyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+            let average = (sum / dataArray.length) * (sensitivity / 5) + calibrationOffset;
+            
+            historyData.push(average);
+            if (historyData.length > 30) {
+                historyData.shift();
+            }
+            
+            // Update history display
+            const barsContainer = document.getElementById('historyBars');
+            barsContainer.innerHTML = '';
+            
+            historyData.forEach(value => {
+                const bar = document.createElement('div');
+                bar.className = 'history-bar';
+                const height = Math.min(100, (value / 100) * 100);
+                bar.style.height = `${height}%`;
+                
+                // Color based on level
+                const level = getNoiseLevel(value);
+                if (level === 'silent') bar.style.background = '#4caf50';
+                else if (level === 'quiet') bar.style.background = '#8bc34a';
+                else if (level === 'moderate') bar.style.background = '#ffeb3b';
+                else if (level === 'loud') bar.style.background = '#ff9800';
+                else bar.style.background = '#f44336';
+                
+                barsContainer.appendChild(bar);
+            });
+        }
+
+        // Check for browser support
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                document.getElementById('permissionNotice').className = 'permission-notice error';
+                document.getElementById('permissionNotice').textContent = 'Sorry, your browser does not support microphone access.';
+                document.getElementById('startBtn').disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>
