@@ -389,15 +389,19 @@ function loadArtContent() {
 
 // Interactive Functions
 function showGodDetails(godId) {
-    const detailsDiv = document.getElementById('gods-details');
     const god = lessonData.gods.find(g => g.id === godId);
     
-    if (god && detailsDiv) {
-        detailsDiv.innerHTML = `
-            <h4>${god.greek} / ${god.roman}</h4>
-            <p><em>${god.domain}</em></p>
-            
-            <div class="god-info-grid">
+    if (god) {
+        // Update modal title
+        document.getElementById('god-modal-title').innerHTML = `${god.greek} / ${god.roman}`;
+        
+        // Update modal body
+        document.getElementById('god-modal-body').innerHTML = `
+            <img src="../../images/${god.id}.jpg" alt="${god.greek}" class="god-modal-image">
+            <div class="god-modal-info">
+                <h3>${god.greek} / ${god.roman}</h3>
+                <p class="subtitle"><em>${god.domain}</em></p>
+                
                 <div class="god-info-section">
                     <h5>Responsibilities</h5>
                     <ul>
@@ -411,25 +415,41 @@ function showGodDetails(godId) {
                         ${god.symbols.map(s => `<li>${s}</li>`).join('')}
                     </ul>
                 </div>
-            </div>
-            
-            <div class="god-info-section" style="margin-top: 1rem;">
-                <h5>Appearance in Art</h5>
-                <p>${god.appearance}</p>
-            </div>
-            
-            <div class="god-info-section" style="margin-top: 1rem;">
-                <h5>Greek vs Roman</h5>
-                <p>${god.romanDifferences}</p>
+                
+                <div class="god-info-section">
+                    <h5>Appearance in Art</h5>
+                    <p>${god.appearance}</p>
+                </div>
+                
+                <div class="god-info-section">
+                    <h5>Greek vs Roman</h5>
+                    <p>${god.romanDifferences}</p>
+                </div>
             </div>
         `;
-        detailsDiv.style.display = 'block';
         
-        // Update active state
+        // Show modal
+        document.getElementById('godModal').classList.add('active');
+        
+        // Update active state on cards
         document.querySelectorAll('.god-card').forEach(card => card.classList.remove('active'));
         event.target.closest('.god-card').classList.add('active');
     }
 }
+
+// Add close modal function
+function closeGodModal() {
+    document.getElementById('godModal').classList.remove('active');
+    document.querySelectorAll('.god-card').forEach(card => card.classList.remove('active'));
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('godModal');
+    if (event.target === modal) {
+        closeGodModal();
+    }
+});
 
 // Setup Interactive Content
 function setupInteractiveContent() {
