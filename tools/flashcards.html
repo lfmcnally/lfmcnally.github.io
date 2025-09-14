@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcard Maker - Classicalia</title>
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+    <meta property="og:title" content="Flashcard Maker - Classicalia">
+    <meta property="og:description" content="Create, study, and print flashcards for effective learning">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0066ff 0%, #4d94ff 25%, #e6f0ff 60%, #ffffff 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Floating background shapes */
+        .bg-shapes {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(0, 102, 255, 0.05);
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .shape1 {
+            width: 400px;
+            height: 400px;
+            top: -200px;
+            right: -200px;
+            animation-delay: 0s;
+        }
+
+        .shape2 {
+            width: 300px;
+            height: 300px;
+            bottom: -150px;
+            left: -150px;
+            animation-delay: 5s;
+            background: rgba(0, 102, 255, 0.03);
+        }
+
+        .shape3 {
+            width: 250px;
+            height: 250px;
+            top: 50%;
+            right: 10%;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        /* Header */
+        header {
+            position: relative;
+            z-index: 10;
+            padding: 3rem 2rem 2rem;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff 0%, #e6f0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -3px;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        .logo:hover {
+            transform: scale(1.02);
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .author {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 300;
+        }
+
+        /* Main Container */
+        .flashcard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 5;
+        }
+
+        /* Two Column Layout */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 2rem;
+        }
+
+        /* Left Panel - Card Creator */
+        .left-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .panel-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Deck Name Input */
+        .deck-name-input {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1.1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .deck-name-input:focus {
+            outline: none;
+            border-color: #0066ff;
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+        }
+
+        /* Card Input Section */
+        .card-input-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .card-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            resize: vertical;
+            min-height: 60px;
+            margin-bottom: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .card-input:focus {
+            outline: none;
+            border-color: #0066ff;
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+        }
+
+        /* Control Buttons */
+        .control-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            padding: 0.9rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #0066ff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0052cc;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 102, 255, 0.3);
+        }
+
+        .btn-secondary {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.3);
+        }
+
+        .btn-export {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-export:hover {
+            background: #f57c00;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+        }
+
+        /* Card Count */
+        .card-count {
+            text-align: center;
+            padding: 1rem;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* Main Display Area */
+        .main-display {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .display-header {
+            background: white;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .display-title {
+            font-size: 1.5rem;
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .view-btn {
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .view-btn.active {
+            background: #0066ff;
+            color: white;
+            border-color: #0066ff;
+        }
+
+        /* Study Mode */
+        .study-area {
+            padding: 3rem;
+            text-align: center;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flashcard {
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            position: relative;
+            cursor: pointer;
+            perspective: 1000px;
+        }
+
+        .flashcard-inner {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-front,
+        .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            font-size: 1.3rem;
+            background: white;
+            border: 2px solid #e0e0e0;
+        }
+
+        .flashcard-back {
+            transform: rotateY(180deg);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .card-navigation {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .nav-btn {
+            padding: 0.75rem 1.5rem;
+            background: #0066ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #0052cc;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .progress-indicator {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* List View */
+        .list-view {
+            padding: 2rem;
+            display: none;
+        }
+
+        .list-view.active {
+            display: block;
+        }
+
+        .card-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .card-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .card-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-front-text,
+        .card-back-text {
+            padding: 0.5rem;
+            background: #f5f5f5;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .card-back-text {
+            background: #e8f5e9;
+        }
+
+        .delete-card-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .delete-card-btn:hover {
+            background: #d32f2f;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white !important;
+            }
+
+            .bg-shapes,
+            header,
+            .left-panel,
+            .display-header,
+            .card-navigation,
+            .delete-card-btn,
+            .view-toggle {
+                display: none !important;
+            }
+
+            .flashcard-container {
+                max-width: 100%;
+                padding: 0;
+            }
+
+            .layout-grid {
+                display: block;
+            }
+
+            .main-display {
+                box-shadow: none;
+                background: white;
+            }
+
+            .print-cards {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.5in;
+                padding: 0.5in;
+            }
+
+            .print-card {
+                border: 2px dashed #ccc;
+                padding: 0.75in;
+                page-break-inside: avoid;
+                height: 3in;
+                display: flex;
+                flex-direction: column;
+                position: relative;
+            }
+
+            .print-card-front {
+                font-weight: 600;
+                font-size: 14pt;
+                margin-bottom: 0.5in;
+                padding-bottom: 0.25in;
+                border-bottom: 1px solid #ccc;
+            }
+
+            .print-card-back {
+                font-size: 12pt;
+                color: #333;
+            }
+
+            .print-cut-line {
+                position: absolute;
+                top: 0;
+                left: 50%;
+                width: 1px;
+                height: 100%;
+                border-left: 1px dashed #999;
+            }
+
+            @page {
+                size: letter;
+                margin: 0.5in;
+            }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .layout-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .left-panel {
+                order: 2;
+            }
+
+            .main-display {
+                order: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 3rem;
+            }
+
+            .flashcard {
+                height: 250px;
+            }
+
+            .display-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Shapes -->
+    <div class="bg-shapes">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <h1 class="logo" onclick="window.location.href='../index.html'">Classicalia</h1>
+        <div class="subtitle">All things Classics, in one place</div>
+        <div class="author">by Lawrence McNally</div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="flashcard-container">
+        <div class="layout-grid">
+            <!-- Left Panel - Card Creator -->
+            <div class="left-panel">
+                <h2 class="panel-title">📇 Create Flashcards</h2>
+                
+                <input type="text" class="deck-name-input" id="deckName" placeholder="Deck name (e.g., Latin Vocabulary)" value="My Flashcards">
+                
+                <div class="card-input-section">
+                    <div class="input-label">Front of Card (Term/Question)</div>
+                    <textarea class="card-input" id="cardFront" placeholder="e.g., amor, amoris (m)"></textarea>
+                    
+                    <div class="input-label">Back of Card (Definition/Answer)</div>
+                    <textarea class="card-input" id="cardBack" placeholder="e.g., love"></textarea>
+                </div>
+
+                <div class="control-buttons">
+                    <button class="btn btn-primary" onclick="addCard()">➕ Add Card</button>
+                    <button class="btn btn-secondary" onclick="saveDeck()">💾 Save Deck</button>
+                    <button class="btn btn-export" onclick="exportForPrint()">🖨️ Export for Print</button>
+                    <button class="btn btn-danger" onclick="clearAll()">🗑️ Clear All</button>
+                </div>
+
+                <div class="card-count" id="cardCount">0 cards in deck</div>
+            </div>
+
+            <!-- Main Display Area -->
+            <div class="main-display">
+                <div class="display-header">
+                    <div class="display-title">📚 Study & Review</div>
+                    <div class="view-toggle">
+                        <button class="view-btn active" onclick="switchView('study')">Study Mode</button>
+                        <button class="view-btn" onclick="switchView('list')">List View</button>
+                    </div>
+                </div>
+
+                <!-- Study Mode -->
+                <div class="study-area" id="studyView">
+                    <div id="emptyState" class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <div>No cards yet!</div>
+                        <div style="font-size: 0.9rem; margin-top: 0.5rem;">Add your first flashcard to start studying</div>
+                    </div>
+
+                    <div id="flashcardArea" style="display: none;">
+                        <div class="flashcard" id="flashcard" onclick="flipCard()">
+                            <div class="flashcard-inner">
+                                <div class="flashcard-front" id="flashcardFront">
+                                    <!-- Front content -->
+                                </div>
+                                <div class="flashcard-back" id="flashcardBack">
+                                    <!-- Back content -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-navigation">
+                            <button class="nav-btn" id="prevBtn" onclick="previousCard()">← Previous</button>
+                            <button class="nav-btn" onclick="shuffleCards()">🔀 Shuffle</button>
+                            <button class="nav-btn" id="nextBtn" onclick="nextCard()">Next →</button>
+                        </div>
+
+                        <div class="progress-indicator" id="progressIndicator">
+                            Card 1 of 1
+                        </div>
+                    </div>
+                </div>
+
+                <!-- List View -->
+                <div class="list-view" id="listView">
+                    <div class="card-list" id="cardList">
+                        <!-- Cards will be listed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Print Area -->
+    <div id="printArea" style="display: none;"></div>
+
+    <!-- Script -->
+    <script>
+        let cards = [];
+        let currentCardIndex = 0;
+        let currentView = 'study';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFromStorage();
+            updateDisplay();
+        });
+
+        // Add a new card
+        function addCard() {
+            const front = document.getElementById('cardFront').value.trim();
+            const back = document.getElementById('cardBack').value.trim();
+            
+            if (!front || !back) {
+                alert('Please fill in both sides of the card!');
+                return;
+            }
+            
+            cards.push({ front, back, id: Date.now() });
+            
+            // Clear inputs
+            document.getElementById('cardFront').value = '';
+            document.getElementById('cardBack').value = '';
+            
+            // Focus back on front input
+            document.getElementById('cardFront').focus();
+            
+            // Update display
+            updateDisplay();
+            saveToStorage();
+            
+            // Visual feedback
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✅ Added!';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 1000);
+        }
+
+        // Delete a card
+        function deleteCard(id) {
+            if (confirm('Delete this card?')) {
+                cards = cards.filter(card => card.id !== id);
+                updateDisplay();
+                saveToStorage();
+            }
+        }
+
+        // Clear all cards
+        function clearAll() {
+            if (confirm('Clear all cards? This cannot be undone!')) {
+                cards = [];
+                currentCardIndex = 0;
+                updateDisplay();
+                saveToStorage();
+            }
+        }
+
+        // Update display
+        function updateDisplay() {
+            // Update count
+            document.getElementById('cardCount').textContent = `${cards.length} card${cards.length !== 1 ? 's' : ''} in deck`;
+            
+            // Update study view
+            if (cards.length === 0) {
+                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('flashcardArea').style.display = 'none';
+            } else {
+                document.getElementById('emptyState').style.display = 'none';
+                document.getElementById('flashcardArea').style.display = 'block';
+                displayCurrentCard();
+            }
+            
+            // Update list view
+            updateListView();
+        }
+
+        // Display current card
+        function displayCurrentCard() {
+            if (cards.length === 0) return;
+            
+            // Ensure index is valid
+            if (currentCardIndex >= cards.length) currentCardIndex = 0;
+            if (currentCardIndex < 0) currentCardIndex = cards.length - 1;
+            
+            const card = cards[currentCardIndex];
+            document.getElementById('flashcardFront').textContent = card.front;
+            document.getElementById('flashcardBack').textContent = card.back;
+            
+            // Reset flip state
+            document.getElementById('flashcard').classList.remove('flipped');
+            
+            // Update navigation
+            document.getElementById('prevBtn').disabled = cards.length <= 1;
+            document.getElementById('nextBtn').disabled = cards.length <= 1;
+            
+            // Update progress
+            document.getElementById('progressIndicator').textContent = `Card ${currentCardIndex + 1} of ${cards.length}`;
+        }
+
+        // Flip card
+        function flipCard() {
+            document.getElementById('flashcard').classList.toggle('flipped');
+        }
+
+        // Navigation
+        function previousCard() {
+            if (cards.length > 0) {
+                currentCardIndex = (currentCardIndex - 1 + cards.length) % cards.length;
+                displayCurrentCard();
+            }
+        }
+
+        function nextCard() {
+            if (cards.length > 0) {
+                currentCardIndex = (currentCardIndex + 1) % cards.length;
+                displayCurrentCard();
+            }
+        }
+
+        // Shuffle cards
+        function shuffleCards() {
+            if (cards.length <= 1) return;
+            
+            for (let i = cards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cards[i], cards[j]] = [cards[j], cards[i]];
+            }
+            
+            currentCardIndex = 0;
+            displayCurrentCard();
+            
+            // Visual feedback
+            const btn = event.target;
+            btn.textContent = '✅ Shuffled!';
+            setTimeout(() => {
+                btn.innerHTML = '🔀 Shuffle';
+            }, 1000);
+        }
+
+        // Switch view
+        function switchView(view) {
+            currentView = view;
+            
+            // Update buttons
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Show/hide views
+            if (view === 'study') {
+                document.getElementById('studyView').style.display = 'flex';
+                document.getElementById('listView').style.display = 'none';
+            } else {
+                document.getElementById('studyView').style.display = 'none';
+                document.getElementById('listView').style.display = 'block';
+                document.getElementById('listView').classList.add('active');
+            }
+        }
+
+        // Update list view
+        function updateListView() {
+            const listContainer = document.getElementById('cardList');
+            
+            if (cards.length === 0) {
+                listContainer.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><div>No cards yet!</div></div>';
+                return;
+            }
+            
+            listContainer.innerHTML = '';
+            cards.forEach((card, index) => {
+                const cardItem = document.createElement('div');
+                cardItem.className = 'card-item';
+                cardItem.innerHTML = `
+                    <div class="card-front-text">${card.front}</div>
+                    <div class="card-back-text">${card.back}</div>
+                    <button class="delete-card-btn" onclick="deleteCard(${card.id})">Delete</button>
+                `;
+                listContainer.appendChild(cardItem);
+            });
+        }
+
+        // Save deck
+        function saveDeck() {
+            if (cards.length === 0) {
+                alert('No cards to save!');
+                return;
+            }
+            
+            const deckName = document.getElementById('deckName').value || 'My Flashcards';
+            
+            // Get saved decks
+            let savedDecks = JSON.parse(localStorage.getItem('savedDecks') || '[]');
+            
+            // Check if deck name already exists
+            const existingIndex = savedDecks.findIndex(deck => deck.name === deckName);
+            
+            if (existingIndex >= 0) {
+                if (confirm(`Overwrite existing deck "${deckName}"?`)) {
+                    savedDecks[existingIndex] = {
+                        name: deckName,
+                        cards: cards,
+                        date: new Date().toISOString()
+                    };
+                } else {
+                    return;
+                }
+            } else {
+                savedDecks.push({
+                    name: deckName,
+                    cards: cards,
+                    date: new Date().toISOString()
+                });
+            }
+            
+            localStorage.setItem('savedDecks', JSON.stringify(savedDecks));
+            
+            // Visual feedback
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✅ Saved!';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 2000);
+        }
+
+        // Export for print
+        function exportForPrint() {
+            if (cards.length === 0) {
+                alert('No cards to export!');
+                return;
+            }
+            
+            const deckName = document.getElementById('deckName').value || 'My Flashcards';
+            
+            // Create print-friendly HTML
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>${deckName} - Flashcards</title>
+                    <style>
+                        @page {
+                            size: letter;
+                            margin: 0.5in;
+                        }
+                        
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        
+                        h1 {
+                            text-align: center;
+                            color: #333;
+                            margin-bottom: 0.5in;
+                            font-size: 24pt;
+                        }
+                        
+                        .instructions {
+                            text-align: center;
+                            color: #666;
+                            font-size: 10pt;
+                            margin-bottom: 0.5in;
+                            padding: 0.25in;
+                            border: 1px dashed #ccc;
+                        }
+                        
+                        .cards-grid {
+                            display: grid;
+                            grid-template-columns: repeat(2, 1fr);
+                            gap: 0.25in;
+                        }
+                        
+                        .card {
+                            border: 2px dashed #ccc;
+                            padding: 0.5in;
+                            height: 2.5in;
+                            page-break-inside: avoid;
+                            position: relative;
+                            display: flex;
+                            flex-direction: column;
+                        }
+                        
+                        .card-number {
+                            position: absolute;
+                            top: 5px;
+                            right: 10px;
+                            font-size: 8pt;
+                            color: #999;
+                        }
+                        
+                        .front {
+                            font-weight: bold;
+                            font-size: 14pt;
+                            padding-bottom: 0.25in;
+                            border-bottom: 1px solid #ddd;
+                            margin-bottom: 0.25in;
+                            flex-grow: 1;
+                            display: flex;
+                            align-items: center;
+                        }
+                        
+                        .back {
+                            font-size: 12pt;
+                            color: #333;
+                            flex-grow: 2;
+                            display: flex;
+                            align-items: center;
+                        }
+                        
+                        .page-break {
+                            page-break-after: always;
+                        }
+                        
+                        @media print {
+                            .instructions {
+                                background: #f9f9f9;
+                            }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>${deckName}</h1>
+                    <div class="instructions">
+                        <strong>Instructions:</strong> Cut along the dashed lines. Fold each card in half with the term on one side and definition on the other, or keep flat for reference.
+                    </div>
+                    <div class="cards-grid">
+            `);
+            
+            cards.forEach((card, index) => {
+                // Add page break every 6 cards
+                if (index > 0 && index % 6 === 0) {
+                    printWindow.document.write('</div><div class="page-break"></div><div class="cards-grid">');
+                }
+                
+                printWindow.document.write(`
+                    <div class="card">
+                        <div class="card-number">#${index + 1}</div>
+                        <div class="front">${card.front}</div>
+                        <div class="back">${card.back}</div>
+                    </div>
+                `);
+            });
+            
+            printWindow.document.write(`
+                    </div>
+                </body>
+                </html>
+            `);
+            
+            printWindow.document.close();
+            
+            // Trigger print dialog
+            printWindow.onload = function() {
+                printWindow.print();
+            };
+        }
+
+        // Storage functions
+        function saveToStorage() {
+            const deckName = document.getElementById('deckName').value || 'My Flashcards';
+            localStorage.setItem('currentDeck', JSON.stringify({
+                name: deckName,
+                cards: cards
+            }));
+        }
+
+        function loadFromStorage() {
+            const saved = localStorage.getItem('currentDeck');
+            if (saved) {
+                const deck = JSON.parse(saved);
+                document.getElementById('deckName').value = deck.name;
+                cards = deck.cards || [];
+                updateDisplay();
+            }
+        }
+    </script>
+</body>
+</html>
