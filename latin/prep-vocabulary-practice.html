@@ -716,7 +716,7 @@
                                id="answerInput" 
                                placeholder="Enter your answer..." 
                                autocomplete="off"
-                               onkeypress="if(event.key==='Enter') checkAnswer()">
+                               onkeypress="handleEnterKey(event)">
                         
                         <div class="btn-group">
                             <button class="btn btn-check" onclick="checkAnswer()" id="checkBtn">
@@ -834,6 +834,17 @@
         // Normalize Latin text (remove macrons)
         function normalizeLatin(text) {
             return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        }
+
+        // Handle Enter key press
+        function handleEnterKey(event) {
+            if (event.key === 'Enter') {
+                if (!isAnswered) {
+                    checkAnswer();
+                } else {
+                    nextWord();
+                }
+            }
         }
 
         // Load words for selected chapter
@@ -1054,14 +1065,49 @@
                     isCorrect = alternatives.includes(userLower);
                 }
                 
-                // For verbs, accept without "I" or "to"
+                // Handle partial matches for specific cases
                 if (!isCorrect) {
-                    // Remove common prefixes from both answers
+                    const correctAnswers = correctLower.split(/[,;]/).map(a => a.trim());
+                    
+                    // Remove common prefixes from user answer
                     const cleanUser = userLower.replace(/^(to |i |a |the |an )/i, '').trim();
-                    const correctAlternatives = correctLower.split(/[,;]/).map(a => 
-                        a.trim().replace(/^(to |i |a |the |an )/i, '').trim()
-                    );
-                    isCorrect = correctAlternatives.includes(cleanUser);
+                    
+                    for (const answer of correctAnswers) {
+                        const cleanCorrectAnswer = answer.replace(/^(to |i |a |the |an )/i, '').trim();
+                        
+                        // Check cleaned versions
+                        if (cleanUser === cleanCorrectAnswer) {
+                            isCorrect = true;
+                            break;
+                        }
+                        
+                        // For "you (singular) are" accept "you are"
+                        if (answer.includes('(singular)') || answer.includes('(plural)')) {
+                            const withoutParenthetical = answer.replace(/\s*\([^)]*\)/g, '').trim();
+                            if (userLower === withoutParenthetical) {
+                                isCorrect = true;
+                                break;
+                            }
+                        }
+                        
+                        // For "(he/she/it) is" accept "he is", "she is", "it is", or just "is"
+                        if (answer.includes('(he/she/it)')) {
+                            const variations = ['he is', 'she is', 'it is', 'is'];
+                            if (variations.includes(userLower)) {
+                                isCorrect = true;
+                                break;
+                            }
+                        }
+                        
+                        // Check if user answer matches main parts of compound definitions
+                        const mainParts = answer.split(',').map(p => p.trim());
+                        for (const part of mainParts) {
+                            if (userLower === part) {
+                                isCorrect = true;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
             
