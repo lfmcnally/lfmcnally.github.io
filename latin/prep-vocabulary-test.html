@@ -1143,21 +1143,46 @@
                                 break;
                             }
                             
-                            // For "you (singular) are" accept "you are"
-                            if (answer.includes('(singular)') || answer.includes('(plural)')) {
+                            // Handle parenthetical clarifications systematically
+                            if (answer.includes('(')) {
+                                // Remove all parenthetical content
                                 const withoutParenthetical = answer.replace(/\s*\([^)]*\)/g, '').trim();
                                 if (userAnswer === withoutParenthetical) {
                                     isCorrect = true;
                                     break;
                                 }
-                            }
-                            
-                            // For "(he/she/it) is" accept "he is", "she is", "it is", or just "is"
-                            if (answer.includes('(he/she/it)')) {
-                                const variations = ['he is', 'she is', 'it is', 'is'];
-                                if (variations.includes(userAnswer)) {
-                                    isCorrect = true;
-                                    break;
+                                
+                                // For pronouns in parentheses, check all variations
+                                if (answer.includes('(he/she/it)')) {
+                                    const basePhrase = answer.replace('(he/she/it)', '').trim();
+                                    const variations = [
+                                        'he ' + basePhrase,
+                                        'she ' + basePhrase,
+                                        'it ' + basePhrase,
+                                        basePhrase,
+                                        'he/she/it ' + basePhrase
+                                    ];
+                                    if (variations.some(v => v.trim() === userAnswer)) {
+                                        isCorrect = true;
+                                        break;
+                                    }
+                                }
+                                
+                                if (answer.includes('(singular)') || answer.includes('(plural)')) {
+                                    const simplified = answer.replace(/\s*\((singular|plural)\)/g, '').trim();
+                                    if (userAnswer === simplified) {
+                                        isCorrect = true;
+                                        break;
+                                    }
+                                }
+                                
+                                // Handle slash variations
+                                if (answer.includes('/')) {
+                                    const parts = answer.split(/[\/,]/).map(p => p.trim());
+                                    if (parts.some(p => p === userAnswer)) {
+                                        isCorrect = true;
+                                        break;
+                                    }
                                 }
                             }
                             
@@ -1169,6 +1194,14 @@
                                     isCorrect = true;
                                     break;
                                 }
+                            }
+                            
+                            // For verb forms, be extra flexible
+                            const verbStem = userAnswer.replace(/^(to |i |you |we |they |he |she |it )/i, '').trim();
+                            const correctVerbStem = answer.replace(/^(to |i |you |we |they |he |she |it )/i, '').trim();
+                            if (verbStem === correctVerbStem && verbStem.length > 0) {
+                                isCorrect = true;
+                                break;
                             }
                         }
                     }
