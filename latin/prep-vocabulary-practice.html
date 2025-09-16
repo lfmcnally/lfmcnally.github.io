@@ -1028,25 +1028,41 @@
             let isCorrect = false;
             let correctAnswer = '';
             
-            // Determine what the correct answer should be
+            // Determine what the correct answer should be based on display text
             const displayText = document.getElementById('wordDisplay').textContent;
-            if (displayText === currentWord.latin) {
-                // User should provide English
-                correctAnswer = currentWord.english;
-                isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
-                
-                // Also accept partial matches for complex definitions
-                if (!isCorrect && correctAnswer.includes(',')) {
-                    const alternatives = correctAnswer.split(',').map(a => a.trim());
-                    isCorrect = alternatives.some(alt => 
-                        userAnswer.toLowerCase() === alt.toLowerCase() ||
-                        alt.toLowerCase().includes(userAnswer.toLowerCase())
-                    );
-                }
-            } else {
-                // User should provide Latin
+            const infoText = document.getElementById('wordInfo').textContent;
+            
+            // Check if we're asking for Latin or English
+            if (infoText === 'Translate to Latin') {
+                // User should provide Latin (English → Latin mode)
                 correctAnswer = currentWord.latin;
-                isCorrect = normalizeLatin(userAnswer) === normalizeLatin(correctAnswer);
+                const normalizedUserAnswer = normalizeLatin(userAnswer);
+                const normalizedCorrectAnswer = normalizeLatin(correctAnswer);
+                isCorrect = normalizedUserAnswer === normalizedCorrectAnswer;
+            } else {
+                // User should provide English (Latin → English mode)
+                correctAnswer = currentWord.english;
+                const userLower = userAnswer.toLowerCase();
+                const correctLower = correctAnswer.toLowerCase();
+                
+                // Direct match
+                isCorrect = userLower === correctLower;
+                
+                // Check alternatives if the answer has commas/semicolons
+                if (!isCorrect && (correctAnswer.includes(',') || correctAnswer.includes(';'))) {
+                    const alternatives = correctAnswer.split(/[,;]/).map(a => a.trim().toLowerCase());
+                    isCorrect = alternatives.includes(userLower);
+                }
+                
+                // For verbs, accept without "I" or "to"
+                if (!isCorrect) {
+                    // Remove common prefixes from both answers
+                    const cleanUser = userLower.replace(/^(to |i |a |the |an )/i, '').trim();
+                    const correctAlternatives = correctLower.split(/[,;]/).map(a => 
+                        a.trim().replace(/^(to |i |a |the |an )/i, '').trim()
+                    );
+                    isCorrect = correctAlternatives.includes(cleanUser);
+                }
             }
             
             // Show feedback
