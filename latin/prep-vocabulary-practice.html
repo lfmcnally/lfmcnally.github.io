@@ -1081,21 +1081,49 @@
                             break;
                         }
                         
-                        // For "you (singular) are" accept "you are"
-                        if (answer.includes('(singular)') || answer.includes('(plural)')) {
+                        // Handle parenthetical clarifications systematically
+                        if (answer.includes('(')) {
+                            // Remove all parenthetical content
                             const withoutParenthetical = answer.replace(/\s*\([^)]*\)/g, '').trim();
                             if (userLower === withoutParenthetical) {
                                 isCorrect = true;
                                 break;
                             }
-                        }
-                        
-                        // For "(he/she/it) is" accept "he is", "she is", "it is", or just "is"
-                        if (answer.includes('(he/she/it)')) {
-                            const variations = ['he is', 'she is', 'it is', 'is'];
-                            if (variations.includes(userLower)) {
-                                isCorrect = true;
-                                break;
+                            
+                            // For pronouns in parentheses, check all variations
+                            // e.g., "(he/she/it) is" or "you (singular) are"
+                            if (answer.includes('(he/she/it)')) {
+                                const basePhrase = answer.replace('(he/she/it)', '').trim();
+                                const variations = [
+                                    'he ' + basePhrase,
+                                    'she ' + basePhrase,
+                                    'it ' + basePhrase,
+                                    basePhrase,
+                                    'he/she/it ' + basePhrase
+                                ];
+                                if (variations.some(v => v.trim() === userLower)) {
+                                    isCorrect = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (answer.includes('(singular)') || answer.includes('(plural)')) {
+                                // For "you (singular) are" accept "you are"
+                                // For "we/you (plural)" accept without the clarification
+                                const simplified = answer.replace(/\s*\((singular|plural)\)/g, '').trim();
+                                if (userLower === simplified) {
+                                    isCorrect = true;
+                                    break;
+                                }
+                            }
+                            
+                            // Handle slash variations like "slave/enslaved person"
+                            if (answer.includes('/')) {
+                                const parts = answer.split(/[\/,]/).map(p => p.trim());
+                                if (parts.some(p => p === userLower)) {
+                                    isCorrect = true;
+                                    break;
+                                }
                             }
                         }
                         
@@ -1106,6 +1134,16 @@
                                 isCorrect = true;
                                 break;
                             }
+                        }
+                        
+                        // For verb forms, be extra flexible
+                        // "I work" can be answered as "work"
+                        // "to work" can be answered as "work"
+                        const verbStem = userLower.replace(/^(to |i |you |we |they |he |she |it )/i, '').trim();
+                        const correctVerbStem = answer.replace(/^(to |i |you |we |they |he |she |it )/i, '').trim();
+                        if (verbStem === correctVerbStem && verbStem.length > 0) {
+                            isCorrect = true;
+                            break;
                         }
                     }
                 }
