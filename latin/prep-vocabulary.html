@@ -665,9 +665,15 @@
             return text.replace(regex, '<span class="highlight">$1</span>');
         }
 
+        // Function to normalize Latin text (remove macrons and other diacritics)
+        function normalizeLatin(text) {
+            return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        }
+
         // Perform search
         function performSearch() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const normalizedSearchTerm = normalizeLatin(searchTerm);
             const chapterFilter = document.getElementById('chapterFilter').value;
             
             if (searchTerm.length < 1) {
@@ -683,7 +689,9 @@
 
             // Search for matches
             currentResults = wordsToSearch.filter(word => {
-                const latinMatch = word.latin.toLowerCase().includes(searchTerm);
+                // Check both with and without macrons
+                const latinMatch = word.latin.toLowerCase().includes(searchTerm) || 
+                                 normalizeLatin(word.latin).includes(normalizedSearchTerm);
                 const englishMatch = word.english.toLowerCase().includes(searchTerm);
                 const infoMatch = word.info && word.info.toLowerCase().includes(searchTerm);
                 
@@ -692,8 +700,10 @@
 
             // Sort results - exact matches first, then partial matches
             currentResults.sort((a, b) => {
-                const aLatinExact = a.latin.toLowerCase() === searchTerm;
-                const bLatinExact = b.latin.toLowerCase() === searchTerm;
+                const aLatinExact = a.latin.toLowerCase() === searchTerm || 
+                                  normalizeLatin(a.latin) === normalizedSearchTerm;
+                const bLatinExact = b.latin.toLowerCase() === searchTerm || 
+                                  normalizeLatin(b.latin) === normalizedSearchTerm;
                 const aEnglishExact = a.english.toLowerCase() === searchTerm;
                 const bEnglishExact = b.english.toLowerCase() === searchTerm;
                 
