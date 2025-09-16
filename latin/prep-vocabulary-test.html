@@ -1265,35 +1265,158 @@
             const chapter = document.getElementById('chapterSelect').value;
             const fromIndex = parseInt(document.getElementById('fromWord').value);
             const toIndex = parseInt(document.getElementById('toWord').value);
-            const studentName = document.getElementById('studentName').value;
+            const studentName = document.getElementById('studentName').value || '________________________';
             
             if (!chapter || isNaN(fromIndex) || isNaN(toIndex)) {
                 alert('Please select chapter and word range!');
                 return;
             }
             
-            // Start test first (to populate the table)
-            startTest();
+            // Get selected word range
+            testWords = chapterWords.slice(fromIndex, toIndex + 1);
             
-            // Clear all answers for blank test
-            document.querySelectorAll('.answer-input').forEach(input => {
-                input.value = '';
-            });
+            // Get test details
+            const testDate = new Date().toLocaleDateString('en-GB');
+            const fromWord = chapterWords[fromIndex].latin;
+            const toWord = chapterWords[toIndex].latin;
             
-            // Add student name to header if provided
-            if (studentName) {
-                const testHeader = document.querySelector('.test-header');
-                const nameElement = document.createElement('div');
-                nameElement.style.cssText = 'margin-top: 1rem; font-size: 1rem; color: #666;';
-                nameElement.textContent = `Student: ${studentName}`;
-                testHeader.appendChild(nameElement);
-            }
+            // Create print version in new window
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Latin Vocabulary Test - Suburani Book 1</title>
+                    <style>
+                        @page {
+                            size: A4;
+                            margin: 1.5cm;
+                        }
+                        body {
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            margin: 0;
+                            padding: 0;
+                        }
+                        .test-header {
+                            border: 2px solid #000;
+                            padding: 15px;
+                            margin-bottom: 20px;
+                        }
+                        .test-header h2 {
+                            margin: 0 0 10px 0;
+                            font-size: 20pt;
+                            text-align: center;
+                        }
+                        .student-info {
+                            display: flex;
+                            justify-content: space-between;
+                            margin-top: 15px;
+                            font-size: 12pt;
+                        }
+                        .student-info-field {
+                            display: flex;
+                            align-items: center;
+                            gap: 5px;
+                        }
+                        .field-value {
+                            border-bottom: 1px solid #000;
+                            min-width: 150px;
+                            padding-bottom: 2px;
+                            display: inline-block;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-size: 11pt;
+                        }
+                        th {
+                            border: 1px solid #000;
+                            padding: 10px;
+                            text-align: left;
+                            background: #f0f0f0;
+                            font-weight: bold;
+                        }
+                        td {
+                            border: 1px solid #000;
+                            padding: 8px;
+                            vertical-align: top;
+                            height: 30px;
+                        }
+                        .latin-word {
+                            font-weight: bold;
+                            font-size: 12pt;
+                        }
+                        .word-info {
+                            font-size: 9pt;
+                            color: #555;
+                            margin-top: 2px;
+                        }
+                        .answer-space {
+                            height: 25px;
+                        }
+                        .score-box {
+                            margin-top: 20px;
+                            border: 2px solid #000;
+                            padding: 10px;
+                            text-align: center;
+                            font-size: 14pt;
+                            font-weight: bold;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="test-header">
+                        <h2>Latin Vocabulary Test - Suburani Book 1</h2>
+                        <div style="text-align: center; font-size: 14pt; margin-bottom: 10px;">
+                            Chapter ${chapter}: ${fromWord} to ${toWord}
+                        </div>
+                        <div class="student-info">
+                            <div class="student-info-field">
+                                <strong>Name:</strong>
+                                <span class="field-value">${studentName}</span>
+                            </div>
+                            <div class="student-info-field">
+                                <strong>Date:</strong>
+                                <span class="field-value">${testDate}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 40%">Latin Word</th>
+                                <th style="width: 60%">English Translation</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${testWords.map(word => `
+                                <tr>
+                                    <td>
+                                        <div class="latin-word">${word.latin}</div>
+                                        <div class="word-info">${word.info}</div>
+                                    </td>
+                                    <td>
+                                        <div class="answer-space"></div>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <div class="score-box">
+                        Score: _____ / ${testWords.length}
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
             
-            // Hide results box for printing
-            document.getElementById('resultsBox').classList.remove('show');
-            
-            // Print
-            window.print();
+            // Trigger print dialog
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
         }
 
         // Modal functions
