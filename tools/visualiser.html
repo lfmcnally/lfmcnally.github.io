@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualiser - Classicalia</title>
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+    <meta property="og:title" content="Visualiser - Classicalia">
+    <meta property="og:description" content="Document camera and visualiser for classroom display">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0066ff 0%, #4d94ff 25%, #e6f0ff 60%, #ffffff 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Floating background shapes */
+        .bg-shapes {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(0, 102, 255, 0.05);
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .shape1 {
+            width: 400px;
+            height: 400px;
+            top: -200px;
+            right: -200px;
+            animation-delay: 0s;
+        }
+
+        .shape2 {
+            width: 300px;
+            height: 300px;
+            bottom: -150px;
+            left: -150px;
+            animation-delay: 5s;
+            background: rgba(0, 102, 255, 0.03);
+        }
+
+        .shape3 {
+            width: 250px;
+            height: 250px;
+            top: 50%;
+            right: 10%;
+            animation-delay: 10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+
+        /* Header */
+        header {
+            position: relative;
+            z-index: 10;
+            padding: 3rem 2rem 2rem;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 4rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff 0%, #e6f0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -3px;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+
+        .logo:hover {
+            transform: scale(1.02);
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .author {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 300;
+        }
+
+        /* Main Container */
+        .visualiser-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 5;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls-grid {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .control-btn {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .start-btn {
+            background: #0066ff;
+            color: white;
+        }
+
+        .start-btn:hover {
+            background: #0052cc;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 102, 255, 0.3);
+        }
+
+        .stop-btn {
+            background: #f44336;
+            color: white;
+        }
+
+        .stop-btn:hover {
+            background: #d32f2f;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.3);
+        }
+
+        .freeze-btn {
+            background: #ff9800;
+            color: white;
+        }
+
+        .freeze-btn:hover {
+            background: #f57c00;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+        }
+
+        .freeze-btn.frozen {
+            background: #9c27b0;
+        }
+
+        .fullscreen-btn {
+            background: #4caf50;
+            color: white;
+        }
+
+        .fullscreen-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+        }
+
+        .capture-btn {
+            background: #2196f3;
+            color: white;
+        }
+
+        .capture-btn:hover {
+            background: #1976d2;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(33, 150, 243, 0.3);
+        }
+
+        /* Camera Selection */
+        .camera-select {
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            min-width: 200px;
+        }
+
+        .camera-select:focus {
+            outline: none;
+            border-color: #0066ff;
+        }
+
+        /* Video Container */
+        .video-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            position: relative;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        #videoElement {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 12px;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .frozen-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #9c27b0;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+
+        .frozen-indicator.active {
+            display: block;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* Image Tools */
+        .image-tools {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .tool-btn:hover {
+            border-color: #0066ff;
+            background: #f0f7ff;
+        }
+
+        .tool-btn.active {
+            background: #0066ff;
+            color: white;
+            border-color: #0066ff;
+        }
+
+        /* Adjustments */
+        .adjustments-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .adjustment-control {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .adjustment-label {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .adjustment-slider {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .adjustment-value {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #333;
+        }
+
+        /* Captured Images Gallery */
+        .gallery-container {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .gallery-container.has-images {
+            display: block;
+        }
+
+        .gallery-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .gallery-item {
+            position: relative;
+            cursor: pointer;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+
+        .gallery-item:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .gallery-item-delete {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        /* Status Messages */
+        .status-message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .status-info {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 3rem;
+            }
+
+            .controls-grid {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .camera-select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Shapes -->
+    <div class="bg-shapes">
+        <div class="shape shape1"></div>
+        <div class="shape shape2"></div>
+        <div class="shape shape3"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <h1 class="logo" onclick="window.location.href='../index.html'">Classicalia</h1>
+        <div class="subtitle">All things Classics, in one place</div>
+        <div class="author">by Lawrence McNally</div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="visualiser-container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="controls-grid">
+                <button class="control-btn start-btn" id="startBtn" onclick="startCamera()">
+                    <span>📷</span> Start Camera
+                </button>
+                <button class="control-btn stop-btn" id="stopBtn" onclick="stopCamera()" style="display: none;">
+                    <span>⏹️</span> Stop Camera
+                </button>
+                <button class="control-btn freeze-btn" id="freezeBtn" onclick="toggleFreeze()" style="display: none;">
+                    <span>⏸️</span> Freeze
+                </button>
+                <button class="control-btn capture-btn" id="captureBtn" onclick="captureImage()" style="display: none;">
+                    <span>📸</span> Capture
+                </button>
+                <button class="control-btn fullscreen-btn" onclick="toggleFullscreen()">
+                    <span>🔳</span> Fullscreen
+                </button>
+                <select class="camera-select" id="cameraSelect" onchange="changeCamera()">
+                    <option value="">Select Camera...</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Video Container -->
+        <div class="video-container">
+            <div id="statusMessage" class="status-message status-info">
+                Click "Start Camera" to begin. Your browser will ask for camera permission.
+            </div>
+
+            <div class="video-wrapper">
+                <video id="videoElement" autoplay playsinline></video>
+                <canvas id="canvas"></canvas>
+                <div class="frozen-indicator" id="frozenIndicator">FROZEN</div>
+            </div>
+
+            <!-- Image Adjustment Tools -->
+            <div class="image-tools" id="imageTools" style="display: none;">
+                <button class="tool-btn" onclick="rotateImage()">🔄 Rotate</button>
+                <button class="tool-btn" onclick="flipHorizontal()">↔️ Flip H</button>
+                <button class="tool-btn" onclick="flipVertical()">↕️ Flip V</button>
+                <button class="tool-btn" onclick="resetAdjustments()">↺ Reset</button>
+            </div>
+
+            <!-- Adjustments Panel -->
+            <div class="adjustments-panel" id="adjustmentsPanel" style="display: none;">
+                <div class="adjustment-control">
+                    <label class="adjustment-label">Brightness</label>
+                    <input type="range" class="adjustment-slider" id="brightness" min="0" max="200" value="100" oninput="applyFilters()">
+                    <div class="adjustment-value"><span id="brightnessValue">100</span>%</div>
+                </div>
+                <div class="adjustment-control">
+                    <label class="adjustment-label">Contrast</label>
+                    <input type="range" class="adjustment-slider" id="contrast" min="0" max="200" value="100" oninput="applyFilters()">
+                    <div class="adjustment-value"><span id="contrastValue">100</span>%</div>
+                </div>
+                <div class="adjustment-control">
+                    <label class="adjustment-label">Zoom</label>
+                    <input type="range" class="adjustment-slider" id="zoom" min="100" max="300" value="100" oninput="applyZoom()">
+                    <div class="adjustment-value"><span id="zoomValue">100</span>%</div>
+                </div>
+            </div>
+
+            <!-- Captured Images Gallery -->
+            <div class="gallery-container" id="galleryContainer">
+                <h3 class="gallery-title">📸 Captured Images</h3>
+                <div class="gallery-grid" id="galleryGrid">
+                    <!-- Captured images will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <script>
+        let stream = null;
+        let videoElement = document.getElementById('videoElement');
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let isFrozen = false;
+        let rotation = 0;
+        let flipH = 1;
+        let flipV = 1;
+        let capturedImages = [];
+
+        // Get available cameras
+        async function getCameras() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                const select = document.getElementById('cameraSelect');
+                select.innerHTML = '<option value="">Select Camera...</option>';
+                
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Camera ${index + 1}`;
+                    select.appendChild(option);
+                });
+                
+                // Select first camera by default
+                if (videoDevices.length > 0 && select.options.length > 1) {
+                    select.selectedIndex = 1;
+                }
+            } catch (err) {
+                console.error('Error enumerating devices:', err);
+            }
+        }
+
+        // Start camera
+        async function startCamera() {
+            try {
+                const select = document.getElementById('cameraSelect');
+                const deviceId = select.value;
+                
+                const constraints = {
+                    video: deviceId ? { deviceId: { exact: deviceId } } : true,
+                    audio: false
+                };
+                
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = stream;
+                
+                // Update UI
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-flex';
+                document.getElementById('freezeBtn').style.display = 'inline-flex';
+                document.getElementById('captureBtn').style.display = 'inline-flex';
+                document.getElementById('imageTools').style.display = 'flex';
+                document.getElementById('adjustmentsPanel').style.display = 'grid';
+                
+                document.getElementById('statusMessage').style.display = 'none';
+                
+                // Get cameras list if not already populated
+                if (document.getElementById('cameraSelect').options.length <= 1) {
+                    await getCameras();
+                }
+                
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                document.getElementById('statusMessage').className = 'status-message status-error';
+                document.getElementById('statusMessage').textContent = 'Error: Could not access camera. Please check permissions.';
+            }
+        }
+
+        // Stop camera
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                videoElement.srcObject = null;
+                stream = null;
+            }
+            
+            // Update UI
+            document.getElementById('startBtn').style.display = 'inline-flex';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('freezeBtn').style.display = 'none';
+            document.getElementById('captureBtn').style.display = 'none';
+            document.getElementById('imageTools').style.display = 'none';
+            document.getElementById('adjustmentsPanel').style.display = 'none';
+            document.getElementById('frozenIndicator').classList.remove('active');
+            
+            document.getElementById('statusMessage').style.display = 'block';
+            document.getElementById('statusMessage').className = 'status-message status-info';
+            document.getElementById('statusMessage').textContent = 'Click "Start Camera" to begin. Your browser will ask for camera permission.';
+            
+            isFrozen = false;
+        }
+
+        // Change camera
+        async function changeCamera() {
+            if (stream) {
+                stopCamera();
+                await startCamera();
+            }
+        }
+
+        // Toggle freeze
+        function toggleFreeze() {
+            isFrozen = !isFrozen;
+            const btn = document.getElementById('freezeBtn');
+            const indicator = document.getElementById('frozenIndicator');
+            
+            if (isFrozen) {
+                // Capture current frame
+                canvas.width = videoElement.videoWidth;
+                canvas.height = videoElement.videoHeight;
+                ctx.drawImage(videoElement, 0, 0);
+                
+                // Show canvas instead of video
+                videoElement.style.display = 'none';
+                canvas.style.display = 'block';
+                canvas.style.width = '100%';
+                canvas.style.borderRadius = '12px';
+                
+                btn.classList.add('frozen');
+                btn.innerHTML = '<span>▶️</span> Unfreeze';
+                indicator.classList.add('active');
+            } else {
+                // Show video again
+                videoElement.style.display = 'block';
+                canvas.style.display = 'none';
+                
+                btn.classList.remove('frozen');
+                btn.innerHTML = '<span>⏸️</span> Freeze';
+                indicator.classList.remove('active');
+            }
+        }
+
+        // Capture image
+        function captureImage() {
+            // Set canvas size
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            
+            // Apply transformations
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(rotation * Math.PI / 180);
+            ctx.scale(flipH, flipV);
+            ctx.drawImage(videoElement, -canvas.width / 2, -canvas.height / 2);
+            ctx.restore();
+            
+            // Save to gallery
+            const imageData = canvas.toDataURL('image/png');
+            capturedImages.push({
+                id: Date.now(),
+                data: imageData
+            });
+            
+            updateGallery();
+            
+            // Visual feedback
+            videoElement.style.opacity = '0.5';
+            setTimeout(() => {
+                videoElement.style.opacity = '1';
+            }, 200);
+        }
+
+        // Update gallery
+        function updateGallery() {
+            const container = document.getElementById('galleryContainer');
+            const grid = document.getElementById('galleryGrid');
+            
+            if (capturedImages.length > 0) {
+                container.classList.add('has-images');
+                
+                grid.innerHTML = '';
+                capturedImages.forEach(img => {
+                    const item = document.createElement('div');
+                    item.className = 'gallery-item';
+                    item.innerHTML = `
+                        <img src="${img.data}" onclick="downloadImage('${img.id}')">
+                        <button class="gallery-item-delete" onclick="deleteImage('${img.id}'); event.stopPropagation();">×</button>
+                    `;
+                    grid.appendChild(item);
+                });
+            } else {
+                container.classList.remove('has-images');
+            }
+        }
+
+        // Download image
+        function downloadImage(id) {
+            const img = capturedImages.find(i => i.id == id);
+            if (img) {
+                const link = document.createElement('a');
+                link.download = `capture_${id}.png`;
+                link.href = img.data;
+                link.click();
+            }
+        }
+
+        // Delete image
+        function deleteImage(id) {
+            capturedImages = capturedImages.filter(img => img.id != id);
+            updateGallery();
+        }
+
+        // Image manipulation
+        function rotateImage() {
+            rotation = (rotation + 90) % 360;
+            applyTransform();
+        }
+
+        function flipHorizontal() {
+            flipH *= -1;
+            applyTransform();
+        }
+
+        function flipVertical() {
+            flipV *= -1;
+            applyTransform();
+        }
+
+        function resetAdjustments() {
+            rotation = 0;
+            flipH = 1;
+            flipV = 1;
+            document.getElementById('brightness').value = 100;
+            document.getElementById('contrast').value = 100;
+            document.getElementById('zoom').value = 100;
+            applyFilters();
+            applyTransform();
+        }
+
+        function applyTransform() {
+            const transform = `rotate(${rotation}deg) scaleX(${flipH}) scaleY(${flipV})`;
+            videoElement.style.transform = transform;
+            if (canvas.style.display === 'block') {
+                canvas.style.transform = transform;
+            }
+        }
+
+        function applyFilters() {
+            const brightness = document.getElementById('brightness').value;
+            const contrast = document.getElementById('contrast').value;
+            
+            document.getElementById('brightnessValue').textContent = brightness;
+            document.getElementById('contrastValue').textContent = contrast;
+            
+            const filter = `brightness(${brightness}%) contrast(${contrast}%)`;
+            videoElement.style.filter = filter;
+            if (canvas.style.display === 'block') {
+                canvas.style.filter = filter;
+            }
+        }
+
+        function applyZoom() {
+            const zoom = document.getElementById('zoom').value;
+            document.getElementById('zoomValue').textContent = zoom;
+            
+            const scale = zoom / 100;
+            videoElement.style.transform = `scale(${scale}) rotate(${rotation}deg) scaleX(${flipH}) scaleY(${flipV})`;
+            if (canvas.style.display === 'block') {
+                canvas.style.transform = `scale(${scale}) rotate(${rotation}deg) scaleX(${flipH}) scaleY(${flipV})`;
+            }
+        }
+
+        // Fullscreen
+        function toggleFullscreen() {
+            const container = document.querySelector('.video-wrapper');
+            
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    console.error('Error attempting fullscreen:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            getCameras();
+        });
+    </script>
+</body>
+</html>
