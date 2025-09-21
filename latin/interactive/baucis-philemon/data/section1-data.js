@@ -3,144 +3,144 @@ const textData = {
     "iuppiter-opening": {
         title: "Iuppiter",
         translation: '"Jupiter"',
-        device: "Epic Opening",
-        description: "Ovid opens dramatically with the king of the gods himself, immediately establishing the cosmic significance of this tale of hospitality.",
-        effect: "Creates anticipation and sets the divine tone - when Jupiter himself comes calling, the stakes are inevitably high."
+        device: "Dramatic Opening",
+        description: "Ovid opens by naming the king of the gods himself, immediately showing this is an important story about divine testing.",
+        effect: "Creates dramatic irony - we know who the visitors really are, but the humans don't. This makes us watch carefully to see how people treat strangers."
     },
     
     "specie-mortali": {
         title: "specie mortali",
         translation: '"in mortal form"',
         device: "Divine Disguise",
-        description: "The ablative of manner shows Jupiter has assumed human appearance - a common motif in classical literature for testing mortals.",
-        effect: "Creates dramatic irony as readers know the visitors' true identity whilst the mortals remain unaware of the divine test."
+        description: "The gods have taken human appearance to test mortals without revealing their true identity.",
+        effect: "Shows the gods are being fair in their test - they appear as ordinary people seeking help, not as powerful beings demanding respect."
     },
     
     "atlantiades-periphrasis": {
         title: "Atlantiades",
         translation: '"descendant of Atlas"',
         device: "Periphrasis",
-        description: "Rather than simply naming Mercury, Ovid uses his genealogy, referring to him as Atlas's grandson through his mother Maia.",
-        effect: "Adds epic dignity and connects to divine genealogy while creating learned variation from the simple name 'Mercurius'."
+        description: "Instead of simply saying 'Mercury', Ovid uses a poetic description referring to his grandfather Atlas.",
+        effect: "Adds poetic elegance and reminds us of Mercury's divine family connections, making the story feel more epic and grand."
     },
     
     "caducifer-compound": {
         title: "caducifer",
         translation: '"wand-bearing"',
-        device: "Compound Epithet",
-        description: "A poetic compound meaning 'bearing the caduceus' - Mercury's distinctive herald's staff that identifies him.",
-        effect: "Provides a subtle clue to Mercury's identity through his iconic attribute, maintaining the epic register."
+        device: "Compound Word",
+        description: "A poetic word made from two parts: 'caduceus' (Mercury's staff) + 'fero' (to carry).",
+        effect: "Identifies Mercury through his famous symbol while showing Ovid's skill at creating elegant compound words."
     },
     
     "alis-ablative-absolute": {
         title: "postis...alis",
         translation: '"having set aside his wings"',
-        device: "Ablative Absolute",
-        description: "Perfect passive participle 'postis' with ablative 'alis' forms an ablative absolute showing Mercury has discarded his divine wings.",
-        effect: "Emphasises the completeness of the divine disguise - even Mercury's most distinctive feature is hidden."
+        device: "Important Detail",
+        description: "Mercury has hidden his most recognisable feature - his wings - to complete the disguise.",
+        effect: "Shows how thoroughly the gods are disguising themselves. Even Mercury's famous wings are hidden to make the test completely fair."
     },
     
     "mille-anaphora": {
         title: "mille...mille",
         translation: '"a thousand...a thousand"',
-        device: "Anaphora",
-        description: "The repetition of 'mille' at the start of lines 3 and 4 creates emphatic parallelism showing the scale of rejection.",
-        effect: "Builds emotional impact through repetition, emphasising the widespread inhospitality that makes Baucis and Philemon's welcome special."
+        device: "Anaphora (Repetition)",
+        description: "The same word 'mille' starts two lines in a row, emphasizing the scale of rejection.",
+        effect: "The repetition hammers home how widespread the inhospitality is, making Baucis and Philemon's welcome even more special."
     },
     
     "serae-metonymy": {
         title: "serae",
         translation: '"bars/bolts"',
         device: "Metonymy",
-        description: "The door-bars represent the closed doors themselves - a part standing for the whole act of rejection.",
-        effect: "Creates a harsh, metallic sound and emphasises the physical barrier of rejection the gods encounter."
+        description: "The door-bolts represent the closed doors themselves - a part standing for the whole.",
+        effect: "Creates a harsh, metallic sound and emphasizes the physical barrier people put up against the strangers."
     },
     
     "tamen-contrast": {
         title: "tamen",
         translation: '"however"',
-        device: "Strong Adversative",
-        description: "This powerful contrast word marks the crucial turning point from universal rejection to singular welcome.",
-        effect: "Creates dramatic emphasis on the exception that will drive the entire story - one house against a thousand."
+        device: "Strong Contrast",
+        description: "This word signals the crucial turning point from rejection to acceptance.",
+        effect: "Creates dramatic emphasis on the one house that's different - the exception that will drive the whole story."
     },
     
     "parva-quidem": {
         title: "parva quidem",
         translation: '"small indeed"',
-        device: "Qualifying Concession",
-        description: "'Quidem' acknowledges the cottage's humble size whilst 'parva' emphasises poverty isn't shameful in this value system.",
-        effect: "Sets up the contrast between material poverty and spiritual richness that defines the couple's moral worth."
+        device: "Honest Admission",
+        description: "'Quidem' means the poet honestly admits the cottage is tiny, but doesn't see this as shameful.",
+        effect: "Shows that physical poverty doesn't matter - what counts is the generous heart inside the humble home."
     },
     
     "sed-pia-contrast": {
         title: "sed pia",
         translation: '"but dutiful"',
         device: "Moral Contrast",
-        description: "'Sed' contrasts physical smallness with moral greatness, whilst 'pia' emphasises religious duty and proper respect for gods.",
-        effect: "Establishes the central theme - true value lies in piety rather than material wealth."
+        description: "'Sed' contrasts the cottage's small size with the huge moral worth of its owner. 'Pia' means religiously dutiful.",
+        effect: "Establishes the key theme: true value comes from character and devotion to the gods, not from wealth or status."
     },
     
     "baucis-introduction": {
         title: "Baucis",
         translation: '"Baucis"',
         device: "Character Introduction",
-        description: "First mention of our heroine, whose name possibly derives from Greek meaning 'sleeping' or 'resting' - fitting for one who offers rest.",
-        effect: "Introduces the female protagonist whose hospitality will be central to the divine test."
+        description: "Our heroine is introduced with the key word 'pia' (dutiful) right before her name.",
+        effect: "Shows that her defining characteristic is her religious devotion and moral goodness."
     },
     
     "philemon-introduction": {
         title: "Philemon",
         translation: '"Philemon"',
         device: "Character Introduction", 
-        description: "The male protagonist's name derives from Greek 'philein' (to love), emphasising the loving nature that defines this couple.",
-        effect: "Introduces the male lead whose name embodies the love and care that characterise their marriage and hospitality."
+        description: "The male lead is described as 'equal in age' to Baucis, showing their partnership.",
+        effect: "Emphasizes that this is a marriage of equals who have grown old together in harmony."
     },
     
     "illa-anaphora": {
         title: "illa...illa",
         translation: '"in that (cottage)...in that (cottage)"',
-        device: "Anaphora",
-        description: "The repeated 'illa' referring to 'casa' emphasises how their entire life story is contained within this humble dwelling.",
-        effect: "Shows the cottage as witness to their entire love story from youth to old age, making it almost a character itself."
+        device: "Repetition for Emphasis",
+        description: "The repeated 'illa' referring to their cottage shows their whole life story happened in this one place.",
+        effect: "Makes the cottage feel like a character in their love story - it has witnessed their entire journey from youth to old age."
     },
     
     "paupertatemque-gerund": {
         title: "paupertatemque fatendo",
         translation: '"and by acknowledging their poverty"',
-        device: "Gerund of Means",
-        description: "The gerund 'fatendo' shows the means by which they made poverty bearable - through honest acknowledgment rather than denial.",
-        effect: "Presents a philosophy of life: accepting reality with dignity rather than bitter complaint makes hardship endurable."
+        device: "Explanation of Philosophy",
+        description: "The gerund 'fatendo' explains how they cope with being poor - by accepting it honestly rather than being bitter.",
+        effect: "Shows their wisdom: they make poverty easier to bear by not pretending to be rich or complaining about their situation."
     },
     
     "iniqua-mente": {
         title: "iniqua mente",
         translation: '"with unfair mind"',
-        device: "Ablative of Manner",
-        description: "Shows how they deliberately chose not to bear hardship - without resentment, bitterness, or sense of unfair treatment.",
-        effect: "Reveals their moral strength: they refuse to let poverty make them bitter or resentful towards the gods or fortune."
+        device: "Showing Attitude",
+        description: "Shows how they choose not to bear hardship - without bitterness or feeling the gods have treated them unfairly.",
+        effect: "Reveals their strength of character: they refuse to let poverty make them angry or resentful towards the gods."
     },
     
     "nec-refert-apostrophe": {
         title: "nec refert...requiras",
         translation: '"nor does it matter...whether you ask"',
-        device: "Apostrophe",
-        description: "Ovid directly addresses the reader/audience, inviting them to consider the unusual social arrangement in this household.",
-        effect: "Breaks the fourth wall to emphasise the remarkable equality and mutual respect that defines this marriage."
+        device: "Direct Address",
+        description: "Ovid speaks directly to the reader, asking them to consider the unusual household arrangement.",
+        effect: "Draws us into the story and makes us think about what makes this couple so special and different."
     },
     
     "tota-domus-paradox": {
         title: "tota domus duo sunt",
         translation: '"the whole house is two people"',
         device: "Paradox",
-        description: "Seemingly contradictory statement - how can 'the whole' equal just 'two'? Yet it emphasises their complete self-sufficiency.",
-        effect: "Shows their unity and self-reliance whilst hinting at their isolation from the surrounding inhospitable community."
+        description: "Seems contradictory - how can 'the whole house' equal just 'two people'? But it shows their complete unity.",
+        effect: "Emphasizes how perfectly self-sufficient they are together, and how they don't need servants or wealth to be happy."
     },
     
     "idem-chiasmus": {
         title: "idem parentque iubentque",
         translation: '"they both obey and command"',
-        device: "Chiasmus",
-        description: "The balanced structure 'they both obey and command' shows perfect equality - each serves and leads in turn.",
-        effect: "Presents an ideal marriage of mutual respect where traditional hierarchies dissolve into loving partnership."
+        device: "Balanced Structure",
+        description: "The balanced phrase shows perfect equality - sometimes one leads, sometimes the other, but both respect each other.",
+        effect: "Presents an ideal marriage where no one dominates - they share decisions and take turns leading, showing true partnership."
     }
 };
