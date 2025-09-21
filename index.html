@@ -318,7 +318,160 @@
             color: #666;
         }
 
-        /* Tools/Resources Section - NEW */
+        /* REVIEWS CAROUSEL STYLES */
+        .reviews-carousel-container {
+            padding: 2rem;
+            position: relative;
+        }
+
+        .reviews-carousel {
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px;
+            background: white;
+            min-height: 280px;
+        }
+
+        .review-card {
+            display: none;
+            padding: 2rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .review-card.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .review-content {
+            margin-bottom: 1.5rem;
+        }
+
+        .review-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #333;
+            font-style: italic;
+            margin-bottom: 1.5rem;
+            position: relative;
+            padding: 0 1rem;
+        }
+
+        .review-text::before {
+            content: '"';
+            font-size: 3rem;
+            color: #0066ff;
+            position: absolute;
+            left: -1rem;
+            top: -0.5rem;
+            font-family: Georgia, serif;
+            opacity: 0.3;
+        }
+
+        .review-text::after {
+            content: '"';
+            font-size: 3rem;
+            color: #0066ff;
+            position: absolute;
+            right: -1rem;
+            bottom: -1rem;
+            font-family: Georgia, serif;
+            opacity: 0.3;
+        }
+
+        .review-author {
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            padding-top: 1rem;
+            text-align: center;
+        }
+
+        .review-author-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0066ff;
+            margin-bottom: 0.25rem;
+        }
+
+        .review-author-role {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        /* Carousel Controls */
+        .carousel-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        .carousel-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 102, 255, 0.1);
+            border: 1px solid rgba(0, 102, 255, 0.2);
+            color: #0066ff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .carousel-btn:hover {
+            background: #0066ff;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .carousel-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .carousel-btn:disabled:hover {
+            background: rgba(0, 102, 255, 0.1);
+            color: #0066ff;
+        }
+
+        .carousel-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(0, 102, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dot.active {
+            background: #0066ff;
+            transform: scale(1.2);
+        }
+
+        .dot:hover {
+            background: #0066ff;
+        }
+
+        /* Tools/Resources Section */
         .tools-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -851,6 +1004,29 @@
                     </div>
                 </div>
 
+                <!-- Reviews Container -->
+                <div class="app-container">
+                    <div class="app-header">
+                        <div class="app-greeting">What People Are Saying</div>
+                    </div>
+
+                    <!-- Reviews Carousel -->
+                    <div class="reviews-carousel-container">
+                        <div class="reviews-carousel" id="reviewsCarousel">
+                            <!-- Reviews will be loaded dynamically from reviews-data.js -->
+                        </div>
+
+                        <!-- Carousel Controls -->
+                        <div class="carousel-controls">
+                            <button class="carousel-btn prev" onclick="previousReview()" id="prevBtn">‹</button>
+                            <div class="carousel-dots" id="carouselDots">
+                                <!-- Dots will be generated dynamically -->
+                            </div>
+                            <button class="carousel-btn next" onclick="nextReview()" id="nextBtn">›</button>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Resources & Tools Container -->
                 <div class="app-container">
                     <div class="app-header">
@@ -942,8 +1118,6 @@
         </div>
     </div>
 
-    
-
     <!-- Info Modal -->
     <div id="infoModal" class="modal" style="display: none;">
         <div class="modal-content">
@@ -1022,6 +1196,139 @@
 
     <!-- Scripts -->
     <script src="ancient-history.js"></script>
+    <script src="reviews-data.js"></script>
+    
+    <!-- Review Carousel JavaScript -->
+    <script>
+        let currentReviewIndex = 1;
+        let totalReviews = 0;
+
+        function initializeReviews() {
+            const reviews = getReviews();
+            totalReviews = getTotalReviews();
+            
+            if (totalReviews === 0) {
+                // Hide the entire reviews section if no reviews
+                const reviewsContainer = document.querySelector('.app-container:has(.reviews-carousel-container)');
+                if (reviewsContainer) {
+                    reviewsContainer.style.display = 'none';
+                }
+                return;
+            }
+
+            const carousel = document.getElementById('reviewsCarousel');
+            const dotsContainer = document.getElementById('carouselDots');
+            
+            // Clear existing content
+            carousel.innerHTML = '';
+            dotsContainer.innerHTML = '';
+            
+            // Generate review cards
+            reviews.forEach((review, index) => {
+                const reviewCard = document.createElement('div');
+                reviewCard.className = `review-card ${index === 0 ? 'active' : ''}`;
+                reviewCard.innerHTML = `
+                    <div class="review-content">
+                        <div class="review-text">
+                            ${review.text}
+                        </div>
+                        <div class="review-author">
+                            <div class="review-author-name">${review.name}</div>
+                            <div class="review-author-role">${review.role}</div>
+                        </div>
+                    </div>
+                `;
+                carousel.appendChild(reviewCard);
+                
+                // Generate dots
+                const dot = document.createElement('span');
+                dot.className = `dot ${index === 0 ? 'active' : ''}`;
+                dot.onclick = () => currentReview(index + 1);
+                dotsContainer.appendChild(dot);
+            });
+            
+            // Hide carousel controls if only one review
+            if (totalReviews <= 1) {
+                const controls = document.querySelector('.carousel-controls');
+                if (controls) {
+                    controls.style.display = 'none';
+                }
+            }
+            
+            updateCarouselButtons();
+        }
+
+        function showReview(index) {
+            // Hide all review cards
+            const cards = document.querySelectorAll('.review-card');
+            const dots = document.querySelectorAll('.dot');
+            
+            cards.forEach(card => card.classList.remove('active'));
+            dots.forEach(dot => dot.classList.remove('active'));
+            
+            // Show the selected review
+            if (cards[index - 1]) {
+                cards[index - 1].classList.add('active');
+            }
+            if (dots[index - 1]) {
+                dots[index - 1].classList.add('active');
+            }
+            
+            // Update button states
+            updateCarouselButtons();
+        }
+
+        function nextReview() {
+            if (currentReviewIndex < totalReviews) {
+                currentReviewIndex++;
+                showReview(currentReviewIndex);
+            }
+        }
+
+        function previousReview() {
+            if (currentReviewIndex > 1) {
+                currentReviewIndex--;
+                showReview(currentReviewIndex);
+            }
+        }
+
+        function currentReview(index) {
+            currentReviewIndex = index;
+            showReview(currentReviewIndex);
+        }
+
+        function updateCarouselButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            if (prevBtn && nextBtn) {
+                prevBtn.disabled = currentReviewIndex === 1;
+                nextBtn.disabled = currentReviewIndex === totalReviews;
+            }
+        }
+
+        // Auto-advance carousel every 8 seconds (only if more than one review)
+        let carouselInterval;
+        function startCarouselAutoAdvance() {
+            if (totalReviews > 1) {
+                carouselInterval = setInterval(() => {
+                    if (currentReviewIndex < totalReviews) {
+                        nextReview();
+                    } else {
+                        currentReviewIndex = 1;
+                        showReview(currentReviewIndex);
+                    }
+                }, 8000);
+            }
+        }
+
+        // Initialize carousel when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            initializeReviews();
+            startCarouselAutoAdvance();
+        });
+    </script>
+
     <script>
         // Display today's events
         window.addEventListener('DOMContentLoaded', function() {
@@ -1096,6 +1403,7 @@
             }
         });
     </script>
+    
     <script>
         // Hit counter - using a more reliable service
         fetch('https://api.counterapi.dev/v1/classicalia/visits/up')
