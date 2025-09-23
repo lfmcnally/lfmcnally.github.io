@@ -7,6 +7,12 @@ const reviewsData = [
         role: "Freelance Tutor - Latin/Classical Civilisation/English",
         text: "Classicalia has been a fantastic resource to help me navigate teaching Latin GCSE for the first time as a freelance tutor. The website provides an abundance of helpful resources and interactive texts that are incredibly user friendly and laid out in a clear, coherent and engaging way. Lawrence himself has been extremely helpful and generous in his guidance!"
     },
+
+    {
+        name: "Rosalind",
+        role: "Colchester Royal Grammar School",
+        text: "The GCSE Tacitus set text resources are amazing, particularly for SEND students who can refer back to them and go over lessons at home. Lifesaver tbh! [...] Thank you for your hard work!"
+    },
     {
         name: "The Classical Association",
         role: "Professional Organisation for Classics Education",
