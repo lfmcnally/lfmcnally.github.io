@@ -27,7 +27,7 @@ const lessonData = {
     firstDeclension: {
         noun: "puella",
         meaning: "girl",
-        type: "1st Declension (feminine)",
+        type: "1st Decl (f)",
         cases: [
             {
                 caseName: "Nominative Singular",
@@ -86,7 +86,7 @@ const lessonData = {
     secondDeclension: {
         noun: "dominus",
         meaning: "master",
-        type: "2nd Declension (masculine)",
+        type: "2nd Decl (m)",
         cases: [
             {
                 caseName: "Nominative Singular",
