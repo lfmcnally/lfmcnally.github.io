@@ -33,50 +33,50 @@ const lessonData = {
                 caseName: "Nominative Singular",
                 latin: "puella",
                 english: "the girl (subject)",
-                usage: "puella ambulat (the girl walks)"
+                usage: "puella ambulat<br>(the girl walks)"
             },
             {
                 caseName: "Accusative Singular",
                 latin: "puellam",
                 english: "the girl (object)",
-                usage: "puellam video (I see the girl)"
+                usage: "puellam video<br>(I see the girl)"
             },
             {
                 caseName: "Genitive Singular",
                 latin: "puellae",
                 english: "of the girl / the girl's",
-                usage: "villa puellae (the girl's house)"
+                usage: "villa puellae<br>(the girl's house)"
             },
             {
                 caseName: "Dative Singular",
                 latin: "puellae",
                 english: "to/for the girl",
-                usage: "cibum puellae do (I give food to the girl)",
+                usage: "cibum puellae do<br>(I give food to the girl)",
                 highlight: true
             },
             {
                 caseName: "Nominative Plural",
                 latin: "puellae",
                 english: "the girls (subject)",
-                usage: "puellae ambulant (the girls walk)"
+                usage: "puellae ambulant<br>(the girls walk)"
             },
             {
                 caseName: "Accusative Plural",
                 latin: "puellas",
                 english: "the girls (object)",
-                usage: "puellas video (I see the girls)"
+                usage: "puellas video<br>(I see the girls)"
             },
             {
                 caseName: "Genitive Plural",
                 latin: "puellarum",
                 english: "of the girls / the girls'",
-                usage: "villa puellarum (the girls' house)"
+                usage: "villa puellarum<br>(the girls' house)"
             },
             {
                 caseName: "Dative Plural",
                 latin: "puellis",
                 english: "to/for the girls",
-                usage: "cibum puellis damus (we give food to the girls)",
+                usage: "cibum puellis damus<br>(we give food to the girls)",
                 highlight: true
             }
         ]
@@ -92,50 +92,50 @@ const lessonData = {
                 caseName: "Nominative Singular",
                 latin: "dominus",
                 english: "the master (subject)",
-                usage: "dominus ambulat (the master walks)"
+                usage: "dominus ambulat<br>(the master walks)"
             },
             {
                 caseName: "Accusative Singular",
                 latin: "dominum",
                 english: "the master (object)",
-                usage: "dominum video (I see the master)"
+                usage: "dominum video<br>(I see the master)"
             },
             {
                 caseName: "Genitive Singular",
                 latin: "domini",
                 english: "of the master / the master's",
-                usage: "villa domini (the master's house)"
+                usage: "villa domini<br>(the master's house)"
             },
             {
                 caseName: "Dative Singular",
                 latin: "domino",
                 english: "to/for the master",
-                usage: "cibum domino paramus (we prepare food for the master)",
+                usage: "cibum domino paramus<br>(we prepare food for the master)",
                 highlight: true
             },
             {
                 caseName: "Nominative Plural",
                 latin: "domini",
                 english: "the masters (subject)",
-                usage: "domini ambulant (the masters walk)"
+                usage: "domini ambulant<br>(the masters walk)"
             },
             {
                 caseName: "Accusative Plural",
                 latin: "dominos",
                 english: "the masters (object)",
-                usage: "dominos video (I see the masters)"
+                usage: "dominos video<br>(I see the masters)"
             },
             {
                 caseName: "Genitive Plural",
                 latin: "dominorum",
                 english: "of the masters / the masters'",
-                usage: "villa dominorum (the masters' house)"
+                usage: "villa dominorum<br>(the masters' house)"
             },
             {
                 caseName: "Dative Plural",
                 latin: "dominis",
                 english: "to/for the masters",
-                usage: "cibum dominis damus (we give food to the masters)",
+                usage: "cibum dominis damus<br>(we give food to the masters)",
                 highlight: true
             }
         ]
