@@ -6,7 +6,7 @@ const questionBank = {
         // Topic 1.1 - What was the Roman Republic?
         {
             type: 'text-flexible',
-            topic: 'Topic 1.1',
+            topic: 'Topic 1.1: What was the Roman Republic?',
             question: 'The Romans claimed divine ancestry through two legendary figures - Aeneas and Romulus. Name the god who was the parent of Aeneas.',
             correctAnswers: ['venus'],
             acceptableVariations: ['venus', 'aphrodite'],
@@ -14,7 +14,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.1',
+            topic: 'Topic 1.1: What was the Roman Republic?',
             question: 'What does SPQR stand for?',
             choices: [
                 'Senatus Populusque Romanus (The Senate and the Roman People)',
@@ -27,7 +27,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.1',
+            topic: 'Topic 1.1: What was the Roman Republic?',
             question: 'What event sparked the revolution that ended the Roman monarchy?',
             correctAnswers: ['rape of lucretia'],
             acceptableVariations: ['rape of lucretia', 'lucretia', 'sextus tarquinius raped lucretia', 'lucretia rape', 'lucretia suicide'],
@@ -35,7 +35,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.1',
+            topic: 'Topic 1.1: What was the Roman Republic?',
             question: 'In what year was the Roman Republic established?',
             correctAnswers: ['509 bc', '509'],
             acceptableVariations: ['509', '509 bc', '509 bce'],
@@ -43,7 +43,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.1',
+            topic: 'Topic 1.1: What was the Roman Republic?',
             question: 'Who was the god parent of Romulus?',
             correctAnswers: ['mars'],
             acceptableVariations: ['mars', 'ares'],
@@ -53,7 +53,7 @@ const questionBank = {
         // Topic 1.2 - The Constitution
         {
             type: 'drag-drop',
-            topic: 'Topic 1.2',
+            topic: 'Topic 1.2: The Constitution',
             question: 'Match each office in the cursus honorum with its main duties:',
             items: ['Censor', 'Consul', 'Praetor', 'Aedile', 'Quaestor'],
             categories: {
@@ -67,7 +67,7 @@ const questionBank = {
         },
         {
             type: 'gap-fill',
-            topic: 'Topic 1.2',
+            topic: 'Topic 1.2: The Constitution',
             question: 'Complete this passage about Roman magistracies:',
             gapText: 'The ___ was the highest regular magistracy, held by two men who shared power through ___. Tribunes had the power of ___ which allowed them to block any magistrate\'s action. The ___ was appointed for a maximum of six months during extreme emergencies.',
             correctGaps: ['consulship', 'collegiality', 'intercessio', 'dictator'],
@@ -81,7 +81,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.2',
+            topic: 'Topic 1.2: The Constitution',
             question: 'Which of these was NOT a unique power of the tribune of the plebs?',
             choices: [
                 'Intercessio (veto power over magistrates)',
@@ -94,7 +94,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.2',
+            topic: 'Topic 1.2: The Constitution',
             question: 'How long was a dictator appointed for?',
             correctAnswers: ['six months', '6 months'],
             acceptableVariations: ['six months', '6 months', 'six months maximum', '6 months maximum'],
@@ -102,7 +102,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.2',
+            topic: 'Topic 1.2: The Constitution',
             question: 'How many dictators were appointed at once?',
             choices: ['One', 'Two', 'Three', 'It varied depending on the crisis'],
             correct: 0,
@@ -110,7 +110,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.2',
+            topic: 'Topic 1.2: The Constitution',
             question: 'What were lictors and what did they carry?',
             correctAnswers: ['attendants fasces', 'officials fasces'],
             acceptableVariations: ['lictors carried fasces', 'attendants carried fasces', 'officials with fasces', 'bodyguards fasces'],
@@ -118,7 +118,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.2',
+            topic: 'Topic 1.2: The Constitution',
             question: 'Why were the axes removed from fasces within the city of Rome?',
             choices: [
                 'To prevent accidents in crowded streets',
@@ -133,7 +133,7 @@ const questionBank = {
         // Topic 1.3 - Patronage and Amicitia
         {
             type: 'drag-drop',
-            topic: 'Topic 1.3',
+            topic: 'Topic 1.3: Patronage and Amicitia',
             question: 'Sort these activities into what patrons provided vs what clients provided:',
             items: ['Legal protection', 'Morning salutatio', 'Financial assistance', 'Electoral support', 'Sportula distribution', 'Public demonstrations'],
             categories: {
@@ -144,7 +144,7 @@ const questionBank = {
         },
         {
             type: 'gap-fill',
-            topic: 'Topic 1.3',
+            topic: 'Topic 1.3: Patronage and Amicitia',
             question: 'Complete this passage about Roman political relationships:',
             gapText: '___ was political "friendship" based on mutual advantage rather than emotion. The morning ___ allowed clients to pay respects to their patron. ___ was the daily gift that reinforced economic dependence. When political friendships ended, they often became bitter ___.',
             correctGaps: ['amicitia', 'salutatio', 'sportula', 'inimicitia'],
@@ -158,7 +158,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.3',
+            topic: 'Topic 1.3: Patronage and Amicitia',
             question: 'What does "amicitia" mean in Roman political terms?',
             correctAnswers: ['political friendship', 'calculated alliance'],
             acceptableVariations: ['political friendship', 'friendship', 'political alliance', 'calculated alliance', 'mutual advantage', 'political relationship'],
@@ -166,7 +166,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.3',
+            topic: 'Topic 1.3: Patronage and Amicitia',
             question: 'What was sportula and how did it reinforce the patron-client relationship?',
             choices: [
                 'A daily gift of food/money that created economic dependence',
@@ -179,7 +179,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.3',
+            topic: 'Topic 1.3: Patronage and Amicitia',
             question: 'What was the salutatio and why was it politically important?',
             correctAnswers: ['morning reception', 'morning visit'],
             acceptableVariations: ['morning reception', 'morning visit', 'morning greeting', 'daily reception', 'client visits'],
@@ -187,7 +187,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.3',
+            topic: 'Topic 1.3: Patronage and Amicitia',
             question: 'Which alliance best exemplifies the dangers of amicitia in Roman politics?',
             choices: [
                 'The alliance between Cicero and Atticus',
@@ -200,7 +200,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.3',
+            topic: 'Topic 1.3: Patronage and Amicitia',
             question: 'Which two things would a patron typically provide to his clients?',
             choices: [
                 'Legal protection and financial assistance',
@@ -215,7 +215,7 @@ const questionBank = {
         // Topic 1.4 - Political Ideals
         {
             type: 'drag-drop',
-            topic: 'Topic 1.4',
+            topic: 'Topic 1.4: Political Ideals',
             question: 'Match these Roman political ideals with their definitions:',
             items: ['Dignitas', 'Libertas', 'Auctoritas', 'Pietas'],
             categories: {
@@ -228,7 +228,7 @@ const questionBank = {
         },
         {
             type: 'gap-fill',
-            topic: 'Topic 1.4',
+            topic: 'Topic 1.4: Political Ideals',
             question: 'Complete this passage about Cicero\'s political philosophy:',
             gapText: 'Cicero promoted ___ ___ (harmony between the orders) and ___ ___ ___ (leisure with dignity). He believed the ideal politician should have both ___ (legal power) and ___ (moral authority).',
             correctGaps: ['concordia ordinum', 'otium cum dignitate', 'potestas', 'auctoritas'],
@@ -242,7 +242,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.4',
+            topic: 'Topic 1.4: Political Ideals',
             question: 'Which two principles are central to Stoic philosophy?',
             choices: [
                 'Pleasure above all and avoid pain',
@@ -255,7 +255,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.4',
+            topic: 'Topic 1.4: Political Ideals',
             question: 'Name one prominent Stoic politician from the Late Republic.',
             correctAnswers: ['cato', 'cato the younger'],
             acceptableVariations: ['cato', 'cato the younger', 'marcus cato', 'marcus porcius cato'],
@@ -263,7 +263,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.4',
+            topic: 'Topic 1.4: Political Ideals',
             question: 'What did Cicero mean by "concordia ordinum"?',
             correctAnswers: ['harmony between orders', 'harmony senators equites'],
             acceptableVariations: ['harmony between orders', 'harmony between classes', 'senators and equites working together', 'harmony senators equites'],
@@ -271,7 +271,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.4',
+            topic: 'Topic 1.4: Political Ideals',
             question: 'What did Cicero mean by "otium cum dignitate"?',
             correctAnswers: ['leisure with dignity', 'peaceful dignity'],
             acceptableVariations: ['leisure with dignity', 'dignified leisure', 'peaceful republic with honour', 'peace with dignity'],
@@ -279,7 +279,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.4',
+            topic: 'Topic 1.4: Political Ideals',
             question: 'Define libertas and give one example of what this concept meant to the Romans.',
             correctAnswers: ['political freedom', 'freedom from tyranny'],
             acceptableVariations: ['freedom', 'political freedom', 'freedom from tyranny', 'freedom from kings', 'right to vote', 'protection under law'],
@@ -287,7 +287,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.4',
+            topic: 'Topic 1.4: Political Ideals',
             question: 'Name the three main social classes in Roman society.',
             correctAnswers: ['senators equites plebeians'],
             acceptableVariations: ['senators, equites, plebeians', 'senatorial, equestrian, plebeian', 'patricians, equites, plebs'],
@@ -297,7 +297,7 @@ const questionBank = {
         // Topic 1.5 - Political Factions
         {
             type: 'drag-drop',
-            topic: 'Topic 1.5',
+            topic: 'Topic 1.5: Political Factions',
             question: 'Sort these political methods and beliefs by faction:',
             items: ['Defend Senate authority', 'Use popular assemblies', 'Uphold mos maiorum', 'Appeal to tribunes', 'Support property rights', 'Land redistribution'],
             categories: {
@@ -308,7 +308,7 @@ const questionBank = {
         },
         {
             type: 'gap-fill',
-            topic: 'Topic 1.5',
+            topic: 'Topic 1.5: Political Factions',
             question: 'Complete this passage about Roman political factions:',
             gapText: 'The ___ ("best men") claimed to defend traditional Roman values and ___ authority. The ___ appealed directly to popular assemblies and often used ___ to propose legislation. The ___ were senators regarded as morally upright and politically reliable.',
             correctGaps: ['optimates', 'Senate', 'populares', 'tribunes', 'boni'],
@@ -323,7 +323,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.5',
+            topic: 'Topic 1.5: Political Factions',
             question: 'Explain why Roman political factions were not the same as modern political parties.',
             correctAnswers: ['no formal structure', 'politicians switched'],
             acceptableVariations: ['no formal structure', 'could switch factions', 'personal relationships', 'no party discipline', 'informal groups', 'flexible membership'],
@@ -331,7 +331,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.5',
+            topic: 'Topic 1.5: Political Factions',
             question: 'Which two beliefs or methods were typical of the optimates?',
             choices: [
                 'Defend Senate authority and uphold mos maiorum',
@@ -344,7 +344,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.5',
+            topic: 'Topic 1.5: Political Factions',
             question: 'Which two beliefs or methods were typical of the populares?',
             choices: [
                 'Defend Senate authority and traditional customs',
@@ -357,7 +357,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.5',
+            topic: 'Topic 1.5: Political Factions',
             question: 'Define "boni".',
             correctAnswers: ['good men', 'morally upright senators'],
             acceptableVariations: ['good men', 'the good', 'upright men', 'morally reliable', 'virtuous senators'],
@@ -365,7 +365,7 @@ const questionBank = {
         },
         {
             type: 'scenario',
-            topic: 'Topic 1.5',
+            topic: 'Topic 1.5: Political Factions',
             question: 'A tribune proposes a law to distribute public land to landless citizens, bypassing the Senate. Is this a popularis or optimate policy?',
             choices: ['Popularis', 'Optimate'],
             correct: 0,
@@ -373,7 +373,7 @@ const questionBank = {
         },
         {
             type: 'scenario',
-            topic: 'Topic 1.5',
+            topic: 'Topic 1.5: Political Factions',
             question: 'A consul insists that all major decisions must be debated in the Senate before being put to the popular assemblies. Is this a popularis or optimate policy?',
             choices: ['Popularis', 'Optimate'],
             correct: 1,
@@ -385,7 +385,7 @@ const questionBank = {
         // Key concepts only for quick review
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.1',
+            topic: 'Topic 1.1: What was the Roman Republic?',
             question: 'What does SPQR stand for?',
             choices: [
                 'Senatus Populusque Romanus',
@@ -398,7 +398,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.2',
+            topic: 'Topic 1.2: The Constitution',
             question: 'Name the highest regular magistracy in the Roman Republic.',
             correctAnswers: ['consul'],
             acceptableVariations: ['consul', 'consuls', 'consulship'],
@@ -406,11 +406,11 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.3',
+            topic: 'Topic 1.3: Patronage and Amicitia',
             question: 'What was the main purpose of the patron-client relationship?',
             choices: [
                 'To provide mutual protection and political support',
-                'To organize religious ceremonies',
+                'To organise religious ceremonies',
                 'To regulate business transactions',
                 'To arrange military service'
             ],
@@ -419,7 +419,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.4',
+            topic: 'Topic 1.4: Political Ideals',
             question: 'What does "dignitas" mean in Roman political terms?',
             correctAnswers: ['personal standing', 'political prestige'],
             acceptableVariations: ['personal standing', 'political dignity', 'status prestige', 'honour reputation', 'personal honour'],
@@ -427,7 +427,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.5',
+            topic: 'Topic 1.5: Political Factions',
             question: 'What was the key difference between optimates and populares?',
             choices: [
                 'Optimates defended Senate authority, populares appealed to popular assemblies',
@@ -437,6 +437,83 @@ const questionBank = {
             ],
             correct: 0,
             explanation: 'The key difference was political method: optimates worked through traditional Senate authority, while populares bypassed the Senate to appeal directly to popular assemblies.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.1: What was the Roman Republic?',
+            question: 'In what year was the Roman Republic established?',
+            correctAnswers: ['509 bc', '509'],
+            acceptableVariations: ['509', '509 bc', '509 bce'],
+            explanation: 'The Roman Republic was established in 509 BC after the expulsion of Tarquin the Proud.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: The Constitution',
+            question: 'How long was a dictator appointed for?',
+            correctAnswers: ['six months', '6 months'],
+            acceptableVariations: ['six months', '6 months', 'six months maximum', '6 months maximum'],
+            explanation: 'Dictators were appointed for a maximum of six months to handle specific crises, preventing permanent autocracy.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.3: Patronage and Amicitia',
+            question: 'What does "amicitia" mean in Roman political terms?',
+            correctAnswers: ['political friendship', 'calculated alliance'],
+            acceptableVariations: ['political friendship', 'friendship', 'political alliance', 'calculated alliance', 'mutual advantage', 'political relationship'],
+            explanation: 'Amicitia was political "friendship" - calculated alliances between elite Romans based on mutual advantage rather than emotional bonds.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.4: Political Ideals',
+            question: 'What did Cicero mean by "concordia ordinum"?',
+            correctAnswers: ['harmony between orders', 'harmony senators equites'],
+            acceptableVariations: ['harmony between orders', 'harmony between classes', 'senators and equites working together', 'harmony senators equites'],
+            explanation: 'Concordia ordinum meant harmony between the senatorial and equestrian orders working together for the good of the state.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.5: Political Factions',
+            question: 'Define "boni".',
+            correctAnswers: ['good men', 'morally upright senators'],
+            acceptableVariations: ['good men', 'the good', 'upright men', 'morally reliable', 'virtuous senators'],
+            explanation: 'Boni meant "the good men" - senators regarded as morally upright and politically reliable.'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.2: The Constitution',
+            question: 'Which of these was NOT a unique power of the tribune of the plebs?',
+            choices: [
+                'Intercessio (veto power over magistrates)',
+                'Sacrosanctitas (physical inviolability)',
+                'Imperium (military command authority)',
+                'Auxilium (personal protection for citizens)'
+            ],
+            correct: 2,
+            explanation: 'Tribunes did not have imperium (military command authority). Their power was civil and protective.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.3: Patronage and Amicitia',
+            question: 'What was the salutatio and why was it politically important?',
+            correctAnswers: ['morning reception', 'morning visit'],
+            acceptableVariations: ['morning reception', 'morning visit', 'morning greeting', 'daily reception', 'client visits'],
+            explanation: 'The salutatio was the morning reception where clients paid respects to their patron, demonstrating the patron\'s power and influence.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.4: Political Ideals',
+            question: 'Name one prominent Stoic politician from the Late Republic.',
+            correctAnswers: ['cato', 'cato the younger'],
+            acceptableVariations: ['cato', 'cato the younger', 'marcus cato', 'marcus porcius cato'],
+            explanation: 'Cato the Younger was the most famous Stoic politician, known for his rigid principles and opposition to corruption.'
+        },
+        {
+            type: 'scenario',
+            topic: 'Topic 1.5: Political Factions',
+            question: 'A tribune proposes a law to distribute public land to landless citizens, bypassing the Senate. Is this a popularis or optimate policy?',
+            choices: ['Popularis', 'Optimate'],
+            correct: 0,
+            explanation: 'This is popularis - using a tribune to bypass the Senate and appeal directly to popular assemblies with land redistribution.'
         }
     ],
     
@@ -444,7 +521,7 @@ const questionBank = {
         // More specific lesson content questions
         {
             type: 'text-flexible',
-            topic: 'Topic 1.1',
+            topic: 'Topic 1.1: What was the Roman Republic?',
             question: 'What was the name of the last king of Rome?',
             correctAnswers: ['tarquinius superbus', 'lucius tarquinius superbus'],
             acceptableVariations: ['tarquin the proud', 'tarquin superbus', 'tarquinius superbus', 'lucius tarquinius superbus'],
@@ -452,7 +529,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.2',
+            topic: 'Topic 1.2: The Constitution',
             question: 'What does "collegiality" mean in the context of Roman magistracies?',
             correctAnswers: ['shared office', 'two magistrates'],
             acceptableVariations: ['shared office', 'two people', 'pair of magistrates', 'two holders', 'dual leadership'],
@@ -460,7 +537,7 @@ const questionBank = {
         },
         {
             type: 'text-flexible',
-            topic: 'Topic 1.3',
+            topic: 'Topic 1.3: Patronage and Amicitia',
             question: 'Name two typical causes of inimicitia (political enmity) between Roman politicians.',
             correctAnswers: ['competition for office', 'personal insults'],
             acceptableVariations: ['electoral competition', 'office competition', 'insults', 'prosecution', 'legal disputes', 'family feuds', 'business disputes'],
@@ -468,7 +545,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.4',
+            topic: 'Topic 1.4: Political Ideals',
             question: 'According to Roman political ideals, what was the difference between auctoritas and potestas?',
             choices: [
                 'Auctoritas was legal power, potestas was moral authority',
@@ -481,7 +558,7 @@ const questionBank = {
         },
         {
             type: 'multiple-choice',
-            topic: 'Topic 1.5',
+            topic: 'Topic 1.5: Political Factions',
             question: 'How did populares politicians typically gain support?',
             choices: [
                 'Through Senate debates and traditional procedures',
@@ -491,6 +568,153 @@ const questionBank = {
             ],
             correct: 1,
             explanation: 'Populares gained support by appealing to tribunes (who could propose legislation directly), using popular assemblies to bypass the Senate, and employing populist rhetoric about land, grain, and citizenship.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.1: What was the Roman Republic?',
+            question: 'The Romans claimed divine ancestry through two legendary figures - Aeneas and Romulus. Name the god who was the parent of Aeneas.',
+            correctAnswers: ['venus'],
+            acceptableVariations: ['venus', 'aphrodite'],
+            explanation: 'Venus (Aphrodite in Greek mythology) was the mother of Aeneas, making the Romans descendants of the goddess of love and establishing their divine legitimacy.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: The Constitution',
+            question: 'What were lictors and what did they carry?',
+            correctAnswers: ['attendants fasces', 'officials fasces'],
+            acceptableVariations: ['lictors carried fasces', 'attendants carried fasces', 'officials with fasces', 'bodyguards fasces'],
+            explanation: 'Lictors were official attendants who accompanied magistrates with imperium, carrying fasces (bundles of rods with axes) as symbols of the magistrate\'s authority to punish and execute.'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.3: Patronage and Amicitia',
+            question: 'What was sportula and how did it reinforce the patron-client relationship?',
+            choices: [
+                'A daily gift of food/money that created economic dependence',
+                'A religious ceremony that blessed political alliances',
+                'A voting token that ensured electoral support',
+                'A legal contract that formalised business partnerships'
+            ],
+            correct: 0,
+            explanation: 'Sportula was the daily gift of food or money from patron to clients, originally carried in a small basket. It institutionalised economic dependence and ensured daily contact between patron and client.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.4: Political Ideals',
+            question: 'What did Cicero mean by "otium cum dignitate"?',
+            correctAnswers: ['leisure with dignity', 'peaceful dignity'],
+            acceptableVariations: ['leisure with dignity', 'dignified leisure', 'peaceful republic with honour', 'peace with dignity'],
+            explanation: 'Otium cum dignitate meant a peaceful Republic where the elite could live quietly with their honour and dignity intact.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.5: Political Factions',
+            question: 'Explain why Roman political factions were not the same as modern political parties.',
+            correctAnswers: ['no formal structure', 'politicians switched'],
+            acceptableVariations: ['no formal structure', 'could switch factions', 'personal relationships', 'no party discipline', 'informal groups', 'flexible membership'],
+            explanation: 'Roman factions lacked formal party structures, politicians could switch factions when convenient, and they were based more on personal relationships than ideology. Labels were often rhetorical weapons rather than genuine ideological categories.'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.2: The Constitution',
+            question: 'Why were the axes removed from fasces within the city of Rome?',
+            choices: [
+                'To prevent accidents in crowded streets',
+                'To respect citizens\' right of appeal (provocatio)',
+                'To show respect for the gods',
+                'To save money on expensive ceremonial axes'
+            ],
+            correct: 1,
+            explanation: 'Within Rome, axes were removed from fasces to respect citizens\' right of appeal (provocatio) - magistrates could not execute citizens without trial. Outside Rome, full fasces with axes showed unlimited power over non-citizens.'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.3: Patronage and Amicitia',
+            question: 'Which alliance best exemplifies the dangers of amicitia in Roman politics?',
+            choices: [
+                'The alliance between Cicero and Atticus',
+                'The First Triumvirate between Caesar, Pompey, and Crassus',
+                'The friendship between Scipio Aemilianus and Laelius',
+                'The partnership between Marius and Sulla'
+            ],
+            correct: 1,
+            explanation: 'The First Triumvirate (60 BC) showed how private amicitia could override public institutions. Caesar, Pompey, and Crassus secretly divided the Roman world between them, using their combined influence to control elections and provincial commands.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.4: Political Ideals',
+            question: 'Define libertas and give one example of what this concept meant to the Romans.',
+            correctAnswers: ['political freedom', 'freedom from tyranny'],
+            acceptableVariations: ['freedom', 'political freedom', 'freedom from tyranny', 'freedom from kings', 'right to vote', 'protection under law'],
+            explanation: 'Libertas meant political freedom from domination by kings or tyrants, including the right to vote, legal protection, and political participation.'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.4: Political Ideals',
+            question: 'Which two principles are central to Stoic philosophy?',
+            choices: [
+                'Pleasure above all and avoid pain',
+                'Duty above personal gain and reason over emotion',
+                'Wealth accumulation and social climbing',
+                'Military conquest and territorial expansion'
+            ],
+            correct: 1,
+            explanation: 'Stoicism emphasised duty above personal gain, reason over emotion, virtue as the highest good, and resistance to corruption. These principles attracted Roman politicians who wanted to appear incorruptible.'
+        },
+        {
+            type: 'scenario',
+            topic: 'Topic 1.5: Political Factions',
+            question: 'A consul insists that all major decisions must be debated in the Senate before being put to the popular assemblies. Is this a popularis or optimate policy?',
+            choices: ['Popularis', 'Optimate'],
+            correct: 1,
+            explanation: 'This is optimate - defending Senate authority and insisting on traditional procedures before popular votes.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: The Constitution',
+            question: 'How many dictators were appointed at once?',
+            correctAnswers: ['one'],
+            acceptableVariations: ['one', '1', 'only one'],
+            explanation: 'Only one dictator was appointed at a time to ensure unified command during emergencies.'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.3: Patronage and Amicitia',
+            question: 'Which two things would a patron typically provide to his clients?',
+            choices: [
+                'Legal protection and financial assistance',
+                'Military training and weapons',
+                'Religious instruction and temples',
+                'Foreign languages and travel opportunities'
+            ],
+            correct: 0,
+            explanation: 'Patrons provided legal protection, financial assistance, political influence, and social status to their clients.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.4: Political Ideals',
+            question: 'Name the three main social classes in Roman society.',
+            correctAnswers: ['senators equites plebeians'],
+            acceptableVariations: ['senators, equites, plebeians', 'senatorial, equestrian, plebeian', 'patricians, equites, plebs'],
+            explanation: 'The three main free social classes were Senators (political elite who had held magistracies), Equites (wealthy business class with property qualification), and Plebeians (ordinary citizens).'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.5: Political Factions',
+            question: 'Which two beliefs or methods were typical of the optimates?',
+            choices: [
+                'Defend Senate authority and uphold mos maiorum',
+                'Use popular assemblies and bypass the Senate',
+                'Promote land redistribution and grain distribution',
+                'Appeal to tribunes and use populist rhetoric'
+            ],
+            correct: 0,
+            explanation: 'Optimates ("the best men") defended Senate authority, upheld traditional customs (mos maiorum), supported property rights, and used established magistracies rather than appealing directly to the people.'
         }
     ]
 };
+
+// Load the question bank into the global scope
+if (typeof window !== 'undefined') {
+    window.questionBank = questionBank;
+}
