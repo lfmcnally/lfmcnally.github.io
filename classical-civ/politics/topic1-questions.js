@@ -52,6 +52,34 @@ const questionBank = {
 
         // Topic 1.2 - The Constitution
         {
+            type: 'drag-drop',
+            topic: 'Topic 1.2',
+            question: 'Match each office in the cursus honorum with its main duties:',
+            items: ['Censor', 'Consul', 'Praetor', 'Aedile', 'Quaestor'],
+            categories: {
+                'Census and moral oversight': ['Censor'],
+                'Chief executive and military command': ['Consul'],
+                'Legal administration and courts': ['Praetor'],
+                'Public works and games': ['Aedile'],
+                'Financial administration': ['Quaestor']
+            },
+            explanation: 'Each office in the cursus honorum had specific responsibilities that built experience for higher positions, creating a systematic career progression for the Roman elite.'
+        },
+        {
+            type: 'gap-fill',
+            topic: 'Topic 1.2',
+            question: 'Complete this passage about Roman magistracies:',
+            gapText: 'The ___ was the highest regular magistracy, held by two men who shared power through ___. Tribunes had the power of ___ which allowed them to block any magistrate\'s action. The ___ was appointed for a maximum of six months during extreme emergencies.',
+            correctGaps: ['consulship', 'collegiality', 'intercessio', 'dictator'],
+            acceptableGaps: [
+                ['consulship', 'consul'],
+                ['collegiality', 'shared power'],
+                ['intercessio', 'veto', 'veto power'],
+                ['dictator', 'dictatorship']
+            ],
+            explanation: 'This passage covers key principles of Republican government: shared leadership, checks and balances, and emergency procedures.'
+        },
+        {
             type: 'multiple-choice',
             topic: 'Topic 1.2',
             question: 'Which of these was NOT a unique power of the tribune of the plebs?',
@@ -103,6 +131,31 @@ const questionBank = {
         },
 
         // Topic 1.3 - Patronage and Amicitia
+        {
+            type: 'drag-drop',
+            topic: 'Topic 1.3',
+            question: 'Sort these activities into what patrons provided vs what clients provided:',
+            items: ['Legal protection', 'Morning salutatio', 'Financial assistance', 'Electoral support', 'Sportula distribution', 'Public demonstrations'],
+            categories: {
+                'What Patrons Provided': ['Legal protection', 'Financial assistance', 'Sportula distribution'],
+                'What Clients Provided': ['Morning salutatio', 'Electoral support', 'Public demonstrations']
+            },
+            explanation: 'The patron-client relationship was reciprocal: patrons provided protection and resources, while clients provided loyalty and political support.'
+        },
+        {
+            type: 'gap-fill',
+            topic: 'Topic 1.3',
+            question: 'Complete this passage about Roman political relationships:',
+            gapText: '___ was political "friendship" based on mutual advantage rather than emotion. The morning ___ allowed clients to pay respects to their patron. ___ was the daily gift that reinforced economic dependence. When political friendships ended, they often became bitter ___.',
+            correctGaps: ['amicitia', 'salutatio', 'sportula', 'inimicitia'],
+            acceptableGaps: [
+                ['amicitia', 'friendship'],
+                ['salutatio', 'reception', 'greeting'],
+                ['sportula', 'gift'],
+                ['inimicitia', 'enmity', 'hostility']
+            ],
+            explanation: 'These four key terms describe the complex web of personal relationships that shaped Roman politics.'
+        },
         {
             type: 'text-flexible',
             topic: 'Topic 1.3',
@@ -161,6 +214,33 @@ const questionBank = {
 
         // Topic 1.4 - Political Ideals
         {
+            type: 'drag-drop',
+            topic: 'Topic 1.4',
+            question: 'Match these Roman political ideals with their definitions:',
+            items: ['Dignitas', 'Libertas', 'Auctoritas', 'Pietas'],
+            categories: {
+                'Personal standing and prestige': ['Dignitas'],
+                'Freedom from tyranny': ['Libertas'],
+                'Moral authority and influence': ['Auctoritas'],
+                'Duty to family and state': ['Pietas']
+            },
+            explanation: 'These core Roman values shaped political behaviour and were constantly invoked in speeches and debates.'
+        },
+        {
+            type: 'gap-fill',
+            topic: 'Topic 1.4',
+            question: 'Complete this passage about Cicero\'s political philosophy:',
+            gapText: 'Cicero promoted ___ ___ (harmony between the orders) and ___ ___ ___ (leisure with dignity). He believed the ideal politician should have both ___ (legal power) and ___ (moral authority).',
+            correctGaps: ['concordia ordinum', 'otium cum dignitate', 'potestas', 'auctoritas'],
+            acceptableGaps: [
+                ['concordia ordinum', 'harmony between orders'],
+                ['otium cum dignitate', 'leisure with dignity'],
+                ['potestas', 'power', 'legal power'],
+                ['auctoritas', 'authority', 'moral authority']
+            ],
+            explanation: 'Cicero\'s political philosophy emphasised cooperation between social classes and the combination of formal power with moral credibility.'
+        },
+        {
             type: 'multiple-choice',
             topic: 'Topic 1.4',
             question: 'Which two principles are central to Stoic philosophy?',
@@ -215,6 +295,32 @@ const questionBank = {
         },
 
         // Topic 1.5 - Political Factions
+        {
+            type: 'drag-drop',
+            topic: 'Topic 1.5',
+            question: 'Sort these political methods and beliefs by faction:',
+            items: ['Defend Senate authority', 'Use popular assemblies', 'Uphold mos maiorum', 'Appeal to tribunes', 'Support property rights', 'Land redistribution'],
+            categories: {
+                'Optimates Methods': ['Defend Senate authority', 'Uphold mos maiorum', 'Support property rights'],
+                'Populares Methods': ['Use popular assemblies', 'Appeal to tribunes', 'Land redistribution']
+            },
+            explanation: 'Optimates worked through traditional institutions while populares bypassed them to appeal directly to the people.'
+        },
+        {
+            type: 'gap-fill',
+            topic: 'Topic 1.5',
+            question: 'Complete this passage about Roman political factions:',
+            gapText: 'The ___ ("best men") claimed to defend traditional Roman values and ___ authority. The ___ appealed directly to popular assemblies and often used ___ to propose legislation. The ___ were senators regarded as morally upright and politically reliable.',
+            correctGaps: ['optimates', 'Senate', 'populares', 'tribunes', 'boni'],
+            acceptableGaps: [
+                ['optimates', 'best men'],
+                ['Senate', 'senatorial'],
+                ['populares', 'popular'],
+                ['tribunes', 'tribune'],
+                ['boni', 'good men']
+            ],
+            explanation: 'These factional labels were often rhetorical weapons used to legitimise supporters and delegitimise opponents.'
+        },
         {
             type: 'text-flexible',
             topic: 'Topic 1.5',
