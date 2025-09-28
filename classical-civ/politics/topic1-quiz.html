@@ -234,7 +234,61 @@
             font-weight: 600;
         }
 
-        /* Question Screen */
+        /* Subtopic Selection */
+        .subtopic-selector {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .subtopic-option {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .subtopic-option:hover {
+            border-color: #0066ff;
+            background: rgba(0, 102, 255, 0.02);
+            transform: translateX(4px);
+        }
+
+        .subtopic-number {
+            background: #0066ff;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .subtopic-info {
+            flex: 1;
+        }
+
+        .subtopic-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .subtopic-description {
+            font-size: 0.85rem;
+            color: #666;
+        }
         .question-screen {
             display: none;
         }
@@ -526,6 +580,16 @@
             .topic-title {
                 font-size: 2rem;
             }
+
+            .quiz-mode-selector {
+                grid-template-columns: 1fr;
+            }
+
+            .subtopic-option {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.5rem;
+            }
         }
     </style>
 </head>
@@ -593,6 +657,52 @@
                                     <span>🔍 Deep Dive</span>
                                     <span>⏱️ 15-18 mins</span>
                                     <span>📖 Lesson Content</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Subtopic Selection -->
+                        <div style="margin: 3rem 0 2rem 0;">
+                            <h3 style="text-align: center; color: #333; margin-bottom: 1.5rem;">Or practice a specific subtopic:</h3>
+                            <div class="subtopic-selector">
+                                <div class="subtopic-option" onclick="startQuiz('topic1.1')">
+                                    <div class="subtopic-number">1.1</div>
+                                    <div class="subtopic-info">
+                                        <div class="subtopic-title">What was the Roman Republic?</div>
+                                        <div class="subtopic-description">Founding myths, SPQR, Lucretia, monarchy to Republic</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="subtopic-option" onclick="startQuiz('topic1.2')">
+                                    <div class="subtopic-number">1.2</div>
+                                    <div class="subtopic-info">
+                                        <div class="subtopic-title">Constitution of the Republic</div>
+                                        <div class="subtopic-description">Cursus honorum, magistracies, Senate, assemblies</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="subtopic-option" onclick="startQuiz('topic1.3')">
+                                    <div class="subtopic-number">1.3</div>
+                                    <div class="subtopic-info">
+                                        <div class="subtopic-title">Patronage and Amicitia</div>
+                                        <div class="subtopic-description">Patron-client, salutatio, sportula, First Triumvirate</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="subtopic-option" onclick="startQuiz('topic1.4')">
+                                    <div class="subtopic-number">1.4</div>
+                                    <div class="subtopic-info">
+                                        <div class="subtopic-title">Political Ideals</div>
+                                        <div class="subtopic-description">Dignitas, libertas, auctoritas, Stoicism</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="subtopic-option" onclick="startQuiz('topic1.5')">
+                                    <div class="subtopic-number">1.5</div>
+                                    <div class="subtopic-info">
+                                        <div class="subtopic-title">Political Factions</div>
+                                        <div class="subtopic-description">Optimates vs populares, boni, political methods</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -687,7 +797,19 @@
         // Start quiz function
         function startQuiz(mode) {
             currentMode = mode;
-            currentQuestions = [...questionBank[currentMode]].sort(() => Math.random() - 0.5);
+            
+            // Check if this is a subtopic selection
+            if (mode.startsWith('topic1.')) {
+                // Filter questions for specific subtopic
+                const allQuestions = questionBank['comprehensive'];
+                currentQuestions = allQuestions.filter(q => q.topic === getTopicName(mode));
+                // Randomise the filtered questions
+                currentQuestions = currentQuestions.sort(() => Math.random() - 0.5);
+            } else {
+                // Use the standard mode (comprehensive, quick, detailed)
+                currentQuestions = [...questionBank[currentMode]].sort(() => Math.random() - 0.5);
+            }
+            
             currentQuestionIndex = 0;
             userAnswers = [];
             quizStartTime = Date.now();
@@ -696,6 +818,18 @@
             document.getElementById('question-screen').style.display = 'block';
             
             loadQuestion();
+        }
+
+        // Helper function to get topic name from mode
+        function getTopicName(mode) {
+            const topicNames = {
+                'topic1.1': 'Topic 1.1',
+                'topic1.2': 'Topic 1.2', 
+                'topic1.3': 'Topic 1.3',
+                'topic1.4': 'Topic 1.4',
+                'topic1.5': 'Topic 1.5'
+            };
+            return topicNames[mode] || mode;
         }
 
         // Utility functions
@@ -786,9 +920,27 @@
                     
                 case 'multiple-choice':
                 case 'scenario':
+                    // Randomise the choices but remember which one is correct
+                    const originalChoices = [...question.choices];
+                    const correctAnswer = question.correct;
+                    const correctText = originalChoices[correctAnswer];
+                    
+                    // Shuffle the choices
+                    const shuffledChoices = [...originalChoices];
+                    for (let i = shuffledChoices.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [shuffledChoices[i], shuffledChoices[j]] = [shuffledChoices[j], shuffledChoices[i]];
+                    }
+                    
+                    // Find the new position of the correct answer
+                    const newCorrectIndex = shuffledChoices.indexOf(correctText);
+                    
+                    // Store the new correct index for checking later
+                    question.shuffledCorrect = newCorrectIndex;
+                    
                     answerArea.innerHTML = `
                         <div class="multiple-choice" id="multiple-choice">
-                            ${question.choices.map((choice, index) => `
+                            ${shuffledChoices.map((choice, index) => `
                                 <div class="choice-option" onclick="selectChoice(${index})" data-choice="${index}">
                                     <div class="choice-letter">${String.fromCharCode(65 + index)}</div>
                                     <div>${choice}</div>
@@ -825,7 +977,8 @@
                     const selected = document.querySelector('.choice-option.selected');
                     if (selected) {
                         userAnswer = parseInt(selected.dataset.choice);
-                        result = userAnswer === question.correct ? 'correct' : 'incorrect';
+                        // Use the shuffled correct index instead of original
+                        result = userAnswer === question.shuffledCorrect ? 'correct' : 'incorrect';
                     }
                     break;
             }
