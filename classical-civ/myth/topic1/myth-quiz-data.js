@@ -210,19 +210,181 @@ const questionBank = {
             explanation: 'The hymn shows gods as having deep emotions (Demeter\'s maternal grief), family relationships, and the power to dramatically affect human life through their personal experiences.'
         },
 
-        // Additional comprehensive questions
+        // Additional comprehensive questions - God Identification Focus
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'A statue shows a bearded man with a trident, surrounded by dolphins. Which god is this?',
+            correctAnswers: ['poseidon', 'neptune'],
+            acceptableVariations: ['poseidon', 'neptune', 'poseidon neptune'],
+            explanation: 'The trident is Poseidon/Neptune\'s distinctive weapon, and dolphins are his sacred animals as god of the sea.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'You see a female figure with an owl perched on her shoulder and wearing a helmet. Which goddess is this?',
+            correctAnswers: ['athena', 'minerva'],
+            acceptableVariations: ['athena', 'minerva', 'athena minerva'],
+            explanation: 'Athena/Minerva is identified by her owl (wisdom), helmet (warfare), and often carries a spear or aegis.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'An artwork shows a young man with wings on his sandals, holding a staff with two snakes wrapped around it. Who is this?',
+            correctAnswers: ['hermes', 'mercury'],
+            acceptableVariations: ['hermes', 'mercury', 'hermes mercury'],
+            explanation: 'Hermes/Mercury is identified by his winged sandals, caduceus (staff with snakes), and role as messenger god.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'A sculpture depicts a woman emerging from sea foam, surrounded by roses and doves. Which goddess is this?',
+            correctAnswers: ['aphrodite', 'venus'],
+            acceptableVariations: ['aphrodite', 'venus', 'aphrodite venus'],
+            explanation: 'Aphrodite/Venus is associated with her birth from sea foam, roses (symbol of love), and doves (sacred birds).'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'You see a figure with a bow and arrows, accompanied by a deer, with a crescent moon above her head. Who is this?',
+            correctAnswers: ['artemis', 'diana'],
+            acceptableVariations: ['artemis', 'diana', 'artemis diana'],
+            explanation: 'Artemis/Diana is identified by her silver bow, deer (sacred animal), and crescent moon (as goddess of the hunt and moon).'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'A bearded figure sits on a throne holding a thunderbolt, with an eagle at his feet. Which god is this?',
+            correctAnswers: ['zeus', 'jupiter'],
+            acceptableVariations: ['zeus', 'jupiter', 'zeus jupiter'],
+            explanation: 'Zeus/Jupiter, king of the gods, is identified by his thunderbolt weapon and the eagle as his sacred bird and symbol of divine authority.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'An image shows a muscular man in armour with a spear and shield, accompanied by a dog and vulture. Which god is this?',
+            correctAnswers: ['ares', 'mars'],
+            acceptableVariations: ['ares', 'mars', 'ares mars'],
+            explanation: 'Ares/Mars is shown in military gear with weapons of war, dogs (representing the violence of battle), and vultures (scavengers of battlefields).'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'A figure holds a lyre and has laurel leaves in his hair, with a sun disk behind his head. Who is this?',
+            correctAnswers: ['apollo'],
+            acceptableVariations: ['apollo', 'apollo phoebus'],
+            explanation: 'Apollo is identified by his lyre (music), laurel wreath (poetry), and solar imagery (as god of the sun, music, and prophecy).'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'A woman holds wheat sheaves and has poppies in her hair, standing next to a plough. Which goddess is this?',
+            correctAnswers: ['demeter', 'ceres'],
+            acceptableVariations: ['demeter', 'ceres', 'demeter ceres'],
+            explanation: 'Demeter/Ceres is identified by wheat (grain harvest), poppies (grow in grain fields), and agricultural tools as goddess of agriculture.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'A bearded man holds a hammer and tongs, with one leg appearing deformed. Which god is this?',
+            correctAnswers: ['hephaestus', 'vulcan'],
+            acceptableVariations: ['hephaestus', 'vulcan', 'hephaestus vulcan'],
+            explanation: 'Hephaestus/Vulcan is identified by his smith\'s tools (hammer, tongs), his lameness from being thrown from Olympus, and association with metalwork and fire.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'A crowned woman holds a pomegranate and keys, with her head veiled. Who is this?',
+            correctAnswers: ['hera', 'juno'],
+            acceptableVariations: ['hera', 'juno', 'hera juno'],
+            explanation: 'Hera/Juno is identified by her crown (queen of gods), pomegranate (marriage fertility), veil (married status), and peacocks as sacred birds.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'A young man holds grape vines and has ivy in his hair, with leopards nearby. Which god is this?',
+            correctAnswers: ['dionysus', 'bacchus'],
+            acceptableVariations: ['dionysus', 'bacchus', 'dionysus bacchus'],
+            explanation: 'Dionysus/Bacchus is identified by grape vines (wine), ivy crown, thyrsus staff, and big cats like leopards in his wild retinue.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'A dark figure sits on a throne made of bones, holding a key and a cornucopia. Who is this?',
+            correctAnswers: ['hades', 'pluto'],
+            acceptableVariations: ['hades', 'pluto', 'hades pluto'],
+            explanation: 'Hades/Pluto is identified by his key (gatekeeper of the underworld), cornucopia (wealth from the earth), and dark, underworld imagery.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'A woman tends a sacred fire with her head covered, holding a lamp. Which goddess is this?',
+            correctAnswers: ['hestia', 'vesta'],
+            acceptableVariations: ['hestia', 'vesta', 'hestia vesta'],
+            explanation: 'Hestia/Vesta is identified by the sacred hearth fire, domestic imagery, and modest veiled appearance as goddess of home and hearth.'
+        },
         {
             type: 'multiple-choice',
             topic: 'Topic 1.2: Gods and Iconography',
-            question: 'Which pair correctly matches a god with their Roman name?',
+            question: 'Which symbols would help you identify Demeter/Ceres in ancient art?',
             choices: [
-                'Artemis - Diana',
-                'Hermes - Apollo',
-                'Dionysus - Bacchus',
-                'Both A and C are correct'
+                'Wheat sheaves and poppies',
+                'Roses and doves',
+                'Owl and olive branch',
+                'Bow and crescent moon'
             ],
-            correct: 3,
-            explanation: 'Both Artemis/Diana (goddess of the hunt) and Dionysus/Bacchus (god of wine) are correctly matched with their Roman equivalents.'
+            correct: 0,
+            explanation: 'Demeter/Ceres is identified by wheat sheaves (grain harvest), poppies (grow in wheat fields), and other agricultural symbols.'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'If you see a figure with a thyrsus staff covered in ivy and grape vines, this represents:',
+            choices: [
+                'Apollo - god of music',
+                'Dionysus/Bacchus - god of wine',
+                'Hermes/Mercury - messenger god',
+                'Ares/Mars - god of war'
+            ],
+            correct: 1,
+            explanation: 'The thyrsus (staff topped with pine cone, wrapped in ivy and grape vines) is the distinctive symbol of Dionysus/Bacchus, god of wine and revelry.'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'Which combination of symbols specifically identifies Artemis/Diana?',
+            choices: [
+                'Lyre and sun rays',
+                'Silver bow, deer, and crescent moon',
+                'Trident and dolphins',
+                'Thunderbolt and eagle'
+            ],
+            correct: 1,
+            explanation: 'Artemis/Diana is identified by her silver bow (hunting), deer (sacred animal), and crescent moon (lunar goddess aspect).'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'What sacred animal is most commonly associated with Hera/Juno?',
+            correctAnswers: ['peacock'],
+            acceptableVariations: ['peacock', 'peacocks'],
+            explanation: 'The peacock is Hera/Juno\'s sacred bird, with its beautiful tail feathers said to contain the eyes of Argus, whom she set to watch over Io.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'What musical instrument is Apollo most commonly shown holding?',
+            correctAnswers: ['lyre'],
+            acceptableVariations: ['lyre', 'lira'],
+            explanation: 'Apollo holds a lyre, symbolising his role as god of music, poetry, and the arts, as well as harmony and civilised culture.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'What type of crown or wreath is Apollo typically shown wearing?',
+            correctAnswers: ['laurel'],
+            acceptableVariations: ['laurel', 'laurel wreath', 'laurel crown', 'bay leaves'],
+            explanation: 'Apollo wears a laurel wreath, made from the bay tree that the nymph Daphne became when fleeing from him. Laurel became sacred to Apollo and symbolised victory and achievement.'
         },
         {
             type: 'scenario',
@@ -239,6 +401,181 @@ const questionBank = {
             correctAnswers: ['vesta'],
             acceptableVariations: ['vesta', 'vestia'],
             explanation: 'Vesta (Greek: Hestia) was the goddess of the hearth, home, and domestic life. Her sacred flame was tended by the Vestal Virgins in Rome.'
+        },
+        {
+            type: 'drag-drop',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'Match these symbols with the correct gods:',
+            items: ['Caduceus', 'Aegis', 'Thyrsus', 'Cornucopia'],
+            categories: {
+                'Hermes/Mercury': ['Caduceus'],
+                'Athena/Minerva': ['Aegis'],
+                'Dionysus/Bacchus': ['Thyrsus'],
+                'Hades/Pluto': ['Cornucopia']
+            },
+            explanation: 'Each god has distinctive symbols: caduceus (messenger staff), aegis (protective shield), thyrsus (wine staff), cornucopia (wealth from earth).'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'A figure is shown with a helmet that has an owl perched on it and holds a spear. What other symbol would confirm this is Athena/Minerva?',
+            correctAnswers: ['aegis', 'olive branch', 'shield'],
+            acceptableVariations: ['aegis', 'olive branch', 'olive tree', 'shield with medusa', 'gorgon shield'],
+            explanation: 'The aegis (shield with Medusa\'s head) or olive branch would confirm this is Athena/Minerva, goddess of wisdom and strategic warfare.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'What bird is sacred to Zeus/Jupiter and often appears with him in art?',
+            correctAnswers: ['eagle'],
+            acceptableVariations: ['eagle', 'eagles'],
+            explanation: 'The eagle is Zeus/Jupiter\'s sacred bird and symbol of divine authority, often shown carrying his thunderbolts or perched beside his throne.'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'Which god is identified by a hammer, anvil, and fire imagery?',
+            choices: [
+                'Ares/Mars',
+                'Hephaestus/Vulcan',
+                'Apollo',
+                'Hermes/Mercury'
+            ],
+            correct: 1,
+            explanation: 'Hephaestus/Vulcan is the smith god, identified by metalworking tools like hammers and anvils, plus fire and forge imagery.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'What flowers are most associated with Aphrodite/Venus?',
+            correctAnswers: ['roses'],
+            acceptableVariations: ['roses', 'rose'],
+            explanation: 'Roses are sacred to Aphrodite/Venus as symbols of love and beauty, often shown growing where she walks or decorating her temples.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'Which big cats are often shown with Dionysus/Bacchus?',
+            correctAnswers: ['leopards', 'panthers'],
+            acceptableVariations: ['leopards', 'panthers', 'leopard', 'panther', 'big cats'],
+            explanation: 'Leopards and panthers accompany Dionysus/Bacchus, representing the wild, untamed nature of wine and religious ecstasy.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'What plant is sacred to Dionysus/Bacchus besides grapes?',
+            correctAnswers: ['ivy'],
+            acceptableVariations: ['ivy', 'ivy leaves'],
+            explanation: 'Ivy is sacred to Dionysus/Bacchus and forms his crown, representing the god\'s connection to wild nature and his role in vegetation cycles.'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'If you see a figure with a beard riding a chariot pulled by sea creatures, this is most likely:',
+            choices: [
+                'Zeus/Jupiter',
+                'Poseidon/Neptune',
+                'Hades/Pluto',
+                'Apollo'
+            ],
+            correct: 1,
+            explanation: 'Poseidon/Neptune is often shown in a chariot pulled by hippocampi (sea horses) or other marine creatures, emphasizing his dominion over the oceans.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'What type of headwear identifies Hermes/Mercury?',
+            correctAnswers: ['winged cap', 'petasos'],
+            acceptableVariations: ['winged cap', 'winged hat', 'petasos', 'hat with wings'],
+            explanation: 'Hermes/Mercury wears a petasos (winged cap) that enables swift travel as the messenger god, complementing his winged sandals.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'Which god carries a trident?',
+            correctAnswers: ['poseidon', 'neptune'],
+            acceptableVariations: ['poseidon', 'neptune', 'poseidon neptune'],
+            explanation: 'Poseidon/Neptune carries a trident, his three-pronged weapon that can cause earthquakes and control the seas.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'What weapon does Zeus/Jupiter carry?',
+            correctAnswers: ['thunderbolt'],
+            acceptableVariations: ['thunderbolt', 'lightning bolt', 'thunder bolt'],
+            explanation: 'Zeus/Jupiter wields the thunderbolt as his primary weapon, forged by the Cyclopes.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'Which goddess is associated with owls?',
+            correctAnswers: ['athena', 'minerva'],
+            acceptableVariations: ['athena', 'minerva', 'athena minerva'],
+            explanation: 'Athena/Minerva is associated with owls, symbols of wisdom and her sacred birds.'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'Which symbols identify Artemis/Diana?',
+            choices: [
+                'Bow and deer',
+                'Hammer and anvil',
+                'Grapes and ivy',
+                'Roses and doves'
+            ],
+            correct: 0,
+            explanation: 'Artemis/Diana is identified by her silver bow (hunting) and deer (sacred animals).'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'Describe three symbols that would help you identify Apollo in ancient art.',
+            correctAnswers: ['lyre', 'laurel', 'sun'],
+            acceptableVariations: ['lyre, laurel, sun rays', 'musical instrument, bay leaves, solar disk', 'lyre, bay wreath, sun'],
+            explanation: 'Apollo is identified by his lyre (music), laurel wreath (poetry and victory), and solar imagery (sun god aspect).'
+        },
+        {
+            type: 'multiple-choice',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'Why does Hephaestus/Vulcan often appear with a deformed leg in art?',
+            choices: [
+                'To show the dangers of metalworking',
+                'Because he was thrown from Olympus by Zeus',
+                'To represent the imperfection of mortal crafts',
+                'It\'s a symbol of his humility'
+            ],
+            correct: 1,
+            explanation: 'Hephaestus was thrown from Mount Olympus by Zeus (either at birth for being ugly, or later for defending Hera), which left him permanently lame.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'What is the aegis and which goddess carries it?',
+            correctAnswers: ['protective shield athena'],
+            acceptableVariations: ['shield with medusa head, athena', 'protective armor athena', 'breastplate with gorgon athena'],
+            explanation: 'The aegis is Athena\'s protective shield or breastplate, often decorated with the head of Medusa, symbolising divine protection and terror to enemies.'
+        },
+        {
+            type: 'drag-drop',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'Match these animals with their associated gods:',
+            items: ['Eagle', 'Owl', 'Deer', 'Peacock', 'Dolphin'],
+            categories: {
+                'Zeus/Jupiter': ['Eagle'],
+                'Athena/Minerva': ['Owl'],
+                'Artemis/Diana': ['Deer'],
+                'Hera/Juno': ['Peacock'],
+                'Poseidon/Neptune': ['Dolphin']
+            },
+            explanation: 'Sacred animals helped worshippers identify gods in art and showed aspects of divine power and personality.'
+        },
+        {
+            type: 'text-flexible',
+            topic: 'Topic 1.2: Gods and Iconography',
+            question: 'How can you tell the difference between Ares/Mars and other warrior gods in art?',
+            correctAnswers: ['more brutal violent'],
+            acceptableVariations: ['violent warfare symbols', 'dogs and vultures', 'savage battle imagery', 'destructive war aspects'],
+            explanation: 'Ares/Mars represents the brutal, violent side of war (unlike Athena\'s strategic warfare), often shown with scavenging animals like dogs and vultures that feed on battlefields.'
         }
     ],
 
