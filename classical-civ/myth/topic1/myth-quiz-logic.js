@@ -155,11 +155,13 @@ function loadAnswerArea(question) {
             
         case 'drag-drop':
             const categories = Object.keys(question.categories);
+            // Randomise the items array for each question
+            const shuffledItems = [...question.items].sort(() => Math.random() - 0.5);
             answerArea.innerHTML = `
                 <div class="drag-drop-container">
                     <div class="drag-instruction">Drag the items to the correct categories</div>
                     <div class="drag-items" id="drag-items">
-                        ${question.items.map(item => `
+                        ${shuffledItems.map(item => `
                             <div class="drag-item" draggable="true" data-item="${item}">${item}</div>
                         `).join('')}
                     </div>
