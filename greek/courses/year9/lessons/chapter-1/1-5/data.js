@@ -93,6 +93,26 @@ const lessonData = {
             "Accusative plural: -άς (1st) or -ους (2nd)",
             "Article matches noun's gender and case"
         ]
+    },
+
+    // Translation Sentences
+    translations: {
+        singular: [
+            { greek: "ὁ ἀγγελος τρεχει.", english: "The messenger runs." },
+            { greek: "ὁ στρατηγος ἀγει τον στρατον.", english: "The general leads the army." },
+            { greek: "ὁ ξενος φερει τον λογον.", english: "The stranger brings the word." },
+            { greek: "διδασκω τον ἀγγελον.", english: "I teach the messenger." },
+            { greek: "ὁ θεος φυλασσει την γην.", english: "The god guards the earth." },
+            { greek: "ἀκουω τον λογον.", english: "I hear the word." }
+        ],
+        plural: [
+            { greek: "οἱ ἀγγελοι τρεχουσι.", english: "The messengers run." },
+            { greek: "οἱ στρατηγοι ἀγουσι τους στρατους.", english: "The generals lead the armies." },
+            { greek: "οἱ ξενοι φερουσι τους λογους.", english: "The strangers bring the words." },
+            { greek: "διδασκω τους ἀγγελους.", english: "I teach the messengers." },
+            { greek: "οἱ θεοι φυλασσουσι τάς γάς.", english: "The gods guard the lands." },
+            { greek: "ἀκουω τους λογους.", english: "I hear the words." }
+        ]
     }
 };
 
@@ -102,6 +122,7 @@ function loadLessonData() {
     loadEndings();
     loadPractice();
     loadVocabulary();
+    loadTranslations();
     loadQuickReference();
 }
 
@@ -245,6 +266,38 @@ function loadQuickReference() {
     `;
 }
 
+// Load Translation Sentences
+function loadTranslations() {
+    const translationsDiv = document.getElementById('translations-content');
+    if (!translationsDiv) return;
+
+    const sentences = currentView === 'singular' ? lessonData.translations.singular : lessonData.translations.plural;
+    
+    translationsDiv.innerHTML = sentences.map((item, index) => `
+        <div class="translation-card" onclick="toggleTranslation(${index})">
+            <div class="translation-greek">${item.greek}</div>
+            <div class="translation-answer" id="translation-${index}" style="display: none;">
+                <div class="translation-english">${item.english}</div>
+            </div>
+            <div class="translation-hint" id="translation-hint-${index}">Click to reveal</div>
+        </div>
+    `).join('');
+}
+
+// Toggle translation visibility
+function toggleTranslation(index) {
+    const answer = document.getElementById(`translation-${index}`);
+    const hint = document.getElementById(`translation-hint-${index}`);
+    
+    if (answer.style.display === 'none') {
+        answer.style.display = 'block';
+        hint.style.display = 'none';
+    } else {
+        answer.style.display = 'none';
+        hint.style.display = 'block';
+    }
+}
+
 // Toggle practice answer visibility
 function togglePractice(index) {
     const answer = document.getElementById(`practice-${index}`);
@@ -266,6 +319,7 @@ function switchToSingular() {
     loadArticle();
     loadEndings();
     loadPractice();
+    loadTranslations();
     loadQuickReference();
 }
 
@@ -276,6 +330,7 @@ function switchToPlural() {
     loadArticle();
     loadEndings();
     loadPractice();
+    loadTranslations();
     loadQuickReference();
 }
 
