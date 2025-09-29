@@ -297,7 +297,6 @@ function generateStyleCards() {
             <div class="badge">Literary Device</div>
             <h4>${data.title}</h4>
             <p><strong>Device:</strong> ${data.device}</p>
-            <p><strong>Description:</strong> ${data.description}</p>
             <p><strong>Effect:</strong> ${data.effect}</p>
         `;
         
