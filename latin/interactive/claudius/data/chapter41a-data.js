@@ -1,4 +1,4 @@
-// Lesson data for Chapter 41a
+// Lesson data for Chapter 41a - chapter41a-data.js
 const grammarData = {
     phrase1: {
         title: "Ti. Claudio quintum Servio Cornelio Orfito consulibus",
