@@ -195,9 +195,63 @@ const grammarData = {
 const styleData = {
     style1: {
         title: "Britannicus in praetexta, Nero triumphali veste",
-        device: "Visual Contrast & Political Theatre",
-        description: "The juxtaposition of Britannicus in boyish dress and Nero in imperial/triumphal clothing creates a powerful visual statement. This is carefully choreographed propaganda.",
-        effect: "Creates an unmistakable binary in the public mind: Nero = imperial power and victory; Britannicus = childish irrelevance. The contrast publicly humiliates the legitimate heir whilst elevating the adopted son."
+        device: "Visual Contrast",
+        effect: "The juxtaposition of boyish dress versus imperial clothing creates an unmistakable binary in the public mind, publicly humiliating the legitimate heir whilst elevating the adopted son."
+    },
+    style2: {
+        title: "maturata",
+        device: "Loaded Vocabulary",
+        effect: "The word suggests artificial acceleration and premature advancement, immediately signalling that natural order is being violated for political expediency."
+    },
+    style3: {
+        title: "videretur",
+        device: "Subjunctive of Appearance",
+        effect: "Using 'might seem' rather than 'might be' reveals that this is about optics and manipulation - Nero needs to appear ready, not actually be ready."
+    },
+    style4: {
+        title: "adulationibus senatus",
+        device: "Pejorative Diction",
+        effect: "Calling Senate proposals 'flatteries' rather than neutral terms exposes Tacitus' contempt for their servility and the corrupt emperor-Senate relationship."
+    },
+    style5: {
+        title: "libens cessit",
+        device: "Ironic Emphasis",
+        effect: "Highlighting that Claudius yielded 'willingly' suggests he was easily manipulated or complicit in undermining his own son's succession."
+    },
+    style6: {
+        title: "vicesimo aetatis anno",
+        device: "Age Emphasis",
+        effect: "Explicitly stating Nero's age of 20 underscores how radically irregular this is - the traditional minimum was 42, later reduced to 30."
+    },
+    style7: {
+        title: "donativum militi, congiarium plebei",
+        device: "Parallel Structure",
+        effect: "The balanced phrasing emphasises the calculated, transactional nature of buying loyalty from both military and civilians."
+    },
+    style8: {
+        title: "adquirendis vulgi studiis",
+        device: "Contemptuous Language",
+        effect: "Describing the purpose as getting the 'mob's goodwill' reveals disdain for both the masses and those who pander to them through staged spectacles."
+    },
+    style9: {
+        title: "spectaret... praesumeret",
+        device: "Imperfect Subjunctives",
+        effect: "The repeated subjunctives emphasise intention and planning - every detail was choreographed to manipulate public perception."
+    },
+    style10: {
+        title: "hunc... illum",
+        device: "Demonstrative Opposition",
+        effect: "The binary 'this one... that one' forces viewers into a simple choice, eliminating any middle ground between imperial glory and childish irrelevance."
+    },
+    style11: {
+        title: "decore imperatorio... puerili habitu",
+        device: "Antithesis",
+        effect: "The stark contrast between 'imperial splendour' and 'boyish dress' creates maximum visual and emotional impact."
+    },
+    style12: {
+        title: "fortunam utriusque",
+        device: "Dramatic Irony",
+        effect: "The word 'fortuna' carries implications of fate - readers who know the outcome recognise the tragic irony of this manipulated spectacle."
     }
 };
 
