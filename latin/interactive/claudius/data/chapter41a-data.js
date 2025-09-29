@@ -1,138 +1,252 @@
-// Analysis data for Nero Enters Public Life Chapter 41a interactive text
-const textData = {
-    "ablative-absolute-consuls": {
-        title: "Ti. Claudio quintum... consulibus",
-        translation: "In the consulships of Tiberius Claudius for the fifth time and Servius Cornelius Orfitus",
-        device: "Ablative Absolute - Historical Dating",
-        description: "Tacitus uses the formal ablative absolute construction to date this pivotal moment. The emphasis on Claudius' fifth consulship underscores his long reign and makes the transfer of power to Nero seem more significant.",
-        effect: "Provides historical gravitas whilst subtly highlighting Claudius' authority - authority that is about to be undermined as his adopted son is pushed forward at the expense of his biological son."
+// Lesson data for Chapter 41a
+const grammarData = {
+    phrase1: {
+        title: "Ti. Claudio quintum Servio Cornelio Orfito consulibus",
+        vocab: [
+            "Ti. = Tiberius (abbreviated)",
+            "Claudio = Claudius (ablative)",
+            "quintum = for the fifth time (adverb)",
+            "Servio = Servius (ablative)",
+            "Cornelio = Cornelius (ablative)",
+            "Orfito = Orfitus (ablative)",
+            "consulibus = consuls (ablative plural)"
+        ],
+        grammar: "Ablative absolute construction used for dating. This formal opening gives the passage historical weight and emphasises Claudius' fifth consulship.",
+        translation: "In the consulships of Tiberius Claudius for the fifth time and Servius Cornelius Orfitus"
     },
-
-    "virilis-toga": {
-        title: "virilis toga",
-        translation: "manly toga",
-        device: "Cultural Symbol - Coming of Age",
-        description: "The toga virilis marked a Roman boy's transition to manhood, normally around age 16-17. This was a crucial rite of passage that signalled readiness for public life and military service.",
-        effect: "By mentioning this ceremony explicitly, Tacitus draws attention to its significance whilst preparing to reveal its manipulation - the timing is being rushed for political purposes."
+    phrase2: {
+        title: "virilis toga Neroni",
+        vocab: [
+            "virilis = manly, of manhood (nominative feminine)",
+            "toga = toga (nominative)",
+            "Neroni = to/for Nero (dative)"
+        ],
+        grammar: "The toga virilis was the coming-of-age toga worn by adult Roman men, normally received around age 16-17. This marked transition to full citizenship.",
+        translation: "the manly toga for Nero"
     },
-
-    "maturata-rushed": {
+    phrase3: {
         title: "maturata",
-        translation: "was accelerated, was hastened",
-        device: "Loaded Vocabulary - Political Manipulation",
-        description: "The word 'maturata' suggests artificial acceleration and premature advancement. Tacitus signals that the natural order of things is being violated for political expediency.",
-        effect: "Immediately reveals the manipulation behind Nero's promotion, suggesting that he is not genuinely ready for power but is being thrust forward artificially."
+        vocab: [
+            "maturata = was accelerated, was hastened (perfect passive participle, nominative feminine singular)"
+        ],
+        grammar: "Perfect passive participle agreeing with 'toga'. The passive form emphasises that the timing was artificially accelerated by others, not a natural development.",
+        translation: "was accelerated"
     },
-
-    "purpose-clause": {
-        title: "quo... habilis videretur",
-        translation: "so that he might seem suitable to undertake a public role",
-        device: "Purpose Clause with Subjunctive",
-        description: "The subjunctive mood emphasises intention and planning. More importantly, 'videretur' (might seem) rather than 'esset' (might be) suggests appearance over reality - Nero needs to appear ready, not actually be ready.",
-        effect: "The emphasis on seeming rather than being reveals the superficiality of Nero's elevation - it's all about optics and manipulation of public perception."
+    phrase4: {
+        title: "quo capessendae rei publicae habilis videretur",
+        vocab: [
+            "quo = so that (purpose conjunction with comparative)",
+            "capessendae = to be undertaken (gerundive, genitive feminine singular)",
+            "rei = role, business (genitive)",
+            "publicae = public (genitive feminine)",
+            "habilis = suitable, fit (nominative)",
+            "videretur = he might seem (imperfect subjunctive)"
+        ],
+        grammar: "Purpose clause with 'quo' + subjunctive (used instead of 'ut' when there's a comparative). Note 'videretur' (might seem) rather than 'esset' (might be) - appearance matters more than reality.",
+        translation: "so that he might seem suitable to undertake a public role"
     },
-
-    "adulationibus-criticism": {
-        title: "adulationibus",
-        translation: "flattering suggestions, flatteries",
-        device: "Pejorative Diction",
-        description: "Tacitus characteristically describes senatorial proposals as 'adulationes' (flatteries) rather than using neutral terms like 'rogationes' (proposals). This reveals his contempt for the Senate's servility.",
-        effect: "Exposes the corrupt relationship between emperor and Senate, showing how the Senate debases itself through excessive flattery rather than providing genuine counsel."
+    phrase5: {
+        title: "et Caesar adulationibus senatus libens cessit",
+        vocab: [
+            "et = and, also",
+            "Caesar = the emperor (nominative)",
+            "adulationibus = to the flatteries (dative plural)",
+            "senatus = of the Senate (genitive)",
+            "libens = willingly (nominative present participle)",
+            "cessit = yielded, gave way (perfect)"
+        ],
+        grammar: "Tacitus uses 'adulationibus' (flatteries) rather than neutral terms like 'rogationes' (proposals), revealing his contempt for Senate servility.",
+        translation: "and the emperor willingly yielded to the flattering suggestions of the Senate"
     },
-
-    "result-clause": {
+    phrase6: {
         title: "ut vicesimo aetatis anno consulatum Nero iniret",
-        translation: "that Nero should enter upon the consulship in the 20th year of his life",
-        device: "Result Clause - Highlighting Irregularity",
-        description: "The minimum age for consul was traditionally 42 (later reduced to around 30 under the Empire). At 20, Nero would be extraordinarily young for this office, highlighting how traditional norms are being discarded.",
-        effect: "Emphasises the radical nature of Nero's promotion and the complete abandonment of Republican precedent in favour of dynastic ambition."
+        vocab: [
+            "ut = that (result/indirect command)",
+            "vicesimo = twentieth (ablative)",
+            "aetatis = of age (genitive)",
+            "anno = in the year (ablative)",
+            "consulatum = consulship (accusative)",
+            "Nero = Nero (nominative)",
+            "iniret = should enter upon (imperfect subjunctive)"
+        ],
+        grammar: "Result clause or indirect command. The minimum age for consul was traditionally 42 under the Republic, later reduced to around 30. At 20, this is extraordinarily irregular.",
+        translation: "that Nero should enter upon the consulship in the 20th year of his life"
     },
-
-    "designatus-title": {
-        title: "designatus",
-        translation: "designated, appointed",
-        device: "Technical Political Terminology",
-        description: "Being 'consul designatus' meant being officially designated for the consulship before actually holding office. This gave Nero official status and authority even before reaching the minimum age.",
-        effect: "Shows how political machinery is being manipulated to grant Nero power immediately whilst maintaining a veneer of constitutional propriety."
+    phrase7: {
+        title: "atque interim designatus",
+        vocab: [
+            "atque = and",
+            "interim = in the meantime",
+            "designatus = designated, appointed (nominative)"
+        ],
+        grammar: "Being 'consul designatus' meant being officially designated for the consulship before actually holding office. This gave Nero official status immediately.",
+        translation: "and in the meantime, as consul designate"
     },
-
-    "proconsular-power": {
-        title: "proconsulare imperium",
-        translation: "proconsular power",
-        device: "Constitutional Authority",
-        description: "Proconsular imperium granted military and administrative authority over provinces. This was typically held by senior magistrates who had completed a consulship, not teenagers.",
-        effect: "Reveals the extraordinary and unprecedented nature of the powers being granted to Nero, showing how traditional career progression is being completely bypassed."
+    phrase8: {
+        title: "proconsulare imperium extra urbem haberet",
+        vocab: [
+            "proconsulare = proconsular (accusative neuter)",
+            "imperium = power, command (accusative)",
+            "extra = outside (+ accusative)",
+            "urbem = the city (accusative)",
+            "haberet = he should hold (imperfect subjunctive)"
+        ],
+        grammar: "Proconsular imperium granted military and administrative authority over provinces, typically held by former consuls. Giving this to a teenager is unprecedented.",
+        translation: "he should hold proconsular power outside the city"
     },
-
-    "princeps-iuventutis": {
-        title: "princeps iuventutis",
-        translation: "leader of the youth",
-        device: "Traditional Honorific Title",
-        description: "This title had been given to Augustus' grandsons Gaius and Lucius Caesar, marking them as heirs apparent. By giving it to Nero, Claudius signals him as the designated successor.",
-        effect: "Establishes Nero's position as heir whilst evoking the Augustan precedent, lending historical legitimacy to the succession plan at Britannicus' expense."
+    phrase9: {
+        title: "ac princeps iuventutis appellaretur",
+        vocab: [
+            "ac = and",
+            "princeps = leader, first man (nominative)",
+            "iuventutis = of the youth (genitive)",
+            "appellaretur = should be called (imperfect subjunctive passive)"
+        ],
+        grammar: "This title had been given to Augustus' grandsons Gaius and Lucius Caesar, marking them as heirs. By giving it to Nero, succession is publicly established.",
+        translation: "and be called leader of the youth"
     },
-
-    "donativum-military": {
-        title: "donativum militi",
-        translation: "a donative to the soldiers",
-        device: "Political Vocabulary - Military Loyalty",
-        description: "A 'donativum' was a cash payment to soldiers, often used to secure their loyalty during succession. This reveals the calculated effort to bind the military to Nero.",
-        effect: "Exposes the transactional nature of imperial power - loyalty must be bought with cash, and Nero's succession depends on military support secured through bribes."
+    phrase10: {
+        title: "additum nomine eius donativum militi, congiarium plebei",
+        vocab: [
+            "additum = was added (perfect passive participle)",
+            "nomine = in the name (ablative)",
+            "eius = his (genitive)",
+            "donativum = donative, gift (nominative)",
+            "militi = to/for the soldier (dative)",
+            "congiarium = handout, distribution (nominative)",
+            "plebei = to/for the plebs (dative)"
+        ],
+        grammar: "A donativum was cash payment to soldiers (buying military loyalty), whilst a congiarium was for ordinary citizens (buying popularity). Both are transactional.",
+        translation: "a donative was added for the soldiers in his name, a handout for the plebs"
     },
-
-    "congiarium-plebs": {
-        title: "congiarium plebei",
-        translation: "a handout to the plebs",
-        device: "Political Vocabulary - Public Popularity",
-        description: "A 'congiarium' was a distribution of money or goods to Roman citizens. Like the military donative, this was a calculated political move to secure popular support for Nero.",
-        effect: "Reveals the orchestrated campaign to build Nero's popularity through material benefits rather than genuine merit or achievement."
+    phrase11: {
+        title: "et ludicro circensium, quod adquirendis vulgi studiis edebatur",
+        vocab: [
+            "et = and, also",
+            "ludicro = at/in the performance (ablative)",
+            "circensium = of the circus games (genitive plural)",
+            "quod = which (nominative neuter)",
+            "adquirendis = to be obtained (gerundive, dative neuter plural)",
+            "vulgi = of the mob, of the crowd (genitive)",
+            "studiis = goodwill, enthusiasm (dative/ablative plural)",
+            "edebatur = was provided, was staged (imperfect passive)"
+        ],
+        grammar: "Relative clause of purpose with gerundive. Tacitus explicitly states the manipulative purpose - 'vulgi studiis' (mob's goodwill) shows slight contempt.",
+        translation: "and at a performance of the circus games, which was provided in order to get the goodwill of the mob"
     },
-
-    "relative-purpose": {
-        title: "quod adquirendis vulgi studiis edebatur",
-        translation: "which was provided in order to win the goodwill of the mob",
-        device: "Relative Clause of Purpose",
-        description: "Tacitus explicitly states the manipulative purpose behind the games. The phrase 'vulgi studiis' (goodwill of the mob) shows slight contempt for both the masses and those who pander to them.",
-        effect: "Strips away any pretence of genuine celebration, revealing the games as calculated political propaganda designed to manipulate public opinion."
-    },
-
-    "britannicus-praetexta": {
+    phrase12: {
         title: "Britannicus in praetexta",
-        translation: "Britannicus in the toga praetexta",
-        device: "Symbolic Contrast - Visual Rhetoric",
-        description: "The toga praetexta (worn by boys before coming of age) marks Britannicus as still a child, not yet an adult citizen. This visual symbol publicly demonstrates his inferior status.",
-        effect: "Creates a powerful visual contrast that publicly humiliates Britannicus by displaying him as a child whilst Nero appears as a conquering hero."
+        vocab: [
+            "Britannicus = Britannicus (nominative)",
+            "in = in (+ ablative)",
+            "praetexta = toga praetexta (ablative - bordered toga worn by boys)"
+        ],
+        grammar: "The toga praetexta was worn by boys before coming of age, marking Britannicus as still a child, not yet an adult citizen.",
+        translation: "Britannicus in the toga praetexta"
     },
-
-    "nero-triumphalis": {
+    phrase13: {
         title: "Nero triumphali veste",
-        translation: "Nero in triumphal clothing",
-        device: "Symbolic Contrast - Imperial Imagery",
-        description: "Triumphal dress was reserved for victorious generals celebrating a triumph. By dressing Nero thus, the staging presents him as a military victor despite having won no battles.",
-        effect: "The contrast with Britannicus' childish dress could not be starker - Nero is presented as an imperial victor whilst the legitimate heir is reduced to boyish irrelevance."
+        vocab: [
+            "Nero = Nero (nominative)",
+            "triumphali = triumphal (ablative feminine)",
+            "veste = clothing, dress (ablative)"
+        ],
+        grammar: "Triumphal dress was reserved for victorious generals celebrating a triumph. Nero wears it despite having won no battles - pure theatre.",
+        translation: "Nero in triumphal clothing"
     },
-
-    "jussive-subjunctive": {
-        title: "spectaret populus",
-        translation: "let the people watch",
-        device: "Jussive Subjunctive - Authorial Commentary",
-        description: "Tacitus shifts to the subjunctive mood to reveal the intended purpose behind the spectacle. This grammatical construction exposes the manipulative staging of the event.",
-        effect: "Reveals that every detail was carefully choreographed as political theatre, designed to shape public perception and legitimise the succession."
+    phrase14: {
+        title: "travecti sunt",
+        vocab: [
+            "travecti = rode past, were carried across (perfect passive participle, nominative plural)",
+            "sunt = are, were (perfect)"
+        ],
+        grammar: "Perfect passive with 'sunt' describing the ceremonial procession through Rome.",
+        translation: "rode past"
     },
-
-    "demonstrative-contrast": {
-        title: "hunc... illum",
-        translation: "the latter... the former",
-        device: "Demonstrative Pronouns - Binary Opposition",
-        description: "The demonstratives 'hunc' and 'illum' create a stark binary opposition, forcing the viewer to choose between two mutually exclusive futures. The rhetorical structure eliminates any middle ground.",
-        effect: "Creates an artificial but powerful dichotomy - imperial glory versus childish insignificance - that manipulates the audience into accepting Nero as the inevitable choice."
+    phrase15: {
+        title: "spectaret populus hunc decore imperatorio, illum puerili habitu",
+        vocab: [
+            "spectaret = should watch (imperfect subjunctive)",
+            "populus = the people (nominative)",
+            "hunc = this one, the latter (accusative)",
+            "decore = in glory, with splendour (ablative)",
+            "imperatorio = imperial (ablative neuter)",
+            "illum = that one, the former (accusative)",
+            "puerili = boyish, childish (ablative neuter)",
+            "habitu = in appearance, in dress (ablative)"
+        ],
+        grammar: "Purpose/jussive subjunctive expressing the organisers' intention. 'hunc... illum' creates stark binary opposition - this one vs that one.",
+        translation: "let the people watch the latter in imperial glory, the former in boyish dress"
     },
-
-    "fortunam-fate": {
-        title: "fortunam utriusque",
-        translation: "the fortune of both",
-        device: "Dramatic Irony - Prophetic Language",
-        description: "The word 'fortuna' carries heavy implications in Roman thought - it suggests both fate and luck. Tacitus allows readers who know the outcome to recognise the tragic irony of this staged spectacle.",
-        effect: "Creates dramatic irony for knowledgeable readers who understand that this carefully staged propaganda will ultimately lead to Britannicus' murder and Nero's tyrannical reign."
+    phrase16: {
+        title: "ac perinde fortunam utriusque praesumeret",
+        vocab: [
+            "ac = and",
+            "perinde = accordingly, in consequence",
+            "fortunam = fortune, fate (accusative)",
+            "utriusque = of both (genitive)",
+            "praesumeret = might anticipate, might assume (imperfect subjunctive)"
+        ],
+        grammar: "Purpose clause continuing from 'spectaret'. The word 'fortuna' carries implications of both fate and luck - the spectacle is designed to predetermine how people view each boy's future.",
+        translation: "and would therefore anticipate the fortune of both"
     }
 };
+
+const styleData = {
+    style1: {
+        title: "Britannicus in praetexta, Nero triumphali veste",
+        device: "Visual Contrast & Political Theatre",
+        description: "The juxtaposition of Britannicus in boyish dress and Nero in imperial/triumphal clothing creates a powerful visual statement. This is carefully choreographed propaganda.",
+        effect: "Creates an unmistakable binary in the public mind: Nero = imperial power and victory; Britannicus = childish irrelevance. The contrast publicly humiliates the legitimate heir whilst elevating the adopted son."
+    }
+};
+
+function generateGrammarCards() {
+    const container = document.getElementById('grammarCards');
+    
+    for (const [id, data] of Object.entries(grammarData)) {
+        const card = document.createElement('div');
+        card.className = 'analysis-card';
+        card.id = id;
+        
+        let vocabHTML = data.vocab.map(v => `<p>• ${v}</p>`).join('');
+        
+        card.innerHTML = `
+            <div class="badge">Grammar & Vocabulary</div>
+            <h4>${data.title}</h4>
+            
+            <p><strong>Vocabulary:</strong></p>
+            ${vocabHTML}
+            
+            <p style="margin-top: 0.75rem;"><strong>Grammar:</strong> ${data.grammar}</p>
+            
+            <button class="reveal-translation" onclick="revealTranslation(this)">Show Translation</button>
+            <div class="translation-reveal">
+                <strong>Translation:</strong>
+                <p>"${data.translation}"</p>
+            </div>
+        `;
+        
+        container.appendChild(card);
+    }
+}
+
+function generateStyleCards() {
+    const container = document.getElementById('styleCards');
+    
+    for (const [id, data] of Object.entries(styleData)) {
+        const card = document.createElement('div');
+        card.className = 'analysis-card';
+        card.id = id;
+        
+        card.innerHTML = `
+            <div class="badge">Literary Device</div>
+            <h4>${data.title}</h4>
+            <p><strong>Device:</strong> ${data.device}</p>
+            <p><strong>Description:</strong> ${data.description}</p>
+            <p><strong>Effect:</strong> ${data.effect}</p>
+        `;
+        
+        container.appendChild(card);
+    }
+}
