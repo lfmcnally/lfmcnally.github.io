@@ -1,4 +1,4 @@
-// Lesson data for Chapter 14.2 - chapter14-2-data.js
+// Lesson data for Tacitus Annals 14.2 - section2-data.js
 const grammarData = {
     phrase1: {
         title: "tradit Cluvius",
