@@ -166,7 +166,7 @@ const lessonData = {
         ]
     },
 
-    // Translation Examples
+    // Translation Examples with clickable reveals
     translationExamples: [
         {
             latin: "servus dominum gladio necat.",
@@ -174,7 +174,8 @@ const lessonData = {
                 {
                     title: "WITH (instrument)",
                     translation: "The slave kills the master with a sword.",
-                    explanation: "The ablative shows the instrument or tool used"
+                    explanation: "The ablative shows the instrument or tool used",
+                    clickHint: "Click to reveal translation"
                 },
             ]
         },
@@ -184,7 +185,8 @@ const lessonData = {
                 {
                     title: "FROM (separation)",
                     translation: "The girl walks from the house.",
-                    explanation: "The ablative shows movement away from something"
+                    explanation: "The ablative shows movement away from something",
+                    clickHint: "Click to reveal translation"
                 }
             ]
         },
@@ -194,61 +196,10 @@ const lessonData = {
                 {
                     title: "BY (agent)",
                     translation: "The letter is written by the girl.",
-                    explanation: "The ablative shows who performs the action"
+                    explanation: "The ablative shows who performs the action",
+                    clickHint: "Click to reveal translation"
                 }
             ]
-        }
-    ],
-
-    // Practice Exercises
-    practiceExercises: [
-        {
-            id: 1,
-            instruction: "Identify the ablative case ending",
-            latin: "puella",
-            question: "What is the ablative singular of puella?",
-            answer: "puellā",
-            hint: "remember the long ā"
-        },
-        {
-            id: 2,
-            instruction: "Identify the ablative case ending",
-            latin: "dominus",
-            question: "What is the ablative singular of dominus?",
-            answer: "domino",
-            hint: "same as dative singular"
-        },
-        {
-            id: 3,
-            instruction: "Choose the correct translation",
-            latin: "servus gladio pugnat",
-            question: "How should 'gladio' be translated?",
-            answer: "with a sword",
-            hint: "instrument = 'with'"
-        },
-        {
-            id: 4,
-            instruction: "Identify the case",
-            latin: "puellis",
-            question: "What cases could 'puellis' be?",
-            answer: "dative or ablative plural",
-            hint: "two cases share this ending"
-        },
-        {
-            id: 5,
-            instruction: "Complete the sentence",
-            latin: "epistula _____ scribitur",
-            question: "Fill in: 'The letter is written by the girl'",
-            answer: "puellā",
-            hint: "agent = ablative"
-        },
-        {
-            id: 6,
-            instruction: "Translate",
-            latin: "cum amicis",
-            question: "Translate 'cum amicis'",
-            answer: "with friends",
-            hint: "cum + ablative = with"
         }
     ],
 
@@ -327,7 +278,6 @@ const lessonData = {
         "Study the ablative endings for puella (note the long ā)",
         "Study the ablative endings for dominus",
         "Practise distinguishing dative from ablative",
-        "Complete the practice exercises",
         "Review all five cases learned so far",
         "Complete Exercise 5.1",
         "Complete Exercise 5.2",
@@ -461,37 +411,15 @@ function loadLessonData() {
             <div class="translation-example">
                 <div class="latin-sentence">${ex.latin}</div>
                 <div class="translation-meanings">
-                    ${ex.meanings.map(meaning => `
-                        <div class="meaning-card">
+                    ${ex.meanings.map((meaning, idx) => `
+                        <div class="meaning-card" onclick="toggleMeaning(this)">
                             <div class="meaning-title">${meaning.title}</div>
-                            <div class="meaning-translation">${meaning.translation}</div>
-                            <div class="meaning-explanation">${meaning.explanation}</div>
+                            <div class="meaning-translation hidden">${meaning.translation}</div>
+                            <div class="meaning-explanation hidden">${meaning.explanation}</div>
+                            <div class="click-hint">${meaning.clickHint}</div>
                         </div>
                     `).join('')}
                 </div>
-            </div>
-        `).join('');
-    }
-
-    // Load Practice Exercises
-    const practiceDiv = document.getElementById('practice-exercises');
-    if (practiceDiv) {
-        practiceDiv.innerHTML = lessonData.practiceExercises.map(ex => `
-            <div class="practice-card">
-                <div class="practice-instruction">${ex.instruction}</div>
-                <div class="practice-latin">${ex.latin}</div>
-                <div class="practice-question">${ex.question}</div>
-                <div class="practice-input-group">
-                    <input type="text" 
-                           id="answer-${ex.id}" 
-                           class="practice-input"
-                           data-correct="${ex.answer}"
-                           data-hint="${ex.hint}"
-                           placeholder="Type your answer...">
-                    <button onclick="checkAnswer(${ex.id})" class="check-btn">Check</button>
-                    <button onclick="showAnswer(${ex.id})" class="show-btn">Show</button>
-                </div>
-                <div id="feedback-${ex.id}" class="feedback"></div>
             </div>
         `).join('');
     }
