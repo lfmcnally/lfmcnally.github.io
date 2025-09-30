@@ -14,7 +14,7 @@ const lessonData = {
         ]
     },
 
-    // Family Tree Data - Showing dual parentage
+    // Family Tree Data
     familyTree: {
         parents: [
             {
@@ -27,7 +27,7 @@ const lessonData = {
             {
                 id: 'alcmene',
                 name: 'Alcmene',
-                title: 'Mortal Woman',
+                title: 'Mother',
                 icon: '👸',
                 type: 'mortal'
             },
@@ -43,18 +43,18 @@ const lessonData = {
             {
                 id: 'heracles',
                 name: 'HERACLES',
-                title: 'Son of Zeus & Alcmene',
+                title: 'Son of Zeus',
                 icon: '🦁',
                 type: 'hero',
-                parents: ['zeus', 'alcmene']
+                parent: 'zeus'
             },
             {
                 id: 'iphicles',
                 name: 'Iphicles',
-                title: 'Son of Amphitryon & Alcmene',
+                title: 'Son of Amphitryon',
                 icon: '🛡️',
                 type: 'mortal',
-                parents: ['amphitryon', 'alcmene']
+                parent: 'amphitryon'
             }
         ]
     },
@@ -334,12 +334,11 @@ function loadLearningObjectives() {
 function loadFamilyTree() {
     const container = document.getElementById('family-tree-diagram');
     if (container) {
-        // Create parent row
-        let html = '<div class="tree-parent-row">';
+        // Parents row
+        let html = '<div class="tree-level parents-level">';
         lessonData.familyTree.parents.forEach(parent => {
-            const typeClass = parent.type === 'divine' ? ' divine' : ' mortal';
             html += `
-                <div class="tree-node${typeClass}" onclick="showFamilyDetails('${parent.id}')">
+                <div class="tree-node ${parent.type}" onclick="showFamilyDetails('${parent.id}')">
                     <span class="node-icon">${parent.icon}</span>
                     <div class="node-name">${parent.name}</div>
                     <div class="node-title">${parent.title}</div>
@@ -348,36 +347,34 @@ function loadFamilyTree() {
         });
         html += '</div>';
         
-        // Add connector lines
-        html += '<div class="tree-connectors">';
-        html += '<svg class="connector-svg" viewBox="0 0 600 100" xmlns="http://www.w3.org/2000/svg">';
-        // Line from Zeus down
-        html += '<line x1="100" y1="0" x2="100" y2="40" stroke="#dc3545" stroke-width="3"/>';
-        // Line from Zeus to Alcmene
-        html += '<line x1="100" y1="40" x2="300" y2="40" stroke="#dc3545" stroke-width="3"/>';
-        // Line from Alcmene down
-        html += '<line x1="300" y1="40" x2="300" y2="80" stroke="#dc3545" stroke-width="3"/>';
-        // Line from Alcmene to Amphitryon
-        html += '<line x1="300" y1="40" x2="500" y2="40" stroke="#dc3545" stroke-width="3"/>';
-        // Line from Amphitryon down
-        html += '<line x1="500" y1="40" x2="500" y2="80" stroke="#dc3545" stroke-width="3"/>';
-        // Line from left child position to right child position
-        html += '<line x1="200" y1="80" x2="400" y2="80" stroke="#dc3545" stroke-width="3"/>';
-        html += '</svg>';
+        // Children row - positioned under respective parents
+        html += '<div class="tree-level children-level">';
+        html += '<div class="child-group">';
+        // Heracles under Zeus
+        const heracles = lessonData.familyTree.children.find(c => c.id === 'heracles');
+        html += `
+            <div class="tree-node ${heracles.type}" onclick="showFamilyDetails('${heracles.id}')">
+                <span class="node-icon">${heracles.icon}</span>
+                <div class="node-name">${heracles.name}</div>
+                <div class="node-title">${heracles.title}</div>
+            </div>
+        `;
         html += '</div>';
         
-        // Create children row
-        html += '<div class="tree-children-row">';
-        lessonData.familyTree.children.forEach(child => {
-            const typeClass = child.type === 'hero' ? ' hero' : ' mortal';
-            html += `
-                <div class="tree-node${typeClass}" onclick="showFamilyDetails('${child.id}')">
-                    <span class="node-icon">${child.icon}</span>
-                    <div class="node-name">${child.name}</div>
-                    <div class="node-title">${child.title}</div>
-                </div>
-            `;
-        });
+        // Spacer for Alcmene
+        html += '<div class="child-group"></div>';
+        
+        html += '<div class="child-group">';
+        // Iphicles under Amphitryon
+        const iphicles = lessonData.familyTree.children.find(c => c.id === 'iphicles');
+        html += `
+            <div class="tree-node ${iphicles.type}" onclick="showFamilyDetails('${iphicles.id}')">
+                <span class="node-icon">${iphicles.icon}</span>
+                <div class="node-name">${iphicles.name}</div>
+                <div class="node-title">${iphicles.title}</div>
+            </div>
+        `;
+        html += '</div>';
         html += '</div>';
         
         container.innerHTML = html;
