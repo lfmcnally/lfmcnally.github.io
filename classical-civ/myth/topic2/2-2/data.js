@@ -14,54 +14,47 @@ const lessonData = {
         ]
     },
 
-    // Family Tree Data
+    // Family Tree Data - Showing dual parentage
     familyTree: {
-        generations: [
+        parents: [
             {
-                level: 'divine',
-                members: [
-                    {
-                        id: 'zeus',
-                        name: 'Zeus',
-                        title: 'King of Gods',
-                        icon: '⚡'
-                    }
-                ]
+                id: 'zeus',
+                name: 'Zeus',
+                title: 'King of Gods',
+                icon: '⚡',
+                type: 'divine'
             },
             {
-                level: 'mortal-parents',
-                members: [
-                    {
-                        id: 'alcmene',
-                        name: 'Alcmene',
-                        title: 'Mortal Woman',
-                        icon: '👸'
-                    },
-                    {
-                        id: 'amphitryon',
-                        name: 'Amphitryon',
-                        title: 'Mortal Husband',
-                        icon: '⚔️'
-                    }
-                ]
+                id: 'alcmene',
+                name: 'Alcmene',
+                title: 'Mortal Woman',
+                icon: '👸',
+                type: 'mortal'
             },
             {
-                level: 'children',
-                members: [
-                    {
-                        id: 'heracles',
-                        name: 'HERACLES',
-                        title: 'Son of Zeus',
-                        icon: '🦁',
-                        highlight: true
-                    },
-                    {
-                        id: 'iphicles',
-                        name: 'Iphicles',
-                        title: 'Mortal Twin',
-                        icon: '🛡️'
-                    }
-                ]
+                id: 'amphitryon',
+                name: 'Amphitryon',
+                title: 'Mortal Husband',
+                icon: '⚔️',
+                type: 'mortal'
+            }
+        ],
+        children: [
+            {
+                id: 'heracles',
+                name: 'HERACLES',
+                title: 'Son of Zeus & Alcmene',
+                icon: '🦁',
+                type: 'hero',
+                parents: ['zeus', 'alcmene']
+            },
+            {
+                id: 'iphicles',
+                name: 'Iphicles',
+                title: 'Son of Amphitryon & Alcmene',
+                icon: '🛡️',
+                type: 'mortal',
+                parents: ['amphitryon', 'alcmene']
             }
         ]
     },
@@ -341,21 +334,52 @@ function loadLearningObjectives() {
 function loadFamilyTree() {
     const container = document.getElementById('family-tree-diagram');
     if (container) {
-        let html = '';
-        lessonData.familyTree.generations.forEach(gen => {
-            html += `<div class="tree-level">`;
-            gen.members.forEach(member => {
-                const highlightClass = member.highlight ? ' hero' : (gen.level === 'divine' ? ' divine' : ' mortal');
-                html += `
-                    <div class="tree-node${highlightClass}" onclick="showFamilyDetails('${member.id}')">
-                        <span class="node-icon">${member.icon}</span>
-                        <div class="node-name">${member.name}</div>
-                        <div class="node-title">${member.title}</div>
-                    </div>
-                `;
-            });
-            html += `</div>`;
+        // Create parent row
+        let html = '<div class="tree-parent-row">';
+        lessonData.familyTree.parents.forEach(parent => {
+            const typeClass = parent.type === 'divine' ? ' divine' : ' mortal';
+            html += `
+                <div class="tree-node${typeClass}" onclick="showFamilyDetails('${parent.id}')">
+                    <span class="node-icon">${parent.icon}</span>
+                    <div class="node-name">${parent.name}</div>
+                    <div class="node-title">${parent.title}</div>
+                </div>
+            `;
         });
+        html += '</div>';
+        
+        // Add connector lines
+        html += '<div class="tree-connectors">';
+        html += '<svg class="connector-svg" viewBox="0 0 600 100" xmlns="http://www.w3.org/2000/svg">';
+        // Line from Zeus down
+        html += '<line x1="100" y1="0" x2="100" y2="40" stroke="#dc3545" stroke-width="3"/>';
+        // Line from Zeus to Alcmene
+        html += '<line x1="100" y1="40" x2="300" y2="40" stroke="#dc3545" stroke-width="3"/>';
+        // Line from Alcmene down
+        html += '<line x1="300" y1="40" x2="300" y2="80" stroke="#dc3545" stroke-width="3"/>';
+        // Line from Alcmene to Amphitryon
+        html += '<line x1="300" y1="40" x2="500" y2="40" stroke="#dc3545" stroke-width="3"/>';
+        // Line from Amphitryon down
+        html += '<line x1="500" y1="40" x2="500" y2="80" stroke="#dc3545" stroke-width="3"/>';
+        // Line from left child position to right child position
+        html += '<line x1="200" y1="80" x2="400" y2="80" stroke="#dc3545" stroke-width="3"/>';
+        html += '</svg>';
+        html += '</div>';
+        
+        // Create children row
+        html += '<div class="tree-children-row">';
+        lessonData.familyTree.children.forEach(child => {
+            const typeClass = child.type === 'hero' ? ' hero' : ' mortal';
+            html += `
+                <div class="tree-node${typeClass}" onclick="showFamilyDetails('${child.id}')">
+                    <span class="node-icon">${child.icon}</span>
+                    <div class="node-name">${child.name}</div>
+                    <div class="node-title">${child.title}</div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        
         container.innerHTML = html;
     }
 }
