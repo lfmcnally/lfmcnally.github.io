@@ -1,450 +1,471 @@
-// Analysis data for Tacitus Annals 14.2 interactive text
-const textData = {
-    "tradit-opening": {
+// Lesson data for Chapter 14.2 - chapter14-2-data.js
+const grammarData = {
+    phrase1: {
         title: "tradit Cluvius",
-        translation: "Cluvius records",
-        device: "Source Citation",
-        description: "Tacitus opens with explicit source attribution to Cluvius Rufus, a contemporary historian. This historiographical marker lends authority whilst also creating distance - Tacitus reports but doesn't vouch for the scandalous content.",
-        effect: "Establishes scholarly credibility whilst maintaining plausible deniability about the shocking allegations that follow."
+        vocab: [
+            "tradit = records, hands down (present)",
+            "Cluvius = Cluvius Rufus (nominative)"
+        ],
+        grammar: "Historical present for vividness. Cluvius Rufus was a contemporary historian. Explicit source citation creates scholarly distance whilst introducing scandalous content.",
+        translation: "Cluvius records"
     },
-    
-    "ardore-retinendae": {
-        title: "ardore retinendae",
-        translation: "in eagerness of retaining",
-        device: "Abstract Noun + Gerundive",
-        description: "The abstract 'ardor' (burning passion) with gerundive 'retinendae' (of retaining) presents Agrippina's motivation as desperate heat. The construction emphasises the compulsive nature of her power-lust.",
-        effect: "Makes her desire for power seem like a consuming fire that drives her to any extreme, including incest."
+    phrase2: {
+        title: "ardore retinendae Agrippinam potentiae",
+        vocab: [
+            "ardore = with burning desire (ablative)",
+            "retinendae = of retaining (gerundive, genitive)",
+            "Agrippinam = Agrippina (accusative)",
+            "potentiae = of power (genitive)"
+        ],
+        grammar: "Accusative subject of indirect statement. Ablative of cause with gerundive construction. The 'burning desire to retain power' drives everything that follows.",
+        translation: "that Agrippina, in her eagerness to retain power"
     },
-    
-    "agrippinam-subject": {
-        title: "Agrippinam",
-        translation: "Agrippina",
-        device: "Accusative Subject Placement",
-        description: "Agrippina appears as the accusative subject of the indirect statement, making her the focal point of the scandal. Her name appears early, ensuring we know who the subject is.",
-        effect: "Centres culpability on Agrippina from the start - she is the agent of corruption in Cluvius's version."
+    phrase3: {
+        title: "eo usque provectam",
+        vocab: [
+            "eo = to such a point (adverb)",
+            "usque = all the way (adverb)",
+            "provectam = carried forward, advanced (perfect passive participle, accusative)"
+        ],
+        grammar: "Continues indirect statement. Emphatic degree phrase suggesting she's been swept along by her own desires to an extreme point.",
+        translation: "had been carried so far"
     },
-    
-    "potentiae-motive": {
-        title: "potentiae",
-        translation: "of power",
-        device: "Genitive of Desire",
-        description: "The genitive 'potentiae' depends on 'ardore retinendae' - her burning desire is specifically for political power, not maternal love or even lust.",
-        effect: "Exposes the political calculation behind the sexual advance - this is about power retention, not passion."
+    phrase4: {
+        title: "ut medio diei",
+        vocab: [
+            "ut = that (result conjunction)",
+            "medio = middle (ablative)",
+            "diei = of day (genitive)"
+        ],
+        grammar: "Result clause after 'eo usque'. Ablative of time when with partitive genitive. Midday timing violates all Roman sexual decorum.",
+        translation: "that in the middle of the day"
     },
-    
-    "eo-usque": {
-        title: "eo usque",
-        translation: "so far",
-        device: "Emphatic Degree",
-        description: "The combination 'eo usque' (to such a point) emphasises the extremity of her behaviour. This prepares us for something beyond normal corruption.",
-        effect: "Builds anticipation for an unprecedented scandal - even for Agrippina, this is going too far."
+    phrase5: {
+        title: "cum id temporis Nero per vinum et epulas incalesceret",
+        vocab: [
+            "cum = when (temporal conjunction)",
+            "id = that (accusative)",
+            "temporis = of time (partitive genitive)",
+            "Nero = Nero (nominative)",
+            "per = through (+ accusative)",
+            "vinum = wine (accusative)",
+            "et = and",
+            "epulas = feast (accusative plural)",
+            "incalesceret = was becoming heated (imperfect subjunctive)"
+        ],
+        grammar: "Temporal cum clause with subjunctive. 'Id temporis' is partitive genitive idiom. Heat metaphor links alcohol and arousal.",
+        translation: "when at that time Nero was becoming heated through wine and feasting"
     },
-    
-    "provectam-metaphor": {
-        title: "provectam",
-        translation: "carried forward",
-        device: "Metaphor of Motion",
-        description: "'Provectam' (carried forward, advanced) suggests being swept along by forces beyond control. The passive form implies she's driven by her desires rather than driving them.",
-        effect: "Makes Agrippina seem helplessly propelled by her own ambition, as if corruption has its own momentum."
+    phrase6: {
+        title: "offerret se saepius temulento",
+        vocab: [
+            "offerret = she offered (imperfect subjunctive)",
+            "se = herself (reflexive accusative)",
+            "saepius = quite often (comparative adverb)",
+            "temulento = to the drunken one (dative)"
+        ],
+        grammar: "Main verb of result clause. Reflexive shows she makes herself the offering. Dative shows Nero as vulnerable target.",
+        translation: "she would offer herself quite often to the drunken (Nero)"
     },
-    
-    "medio-diei": {
-        title: "medio diei",
-        translation: "in the middle of the day",
-        device: "Temporal Emphasis",
-        description: "Midday seduction violates Roman decorum - sexual activity belongs to night. The brazen daylight timing shows complete abandonment of shame.",
-        effect: "Heightens the scandal through temporal transgression - not even darkness hides this shamelessness."
-    },
-    
-    "cum-temporal": {
-        title: "cum id temporis",
-        translation: "when at that time",
-        device: "Cum Temporal Clause",
-        description: "The temporal clause with 'id temporis' (at that point of time) precisely locates when Agrippina struck - when Nero was most vulnerable.",
-        effect: "Shows calculated timing - she chooses the moment of maximum weakness for her attack."
-    },
-    
-    "vinum-epulas": {
-        title: "per vinum et epulas",
-        translation: "through wine and feasting",
-        device: "Hendiadys",
-        description: "Wine and food are presented as the dual means of corruption. The combination suggests decadent banquets where inhibitions dissolve.",
-        effect: "Creates atmosphere of dissolute luxury where normal boundaries collapse."
-    },
-    
-    "incalesceret-heat": {
-        title: "incalesceret",
-        translation: "was becoming heated",
-        device: "Metaphor of Heat",
-        description: "The verb suggests both physical warmth from wine and sexual arousal. The imperfect tense shows gradual heating up.",
-        effect: "Links alcohol, temperature, and desire in a crescendo of lost control."
-    },
-    
-    "offerret-se": {
-        title: "offerret se",
-        translation: "offered herself",
-        device: "Reflexive Prostitution",
-        description: "The reflexive 'se' with 'offerret' makes Agrippina the active agent of her own degradation - she presents herself as a sexual offering.",
-        effect: "Emphasises deliberate self-prostitution rather than seduction - she makes herself the commodity."
-    },
-    
-    "saepius-frequency": {
-        title: "saepius",
-        translation: "quite often",
-        device: "Frequentative Comparative",
-        description: "The comparative 'saepius' (more often/quite often) indicates repeated attempts, not a single moment of weakness.",
-        effect: "Transforms this from an isolated incident into a campaign of seduction - persistence in perversion."
-    },
-    
-    "temulento-drunk": {
-        title: "temulento",
-        translation: "to the drunken one",
-        device: "Dative of Disadvantage",
-        description: "'Temulentus' emphasises heavy intoxication. The dative shows Nero as the target of her advances when he's most vulnerable.",
-        effect: "Adds predatory element - she exploits his drunkenness for her sexual assault."
-    },
-    
-    "comptam-incesto": {
+    phrase7: {
         title: "comptam et incesto paratam",
-        translation: "adorned and ready for incest",
-        device: "Paired Participles",
-        description: "Two participles describe her preparation: 'comptam' (carefully arranged/adorned) shows premeditation, while 'incesto paratam' shockingly specifies the purpose.",
-        effect: "Creates visceral image of deliberate preparation for the ultimate taboo - she dresses for incest."
+        vocab: [
+            "comptam = adorned, arranged (perfect passive participle, accusative)",
+            "et = and",
+            "incesto = for incest (dative)",
+            "paratam = prepared, ready (perfect passive participle, accusative)"
+        ],
+        grammar: "Paired participles describing Agrippina (agreeing with 'se'). Shows deliberate preparation for the ultimate taboo - she dresses for incest.",
+        translation: "adorned and ready for incest"
     },
-    
-    "iamque-temporal": {
-        title: "iamque",
-        translation: "and already",
-        device: "Temporal Acceleration",
-        description: "'Iam' with '-que' shows rapid progression from attempt to action. Events are moving quickly toward catastrophe.",
-        effect: "Creates urgency - the scandal is already in progress when intervention comes."
+    phrase8: {
+        title: "iamque lasciva oscula et praenuntias flagitii blanditias",
+        vocab: [
+            "iam = already",
+            "-que = and (enclitic)",
+            "lasciva = wanton, lustful (accusative neuter plural)",
+            "oscula = kisses (accusative neuter plural)",
+            "et = and",
+            "praenuntias = announcing beforehand (accusative feminine plural)",
+            "flagitii = of scandal (genitive)",
+            "blanditias = caresses (accusative feminine plural)"
+        ],
+        grammar: "Direct objects of implied 'being noticed'. The caresses are prophetic - physical signs of coming moral catastrophe.",
+        translation: "and already wanton kisses and caresses foretelling scandal"
     },
-    
-    "lasciva-oscula": {
-        title: "lasciva oscula",
-        translation: "wanton kisses",
-        device: "Alliterative Sensuality",
-        description: "The adjective 'lasciva' (lustful, wanton) with 'oscula' creates a disturbing image of inappropriate maternal affection turned sexual.",
-        effect: "Makes the physical reality visceral and disturbing - these are not motherly kisses."
-    },
-    
-    "praenuntias-flagitii": {
-        title: "praenuntias flagitii blanditias",
-        translation: "caresses foretelling scandal",
-        device: "Prophetic Imagery",
-        description: "'Praenuntias' (announcing beforehand) makes the caresses into omens. 'Flagitii' (of disgrace) specifies what they prophesy.",
-        effect: "The touches become harbingers of doom - physical signs predicting moral catastrophe."
-    },
-    
-    "ablative-absolute-adnotantibus": {
+    phrase9: {
         title: "adnotantibus proximis",
-        translation: "with those closest noticing",
-        device: "Ablative Absolute",
-        description: "The ablative absolute shows concurrent action - courtiers are watching and understanding what's happening.",
-        effect: "Creates witnesses to the scandal - this isn't private but observed corruption."
+        vocab: [
+            "adnotantibus = noticing (present participle, ablative plural)",
+            "proximis = those closest (ablative plural)"
+        ],
+        grammar: "Ablative absolute showing concurrent action. The courtiers are witnesses to unfolding corruption.",
+        translation: "with those closest noticing"
     },
-    
-    "seneca-advisor": {
-        title: "Senecam",
-        translation: "Seneca",
-        device: "Named Authority",
-        description: "Seneca appears as moral counterweight to corruption. As Nero's tutor and advisor, he represents philosophical wisdom against passion.",
-        effect: "Introduces the voice of reason and philosophy attempting to combat base desire."
+    phrase10: {
+        title: "Senecam contra muliebres inlecebras",
+        vocab: [
+            "Senecam = Seneca (accusative)",
+            "contra = against (+ accusative)",
+            "muliebres = womanly, feminine (accusative feminine plural)",
+            "inlecebras = enticements, allurements (accusative plural)"
+        ],
+        grammar: "Accusative subject of indirect statement. The threat is gendered as specifically feminine, requiring gendered response.",
+        translation: "Seneca against the feminine enticements"
     },
-    
-    "contra-muliebres": {
-        title: "contra muliebres inlecebras",
-        translation: "against feminine enticements",
-        device: "Gender Warfare",
-        description: "'Muliebres inlecebras' (womanly allurements) presents the threat as specifically feminine. The preposition 'contra' makes this combat.",
-        effect: "Frames the situation as gendered battle - masculine reason must fight feminine seduction."
+    phrase11: {
+        title: "subsidium a femina petivisse",
+        vocab: [
+            "subsidium = help, reinforcement (accusative)",
+            "a = from (+ ablative)",
+            "femina = woman (ablative)",
+            "petivisse = to have sought (perfect infinitive)"
+        ],
+        grammar: "Military metaphor - 'subsidium' is military reinforcement. Ironic that help against woman comes from woman.",
+        translation: "sought help from a woman"
     },
-    
-    "subsidium-femina": {
-        title: "subsidium a femina",
-        translation: "help from a woman",
-        device: "Ironic Strategy",
-        description: "The irony that Seneca seeks 'help from a woman' against 'womanly enticements' - fighting fire with fire.",
-        effect: "Shows sophisticated understanding that only feminine influence can counter feminine manipulation."
+    phrase12: {
+        title: "immissamque Acten libertam",
+        vocab: [
+            "immissam = sent in (perfect passive participle, accusative)",
+            "-que = and (enclitic)",
+            "Acten = Acte (Greek accusative)",
+            "libertam = freedwoman (accusative in apposition)"
+        ],
+        grammar: "Military vocabulary continues. Acte's status as freedwoman emphasised - former slave has more moral authority than patrician mother.",
+        translation: "and Acte the freedwoman was sent in"
     },
-    
-    "immissam-military": {
-        title: "immissam",
-        translation: "sent in",
-        device: "Military Metaphor",
-        description: "'Immissa' often describes troops sent into battle. Acte is deployed like a weapon against Agrippina.",
-        effect: "Makes this domestic drama into military campaign - Acte is a soldier in the war for Nero's soul."
+    phrase13: {
+        title: "quae simul suo periculo et infamia Neronis anxia",
+        vocab: [
+            "quae = who (nominative feminine)",
+            "simul = at the same time, both",
+            "suo = her own (ablative)",
+            "periculo = danger (ablative)",
+            "et = and",
+            "infamia = disgrace (ablative)",
+            "Neronis = of Nero (genitive)",
+            "anxia = anxious (nominative feminine)"
+        ],
+        grammar: "Relative clause. Double motivation shown by 'simul' - self-preservation and protecting Nero's reputation.",
+        translation: "who, anxious both for her own danger and Nero's disgrace"
     },
-    
-    "acte-freedwoman": {
-        title: "Acten libertam",
-        translation: "Acte the freedwoman",
-        device: "Social Status Marker",
-        description: "Her status as 'liberta' (freedwoman) is emphasised - a former slave combats a noble mother, inverting social hierarchy.",
-        effect: "Shows how corrupted the palace has become when freedwomen have more moral authority than patricians."
+    phrase14: {
+        title: "deferret pervulgatum esse incestum",
+        vocab: [
+            "deferret = reported (imperfect subjunctive)",
+            "pervulgatum = widely spread (perfect passive participle, accusative)",
+            "esse = to be (infinitive)",
+            "incestum = incest (accusative)"
+        ],
+        grammar: "Subjunctive in relative clause. Accusative-infinitive for indirect statement. Private shame has become public knowledge.",
+        translation: "reported that incest was widely known"
     },
-    
-    "simul-double": {
-        title: "simul suo periculo et infamia Neronis",
-        translation: "both by her danger and Nero's disgrace",
-        device: "Double Motivation",
-        description: "'Simul' (at the same time) shows Acte's twin concerns - self-preservation and protecting Nero's reputation.",
-        effect: "Makes Acte's intervention both selfish and selfless - complex motivation for complex situation."
-    },
-    
-    "anxia-worried": {
-        title: "anxia",
-        translation: "anxious",
-        device: "Emotional State",
-        description: "The adjective 'anxia' shows genuine worry, not just political calculation. This humanises Acte.",
-        effect: "Creates emotional authenticity in contrast to Agrippina's cold political seduction."
-    },
-    
-    "pervulgatum-incestum": {
-        title: "pervulgatum esse incestum",
-        translation: "incest was widely known",
-        device: "Public Knowledge",
-        description: "'Pervulgatum' (spread among the common people) shows the scandal has escaped the palace. The accusative-infinitive makes this reported speech.",
-        effect: "Transforms private shame into public crisis - the damage to reputation is already done."
-    },
-    
-    "ablative-absolute-gloriante": {
+    phrase15: {
         title: "gloriante matre",
-        translation: "with mother boasting",
-        device: "Ablative Absolute - Cause",
-        description: "The present participle 'gloriante' (boasting) in ablative absolute explains how the rumour spread - Agrippina herself bragged.",
-        effect: "Makes Agrippina complicit in her own exposure - her pride in corruption becomes her downfall."
+        vocab: [
+            "gloriante = boasting (present participle, ablative)",
+            "matre = mother (ablative)"
+        ],
+        grammar: "Ablative absolute explaining cause. Agrippina's pride in her corruption leads to exposure.",
+        translation: "with the mother boasting"
     },
-    
-    "toleraturos-milites": {
-        title: "toleraturos milites",
-        translation: "soldiers would tolerate",
-        device: "Military Legitimacy",
-        description: "The future participle with 'milites' makes military acceptance the ultimate arbiter of imperial power.",
-        effect: "Shows that moral authority ultimately rests on military force - soldiers, not senators, determine legitimacy."
+    phrase16: {
+        title: "nec toleraturos milites profani principis imperium",
+        vocab: [
+            "nec = and not",
+            "toleraturos = would tolerate (future participle, accusative masculine plural)",
+            "milites = soldiers (accusative)",
+            "profani = unholy, polluted (genitive)",
+            "principis = emperor (genitive)",
+            "imperium = rule, command (accusative)"
+        ],
+        grammar: "Continuation of indirect statement. Future participle with esse understood. Military support determines legitimacy - the ultimate threat.",
+        translation: "and that soldiers would not tolerate the rule of an unholy emperor"
     },
-    
-    "profani-principis": {
-        title: "profani principis",
-        translation: "unholy emperor",
-        device: "Religious Violation",
-        description: "'Profanus' means outside sacred law - incest would make Nero religiously polluted and thus illegitimate.",
-        effect: "Adds religious dimension to political crisis - incest violates divine as well as human law."
+    phrase17: {
+        title: "Fabius Rusticus non Agrippinae sed Neroni cupitum id memorat",
+        vocab: [
+            "Fabius Rusticus = Fabius Rusticus (nominative)",
+            "non = not",
+            "Agrippinae = by Agrippina (dative of agent)",
+            "sed = but",
+            "Neroni = by Nero (dative of agent)",
+            "cupitum = desired (perfect passive participle, accusative)",
+            "id = it (accusative)",
+            "memorat = records (present)"
+        ],
+        grammar: "Alternative source with sharp antithesis reversing agency. Datives of agent with passive. Historical present.",
+        translation: "Fabius Rusticus records that it was desired not by Agrippina but by Nero"
     },
-    
-    "fabius-alternative": {
-        title: "Fabius Rusticus",
-        translation: "Fabius Rusticus",
-        device: "Alternative Source",
-        description: "Introduction of second historian creates historiographical complexity. Fabius was Seneca's friend, explaining his different version.",
-        effect: "Shows Tacitus weighing sources like a judge, though his preference is clear."
+    phrase18: {
+        title: "eiusdemque libertae astu disiectum",
+        vocab: [
+            "eiusdem = of the same (genitive)",
+            "-que = and (enclitic)",
+            "libertae = freedwoman (genitive)",
+            "astu = by cleverness (ablative)",
+            "disiectum = scattered, ruined (perfect passive participle, accusative)"
+        ],
+        grammar: "Elliptical with esse understood. Violent metaphor - plot 'shattered' by intelligence not force.",
+        translation: "and was ruined by the same freedwoman's cleverness"
     },
-    
-    "non-agrippinae-neroni": {
-        title: "non Agrippinae sed Neroni",
-        translation: "not by Agrippina but by Nero",
-        device: "Antithesis",
-        description: "Sharp contrast reverses agency - in this version, Nero is the predator, not Agrippina.",
-        effect: "Completely inverts the moral dynamic, showing how different sources can reshape the same scandal."
+    phrase19: {
+        title: "sed quae Cluvius eadem ceteri quoque auctores prodidere",
+        vocab: [
+            "sed = but",
+            "quae = what things (accusative neuter plural)",
+            "Cluvius = Cluvius (nominative)",
+            "eadem = the same things (accusative neuter plural)",
+            "ceteri = the rest (nominative plural)",
+            "quoque = also",
+            "auctores = authors (nominative plural)",
+            "prodidere = have handed down (perfect)"
+        ],
+        grammar: "Relative clause with elliptical verb. Perfect tense shows established tradition. Creates illusion of consensus.",
+        translation: "but what Cluvius (relates), the same things other authors too have handed down"
     },
-    
-    "cupitum-desired": {
-        title: "cupitum",
-        translation: "desired",
-        device: "Passive Desire",
-        description: "The perfect passive participle makes the incest something 'desired' rather than attempted - more psychological than physical.",
-        effect: "Shifts focus from action to intention - the corruption lies in the desire itself."
+    phrase20: {
+        title: "et fama huc inclinat",
+        vocab: [
+            "et = and",
+            "fama = rumour, report (nominative)",
+            "huc = this way, toward this (adverb)",
+            "inclinat = inclines, leans (present)"
+        ],
+        grammar: "Personification of rumour as judge. Though rumour typically favours the most scandalous version.",
+        translation: "and rumour inclines this way"
     },
-    
-    "memorat-reports": {
-        title: "memorat",
-        translation: "records",
-        device: "Historiographical Verb",
-        description: "Like 'tradit,' 'memorat' is technical vocabulary for historical sources. Tacitus maintains scholarly distance.",
-        effect: "Preserves the pretence of objective historical reporting despite clear bias."
+    phrase21: {
+        title: "seu concepit animo tantum immanitatis Agrippina",
+        vocab: [
+            "seu = whether (conjunction)",
+            "concepit = conceived (perfect)",
+            "animo = in mind (ablative)",
+            "tantum = so much (accusative)",
+            "immanitatis = of monstrosity (genitive of quantity)",
+            "Agrippina = Agrippina (nominative)"
+        ],
+        grammar: "First alternative with 'seu'. Genitive of quantity. Makes incest seem inhuman in scope - monstrous.",
+        translation: "whether Agrippina conceived such great monstrosity in her mind"
     },
-    
-    "eiusdem-libertae": {
-        title: "eiusdemque libertae",
-        translation: "of the same freedwoman",
-        device: "Emphatic Identification",
-        description: "'Eiusdem' (the same) emphasises that Acte plays the heroic role in both versions - she's the consistent moral agent.",
-        effect: "Makes Acte the reliable constant in conflicting narratives - the freedwoman as moral anchor."
+    phrase22: {
+        title: "seu credibilior novae libidinis meditatio in ea visa est",
+        vocab: [
+            "seu = or whether",
+            "credibilior = more believable (comparative nominative)",
+            "novae = new (genitive)",
+            "libidinis = of lust (genitive)",
+            "meditatio = contemplation (nominative)",
+            "in = in (+ ablative)",
+            "ea = her (ablative)",
+            "visa = seemed (perfect passive participle, nominative)",
+            "est = is (present)"
+        ],
+        grammar: "Second alternative. Comparative suggests character makes any depravity believable.",
+        translation: "or the contemplation of a new lust seemed more believable in her"
     },
-    
-    "astu-cleverness": {
-        title: "astu",
-        translation: "by cleverness",
-        device: "Intellectual Solution",
-        description: "'Astus' implies cunning intelligence rather than force. Acte defeats corruption through wit.",
-        effect: "Shows brains defeating base desire - intelligence as the antidote to passion."
+    phrase23: {
+        title: "quae puellaribus annis stuprum cum Lepido",
+        vocab: [
+            "quae = who (nominative)",
+            "puellaribus = girlhood (ablative plural)",
+            "annis = in years (ablative of time)",
+            "stuprum = adultery, debauchery (accusative)",
+            "cum = with (+ ablative)",
+            "Lepido = Lepidus (ablative)"
+        ],
+        grammar: "Relative clause explaining her character. Shows early corruption - sexual scheming from youth.",
+        translation: "who in girlhood years (committed) adultery with Lepidus"
     },
-    
-    "disiectum-scattered": {
-        title: "disiectum",
-        translation: "scattered/ruined",
-        device: "Violent Metaphor",
-        description: "'Disiectum' suggests violent scattering or breaking apart. The plot is shattered rather than simply stopped.",
-        effect: "Makes Acte's intervention forceful and complete - total destruction of the incestuous plan."
+    phrase24: {
+        title: "spe dominationis admiserat",
+        vocab: [
+            "spe = in hope (ablative)",
+            "dominationis = of domination (genitive)",
+            "admiserat = had admitted/allowed (pluperfect)"
+        ],
+        grammar: "Ablative of cause reveals motivation. Sex was always about power, never passion.",
+        translation: "had admitted in hope of domination"
     },
-    
-    "eadem-ceteri": {
-        title: "eadem ceteri quoque auctores",
-        translation: "the same things other authors too",
-        device: "Consensus Building",
-        description: "Tacitus notes that other sources agree with Cluvius, building weight of authority for this version.",
-        effect: "Creates illusion of historical consensus whilst actually showing Tacitus's selectivity."
+    phrase25: {
+        title: "pari cupidine usque ad libita Pallantis provoluta",
+        vocab: [
+            "pari = equal (ablative)",
+            "cupidine = with desire (ablative of manner)",
+            "usque = all the way",
+            "ad = to (+ accusative)",
+            "libita = whims, pleasures (accusative neuter plural)",
+            "Pallantis = of Pallas (genitive)",
+            "provoluta = prostrated (perfect passive participle, nominative)"
+        ],
+        grammar: "Shows progression of degradation. Pallas was a freedman - complete social inversion. 'Provoluta' suggests physical abasement.",
+        translation: "with equal desire had prostrated herself even to the whims of Pallas"
     },
-    
-    "prodidere-handed": {
-        title: "prodidere",
-        translation: "handed down",
-        device: "Historical Transmission",
-        description: "'Prodere' means to bring forth or transmit. The perfect tense shows completed historical tradition.",
-        effect: "Makes the scandal part of established historical record, not mere gossip."
-    },
-    
-    "fama-inclinat": {
-        title: "fama huc inclinat",
-        translation: "rumour inclines this way",
-        device: "Personification",
-        description: "Fame/rumour is personified as 'leaning' toward Cluvius's version. Popular opinion becomes a judge.",
-        effect: "Makes public opinion seem like rational arbiter, though rumour often prefers the most scandalous version."
-    },
-    
-    "seu-alternatives": {
-        title: "seu... seu",
-        translation: "whether... or",
-        device: "Alternative Explanations",
-        description: "The double 'seu' presents two explanations for why Cluvius's version is believable - either it happened or it fits her character.",
-        effect: "Appears balanced whilst actually damning Agrippina either way - guilty in fact or in character."
-    },
-    
-    "tantum-immanitatis": {
-        title: "tantum immanitatis",
-        translation: "such great monstrosity",
-        device: "Genitive of Quantity",
-        description: "'Tantum' (so much) with genitive 'immanitatis' (of monstrousness) emphasises the enormous scale of the moral violation.",
-        effect: "Makes the incest seem inhuman in scope - beyond normal human corruption."
-    },
-    
-    "immanitatis-monstrosity": {
-        title: "immanitatis",
-        translation: "monstrosity",
-        device: "Dehumanising Vocabulary",
-        description: "'Immanitas' suggests savage, inhuman behaviour - bestial rather than merely immoral.",
-        effect: "Places Agrippina outside human moral categories - she becomes monstrous."
-    },
-    
-    "credibilior-comparative": {
-        title: "credibilior",
-        translation: "more believable",
-        device: "Comparative Credibility",
-        description: "The comparative form suggests degrees of believability - this is about what seems plausible given her character.",
-        effect: "Makes character assassination seem like logical deduction - her past makes any depravity credible."
-    },
-    
-    "novae-libidinis": {
-        title: "novae libidinis",
-        translation: "of new lust",
-        device: "Ironic Novelty",
-        description: "'Nova' (new) is ironic given Agrippina's extensive sexual history - incest would just be the latest innovation.",
-        effect: "Suggests she needs ever more extreme acts to satisfy her corruption - normal vice no longer suffices."
-    },
-    
-    "quae-relative": {
-        title: "quae",
-        translation: "who",
-        device: "Relative Connection",
-        description: "The relative pronoun connects the incest allegation to Agrippina's sexual history, making past predict present.",
-        effect: "Creates logical flow from past behaviour to present scandal - character as destiny."
-    },
-    
-    "puellaribus-annis": {
-        title: "puellaribus annis",
-        translation: "in girlhood years",
-        device: "Temporal Corruption",
-        description: "Emphasises early corruption - even as a young girl ('puellaris'), she was already sexually scheming.",
-        effect: "Shows corruption as lifelong pattern, not late development - she was always this way."
-    },
-    
-    "stuprum-adultery": {
-        title: "stuprum",
-        translation: "debauchery/adultery",
-        device: "Legal-Moral Term",
-        description: "'Stuprum' is the legal term for illicit sex. Its use makes this a criminal as well as moral charge.",
-        effect: "Frames her behaviour in legal terms - these are crimes, not just sins."
-    },
-    
-    "lepidus-affair": {
-        title: "Lepido",
-        translation: "with Lepidus",
-        device: "Historical Scandal",
-        description: "Marcus Lepidus was Agrippina's brother-in-law. This affair was politically motivated conspiracy as much as sex.",
-        effect: "Shows sex as political weapon from the beginning - she never separated desire from power."
-    },
-    
-    "spe-dominationis": {
-        title: "spe dominationis",
-        translation: "in hope of domination",
-        device: "Motivational Phrase",
-        description: "The ablative 'spe' with genitive reveals motivation - sex was always about power ('dominatio').",
-        effect: "Exposes the political calculation behind every sexual act - body as route to tyranny."
-    },
-    
-    "pari-cupidine": {
-        title: "pari cupidine",
-        translation: "with equal desire",
-        device: "Parallel Degradation",
-        description: "'Pari' (equal) shows each affair was equally degrading - no hierarchy in her corruptions.",
-        effect: "Suggests insatiable appetite that never diminishes - constant hunger for power through sex."
-    },
-    
-    "libita-whims": {
-        title: "libita",
-        translation: "whims/pleasures",
-        device: "Slavish Submission",
-        description: "'Libita' implies capricious desires. She submitted even to a freedman's arbitrary wishes.",
-        effect: "Shows complete abandonment of aristocratic dignity - she'll submit to anyone for power."
-    },
-    
-    "pallas-freedman": {
-        title: "Pallantis",
-        translation: "of Pallas",
-        device: "Social Inversion",
-        description: "Pallas was a freedman (former slave) yet Agrippina, a patrician, prostituted herself to him for influence.",
-        effect: "Demonstrates how far she'll sink - aristocratic birth means nothing against ambition."
-    },
-    
-    "provoluta-degradation": {
-        title: "provoluta",
-        translation: "prostrated/rolled forward",
-        device: "Physical Degradation",
-        description: "The verb suggests rolling in dirt or prostrating oneself - complete physical abasement.",
-        effect: "Creates visceral image of self-degradation - she literally lowers herself for power."
-    },
-    
-    "exercita-practiced": {
-        title: "exercita",
-        translation: "practiced/trained",
-        device: "Training Metaphor",
-        description: "'Exercita' suggests practice and training - she's become expert in disgrace through repetition.",
-        effect: "Makes corruption a skill developed through practice - she's a professional at depravity."
-    },
-    
-    "flagitium-disgrace": {
-        title: "flagitium",
-        translation: "disgrace",
-        device: "Moral Summation",
-        description: "'Flagitium' encompasses all forms of disgraceful behaviour - a comprehensive term for moral pollution.",
-        effect: "Summarises her entire life as training in disgrace - she's graduated to the ultimate corruption."
-    },
-    
-    "patrui-nuptiis": {
-        title: "patrui nuptiis",
-        translation: "by marriage to uncle",
-        device: "Climactic Incest",
-        description: "Marriage to her uncle Claudius was already incestuous by Roman law - this prepared her for mother-son incest.",
-        effect: "Shows progression in incestuous relationships - uncle to son is the logical next step in her corruption."
+    phrase26: {
+        title: "et exercita ad omne flagitium patrui nuptiis",
+        vocab: [
+            "et = and",
+            "exercita = practised, trained (perfect passive participle, nominative)",
+            "ad = for (+ accusative)",
+            "omne = every (accusative)",
+            "flagitium = disgrace (accusative)",
+            "patrui = uncle (genitive)",
+            "nuptiis = by marriage (ablative plural)"
+        ],
+        grammar: "Training metaphor - expert through practice. Marriage to Claudius was already incestuous, preparing for worse.",
+        translation: "and practised in every disgrace through marriage to her uncle"
     }
 };
+
+const styleData = {
+    style1: {
+        title: "tradit Cluvius",
+        device: "Source Citation",
+        effect: "Opens with explicit historiographical marker. Creates scholarly distance whilst lending authority - Tacitus reports but doesn't vouch for the scandal."
+    },
+    style2: {
+        title: "potentiae",
+        device: "Political Emphasis",
+        effect: "Makes clear this is about power, not passion. Every action is politically calculated, even the most intimate corruption."
+    },
+    style3: {
+        title: "eo usque provectam",
+        device: "Metaphor of Motion",
+        effect: "Suggests being swept along by forces beyond control. The passive voice implies she's driven by desires rather than driving them - corruption has its own momentum."
+    },
+    style4: {
+        title: "medio diei",
+        device: "Temporal Transgression",
+        effect: "Midday seduction violates all Roman decorum. The brazen daylight timing shows complete abandonment of shame - not even darkness hides this."
+    },
+    style5: {
+        title: "per vinum et epulas",
+        device: "Hendiadys",
+        effect: "Wine and food presented as dual corruption agents. Creates atmosphere of dissolute luxury where normal boundaries dissolve."
+    },
+    style6: {
+        title: "incalesceret",
+        device: "Heat Metaphor",
+        effect: "Links alcohol, temperature, and desire in crescendo of lost control. The imperfect shows gradual heating toward dangerous levels."
+    },
+    style7: {
+        title: "comptam et incesto paratam",
+        device: "Shocking Juxtaposition",
+        effect: "Pairs careful grooming with unspeakable purpose. The deliberate preparation for incest creates visceral horror - she dresses for the ultimate taboo."
+    },
+    style8: {
+        title: "lasciva oscula",
+        device: "Alliterative Sensuality",
+        effect: "The lustful modifier transforms maternal kisses into sexual advances. Makes the physical reality visceral and disturbing."
+    },
+    style9: {
+        title: "Senecam",
+        device: "Moral Authority",
+        effect: "Introduces philosophical wisdom against base passion. The Stoic philosopher becomes the voice of reason in moral chaos."
+    },
+    style10: {
+        title: "contra muliebres inlecebras",
+        device: "Gendered Combat",
+        effect: "Frames situation as specifically feminine threat requiring feminine counter-attack. Makes this gender warfare."
+    },
+    style11: {
+        title: "subsidium a femina",
+        device: "Ironic Strategy",
+        effect: "The irony of seeking 'help from a woman' against 'womanly enticements' - fighting fire with fire in gendered battle."
+    },
+    style12: {
+        title: "immissam",
+        device: "Military Metaphor",
+        effect: "Acte 'sent in' like troops into battle. Domestic drama becomes military campaign for Nero's soul."
+    },
+    style13: {
+        title: "Acten libertam",
+        device: "Social Inversion",
+        effect: "Freedwoman has more moral authority than patrician mother. Palace corruption has inverted normal social hierarchies."
+    },
+    style14: {
+        title: "Fabius Rusticus",
+        device: "Alternative Source",
+        effect: "Creates historiographical complexity. Shows Tacitus weighing evidence whilst clearly favouring Cluvius's more scandalous version."
+    },
+    style15: {
+        title: "non Agrippinae sed Neroni",
+        device: "Sharp Antithesis",
+        effect: "Complete reversal of agency - Nero becomes predator, not victim. Shows how different sources can completely reshape moral dynamics."
+    },
+    style16: {
+        title: "fama huc inclinat",
+        device: "Personification",
+        effect: "Rumour becomes rational judge 'leaning' toward truth. Though rumour typically favours the most scandalous version."
+    },
+    style17: {
+        title: "seu credibilior",
+        device: "Character Assassination",
+        effect: "Appears balanced whilst damning either way - guilty in fact or in character. Past behaviour becomes proof of present corruption."
+    },
+    style18: {
+        title: "pari cupidine",
+        device: "Parallel Degradation",
+        effect: "Each affair equally degrading - no hierarchy in corruption. Suggests insatiable appetite that never diminishes."
+    },
+    style19: {
+        title: "exercita ad omne flagitium",
+        device: "Training Metaphor",
+        effect: "Corruption as skill developed through practice. She's graduated from amateur to professional in depravity."
+    },
+    style20: {
+        title: "patrui nuptiis",
+        device: "Climactic Irony",
+        effect: "Uncle-marriage was already incestuous preparation for mother-son incest. Shows progression in taboo-breaking - logical next step in corruption."
+    }
+};
+
+function generateGrammarCards() {
+    const container = document.getElementById('grammarCards');
+    
+    for (const [id, data] of Object.entries(grammarData)) {
+        const card = document.createElement('div');
+        card.className = 'analysis-card';
+        card.id = id;
+        
+        let vocabHTML = data.vocab.map(v => `<p>• ${v}</p>`).join('');
+        
+        card.innerHTML = `
+            <div class="badge">Grammar & Vocabulary</div>
+            <h4>${data.title}</h4>
+            
+            <p><strong>Vocabulary:</strong></p>
+            ${vocabHTML}
+            
+            <p style="margin-top: 0.75rem;"><strong>Grammar:</strong> ${data.grammar}</p>
+            
+            <button class="reveal-translation" onclick="revealTranslation(this)">Show Translation</button>
+            <div class="translation-reveal">
+                <strong>Translation:</strong>
+                <p>"${data.translation}"</p>
+            </div>
+        `;
+        
+        container.appendChild(card);
+    }
+}
+
+function generateStyleCards() {
+    const container = document.getElementById('styleCards');
+    
+    for (const [id, data] of Object.entries(styleData)) {
+        const card = document.createElement('div');
+        card.className = 'analysis-card';
+        card.id = id;
+        
+        card.innerHTML = `
+            <div class="badge">Literary Device</div>
+            <h4>${data.title}</h4>
+            <p><strong>Device:</strong> ${data.device}</p>
+            <p><strong>Effect:</strong> ${data.effect}</p>
+        `;
+        
+        container.appendChild(card);
+    }
+}
