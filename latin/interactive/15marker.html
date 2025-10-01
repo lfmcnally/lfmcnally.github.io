@@ -197,6 +197,8 @@
             border-radius: 8px;
             font-size: 0.95rem;
             font-family: inherit;
+            background: rgba(0, 102, 255, 0.05);
+            cursor: not-allowed;
         }
 
         .technique-input:focus {
@@ -592,7 +594,7 @@
 
             <div class="input-group">
                 <label class="input-label">Select a stylistic technique:</label>
-                <select id="techniqueSelect" class="technique-select">
+                <select id="techniqueSelect" class="technique-select" onchange="copyTechniqueToSlots()">
                     <option value="">Choose a technique...</option>
                     <option value="Asyndeton">Asyndeton - omission of conjunctions (no 'and', 'but')</option>
                     <option value="Polysyndeton">Polysyndeton - repeated conjunctions (lots of 'and', 'et')</option>
@@ -652,6 +654,21 @@
             autoResize(document.getElementById('translationInput'));
         });
 
+        function copyTechniqueToSlots() {
+            const select = document.getElementById('techniqueSelect');
+            const selectedValue = select.value;
+            
+            if (selectedValue) {
+                const slots = document.querySelectorAll('.technique-input');
+                slots.forEach(slot => {
+                    if (slot.value === '') {
+                        slot.value = selectedValue;
+                        checkBankButton(slot.closest('.answer-slot'));
+                    }
+                });
+            }
+        }
+
         function toggleLock(type) {
             if (type === 'latin') {
                 const input = document.getElementById('latinTextInput');
@@ -685,7 +702,7 @@
             const slot = document.createElement('div');
             slot.className = 'answer-slot';
             slot.id = slotId;
-            slot.innerHTML = '<div class="slot-header"><span class="slot-number">Point ' + slotCount + '</span><button class="clear-slot" onclick="clearSlot(\'' + slotId + '\')">Clear</button></div><div class="input-group"><label class="input-label"><span class="step-number">1</span> Copy technique from dropdown above and paste here:</label><input type="text" class="technique-input" placeholder="Copy from the technique dropdown above" data-slot="' + slotId + '"></div><div class="input-group"><label class="input-label"><span class="step-number">2</span> Copy your Latin quote from passage:</label><input type="text" class="latin-input" placeholder="e.g., haustum... venenum" data-slot="' + slotId + '"></div><div class="input-group"><label class="input-label"><span class="step-number">3</span> Add translation in brackets:</label><input type="text" class="translation-input" placeholder="e.g., the drink... poison" data-slot="' + slotId + '"></div><div class="input-group"><label class="input-label"><span class="step-number">4</span> Choose a sentence starter:</label><select class="sentence-starter" data-slot="' + slotId + '"><option value="">Select...</option><option value="This creates">This creates</option><option value="This emphasizes">This emphasizes</option><option value="This suggests">This suggests</option><option value="This highlights">This highlights</option><option value="This conveys">This conveys</option><option value="This reveals">This reveals</option></select></div><div class="input-group"><label class="input-label"><span class="step-number">5</span> Explain the effect:</label><textarea class="analysis-textarea" placeholder="Explain the dramatic effect...\n\nExample: dramatic suspense by holding back the critical word until the end, making the reader experience the sudden shock of the poisoning." data-slot="' + slotId + '"></textarea><div class="char-counter">0 characters</div></div><button class="bank-button" onclick="bankPoint(\'' + slotId + '\')" disabled>Bank This Point</button>';
+            slot.innerHTML = '<div class="slot-header"><span class="slot-number">Point ' + slotCount + '</span><button class="clear-slot" onclick="clearSlot(\'' + slotId + '\')">Clear</button></div><div class="input-group"><label class="input-label"><span class="step-number">1</span> Technique (auto-filled from dropdown):</label><input type="text" class="technique-input" placeholder="Select from dropdown above" data-slot="' + slotId + '" readonly></div><div class="input-group"><label class="input-label"><span class="step-number">2</span> Copy your Latin quote from passage:</label><input type="text" class="latin-input" placeholder="e.g., haustum... venenum" data-slot="' + slotId + '"></div><div class="input-group"><label class="input-label"><span class="step-number">3</span> Add translation in brackets:</label><input type="text" class="translation-input" placeholder="e.g., the drink... poison" data-slot="' + slotId + '"></div><div class="input-group"><label class="input-label"><span class="step-number">4</span> Choose a sentence starter:</label><select class="sentence-starter" data-slot="' + slotId + '"><option value="">Select...</option><option value="This creates">This creates</option><option value="This emphasizes">This emphasizes</option><option value="This suggests">This suggests</option><option value="This highlights">This highlights</option><option value="This conveys">This conveys</option><option value="This reveals">This reveals</option></select></div><div class="input-group"><label class="input-label"><span class="step-number">5</span> Explain the effect:</label><textarea class="analysis-textarea" placeholder="Explain the dramatic effect...\n\nExample: dramatic suspense by holding back the critical word until the end, making the reader experience the sudden shock of the poisoning." data-slot="' + slotId + '"></textarea><div class="char-counter">0 characters</div></div><button class="bank-button" onclick="bankPoint(\'' + slotId + '\')" disabled>Bank This Point</button>';
 
             return slot;
         }
@@ -824,22 +841,34 @@
                 year: 'numeric' 
             });
 
-            let content = date + '\n\n';
-            content += question + '\n\n';
+            const printWindow = window.open('', '', 'width=800,height=600');
+            
+            let htmlContent = '<!DOCTYPE html><html><head><title>Latin Answer</title><style>';
+            htmlContent += 'body { font-family: "Times New Roman", Times, serif; margin: 2cm; line-height: 1.6; color: #000; }';
+            htmlContent += '.date { text-align: right; margin-bottom: 1cm; font-size: 12pt; }';
+            htmlContent += '.question { font-weight: bold; font-size: 14pt; margin-bottom: 1cm; text-align: center; }';
+            htmlContent += '.answer { font-size: 12pt; text-align: justify; }';
+            htmlContent += '.paragraph { margin-bottom: 1em; text-indent: 0; }';
+            htmlContent += '@media print { body { margin: 2cm; } }';
+            htmlContent += '</style></head><body>';
+            
+            htmlContent += '<div class="date">' + date + '</div>';
+            htmlContent += '<div class="question">' + question + '</div>';
+            htmlContent += '<div class="answer">';
             
             bankedPoints.forEach(point => {
-                content += point.fullPoint + '\n\n';
+                htmlContent += '<div class="paragraph">' + point.fullPoint + '</div>';
             });
-
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'Latin_Answer_' + date.replace(/ /g, '_') + '.txt';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            
+            htmlContent += '</div></body></html>';
+            
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            
+            printWindow.onload = function() {
+                printWindow.focus();
+                printWindow.print();
+            };
         }
 
         addSlot();
