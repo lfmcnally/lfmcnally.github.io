@@ -96,6 +96,23 @@
             border-color: #0066ff;
         }
 
+        .author-input {
+            width: 200px;
+            font-size: 1rem;
+            color: #0066ff;
+            font-weight: 600;
+            border: 2px solid rgba(0, 102, 255, 0.2);
+            border-radius: 8px;
+            padding: 0.5rem;
+            text-align: center;
+            font-family: inherit;
+        }
+
+        .author-input:focus {
+            outline: none;
+            border-color: #0066ff;
+        }
+
         .main-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -202,6 +219,21 @@
             border-color: #0066ff;
         }
 
+        .custom-technique-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid rgba(0, 102, 255, 0.2);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: white;
+        }
+
+        .custom-technique-input:focus {
+            outline: none;
+            border-color: #0066ff;
+        }
+
         .technique-input {
             width: 100%;
             padding: 0.75rem;
@@ -271,7 +303,7 @@
             margin-right: 0.5rem;
         }
 
-        .latin-input, .translation-input {
+        .latin-input, .translation-input, .effect-phrase-input {
             width: 100%;
             padding: 0.75rem;
             border: 2px solid rgba(0, 102, 255, 0.2);
@@ -280,7 +312,7 @@
             font-family: inherit;
         }
 
-        .latin-input:focus, .translation-input:focus {
+        .latin-input:focus, .translation-input:focus, .effect-phrase-input:focus {
             outline: none;
             border-color: #0066ff;
         }
@@ -291,7 +323,7 @@
             font-size: 0.9rem;
         }
 
-        .sentence-starter {
+        .sentence-starter, .structure-style {
             width: 100%;
             padding: 0.75rem;
             border: 2px solid rgba(0, 102, 255, 0.2);
@@ -302,7 +334,7 @@
             cursor: pointer;
         }
 
-        .sentence-starter:focus {
+        .sentence-starter:focus, .structure-style:focus {
             outline: none;
             border-color: #0066ff;
         }
@@ -482,6 +514,12 @@
     </header>
 
     <div class="question-box">
+        <div style="display: flex; gap: 1rem; align-items: center; justify-content: center; margin-bottom: 1rem;">
+            <div style="flex: 0 0 auto;">
+                <label style="font-size: 0.9rem; color: #666; display: block; margin-bottom: 0.25rem;">Author:</label>
+                <input type="text" id="authorInput" class="author-input" placeholder="e.g., Tacitus" value="Tacitus">
+            </div>
+        </div>
         <input type="text" id="questionInput" class="question-input" placeholder="Type or paste your question here..." value="How does Tacitus create a dramatic account of Britannicus' poisoning?">
         <div class="marks">
             [<input type="number" id="marksInput" class="marks-input" value="15" min="1" max="30"> marks]
@@ -509,13 +547,13 @@
             <h3 class="panel-title">Build Your Answer</h3>
 
             <div class="structure-guide">
-                <strong>Answer Structure Formula:</strong>
-                Tacitus uses [technique] with "[Latin]" (translation). [Sentence starter] [effect explanation]
+                <strong>Answer Structure - Choose your style for each point:</strong>
+                Different structures help avoid repetitive writing while maintaining analytical depth.
             </div>
 
             <div class="input-group">
                 <label class="input-label">Select a stylistic technique:</label>
-                <select id="techniqueSelect" class="technique-select" onchange="copyTechniqueToSlots()">
+                <select id="techniqueSelect" class="technique-select" onchange="handleTechniqueChange()">
                     <option value="">Choose a technique...</option>
                     <option value="asyndeton">Asyndeton - omission of conjunctions (no 'and', 'but')</option>
                     <option value="polysyndeton">Polysyndeton - repeated conjunctions (lots of 'and', 'et')</option>
@@ -543,7 +581,9 @@
                     <option value="historic infinitive">Historic infinitive - infinitive for past narration</option>
                     <option value="passive voice">Passive voice - subject receives the action</option>
                     <option value="zeugma">Zeugma - one verb governing multiple objects</option>
+                    <option value="CUSTOM">✏️ Custom (type your own)</option>
                 </select>
+                <input type="text" id="customTechniqueInput" class="custom-technique-input" placeholder="Type your custom technique here..." style="display: none; margin-top: 0.5rem;">
             </div>
 
             <div id="slotsContainer"></div>
@@ -565,6 +605,42 @@
         let slotCount = 0;
         let bankedPoints = [];
 
+        function handleTechniqueChange() {
+            const select = document.getElementById('techniqueSelect');
+            const customInput = document.getElementById('customTechniqueInput');
+            
+            if (select.value === 'CUSTOM') {
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+                customInput.value = '';
+                copyTechniqueToSlots();
+            }
+        }
+
+        function copyTechniqueToSlots() {
+            const select = document.getElementById('techniqueSelect');
+            const selectedValue = select.value;
+            const customInput = document.getElementById('customTechniqueInput');
+            
+            let techniqueValue = '';
+            
+            if (selectedValue === 'CUSTOM') {
+                techniqueValue = customInput.value.trim();
+            } else {
+                techniqueValue = selectedValue;
+            }
+            
+            if (techniqueValue) {
+                const slots = document.querySelectorAll('.technique-input');
+                slots.forEach(slot => {
+                    slot.value = techniqueValue;
+                    checkBankButton(slot.closest('.answer-slot'));
+                });
+            }
+        }
+
         function autoResize(textarea) {
             textarea.style.height = 'auto';
             textarea.style.height = textarea.scrollHeight + 'px';
@@ -573,7 +649,29 @@
         window.addEventListener('load', function() {
             autoResize(document.getElementById('latinTextInput'));
             autoResize(document.getElementById('translationInput'));
+            document.getElementById('authorInput').addEventListener('input', updateSentenceStarters);
+            
+            const customInput = document.getElementById('customTechniqueInput');
+            customInput.addEventListener('input', function() {
+                copyTechniqueToSlots();
+            });
+            customInput.addEventListener('keyup', function() {
+                copyTechniqueToSlots();
+            });
         });
+
+        function updateSentenceStarters() {
+            const author = document.getElementById('authorInput').value || 'the author';
+            const allStarters = document.querySelectorAll('.sentence-starter');
+            
+            allStarters.forEach(select => {
+                const authorOption = select.querySelector('option[value="AUTHOR_PLACEHOLDER"]');
+                if (authorOption) {
+                    authorOption.value = 'By doing this, ' + author.toLowerCase();
+                    authorOption.textContent = 'By doing this, ' + author.toLowerCase();
+                }
+            });
+        }
 
         function copyTechniqueToSlots() {
             const select = document.getElementById('techniqueSelect');
@@ -623,8 +721,67 @@
             const slot = document.createElement('div');
             slot.className = 'answer-slot';
             slot.id = slotId;
-            slot.innerHTML = '<div class="slot-header"><span class="slot-number">Point ' + slotCount + '</span><button class="clear-slot" onclick="clearSlot(\'' + slotId + '\')">Clear</button></div><div class="input-group"><label class="input-label"><span class="step-number">1</span> Technique (auto-filled from dropdown):</label><input type="text" class="technique-input" placeholder="Select from dropdown above" data-slot="' + slotId + '" readonly></div><div class="input-group"><label class="input-label"><span class="step-number">2</span> Copy your Latin quote from passage:</label><input type="text" class="latin-input" placeholder="e.g., haustum... venenum" data-slot="' + slotId + '"></div><div class="input-group"><label class="input-label"><span class="step-number">3</span> Add translation in brackets:</label><input type="text" class="translation-input" placeholder="e.g., the drink... poison" data-slot="' + slotId + '"></div><div class="input-group"><label class="input-label"><span class="step-number">4</span> Choose a sentence starter:</label><select class="sentence-starter" data-slot="' + slotId + '"><option value="">Select...</option><option value="This creates">This creates</option><option value="This emphasizes">This emphasizes</option><option value="This suggests">This suggests</option><option value="This highlights">This highlights</option><option value="This conveys">This conveys</option><option value="This reveals">This reveals</option></select></div><div class="input-group"><label class="input-label"><span class="step-number">5</span> Explain the effect:</label><textarea class="analysis-textarea" placeholder="Explain the dramatic effect...\n\nExample: dramatic suspense by holding back the critical word until the end, making the reader experience the sudden shock of the poisoning." data-slot="' + slotId + '"></textarea><div class="char-counter">0 characters</div></div><button class="bank-button" onclick="bankPoint(\'' + slotId + '\')" disabled>Bank This Point</button>';
+            
+            const html = `
+                <div class="slot-header">
+                    <span class="slot-number">Point ${slotCount}</span>
+                    <button class="clear-slot" onclick="clearSlot('${slotId}')">Clear</button>
+                </div>
+                <div class="input-group">
+                    <label class="input-label"><span class="step-number">1</span> Choose answer structure:</label>
+                    <select class="structure-style">
+                        <option value="">Select structure...</option>
+                        <option value="standard">Standard: [Author] uses [technique] with "[Latin]" (translation)...</option>
+                        <option value="quote-first">Quote-first: The phrase "[Latin]" (translation) demonstrates [technique]...</option>
+                        <option value="effect-first">Effect-first: [Author] creates [effect] through [technique]...</option>
+                        <option value="embedded">Embedded: Through [technique] ("[Latin]" - translation), [Author]...</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label class="input-label"><span class="step-number">2</span> Technique (auto-filled):</label>
+                    <input type="text" class="technique-input" placeholder="Select from dropdown above" readonly>
+                </div>
+                <div class="input-group">
+                    <label class="input-label"><span class="step-number">3</span> Copy your Latin quote:</label>
+                    <input type="text" class="latin-input" placeholder="e.g., haustum... venenum">
+                </div>
+                <div class="input-group">
+                    <label class="input-label"><span class="step-number">4</span> Add translation:</label>
+                    <input type="text" class="translation-input" placeholder="e.g., the drink... poison">
+                </div>
+                <div class="input-group">
+                    <label class="input-label"><span class="step-number">5</span> Effect phrase (for effect-first/embedded structures):</label>
+                    <input type="text" class="effect-phrase-input" placeholder="e.g., suspense, enhances the tension, dramatic effect">
+                </div>
+                <div class="input-group">
+                    <label class="input-label"><span class="step-number">6</span> Choose sentence starter:</label>
+                    <select class="sentence-starter">
+                        <option value="">Select...</option>
+                        <option value="This creates">This creates</option>
+                        <option value="This emphasizes">This emphasizes</option>
+                        <option value="This suggests">This suggests</option>
+                        <option value="This highlights">This highlights</option>
+                        <option value="This conveys">This conveys</option>
+                        <option value="This reveals">This reveals</option>
+                        <option value="AUTHOR_PLACEHOLDER">By doing this, [author]</option>
+                        <option value="Through this,">Through this,</option>
+                        <option value="In this way,">In this way,</option>
+                        <option value="As a result,">As a result,</option>
+                        <option value="Consequently,">Consequently,</option>
+                        <option value="The effect of this is to">The effect of this is to</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label class="input-label"><span class="step-number">7</span> Explain the effect:</label>
+                    <textarea class="analysis-textarea" placeholder="Explain the dramatic effect...
 
+Example: dramatic suspense by holding back the critical word until the end, making the reader experience the sudden shock of the poisoning."></textarea>
+                    <div class="char-counter">0 characters</div>
+                </div>
+                <button class="bank-button" onclick="bankPoint('${slotId}')" disabled>Bank This Point</button>
+            `;
+            
+            slot.innerHTML = html;
             return slot;
         }
 
@@ -633,15 +790,13 @@
             const slot = createSlot();
             container.appendChild(slot);
             setupValidation(slot);
+            updateSentenceStarters();
         }
 
         function setupValidation(slot) {
             const textarea = slot.querySelector('.analysis-textarea');
             const counter = slot.querySelector('.char-counter');
-            const latinInput = slot.querySelector('.latin-input');
-            const translationInput = slot.querySelector('.translation-input');
-            const techniqueInput = slot.querySelector('.technique-input');
-            const sentenceStarter = slot.querySelector('.sentence-starter');
+            const inputs = slot.querySelectorAll('input:not([readonly]), select, textarea');
 
             textarea.addEventListener('input', function() {
                 const charCount = this.value.length;
@@ -650,38 +805,54 @@
                 checkBankButton(slot);
             });
 
-            latinInput.addEventListener('input', () => checkBankButton(slot));
-            translationInput.addEventListener('input', () => checkBankButton(slot));
-            techniqueInput.addEventListener('input', () => checkBankButton(slot));
-            sentenceStarter.addEventListener('change', () => checkBankButton(slot));
+            inputs.forEach(input => {
+                input.addEventListener('input', () => checkBankButton(slot));
+                input.addEventListener('change', () => checkBankButton(slot));
+            });
         }
 
         function checkBankButton(slot) {
             const button = slot.querySelector('.bank-button');
-            const latinInput = slot.querySelector('.latin-input');
-            const translationInput = slot.querySelector('.translation-input');
-            const techniqueInput = slot.querySelector('.technique-input');
-            const sentenceStarter = slot.querySelector('.sentence-starter');
-            const textarea = slot.querySelector('.analysis-textarea');
+            const structure = slot.querySelector('.structure-style').value;
+            const technique = slot.querySelector('.technique-input').value.trim();
+            const latin = slot.querySelector('.latin-input').value.trim();
+            const translation = slot.querySelector('.translation-input').value.trim();
+            const starter = slot.querySelector('.sentence-starter').value;
+            const effect = slot.querySelector('.analysis-textarea').value.trim();
 
-            const hasTechnique = techniqueInput.value.trim().length > 0;
-            const hasLatin = latinInput.value.trim().length > 0;
-            const hasTranslation = translationInput.value.trim().length > 0;
-            const hasStarter = sentenceStarter.value !== '';
-            const hasEffect = textarea.value.trim().length > 20;
-
-            button.disabled = !(hasTechnique && hasLatin && hasTranslation && hasStarter && hasEffect);
+            const isValid = structure && technique && latin && translation && starter && effect.length > 20;
+            button.disabled = !isValid;
         }
 
         function bankPoint(slotId) {
             const slot = document.getElementById(slotId);
+            const structure = slot.querySelector('.structure-style').value;
             const technique = slot.querySelector('.technique-input').value;
             const latin = slot.querySelector('.latin-input').value;
             const translation = slot.querySelector('.translation-input').value;
-            const starter = slot.querySelector('.sentence-starter').value;
+            const effectPhrase = slot.querySelector('.effect-phrase-input').value;
+            let starter = slot.querySelector('.sentence-starter').value;
             const effect = slot.querySelector('.analysis-textarea').value;
+            const author = document.getElementById('authorInput').value || 'The author';
 
-            const fullPoint = 'Tacitus uses ' + technique + ' with "' + latin + '" (' + translation + '). ' + starter + ' ' + effect;
+            const authorPattern = /\b(tacitus|virgil|cicero|ovid|horace|catullus|livy|pliny|lawrence|[a-z]+)\b/i;
+            if (starter.match(authorPattern) && starter.toLowerCase().includes('by doing this')) {
+                starter = 'By doing this, ' + author;
+            }
+
+            let fullPoint = '';
+
+            if (structure === 'standard') {
+                fullPoint = author + ' uses ' + technique + ' with "' + latin + '" (' + translation + '). ' + starter + ' ' + effect;
+            } else if (structure === 'quote-first') {
+                fullPoint = 'The phrase "' + latin + '" (' + translation + ') demonstrates ' + technique + '. ' + starter + ' ' + effect;
+            } else if (structure === 'effect-first') {
+                const effectText = effectPhrase || 'dramatic effect';
+                fullPoint = author + ' creates ' + effectText + ' through ' + technique + ' in "' + latin + '" (' + translation + '). ' + starter + ' ' + effect;
+            } else if (structure === 'embedded') {
+                const effectText = effectPhrase || 'dramatic effect';
+                fullPoint = 'Through ' + technique + ' ("' + latin + '" - ' + translation + '), ' + author + ' creates ' + effectText + '. ' + starter + ' ' + effect;
+            }
 
             const pointNumber = bankedPoints.length + 1;
             bankedPoints.push({ fullPoint, pointNumber });
@@ -692,9 +863,11 @@
 
         function clearSlot(slotId) {
             const slot = document.getElementById(slotId);
+            slot.querySelector('.structure-style').value = '';
             slot.querySelector('.technique-input').value = '';
             slot.querySelector('.latin-input').value = '';
             slot.querySelector('.translation-input').value = '';
+            slot.querySelector('.effect-phrase-input').value = '';
             slot.querySelector('.sentence-starter').value = '';
             slot.querySelector('.analysis-textarea').value = '';
             slot.querySelector('.char-counter').textContent = '0 characters';
