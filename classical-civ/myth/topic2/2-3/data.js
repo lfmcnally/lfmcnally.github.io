@@ -160,6 +160,82 @@ const lessonData = {
         }
     ],
 
+    // Metope Details for Modal
+    metopeDetails: {
+        1: {
+            title: "The Nemean Lion",
+            location: "Nemea, northeast Peloponnese",
+            description: "This metope shows the climactic moment when Heracles strangles the invulnerable lion with his bare hands. The sculpture captures the intense physical struggle, with Heracles' muscles straining as he applies the fatal chokehold.",
+            analysis: "The artist emphasized Heracles' divine strength through exaggerated musculature and the lion's massive size. This was placed prominently as it represented the beginning of Heracles' heroic transformation."
+        },
+        2: {
+            title: "The Lernaean Hydra",
+            location: "Lake Lerna, near Argos",
+            description: "The metope depicts Heracles wielding his club while Iolaus tends the fire used to cauterize the Hydra's necks. Multiple serpentine heads writhe around the hero, showing the creature's regenerative horror.",
+            analysis: "This sculpture teaches that even heroes need help - a humble lesson for competitive athletes. The collaborative nature of this labour made it controversial when Eurystheus discounted it."
+        },
+        3: {
+            title: "Ceryneian Hind",
+            location: "Ceryneia, Achaea",
+            description: "Unlike the violent monster-slaying scenes, this metope shows Heracles gently carrying the sacred deer. The hind's golden antlers are carefully rendered, emphasizing its divine nature and beauty.",
+            analysis: "This labour required patience and restraint rather than violence - important virtues for athletes who needed self-control. The peaceful resolution shows wisdom triumphing over brute force."
+        },
+        4: {
+            title: "Erymanthian Boar",
+            location: "Mount Erymanthus, Arcadia",
+            description: "Heracles is shown wrestling the massive boar in deep snow, his powerful frame contrasted against the beast's tusked fury. The sculpture captures the moment of the hero's victory through superior technique.",
+            analysis: "The snowy mountain setting adds environmental challenge to physical contest - like athletes competing in harsh conditions. The boar's capture alive showed mastery over nature."
+        },
+        5: {
+            title: "Augean Stables",
+            location: "Elis, western Peloponnese",
+            description: "This unique metope shows Heracles redirecting river water through the stables. Rather than depicting muscle, it celebrates intelligence and engineering - the mind conquering what strength alone could not.",
+            analysis: "Placed at Olympia (in Elis), this labour had special local significance. It demonstrated that cleverness could achieve what seemed impossible - inspiring athletes to use strategy as well as strength."
+        },
+        6: {
+            title: "Stymphalian Birds",
+            location: "Lake Stymphalia, Arcadia",
+            description: "Heracles is shown with the bronze castanets given by Athena, driving the man-eating birds from their marsh. The sculptor depicted the birds in mid-flight, creating dynamic movement across the stone.",
+            analysis: "Divine assistance through Athena's gift taught that the gods favor those who earn their help through previous deeds. Athletes understood they needed divine blessing alongside training."
+        },
+        7: {
+            title: "Cretan Bull",
+            location: "Crete",
+            description: "The metope captures Heracles wrestling the fire-breathing bull, his lion-skin cloak flowing behind him. The bull's divine power is shown through its imposing size and fierce expression.",
+            analysis: "This labour marked Heracles' expansion beyond the Peloponnese. For Olympic visitors from across Greece, it showed heroism had no geographic limits - the games truly were Panhellenic."
+        },
+        8: {
+            title: "Mares of Diomedes",
+            location: "Thrace",
+            description: "A tragic scene showing the aftermath of the horses' rampage, with Heracles mourning his friend Abderus. The man-eating mares are depicted with wild eyes and bared teeth, emphasizing their unnatural savagery.",
+            analysis: "This metope introduced the theme of heroic loss - even success can carry tragic cost. Athletes learned that victory sometimes requires painful sacrifice."
+        },
+        9: {
+            title: "Belt of Hippolyta",
+            location: "Themiscyra, land of the Amazons",
+            description: "The sculpture shows the climactic battle with the Amazons, Heracles fighting the warrior queen while her army charges. The dynamic composition emphasizes the chaos of battle and Hera's cruel interference.",
+            analysis: "This labour warned against trusting appearances - what seemed like diplomacy became warfare through divine manipulation. Athletes learned to expect unexpected challenges."
+        },
+        10: {
+            title: "Cattle of Geryon",
+            location: "Erytheia, far western edge of the world",
+            description: "Heracles faces the three-bodied monster Geryon while driving the red cattle. The sculptor showed all three of Geryon's bodies to emphasize the creature's supernatural nature and the labour's difficulty.",
+            analysis: "Reaching the edge of the world, Heracles established the Pillars of Heracles (Gibraltar). This labour showed heroism expanding the boundaries of the known world - like Olympic competition spreading Greek culture."
+        },
+        11: {
+            title: "Apples of the Hesperides",
+            location: "Garden of the Hesperides, far west",
+            description: "The famous scene of Atlas returning with the golden apples while Heracles holds up the sky. The sculptor captured the moment of Atlas's attempted deception and Heracles' patient endurance.",
+            analysis: "Literally supporting the heavens proved Heracles had divine-level strength. The clever trick with Atlas showed that even heroes must use wit against superior opponents - brain over brawn."
+        },
+        12: {
+            title: "Cerberus",
+            location: "The Underworld",
+            description: "The final metope shows Heracles emerging from the Underworld with the three-headed Cerberus. The hellhound is subdued but still fearsome, while Heracles appears calm and victorious.",
+            analysis: "Conquering death itself was the ultimate heroic achievement. For athletes at Olympia, this represented the pinnacle of human achievement - victory over the impossible through divine favor and personal excellence."
+        }
+    },
+
     // Temple Metopes
     westMetopes: [1, 2, 6, 7, 3, 9],
     eastMetopes: [4, 8, 10, 11, 12, 5],
@@ -293,9 +369,21 @@ function loadLabourCategories() {
 }
 
 function loadLaboursTimeline() {
-    const container = document.getElementById('labours-timeline');
-    if (container) {
-        container.innerHTML = lessonData.labours.map(labour => `
+    const container1to6 = document.getElementById('labours-1-6');
+    const container7to12 = document.getElementById('labours-7-12');
+    
+    if (container1to6) {
+        container1to6.innerHTML = lessonData.labours.slice(0, 6).map(labour => `
+            <div class="timeline-labour" onclick="showLabourDetail(${labour.number})">
+                <div class="timeline-labour-number">${labour.number}</div>
+                <div class="timeline-labour-icon">${labour.icon}</div>
+                <div class="timeline-labour-name">${labour.name}</div>
+            </div>
+        `).join('');
+    }
+    
+    if (container7to12) {
+        container7to12.innerHTML = lessonData.labours.slice(6, 12).map(labour => `
             <div class="timeline-labour" onclick="showLabourDetail(${labour.number})">
                 <div class="timeline-labour-number">${labour.number}</div>
                 <div class="timeline-labour-icon">${labour.icon}</div>
@@ -313,8 +401,9 @@ function loadTempleMetopes() {
         westContainer.innerHTML = lessonData.westMetopes.map(num => {
             const labour = lessonData.labours.find(l => l.number === num);
             return `
-                <div class="metope" onclick="showMetopeDetail(${num})" title="${labour.name}">
-                    <div class="metope-number">${num}</div>
+                <div class="metope" onclick="showMetopeModal(${num})" title="${labour.name}">
+                    <img src="../../images/labour${num}.jpg" alt="${labour.name} metope" class="metope-image">
+                    <div class="metope-tooltip">${labour.name}</div>
                 </div>
             `;
         }).join('');
@@ -324,8 +413,9 @@ function loadTempleMetopes() {
         eastContainer.innerHTML = lessonData.eastMetopes.map(num => {
             const labour = lessonData.labours.find(l => l.number === num);
             return `
-                <div class="metope" onclick="showMetopeDetail(${num})" title="${labour.name}">
-                    <div class="metope-number">${num}</div>
+                <div class="metope" onclick="showMetopeModal(${num})" title="${labour.name}">
+                    <img src="../../images/labour${num}.jpg" alt="${labour.name} metope" class="metope-image">
+                    <div class="metope-tooltip">${labour.name}</div>
                 </div>
             `;
         }).join('');
@@ -375,7 +465,7 @@ function showLabourDetail(labourNum) {
         });
         event.currentTarget.classList.add('active');
         
-        // Show detail
+        // Show detail with reveal buttons
         detailBox.innerHTML = `
             <div class="labour-detail-header">
                 <div class="labour-detail-number">${labour.number}</div>
@@ -386,50 +476,72 @@ function showLabourDetail(labourNum) {
             </div>
             
             <div class="labour-detail-narrative">
-                <p><strong>The Challenge:</strong> ${labour.challenge}</p>
-                <p><strong>The Solution:</strong> ${labour.solution}</p>
+                <p>${labour.significance}</p>
             </div>
             
-            <div class="labour-reveals">
-                <div class="reveal-section challenge">
-                    <div class="reveal-label">Why This Was Impossible</div>
-                    <div>${labour.challenge}</div>
-                </div>
-                
-                <div class="reveal-section solution">
-                    <div class="reveal-label">How Heracles Succeeded</div>
-                    <div>${labour.solution}</div>
-                </div>
-                
-                <div class="reveal-section significance">
-                    <div class="reveal-label">Significance</div>
-                    <div>${labour.significance}</div>
-                </div>
+            <button class="reveal-button" onclick="revealDifficulty(this)">
+                Reveal Chief Difficulty ⬇
+            </button>
+            <div class="reveal-content difficulty">
+                <div class="reveal-label">Chief Difficulty</div>
+                <div>${labour.challenge}</div>
+            </div>
+            
+            <button class="reveal-button" onclick="revealSolution(this)">
+                Reveal How Heracles Succeeded ⬇
+            </button>
+            <div class="reveal-content solution">
+                <div class="reveal-label">How Heracles Succeeded</div>
+                <div>${labour.solution}</div>
             </div>
         `;
         detailBox.classList.add('active');
     }
 }
 
-function showMetopeDetail(labourNum) {
-    const labour = lessonData.labours.find(l => l.number === labourNum);
-    const detailsDiv = document.getElementById('metope-details');
+function revealDifficulty(button) {
+    button.classList.add('revealed');
+    button.nextElementSibling.classList.add('revealed');
+}
+
+function revealSolution(button) {
+    button.classList.add('revealed');
+    button.nextElementSibling.classList.add('revealed');
+}
+
+function showMetopeModal(labourNum) {
+    const metope = lessonData.metopeDetails[labourNum];
+    const modal = document.getElementById('metopeModal');
+    const modalContent = document.getElementById('metopeModalContent');
     
-    if (labour && detailsDiv) {
-        // Update active states
-        document.querySelectorAll('.metope').forEach(el => {
-            el.classList.remove('active');
-        });
-        event.currentTarget.classList.add('active');
-        
-        detailsDiv.innerHTML = `
-            <h4>Labour ${labour.number}: ${labour.name}</h4>
-            <p><strong>Location:</strong> ${labour.location}</p>
-            <p><strong>Depicted on:</strong> ${labour.metope === 'west' ? 'West' : 'East'} Porch</p>
-            <p>${labour.significance}</p>
+    if (metope && modal && modalContent) {
+        modalContent.innerHTML = `
+            <div class="metope-detail-header">
+                <div class="metope-detail-number">${labourNum}</div>
+                <div class="metope-detail-title">
+                    <h3>${metope.title}</h3>
+                    <div class="metope-detail-location">📍 ${metope.location}</div>
+                </div>
+            </div>
+            
+            <img src="../../images/labour${labourNum}.jpg" alt="${metope.title} metope detail" class="metope-image-large">
+            
+            <div class="metope-description">
+                <h4>The Sculpture</h4>
+                <p>${metope.description}</p>
+            </div>
+            
+            <div class="metope-analysis">
+                <h4>Why This Labour at Olympia?</h4>
+                <p>${metope.analysis}</p>
+            </div>
         `;
-        detailsDiv.style.display = 'block';
+        modal.style.display = 'block';
     }
+}
+
+function closeMetopeModal() {
+    document.getElementById('metopeModal').style.display = 'none';
 }
 
 function updateProgress() {
@@ -502,10 +614,15 @@ function closeInfoModal() {
     document.getElementById('infoModal').style.display = 'none';
 }
 
-// Window click handler for modal
+// Window click handler for modals
 window.onclick = function(event) {
-    const modal = document.getElementById('infoModal');
-    if (event.target === modal) {
+    const infoModal = document.getElementById('infoModal');
+    const metopeModal = document.getElementById('metopeModal');
+    
+    if (event.target === infoModal) {
         closeInfoModal();
+    }
+    if (event.target === metopeModal) {
+        closeMetopeModal();
     }
 }
