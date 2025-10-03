@@ -1,5 +1,8 @@
 // Tacitus Annals 12.41a Data File
 const lessonData = {
+    // Full passage translation
+    fullTranslation: "In the consulships of Tiberius Claudius - for the fifth time - and Servius Cornelius Orfitus, the (granting of the) manly toga to Nero was accelerated, so that he might seem suitable to undertake a public role. Also, the emperor willingly yielded to the flattering suggestions of the Senate that Nero should enter upon the consulship in the 20th year of his life and in the meantime, as consul designate, he should hold proconsular power outside the city and be called leader of the youth. A donative was added for the soldiers in Nero's name, (and) a handout for the plebs. Also, at a performance of the circus games, which was provided in order to get the goodwill of the mob, Britannicus rode past in the toga praetexta, Nero in triumphal clothing: (the reasoning was that) the people should look at the latter in his triumphal glory and the former in boyhood apparel and would therefore anticipate the fortune of both.",
+
     // Latin text with markup
     latinText: `
         <span class="phrase phrase-1" onclick="showAnalysis('phrase1')">Ti. Claudio quintum Servio Cornelio Orfito consulibus</span>
