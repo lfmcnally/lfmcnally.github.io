@@ -641,15 +641,10 @@
 
         function copyTechniqueToSlots() {
             const select = document.getElementById('techniqueSelect');
-            const selectedValue = select.value;
             const customInput = document.getElementById('customTechniqueInput');
+            const selectedValue = select.value === 'CUSTOM' ? customInput.value.trim() : select.value;
             
-            if (selectedValue === 'CUSTOM') {
-                // Don't auto-fill when custom is selected - wait for user to type
-                return;
-            }
-            
-            if (selectedValue && selectedValue !== '') {
+            if (selectedValue) {
                 const slots = document.querySelectorAll('.technique-input');
                 slots.forEach(slot => {
                     slot.value = selectedValue;
@@ -668,12 +663,8 @@
             document.getElementById('authorInput').addEventListener('input', updateSentenceStarters);
             
             const customInput = document.getElementById('customTechniqueInput');
-            customInput.addEventListener('input', function() {
-                copyTechniqueToSlots();
-            });
-            customInput.addEventListener('keyup', function() {
-                copyTechniqueToSlots();
-            });
+            customInput.addEventListener('input', copyTechniqueToSlots);
+            customInput.addEventListener('keyup', copyTechniqueToSlots);
         });
 
         function updateSentenceStarters() {
@@ -687,21 +678,6 @@
                     authorOption.textContent = 'By doing this, ' + author.toLowerCase();
                 }
             });
-        }
-
-        function copyTechniqueToSlots() {
-            const select = document.getElementById('techniqueSelect');
-            const selectedValue = select.value;
-            
-            if (selectedValue) {
-                const slots = document.querySelectorAll('.technique-input');
-                slots.forEach(slot => {
-                    if (slot.value === '') {
-                        slot.value = selectedValue;
-                        checkBankButton(slot.closest('.answer-slot'));
-                    }
-                });
-            }
         }
 
         function toggleLock(type) {
@@ -794,17 +770,10 @@
 Example: dramatic suspense by holding back the critical word until the end, making the reader experience the sudden shock of the poisoning."></textarea>
                     <div class="char-counter">0 characters</div>
                 </div>
-                <button class="bank-button" onclick="bankPoint('${slotId}')">Bank Point 1</button>
+                <button class="bank-button" onclick="bankPoint('${slotId}')">Bank Point</button>
             `;
             
             slot.innerHTML = html;
-            
-            // Ensure button is enabled after creation
-            setTimeout(() => {
-                const btn = slot.querySelector('.bank-button');
-                if (btn) btn.disabled = false;
-            }, 0);
-            
             return slot;
         }
 
@@ -814,33 +783,20 @@ Example: dramatic suspense by holding back the critical word until the end, maki
             container.appendChild(slot);
             setupValidation(slot);
             updateSentenceStarters();
+            
+            // Copy technique to new slot
+            copyTechniqueToSlots();
         }
 
         function setupValidation(slot) {
             const textarea = slot.querySelector('.analysis-textarea');
             const counter = slot.querySelector('.char-counter');
-            const inputs = slot.querySelectorAll('input:not([readonly]), select, textarea');
 
             textarea.addEventListener('input', function() {
                 const charCount = this.value.length;
-                const wordCount = this.value.trim().split(/\s+/).length;
+                const wordCount = this.value.trim().split(/\s+/).filter(w => w.length > 0).length;
                 counter.textContent = charCount + ' characters (~' + wordCount + ' words)';
             });
-
-            // Remove the checkBankButton calls - button is always enabled
-        }
-
-        function checkBankButton(slot) {
-            const button = slot.querySelector('.bank-button');
-            const structure = slot.querySelector('.structure-style').value;
-            const technique = slot.querySelector('.technique-input').value.trim();
-            const latin = slot.querySelector('.latin-input').value.trim();
-            const translation = slot.querySelector('.translation-input').value.trim();
-            const starter = slot.querySelector('.sentence-starter').value;
-            const effect = slot.querySelector('.analysis-textarea').value.trim();
-
-            const isValid = structure && technique && latin && translation && starter && effect.length > 20;
-            button.disabled = !isValid;
         }
 
         function bankPoint(slotId) {
@@ -854,6 +810,13 @@ Example: dramatic suspense by holding back the critical word until the end, maki
             const effect = slot.querySelector('.analysis-textarea').value;
             const author = document.getElementById('authorInput').value || 'The author';
 
+            // Validation - check if required fields are filled
+            if (!structure || !technique || !latin || !translation || !starter || !effect) {
+                alert('Please fill in all required fields before banking this point.');
+                return;
+            }
+
+            // Handle author placeholder
             const authorPattern = /\b(tacitus|virgil|cicero|ovid|horace|catullus|livy|pliny|lawrence|[a-z]+)\b/i;
             if (starter.match(authorPattern) && starter.toLowerCase().includes('by doing this')) {
                 starter = 'By doing this, ' + author;
@@ -881,31 +844,28 @@ Example: dramatic suspense by holding back the critical word until the end, maki
         }
 
         function clearSlot(slotId) {
-    const slot = document.getElementById(slotId);
-    slot.querySelector('.structure-style').value = '';
-    slot.querySelector('.latin-input').value = '';
-    slot.querySelector('.translation-input').value = '';
-    slot.querySelector('.effect-phrase-input').value = '';
-    slot.querySelector('.sentence-starter').value = '';
-    slot.querySelector('.analysis-textarea').value = '';
-    slot.querySelector('.char-counter').textContent = '0 characters';
-    
-    // Re-fill technique from dropdown
-    const techniqueSelect = document.getElementById('techniqueSelect');
-    const customInput = document.getElementById('customTechniqueInput');
-    const techniqueInput = slot.querySelector('.technique-input');
-    
-    if (techniqueSelect.value === 'CUSTOM' && customInput.value.trim()) {
-        techniqueInput.value = customInput.value.trim();
-    } else if (techniqueSelect.value && techniqueSelect.value !== 'CUSTOM') {
-        techniqueInput.value = techniqueSelect.value;
-    } else {
-        techniqueInput.value = '';
-    }
-    
-    // Keep button enabled so user can fill it again
-    slot.querySelector('.bank-button').disabled = false;
-}
+            const slot = document.getElementById(slotId);
+            slot.querySelector('.structure-style').value = '';
+            slot.querySelector('.latin-input').value = '';
+            slot.querySelector('.translation-input').value = '';
+            slot.querySelector('.effect-phrase-input').value = '';
+            slot.querySelector('.sentence-starter').value = '';
+            slot.querySelector('.analysis-textarea').value = '';
+            slot.querySelector('.char-counter').textContent = '0 characters';
+            
+            // Re-fill technique from dropdown
+            const techniqueSelect = document.getElementById('techniqueSelect');
+            const customInput = document.getElementById('customTechniqueInput');
+            const techniqueInput = slot.querySelector('.technique-input');
+            
+            if (techniqueSelect.value === 'CUSTOM' && customInput.value.trim()) {
+                techniqueInput.value = customInput.value.trim();
+            } else if (techniqueSelect.value && techniqueSelect.value !== 'CUSTOM') {
+                techniqueInput.value = techniqueSelect.value;
+            } else {
+                techniqueInput.value = '';
+            }
+        }
 
         function updateAnswerDisplay() {
             const display = document.getElementById('answerDisplay');
@@ -922,7 +882,7 @@ Example: dramatic suspense by holding back the critical word until the end, maki
             let wordCount = 0;
 
             bankedPoints.forEach((point, index) => {
-                const words = point.fullPoint.trim().split(/\s+/).length;
+                const words = point.fullPoint.trim().split(/\s+/).filter(w => w.length > 0).length;
                 wordCount += words;
 
                 html += '<div class="banked-point"><div class="point-header"><span class="point-label">Point ' + point.pointNumber + '</span><div class="point-actions"><button class="action-btn" onclick="moveUp(' + index + ')">▲</button><button class="action-btn" onclick="moveDown(' + index + ')">▼</button><button class="action-btn" onclick="removePoint(' + index + ')">✕</button></div></div><div class="point-content" contenteditable="true" onblur="updatePointText(' + index + ', this.innerText)" onkeydown="if(event.key===\'Enter\' && !event.shiftKey){event.preventDefault(); this.blur();}">' + point.fullPoint + '</div></div>';
@@ -1003,6 +963,7 @@ Example: dramatic suspense by holding back the critical word until the end, maki
             printWindow.document.close();
         }
 
+        // Initialize with one slot
         addSlot();
     </script>
 </body>
