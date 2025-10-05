@@ -2,15 +2,15 @@
 const timelineEventsData = [
     {
         id: 'tiberius-election',
-        date: '133 BC',
+        date: '133 BC (Early)',
         title: 'Tiberius Elected Tribune',
-        description: 'Tiberius Gracchus becomes tribune and proposes radical land reform',
+        description: 'Tiberius Gracchus wins tribunician election and proposes radical land reform',
         content: `
             <p><span class="key-figure" data-info="tiberius-gracchus">Tiberius Sempronius Gracchus</span> came from a distinguished family—his father had been consul and censor, his mother <span class="key-figure" data-info="cornelia">Cornelia</span> was daughter of <span class="key-figure" data-info="scipio-africanus">Scipio Africanus</span>. Yet he chose to champion the dispossessed against his own class.</p>
             
-            <p>The <span class="key-term" data-definition="lex-sempronia-agraria">Lex Sempronia Agraria</span> proposed to enforce existing limits on public land occupation (500 <em>iugera</em> per person), redistribute excess to the poor, and create a three-man commission to oversee the process.</p>
+            <p>His military service in Spain had exposed him to the plight of Italian farmers losing their land. When he returned to Rome, he saw the consequences: impoverished citizens flooding into the city with no prospects.</p>
             
-            <p>Rather than working through the Senate, Tiberius planned to take the bill directly to the <span class="key-term" data-definition="plebeian-assembly">Plebeian Assembly</span>—bypassing senatorial authority entirely.</p>
+            <p>Upon election as tribune of the plebs in 133 BC, Tiberius immediately proposed the <span class="key-term" data-definition="lex-sempronia-agraria">Lex Sempronia Agraria</span>—a law to enforce existing limits on public land occupation (500 <em>iugera</em> per person) and redistribute excess land to landless citizens.</p>
             
             <div class="primary-source">
                 The wild beasts have their dens, but the men who fight for Italy have nothing but air and light.
@@ -19,29 +19,93 @@ const timelineEventsData = [
         `
     },
     {
+        id: 'plebeian-assembly',
+        date: '133 BC (Spring)',
+        title: 'Bill to Plebeian Assembly',
+        description: 'Tiberius bypasses Senate, taking proposal directly to the people',
+        content: `
+            <p>Rather than working through the Senate as tradition demanded, Tiberius took his bill directly to the <span class="key-term" data-definition="plebeian-assembly">Plebeian Assembly</span>—the democratic body where all plebeian citizens could vote.</p>
+            
+            <p>This was constitutionally legal but politically explosive. The Senate expected to be consulted on major legislation, and senators viewed Tiberius's approach as an attack on their authority.</p>
+            
+            <p>Tiberius argued that the people, not the Senate, were sovereign. If the assembly approved his law, it would be binding on all Romans regardless of senatorial opposition.</p>
+            
+            <p>This established the <span class="key-concept" data-concept="popularis-methods">popularis method</span>: using tribunician power and popular assemblies to bypass traditional elite control.</p>
+        `
+    },
+    {
+        id: 'octavius-veto',
+        date: '133 BC (Spring)',
+        title: 'Octavius Vetoes Bill',
+        description: 'Fellow tribune blocks the legislation at Senate\'s request',
+        content: `
+            <p>When Tiberius brought his land bill to a vote, fellow tribune <span class="key-figure" data-info="marcus-octavius">Marcus Octavius</span> exercised his veto—the traditional tribunician power to block legislation.</p>
+            
+            <p>Octavius, likely acting at the Senate's urging, argued that the bill threatened property rights and would cause economic chaos. His veto should have killed the proposal entirely.</p>
+            
+            <p>But Tiberius refused to accept this. He argued that a tribune who opposed the people's interests had violated his oath and forfeited his office.</p>
+        `
+    },
+    {
         id: 'octavius-deposition',
         date: '133 BC (Mid-year)',
         title: 'Octavius Deposed',
-        description: 'Unprecedented removal of a tribune from office shocks conservatives',
+        description: 'Unprecedented removal of a tribune shocks conservatives',
         content: `
-            <p>When fellow tribune <span class="key-figure" data-info="marcus-octavius">Marcus Octavius</span> vetoed Tiberius's land bill, Tiberius took an unprecedented step—he convinced the Plebeian Assembly to remove Octavius from office entirely.</p>
+            <p>In an unprecedented move, Tiberius convinced the Plebeian Assembly to vote Octavius out of office. No tribune had ever been deposed before.</p>
             
-            <p>No tribune had ever been deposed before. The <span class="key-concept" data-concept="tribunician-sacrosanctity">sacrosanctity of tribunes</span> was fundamental to the Roman constitution—they were protected by religious law and supposedly untouchable.</p>
+            <p>The <span class="key-concept" data-concept="tribunician-sacrosanctity">sacrosanctity of tribunes</span> was fundamental to Roman constitutional law—they were protected by religious sanction and supposedly untouchable.</p>
             
-            <p>Tiberius justified this by arguing that a tribune who opposed the people's will had forfeited his right to office. The people who elected him could remove him.</p>
+            <p>Tiberius's justification was democratic: the people who elected Octavius could remove him if he betrayed their interests. But conservatives saw this as tyrannical—if tribunes could be removed for opposing popular measures, what constitutional limits remained?</p>
+            
+            <p>With Octavius removed, the land bill passed the assembly and became law.</p>
+        `
+    },
+    {
+        id: 'pergamum',
+        date: '133 BC (Summer)',
+        title: 'Pergamum Bequest',
+        description: 'Tiberius proposes using royal treasury to fund land commission',
+        content: `
+            <p>King Attalus III of Pergamum had recently died, bequeathing his kingdom and treasury to Rome. Traditionally, the Senate would have decided how to use this windfall.</p>
+            
+            <p>Instead, Tiberius proposed that the Plebeian Assembly should vote to use Pergamum's wealth to fund his land redistribution programme—providing equipment and seed for new smallholders.</p>
+            
+            <p>This was another direct challenge to senatorial authority. Foreign affairs and financial matters were traditionally Senate prerogatives, not subject to popular vote.</p>
+            
+            <p>The Senate was outraged. Tiberius was systematically stripping away their powers and transferring them to the popular assembly.</p>
+        `
+    },
+    {
+        id: 'reelection',
+        date: '133 BC (Late Summer)',
+        title: 'Re-election Attempt',
+        description: 'Tiberius seeks second consecutive tribunate',
+        content: `
+            <p>As his tribunician year neared its end, Tiberius faced a problem: his land commission's work had barely begun, and his enemies would destroy it once he left office.</p>
+            
+            <p>He decided to stand for re-election as tribune—a move of dubious legality. It was unclear whether tribunes could serve consecutive terms, and opponents claimed this was forbidden.</p>
+            
+            <p>Tiberius argued necessity: his reforms needed protection. But his enemies saw this as proof of tyrannical ambition—seeking perpetual power like a king.</p>
+            
+            <p>As election day approached, tensions reached breaking point. Both sides mobilised supporters. Violence seemed inevitable.</p>
         `
     },
     {
         id: 'tiberius-death',
         date: '133 BC (Late)',
-        title: 'Tiberius Killed',
-        description: 'First political murder in the Forum—300 supporters also die',
+        title: 'Murder in the Forum',
+        description: 'Senators kill Tiberius and 300 supporters during election',
         content: `
-            <p>When Tiberius sought re-election as tribune (possibly illegal under Roman law), tensions reached breaking point. On election day, senators led a mob against Tiberius and his supporters.</p>
+            <p>On election day, as voting proceeded, a group of senators led by Pontifex Maximus Scaevola armed themselves with clubs and broken furniture.</p>
             
-            <p>Armed with clubs and broken furniture, senators and their clients attacked unarmed citizens in the Forum. Tiberius was beaten to death with fragments of benches and chairs.</p>
+            <p>They attacked Tiberius and his supporters in the Forum, beating them to death. Tiberius was killed with fragments of benches and chairs—the first political murder in Rome in centuries.</p>
             
-            <p>A Roman tribune—supposedly <span class="key-concept" data-concept="tribunician-sacrosanctity">sacrosanct</span> and protected by the gods—had been murdered by his fellow senators. The violence shattered constitutional norms and religious taboos.</p>
+            <p>A Roman tribune—supposedly <span class="key-concept" data-concept="tribunician-sacrosanctity">sacrosanct</span> and protected by the gods—had been murdered by his fellow senators. Religious taboos and constitutional norms had been shattered.</p>
+            
+            <p>Approximately 300 of Tiberius's supporters were killed alongside him. Their bodies were thrown into the Tiber River, denied proper burial.</p>
+            
+            <p>The Senate accepted parts of Tiberius's land law to calm popular anger, but his murder established a terrifying precedent: political opponents could be killed with impunity.</p>
         `
     },
     {
