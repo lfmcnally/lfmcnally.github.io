@@ -179,7 +179,7 @@ function initializeMetopes() {
     if (westContainer) {
         westContainer.innerHTML = olympiaData.westMetopes.map(num => `
             <div class="metope" onclick="showMetopeModal(${num})">
-                <div class="metope-number">${num}</div>
+                <img src="../../images/labour${num}.jpg" alt="Labour ${num} metope" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">
             </div>
         `).join('');
     }
@@ -187,7 +187,7 @@ function initializeMetopes() {
     if (eastContainer) {
         eastContainer.innerHTML = olympiaData.eastMetopes.map(num => `
             <div class="metope" onclick="showMetopeModal(${num})">
-                <div class="metope-number">${num}</div>
+                <img src="../../images/labour${num}.jpg" alt="Labour ${num} metope" style="width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">
             </div>
         `).join('');
     }
