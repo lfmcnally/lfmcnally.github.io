@@ -203,6 +203,8 @@ function showMetopeModal(labourNum) {
             <h2 class="metope-detail-title">Labour ${labourNum}: ${metope.title}</h2>
             <div class="metope-detail-location">📍 ${metope.location}</div>
             
+            <img src="../../images/labour${labourNum}.jpg" alt="${metope.title} metope detail" style="width: 100%; max-width: 450px; height: auto; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); margin: 2rem auto; display: block;">
+            
             <div class="metope-detail-text">
                 <h4>The Sculpture</h4>
                 <p>${metope.description}</p>
