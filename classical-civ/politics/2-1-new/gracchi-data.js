@@ -425,44 +425,51 @@ function initializeTimeline() {
     
     if (!eventsContainer || !detailsContainer) return;
     
+    // Remove the separate details container as we'll put content inline
+    if (detailsContainer) {
+        detailsContainer.remove();
+    }
+    
     timelineEventsData.forEach(event => {
         const eventEl = document.createElement('div');
         eventEl.className = 'timeline-event';
-        eventEl.onclick = () => showTimelineEvent(event.id);
+        eventEl.onclick = () => toggleTimelineEvent(event.id);
         eventEl.innerHTML = `
             <div class="timeline-date">${event.date}</div>
             <div class="timeline-title">${event.title}</div>
             <div class="timeline-description">${event.description}</div>
         `;
         eventsContainer.appendChild(eventEl);
-    });
-    
-    const defaultContent = document.createElement('div');
-    defaultContent.className = 'timeline-content active';
-    defaultContent.id = 'timeline-default';
-    defaultContent.innerHTML = `
-        <h4>The Gracchan Revolution</h4>
-        <p>Click on any event above to explore the dramatic sequence that transformed Roman politics.</p>
-    `;
-    detailsContainer.appendChild(defaultContent);
-    
-    timelineEventsData.forEach(event => {
+        
+        // Add expandable content directly after each event
         const contentEl = document.createElement('div');
         contentEl.className = 'timeline-content';
         contentEl.id = `timeline-${event.id}`;
-        contentEl.innerHTML = `<h4>${event.title}</h4>${event.content}`;
-        detailsContainer.appendChild(contentEl);
+        contentEl.style.display = 'none';
+        contentEl.innerHTML = `
+            <div style="background: #f8f9fa; border-radius: 8px; padding: 1.5rem; margin: 1rem 0 1.5rem 2rem; border-left: 3px solid #0066ff;">
+                <h4 style="color: #0066ff; margin-bottom: 1rem; font-size: 1.1rem;">${event.title}</h4>
+                ${event.content}
+            </div>
+        `;
+        eventsContainer.appendChild(contentEl);
     });
 }
 
-function showTimelineEvent(eventId) {
-    document.querySelectorAll('#timeline-details .timeline-content').forEach(content => {
-        content.classList.remove('active');
-    });
+function toggleTimelineEvent(eventId) {
     const content = document.getElementById(`timeline-${eventId}`);
-    if (content) {
-        content.classList.add('active');
+    
+    if (content.style.display === 'none') {
+        // Close all other expanded events
+        document.querySelectorAll('.timeline-content').forEach(c => {
+            c.style.display = 'none';
+        });
+        // Open this one
+        content.style.display = 'block';
         setupInteractiveContent();
+    } else {
+        // Close this one if already open
+        content.style.display = 'none';
     }
 }
 
