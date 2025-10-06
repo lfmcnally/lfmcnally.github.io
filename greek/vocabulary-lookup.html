@@ -911,4 +911,110 @@
                 if (aGreekExact && !bGreekExact) return -1;
                 if (bGreekExact && !aGreekExact) return 1;
                 if (aEnglishExact && !bEnglishExact) return -1;
-                if (bEnglishExact && !a
+                if (bEnglishExact && !aEnglishExact) return 1;
+                
+                return a.greek.localeCompare(b.greek);
+            });
+
+            displayResults(searchTerm);
+        }
+
+        function displayResults(searchTerm) {
+            const resultsCount = document.getElementById('resultsCount');
+            const resultsContent = document.getElementById('resultsContent');
+            const chapterFilter = document.getElementById('chapterFilter').value;
+            
+            if (currentResults.length === 0) {
+                let message = `No results found for "${searchTerm}"`;
+                if (chapterFilter) {
+                    message += ` in Chapter ${chapterFilter}`;
+                }
+                showNoResults(message);
+                return;
+            }
+
+            let countMessage = `${currentResults.length} result${currentResults.length !== 1 ? 's' : ''} found`;
+            if (chapterFilter) {
+                countMessage += ` in Chapter ${chapterFilter}`;
+            }
+            resultsCount.textContent = countMessage;
+
+            let html = '';
+            currentResults.forEach(word => {
+                const highlightedGreek = highlightText(word.greek, searchTerm);
+                const highlightedEnglish = highlightText(word.english, searchTerm);
+                const highlightedInfo = highlightText(word.info, searchTerm);
+                
+                html += `
+                    <div class="word-result">
+                        <div class="word-greek">${highlightedGreek}</div>
+                        <div class="word-info">${highlightedInfo}</div>
+                        <div class="word-english">${highlightedEnglish}</div>
+                        <div class="word-chapter">Chapter ${word.chapter}</div>
+                    </div>
+                `;
+            });
+            
+            resultsContent.innerHTML = html;
+        }
+
+        function showNoResults(message) {
+            const resultsCount = document.getElementById('resultsCount');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            resultsCount.textContent = message;
+            resultsContent.innerHTML = `
+                <div class="no-results">
+                    <p>${message}</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.95rem;">Try a different search term or check the chapter filter.</p>
+                </div>
+            `;
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('chapterFilter').value = '';
+            document.getElementById('resultsCount').textContent = 'Type in the search box to find vocabulary words';
+            document.getElementById('resultsContent').innerHTML = `
+                <div class="no-results">
+                    <p>Enter a search term to find Greek vocabulary words.</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.95rem;">You can search for Greek words, English meanings, or partial matches.</p>
+                </div>
+            `;
+            document.getElementById('searchInput').focus();
+        }
+
+        function showInfoModal() {
+            document.getElementById('infoModal').style.display = 'block';
+        }
+
+        function closeInfoModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('infoModal');
+            if (event.target === modal) {
+                closeInfoModal();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Greek vocabulary lookup page loaded');
+            
+            await waitForVocabularyData();
+            console.log('Greek vocabulary data loaded:', allWords.length, 'words');
+            
+            const searchInput = document.getElementById('searchInput');
+            const chapterFilter = document.getElementById('chapterFilter');
+            
+            searchInput.addEventListener('input', performSearch);
+            chapterFilter.addEventListener('change', performSearch);
+            
+            searchInput.focus();
+            
+            document.getElementById('infoModal').style.display = 'none';
+        });
+    </script>
+</body>
+</html>
