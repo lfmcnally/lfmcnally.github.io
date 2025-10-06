@@ -168,18 +168,18 @@ const timelineEvents = [
     {
         id: 'marius-recalled',
         date: '104 BC',
-        title: 'Marius Recalled',
+        title: 'Marius Recalled - Second Consulship',
         description: 'Elected consul in absentia whilst fighting in Africa',
         content: {
-            title: 'Emergency Election in Absentia (104 BC)',
+            title: 'Emergency Election in Absentia - Second Consulship (104 BC)',
             html: `
-                <p>Facing potential annihilation, Rome took the unprecedented step of electing Marius consul whilst he was still completing his campaign against <span class="key-figure" data-info="jugurtha">Jugurtha</span> in Africa. This violated the principle that candidates must be present in Rome for elections.</p>
+                <p>Marius had first been elected consul in 107 BC to fight <span class="key-figure" data-info="jugurtha">Jugurtha</span> in Numidia—that success made him famous. Now, facing potential annihilation from the northern barbarians, Rome took the unprecedented step of electing him consul for a second time whilst he was still completing his African campaign. This violated the principle that candidates must be present in Rome for elections.</p>
                 
                 <p>The emergency election demonstrated how crisis could override constitutional norms. Popular fear of the barbarians was so intense that traditional procedures seemed irrelevant.</p>
                 
                 <p>Marius was granted extraordinary authority to recruit and train new armies using his reformed system. The traditional property qualifications were formally abandoned as Rome mobilised every available man.</p>
                 
-                <p>This marked the beginning of his five consecutive consulships (104-100 BC), shattering the Republican principle of annual magistrates and shared power.</p>
+                <p><strong>The beginning of consecutive consulships:</strong> This second consulship in 104 BC marked the start of an unprecedented five consecutive years in office. Marius would hold the consulship every single year from 104 to 100 BC (his second, third, fourth, fifth, and sixth consulships), shattering the Republican principle of annual magistrates and shared power.</p>
                 
                 <p>The precedent established that exceptional circumstances could justify exceptional commands—a principle later exploited by Pompey, Caesar, and other ambitious generals.</p>
             `
@@ -188,12 +188,12 @@ const timelineEvents = [
     {
         id: 'aquae-sextiae',
         date: '102 BC',
-        title: 'Victory at Aquae Sextiae',
+        title: 'Victory at Aquae Sextiae - Fourth Consulship',
         description: 'Marius crushes the Teutones in southern Gaul',
         content: {
-            title: 'Victory at Aquae Sextiae (102 BC)',
+            title: 'Victory at Aquae Sextiae - Fourth Consulship (102 BC)',
             html: `
-                <p>Marius first confronted the <span class="key-figure" data-info="teutones">Teutones</span> at <span class="key-term" data-definition="aquae-sextiae">Aquae Sextiae</span> (modern Aix-en-Provence). His reformed legions, professional and disciplined, proved devastatingly effective against barbarian mass attacks.</p>
+                <p>Now in his fourth consecutive consulship (having held the office continuously since 104 BC), Marius confronted the <span class="key-figure" data-info="teutones">Teutones</span> at <span class="key-term" data-definition="aquae-sextiae">Aquae Sextiae</span> (modern Aix-en-Provence). His reformed legions, professional and disciplined, proved devastatingly effective against barbarian mass attacks.</p>
                 
                 <p>The battle demonstrated the superiority of professional soldiers over both citizen-militia and barbarian warriors. Marius's men maintained formation under pressure and executed complex tactical manoeuvres that would have been impossible for traditional forces.</p>
                 
@@ -208,12 +208,12 @@ const timelineEvents = [
     {
         id: 'vercellae',
         date: '101 BC',
-        title: 'Triumph at Vercellae',
+        title: 'Triumph at Vercellae - Fifth Consulship',
         description: 'Combined armies destroy the Cimbri in northern Italy',
         content: {
-            title: 'The Final Victory at Vercellae (101 BC)',
+            title: 'The Final Victory at Vercellae - Fifth Consulship (101 BC)',
             html: `
-                <p>The <span class="key-figure" data-info="cimbri">Cimbri</span> had meanwhile invaded northern Italy, but Marius, joined by his colleague <span class="key-figure" data-info="catulus">Quintus Lutatius Catulus</span>, met them at <span class="key-term" data-definition="vercellae">Vercellae</span> in the Po valley.</p>
+                <p>In his fifth consecutive year as consul, the <span class="key-figure" data-info="cimbri">Cimbri</span> had meanwhile invaded northern Italy. Marius, joined by his colleague <span class="key-figure" data-info="catulus">Quintus Lutatius Catulus</span>, met them at <span class="key-term" data-definition="vercellae">Vercellae</span> in the Po valley.</p>
                 
                 <p>The combined Roman armies utterly destroyed the Cimbri. According to sources, 140,000 barbarians were killed and 60,000 captured, including women and children who had accompanied the migration.</p>
                 
@@ -228,14 +228,21 @@ const timelineEvents = [
     {
         id: 'third-founder',
         date: '100 BC',
-        title: 'Third Founder of Rome',
+        title: 'Third Founder of Rome - Sixth Consulship',
         description: 'Marius celebrated as saviour of the Republic',
         content: {
-            title: '"Third Founder of Rome" (100 BC)',
+            title: '"Third Founder of Rome" - Sixth Consulship (100 BC)',
             html: `
                 <p>Marius returned to Rome as the greatest military hero since <span class="key-figure" data-info="scipio-africanus">Scipio Africanus</span>. Popular acclaim hailed him as the "third founder of Rome," after <span class="key-figure" data-info="romulus">Romulus</span> and <span class="key-figure" data-info="camillus">Camillus</span>.</p>
                 
-                <p>His five consecutive consulships had saved the Republic, but they also established dangerous precedents. Annual magistrates and term limits—fundamental Republican principles—had been abandoned when crisis demanded exceptional leadership.</p>
+                <p>His five consecutive consulships (104-100 BC) had saved the Republic, but they also established dangerous precedents. Annual magistrates and term limits—fundamental Republican principles—had been abandoned when crisis demanded exceptional leadership.</p>
+                
+                <p><strong>Marius's consulships in full:</strong></p>
+                <ul>
+                    <li><strong>First (107 BC):</strong> Elected to fight the Jugurthine War in Numidia</li>
+                    <li><strong>Second-Sixth (104-100 BC):</strong> Five consecutive years to fight the Cimbric threat—completely unprecedented</li>
+                    <li><strong>Seventh (86 BC):</strong> Much later, during civil war; died shortly after taking office</li>
+                </ul>
                 
                 <p>Marius's success demonstrated that military competence could override traditional qualifications for high office. Birth, connections, and rhetorical skill mattered less than proven ability to win battles.</p>
                 
