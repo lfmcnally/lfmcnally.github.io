@@ -3,18 +3,18 @@ const lessonData = {
     fullTranslation: "At the same time, those of the centurions and tribunes who were pitying the fate of Britannicus were removed on false pretexts, and others under the pretence of some distinction or other; also, if anyone of the freedmen had incorruptible loyalty, he was driven out on a similar pretext. When they met each other, Nero greeted Britannicus by name, Britannicus greeted the other as Domitius. Agrippina reported this to her husband with much complaining as the beginning of disharmony: (she said that) of course, the adoption was being disregarded, and what the senators had resolved and the people ordered was being annulled within their own home; and unless the wickedness of those who were teaching such hostility was prevented, it would break out to the ruination of the state. Disturbed by these (remarks) as if they were accusations, (Claudius) exiled or killed all the best teachers and put men who had been assigned by his stepmother in charge of him.",
 
     latinText: `
-        <span class="phrase phrase-1" onclick="showAnalysis('phrase1')"><span class="highlight-style style-1" onclick="showAnalysis('style1')">simul</span> qui centurionum tribunorumque sortem Britannici miserabantur</span>,
-        <span class="phrase phrase-2" onclick="showAnalysis('phrase2')">remoti <span class="highlight-style style-2" onclick="showAnalysis('style2')">fictis causis</span></span>
+        <span class="phrase phrase-1" onclick="showAnalysis('phrase1')"><span class="highlight-style style-1" onclick="showAnalysis('style1')">simul</span> qui <span class="highlight-style style-15" onclick="showAnalysis('style15')">centurionum tribunorumque</span> <span class="highlight-style style-16" onclick="showAnalysis('style16')">sortem Britannici miserabantur</span></span>,
+        <span class="phrase phrase-2" onclick="showAnalysis('phrase2')"><span class="highlight-style style-17" onclick="showAnalysis('style17')">remoti</span> <span class="highlight-style style-2" onclick="showAnalysis('style2')">fictis causis</span></span>
         <span class="phrase phrase-3" onclick="showAnalysis('phrase3')">et alii <span class="highlight-style style-3" onclick="showAnalysis('style3')">per speciem honoris</span></span>;
-        <span class="phrase phrase-4" onclick="showAnalysis('phrase4')">etiam libertorum si quis <span class="highlight-style style-4" onclick="showAnalysis('style4')">incorrupta fide</span>, depellitur <span class="highlight-style style-5" onclick="showAnalysis('style5')">tali occasione</span></span>.
-        <span class="phrase phrase-5" onclick="showAnalysis('phrase5')">obvii inter se Nero Britannicum <span class="highlight-style style-6" onclick="showAnalysis('style6')">nomine</span>, ille Domitium <span class="highlight-style style-7" onclick="showAnalysis('style7')">salutavere</span></span>.
-        <span class="phrase phrase-6" onclick="showAnalysis('phrase6')">quod ut <span class="highlight-style style-8" onclick="showAnalysis('style8')">discordiae initium</span> Agrippina <span class="highlight-style style-9" onclick="showAnalysis('style9')">multo questu</span> ad maritum defert</span>:
-        <span class="phrase phrase-7" onclick="showAnalysis('phrase7')"><span class="highlight-style style-10" onclick="showAnalysis('style10')">sperni quippe</span> adoptionem</span>,
-        <span class="phrase phrase-8" onclick="showAnalysis('phrase8')"><span class="highlight-style style-11" onclick="showAnalysis('style11')">quaeque</span> censuerint patres, <span class="highlight-style style-11" onclick="showAnalysis('style11')">iusserit</span> populus</span>,
-        <span class="phrase phrase-9" onclick="showAnalysis('phrase9')">intra penates abrogari</span>;
-        <span class="phrase phrase-10" onclick="showAnalysis('phrase10')">ac nisi <span class="highlight-style style-12" onclick="showAnalysis('style12')">pravitas</span> tam infesta docentium arceatur</span>,
-        <span class="phrase phrase-11" onclick="showAnalysis('phrase11')">eruptura in publicam perniciem</span>.
-        <span class="phrase phrase-12" onclick="showAnalysis('phrase12')">commotus his <span class="highlight-style style-13" onclick="showAnalysis('style13')">quasi criminibus</span> <span class="highlight-style style-14" onclick="showAnalysis('style14')">optimum quemque</span> educatorem filii exilio aut morte adficit datosque a noverca custodiae eius imponit</span>.
+        <span class="phrase phrase-4" onclick="showAnalysis('phrase4')"><span class="highlight-style style-18" onclick="showAnalysis('style18')">etiam</span> libertorum si quis <span class="highlight-style style-4" onclick="showAnalysis('style4')">incorrupta fide</span>, <span class="highlight-style style-19" onclick="showAnalysis('style19')">depellitur</span> <span class="highlight-style style-5" onclick="showAnalysis('style5')">tali occasione</span></span>.
+        <span class="phrase phrase-5" onclick="showAnalysis('phrase5')"><span class="highlight-style style-20" onclick="showAnalysis('style20')">obvii inter se</span> Nero Britannicum <span class="highlight-style style-6" onclick="showAnalysis('style6')">nomine</span>, ille <span class="highlight-style style-21" onclick="showAnalysis('style21')">Domitium</span> <span class="highlight-style style-7" onclick="showAnalysis('style7')">salutavere</span></span>.
+        <span class="phrase phrase-6" onclick="showAnalysis('phrase6')">quod ut <span class="highlight-style style-8" onclick="showAnalysis('style8')">discordiae initium</span> Agrippina <span class="highlight-style style-9" onclick="showAnalysis('style9')">multo questu</span> ad maritum <span class="highlight-style style-22" onclick="showAnalysis('style22')">defert</span></span>:
+        <span class="phrase phrase-7" onclick="showAnalysis('phrase7')"><span class="highlight-style style-10" onclick="showAnalysis('style10')">sperni quippe</span> <span class="highlight-style style-23" onclick="showAnalysis('style23')">adoptionem</span></span>,
+        <span class="phrase phrase-8" onclick="showAnalysis('phrase8')"><span class="highlight-style style-11" onclick="showAnalysis('style11')">quaeque censuerint patres, iusserit populus</span></span>,
+        <span class="phrase phrase-9" onclick="showAnalysis('phrase9')"><span class="highlight-style style-24" onclick="showAnalysis('style24')">intra penates</span> <span class="highlight-style style-25" onclick="showAnalysis('style25')">abrogari</span></span>;
+        <span class="phrase phrase-10" onclick="showAnalysis('phrase10')">ac <span class="highlight-style style-26" onclick="showAnalysis('style26')">nisi</span> <span class="highlight-style style-12" onclick="showAnalysis('style12')">pravitas</span> <span class="highlight-style style-27" onclick="showAnalysis('style27')">tam infesta</span> docentium arceatur</span>,
+        <span class="phrase phrase-11" onclick="showAnalysis('phrase11')"><span class="highlight-style style-28" onclick="showAnalysis('style28')">eruptura</span> in <span class="highlight-style style-29" onclick="showAnalysis('style29')">publicam perniciem</span></span>.
+        <span class="phrase phrase-12" onclick="showAnalysis('phrase12')"><span class="highlight-style style-30" onclick="showAnalysis('style30')">commotus</span> his <span class="highlight-style style-13" onclick="showAnalysis('style13')">quasi criminibus</span> <span class="highlight-style style-14" onclick="showAnalysis('style14')">optimum quemque</span> educatorem filii <span class="highlight-style style-31" onclick="showAnalysis('style31')">exilio aut morte</span> adficit <span class="highlight-style style-32" onclick="showAnalysis('style32')">datosque a noverca</span> custodiae eius imponit</span>.
     `,
 
     grammar: {
@@ -30,7 +30,7 @@ const lessonData = {
                 "<strong>miserabantur</strong> = were pitying (imperfect deponent)"
             ],
             grammar: "Relative clause with 'qui' referring to military officers. The imperfect 'miserabantur' (were pitying) suggests ongoing sympathy, which makes their removal more sinister.",
-            translation: "at the same time, those who were pitying the fate of Britannicus"
+            translation: "at the same time, those of the centurions and tribunes who were pitying the fate of Britannicus"
         },
         phrase2: {
             title: "remoti fictis causis",
@@ -254,6 +254,96 @@ const lessonData = {
             title: "optimum quemque",
             device: "Emphatic Phrasing",
             effect: "'Every single best man' emphasises both the quality of those destroyed and the thoroughness of the purge - no excellence was spared if it threatened Agrippina's plans."
+        },
+        style15: {
+            title: "centurionum tribunorumque",
+            device: "Polysyndeton (-que)",
+            effect: "The -que suffix links the two military ranks together, showing the breadth of the purge across different levels of command."
+        },
+        style16: {
+            title: "sortem Britannici miserabantur",
+            device: "Emotive Language",
+            effect: "'Miserabantur' (were pitying) creates sympathy for Britannicus whilst highlighting that even compassion has become dangerous under this regime."
+        },
+        style17: {
+            title: "remoti",
+            device: "Passive Voice",
+            effect: "The passive construction hides the agents - who is removing them? This obscures responsibility and suggests covert, systematic action."
+        },
+        style18: {
+            title: "etiam",
+            device: "Emphatic Particle",
+            effect: "'Even' escalates the purge - not just military men but also freedmen. The persecution is expanding to include all potential supporters."
+        },
+        style19: {
+            title: "depellitur",
+            device: "Historic Present",
+            effect: "Present tense makes the action immediate and ongoing - this isn't a past event but a continuing policy of expulsion."
+        },
+        style20: {
+            title: "obvii inter se",
+            device: "Scene Setting",
+            effect: "Creates a visual moment of encounter - the reader can picture the two young men meeting, setting up the dramatic name exchange."
+        },
+        style21: {
+            title: "Domitium",
+            device: "Loaded Naming",
+            effect: "The use of Nero's birth name rather than his adopted name is an act of political resistance - Britannicus refuses to recognise the adoption."
+        },
+        style22: {
+            title: "defert",
+            device: "Historic Present",
+            effect: "Present tense makes Agrippina's complaint vivid and immediate - we watch her manipulation in action."
+        },
+        style23: {
+            title: "adoptionem",
+            device: "Thematic Word",
+            effect: "The adoption is central to the entire conflict - by naming it explicitly, Tacitus highlights what's at stake: Nero's legitimacy as heir."
+        },
+        style24: {
+            title: "intra penates",
+            device: "Domestic Imagery",
+            effect: "References to household gods emphasise the private, domestic setting - even at home, political theatre intrudes."
+        },
+        style25: {
+            title: "abrogari",
+            device: "Passive Infinitive",
+            effect: "The passive voice suggests victimhood - Agrippina presents the adoption as something being done to, not a situation created by her schemes."
+        },
+        style26: {
+            title: "nisi",
+            device: "Conditional Threat",
+            effect: "'Unless' introduces a threat - Agrippina moves from complaint to ultimatum, forcing Claudius to act."
+        },
+        style27: {
+            title: "tam infesta",
+            device: "Intensification",
+            effect: "'So hostile' exaggerates the supposed threat, making Britannicus' teachers sound like enemies of the state rather than educators."
+        },
+        style28: {
+            title: "eruptura",
+            device: "Metaphorical Violence",
+            effect: "The future participle 'about to break out' uses volcanic/military imagery - domestic discord becomes existential crisis."
+        },
+        style29: {
+            title: "publicam perniciem",
+            device: "Escalation to State Level",
+            effect: "Agrippina escalates from personal insult to 'public ruin' - manipulating through fear of state collapse."
+        },
+        style30: {
+            title: "commotus",
+            device: "Emotional Response",
+            effect: "'Disturbed' shows Claudius reacting emotionally rather than rationally - he's being manipulated rather than judging fairly."
+        },
+        style31: {
+            title: "exilio aut morte",
+            device: "Binary Extremes",
+            effect: "The stark choice 'exile or death' with no middle ground shows the brutal finality of the punishment - no lesser penalties are considered."
+        },
+        style32: {
+            title: "datosque a noverca",
+            device: "Loaded Term",
+            effect: "'Noverca' (stepmother) carries negative connotations in Roman culture - stepmothers were stereotypically wicked. The word choice condemns Agrippina."
         }
     },
 
