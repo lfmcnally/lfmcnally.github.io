@@ -30,6 +30,16 @@ const lessonData = {
                 "<strong>miserabantur</strong> = were pitying (imperfect deponent)"
             ],
             grammar: "Relative clause with 'qui' referring to military officers. The imperfect 'miserabantur' (were pitying) suggests ongoing sympathy, which makes their removal more sinister.",
+            translation: "at the same time, those who were pitying the fate of Britannicus"
+        },
+        phrase2: {
+            title: "remoti fictis causis",
+            vocab: [
+                "<strong>remoti</strong> = removed (perfect passive participle, nominative plural)",
+                "<strong>fictis</strong> = false, fabricated (ablative plural)",
+                "<strong>causis</strong> = on pretexts, for reasons (ablative plural)"
+            ],
+            grammar: "Perfect passive participle with ablative of means. 'Fictis' (fabricated) exposes the dishonesty - these aren't real offences.",
             translation: "were removed on false pretexts"
         },
         phrase3: {
@@ -302,14 +312,4 @@ const lessonData = {
             <p><strong>Weak Authority:</strong> Claudius is easily manipulated, treating his wife's emotional complaints as serious accusations and destroying loyal servants on her word alone.</p>
         `
     }
-}; "at the same time, those who were pitying the fate of Britannicus"
-        },
-        phrase2: {
-            title: "remoti fictis causis",
-            vocab: [
-                "<strong>remoti</strong> = removed (perfect passive participle, nominative plural)",
-                "<strong>fictis</strong> = false, fabricated (ablative plural)",
-                "<strong>causis</strong> = on pretexts, for reasons (ablative plural)"
-            ],
-            grammar: "Perfect passive participle with ablative of means. 'Fictis' (fabricated) exposes the dishonesty - these aren't real offences.",
-            translation:
+};
