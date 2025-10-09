@@ -1,4 +1,5 @@
 // Baucis and Philemon Data File
+// This must be loaded BEFORE the main HTML script
 
 const lessonData = {
     // Full text with clickable lines for vocab/grammar
@@ -325,3 +326,6 @@ const lessonData = {
         }
     }
 };
+
+// Make it globally available
+window.lessonData = lessonData;
