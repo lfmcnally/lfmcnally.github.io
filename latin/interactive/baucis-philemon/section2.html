@@ -686,18 +686,21 @@
         </div>
     </main>
 
+    <!-- Load data file FIRST -->
     <script src="section2-data.js"></script>
+    
+    <!-- Then load all the functions -->
     <script>
-        // Navigation
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function() {
-                showSection(this.getAttribute('data-section'));
-            });
-        });
+        // Global variable to track highlights
+        let currentHighlights = [];
 
+        // Navigation between sections
         function showSection(sectionId) {
             document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
-            document.getElementById(sectionId)?.classList.add('active');
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+            }
             
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.remove('active');
@@ -708,21 +711,22 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // Load Full Text
+        // Load full text with coloured phrases
         function loadFullText() {
             const latinTextEl = document.getElementById('latinText');
-            if (!latinTextEl) return;
+            if (!latinTextEl || !window.lessonData) return;
             
             let html = '';
-            lessonData.fullText.forEach(line => {
+            window.lessonData.fullText.forEach(line => {
                 html += `<div class="latin-line"><span class="line-number">${line.number}</span>${line.text}</div>`;
             });
             latinTextEl.innerHTML = html;
         }
 
+        // Show modal for line analysis
         function showLineAnalysis(lineId) {
             const lineIndex = parseInt(lineId.replace('line', '')) - 1;
-            const data = lessonData.fullText[lineIndex];
+            const data = window.lessonData.fullText[lineIndex];
             
             let modal = document.getElementById('lineModal');
             if (!modal) {
@@ -752,10 +756,13 @@
             modal.style.display = 'flex';
         }
 
-        // Load Teaching Sections
+        // Load all teaching sections
         function loadTeachingSections() {
+            if (!window.lessonData) return;
+            
             ['section1', 'section2', 'section3'].forEach(sectionKey => {
-                const sectionData = lessonData.sections[sectionKey];
+                const sectionData = window.lessonData.sections[sectionKey];
+                if (!sectionData) return;
                 
                 // Load Latin text
                 const latinEl = document.getElementById(`${sectionKey}Latin`);
@@ -811,12 +818,12 @@
             });
         }
 
-        let currentHighlights = [];
-
+        // Show style feature with highlighting
         function showStyleFeature(sectionKey, featureId) {
             // Remove previous highlights
             currentHighlights.forEach(id => {
-                document.getElementById(id)?.classList.remove('highlight-active');
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('highlight-active');
             });
             currentHighlights = [];
             
@@ -834,11 +841,12 @@
             panelEl.querySelectorAll('.analysis-content').forEach(c => c.classList.remove('active'));
             
             // Show selected panel
-            document.getElementById(`${sectionKey}-${featureId}`)?.classList.add('active');
+            const targetPanel = document.getElementById(`${sectionKey}-${featureId}`);
+            if (targetPanel) targetPanel.classList.add('active');
             
             // Highlight words
-            const feature = lessonData.sections[sectionKey].features.find(f => f.id === featureId);
-            if (feature?.highlight) {
+            const feature = window.lessonData.sections[sectionKey].features.find(f => f.id === featureId);
+            if (feature && feature.highlight) {
                 feature.highlight.forEach(id => {
                     const el = document.getElementById(id);
                     if (el) {
@@ -849,6 +857,7 @@
             }
         }
 
+        // Toggle reveal sections
         function toggleReveal(contentId) {
             const contentEl = document.getElementById(contentId);
             const button = event.currentTarget;
@@ -862,10 +871,25 @@
             }
         }
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
+        // Setup navigation listeners
+        function setupNavigation() {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    showSection(this.getAttribute('data-section'));
+                });
+            });
+        }
+
+        // Initialize everything when page loads
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, initializing...');
+            console.log('lessonData available:', typeof window.lessonData !== 'undefined');
+            
+            setupNavigation();
             loadFullText();
             loadTeachingSections();
+            
+            console.log('Initialization complete');
         });
     </script>
 </body>
