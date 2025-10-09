@@ -5,7 +5,7 @@ const lessonData = {
     // Full text with clickable lines for vocab/grammar
     fullText: [
         { 
-            number: 637, 
+            number: 12, 
             text: '<span class="phrase phrase-1" onclick="showLineAnalysis(\'line1\')">ergo ubi caelicolae parvos tetigere penates</span>',
             vocab: [
                 "<strong>ergo</strong> = therefore",
@@ -19,7 +19,7 @@ const lessonData = {
             translation: "therefore when the heaven-dwellers touched the humble dwelling"
         },
         { 
-            number: 638, 
+            number: 13, 
             text: '<span class="phrase phrase-2" onclick="showLineAnalysis(\'line2\')">summissoque humiles intrarunt vertice postes,</span>',
             vocab: [
                 "<strong>summisso</strong> = with bowed (ablative)",
@@ -33,7 +33,7 @@ const lessonData = {
             translation: "and entered the low doorway with bowed heads"
         },
         { 
-            number: 639, 
+            number: 14, 
             text: '<span class="phrase phrase-3" onclick="showLineAnalysis(\'line3\')">membra senex posito iussit relevare sedili,</span>',
             vocab: [
                 "<strong>membra</strong> = limbs (accusative)",
@@ -47,7 +47,7 @@ const lessonData = {
             translation: "the old man ordered them to rest their limbs on a seat which had been placed"
         },
         { 
-            number: 640, 
+            number: 15, 
             text: '<span class="phrase phrase-4" onclick="showLineAnalysis(\'line4\')">cui superiniecit textum rude sedula Baucis.</span>',
             vocab: [
                 "<strong>cui</strong> = over which (dative)",
@@ -61,7 +61,7 @@ const lessonData = {
             translation: "over which busy Baucis threw a rough cloth"
         },
         { 
-            number: 641, 
+            number: 16, 
             text: '<span class="phrase phrase-5" onclick="showLineAnalysis(\'line5\')">inde foco tepidum cinerem dimovit et ignes</span>',
             vocab: [
                 "<strong>inde</strong> = then",
@@ -75,7 +75,7 @@ const lessonData = {
             translation: "then she moved aside the warm ash from the hearth and the fires"
         },
         { 
-            number: 642, 
+            number: 17, 
             text: '<span class="phrase phrase-6" onclick="showLineAnalysis(\'line6\')">suscitat hesternos foliisque et cortice sicco</span>',
             vocab: [
                 "<strong>suscitat</strong> = revives (PRESENT tense - historic present)",
@@ -88,7 +88,7 @@ const lessonData = {
             translation: "revives yesterday's fires with leaves and dry bark"
         },
         { 
-            number: 643, 
+            number: 18, 
             text: '<span class="phrase phrase-7" onclick="showLineAnalysis(\'line7\')">nutrit et ad flammas anima producit anili,</span>',
             vocab: [
                 "<strong>nutrit</strong> = nourishes (present)",
@@ -102,7 +102,7 @@ const lessonData = {
             translation: "and nourishes them and brings them to flame with her elderly breath"
         },
         { 
-            number: 644, 
+            number: 19, 
             text: '<span class="phrase phrase-8" onclick="showLineAnalysis(\'line8\')">multifidasque faces ramaliaque arida tecto</span>',
             vocab: [
                 "<strong>multifidas</strong> = split into many (accusative - compound word)",
@@ -117,7 +117,7 @@ const lessonData = {
             translation: "and split kindling and dry twigs from the roof"
         },
         { 
-            number: 645, 
+            number: 20, 
             text: '<span class="phrase phrase-9" onclick="showLineAnalysis(\'line9\')">detulit et minuit parvoque admovit aeno,</span>',
             vocab: [
                 "<strong>detulit</strong> = brought down (perfect)",
@@ -132,7 +132,7 @@ const lessonData = {
             translation: "brought down and broke up and pushed under the small bronze pot"
         },
         { 
-            number: 646, 
+            number: 21, 
             text: '<span class="phrase phrase-10" onclick="showLineAnalysis(\'line10\')">quodque suus coniunx riguo collegerat horto</span>',
             vocab: [
                 "<strong>quod</strong> = which (accusative)",
@@ -146,7 +146,7 @@ const lessonData = {
             translation: "and which her husband had gathered from the well-watered garden"
         },
         { 
-            number: 647, 
+            number: 22, 
             text: '<span class="phrase phrase-11" onclick="showLineAnalysis(\'line11\')">truncat holus foliis; furca levat ille bicorni</span>',
             vocab: [
                 "<strong>truncat</strong> = strips (present)",
@@ -161,7 +161,7 @@ const lessonData = {
             translation: "she strips the vegetables; he lifts with a two-pronged fork"
         },
         { 
-            number: 648, 
+            number: 23, 
             text: '<span class="phrase phrase-12" onclick="showLineAnalysis(\'line12\')">sordida terga suis nigro pendentia tigno</span>',
             vocab: [
                 "<strong>sordida</strong> = dirty (accusative)",
@@ -175,7 +175,7 @@ const lessonData = {
             translation: "the dirty back of a pig hanging from the black beam"
         },
         { 
-            number: 649, 
+            number: 24, 
             text: '<span class="phrase phrase-13" onclick="showLineAnalysis(\'line13\')">servatoque diu resecat de tergore partem</span>',
             vocab: [
                 "<strong>servato</strong> = saved (perfect passive participle)",
@@ -189,7 +189,7 @@ const lessonData = {
             translation: "and cuts off a part from the long-saved back"
         },
         { 
-            number: 650, 
+            number: 25, 
             text: '<span class="phrase phrase-14" onclick="showLineAnalysis(\'line14\')">exiguam sectamque domat ferventibus undis.</span>',
             vocab: [
                 "<strong>exiguam</strong> = tiny (accusative)",
@@ -208,11 +208,11 @@ const lessonData = {
     sections: {
         section1: {
             lines: [
-                { number: 637, text: "ergo ubi <span id='s1-caelicolae'>caelicolae</span> <span id='s1-parvos'>parvos</span> tetigere <span id='s1-penates'>penates</span>" },
-                { number: 638, text: "<span id='s1-summisso'>summisso</span>que <span id='s1-humiles'>humiles</span> intrarunt <span id='s1-vertice'>vertice</span> postes," },
-                { number: 639, text: "membra senex posito iussit <span id='s1-relevare'>relevare</span> sedili," },
-                { number: 640, text: "cui superiniecit <span id='s1-textum'>textum rude</span> <span id='s1-sedula'>sedula Baucis</span>." },
-                { number: 641, text: "inde foco <span id='s1-tepidum'>tepidum</span> cinerem dimovit et ignes" }
+                { number: 12, text: "ergo ubi <span id='s1-caelicolae'>caelicolae</span> <span id='s1-parvos'>parvos</span> tetigere <span id='s1-penates'>penates</span>" },
+                { number: 13, text: "<span id='s1-summisso'>summisso</span>que <span id='s1-humiles'>humiles</span> intrarunt <span id='s1-vertice'>vertice</span> postes," },
+                { number: 14, text: "membra senex posito iussit <span id='s1-relevare'>relevare</span> sedili," },
+                { number: 15, text: "cui superiniecit <span id='s1-textum'>textum rude</span> <span id='s1-sedula'>sedula Baucis</span>." },
+                { number: 16, text: "inde foco <span id='s1-tepidum'>tepidum</span> cinerem dimovit et ignes" }
             ],
             features: [
                 {
@@ -269,7 +269,7 @@ const lessonData = {
                     highlights: [
                         { ids: ["s1-sedula"], color: "teal" }
                     ],
-                    whatIsIt: "'Sedula Baucis' (busy Baucis) comes at the very end of line 640, in the emphatic final position.",
+                    whatIsIt: "'Sedula Baucis' (busy Baucis) comes at the very end of line 15, in the emphatic final position.",
                     whyMatters: "Ending with her name and character trait draws attention to Baucis' industrious nature. She's not just serving - she's actively, busily caring for her guests."
                 }
             ]
@@ -277,11 +277,11 @@ const lessonData = {
 
         section2: {
             lines: [
-                { number: 642, text: "<span id='s2-suscitat'>suscitat</span> <span id='s2-hesternos'>hesternos</span> foliisque et cortice sicco" },
-                { number: 643, text: "<span id='s2-nutrit'>nutrit</span> et ad flammas <span id='s2-anima'>anima</span> <span id='s2-producit'>producit</span> <span id='s2-anili'>anili</span>," },
-                { number: 644, text: "<span id='s2-multifidas'>multifidas</span>que faces <span id='s2-ramalia'>ramalia</span>que arida <span id='s2-tecto'>tecto</span>" },
-                { number: 645, text: "<span id='s2-detulit'>detulit</span> et <span id='s2-minuit'>minuit</span> <span id='s2-parvo'>parvo</span>que <span id='s2-admovit'>admovit</span> aeno," },
-                { number: 646, text: "quodque suus coniunx <span id='s2-riguo'>riguo</span> collegerat horto" }
+                { number: 17, text: "<span id='s2-suscitat'>suscitat</span> <span id='s2-hesternos'>hesternos</span> foliisque et cortice sicco" },
+                { number: 18, text: "<span id='s2-nutrit'>nutrit</span> et ad flammas <span id='s2-anima'>anima</span> <span id='s2-producit'>producit</span> <span id='s2-anili'>anili</span>," },
+                { number: 19, text: "<span id='s2-multifidas'>multifidas</span>que faces <span id='s2-ramalia'>ramalia</span>que arida <span id='s2-tecto'>tecto</span>" },
+                { number: 20, text: "<span id='s2-detulit'>detulit</span> et <span id='s2-minuit'>minuit</span> <span id='s2-parvo'>parvo</span>que <span id='s2-admovit'>admovit</span> aeno," },
+                { number: 21, text: "quodque suus coniunx <span id='s2-riguo'>riguo</span> collegerat horto" }
             ],
             features: [
                 {
@@ -348,10 +348,10 @@ const lessonData = {
 
         section3: {
             lines: [
-                { number: 647, text: "truncat holus foliis; furca levat <span id='s3-ille'>ille</span> <span id='s3-bicorni'>bicorni</span>" },
-                { number: 648, text: "<span id='s3-sordida'>sordida</span> terga suis <span id='s3-nigro'>nigro</span> pendentia tigno" },
-                { number: 649, text: "<span id='s3-servato'>servato</span>que <span id='s3-diu'>diu</span> resecat de tergore <span id='s3-partem'>partem</span>" },
-                { number: 650, text: "<span id='s3-exiguam'>exiguam</span> sectamque <span id='s3-domat'>domat</span> ferventibus undis." }
+                { number: 22, text: "truncat holus foliis; furca levat <span id='s3-ille'>ille</span> <span id='s3-bicorni'>bicorni</span>" },
+                { number: 23, text: "<span id='s3-sordida'>sordida</span> terga suis <span id='s3-nigro'>nigro</span> pendentia tigno" },
+                { number: 24, text: "<span id='s3-servato'>servato</span>que <span id='s3-diu'>diu</span> resecat de tergore <span id='s3-partem'>partem</span>" },
+                { number: 25, text: "<span id='s3-exiguam'>exiguam</span> sectamque <span id='s3-domat'>domat</span> ferventibus undis." }
             ],
             features: [
                 {
