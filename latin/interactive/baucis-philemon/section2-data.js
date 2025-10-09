@@ -180,12 +180,12 @@ const lessonData = {
             vocab: [
                 "<strong>servato</strong> = saved (perfect passive participle)",
                 "<strong>-que</strong> = and",
-                "<strong>diu</strong> = for a long time",
+                "<strong>diu</strong> = for a long time (adverb)",
                 "<strong>resecat</strong> = cuts off (present)",
                 "<strong>de tergore</strong> = from the back",
                 "<strong>partem</strong> = part (accusative)"
             ],
-            grammar: "'Servato diu' = ablative absolute. Emphasises how precious this meat is.",
+            grammar: "'Servato' agrees with 'tergore' (ablative). 'Diu' is an adverb modifying 'servato'. Emphasises how precious this meat is.",
             translation: "and cuts off a part from the long-saved back"
         },
         { 
@@ -403,13 +403,13 @@ const lessonData = {
                     whyMatters: "Even describing a simple fork, Ovid uses sophisticated poetic vocabulary. Maintains the literary register throughout."
                 },
                 {
-                    id: "ablative-absolute",
-                    title: "Ablative Absolute: 'servato diu'",
+                    id: "ablative-description",
+                    title: "Ablative of Description: 'servato diu'",
                     highlights: [
                         { ids: ["s3-servato", "s3-diu"], color: "green" }
                     ],
-                    whatIsIt: "'Servato diu' = 'having been saved for a long time'. This is an <strong>ablative absolute</strong> construction - participle + ablative giving background information.",
-                    whyMatters: "Emphasises how precious this meat is. They've been carefully preserving it, probably for months. This grammatical structure adds circumstantial detail elegantly."
+                    whatIsIt: "'Servato diu' = 'saved for a long time'. The participle 'servato' agrees with 'tergore' (ablative). 'Diu' is an adverb (so doesn't decline) modifying the participle. This describes the meat.",
+                    whyMatters: "Emphasises how precious this meat is. They've been carefully preserving it, probably for months. The adverb 'diu' intensifies the sense of time and sacrifice - this isn't just saved meat, it's been saved for ages."
                 }
             ]
         }
