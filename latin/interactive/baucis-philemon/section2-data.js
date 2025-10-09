@@ -218,30 +218,59 @@ const lessonData = {
                 {
                     id: "elevated-vocab",
                     title: "Elevated Vocabulary: 'caelicolae'",
-                    highlight: ["s1-caelicolae"],
+                    highlights: [
+                        { ids: ["s1-caelicolae"], color: "blue" }
+                    ],
                     whatIsIt: "Instead of 'dei' (gods), Ovid uses <strong>caelicolae</strong> - literally 'heaven-dwellers' (caeli = heaven, colae = dwellers).",
-                    whyMatters: "This elevated, poetic vocabulary reminds us these aren't ordinary guests - they're divine beings in disguise. The contrast with 'parvos penates' (humble home) is striking."
+                    whyMatters: "This elevated, poetic vocabulary reminds us these aren't ordinary guests - they're divine beings in disguise."
                 },
                 {
                     id: "contrast",
-                    title: "Contrasting Adjectives",
-                    highlight: ["s1-caelicolae", "s1-parvos", "s1-penates", "s1-humiles"],
-                    whatIsIt: "Pairing of opposites: <strong>caelicolae</strong> (heaven-dwellers) with <strong>parvos penates</strong> (small home), and <strong>humiles postes</strong> (low doorway). This is <strong>juxtaposition</strong>.",
+                    title: "Contrasting Adjectives (Juxtaposition)",
+                    highlights: [
+                        { ids: ["s1-caelicolae"], color: "blue" },
+                        { ids: ["s1-parvos", "s1-penates", "s1-humiles"], color: "orange" }
+                    ],
+                    whatIsIt: "Pairing of opposites: <strong>caelicolae</strong> (heaven-dwellers) contrasted with <strong>parvos penates</strong> (small home) and <strong>humiles postes</strong> (low doorway). This is <strong>juxtaposition</strong>.",
                     whyMatters: "The contrast emphasises their poverty and makes their hospitality impressive. Divine beings are literally stooping to enter this humble dwelling."
                 },
                 {
-                    id: "hyperbaton",
-                    title: "Word Order: Wrapping Around",
-                    highlight: ["s1-summisso", "s1-vertice"],
-                    whatIsIt: "'Summisso...vertice' (with bowed...head) are separated and wrap around the line. This is <strong>hyperbaton</strong>.",
-                    whyMatters: "The word order creates a visual 'bowing' in the Latin! The words physically bow around the centre, matching the action."
+                    id: "hyperbaton-parvos",
+                    title: "Hyperbaton: 'parvos...penates'",
+                    highlights: [
+                        { ids: ["s1-parvos"], color: "green" },
+                        { ids: ["s1-penates"], color: "green" }
+                    ],
+                    whatIsIt: "'Parvos...penates' are separated by the verb 'tetigere' (touched). This word order device is <strong>hyperbaton</strong>.",
+                    whyMatters: "The separation makes both words more prominent. We notice both 'small' AND 'home' individually, emphasising the poverty."
+                },
+                {
+                    id: "hyperbaton-summisso",
+                    title: "Hyperbaton: 'summisso...vertice'",
+                    highlights: [
+                        { ids: ["s1-summisso"], color: "purple" },
+                        { ids: ["s1-vertice"], color: "purple" }
+                    ],
+                    whatIsIt: "'Summisso...vertice' (with bowed...head) are separated and wrap around 'humiles intrarunt'. This is <strong>hyperbaton</strong>.",
+                    whyMatters: "The word order creates a visual 'bowing' in the Latin! The words physically bow around the centre, matching the action described."
                 },
                 {
                     id: "realistic-detail",
                     title: "Realistic Detail: 'tepidum'",
-                    highlight: ["s1-tepidum"],
+                    highlights: [
+                        { ids: ["s1-tepidum"], color: "red" }
+                    ],
                     whatIsIt: "'Tepidum' = 'warm'. A tiny, specific detail about the ash.",
-                    whyMatters: "Makes the scene feel real. The ash is still warm from yesterday - we can almost feel it! These aren't generic poor people - they're real individuals."
+                    whyMatters: "Makes the scene feel real. The ash is still warm from yesterday - we can almost feel it! These aren't generic poor people - they're real individuals with real lives."
+                },
+                {
+                    id: "word-position",
+                    title: "Emphatic Word Position: 'sedula Baucis'",
+                    highlights: [
+                        { ids: ["s1-sedula"], color: "teal" }
+                    ],
+                    whatIsIt: "'Sedula Baucis' (busy Baucis) comes at the very end of line 640, in the emphatic final position.",
+                    whyMatters: "Ending with her name and character trait draws attention to Baucis' industrious nature. She's not just serving - she's actively, busily caring for her guests."
                 }
             ]
         },
@@ -249,7 +278,7 @@ const lessonData = {
         section2: {
             lines: [
                 { number: 642, text: "<span id='s2-suscitat'>suscitat</span> <span id='s2-hesternos'>hesternos</span> foliisque et cortice sicco" },
-                { number: 643, text: "<span id='s2-nutrit'>nutrit</span> et ad flammas anima <span id='s2-producit'>producit</span> <span id='s2-anili'>anili</span>," },
+                { number: 643, text: "<span id='s2-nutrit'>nutrit</span> et ad flammas <span id='s2-anima'>anima</span> <span id='s2-producit'>producit</span> <span id='s2-anili'>anili</span>," },
                 { number: 644, text: "<span id='s2-multifidas'>multifidas</span>que faces <span id='s2-ramalia'>ramalia</span>que arida <span id='s2-tecto'>tecto</span>" },
                 { number: 645, text: "<span id='s2-detulit'>detulit</span> et <span id='s2-minuit'>minuit</span> <span id='s2-parvo'>parvo</span>que <span id='s2-admovit'>admovit</span> aeno," },
                 { number: 646, text: "quodque suus coniunx <span id='s2-riguo'>riguo</span> collegerat horto" }
@@ -258,30 +287,61 @@ const lessonData = {
                 {
                     id: "historic-present",
                     title: "The Historic Present",
-                    highlight: ["s2-suscitat", "s2-nutrit", "s2-producit"],
+                    highlights: [
+                        { ids: ["s2-suscitat", "s2-nutrit", "s2-producit"], color: "yellow" }
+                    ],
                     whatIsIt: "Switches from perfect to present tense: 'suscitat', 'nutrit', 'producit'. This is the <strong>historic present</strong>.",
-                    whyMatters: "Makes it feel like we're watching now. More vivid than past tense. We feel like we're in the cottage with Baucis!"
+                    whyMatters: "Makes it feel like we're watching now. More vivid than past tense. We feel like we're in the cottage with Baucis, watching her work!"
                 },
                 {
                     id: "personification",
-                    title: "Fire as a Living Thing",
-                    highlight: ["s2-suscitat", "s2-hesternos", "s2-nutrit"],
+                    title: "Personification of Fire",
+                    highlights: [
+                        { ids: ["s2-suscitat"], color: "orange" },
+                        { ids: ["s2-hesternos"], color: "orange" },
+                        { ids: ["s2-nutrit"], color: "orange" }
+                    ],
                     whatIsIt: "Fire described with verbs for living things: 'suscitat' (awakens), 'nutrit' (feeds). This is <strong>personification</strong>.",
-                    whyMatters: "The fire becomes like a sleeping animal being woken and fed. The hearth fire was sacred to Vesta and central to Roman homes."
+                    whyMatters: "The fire becomes like a sleeping animal being woken and fed. The hearth fire was sacred to Vesta and central to Roman homes - treating it as alive reflects its importance."
+                },
+                {
+                    id: "alliteration",
+                    title: "Alliteration: 'anima...anili'",
+                    highlights: [
+                        { ids: ["s2-anima"], color: "pink" },
+                        { ids: ["s2-anili"], color: "pink" }
+                    ],
+                    whatIsIt: "Both words start with 'an-' sounds. This repetition of initial sounds is <strong>alliteration</strong>.",
+                    whyMatters: "The sound echo links the two words together aurally, emphasising the connection between the breath and the elderly woman. It's musical and memorable."
                 },
                 {
                     id: "touching-detail",
                     title: "Emotional Detail: 'anima anili'",
-                    highlight: ["s2-anili"],
+                    highlights: [
+                        { ids: ["s2-anima", "s2-anili"], color: "blue" }
+                    ],
                     whatIsIt: "'Anima anili' = 'with elderly breath'. Ablative of means.",
-                    whyMatters: "Incredibly touching. We picture an elderly woman gently blowing on embers. Emphasises her age and effort despite being old."
+                    whyMatters: "Incredibly touching. We picture an elderly woman gently blowing on embers. Emphasises her age and the physical effort involved, despite being old."
                 },
                 {
                     id: "compound-words",
                     title: "Compound Adjectives",
-                    highlight: ["s2-multifidas"],
-                    whatIsIt: "'Multifidas' = 'multi' (many) + 'fidas' (split). Elevated poetic style.",
-                    whyMatters: "Even describing humble kindling, Ovid maintains poetic craft. High art describing low life!"
+                    highlights: [
+                        { ids: ["s2-multifidas"], color: "purple" }
+                    ],
+                    whatIsIt: "'Multifidas' = 'multi' (many) + 'fidas' (split). Elevated poetic style using compound words.",
+                    whyMatters: "Even describing humble kindling, Ovid maintains poetic craft. High art describing low life! Shows his literary sophistication."
+                },
+                {
+                    id: "tricolon",
+                    title: "Tricolon: Three Verbs in Sequence",
+                    highlights: [
+                        { ids: ["s2-detulit"], color: "green" },
+                        { ids: ["s2-minuit"], color: "green" },
+                        { ids: ["s2-admovit"], color: "green" }
+                    ],
+                    whatIsIt: "Three actions in rapid sequence: 'detulit' (brought down), 'minuit' (broke up), 'admovit' (pushed under). This is <strong>tricolon</strong> (three-part structure).",
+                    whyMatters: "The rapid sequence of verbs shows Baucis working quickly and efficiently. Creates a sense of purposeful activity and busyness."
                 }
             ]
         },
@@ -297,30 +357,59 @@ const lessonData = {
                 {
                     id: "shift-focus",
                     title: "Shift from Baucis to Philemon",
-                    highlight: ["s3-ille"],
+                    highlights: [
+                        { ids: ["s3-ille"], color: "blue" }
+                    ],
                     whatIsIt: "Semicolon and 'ille' (he) shifts attention from Baucis to Philemon.",
-                    whyMatters: "Shows both working together. She prepares vegetables, he deals with meat. Partnership emphasises shared hospitality."
+                    whyMatters: "Shows both working together. She prepares vegetables, he deals with meat. Their partnership emphasises shared hospitality - this is a team effort."
                 },
                 {
                     id: "realistic-poverty",
-                    title: "Vivid Poverty Details",
-                    highlight: ["s3-sordida", "s3-nigro", "s3-servato", "s3-diu"],
-                    whatIsIt: "Accumulation: <strong>sordida</strong> (dirty), <strong>nigro tigno</strong> (black beam), <strong>servato diu</strong> (saved long).",
-                    whyMatters: "Meat is smoke-blackened from hanging for ages. This is their only preserved meat. Giving it to strangers is real sacrifice!"
+                    title: "Accumulation of Poverty Details",
+                    highlights: [
+                        { ids: ["s3-sordida"], color: "brown" },
+                        { ids: ["s3-nigro"], color: "brown" },
+                        { ids: ["s3-servato", "s3-diu"], color: "brown" }
+                    ],
+                    whatIsIt: "Accumulation: <strong>sordida</strong> (dirty), <strong>nigro tigno</strong> (black beam), <strong>servato diu</strong> (saved for a long time).",
+                    whyMatters: "Meat is smoke-blackened from hanging for ages. This is their only preserved meat - they've been saving it. Giving it to strangers is real sacrifice!"
                 },
                 {
                     id: "tiny-portion",
-                    title: "Emphasis on Size: 'exiguam'",
-                    highlight: ["s3-partem", "s3-exiguam"],
-                    whatIsIt: "'Exiguam partem' = 'tiny portion'. Emphasises smallness.",
+                    title: "Emphasis on Smallness: 'exiguam partem'",
+                    highlights: [
+                        { ids: ["s3-partem"], color: "orange" },
+                        { ids: ["s3-exiguam"], color: "orange" }
+                    ],
+                    whatIsIt: "'Exiguam partem' = 'tiny portion'. The adjective 'exiguam' emphasises how small the piece is.",
                     whyMatters: "They're cutting only a tiny piece because it's all they have. This isn't rich people being generous - it's poor people sharing genuine scarcity!"
                 },
                 {
                     id: "unusual-verb",
-                    title: "Unusual Verb: 'domat'",
-                    highlight: ["s3-domat"],
-                    whatIsIt: "'Domat' usually = 'to tame' (for horses!). Here = 'to soften' meat.",
-                    whyMatters: "Humorous! The meat is so tough it needs to be 'conquered'. Adds comedy whilst reinforcing how humble their meal is."
+                    title: "Humorous Verb Choice: 'domat'",
+                    highlights: [
+                        { ids: ["s3-domat"], color: "red" }
+                    ],
+                    whatIsIt: "'Domat' usually means 'to tame' (used for horses!). Here it means 'to soften' the tough meat.",
+                    whyMatters: "Humorous! The meat is so tough it needs to be 'conquered' like a wild animal. Adds gentle comedy whilst reinforcing how humble their meal is."
+                },
+                {
+                    id: "compound-bicorni",
+                    title: "Compound Adjective: 'bicorni'",
+                    highlights: [
+                        { ids: ["s3-bicorni"], color: "purple" }
+                    ],
+                    whatIsIt: "'Bicorni' = 'bi' (two) + 'corni' (horned/pronged). Another compound word showing elevated style.",
+                    whyMatters: "Even describing a simple fork, Ovid uses sophisticated poetic vocabulary. Maintains the literary register throughout."
+                },
+                {
+                    id: "ablative-absolute",
+                    title: "Ablative Absolute: 'servato diu'",
+                    highlights: [
+                        { ids: ["s3-servato", "s3-diu"], color: "green" }
+                    ],
+                    whatIsIt: "'Servato diu' = 'having been saved for a long time'. This is an <strong>ablative absolute</strong> construction - participle + ablative giving background information.",
+                    whyMatters: "Emphasises how precious this meat is. They've been carefully preserving it, probably for months. This grammatical structure adds circumstantial detail elegantly."
                 }
             ]
         }
