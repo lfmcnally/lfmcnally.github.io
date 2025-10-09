@@ -19,14 +19,14 @@ const lessonData = {
             <span class="highlight-style style-5" onclick="showAnalysis('style5'); event.stopPropagation()">per vinum et epulas</span>
             <span class="highlight-style style-6" onclick="showAnalysis('style6'); event.stopPropagation()">incalesceret</span>
         </span>,
-        <span class="phrase phrase-6" onclick="showAnalysis('phrase6')">offerret se saepius temulento</span>
+        <span class="phrase phrase-6" onclick="showAnalysis('phrase6')">offerret se <span class="highlight-style style-21" onclick="showAnalysis('style21'); event.stopPropagation()">saepius</span> temulento</span>
         <span class="phrase phrase-7" onclick="showAnalysis('phrase7')">
             <span class="highlight-style style-7" onclick="showAnalysis('style7'); event.stopPropagation()">comptam et incesto paratam</span>
         </span>;
         
-        <span class="phrase phrase-8" onclick="showAnalysis('phrase8')">iamque 
+        <span class="phrase phrase-8" onclick="showAnalysis('phrase8')"><span class="highlight-style style-22" onclick="showAnalysis('style22'); event.stopPropagation()">iamque</span> 
             <span class="highlight-style style-8" onclick="showAnalysis('style8'); event.stopPropagation()">lasciva oscula</span>
-            et praenuntias flagitii blanditias
+            et <span class="highlight-style style-23" onclick="showAnalysis('style23'); event.stopPropagation()">praenuntias flagitii</span> blanditias
         </span>
         <span class="phrase phrase-9" onclick="showAnalysis('phrase9')">adnotantibus proximis</span>,
         
@@ -43,34 +43,34 @@ const lessonData = {
             <span class="highlight-style style-13" onclick="showAnalysis('style13'); event.stopPropagation()">Acten libertam</span>
         </span>
         
-        <span class="phrase phrase-13" onclick="showAnalysis('phrase13')">quae simul suo periculo et infamia Neronis anxia</span>
-        <span class="phrase phrase-14" onclick="showAnalysis('phrase14')">deferret pervulgatum esse incestum</span>
-        <span class="phrase phrase-15" onclick="showAnalysis('phrase15')">gloriante matre</span>,
-        <span class="phrase phrase-16" onclick="showAnalysis('phrase16')">nec toleraturos milites profani principis imperium</span>.
+        <span class="phrase phrase-13" onclick="showAnalysis('phrase13')">quae <span class="highlight-style style-24" onclick="showAnalysis('style24'); event.stopPropagation()">simul suo periculo et infamia Neronis</span> anxia</span>
+        <span class="phrase phrase-14" onclick="showAnalysis('phrase14')">deferret <span class="highlight-style style-25" onclick="showAnalysis('style25'); event.stopPropagation()">pervulgatum esse</span> incestum</span>
+        <span class="phrase phrase-15" onclick="showAnalysis('phrase15')"><span class="highlight-style style-26" onclick="showAnalysis('style26'); event.stopPropagation()">gloriante matre</span></span>,
+        <span class="phrase phrase-16" onclick="showAnalysis('phrase16')"><span class="highlight-style style-27" onclick="showAnalysis('style27'); event.stopPropagation()">nec toleraturos milites</span> <span class="highlight-style style-28" onclick="showAnalysis('style28'); event.stopPropagation()">profani principis</span> imperium</span>.
         
         <span class="phrase phrase-17" onclick="showAnalysis('phrase17')">
             <span class="highlight-style style-14" onclick="showAnalysis('style14'); event.stopPropagation()">Fabius Rusticus</span>
             <span class="highlight-style style-15" onclick="showAnalysis('style15'); event.stopPropagation()">non Agrippinae sed Neroni</span>
             cupitum id memorat
         </span>
-        <span class="phrase phrase-18" onclick="showAnalysis('phrase18')">eiusdemque libertae astu disiectum</span>.
+        <span class="phrase phrase-18" onclick="showAnalysis('phrase18')">eiusdemque libertae <span class="highlight-style style-29" onclick="showAnalysis('style29'); event.stopPropagation()">astu</span> <span class="highlight-style style-30" onclick="showAnalysis('style30'); event.stopPropagation()">disiectum</span></span>.
         
-        <span class="phrase phrase-19" onclick="showAnalysis('phrase19')">sed quae Cluvius eadem ceteri quoque auctores prodidere</span>,
+        <span class="phrase phrase-19" onclick="showAnalysis('phrase19')">sed <span class="highlight-style style-31" onclick="showAnalysis('style31'); event.stopPropagation()">quae Cluvius eadem ceteri quoque auctores</span> prodidere</span>,
         <span class="phrase phrase-20" onclick="showAnalysis('phrase20')">
             <span class="highlight-style style-16" onclick="showAnalysis('style16'); event.stopPropagation()">et fama huc inclinat</span>
         </span>,
         
-        <span class="phrase phrase-21" onclick="showAnalysis('phrase21')">seu concepit animo tantum immanitatis Agrippina</span>,
+        <span class="phrase phrase-21" onclick="showAnalysis('phrase21')"><span class="highlight-style style-32" onclick="showAnalysis('style32'); event.stopPropagation()">seu</span> concepit animo <span class="highlight-style style-33" onclick="showAnalysis('style33'); event.stopPropagation()">tantum immanitatis</span> Agrippina</span>,
         <span class="phrase phrase-22" onclick="showAnalysis('phrase22')">
             <span class="highlight-style style-17" onclick="showAnalysis('style17'); event.stopPropagation()">seu credibilior novae libidinis meditatio</span>
             in ea visa est
         </span>
         
-        <span class="phrase phrase-23" onclick="showAnalysis('phrase23')">quae puellaribus annis stuprum cum Lepido</span>
-        <span class="phrase phrase-24" onclick="showAnalysis('phrase24')">spe dominationis admiserat</span>,
+        <span class="phrase phrase-23" onclick="showAnalysis('phrase23')">quae <span class="highlight-style style-34" onclick="showAnalysis('style34'); event.stopPropagation()">puellaribus annis</span> stuprum cum Lepido</span>
+        <span class="phrase phrase-24" onclick="showAnalysis('phrase24')"><span class="highlight-style style-35" onclick="showAnalysis('style35'); event.stopPropagation()">spe dominationis</span> admiserat</span>,
         <span class="phrase phrase-25" onclick="showAnalysis('phrase25')">
             <span class="highlight-style style-18" onclick="showAnalysis('style18'); event.stopPropagation()">pari cupidine</span>
-            usque ad libita Pallantis provoluta
+            usque ad <span class="highlight-style style-36" onclick="showAnalysis('style36'); event.stopPropagation()">libita Pallantis</span> <span class="highlight-style style-37" onclick="showAnalysis('style37'); event.stopPropagation()">provoluta</span>
         </span>
         <span class="phrase phrase-26" onclick="showAnalysis('phrase26')">
             <span class="highlight-style style-19" onclick="showAnalysis('style19'); event.stopPropagation()">et exercita ad omne flagitium</span>
@@ -497,6 +497,91 @@ const lessonData = {
             title: "patrui nuptiis",
             device: "Climax",
             effect: "Uncle-marriage ('patrui nuptiis') was already incestuous under Roman law. Tacitus ends with this as training for mother-son incest - showing climactic progression in taboo-breaking. Each violation prepares for the next, worse one."
+        },
+        style21: {
+            title: "saepius",
+            device: "Repetition (Implied)",
+            effect: "The comparative adverb 'saepius' (quite often, rather frequently) emphasises habitual behaviour - this wasn't a single moment of weakness but repeated, deliberate attempts. The frequency suggests systematic campaign rather than impulse."
+        },
+        style22: {
+            title: "iamque",
+            device: "Temporal Transition",
+            effect: "'Iamque' (and already) marks escalation from intent to action - the seduction has progressed from plan to physical reality. The temporal marker creates narrative momentum, showing corruption unfolding in real time."
+        },
+        style23: {
+            title: "praenuntias flagitii",
+            device: "Personification",
+            effect: "The caresses are personified as 'praenuntias' (announcing beforehand) - they become prophets foretelling coming scandal. Physical signs transformed into omens of moral catastrophe, making the body itself bear witness."
+        },
+        style24: {
+            title: "simul suo periculo et infamia Neronis",
+            device: "Hendiadys",
+            effect: "'Simul' (both/at the same time) links two motivations as equally weighted - Acte's self-preservation and concern for Nero's reputation. The pairing shows moral complexity - she acts from mixed but understandable motives."
+        },
+        style25: {
+            title: "pervulgatum esse",
+            device: "Passive Construction",
+            effect: "The perfect passive 'pervulgatum esse' (to have been spread widely) emphasises the scandal's public nature without naming spreaders. The passive voice suggests rumour moves by itself - once released, it cannot be controlled."
+        },
+        style26: {
+            title: "gloriante matre",
+            device: "Ablative Absolute",
+            effect: "The ablative absolute 'gloriante matre' (with the mother boasting) is positioned for maximum horror - Agrippina's pride in her corruption leads to exposure. Her boasting transforms private vice into public crisis."
+        },
+        style27: {
+            title: "nec toleraturos milites",
+            device: "Future Participle (Threat)",
+            effect: "Future participle 'toleraturos' (will/would tolerate) makes military intolerance imminent and certain. Not a possibility but a coming reality - the threat is already in motion, waiting only for confirmation."
+        },
+        style28: {
+            title: "profani principis",
+            device: "Loaded Vocabulary",
+            effect: "'Profani' (unholy, polluted) is religious language applied to political authority - incest makes Nero ritually impure, unfit for sacred imperial duties. Moral corruption becomes religious pollution requiring purification."
+        },
+        style29: {
+            title: "astu",
+            device: "Chiasmus (Implied)",
+            effect: "'Astu' (by cleverness/cunning) contrasts with physical seduction - intelligence defeats physicality. Whilst Agrippina uses body, Acte uses mind. The contrast elevates Acte morally through superior weapons."
+        },
+        style30: {
+            title: "disiectum",
+            device: "Violent Metaphor",
+            effect: "'Disiectum' (scattered, shattered) is violent military language - the plot is destroyed explosively. The metaphor suggests Acte doesn't merely prevent but demolishes the scheme with force."
+        },
+        style31: {
+            title: "quae Cluvius eadem ceteri quoque auctores",
+            device: "Polysyndeton",
+            effect: "The accumulation 'Cluvius... eadem... ceteri quoque auctores' (Cluvius... the same... other authors also) creates impression of consensus through repeated elements. Multiple witnesses appear to confirm through linguistic piling."
+        },
+        style32: {
+            title: "seu",
+            device: "Disjunction",
+            effect: "'Seu' (whether) introduces alternatives that appear balanced but both condemn - guilty in action or guilty in character. The construction creates false objectivity whilst ensuring condemnation either way."
+        },
+        style33: {
+            title: "tantum immanitatis",
+            device: "Hyperbole",
+            effect: "'Tantum immanitatis' (so much monstrosity) uses extreme language - the genitive of quantity makes monstrosity measurable and excessive. Incest becomes inhuman in scope, beyond normal human depravity."
+        },
+        style34: {
+            title: "puellaribus annis",
+            device: "Temporal Marker",
+            effect: "'Puellaribus annis' (in girlhood years) emphasises early corruption - sexual scheming from youth suggests innate rather than acquired vice. The temporal phrase makes depravity developmental, not circumstantial."
+        },
+        style35: {
+            title: "spe dominationis",
+            device: "Ablative of Cause",
+            effect: "'Spe dominationis' (in hope of domination) reveals motive as purely political - sex was always transactional, never passionate. The ablative makes power the cause of every sexual relationship, reducing intimacy to calculation."
+        },
+        style36: {
+            title: "libita Pallantis",
+            device: "Loaded Vocabulary",
+            effect: "'Libita' (whims, pleasures) suggests capricious sexual demands she satisfied without resistance. Combined with freedman Pallas's name, it shows complete social and moral inversion - patrician serving slave's desires."
+        },
+        style37: {
+            title: "provoluta",
+            device: "Metaphor (Physical)",
+            effect: "'Provoluta' (prostrated, rolled forward) suggests physical abasement - literally throwing herself down. The metaphor makes sexual degradation visible, bodily - she doesn't just submit but prostrates herself."
         }
     },
 
