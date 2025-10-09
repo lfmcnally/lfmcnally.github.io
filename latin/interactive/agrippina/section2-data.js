@@ -400,103 +400,103 @@ const lessonData = {
     style: {
         style1: {
             title: "tradit Cluvius",
-            device: "Historiographical Citation",
-            effect: "Opens with explicit source marker, creating scholarly distance whilst lending authority. Tacitus reports scandal without personally vouching for it - classic distancing technique that allows him to present lurid material whilst maintaining historian's objectivity."
+            device: "Historic Present",
+            effect: "Opens with present tense 'tradit' (records) for vividness and immediacy. Creates scholarly distance whilst lending authority - Tacitus reports scandal without personally vouching for it, allowing him to present lurid material whilst maintaining historian's objectivity."
         },
         style2: {
             title: "potentiae",
-            device: "Thematic Emphasis",
-            effect: "The genitive 'potentiae' (of power) is the key word - this entire scandal is political, not sexual. By placing power as the motivation, Tacitus frames even incest as calculated ambition rather than passion or madness."
+            device: "Emphatic Positioning",
+            effect: "The genitive 'potentiae' (of power) is the key word positioned prominently - this entire scandal is political, not sexual. By placing power as the motivation, Tacitus frames even incest as calculated ambition rather than passion or madness."
         },
         style3: {
             title: "eo usque provectam",
-            device: "Passive Momentum",
-            effect: "The perfect passive participle 'provectam' (carried forward) suggests Agrippina is swept along by forces beyond control. The passive voice implies desire has its own momentum - she's driven by corruption rather than driving it. This creates tragic inevitability."
+            device: "Metaphor",
+            effect: "The perfect passive participle 'provectam' (carried forward) creates a journey metaphor - Agrippina is swept along by forces beyond control. The passive voice implies desire has its own momentum, creating tragic inevitability."
         },
         style4: {
             title: "medio diei",
-            device: "Temporal Transgression",
-            effect: "Midday seduction violates all Roman sexual propriety. Romans associated daylight with virtue, darkness with vice. The brazen midday timing shows complete abandonment of shame - not even darkness conceals this depravity."
+            device: "Loaded Vocabulary",
+            effect: "Midday ('medio diei') seduction violates all Roman sexual propriety. Romans associated daylight with virtue, darkness with vice. The brazen timing shows complete abandonment of shame - not even darkness conceals this depravity."
         },
         style5: {
             title: "per vinum et epulas",
-            device: "Hendiadys",
-            effect: "Wine and feasting presented as dual agents of corruption through 'per' (through). Creates atmosphere of dissolute luxury where normal moral boundaries dissolve. The pair work together to lower Nero's defences."
+            device: "Polysyndeton",
+            effect: "Wine and feasting linked by 'et' (and) as dual agents of corruption. Creates atmosphere of dissolute luxury where normal moral boundaries dissolve. The pair work together to lower Nero's defences through accumulated indulgence."
         },
         style6: {
             title: "incalesceret",
-            device: "Heat Metaphor",
-            effect: "The verb 'incalesceret' (was becoming heated) links alcohol, temperature, and sexual arousal in crescendo of lost control. The imperfect tense shows gradual heating toward dangerous levels - Agrippina times her approach for maximum vulnerability."
+            device: "Metaphor",
+            effect: "The verb 'incalesceret' (was becoming heated) creates heat metaphor linking alcohol, temperature, and sexual arousal in crescendo of lost control. The imperfect tense shows gradual heating toward dangerous levels."
         },
         style7: {
             title: "comptam et incesto paratam",
-            device: "Shocking Juxtaposition",
-            effect: "Pairs careful grooming ('comptam' - adorned) with unspeakable purpose ('incesto paratam' - ready for incest). The deliberate preparation for the ultimate taboo creates visceral horror - she dresses and arranges herself specifically for this crime."
+            device: "Juxtaposition",
+            effect: "Pairs careful grooming ('comptam' - adorned) with unspeakable purpose ('incesto paratam' - ready for incest). The shocking juxtaposition of beauty preparation and moral horror creates visceral disgust - she dresses specifically for the ultimate taboo."
         },
         style8: {
             title: "lasciva oscula",
-            device: "Loaded Adjective",
-            effect: "The modifier 'lasciva' (wanton, lustful) transforms what could be maternal kisses into sexual advances. The alliteration of 'l' sounds creates linguistic sensuality whilst the content is disturbing - maternal affection becomes predatory seduction."
+            device: "Alliteration",
+            effect: "The 'l' sounds in 'lasciva' (wanton) create linguistic sensuality. The loaded adjective transforms maternal kisses into sexual advances - maternal affection becomes predatory seduction through single word choice."
         },
         style9: {
             title: "Senecam",
-            device: "Moral Authority Figure",
+            device: "Characterisation",
             effect: "Introduces the Stoic philosopher as voice of reason against base passion. Seneca represents philosophical wisdom confronting moral chaos - his intervention gives the scandal intellectual and ethical weight beyond mere gossip."
         },
         style10: {
             title: "contra muliebres inlecebras",
-            device: "Gendered Combat Language",
-            effect: "'Contra' (against) is military language, whilst 'muliebres inlecebras' (feminine enticements) genders the threat specifically. This frames the situation as gender warfare requiring tactical response - woman as weapon requiring counter-strategy."
+            device: "Metaphor (Military)",
+            effect: "'Contra' (against) is military language, whilst 'muliebres inlecebras' (feminine enticements) genders the threat. This frames the situation as gender warfare requiring tactical response - woman as weapon requiring counter-strategy."
         },
         style11: {
             title: "subsidium a femina",
-            device: "Strategic Irony",
-            effect: "'Subsidium' is military reinforcement terminology - Acte is deployed like troops. The irony of seeking 'help from a woman' ('a femina') against 'womanly enticements' - fighting fire with fire in gendered battle for Nero's soul."
+            device: "Irony",
+            effect: "'Subsidium' (military reinforcement) from 'a femina' (from a woman) creates irony - seeking female help against female enticements. Fighting fire with fire in gendered battle for Nero's soul, using woman to combat woman."
         },
         style12: {
             title: "immissam",
-            device: "Military Deployment",
-            effect: "'Immissam' (sent in) continues military metaphor - Acte is sent into battle like a commando. The domestic drama becomes strategic military campaign, elevating a freedwoman's intervention to tactical operation."
+            device: "Metaphor (Military)",
+            effect: "'Immissam' (sent in) continues military metaphor - Acte deployed like troops into battle. The domestic drama becomes strategic military campaign, elevating a freedwoman's intervention to tactical operation against corruption."
         },
         style13: {
             title: "Acten libertam",
-            device: "Social Inversion Emphasis",
+            device: "Apposition",
             effect: "The apposition 'libertam' (freedwoman) emphasises Acte's low status - former slave has more moral authority than patrician emperor's mother. Palace corruption has completely inverted normal Roman social hierarchies based on birth."
         },
         style14: {
             title: "Fabius Rusticus",
-            device: "Alternative Source Citation",
+            device: "Source Citation",
             effect: "Names second historian to create historiographical complexity. Shows Tacitus weighing conflicting evidence, maintaining scholarly method. However, placement after Cluvius suggests secondary status - the alternative version is noted but not preferred."
         },
         style15: {
             title: "non Agrippinae sed Neroni",
-            device: "Sharp Antithesis",
-            effect: "The 'non... sed...' construction creates stark contrast, completely reversing moral dynamics. In this version, Nero becomes predator instead of victim, Agrippina becomes target instead of aggressor - shows how different sources reshape entire moral framework."
+            device: "Antithesis",
+            effect: "The 'non... sed...' (not... but...) construction creates sharp antithesis, completely reversing moral dynamics. Nero becomes predator instead of victim, Agrippina target instead of aggressor - shows how sources reshape entire moral frameworks."
         },
         style16: {
             title: "et fama huc inclinat",
-            device: "Personified Rumour",
-            effect: "Rumour personified as rational judge 'leaning' toward truth. Yet Tacitus knows rumour typically favours the most scandalous version. By appealing to popular opinion as evidence, he appears balanced whilst supporting the more damning interpretation."
+            device: "Personification",
+            effect: "Rumour personified as rational judge 'leaning' toward truth. Yet Tacitus knows rumour typically favours the most scandalous version. By appealing to popular opinion as evidence, he appears balanced whilst supporting the damning interpretation."
         },
         style17: {
             title: "seu credibilior novae libidinis meditatio",
-            device: "Character Assassination",
-            effect: "The comparative 'credibilior' (more believable) appears balanced ('whether... or...') whilst damning either way - Agrippina is guilty either in fact or in character. Past sexual behaviour becomes proof of present depravity, turning biography into conviction."
+            device: "Rhetorical Balance (False)",
+            effect: "The comparative 'credibilior' (more believable) appears balanced with 'seu... seu...' (whether... or...) whilst damning either way - guilty in fact or in character. Past sexual behaviour becomes proof of present depravity."
         },
         style18: {
             title: "pari cupidine",
-            device: "Parallel Degradation",
-            effect: "'Pari' (equal) suggests each affair is equally degrading - no hierarchy exists in corruption, no relationship worse than another. This implies insatiable, undiscriminating appetite that never diminishes, treating emperor and freedman with equal willingness."
+            device: "Parallelism",
+            effect: "'Pari' (equal) creates parallel structure suggesting each affair is equally degrading - no hierarchy exists in corruption. This implies insatiable, undiscriminating appetite that never diminishes, treating emperor and freedman with equal willingness."
         },
         style19: {
             title: "et exercita ad omne flagitium",
-            device: "Training Metaphor",
-            effect: "'Exercita' (practised, trained) treats corruption as skill developed through repetition. She's not accidentally depraved but professionally trained in vice - graduated from amateur to expert through systematic practice in 'every disgrace' ('omne flagitium')."
+            device: "Metaphor",
+            effect: "'Exercita' (practised, trained) creates athletic/military training metaphor - corruption as skill developed through repetition. She's not accidentally depraved but professionally trained in vice, expert through systematic practice in 'every disgrace'."
         },
         style20: {
             title: "patrui nuptiis",
-            device: "Climactic Irony",
-            effect: "Uncle-marriage ('patrui nuptiis') was already incestuous under traditional Roman law, requiring special senatorial dispensation. Tacitus ends with this as training for mother-son incest - showing logical progression in taboo-breaking. Each violation prepares for the next, worse one."
+            device: "Climax",
+            effect: "Uncle-marriage ('patrui nuptiis') was already incestuous under Roman law. Tacitus ends with this as training for mother-son incest - showing climactic progression in taboo-breaking. Each violation prepares for the next, worse one."
         }
     },
 
