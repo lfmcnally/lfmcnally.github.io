@@ -270,7 +270,7 @@ const lessonData = {
                         { ids: ["s1-vertice"], color: "teal" }
                     ],
                     whatIsIt: "'Summisso...vertice' (with bowed...head) are separated and wrap around 'humiles intrarunt'. This is <strong>hyperbaton</strong>.",
-                    whyMatters: "The word order creates a visual 'bowing' in the Latin! The words physically bow around the centre, matching the action described."
+                    whyMatters: "The separation forces us to read more slowly through the phrase, keeping our focus on their respectful, humble demeanour towards their hosts. (Thank you Rory and Maya)"
                 },
                 {
                     id: "chiasmus-line15",
