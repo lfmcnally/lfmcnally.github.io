@@ -1,10 +1,14 @@
-// Battle Timeline Data
+// Battle Timeline Data - Escalation Format
 const battleEvents = [
     {
         id: 'first-march',
+        level: 1,
+        escalationPercent: 20,
+        levelLabel: 'LEVEL 1',
+        date: '88 BC',
         icon: '⚔️',
         title: 'First March on Rome',
-        subtitle: '88 BC - Breaking the ultimate taboo',
+        preview: 'Sulla leads six legions against Rome—violating the sacred pomerium. Constitutional government ends.',
         content: {
             title: 'The Unthinkable Becomes Reality (88 BC)',
             html: `
@@ -14,17 +18,29 @@ const battleEvents = [
                 
                 <p>The march succeeded because resistance collapsed. Most senators fled the city, Marius lacked military forces in Rome, and urban citizens could not oppose disciplined legions. Sulla's soldiers, recruited through Marius's reforms, followed their commander even against Rome itself—proving the danger of client armies.</p>
                 
+                <div class="casualty-box">
+                    <span class="casualty-number">Minimal</span>
+                    <div class="casualty-label">Military Casualties (resistance collapsed)</div>
+                </div>
+                
                 <p><strong>Outcome:</strong> Sulla occupied Rome, reversed Sulpicius's legislation, and declared Marius and Sulpicius enemies of the state. Sulpicius was killed during his escape; Marius fled to Africa.</p>
                 
-                <p><strong>Significance:</strong> First time a Roman general led legions against Rome. Established precedent that military force could override civilian authority and constitutional process.</p>
+                <div class="significance-box">
+                    <strong>Why This Mattered:</strong>
+                    <p>First time a Roman general led legions against Rome. Established precedent that military force could override civilian authority and constitutional process. The sacred boundary between military and civilian power had been crossed—it could never be restored.</p>
+                </div>
             `
         }
     },
     {
         id: 'marian-return',
+        level: 2,
+        escalationPercent: 40,
+        levelLabel: 'LEVEL 2',
+        date: '87 BC',
         icon: '🔥',
         title: 'Marian Counter-Revolution',
-        subtitle: '87 BC - Terror comes to Rome',
+        preview: 'Marius and Cinna seize Rome. Systematic massacres of Sulla\'s supporters begin. First proscription lists.',
         content: {
             title: 'Violence Begets Violence (87 BC)',
             html: `
@@ -34,17 +50,27 @@ const battleEvents = [
                 
                 <p>Marius's brief seventh consulship (86 BC) was marked by the first proscription lists—systematic political murders where condemned individuals could be killed for reward. Though Marius died early in 86 BC (just weeks into his consulship), <span class="key-figure" data-info="cinna">Cinna</span> continued the popularis reign of terror.</p>
                 
-                <p><strong>Casualties:</strong> Hundreds of senators and equestrians executed without trial</p>
+                <div class="casualty-box">
+                    <span class="casualty-number">Hundreds</span>
+                    <div class="casualty-label">Senators and equestrians executed without trial</div>
+                </div>
                 
-                <p><strong>Significance:</strong> Established precedent for proscriptions and demonstrated that political defeat meant death rather than exile. Made future civil wars more brutal.</p>
+                <div class="significance-box">
+                    <strong>The Escalation:</strong>
+                    <p>Violence moved from military occupation to systematic political murder. Established precedent for proscriptions and demonstrated that political defeat meant death rather than exile. Compromise became impossible—losing meant extermination.</p>
+                </div>
             `
         }
     },
     {
         id: 'return',
+        level: 3,
+        escalationPercent: 60,
+        levelLabel: 'LEVEL 3',
+        date: '83 BC',
         icon: '⚡',
-        title: 'Sulla Returns',
-        subtitle: '83 BC - The avenger lands at Brundisium',
+        title: 'Sulla Returns from the East',
+        preview: 'Five veteran legions land at Brundisium. Pompey (age 23) raises three more. Italy prepares for total war.',
         content: {
             title: 'Return of the Avenger (83 BC)',
             html: `
@@ -54,17 +80,27 @@ const battleEvents = [
                 
                 <p>The psychological impact was enormous. Sulla represented legitimacy and order to those exhausted by years of Marian-Cinnan chaos. His propaganda promised constitutional restoration and attracted moderates who had initially opposed him.</p>
                 
-                <p><strong>Forces:</strong> 5 legions initially, growing to 23 legions with allied support including Pompey, Crassus, and Metellus Pius</p>
+                <div class="casualty-box">
+                    <span class="casualty-number">23 Legions</span>
+                    <div class="casualty-label">Sulla's combined forces (5 initially + defectors)</div>
+                </div>
                 
-                <p><strong>Significance:</strong> Triggered mass defections from Marian forces. Restored Sullan faction's military credibility and political legitimacy.</p>
+                <div class="significance-box">
+                    <strong>The Escalation:</strong>
+                    <p>Civil war became professional military conflict. Entire legions fought legions. Mass defections showed traditional loyalties collapsing—personal allegiance to generals now trumped institutional loyalty to Rome. Young aristocrats like Pompey could raise private armies.</p>
+                </div>
             `
         }
     },
     {
         id: 'sacriportus',
+        level: 4,
+        escalationPercent: 80,
+        levelLabel: 'LEVEL 4',
+        date: '82 BC',
         icon: '💥',
         title: 'Battle of Sacriportus',
-        subtitle: '82 BC - Marian resistance crumbles',
+        preview: 'Marius the Younger\'s army destroyed. Thousands killed. Marian cause collapses. Path to Rome opens.',
         content: {
             title: 'The End of Marian Dreams (82 BC)',
             html: `
@@ -74,17 +110,27 @@ const battleEvents = [
                 
                 <p>Sulla's relative clemency toward defeated enemies in this phase contrasted sharply with his later brutality, suggesting his eventual reign of terror was calculated policy rather than uncontrolled vengeance.</p>
                 
-                <p><strong>Casualties:</strong> Thousands of Marian soldiers killed or captured; young Marius besieged at Praeneste</p>
+                <div class="casualty-box">
+                    <span class="casualty-number">Thousands</span>
+                    <div class="casualty-label">Marian soldiers killed or captured; young Marius besieged</div>
+                </div>
                 
-                <p><strong>Significance:</strong> Collapse of main Marian field army. Demonstrated superiority of Sulla's professional veterans over hastily-raised popularis forces.</p>
+                <div class="significance-box">
+                    <strong>The Escalation:</strong>
+                    <p>Major field battles with professional armies fighting to the death. Mass casualties in single engagements. Marian resistance crumbling not through negotiation but through systematic military destruction. Victory through extermination becoming the only option.</p>
+                </div>
             `
         }
     },
     {
         id: 'colline-gate',
+        level: 5,
+        escalationPercent: 100,
+        levelLabel: 'LEVEL 5',
+        date: '82 BC (November)',
         icon: '☠️',
         title: 'Battle of the Colline Gate',
-        subtitle: '82 BC - The final reckoning',
+        preview: '50,000+ killed in final battle. 6,000 prisoners massacred whilst Senate meets. Proscriptions begin. Republic dies.',
         content: {
             title: 'Democracy Dies at Rome\'s Gates (82 BC)',
             html: `
@@ -92,11 +138,19 @@ const battleEvents = [
                 
                 <p>The battle was ferocious and nearly lost. Sulla's left wing collapsed, and he personally led charges to prevent complete defeat. Only the discipline of his veteran right wing, commanded by <span class="key-figure" data-info="crassus">Marcus Licinius Crassus</span>, secured victory as darkness fell.</p>
                 
-                <p>The aftermath was horrific. Sulla ordered the systematic massacre of 6,000+ prisoners in the Villa Publica whilst the Senate met nearby in the Temple of Bellona. When senators asked about the screams, Sulla replied: "Pay no attention—it's just some criminals being punished."</p>
+                <p>The aftermath was horrific. Sulla ordered the systematic massacre of 6,000+ prisoners in the Villa Publica whilst the Senate met nearby in the Temple of Bellona. When senators asked about the screams, Sulla replied: <em>"Pay no attention—it's just some criminals being punished."</em></p>
                 
-                <p><strong>Casualties:</strong> 50,000+ killed in battle and subsequent massacres. Telesinus killed, his head displayed in Forum as warning.</p>
+                <div class="casualty-box">
+                    <span class="casualty-number">50,000+</span>
+                    <div class="casualty-label">Killed in battle and subsequent massacres</div>
+                </div>
                 
-                <p><strong>Significance:</strong> End of organised resistance to Sulla. Beginning of proscriptions and reign of terror. Last serious military threat to Roman dominance in Italy eliminated.</p>
+                <p>Telesinus was killed; his head was displayed in the Forum as a warning. Young Marius committed suicide when Praeneste fell. Organised resistance ended.</p>
+                
+                <div class="significance-box">
+                    <strong>Maximum Escalation Reached:</strong>
+                    <p>Systematic massacre of prisoners whilst government met nearby. Brutal theatricality of violence. End of organised resistance meant beginning of proscriptions—2,000+ more would die. Political opposition eliminated through state-sanctioned murder. The Republic as a constitutional system was dead—only the name remained.</p>
+                </div>
             `
         }
     }
