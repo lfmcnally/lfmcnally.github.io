@@ -473,7 +473,16 @@ function showSection(sectionId) {
         }
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setupInteractiveContent();
+    
+    // Re-initialize battles when navigating to civil-war section
+    if (sectionId === 'civil-war') {
+        setTimeout(() => {
+            initializeBattles();
+            setupInteractiveContent();
+        }, 50);
+    } else {
+        setupInteractiveContent();
+    }
 }
 
 document.querySelectorAll('.nav-item').forEach(item => {
