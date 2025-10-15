@@ -108,7 +108,7 @@ const battleEvents = [
                 
                 <p>The defeat was catastrophic for the Marian cause. Young Marius fled to Praeneste where he was besieged, and much of his army defected to Sulla. The victory opened the path to Rome and broke Marian morale across Italy.</p>
                 
-                <p>Sulla's relative clemency toward defeated enemies in this phase contrasted sharply with his later brutality, suggesting his eventual reign of terror was calculated policy rather than uncontrolled vengeance.</p>
+                <p>Sulla's relative clemency towards defeated enemies in this phase contrasted sharply with his later brutality, suggesting his eventual reign of terror was calculated policy rather than uncontrolled vengeance.</p>
                 
                 <div class="casualty-box">
                     <span class="casualty-number">Thousands</span>
@@ -155,14 +155,6 @@ const battleEvents = [
         }
     }
 ];
-
-const battleDefaultContent = {
-    title: 'Civil War: Rome Tears Itself Apart',
-    html: `
-        <p>Click on any battle above to explore the escalating violence that destroyed Republican traditions and established military force as the arbiter of political power.</p>
-        <p>Each battle made the next one more brutal, culminating in Sulla's systematic reign of terror.</p>
-    `
-};
 
 // Proscription Victims Data
 const proscriptionVictims = [
@@ -232,7 +224,7 @@ const reformsData = {
                     
                     <p><strong>Judicial Reforms:</strong> Returned exclusive jury service in the courts (<span class="key-term" data-definition="quaestiones">quaestiones</span>) to senators, reversing Gracchan legislation that had given equestrians judicial power. This restored senatorial control over prosecution of provincial governors and major crimes.</p>
                     
-                    <p><strong>Provincial Commands:</strong> Required praetors and consuls to remain in Rome during their year of office, taking provincial commands only afterward as promagistrates. This separated civil authority from military power.</p>
+                    <p><strong>Provincial Commands:</strong> Required praetors and consuls to remain in Rome during their year of office, taking provincial commands only afterwards as promagistrates. This separated civil authority from military power.</p>
                     
                     <p><strong>Intention:</strong> Strengthen Senate as the governing institution of the Republic; restore aristocratic control over law courts and provincial administration.</p>
                     
@@ -258,7 +250,7 @@ const reformsData = {
                     
                     <p><strong>Intention:</strong> Prevent future popularis politicians from using tribunician power to challenge senatorial authority.</p>
                     
-                    <p><strong>Failure:</strong> These restrictions were gradually reversed. <span class="key-figure" data-info="pompey">Pompey</span> and <span class="key-figure" data-info="crassus">Crassus</span> restored full tribunician power in 70 BC (just nine years after Sulla's abdication). Later popularis politicians like Clodius and Caesar used the tribunate more effectively than ever.</p>
+                    <p><strong>Failure:</strong> These restrictions were gradually reversed. <span class="key-figure" data-info="pompey">Pompey</span> and <span class="key-figure" data-info="crassus">Crassus</span> restored full tribunician power in 70 BC (just nine years after Sulla\'s abdication). Later popularis politicians like Clodius and Caesar used the tribunate more effectively than ever.</p>
                 `
             }
         },
@@ -369,7 +361,7 @@ const definitions = {
     },
     'quaestiones': {
         term: 'Quaestiones',
-        definition: 'Permanent criminal courts in Rome, particularly for extortion (<em>repetundae</em>) and treason (<em>maiestas</em>).',
+        definition: 'Permanent criminal courts in Rome, particularly for extortion (repetundae) and treason (maiestas).',
         context: 'Control of these courts was politically crucial. Sulla returned jury service exclusively to senators, reversing Gracchan reforms that had given equestrians judicial power.'
     },
     'maiestas': {
@@ -448,7 +440,7 @@ const concepts = {
 
 // Initialize Interactive Elements
 document.addEventListener('DOMContentLoaded', function() {
-    initializeBattles();
+    initializeEscalationTracker();
     initializeProscriptions();
     initializeReforms();
     
@@ -474,10 +466,10 @@ function showSection(sectionId) {
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    // Re-initialize battles when navigating to civil-war section
+    // Re-initialize escalation tracker when navigating to civil-war section
     if (sectionId === 'civil-war') {
         setTimeout(() => {
-            initializeBattles();
+            initializeEscalationTracker();
             setupInteractiveContent();
         }, 50);
     } else {
@@ -491,63 +483,63 @@ document.querySelectorAll('.nav-item').forEach(item => {
     });
 });
 
-// Initialize Battle Cards
-function initializeBattles() {
-    const cardsContainer = document.getElementById('battle-cards');
-    const detailsContainer = document.getElementById('battle-details');
+// Initialize Escalation Tracker
+function initializeEscalationTracker() {
+    const stagesContainer = document.getElementById('escalation-stages');
+    const detailsContainer = document.getElementById('escalation-details');
     
-    if (!cardsContainer || !detailsContainer) return;
+    if (!stagesContainer || !detailsContainer) return;
     
-    // Create battle cards
-    battleEvents.forEach(battle => {
-        const cardEl = document.createElement('div');
-        cardEl.className = 'battle-card';
-        cardEl.onclick = () => showBattle(battle.id);
-        cardEl.innerHTML = `
-            <div class="battle-icon">${battle.icon}</div>
-            <div class="battle-title">${battle.title}</div>
-            <div class="battle-subtitle">${battle.subtitle}</div>
+    // Clear existing content
+    stagesContainer.innerHTML = '';
+    detailsContainer.innerHTML = '';
+    
+    // Create escalation stages
+    battleEvents.forEach((event, index) => {
+        const stageEl = document.createElement('div');
+        stageEl.className = `escalation-stage level-${event.level}`;
+        stageEl.setAttribute('data-level', event.levelLabel);
+        stageEl.onclick = () => showEscalationStage(event.id);
+        
+        stageEl.innerHTML = `
+            <div class="stage-header">
+                <div class="stage-date">${event.date}</div>
+                <div class="stage-icon">${event.icon}</div>
+            </div>
+            <div class="stage-title">${event.title}</div>
+            <div class="stage-preview">${event.preview}</div>
         `;
-        cardsContainer.appendChild(cardEl);
-    });
-    
-    // Create default content
-    const defaultContent = document.createElement('div');
-    defaultContent.className = 'battle-content active';
-    defaultContent.id = 'battle-default';
-    defaultContent.innerHTML = `
-        <h4>${battleDefaultContent.title}</h4>
-        ${battleDefaultContent.html}
-    `;
-    detailsContainer.appendChild(defaultContent);
-    
-    // Create content for each battle
-    battleEvents.forEach(battle => {
-        const contentEl = document.createElement('div');
-        contentEl.className = 'battle-content';
-        contentEl.id = `battle-${battle.id}`;
-        contentEl.innerHTML = `
-            <h4>${battle.content.title}</h4>
-            ${battle.content.html}
-        `;
-        detailsContainer.appendChild(contentEl);
+        
+        stagesContainer.appendChild(stageEl);
     });
 }
 
-function showBattle(battleId) {
-    document.querySelectorAll('.battle-card').forEach(card => {
-        card.classList.remove('active');
-    });
-    document.querySelectorAll('.battle-content').forEach(content => {
-        content.classList.remove('active');
-    });
+function showEscalationStage(eventId) {
+    const event = battleEvents.find(e => e.id === eventId);
+    if (!event) return;
     
-    event.target.closest('.battle-card').classList.add('active');
+    // Update active state
+    document.querySelectorAll('.escalation-stage').forEach(stage => {
+        stage.classList.remove('active');
+    });
+    window.event.target.closest('.escalation-stage').classList.add('active');
     
-    const contentId = 'battle-' + battleId;
-    const content = document.getElementById(contentId);
-    if (content) {
-        content.classList.add('active');
+    // Update meter
+    const meterFill = document.getElementById('meter-fill');
+    if (meterFill) {
+        meterFill.style.width = event.escalationPercent + '%';
+    }
+    
+    // Show details
+    const detailsContainer = document.getElementById('escalation-details');
+    if (detailsContainer) {
+        detailsContainer.innerHTML = `
+            <h4>${event.content.title}</h4>
+            ${event.content.html}
+        `;
+        detailsContainer.classList.add('active');
+        
+        // Re-setup interactive content for the new details
         setupInteractiveContent();
     }
 }
@@ -591,7 +583,7 @@ function initializeProscriptions() {
 }
 
 function toggleVictim(victimId) {
-    const victimElement = event.target.closest('.proscribed-name');
+    const victimElement = window.event.target.closest('.proscribed-name');
     const detailsElement = document.getElementById('victim-' + victimId);
     
     if (victimElement && detailsElement) {
@@ -660,7 +652,7 @@ function showReform(reformId) {
         content.classList.remove('active');
     });
     
-    event.target.closest('.reform-card').classList.add('active');
+    window.event.target.closest('.reform-card').classList.add('active');
     
     const contentId = 'reform-' + reformId;
     const content = document.getElementById(contentId);
