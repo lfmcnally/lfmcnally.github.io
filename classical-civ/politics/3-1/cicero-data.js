@@ -427,13 +427,9 @@ function showSection(sectionId) {
 // Timeline
 function initializeTimeline() {
     const eventsContainer = document.getElementById('timeline-events');
-    const detailsContainer = document.getElementById('timeline-details');
+    const infoPanel = document.getElementById('timeline-info-panel');
     
-    if (!eventsContainer || !detailsContainer) return;
-    
-    if (detailsContainer) {
-        detailsContainer.remove();
-    }
+    if (!eventsContainer || !infoPanel) return;
     
     // Reverse the array so earliest events are at bottom
     const reversedEvents = [...timelineEventsData].reverse();
@@ -441,40 +437,43 @@ function initializeTimeline() {
     reversedEvents.forEach(event => {
         const eventEl = document.createElement('div');
         eventEl.className = 'timeline-event';
-        eventEl.onclick = () => toggleTimelineEvent(event.id);
+        eventEl.onclick = () => showTimelineDetails(event.id);
         eventEl.innerHTML = `
             <div class="timeline-date">${event.date}</div>
             <div class="timeline-title">${event.title}</div>
-            <div class="timeline-description">${event.description}</div>
         `;
         eventsContainer.appendChild(eventEl);
-        
-        const contentEl = document.createElement('div');
-        contentEl.className = 'timeline-content';
-        contentEl.id = `timeline-${event.id}`;
-        contentEl.style.display = 'none';
-        contentEl.innerHTML = `
-            <div style="background: #f8f9fa; border-radius: 8px; padding: 1.5rem; margin: 1rem 0 1.5rem 0; border-left: 3px solid #0066ff;">
-                <h4 style="color: #0066ff; margin-bottom: 1rem; font-size: 1.1rem;">${event.title}</h4>
-                ${event.content}
-            </div>
-        `;
-        eventsContainer.appendChild(contentEl);
     });
 }
 
-function toggleTimelineEvent(eventId) {
-    const content = document.getElementById(`timeline-${eventId}`);
+function showTimelineDetails(eventId) {
+    const event = timelineEventsData.find(e => e.id === eventId);
+    const infoPanel = document.getElementById('timeline-info-panel');
     
-    if (content.style.display === 'none') {
-        document.querySelectorAll('.timeline-content').forEach(c => {
-            c.style.display = 'none';
-        });
-        content.style.display = 'block';
-        setupInteractiveContent();
-    } else {
-        content.style.display = 'none';
+    if (!event || !infoPanel) return;
+    
+    // Update active state
+    document.querySelectorAll('.timeline-event').forEach(el => {
+        el.classList.remove('active');
+    });
+    event.target = window.event?.target;
+    if (window.event?.target) {
+        const clickedEvent = window.event.target.closest('.timeline-event');
+        if (clickedEvent) clickedEvent.classList.add('active');
     }
+    
+    // Update info panel
+    infoPanel.innerHTML = `
+        <h4>${event.title}</h4>
+        <div style="color: #0066ff; font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem;">${event.date}</div>
+        ${event.content}
+    `;
+    
+    setupInteractiveContent();
+}
+
+function toggleTimelineEvent(eventId) {
+    showTimelineDetails(eventId);
 }
 
 // Themes
