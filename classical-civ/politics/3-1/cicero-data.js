@@ -435,7 +435,10 @@ function initializeTimeline() {
         detailsContainer.remove();
     }
     
-    timelineEventsData.forEach(event => {
+    // Reverse the array so earliest events are at bottom
+    const reversedEvents = [...timelineEventsData].reverse();
+    
+    reversedEvents.forEach(event => {
         const eventEl = document.createElement('div');
         eventEl.className = 'timeline-event';
         eventEl.onclick = () => toggleTimelineEvent(event.id);
@@ -451,7 +454,7 @@ function initializeTimeline() {
         contentEl.id = `timeline-${event.id}`;
         contentEl.style.display = 'none';
         contentEl.innerHTML = `
-            <div style="background: #f8f9fa; border-radius: 8px; padding: 1.5rem; margin: 1rem 0 1.5rem 2rem; border-left: 3px solid #0066ff;">
+            <div style="background: #f8f9fa; border-radius: 8px; padding: 1.5rem; margin: 1rem 0 1.5rem 0; border-left: 3px solid #0066ff;">
                 <h4 style="color: #0066ff; margin-bottom: 1rem; font-size: 1.1rem;">${event.title}</h4>
                 ${event.content}
             </div>
@@ -513,7 +516,14 @@ function initializeThemes() {
 
 function showThemeDetails(themeId) {
     document.querySelectorAll('.theme-card').forEach(card => card.classList.remove('active'));
-    event.target.closest('.theme-card').classList.add('active');
+    
+    // Find and activate the clicked card
+    const cards = document.querySelectorAll('.theme-card');
+    cards.forEach(card => {
+        if (card.onclick && card.onclick.toString().includes(themeId)) {
+            card.classList.add('active');
+        }
+    });
     
     document.querySelectorAll('#theme-details .timeline-content').forEach(content => {
         content.classList.remove('active');
