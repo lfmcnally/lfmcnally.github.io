@@ -1,4 +1,4 @@
-// Lesson 2.5: Heracles at Olympia - Data File
+// Lesson 2.5: Heracles at Olympia - Enhanced Data File
 
 const olympiaData = {
     // Metope arrangements
@@ -113,6 +113,10 @@ const olympiaData = {
         {
             question: 'How were the metopes arranged between the east and west porches? What narrative did this create?',
             answer: 'The west porch showed labours involving divine animals and monsters (Lion, Hydra, Hind, Birds, Bull, Amazons), whilst the east porch displayed human opponents and distant challenges (Boar, Horses, Geryon, Apples, Cerberus, Stables). This created a narrative from beast to man, from local to cosmic, showing progressive difficulty.'
+        },
+        {
+            question: 'What are the three key criteria for analysing a metope effectively?',
+            answer: 'The three criteria are: (1) Use of Space - how well the sculptor fills the rectangular frame with dynamic composition, varied heights, and overlapping figures; (2) Recognisability - whether viewers can instantly identify the labour through unique attributes, climactic moments, and clear gestures; (3) Realism - how believably the sculptor renders human anatomy and poses whilst balancing idealisation with natural movement.'
         },
         {
             question: 'What role did Heracles play in the founding of the Olympic Games according to myth?',
