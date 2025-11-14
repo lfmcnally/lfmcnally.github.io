@@ -700,6 +700,19 @@
                             </button>
                         </div>
                     </div>
+
+                    <!-- Date Selector -->
+                    <div class="card" style="margin-top: 2rem;">
+                        <div style="padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <label for="date-selector" style="font-size: 0.85rem; color: #6b7280; display: block; margin-bottom: 0.5rem;">Play a past puzzle:</label>
+                                <input type="date" id="date-selector" style="width: 100%; padding: 0.625rem; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 0.95rem; font-family: inherit; cursor: pointer;" onchange="loadSelectedDate()">
+                            </div>
+                            <button onclick="loadTodaysPuzzle()" style="padding: 0.625rem 1.25rem; background: #0066ff; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 0.9rem;">
+                                Today's Puzzle
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -723,22 +736,33 @@
         };
 
         // Initialize game
-        function initGame() {
-            const today = new Date();
-            const day = today.getDate();
-            const month = today.toLocaleString('en-GB', { month: 'long' });
-            const year = today.getFullYear();
+        function initGame(selectedDate = null) {
+            let day, month, year;
+            
+            if (selectedDate) {
+                // Use selected date
+                const date = new Date(selectedDate);
+                day = date.getDate();
+                month = date.toLocaleString('en-GB', { month: 'long' });
+                year = date.getFullYear();
+            } else {
+                // Use today's date
+                const today = new Date();
+                day = today.getDate();
+                month = today.toLocaleString('en-GB', { month: 'long' });
+                year = today.getFullYear();
+            }
 
             console.log('Looking for puzzle:', day, month, year);
             console.log('Available puzzles:', typeof connectionsNovember2025 !== 'undefined' ? connectionsNovember2025.length : 'NOT LOADED');
 
-            // Find today's puzzle
+            // Find the puzzle
             const puzzle = connectionsNovember2025.find(p => 
                 p.day === day && p.month === month && p.year === year
             );
 
             if (!puzzle) {
-                console.log('No puzzle found for today');
+                console.log('No puzzle found for this date');
                 alert(`No puzzle available for ${day} ${month} ${year}. Please check back later.`);
                 return;
             }
@@ -1129,10 +1153,44 @@
             }
         }
 
+        // Date selector functions
+        function loadSelectedDate() {
+            const dateInput = document.getElementById('date-selector');
+            const selectedDate = dateInput.value;
+            
+            if (selectedDate) {
+                initGame(selectedDate);
+            }
+        }
+
+        function loadTodaysPuzzle() {
+            // Reset date selector
+            const dateInput = document.getElementById('date-selector');
+            dateInput.value = '';
+            
+            // Load today's puzzle
+            initGame();
+        }
+
+        function setupDatePicker() {
+            const dateInput = document.getElementById('date-selector');
+            const today = new Date();
+            
+            // Set max date to today (can't select future dates)
+            const maxDate = today.toISOString().split('T')[0];
+            dateInput.setAttribute('max', maxDate);
+            
+            // Set min date to 14th November 2025 (first puzzle)
+            dateInput.setAttribute('min', '2025-11-14');
+        }
+
         // Navigation (removed - no longer needed)
 
         // Sidebar navigation
         document.addEventListener('DOMContentLoaded', function() {
+            // Setup date picker
+            setupDatePicker();
+            
             // Initialize game
             initGame();
         });
