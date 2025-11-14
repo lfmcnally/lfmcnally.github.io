@@ -612,6 +612,11 @@
                         </div>
                     </div>
 
+                    <!-- Feedback message -->
+                    <div id="feedback-message" style="text-align: center; margin-bottom: 1rem; min-height: 30px;">
+                        <span id="feedback-text" style="font-size: 1.1rem; font-weight: 600;"></span>
+                    </div>
+
                     <!-- Solved categories container -->
                     <div class="solved-categories" id="solved-categories"></div>
 
@@ -664,7 +669,7 @@
         </div>
     </main>
 
-    <!-- Load puzzle data -->
+    <!-- Load puzzle data FIRST -->
     <script src="connections-november-2025.js"></script>
 
     <script>
@@ -687,15 +692,21 @@
             const month = today.toLocaleString('en-GB', { month: 'long' });
             const year = today.getFullYear();
 
+            console.log('Looking for puzzle:', day, month, year);
+            console.log('Available puzzles:', typeof connectionsNovember2025 !== 'undefined' ? connectionsNovember2025.length : 'NOT LOADED');
+
             // Find today's puzzle
             const puzzle = connectionsNovember2025.find(p => 
                 p.day === day && p.month === month && p.year === year
             );
 
             if (!puzzle) {
-                alert('No puzzle available for today! Please check back later.');
+                console.log('No puzzle found for today');
+                alert(`No puzzle available for ${day} ${month} ${year}. Please check back later.`);
                 return;
             }
+            
+            console.log('Puzzle found:', puzzle);
 
             // Set up game state
             gameState.puzzle = puzzle;
@@ -843,14 +854,15 @@
                 
                 if (oneAway) {
                     showFeedback('One away...', 'warning');
+                    // Don't increment mistakes for "one away"
                 } else {
+                    // Wrong guess - increment mistakes
                     gameState.mistakes++;
                     updateMistakes();
+                    showFeedback('Incorrect', 'error');
                     
                     if (gameState.mistakes >= 4) {
                         endGame(false);
-                    } else {
-                        showFeedback('Incorrect', 'error');
                     }
                 }
             }
@@ -875,34 +887,40 @@
 
         // Handle correct guess
         function handleCorrectGuess(category) {
-            gameState.solvedCategories.push(category);
-            
-            // Remove words from grid
-            category.words.forEach(word => {
-                const index = gameState.remainingWords.indexOf(word);
-                if (index > -1) {
-                    gameState.remainingWords.splice(index, 1);
-                }
-            });
-
-            // Add visual feedback
+            // Add visual feedback first - make selected tiles pulse
             const tiles = document.querySelectorAll('.word-tile');
             tiles.forEach(tile => {
                 if (category.words.includes(tile.textContent)) {
                     tile.classList.add('correct');
+                    tile.style.background = category.color;
+                    tile.style.borderColor = category.color;
+                    tile.style.color = 'white';
                 }
             });
 
-            // Show solved category after animation
+            // Wait for animation, then update state
             setTimeout(() => {
+                gameState.solvedCategories.push(category);
+                
+                // Remove words from grid
+                category.words.forEach(word => {
+                    const index = gameState.remainingWords.indexOf(word);
+                    if (index > -1) {
+                        gameState.remainingWords.splice(index, 1);
+                    }
+                });
+
+                // Show solved category at top
                 showSolvedCategory(category);
+                
+                // Re-render grid (removes the solved words)
                 renderGrid();
 
                 // Check if won
                 if (gameState.solvedCategories.length === 4) {
-                    endGame(true);
+                    setTimeout(() => endGame(true), 500);
                 }
-            }, 600);
+            }, 800);
         }
 
         // Show solved category
@@ -927,18 +945,21 @@
 
         // Show feedback
         function showFeedback(message, type) {
-            // Shake tiles on error
+            const feedbackText = document.getElementById('feedback-text');
+            feedbackText.textContent = message;
+            
+            // Style based on type
             if (type === 'error') {
+                feedbackText.style.color = '#dc2626';
+                // Shake tiles
                 const tiles = document.querySelectorAll('.word-tile.selected');
                 tiles.forEach(tile => {
                     tile.classList.add('shake');
                     setTimeout(() => tile.classList.remove('shake'), 500);
                 });
-            }
-
-            // Could add a toast notification here
-            if (type === 'warning') {
-                // Visual feedback for "one away"
+            } else if (type === 'warning') {
+                feedbackText.style.color = '#f59e0b';
+                // Yellow flash for "one away"
                 const tiles = document.querySelectorAll('.word-tile.selected');
                 tiles.forEach(tile => {
                     tile.style.background = '#fef3c7';
@@ -949,6 +970,11 @@
                     }, 1000);
                 });
             }
+            
+            // Clear message after 2 seconds
+            setTimeout(() => {
+                feedbackText.textContent = '';
+            }, 2000);
         }
 
         // Update mistakes display
