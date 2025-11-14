@@ -334,6 +334,43 @@
             75% { transform: translateX(10px); }
         }
 
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 1.5rem 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            font-size: 1.2rem;
+            font-weight: 600;
+            z-index: 1000;
+            animation: toastIn 0.3s ease;
+        }
+
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .toast.warning {
+            color: #f59e0b;
+            border: 3px solid #f59e0b;
+        }
+
+        .toast.error {
+            color: #dc2626;
+            border: 3px solid #dc2626;
+        }
+
         /* Controls */
         .game-controls {
             display: flex;
@@ -887,16 +924,26 @@
 
         // Handle correct guess
         function handleCorrectGuess(category) {
-            // Add visual feedback first - make selected tiles pulse
-            const tiles = document.querySelectorAll('.word-tile');
-            tiles.forEach(tile => {
-                if (category.words.includes(tile.textContent)) {
-                    tile.classList.add('correct');
-                    tile.style.background = category.color;
-                    tile.style.borderColor = category.color;
-                    tile.style.color = 'white';
-                }
-            });
+            // First, move the correct words to the front of the array
+            const correctWords = category.words;
+            const otherWords = gameState.remainingWords.filter(w => !correctWords.includes(w));
+            gameState.remainingWords = [...correctWords, ...otherWords];
+            
+            // Re-render to show visual rearrangement
+            renderGrid();
+            
+            // Add visual feedback - color the correct tiles
+            setTimeout(() => {
+                const tiles = document.querySelectorAll('.word-tile');
+                tiles.forEach(tile => {
+                    if (category.words.includes(tile.textContent)) {
+                        tile.classList.add('correct');
+                        tile.style.background = category.color;
+                        tile.style.borderColor = category.color;
+                        tile.style.color = 'white';
+                    }
+                });
+            }, 100);
 
             // Wait for animation, then update state
             setTimeout(() => {
@@ -945,20 +992,20 @@
 
         // Show feedback
         function showFeedback(message, type) {
-            const feedbackText = document.getElementById('feedback-text');
-            feedbackText.textContent = message;
+            // Create toast notification
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
             
-            // Style based on type
+            // Shake tiles on error
             if (type === 'error') {
-                feedbackText.style.color = '#dc2626';
-                // Shake tiles
                 const tiles = document.querySelectorAll('.word-tile.selected');
                 tiles.forEach(tile => {
                     tile.classList.add('shake');
                     setTimeout(() => tile.classList.remove('shake'), 500);
                 });
             } else if (type === 'warning') {
-                feedbackText.style.color = '#f59e0b';
                 // Yellow flash for "one away"
                 const tiles = document.querySelectorAll('.word-tile.selected');
                 tiles.forEach(tile => {
@@ -971,10 +1018,10 @@
                 });
             }
             
-            // Clear message after 2 seconds
+            // Remove toast after 1.5 seconds
             setTimeout(() => {
-                feedbackText.textContent = '';
-            }, 2000);
+                toast.remove();
+            }, 1500);
         }
 
         // Update mistakes display
