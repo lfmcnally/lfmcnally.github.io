@@ -39,28 +39,28 @@ const connectionsNovember2025 = [
         year: 2025,
         categories: [
             {
-                name: "GREEK LETTERS",
-                words: ["Delta", "Sigma", "Omega", "Theta"],
-                difficulty: 3,
-                color: "#3b82f6"
-            },
-            {
-                name: "WORDS MEANING 'MAN'",
-                words: ["vir", "homo", "iuvenis", "senex"],
+                name: "ROMAN BUILDINGS/STRUCTURES",
+                words: ["ARCH", "CIRCUS", "BATHS", "FORUM"],
                 difficulty: 1,
-                color: "#22c55e"
+                color: "#22c55e" // green - straightforward
             },
             {
-                name: "FAMOUS BRANDS/COMPANIES",
-                words: ["Nike", "Amazon", "Apollo", "Pandora"],
-                difficulty: 4,
-                color: "#8b5cf6" // Nike = goddess, Apollo = god, misdirection!
-            },
-            {
-                name: "2ND DECLENSION NEUTER NOUNS",
-                words: ["bellum", "templum", "forum", "auxilium"],
+                name: "PLANETS (NAMED AFTER ROMAN GODS)",
+                words: ["MARS", "MERCURY", "PLUTO", "JUNO"],
                 difficulty: 2,
-                color: "#eab308"
+                color: "#eab308" // yellow - tricky
+            },
+            {
+                name: "FLOWERS NAMED AFTER MYTHOLOGICAL FIGURES",
+                words: ["IRIS", "NARCISSUS", "AJAX", "ECHO"],
+                difficulty: 3,
+                color: "#3b82f6" // blue - devious
+            },
+            {
+                name: "FIRST NAMES OF ROMAN EMPERORS",
+                words: ["PHILIP", "TITUS", "MARK", "LUCIUS"],
+                difficulty: 4,
+                color: "#8b5cf6" // purple - fiendish (Philip the Arab, Titus, Marcus Aurelius, Lucius Verus)
             }
         ]
     },
