@@ -1,11 +1,11 @@
-// Classicalia Connections - November 2024
+// Classicalia Connections - November 2025
 // Daily Latin & Classics word puzzles
 
-const connectionsNovember2024 = [
+const connectionsNovember2025 = [
     {
         day: 14,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "TYPES OF SALAD",
@@ -36,7 +36,7 @@ const connectionsNovember2024 = [
     {
         day: 15,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "GREEK LETTERS",
@@ -67,7 +67,7 @@ const connectionsNovember2024 = [
     {
         day: 16,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "TROJAN WAR HEROES",
@@ -98,7 +98,7 @@ const connectionsNovember2024 = [
     {
         day: 17,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "MONTHS NAMED AFTER GODS/PEOPLE",
@@ -129,7 +129,7 @@ const connectionsNovember2024 = [
     {
         day: 18,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "ROMAN GODS",
@@ -160,7 +160,7 @@ const connectionsNovember2024 = [
     {
         day: 19,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "LATIN WORDS FOR 'GOOD'",
@@ -191,7 +191,7 @@ const connectionsNovember2024 = [
     {
         day: 20,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "RIVERS",
@@ -222,7 +222,7 @@ const connectionsNovember2024 = [
     {
         day: 21,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "GREEK PHILOSOPHERS",
@@ -253,7 +253,7 @@ const connectionsNovember2024 = [
     {
         day: 22,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "LATIN WORDS FOR 'SMALL'",
@@ -284,7 +284,7 @@ const connectionsNovember2024 = [
     {
         day: 23,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "TOOLS OF WRITING",
@@ -315,7 +315,7 @@ const connectionsNovember2024 = [
     {
         day: 24,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "ROMAN CLOTHING",
@@ -346,7 +346,7 @@ const connectionsNovember2024 = [
     {
         day: 25,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "LATIN WORDS FOR 'LOVE'",
@@ -377,7 +377,7 @@ const connectionsNovember2024 = [
     {
         day: 26,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "LATIN WORDS FOR 'MAKE/DO'",
@@ -408,7 +408,7 @@ const connectionsNovember2024 = [
     {
         day: 27,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "PARTS OF A ROMAN VILLA",
@@ -439,7 +439,7 @@ const connectionsNovember2024 = [
     {
         day: 28,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "LATIN PRONOUNS",
@@ -470,7 +470,7 @@ const connectionsNovember2024 = [
     {
         day: 29,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "GREEK EPIC POETS",
@@ -501,7 +501,7 @@ const connectionsNovember2024 = [
     {
         day: 30,
         month: "November",
-        year: 2024,
+        year: 2025,
         categories: [
             {
                 name: "LATIN WORDS FOR 'TIME'",
