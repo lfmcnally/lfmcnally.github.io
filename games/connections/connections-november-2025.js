@@ -101,28 +101,28 @@ const connectionsNovember2025 = [
         year: 2025,
         categories: [
             {
-                name: "MONTHS NAMED AFTER GODS/PEOPLE",
-                words: ["Ianuarius", "Martius", "Maius", "Iunius"],
-                difficulty: 3,
-                color: "#3b82f6"
-            },
-            {
-                name: "MONTHS ORIGINALLY NUMBERED",
-                words: ["September", "October", "November", "December"],
-                difficulty: 2,
-                color: "#eab308"
-            },
-            {
-                name: "LATIN 1ST CONJUGATION VERBS",
-                words: ["amo", "laudo", "paro", "specto"],
+                name: "___ HORSE",
+                words: ["TROJAN", "CLOTHES", "RACE", "GIFT"],
                 difficulty: 1,
-                color: "#22c55e"
+                color: "#22c55e" // green - straightforward
             },
             {
-                name: "ENGLISH WORDS FROM 'IULIUS'",
-                words: ["July", "Julius", "Julian", "Juliet"],
+                name: "CHARACTERS IN THE ILIAD",
+                words: ["ACHILLES", "HECTOR", "DIOMEDES", "PARIS"],
+                difficulty: 2,
+                color: "#eab308" // yellow - tricky
+            },
+            {
+                name: "CLEANING PRODUCTS",
+                words: ["AJAX", "FLASH", "DAWN", "FAIRY"],
+                difficulty: 3,
+                color: "#3b82f6" // blue - devious
+            },
+            {
+                name: "WORDS CONTAINING 'AE'",
+                words: ["AENEAS", "CAESAR", "DAEDALUS", "PHAEDRA"],
                 difficulty: 4,
-                color: "#8b5cf6" // Juliet is a stretch but works!
+                color: "#8b5cf6" // purple - fiendish
             }
         ]
     },
