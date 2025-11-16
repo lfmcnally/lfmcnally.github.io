@@ -64,34 +64,34 @@ const connectionsNovember2025 = [
             }
         ]
     },
-    {
+     {
         day: 16,
         month: "November",
         year: 2025,
         categories: [
             {
-                name: "TROJAN WAR HEROES",
-                words: ["Achilles", "Hector", "Ajax", "Odysseus"],
-                difficulty: 2,
-                color: "#eab308"
-            },
-            {
-                name: "CLEANING PRODUCTS",
-                words: ["Ajax", "Persil", "Pledge", "Domestos"],
-                difficulty: 4,
-                color: "#8b5cf6" // Ajax appears twice!
-            },
-            {
-                name: "3RD DECLENSION NOUNS (CONSONANT STEM)",
-                words: ["rex", "miles", "dux", "lex"],
+                name: "COMPANIES/BRANDS",
+                words: ["NIKE", "AMAZON", "HERMES", "MARS"],
                 difficulty: 1,
-                color: "#22c55e"
+                color: "#22c55e" // green - straightforward
             },
             {
-                name: "LATIN WORDS FOR 'BIG'",
-                words: ["magnus", "ingens", "vastus", "maximus"],
+                name: "CHILDREN OF ZEUS",
+                words: ["HERACLES", "DIONYSUS", "PERSEPHONE", "MINOS"],
+                difficulty: 2,
+                color: "#eab308" // yellow - tricky
+            },
+            {
+                name: "___ [HERACLES' LABOURS]",
+                words: ["BOAR", "BIRDS", "HYDRA", "LION"],
                 difficulty: 3,
-                color: "#3b82f6"
+                color: "#3b82f6" // blue - devious
+            },
+            {
+                name: "HALF-HUMAN HYBRIDS",
+                words: ["CENTAUR", "MEDUSA", "PAN", "HARPY"],
+                difficulty: 4,
+                color: "#8b5cf6" // purple - fiendish
             }
         ]
     },
