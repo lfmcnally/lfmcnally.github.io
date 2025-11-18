@@ -157,34 +157,34 @@ const connectionsNovember2025 = [
             }
         ]
     },
-    {
+  {
         day: 19,
         month: "November",
         year: 2025,
         categories: [
             {
-                name: "LATIN WORDS FOR 'GOOD'",
-                words: ["bonus", "melior", "optimus", "probus"],
+                name: "LOVE POETS",
+                words: ["OVID", "CATULLUS", "SAPPHO", "PROPERTIUS"],
                 difficulty: 1,
-                color: "#22c55e"
+                color: "#22c55e" // green - straightforward
             },
             {
-                name: "THINGS IN A ROMAN HOUSE",
-                words: ["atrium", "peristylium", "tablinum", "triclinium"],
-                difficulty: 3,
-                color: "#3b82f6"
-            },
-            {
-                name: "WORDS ENDING IN -TOR",
-                words: ["victor", "narrator", "senator", "gladiator"],
+                name: "THINGS IN THE LABYRINTH",
+                words: ["MINOTAUR", "THESEUS", "THREAD", "SWORD"],
                 difficulty: 2,
-                color: "#eab308"
+                color: "#eab308" // yellow - tricky
             },
             {
-                name: "FALSE FRIENDS (LATIN ≠ ENGLISH)",
-                words: ["camera", "silva", "arena", "campus"],
+                name: "OLYMPIC GAMES",
+                words: ["BOXING", "SACRIFICE", "PROCESSION", "RACE"],
+                difficulty: 3,
+                color: "#3b82f6" // blue - devious
+            },
+            {
+                name: "SHIELD OF ACHILLES",
+                words: ["VINEYARD", "CITIES", "EARTH", "DANCING"],
                 difficulty: 4,
-                color: "#8b5cf6" // room/forest/sand/field not what they seem!
+                color: "#8b5cf6" // purple - fiendish
             }
         ]
     },
