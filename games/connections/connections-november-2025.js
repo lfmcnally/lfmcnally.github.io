@@ -126,34 +126,34 @@ const connectionsNovember2025 = [
             }
         ]
     },
-    {
+   {
         day: 18,
         month: "November",
         year: 2025,
         categories: [
             {
-                name: "ROMAN GODS",
-                words: ["Mars", "Neptune", "Vulcan", "Mercury"],
-                difficulty: 2,
-                color: "#eab308"
-            },
-            {
-                name: "PLANETS",
-                words: ["Venus", "Jupiter", "Saturn", "Uranus"],
-                difficulty: 3,
-                color: "#3b82f6" // Mars, Neptune, Mercury also planets!
-            },
-            {
-                name: "LATIN PREPOSITIONS + ACC",
-                words: ["ad", "per", "trans", "post"],
+                name: "PARTS OF A GREEK TEMPLE",
+                words: ["COLUMN", "PEDIMENT", "CELLA", "STYLOBATE"],
                 difficulty: 1,
-                color: "#22c55e"
+                color: "#22c55e" // green - straightforward
             },
             {
-                name: "CAR BRANDS",
-                words: ["Saturn", "Mercury", "Vulcan", "Apollo"],
+                name: "ANCIENT LANGUAGES",
+                words: ["ARAMAIC", "SANSKRIT", "COPTIC", "PHOENICIAN"],
+                difficulty: 2,
+                color: "#eab308" // yellow - tricky
+            },
+            {
+                name: "WORDS BEGINNING WITH DAYS OF THE WEEK",
+                words: ["MONSTER", "THUNDER", "FRIEZE", "SATURN"],
+                difficulty: 3,
+                color: "#3b82f6" // blue - devious
+            },
+            {
+                name: "WORDS ENDING IN LATIN PREPOSITIONS",
+                words: ["VORTEX", "NOMAD", "LATIN", "TRADE"],
                 difficulty: 4,
-                color: "#8b5cf6" // Triple overlap chaos!
+                color: "#8b5cf6" // purple - fiendish
             }
         ]
     },
