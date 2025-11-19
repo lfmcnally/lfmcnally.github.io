@@ -194,28 +194,28 @@ const connectionsNovember2025 = [
         year: 2025,
         categories: [
             {
-                name: "RIVERS",
-                words: ["Tiber", "Thames", "Rhine", "Danube"],
-                difficulty: 2,
-                color: "#eab308"
-            },
-            {
-                name: "FAMOUS ROMAN BATTLES",
-                words: ["Cannae", "Actium", "Pharsalus", "Zama"],
-                difficulty: 3,
-                color: "#3b82f6"
-            },
-            {
-                name: "LATIN 3RD CONJUGATION VERBS",
-                words: ["duco", "mitto", "pono", "scribo"],
+                name: "FEMALE GODDESSES",
+                words: ["VENUS", "DIANA", "JUNO", "VESTA"],
                 difficulty: 1,
-                color: "#22c55e"
+                color: "#22c55e" // green - straightforward
             },
             {
-                name: "THINGS HANNIBAL USED",
-                words: ["elephas", "navis", "exercitus", "sagittae"],
+                name: "HARRY POTTER CHARACTERS",
+                words: ["MINERVA", "REMUS", "LUNA", "ARGUS"],
+                difficulty: 2,
+                color: "#eab308" // yellow - tricky
+            },
+            {
+                name: "SHAKESPEARE PLAYS",
+                words: ["JULIUS", "TITUS", "ANTONY", "CORIOLANUS"],
+                difficulty: 3,
+                color: "#3b82f6" // blue - devious
+            },
+            {
+                name: "FAMILY MURDERERS",
+                words: ["ORESTES", "MEDEA", "OEDIPUS", "ROMULUS"],
                 difficulty: 4,
-                color: "#8b5cf6"
+                color: "#8b5cf6" // purple - fiendish
             }
         ]
     },
