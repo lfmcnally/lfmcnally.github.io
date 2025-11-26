@@ -136,6 +136,7 @@
         }
         .card-body {
             padding: 1.25rem;
+            overflow: hidden;
         }
 
         /* Activity Calendar */
@@ -269,6 +270,76 @@
         }
 
         /* Pending Tasks */
+        /* Join Class */
+        .join-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .join-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .join-input:focus {
+            outline: none;
+            border-color: #0066ff;
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+        }
+        .join-btn {
+            width: 100%;
+            padding: 0.75rem 1.25rem;
+            background: #0066ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .join-btn:hover {
+            background: #0052cc;
+        }
+        .join-message {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+            font-size: 0.9rem;
+        }
+        .join-message.success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .join-message.error {
+            display: block;
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        .my-classes {
+            margin-top: 1rem;
+        }
+        .class-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background: #eff6ff;
+            color: #0066ff;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
         .task-item {
             display: flex;
             align-items: center;
@@ -432,6 +503,20 @@
 
             <!-- Right Column -->
             <div class="right-column">
+                <!-- Join a Class -->
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <div class="card-header">🎒 Join a Class</div>
+                    <div class="card-body">
+                        <div id="joinMessage" class="join-message"></div>
+                        <div class="join-form">
+                            <label style="font-size: 0.85rem; color: #6b7280; margin-bottom: -0.25rem;">Enter your class code:</label>
+                            <input type="text" id="joinCodeInput" class="join-input" placeholder="e.g. LATIN-7X" maxlength="10">
+                            <button class="join-btn" onclick="joinClass()">Join Class</button>
+                        </div>
+                        <div id="myClasses" class="my-classes"></div>
+                    </div>
+                </div>
+
                 <!-- Pending Tasks -->
                 <div class="card" style="margin-bottom: 1.5rem;">
                     <div class="card-header">📝 Pending Tasks</div>
@@ -496,11 +581,100 @@
 
             // Load all data
             await loadAttempts();
+            await loadMyClasses();
             calculateStats();
             renderCalendar();
             renderRecentActivity();
             renderAchievements();
             loadPendingTasks();
+        }
+
+        // Load classes the student is in
+        async function loadMyClasses() {
+            const { data: memberships, error } = await supabase
+                .from('class_members')
+                .select(`
+                    class_id,
+                    classes (
+                        id,
+                        name,
+                        join_code
+                    )
+                `)
+                .eq('student_id', currentUser.id);
+
+            if (error || !memberships || memberships.length === 0) {
+                document.getElementById('myClasses').innerHTML = '<p style="color: #6b7280; font-size: 0.85rem;">You haven\'t joined any classes yet.</p>';
+                return;
+            }
+
+            const classesHtml = memberships.map(m => 
+                `<span class="class-tag">📚 ${m.classes.name}</span>`
+            ).join('');
+            
+            document.getElementById('myClasses').innerHTML = '<p style="color: #6b7280; font-size: 0.85rem; margin-bottom: 0.5rem;">Your classes:</p>' + classesHtml;
+        }
+
+        // Join a class
+        async function joinClass() {
+            const input = document.getElementById('joinCodeInput');
+            const messageEl = document.getElementById('joinMessage');
+            const code = input.value.trim().toUpperCase();
+
+            if (!code) {
+                messageEl.textContent = 'Please enter a join code';
+                messageEl.className = 'join-message error';
+                return;
+            }
+
+            // Find the class with this code
+            const { data: classData, error: classError } = await supabase
+                .from('classes')
+                .select('id, name')
+                .eq('join_code', code)
+                .single();
+
+            if (classError || !classData) {
+                messageEl.textContent = 'Class not found. Check the code and try again.';
+                messageEl.className = 'join-message error';
+                return;
+            }
+
+            // Check if already a member
+            const { data: existing } = await supabase
+                .from('class_members')
+                .select('id')
+                .eq('class_id', classData.id)
+                .eq('student_id', currentUser.id)
+                .single();
+
+            if (existing) {
+                messageEl.textContent = 'You\'re already in this class!';
+                messageEl.className = 'join-message error';
+                return;
+            }
+
+            // Join the class
+            const { error: joinError } = await supabase
+                .from('class_members')
+                .insert({
+                    class_id: classData.id,
+                    student_id: currentUser.id
+                });
+
+            if (joinError) {
+                messageEl.textContent = 'Error joining class. Please try again.';
+                messageEl.className = 'join-message error';
+                return;
+            }
+
+            messageEl.textContent = `Successfully joined "${classData.name}"! 🎉`;
+            messageEl.className = 'join-message success';
+            input.value = '';
+
+            // Reload classes and tasks
+            await loadMyClasses();
+            await loadPendingTasks();
         }
 
         // Load all attempts for this user
@@ -860,6 +1034,11 @@
 
         // Start
         init();
+        
+        // Allow Enter key to join
+        document.getElementById('joinCodeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') joinClass();
+        });
     </script>
 </body>
 </html>
