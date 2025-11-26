@@ -115,6 +115,11 @@ function loadQuestion() {
     
     updateDisplay();
     document.getElementById('answer-input').focus();
+    
+    // === TRACKING: Notify that a new word is displayed ===
+    if (typeof window.onWordDisplayed === 'function') {
+        window.onWordDisplayed(word);
+    }
 }
 
 function getCurrentWord() {
@@ -160,6 +165,11 @@ function checkAnswer() {
         }
         
         if (isCorrect) break;
+    }
+    
+    // === TRACKING: Record the word answer ===
+    if (typeof window.onWordAnswered === 'function') {
+        window.onWordAnswered(word, isCorrect);
     }
     
     if (isCorrect) {
@@ -278,6 +288,11 @@ function revealAnswer() {
     document.getElementById('check-btn').style.display = 'none';
     document.getElementById('next-btn').style.display = 'inline-block';
     document.getElementById('reveal-btn').style.display = 'none';
+    
+    // === TRACKING: Record as incorrect when revealed ===
+    if (typeof window.onWordAnswered === 'function') {
+        window.onWordAnswered(word, false);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
