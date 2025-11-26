@@ -87,9 +87,9 @@ function loadQuestion() {
     feedback.innerHTML = '';
     feedback.className = 'feedback';
     
-    document.getElementById('check-btn').classList.remove('hidden');
-    document.getElementById('next-btn').classList.add('hidden');
-    document.getElementById('reveal-btn').classList.remove('hidden');
+    document.getElementById('check-btn').style.display = 'inline-block';
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('reveal-btn').style.display = 'inline-block';
     
     updateDisplay();
     document.getElementById('answer-input').focus();
@@ -115,9 +115,9 @@ function loadReviewQuestion() {
     feedback.innerHTML = '';
     feedback.className = 'feedback';
     
-    document.getElementById('check-btn').classList.remove('hidden');
-    document.getElementById('next-btn').classList.add('hidden');
-    document.getElementById('reveal-btn').classList.remove('hidden');
+    document.getElementById('check-btn').style.display = 'inline-block';
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('reveal-btn').style.display = 'inline-block';
     
     // Store that this is a review question
     reviewWord.isReview = true;
@@ -218,14 +218,9 @@ function checkAnswer() {
     
     updateDisplay();
     
-   document.getElementById('check-btn').classList.add('hidden');
-    document.getElementById('next-btn').classList.add('hidden');
-    document.getElementById('reveal-btn').classList.add('hidden');
-    
-    // Send results to task tracker (if tracking is active)
-    if (typeof window.onPracticeComplete === 'function') {
-        window.onPracticeComplete(percentage, totalQuestions, score);
-    }
+    document.getElementById('check-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'inline-block';
+    document.getElementById('reveal-btn').style.display = 'none';
 }
 
 function addWordForReview(word) {
@@ -285,9 +280,14 @@ function showCompletion() {
     `;
     document.getElementById('completion-message').classList.remove('hidden');
     
-    document.getElementById('check-btn').classList.add('hidden');
-    document.getElementById('next-btn').classList.add('hidden');
-    document.getElementById('reveal-btn').classList.add('hidden');
+    document.getElementById('check-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('reveal-btn').style.display = 'none';
+    
+    // Send results to task tracker (if tracking is active)
+    if (typeof window.onPracticeComplete === 'function') {
+        window.onPracticeComplete(percentage, totalQuestions, score);
+    }
 }
 
 function resetPractice() {
@@ -327,9 +327,9 @@ function revealAnswer() {
         delete currentTestWords.reviewWord;
     }
     
-    document.getElementById('check-btn').classList.add('hidden');
-    document.getElementById('next-btn').classList.remove('hidden');
-    document.getElementById('reveal-btn').classList.add('hidden');
+    document.getElementById('check-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'inline-block';
+    document.getElementById('reveal-btn').style.display = 'none';
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -339,9 +339,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const checkBtn = document.getElementById('check-btn');
             const nextBtn = document.getElementById('next-btn');
             
-            if (!checkBtn.classList.contains('hidden')) {
+            if (checkBtn.style.display !== 'none') {
                 checkAnswer();
-            } else if (!nextBtn.classList.contains('hidden')) {
+            } else if (nextBtn.style.display !== 'none') {
                 nextQuestion();
             }
         }
