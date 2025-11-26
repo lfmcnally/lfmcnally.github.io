@@ -9,10 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* ============================================
-           CLASSICALIA STUDENT DASHBOARD STYLES
-           ============================================ */
-        
         * {
             box-sizing: border-box;
             margin: 0;
@@ -25,7 +21,6 @@
             min-height: 100vh;
         }
         
-        /* Top navigation bar */
         .navbar {
             background: #1a1a2e;
             color: white;
@@ -64,7 +59,6 @@
             background: rgba(255,255,255,0.1);
         }
         
-        /* Main content area */
         .main-content {
             max-width: 1200px;
             margin: 0 auto;
@@ -88,7 +82,6 @@
             opacity: 0.9;
         }
         
-        /* Dashboard grid */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -131,6 +124,11 @@
             background: #3a7a8a;
         }
         
+        .btn-small {
+            padding: 8px 14px;
+            font-size: 13px;
+        }
+        
         .btn-secondary {
             background: #e0e0e0;
             color: #333;
@@ -159,12 +157,6 @@
             color: #333;
         }
         
-        .class-teacher {
-            font-size: 13px;
-            color: #888;
-            margin-top: 4px;
-        }
-        
         .empty-state {
             text-align: center;
             padding: 30px;
@@ -179,10 +171,17 @@
         .tasks-list li {
             padding: 15px;
             border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         .tasks-list li:last-child {
             border-bottom: none;
+        }
+        
+        .task-info {
+            flex: 1;
         }
         
         .task-title {
@@ -198,6 +197,16 @@
         
         .task-due.overdue {
             color: #c00;
+        }
+        
+        .task-due.due-soon {
+            color: #f90;
+        }
+        
+        .task-class {
+            font-size: 12px;
+            color: #4a90a4;
+            margin-top: 2px;
         }
         
         /* Join class form */
@@ -247,7 +256,6 @@
             display: block;
         }
         
-        /* Loading state */
         .loading {
             text-align: center;
             padding: 40px;
@@ -256,7 +264,6 @@
     </style>
 </head>
 <body>
-    <!-- Navigation bar -->
     <nav class="navbar">
         <h1>📚 Classicalia</h1>
         <div class="navbar-right">
@@ -265,16 +272,21 @@
         </div>
     </nav>
     
-    <!-- Main content -->
     <div class="main-content">
-        <!-- Welcome banner -->
         <div class="welcome-banner">
             <h2>Welcome, <span id="userName">Student</span>!</h2>
             <p>View your classes, complete tasks, and track your progress.</p>
         </div>
         
-        <!-- Dashboard grid -->
         <div class="dashboard-grid">
+            <!-- My Tasks card - now first and more prominent -->
+            <div class="card">
+                <h3>📝 My Tasks</h3>
+                <div id="tasksContainer">
+                    <div class="loading">Loading tasks...</div>
+                </div>
+            </div>
+            
             <!-- My Classes card -->
             <div class="card">
                 <h3>📚 My Classes</h3>
@@ -299,14 +311,6 @@
                 </form>
             </div>
             
-            <!-- My Tasks card -->
-            <div class="card">
-                <h3>📝 My Tasks</h3>
-                <div id="tasksContainer">
-                    <div class="loading">Loading tasks...</div>
-                </div>
-            </div>
-            
             <!-- Quick links card -->
             <div class="card">
                 <h3>🔗 Practice</h3>
@@ -321,39 +325,29 @@
         </div>
     </div>
     
-    <!-- Load Supabase configuration -->
     <script src="/auth/config.js"></script>
-    <!-- Load authentication functions -->
     <script src="/auth/auth.js"></script>
     
     <script>
-        // ============================================
-        // STUDENT DASHBOARD LOGIC
-        // ============================================
-        
         let currentUser = null;
         let currentProfile = null;
         
-        // Show a message
         function showMessage(elementId, text, type) {
             const el = document.getElementById(elementId);
             el.textContent = text;
             el.className = 'message ' + type;
         }
         
-        // Load and display the student's classes
         async function loadClasses() {
             const container = document.getElementById('classesContainer');
             
-            // Get class memberships for this student
             const { data: memberships, error } = await supabase
                 .from('class_members')
                 .select(`
                     joined_at,
                     classes (
                         id,
-                        name,
-                        teacher_id
+                        name
                     )
                 `)
                 .eq('student_id', currentUser.id);
@@ -380,13 +374,19 @@
             }
             html += '</ul>';
             container.innerHTML = html;
+            
+            // Return class IDs for task loading
+            return memberships.map(m => m.classes.id);
         }
         
-        // Load and display tasks
-        async function loadTasks() {
+        async function loadTasks(classIds) {
             const container = document.getElementById('tasksContainer');
             
-            // Get tasks for classes the student is in
+            if (!classIds || classIds.length === 0) {
+                container.innerHTML = '<p class="empty-state">Join a class to see your tasks!</p>';
+                return;
+            }
+            
             const { data: tasks, error } = await supabase
                 .from('tasks')
                 .select(`
@@ -395,6 +395,7 @@
                         name
                     )
                 `)
+                .in('class_id', classIds)
                 .order('due_date', { ascending: true });
             
             if (error) {
@@ -408,22 +409,36 @@
                 return;
             }
             
+            const now = new Date();
+            
             let html = '<ul class="tasks-list">';
             for (const task of tasks) {
                 const dueDate = task.due_date ? new Date(task.due_date) : null;
-                const isOverdue = dueDate && dueDate < new Date();
+                const isOverdue = dueDate && dueDate < now;
+                const isDueSoon = dueDate && !isOverdue && (dueDate - now) < (24 * 60 * 60 * 1000); // Within 24 hours
+                
                 const dueDateStr = dueDate ? dueDate.toLocaleDateString('en-GB', {
                     weekday: 'short',
                     day: 'numeric',
-                    month: 'short'
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
                 }) : 'No due date';
+                
+                let dueClass = '';
+                if (isOverdue) dueClass = 'overdue';
+                else if (isDueSoon) dueClass = 'due-soon';
                 
                 html += `
                     <li>
-                        <div class="task-title">${task.title}</div>
-                        <div class="task-due ${isOverdue ? 'overdue' : ''}">
-                            Due: ${dueDateStr} · ${task.classes.name}
+                        <div class="task-info">
+                            <div class="task-title">${task.title}</div>
+                            <div class="task-due ${dueClass}">
+                                ${isOverdue ? '⚠️ Overdue: ' : 'Due: '}${dueDateStr}
+                            </div>
+                            <div class="task-class">${task.classes.name}</div>
                         </div>
+                        <a href="${task.content_path}" class="btn btn-small" target="_blank">Start →</a>
                     </li>
                 `;
             }
@@ -431,9 +446,7 @@
             container.innerHTML = html;
         }
         
-        // Join a class using a code
         async function joinClass(code) {
-            // First, find the class with this code
             const { data: classes, error: findError } = await supabase
                 .from('classes')
                 .select('*')
@@ -449,7 +462,6 @@
             
             const classToJoin = classes[0];
             
-            // Check if already a member
             const { data: existing } = await supabase
                 .from('class_members')
                 .select('*')
@@ -460,7 +472,6 @@
                 return { success: false, error: 'You\'re already in this class!' };
             }
             
-            // Join the class
             const { error: joinError } = await supabase
                 .from('class_members')
                 .insert({
@@ -475,41 +486,33 @@
             return { success: true, className: classToJoin.name };
         }
         
-        // Initialize the page
         async function init() {
-            // Check if user is logged in
             currentUser = await requireAuth('/auth/login.html');
             if (!currentUser) return;
             
-            // Get user profile
             currentProfile = await getUserProfile();
             if (!currentProfile) {
                 window.location.href = '/auth/login.html';
                 return;
             }
             
-            // Check if user is a student (redirect teachers)
             if (currentProfile.role === 'teacher') {
                 window.location.href = '/dashboard/teacher.html';
                 return;
             }
             
-            // Update the UI with user info
             document.getElementById('userInfo').textContent = currentProfile.email;
             document.getElementById('userName').textContent = currentProfile.full_name || 'Student';
             
-            // Load data
-            await loadClasses();
-            await loadTasks();
+            const classIds = await loadClasses();
+            await loadTasks(classIds);
         }
         
-        // Handle logout
         document.getElementById('logoutBtn').addEventListener('click', async function() {
             await signOut();
             window.location.href = '/auth/login.html';
         });
         
-        // Handle join class form
         document.getElementById('joinClassForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -526,7 +529,8 @@
                 showMessage('joinClassMessage', 
                     `You've joined ${result.className}!`, 'success');
                 codeInput.value = '';
-                await loadClasses(); // Refresh the list
+                const classIds = await loadClasses();
+                await loadTasks(classIds);
             } else {
                 showMessage('joinClassMessage', result.error, 'error');
             }
@@ -535,7 +539,6 @@
             btn.textContent = 'Join class';
         });
         
-        // Run when page loads
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>

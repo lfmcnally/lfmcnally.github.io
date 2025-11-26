@@ -9,10 +9,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        /* ============================================
-           CLASSICALIA TEACHER DASHBOARD STYLES
-           ============================================ */
-        
         * {
             box-sizing: border-box;
             margin: 0;
@@ -25,7 +21,6 @@
             min-height: 100vh;
         }
         
-        /* Top navigation bar */
         .navbar {
             background: #1a1a2e;
             color: white;
@@ -64,7 +59,6 @@
             background: rgba(255,255,255,0.1);
         }
         
-        /* Main content area */
         .main-content {
             max-width: 1200px;
             margin: 0 auto;
@@ -88,7 +82,6 @@
             opacity: 0.9;
         }
         
-        /* Dashboard grid */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -140,21 +133,31 @@
             background: #d0d0d0;
         }
         
-        /* Classes list */
+        /* Classes list - now clickable */
         .classes-list {
             list-style: none;
         }
         
         .classes-list li {
-            padding: 15px;
             border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
         
         .classes-list li:last-child {
             border-bottom: none;
+        }
+        
+        .class-link {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.2s ease;
+        }
+        
+        .class-link:hover {
+            background: #f8f9fa;
         }
         
         .class-name {
@@ -169,6 +172,12 @@
             padding: 4px 8px;
             border-radius: 4px;
             font-family: monospace;
+            margin-left: 10px;
+        }
+        
+        .class-arrow {
+            color: #ccc;
+            font-size: 18px;
         }
         
         .empty-state {
@@ -177,7 +186,6 @@
             color: #888;
         }
         
-        /* Create class form */
         .form-group {
             margin-bottom: 15px;
         }
@@ -223,7 +231,6 @@
             display: block;
         }
         
-        /* Loading state */
         .loading {
             text-align: center;
             padding: 40px;
@@ -232,7 +239,6 @@
     </style>
 </head>
 <body>
-    <!-- Navigation bar -->
     <nav class="navbar">
         <h1>🏛️ Classicalia</h1>
         <div class="navbar-right">
@@ -241,15 +247,12 @@
         </div>
     </nav>
     
-    <!-- Main content -->
     <div class="main-content">
-        <!-- Welcome banner -->
         <div class="welcome-banner">
             <h2>Welcome, <span id="userName">Teacher</span>!</h2>
             <p>Manage your classes, set tasks, and track student progress.</p>
         </div>
         
-        <!-- Dashboard grid -->
         <div class="dashboard-grid">
             <!-- My Classes card -->
             <div class="card">
@@ -289,27 +292,19 @@
         </div>
     </div>
     
-    <!-- Load Supabase configuration -->
     <script src="/auth/config.js"></script>
-    <!-- Load authentication functions -->
     <script src="/auth/auth.js"></script>
     
     <script>
-        // ============================================
-        // TEACHER DASHBOARD LOGIC
-        // ============================================
-        
         let currentUser = null;
         let currentProfile = null;
         
-        // Show a message
         function showMessage(elementId, text, type) {
             const el = document.getElementById(elementId);
             el.textContent = text;
             el.className = 'message ' + type;
         }
         
-        // Generate a random join code like "LATIN-7X"
         function generateJoinCode() {
             const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
             const numbers = '23456789';
@@ -319,7 +314,6 @@
             return code;
         }
         
-        // Load and display the teacher's classes
         async function loadClasses() {
             const container = document.getElementById('classesContainer');
             
@@ -344,8 +338,13 @@
             for (const cls of classes) {
                 html += `
                     <li>
-                        <span class="class-name">${cls.name}</span>
-                        <span class="class-code">${cls.join_code}</span>
+                        <a href="/dashboard/class.html?id=${cls.id}" class="class-link">
+                            <div>
+                                <span class="class-name">${cls.name}</span>
+                                <span class="class-code">${cls.join_code}</span>
+                            </div>
+                            <span class="class-arrow">→</span>
+                        </a>
                     </li>
                 `;
             }
@@ -353,7 +352,6 @@
             container.innerHTML = html;
         }
         
-        // Create a new class
         async function createClass(name) {
             const joinCode = generateJoinCode();
             
@@ -368,9 +366,8 @@
                 .single();
             
             if (error) {
-                // If code already exists, try again with a different code
                 if (error.code === '23505') {
-                    return createClass(name); // Retry with new code
+                    return createClass(name);
                 }
                 return { success: false, error: error.message };
             }
@@ -378,40 +375,32 @@
             return { success: true, data: data };
         }
         
-        // Initialize the page
         async function init() {
-            // Check if user is logged in
             currentUser = await requireAuth('/auth/login.html');
             if (!currentUser) return;
             
-            // Get user profile
             currentProfile = await getUserProfile();
             if (!currentProfile) {
                 window.location.href = '/auth/login.html';
                 return;
             }
             
-            // Check if user is a teacher
             if (currentProfile.role !== 'teacher') {
                 window.location.href = '/dashboard/student.html';
                 return;
             }
             
-            // Update the UI with user info
             document.getElementById('userInfo').textContent = currentProfile.email;
             document.getElementById('userName').textContent = currentProfile.full_name || 'Teacher';
             
-            // Load classes
             await loadClasses();
         }
         
-        // Handle logout
         document.getElementById('logoutBtn').addEventListener('click', async function() {
             await signOut();
             window.location.href = '/auth/login.html';
         });
         
-        // Handle create class form
         document.getElementById('createClassForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -428,7 +417,7 @@
                 showMessage('createClassMessage', 
                     `Class created! Join code: ${result.data.join_code}`, 'success');
                 nameInput.value = '';
-                await loadClasses(); // Refresh the list
+                await loadClasses();
             } else {
                 showMessage('createClassMessage', result.error, 'error');
             }
@@ -437,7 +426,6 @@
             btn.textContent = 'Create class';
         });
         
-        // Run when page loads
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
