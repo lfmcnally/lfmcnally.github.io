@@ -380,26 +380,26 @@ const connectionsNovember2025 = [
         year: 2025,
         categories: [
             {
-                name: "LATIN WORDS FOR 'MAKE/DO'",
-                words: ["facio", "ago", "gero", "perficio"],
+                name: "DO (a deer)'",
+                words: ["DOMUS", "DOMITIAN", "DIDO", "MACEDON"],
                 difficulty: 1,
                 color: "#22c55e"
             },
             {
-                name: "THE TWELVE LABOURS",
-                words: ["Leo", "Hydra", "Cerberus", "Augeas"],
+                name: "MI (a name I call myself)",
+                words: ["FAMILIA", "AMICUS", "MILES", "FEMINA"],
                 difficulty: 3,
                 color: "#3b82f6"
             },
             {
-                name: "ZODIAC SIGNS",
-                words: ["Leo", "Gemini", "Virgo", "Sagittarius"],
+                name: "FA (a long, long way to run)",
+                words: ["FABULA", "FAMA", "FATUM", "FABER"],
                 difficulty: 4,
                 color: "#8b5cf6" // Leo appears twice!
             },
             {
-                name: "LATIN 4TH CONJUGATION VERBS",
-                words: ["audio", "venio", "dormio", "sentio"],
+                name: "RE (a drop of golden sun)",
+                words: ["REMUS", "REX", "CERES", "NECARE"],
                 difficulty: 2,
                 color: "#eab308"
             }
