@@ -69,7 +69,10 @@ const taskTracker = {
         if (!this.userId) {
             // Try to init if not done
             const ready = await this.init();
-            if (!ready) return;
+            if (!ready) {
+                console.log('Not ready to track word');
+                return;
+            }
         }
         
         // Track for this session
@@ -82,49 +85,58 @@ const taskTracker = {
         // Update word_mastery table
         try {
             // First, try to get existing record
-            const { data: existing } = await supabase
+            const { data: existing, error: fetchError } = await supabase
                 .from('word_mastery')
                 .select('*')
                 .eq('student_id', this.userId)
                 .eq('word_latin', wordData.latin)
-                .single();
+                .maybeSingle();
+            
+            if (fetchError) {
+                console.error('Error fetching word mastery:', fetchError);
+                return;
+            }
             
             if (existing) {
                 // Update existing record
-                const updates = {
-                    last_seen_at: new Date().toISOString()
-                };
-                
-                if (isCorrect) {
-                    updates.correct_count = existing.correct_count + 1;
-                } else {
-                    updates.incorrect_count = existing.incorrect_count + 1;
-                }
-                
-                await supabase
+                const { error: updateError } = await supabase
                     .from('word_mastery')
-                    .update(updates)
+                    .update({
+                        correct_count: isCorrect ? existing.correct_count + 1 : existing.correct_count,
+                        incorrect_count: isCorrect ? existing.incorrect_count : existing.incorrect_count + 1,
+                        last_seen_at: new Date().toISOString()
+                    })
                     .eq('id', existing.id);
+                
+                if (updateError) {
+                    console.error('Error updating word mastery:', updateError);
+                } else {
+                    console.log('Word mastery updated:', wordData.latin, isCorrect ? '✓' : '✗');
+                }
                     
             } else {
                 // Insert new record
-                await supabase
+                const { error: insertError } = await supabase
                     .from('word_mastery')
                     .insert({
                         student_id: this.userId,
                         word_latin: wordData.latin,
                         word_english: wordData.english,
-                        chapter: wordData.chapter,
+                        chapter: parseInt(wordData.chapter) || null,
                         correct_count: isCorrect ? 1 : 0,
                         incorrect_count: isCorrect ? 0 : 1,
                         last_seen_at: new Date().toISOString()
                     });
+                
+                if (insertError) {
+                    console.error('Error inserting word mastery:', insertError);
+                } else {
+                    console.log('Word mastery created:', wordData.latin, isCorrect ? '✓' : '✗');
+                }
             }
             
-            console.log('Word mastery updated:', wordData.latin, isCorrect ? '✓' : '✗');
-            
         } catch (err) {
-            console.error('Error updating word mastery:', err);
+            console.error('Error in recordWordAnswer:', err);
         }
     },
     
