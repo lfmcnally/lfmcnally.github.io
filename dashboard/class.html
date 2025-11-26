@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Class Details - Classicalia</title>
     
-    <!-- Supabase JavaScript library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -146,13 +145,17 @@
         .tasks-list li {
             padding: 15px;
             border-bottom: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
         
         .tasks-list li:last-child {
             border-bottom: none;
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
         }
         
         .task-info {
@@ -162,6 +165,7 @@
         .task-title {
             font-weight: 600;
             color: #333;
+            font-size: 16px;
         }
         
         .task-due {
@@ -174,18 +178,58 @@
             font-size: 12px;
             color: #4a90a4;
             margin-top: 4px;
+            word-break: break-all;
+        }
+        
+        /* Progress table */
+        .progress-table {
+            width: 100%;
+            margin-top: 10px;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        .progress-table th,
+        .progress-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .progress-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #666;
+        }
+        
+        .status-complete {
+            color: #10b981;
+            font-weight: 500;
+        }
+        
+        .status-started {
+            color: #f59e0b;
+            font-weight: 500;
+        }
+        
+        .status-not-started {
+            color: #9ca3af;
         }
         
         /* Set task form */
         .form-row {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
             margin-bottom: 15px;
         }
         
         .form-group {
-            flex: 1;
             margin-bottom: 15px;
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
         }
         
         .form-group label {
@@ -261,32 +305,68 @@
             color: #888;
         }
         
-        /* Content browser */
-        .content-browser {
-            max-height: 200px;
-            overflow-y: auto;
+        /* Task type tabs */
+        .task-type-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .task-type-tab {
+            padding: 10px 20px;
+            background: #f0f0f0;
             border: 2px solid #e0e0e0;
-            border-radius: 6px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .task-type-tab:hover {
+            background: #e8e8e8;
+        }
+        
+        .task-type-tab.active {
+            background: #4a90a4;
+            color: white;
+            border-color: #4a90a4;
+        }
+        
+        .task-form-section {
+            display: none;
+        }
+        
+        .task-form-section.active {
+            display: block;
+        }
+        
+        .vocab-settings {
+            background: #f9fafb;
+            padding: 15px;
+            border-radius: 8px;
             margin-bottom: 15px;
         }
         
-        .content-option {
-            padding: 10px 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #eee;
+        .vocab-settings h4 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 14px;
         }
         
-        .content-option:hover {
-            background: #f5f5f5;
+        .vocab-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
         }
         
-        .content-option.selected {
-            background: #e8f4f8;
-            border-left: 3px solid #4a90a4;
-        }
-        
-        .content-option:last-child {
-            border-bottom: none;
+        @media (max-width: 768px) {
+            .form-row, .vocab-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .task-type-tabs {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -316,7 +396,7 @@
         
         <!-- Tasks section -->
         <div class="section">
-            <h3>📝 Tasks</h3>
+            <h3>📝 Tasks & Progress</h3>
             <div id="tasksContainer">
                 <div class="loading">Loading tasks...</div>
             </div>
@@ -328,21 +408,77 @@
             
             <div id="setTaskMessage" class="message"></div>
             
+            <!-- Task type selector -->
+            <div class="task-type-tabs">
+                <div class="task-type-tab active" data-type="vocab" onclick="selectTaskType('vocab')">
+                    📚 Vocabulary Practice
+                </div>
+                <div class="task-type-tab" data-type="custom" onclick="selectTaskType('custom')">
+                    🔗 Custom Link
+                </div>
+            </div>
+            
             <form id="setTaskForm">
-                <div class="form-group">
-                    <label for="taskTitle">Task title</label>
-                    <input type="text" id="taskTitle" placeholder="e.g. Stage 12 Vocabulary Quiz" required>
+                <!-- Vocabulary Practice Form -->
+                <div class="task-form-section active" id="vocabForm">
+                    <div class="form-group">
+                        <label for="vocabTaskTitle">Task title</label>
+                        <input type="text" id="vocabTaskTitle" placeholder="e.g. Chapter 1 Vocabulary - aqua to vir">
+                    </div>
+                    
+                    <div class="vocab-settings">
+                        <h4>Select vocabulary range:</h4>
+                        <div class="vocab-row">
+                            <div class="form-group">
+                                <label for="vocabChapter">Chapter</label>
+                                <select id="vocabChapter">
+                                    <option value="">Select chapter</option>
+                                    <option value="1">Chapter 1</option>
+                                    <option value="2">Chapter 2</option>
+                                    <option value="3">Chapter 3</option>
+                                    <option value="4">Chapter 4</option>
+                                    <option value="5">Chapter 5</option>
+                                    <option value="6">Chapter 6</option>
+                                    <option value="7">Chapter 7</option>
+                                    <option value="8">Chapter 8</option>
+                                    <option value="9">Chapter 9</option>
+                                    <option value="10">Chapter 10</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="vocabFrom">From word</label>
+                                <select id="vocabFrom" disabled>
+                                    <option value="">Select start word</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="vocabTo">To word</label>
+                                <select id="vocabTo" disabled>
+                                    <option value="">Select end word</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="form-group">
-                    <label for="contentPath">Link to the exercise</label>
-                    <input type="url" id="contentPath" placeholder="e.g. https://classicalia.co.uk/latin/vocab-quiz.html" required>
-                    <small>Paste the full URL of the page you want students to complete</small>
+                <!-- Custom Link Form -->
+                <div class="task-form-section" id="customForm">
+                    <div class="form-group">
+                        <label for="customTaskTitle">Task title</label>
+                        <input type="text" id="customTaskTitle" placeholder="e.g. Translation Exercise 3">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="customUrl">Link to the exercise</label>
+                        <input type="url" id="customUrl" placeholder="e.g. https://classicalia.co.uk/latin/exercise.html">
+                        <small>Paste the full URL of the page you want students to complete</small>
+                    </div>
                 </div>
                 
+                <!-- Common fields -->
                 <div class="form-group">
                     <label for="dueDate">Due date</label>
-                    <input type="datetime-local" id="dueDate" required>
+                    <input type="datetime-local" id="dueDate">
                 </div>
                 
                 <button type="submit" class="btn" id="setTaskBtn">Set task</button>
@@ -350,33 +486,118 @@
         </div>
     </div>
     
-    <!-- Load Supabase configuration -->
     <script src="/auth/config.js"></script>
-    <!-- Load authentication functions -->
     <script src="/auth/auth.js"></script>
+    <!-- Load vocabulary data for the dropdowns -->
+    <script src="/shared/vocabulary-data.js"></script>
     
     <script>
-        // ============================================
-        // CLASS VIEW PAGE LOGIC
-        // ============================================
-        
         let currentUser = null;
         let currentClass = null;
+        let classStudents = [];
+        let currentTaskType = 'vocab';
         
-        // Get class ID from URL (e.g. ?id=abc-123)
         function getClassIdFromUrl() {
             const params = new URLSearchParams(window.location.search);
             return params.get('id');
         }
         
-        // Show a message
         function showMessage(elementId, text, type) {
             const el = document.getElementById(elementId);
             el.textContent = text;
             el.className = 'message ' + type;
         }
         
-        // Load class details
+        // Task type selection
+        function selectTaskType(type) {
+            currentTaskType = type;
+            
+            // Update tabs
+            document.querySelectorAll('.task-type-tab').forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.dataset.type === type) {
+                    tab.classList.add('active');
+                }
+            });
+            
+            // Update form sections
+            document.querySelectorAll('.task-form-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(type + 'Form').classList.add('active');
+        }
+        
+        // Wait for vocabulary data to load
+        function waitForVocabularyData() {
+            return new Promise((resolve) => {
+                const checkData = () => {
+                    if (typeof vocabularyData !== 'undefined' && vocabularyData.length > 0) {
+                        resolve();
+                    } else {
+                        setTimeout(checkData, 100);
+                    }
+                };
+                checkData();
+            });
+        }
+        
+        // Populate vocabulary dropdowns
+        async function setupVocabDropdowns() {
+            await waitForVocabularyData();
+            
+            const chapterSelect = document.getElementById('vocabChapter');
+            const fromSelect = document.getElementById('vocabFrom');
+            const toSelect = document.getElementById('vocabTo');
+            
+            chapterSelect.addEventListener('change', async function() {
+                const chapter = this.value;
+                
+                if (!chapter) {
+                    fromSelect.innerHTML = '<option value="">Select start word</option>';
+                    fromSelect.disabled = true;
+                    toSelect.innerHTML = '<option value="">Select end word</option>';
+                    toSelect.disabled = true;
+                    return;
+                }
+                
+                const chapterWords = vocabularyData.filter(word => word.chapter == chapter);
+                
+                fromSelect.innerHTML = '<option value="">Select start word</option>';
+                chapterWords.forEach((word, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = word.latin;
+                    fromSelect.appendChild(option);
+                });
+                fromSelect.disabled = false;
+                
+                toSelect.innerHTML = '<option value="">Select end word</option>';
+                toSelect.disabled = true;
+            });
+            
+            fromSelect.addEventListener('change', async function() {
+                const chapter = chapterSelect.value;
+                const fromIndex = parseInt(this.value);
+                
+                if (isNaN(fromIndex)) {
+                    toSelect.innerHTML = '<option value="">Select end word</option>';
+                    toSelect.disabled = true;
+                    return;
+                }
+                
+                const chapterWords = vocabularyData.filter(word => word.chapter == chapter);
+                
+                toSelect.innerHTML = '<option value="">Select end word</option>';
+                for (let i = fromIndex; i < chapterWords.length; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = chapterWords[i].latin;
+                    toSelect.appendChild(option);
+                }
+                toSelect.disabled = false;
+            });
+        }
+        
         async function loadClass() {
             const classId = getClassIdFromUrl();
             if (!classId) {
@@ -396,7 +617,6 @@
                 return;
             }
             
-            // Check this teacher owns the class
             if (classData.teacher_id !== currentUser.id) {
                 alert('You do not have access to this class');
                 window.location.href = '/dashboard/teacher.html';
@@ -408,7 +628,6 @@
             document.getElementById('joinCode').textContent = classData.join_code;
         }
         
-        // Load students in the class
         async function loadStudents() {
             const container = document.getElementById('studentsContainer');
             const classId = getClassIdFromUrl();
@@ -419,6 +638,7 @@
                     student_id,
                     joined_at,
                     users (
+                        id,
                         full_name,
                         email
                     )
@@ -431,6 +651,7 @@
                 return;
             }
             
+            classStudents = members.map(m => m.users);
             document.getElementById('studentCount').textContent = members.length;
             
             if (members.length === 0) {
@@ -454,11 +675,11 @@
             container.innerHTML = html;
         }
         
-        // Load tasks for this class
         async function loadTasks() {
             const container = document.getElementById('tasksContainer');
             const classId = getClassIdFromUrl();
             
+            // Get tasks
             const { data: tasks, error } = await supabase
                 .from('tasks')
                 .select('*')
@@ -476,6 +697,13 @@
                 return;
             }
             
+            // Get all attempts for these tasks
+            const taskIds = tasks.map(t => t.id);
+            const { data: attempts } = await supabase
+                .from('task_attempts')
+                .select('*')
+                .in('task_id', taskIds);
+            
             let html = '<ul class="tasks-list">';
             for (const task of tasks) {
                 const dueDate = task.due_date ? new Date(task.due_date) : null;
@@ -487,21 +715,76 @@
                     minute: '2-digit'
                 }) : 'No due date';
                 
+                // Get attempts for this task
+                const taskAttempts = attempts ? attempts.filter(a => a.task_id === task.id) : [];
+                
                 html += `
                     <li>
-                        <div class="task-info">
-                            <div class="task-title">${task.title}</div>
-                            <div class="task-due">Due: ${dueDateStr}</div>
-                            <div class="task-link">${task.content_path}</div>
+                        <div class="task-header">
+                            <div class="task-info">
+                                <div class="task-title">${task.title}</div>
+                                <div class="task-due">Due: ${dueDateStr}</div>
+                            </div>
                         </div>
-                    </li>
                 `;
+                
+                // Show progress table if there are students
+                if (classStudents.length > 0) {
+                    html += `
+                        <table class="progress-table">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Status</th>
+                                    <th>Score</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    for (const student of classStudents) {
+                        const attempt = taskAttempts.find(a => a.student_id === student.id);
+                        
+                        let status, statusClass, score, time;
+                        
+                        if (attempt && attempt.completed_at) {
+                            status = 'Complete';
+                            statusClass = 'status-complete';
+                            score = attempt.score !== null ? attempt.score + '%' : '-';
+                            const mins = Math.round((attempt.time_spent_seconds || 0) / 60);
+                            time = mins + ' min';
+                        } else if (attempt) {
+                            status = 'Started';
+                            statusClass = 'status-started';
+                            score = '-';
+                            time = '-';
+                        } else {
+                            status = 'Not started';
+                            statusClass = 'status-not-started';
+                            score = '-';
+                            time = '-';
+                        }
+                        
+                        html += `
+                            <tr>
+                                <td>${student.full_name || student.email}</td>
+                                <td class="${statusClass}">${status}</td>
+                                <td>${score}</td>
+                                <td>${time}</td>
+                            </tr>
+                        `;
+                    }
+                    
+                    html += '</tbody></table>';
+                }
+                
+                html += '</li>';
             }
             html += '</ul>';
             container.innerHTML = html;
         }
         
-        // Set a new task
         async function setTask(title, contentPath, dueDate) {
             const classId = getClassIdFromUrl();
             
@@ -511,7 +794,7 @@
                     class_id: classId,
                     title: title,
                     content_path: contentPath,
-                    due_date: dueDate,
+                    due_date: dueDate || null,
                     created_by: currentUser.id
                 })
                 .select()
@@ -524,40 +807,60 @@
             return { success: true, data: data };
         }
         
-        // Initialize the page
         async function init() {
-            // Check if user is logged in
             currentUser = await requireAuth('/auth/login.html');
             if (!currentUser) return;
             
-            // Get user profile and check they're a teacher
             const profile = await getUserProfile();
             if (!profile || profile.role !== 'teacher') {
                 window.location.href = '/dashboard/student.html';
                 return;
             }
             
-            // Load class data
             await loadClass();
             await loadStudents();
             await loadTasks();
+            await setupVocabDropdowns();
             
-            // Set default due date to tomorrow
+            // Set default due date to tomorrow at 9am
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             tomorrow.setHours(9, 0, 0, 0);
             document.getElementById('dueDate').value = tomorrow.toISOString().slice(0, 16);
         }
         
-        // Handle set task form
+        // Handle form submission
         document.getElementById('setTaskForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const title = document.getElementById('taskTitle').value.trim();
-            const contentPath = document.getElementById('contentPath').value.trim();
+            let title, contentPath;
             const dueDate = document.getElementById('dueDate').value;
-            
             const btn = document.getElementById('setTaskBtn');
+            
+            if (currentTaskType === 'vocab') {
+                title = document.getElementById('vocabTaskTitle').value.trim();
+                const chapter = document.getElementById('vocabChapter').value;
+                const from = document.getElementById('vocabFrom').value;
+                const to = document.getElementById('vocabTo').value;
+                
+                if (!title || !chapter || from === '' || to === '') {
+                    showMessage('setTaskMessage', 'Please fill in all vocabulary fields', 'error');
+                    return;
+                }
+                
+                // Build the URL with parameters
+                contentPath = `/latin/vocabulary-practice.html?chapter=${chapter}&from=${from}&to=${to}`;
+                
+            } else {
+                title = document.getElementById('customTaskTitle').value.trim();
+                contentPath = document.getElementById('customUrl').value.trim();
+                
+                if (!title || !contentPath) {
+                    showMessage('setTaskMessage', 'Please fill in title and URL', 'error');
+                    return;
+                }
+            }
+            
             btn.disabled = true;
             btn.textContent = 'Setting task...';
             
@@ -565,8 +868,17 @@
             
             if (result.success) {
                 showMessage('setTaskMessage', 'Task set successfully!', 'success');
-                document.getElementById('taskTitle').value = '';
-                document.getElementById('contentPath').value = '';
+                
+                // Clear form
+                document.getElementById('vocabTaskTitle').value = '';
+                document.getElementById('vocabChapter').value = '';
+                document.getElementById('vocabFrom').innerHTML = '<option value="">Select start word</option>';
+                document.getElementById('vocabFrom').disabled = true;
+                document.getElementById('vocabTo').innerHTML = '<option value="">Select end word</option>';
+                document.getElementById('vocabTo').disabled = true;
+                document.getElementById('customTaskTitle').value = '';
+                document.getElementById('customUrl').value = '';
+                
                 await loadTasks();
             } else {
                 showMessage('setTaskMessage', result.error, 'error');
@@ -576,7 +888,6 @@
             btn.textContent = 'Set task';
         });
         
-        // Run when page loads
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
