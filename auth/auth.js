@@ -88,7 +88,10 @@ async function signOut() {
 // REDIRECT BASED ON LOGIN STATUS
 // ============================================
 // Use this on protected pages to redirect non-logged-in users
-async function requireAuth(redirectUrl = '/auth/login.html') {
+async function requireAuth(redirectUrl) {
+    if (!redirectUrl) {
+        redirectUrl = '/auth/login.html';
+    }
     const user = await getCurrentUser();
     if (!user) {
         window.location.href = redirectUrl;
@@ -101,21 +104,18 @@ async function requireAuth(redirectUrl = '/auth/login.html') {
 // REDIRECT LOGGED-IN USERS AWAY FROM LOGIN PAGE
 // ============================================
 // Use this on login/register pages to redirect already-logged-in users
-async function redirectIfLoggedIn(redirectUrl = '/dashboard/') {
+async function redirectIfLoggedIn() {
     const user = await getCurrentUser();
     if (user) {
         const profile = await getUserProfile();
-        if (profile) {
-            // Send teachers and students to different dashboards
-            if (profile.role === 'teacher') {
-                window.location.href = '/dashboard/teacher.html';
-            } else {
-                window.location.href = '/dashboard/student.html';
-            }
-        } else {
-            window.location.href = redirectUrl;
+        if (profile && profile.role === 'teacher') {
+            window.location.href = '/dashboard/teacher.html';
+            return true;
+        } else if (profile && profile.role === 'student') {
+            window.location.href = '/dashboard/student.html';
+            return true;
         }
-        return true;
+        // If no profile or unknown role, stay on the page
     }
     return false;
 }
