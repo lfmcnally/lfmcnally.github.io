@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Classicalia</title>
+    
+    <!-- Supabase JavaScript library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        /* ============================================
+           CLASSICALIA STUDENT DASHBOARD STYLES
+           ============================================ */
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        /* Top navigation bar */
+        .navbar {
+            background: #1a1a2e;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .navbar h1 {
+            font-size: 22px;
+        }
+        
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-info {
+            font-size: 14px;
+            color: #ccc;
+        }
+        
+        .btn-logout {
+            background: transparent;
+            border: 1px solid #fff;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        /* Main content area */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        
+        .welcome-banner {
+            background: linear-gradient(135deg, #4a90a4 0%, #357a8a 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .welcome-banner h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .welcome-banner p {
+            opacity: 0.9;
+        }
+        
+        /* Dashboard grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .card p {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #4a90a4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .btn:hover {
+            background: #3a7a8a;
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        
+        /* Classes list */
+        .classes-list {
+            list-style: none;
+        }
+        
+        .classes-list li {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .classes-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .class-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .class-teacher {
+            font-size: 13px;
+            color: #888;
+            margin-top: 4px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+        }
+        
+        /* Tasks list */
+        .tasks-list {
+            list-style: none;
+        }
+        
+        .tasks-list li {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .tasks-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .task-title {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .task-due {
+            font-size: 13px;
+            color: #888;
+            margin-top: 4px;
+        }
+        
+        .task-due.overdue {
+            color: #c00;
+        }
+        
+        /* Join class form */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #4a90a4;
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .message.error {
+            background: #fee;
+            color: #c00;
+            border: 1px solid #fcc;
+            display: block;
+        }
+        
+        .message.success {
+            background: #efe;
+            color: #060;
+            border: 1px solid #cfc;
+            display: block;
+        }
+        
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation bar -->
+    <nav class="navbar">
+        <h1>📚 Classicalia</h1>
+        <div class="navbar-right">
+            <span class="user-info" id="userInfo">Loading...</span>
+            <button class="btn-logout" id="logoutBtn">Log out</button>
+        </div>
+    </nav>
+    
+    <!-- Main content -->
+    <div class="main-content">
+        <!-- Welcome banner -->
+        <div class="welcome-banner">
+            <h2>Welcome, <span id="userName">Student</span>!</h2>
+            <p>View your classes, complete tasks, and track your progress.</p>
+        </div>
+        
+        <!-- Dashboard grid -->
+        <div class="dashboard-grid">
+            <!-- My Classes card -->
+            <div class="card">
+                <h3>📚 My Classes</h3>
+                <div id="classesContainer">
+                    <div class="loading">Loading classes...</div>
+                </div>
+            </div>
+            
+            <!-- Join Class card -->
+            <div class="card">
+                <h3>🔑 Join a Class</h3>
+                <p>Enter the code your teacher gave you to join their class.</p>
+                
+                <div id="joinClassMessage" class="message"></div>
+                
+                <form id="joinClassForm">
+                    <div class="form-group">
+                        <label for="joinCode">Class code</label>
+                        <input type="text" id="joinCode" placeholder="e.g. LATIN-7X" required maxlength="10">
+                    </div>
+                    <button type="submit" class="btn" id="joinClassBtn">Join class</button>
+                </form>
+            </div>
+            
+            <!-- My Tasks card -->
+            <div class="card">
+                <h3>📝 My Tasks</h3>
+                <div id="tasksContainer">
+                    <div class="loading">Loading tasks...</div>
+                </div>
+            </div>
+            
+            <!-- Quick links card -->
+            <div class="card">
+                <h3>🔗 Practice</h3>
+                <p>Practise Latin anytime, even without a set task.</p>
+                <p>
+                    <a href="/latin/" class="btn btn-secondary">Latin Resources</a>
+                </p>
+                <p style="margin-top: 10px;">
+                    <a href="/" class="btn btn-secondary">Main Site</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load Supabase configuration -->
+    <script src="/auth/config.js"></script>
+    <!-- Load authentication functions -->
+    <script src="/auth/auth.js"></script>
+    
+    <script>
+        // ============================================
+        // STUDENT DASHBOARD LOGIC
+        // ============================================
+        
+        let currentUser = null;
+        let currentProfile = null;
+        
+        // Show a message
+        function showMessage(elementId, text, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = text;
+            el.className = 'message ' + type;
+        }
+        
+        // Load and display the student's classes
+        async function loadClasses() {
+            const container = document.getElementById('classesContainer');
+            
+            // Get class memberships for this student
+            const { data: memberships, error } = await supabase
+                .from('class_members')
+                .select(`
+                    joined_at,
+                    classes (
+                        id,
+                        name,
+                        teacher_id
+                    )
+                `)
+                .eq('student_id', currentUser.id);
+            
+            if (error) {
+                container.innerHTML = '<p class="empty-state">Error loading classes.</p>';
+                console.error(error);
+                return;
+            }
+            
+            if (memberships.length === 0) {
+                container.innerHTML = '<p class="empty-state">You haven\'t joined any classes yet. Enter a join code!</p>';
+                return;
+            }
+            
+            let html = '<ul class="classes-list">';
+            for (const membership of memberships) {
+                const cls = membership.classes;
+                html += `
+                    <li>
+                        <div class="class-name">${cls.name}</div>
+                    </li>
+                `;
+            }
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+        
+        // Load and display tasks
+        async function loadTasks() {
+            const container = document.getElementById('tasksContainer');
+            
+            // Get tasks for classes the student is in
+            const { data: tasks, error } = await supabase
+                .from('tasks')
+                .select(`
+                    *,
+                    classes (
+                        name
+                    )
+                `)
+                .order('due_date', { ascending: true });
+            
+            if (error) {
+                container.innerHTML = '<p class="empty-state">Error loading tasks.</p>';
+                console.error(error);
+                return;
+            }
+            
+            if (tasks.length === 0) {
+                container.innerHTML = '<p class="empty-state">No tasks assigned yet. Check back later!</p>';
+                return;
+            }
+            
+            let html = '<ul class="tasks-list">';
+            for (const task of tasks) {
+                const dueDate = task.due_date ? new Date(task.due_date) : null;
+                const isOverdue = dueDate && dueDate < new Date();
+                const dueDateStr = dueDate ? dueDate.toLocaleDateString('en-GB', {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short'
+                }) : 'No due date';
+                
+                html += `
+                    <li>
+                        <div class="task-title">${task.title}</div>
+                        <div class="task-due ${isOverdue ? 'overdue' : ''}">
+                            Due: ${dueDateStr} · ${task.classes.name}
+                        </div>
+                    </li>
+                `;
+            }
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+        
+        // Join a class using a code
+        async function joinClass(code) {
+            // First, find the class with this code
+            const { data: classes, error: findError } = await supabase
+                .from('classes')
+                .select('*')
+                .eq('join_code', code.toUpperCase());
+            
+            if (findError) {
+                return { success: false, error: findError.message };
+            }
+            
+            if (classes.length === 0) {
+                return { success: false, error: 'Class not found. Check the code and try again.' };
+            }
+            
+            const classToJoin = classes[0];
+            
+            // Check if already a member
+            const { data: existing } = await supabase
+                .from('class_members')
+                .select('*')
+                .eq('class_id', classToJoin.id)
+                .eq('student_id', currentUser.id);
+            
+            if (existing && existing.length > 0) {
+                return { success: false, error: 'You\'re already in this class!' };
+            }
+            
+            // Join the class
+            const { error: joinError } = await supabase
+                .from('class_members')
+                .insert({
+                    class_id: classToJoin.id,
+                    student_id: currentUser.id
+                });
+            
+            if (joinError) {
+                return { success: false, error: joinError.message };
+            }
+            
+            return { success: true, className: classToJoin.name };
+        }
+        
+        // Initialize the page
+        async function init() {
+            // Check if user is logged in
+            currentUser = await requireAuth('/auth/login.html');
+            if (!currentUser) return;
+            
+            // Get user profile
+            currentProfile = await getUserProfile();
+            if (!currentProfile) {
+                window.location.href = '/auth/login.html';
+                return;
+            }
+            
+            // Check if user is a student (redirect teachers)
+            if (currentProfile.role === 'teacher') {
+                window.location.href = '/dashboard/teacher.html';
+                return;
+            }
+            
+            // Update the UI with user info
+            document.getElementById('userInfo').textContent = currentProfile.email;
+            document.getElementById('userName').textContent = currentProfile.full_name || 'Student';
+            
+            // Load data
+            await loadClasses();
+            await loadTasks();
+        }
+        
+        // Handle logout
+        document.getElementById('logoutBtn').addEventListener('click', async function() {
+            await signOut();
+            window.location.href = '/auth/login.html';
+        });
+        
+        // Handle join class form
+        document.getElementById('joinClassForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const codeInput = document.getElementById('joinCode');
+            const code = codeInput.value.trim();
+            const btn = document.getElementById('joinClassBtn');
+            
+            btn.disabled = true;
+            btn.textContent = 'Joining...';
+            
+            const result = await joinClass(code);
+            
+            if (result.success) {
+                showMessage('joinClassMessage', 
+                    `You've joined ${result.className}!`, 'success');
+                codeInput.value = '';
+                await loadClasses(); // Refresh the list
+            } else {
+                showMessage('joinClassMessage', result.error, 'error');
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Join class';
+        });
+        
+        // Run when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

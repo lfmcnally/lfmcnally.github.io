@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - Classicalia</title>
+    
+    <!-- Supabase JavaScript library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        /* ============================================
+           CLASSICALIA TEACHER DASHBOARD STYLES
+           ============================================ */
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+        
+        /* Top navigation bar */
+        .navbar {
+            background: #1a1a2e;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .navbar h1 {
+            font-size: 22px;
+        }
+        
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .user-info {
+            font-size: 14px;
+            color: #ccc;
+        }
+        
+        .btn-logout {
+            background: transparent;
+            border: 1px solid #fff;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        /* Main content area */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        
+        .welcome-banner {
+            background: linear-gradient(135deg, #4a90a4 0%, #357a8a 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .welcome-banner h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .welcome-banner p {
+            opacity: 0.9;
+        }
+        
+        /* Dashboard grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .card p {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #4a90a4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .btn:hover {
+            background: #3a7a8a;
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        
+        /* Classes list */
+        .classes-list {
+            list-style: none;
+        }
+        
+        .classes-list li {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .classes-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .class-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .class-code {
+            font-size: 12px;
+            color: #888;
+            background: #f0f0f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+        }
+        
+        /* Create class form */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #4a90a4;
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .message.error {
+            background: #fee;
+            color: #c00;
+            border: 1px solid #fcc;
+            display: block;
+        }
+        
+        .message.success {
+            background: #efe;
+            color: #060;
+            border: 1px solid #cfc;
+            display: block;
+        }
+        
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation bar -->
+    <nav class="navbar">
+        <h1>🏛️ Classicalia</h1>
+        <div class="navbar-right">
+            <span class="user-info" id="userInfo">Loading...</span>
+            <button class="btn-logout" id="logoutBtn">Log out</button>
+        </div>
+    </nav>
+    
+    <!-- Main content -->
+    <div class="main-content">
+        <!-- Welcome banner -->
+        <div class="welcome-banner">
+            <h2>Welcome, <span id="userName">Teacher</span>!</h2>
+            <p>Manage your classes, set tasks, and track student progress.</p>
+        </div>
+        
+        <!-- Dashboard grid -->
+        <div class="dashboard-grid">
+            <!-- My Classes card -->
+            <div class="card">
+                <h3>📚 My Classes</h3>
+                <div id="classesContainer">
+                    <div class="loading">Loading classes...</div>
+                </div>
+            </div>
+            
+            <!-- Create Class card -->
+            <div class="card">
+                <h3>➕ Create a Class</h3>
+                <p>Create a new class and get a join code to share with your students.</p>
+                
+                <div id="createClassMessage" class="message"></div>
+                
+                <form id="createClassForm">
+                    <div class="form-group">
+                        <label for="className">Class name</label>
+                        <input type="text" id="className" placeholder="e.g. Year 9 Latin" required>
+                    </div>
+                    <button type="submit" class="btn" id="createClassBtn">Create class</button>
+                </form>
+            </div>
+            
+            <!-- Quick links card -->
+            <div class="card">
+                <h3>🔗 Quick Links</h3>
+                <p>Access your teaching resources and content.</p>
+                <p>
+                    <a href="/latin/" class="btn btn-secondary">Latin Resources</a>
+                </p>
+                <p style="margin-top: 10px;">
+                    <a href="/" class="btn btn-secondary">Main Site</a>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load Supabase configuration -->
+    <script src="/auth/config.js"></script>
+    <!-- Load authentication functions -->
+    <script src="/auth/auth.js"></script>
+    
+    <script>
+        // ============================================
+        // TEACHER DASHBOARD LOGIC
+        // ============================================
+        
+        let currentUser = null;
+        let currentProfile = null;
+        
+        // Show a message
+        function showMessage(elementId, text, type) {
+            const el = document.getElementById(elementId);
+            el.textContent = text;
+            el.className = 'message ' + type;
+        }
+        
+        // Generate a random join code like "LATIN-7X"
+        function generateJoinCode() {
+            const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+            const numbers = '23456789';
+            let code = 'LATIN-';
+            code += letters.charAt(Math.floor(Math.random() * letters.length));
+            code += numbers.charAt(Math.floor(Math.random() * numbers.length));
+            return code;
+        }
+        
+        // Load and display the teacher's classes
+        async function loadClasses() {
+            const container = document.getElementById('classesContainer');
+            
+            const { data: classes, error } = await supabase
+                .from('classes')
+                .select('*')
+                .eq('teacher_id', currentUser.id)
+                .order('created_at', { ascending: false });
+            
+            if (error) {
+                container.innerHTML = '<p class="empty-state">Error loading classes.</p>';
+                console.error(error);
+                return;
+            }
+            
+            if (classes.length === 0) {
+                container.innerHTML = '<p class="empty-state">No classes yet. Create your first class!</p>';
+                return;
+            }
+            
+            let html = '<ul class="classes-list">';
+            for (const cls of classes) {
+                html += `
+                    <li>
+                        <span class="class-name">${cls.name}</span>
+                        <span class="class-code">${cls.join_code}</span>
+                    </li>
+                `;
+            }
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+        
+        // Create a new class
+        async function createClass(name) {
+            const joinCode = generateJoinCode();
+            
+            const { data, error } = await supabase
+                .from('classes')
+                .insert({
+                    name: name,
+                    join_code: joinCode,
+                    teacher_id: currentUser.id
+                })
+                .select()
+                .single();
+            
+            if (error) {
+                // If code already exists, try again with a different code
+                if (error.code === '23505') {
+                    return createClass(name); // Retry with new code
+                }
+                return { success: false, error: error.message };
+            }
+            
+            return { success: true, data: data };
+        }
+        
+        // Initialize the page
+        async function init() {
+            // Check if user is logged in
+            currentUser = await requireAuth('/auth/login.html');
+            if (!currentUser) return;
+            
+            // Get user profile
+            currentProfile = await getUserProfile();
+            if (!currentProfile) {
+                window.location.href = '/auth/login.html';
+                return;
+            }
+            
+            // Check if user is a teacher
+            if (currentProfile.role !== 'teacher') {
+                window.location.href = '/dashboard/student.html';
+                return;
+            }
+            
+            // Update the UI with user info
+            document.getElementById('userInfo').textContent = currentProfile.email;
+            document.getElementById('userName').textContent = currentProfile.full_name || 'Teacher';
+            
+            // Load classes
+            await loadClasses();
+        }
+        
+        // Handle logout
+        document.getElementById('logoutBtn').addEventListener('click', async function() {
+            await signOut();
+            window.location.href = '/auth/login.html';
+        });
+        
+        // Handle create class form
+        document.getElementById('createClassForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const nameInput = document.getElementById('className');
+            const name = nameInput.value.trim();
+            const btn = document.getElementById('createClassBtn');
+            
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
+            
+            const result = await createClass(name);
+            
+            if (result.success) {
+                showMessage('createClassMessage', 
+                    `Class created! Join code: ${result.data.join_code}`, 'success');
+                nameInput.value = '';
+                await loadClasses(); // Refresh the list
+            } else {
+                showMessage('createClassMessage', result.error, 'error');
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Create class';
+        });
+        
+        // Run when page loads
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
