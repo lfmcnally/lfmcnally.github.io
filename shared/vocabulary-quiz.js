@@ -218,9 +218,14 @@ function checkAnswer() {
     
     updateDisplay();
     
-    document.getElementById('check-btn').classList.add('hidden');
-    document.getElementById('next-btn').classList.remove('hidden');
+   document.getElementById('check-btn').classList.add('hidden');
+    document.getElementById('next-btn').classList.add('hidden');
     document.getElementById('reveal-btn').classList.add('hidden');
+    
+    // Send results to task tracker (if tracking is active)
+    if (typeof window.onPracticeComplete === 'function') {
+        window.onPracticeComplete(percentage, totalQuestions, score);
+    }
 }
 
 function addWordForReview(word) {
