@@ -7,6 +7,10 @@
     <link rel="icon" type="image/png" href="images/favicon.png">
     <meta property="og:title" content="Classicalia">
     <meta property="og:description" content="Your comprehensive resource for Latin, Greek, and Classical Civilisation studies with interactive tools and video tutorials.">
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         * {
             margin: 0;
@@ -134,6 +138,159 @@
         .info-btn:hover {
             background: #f8f9fa;
             transform: scale(1.05);
+        }
+
+        /* Auth buttons in header */
+        .auth-section {
+            position: absolute;
+            left: 2rem;
+            top: 2rem;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .auth-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .auth-btn-login {
+            background: white;
+            color: #0066ff;
+            border: none;
+        }
+
+        .auth-btn-login:hover {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+
+        .auth-btn-register {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .auth-btn-register:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* User menu when logged in */
+        .user-menu {
+            display: none;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-menu.visible {
+            display: flex;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #0066ff;
+            font-size: 0.9rem;
+        }
+
+        .user-name {
+            color: white;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .user-dropdown {
+            position: relative;
+        }
+
+        .dropdown-toggle {
+            background: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+            color: #333;
+            transition: all 0.2s;
+        }
+
+        .dropdown-toggle:hover {
+            background: #f0f0f0;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            min-width: 200px;
+            overflow: hidden;
+            z-index: 100;
+        }
+
+        .dropdown-menu.open {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: block;
+            padding: 12px 16px;
+            color: #333;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+            background: #f5f5f5;
+        }
+
+        .dropdown-item.danger {
+            color: #dc2626;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: #eee;
+            margin: 4px 0;
+        }
+
+        .guest-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .guest-buttons.hidden {
+            display: none;
         }
 
         /* Christmas Countdown Sticker */
@@ -766,6 +923,12 @@
                 gap: 2rem;
                 flex-wrap: wrap;
             }
+            
+            .auth-section {
+                position: static;
+                margin-bottom: 1rem;
+                justify-content: center;
+            }
         }
 
         @media (max-width: 768px) {
@@ -798,6 +961,20 @@
                 flex-direction: column;
                 align-items: center;
             }
+            
+            .auth-section {
+                left: 1rem;
+                top: 1rem;
+            }
+            
+            .auth-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            
+            .user-name {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -815,6 +992,31 @@
     <header>
         <div class="header-container">
             <div class="header-content">
+                <!-- Auth Section -->
+                <div class="auth-section">
+                    <!-- Guest buttons (shown when not logged in) -->
+                    <div class="guest-buttons" id="guestButtons">
+                        <a href="/auth/login.html" class="auth-btn auth-btn-login">Log in</a>
+                        <a href="/auth/register.html" class="auth-btn auth-btn-register">Sign up</a>
+                    </div>
+                    
+                    <!-- User menu (shown when logged in) -->
+                    <div class="user-menu" id="userMenu">
+                        <span class="user-name" id="userName"></span>
+                        <div class="user-dropdown">
+                            <button class="dropdown-toggle" id="dropdownToggle">
+                                <span class="user-avatar" id="userAvatar">?</span>
+                                <span>▼</span>
+                            </button>
+                            <div class="dropdown-menu" id="dropdownMenu">
+                                <a href="#" class="dropdown-item" id="dashboardLink">📊 My Dashboard</a>
+                                <div class="dropdown-divider"></div>
+                                <button class="dropdown-item danger" id="logoutBtn">🚪 Log out</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="logo-icon">C</div>
                 <div class="header-text">
                     <h1 class="header-title">Classicalia</h1>
@@ -1163,20 +1365,83 @@
     </div>
 
     <!-- Scripts -->
+    <script src="auth/config.js"></script>
     <script src="ancient-history.js"></script>
     <script src="reviews-data.js"></script>
     <script src="latin-quotes.js"></script>
     
     <script>
+        // Initialize Supabase
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Auth State Management
+        async function checkAuth() {
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (user) {
+                // User is logged in - get their profile
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+                
+                if (profile) {
+                    showUserMenu(profile);
+                }
+            } else {
+                showGuestButtons();
+            }
+        }
+        
+        function showUserMenu(profile) {
+            document.getElementById('guestButtons').classList.add('hidden');
+            document.getElementById('userMenu').classList.add('visible');
+            
+            const firstName = profile.full_name ? profile.full_name.split(' ')[0] : 'User';
+            document.getElementById('userName').textContent = firstName;
+            document.getElementById('userAvatar').textContent = firstName.charAt(0).toUpperCase();
+            
+            // Set dashboard link based on role
+            const dashboardLink = document.getElementById('dashboardLink');
+            if (profile.role === 'teacher') {
+                dashboardLink.href = '/dashboard/teacher.html';
+                dashboardLink.textContent = '📊 Teacher Dashboard';
+            } else {
+                dashboardLink.href = '/dashboard/student.html';
+                dashboardLink.textContent = '📚 My Tasks';
+            }
+        }
+        
+        function showGuestButtons() {
+            document.getElementById('guestButtons').classList.remove('hidden');
+            document.getElementById('userMenu').classList.remove('visible');
+        }
+        
+        // Dropdown toggle
+        document.getElementById('dropdownToggle').addEventListener('click', function(e) {
+            e.stopPropagation();
+            document.getElementById('dropdownMenu').classList.toggle('open');
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function() {
+            document.getElementById('dropdownMenu').classList.remove('open');
+        });
+        
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', async function() {
+            await supabase.auth.signOut();
+            showGuestButtons();
+        });
+        
         // Countdown Calculator
         function updateCountdown() {
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const updateDate = new Date(2025, 11, 1); // December 1, 2025 (month is 0-indexed, so 11 = December)
+            const updateDate = new Date(2025, 11, 1);
             
-            // Calculate difference in milliseconds
             const diffTime = updateDate - today;
-            // Convert to days
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             
             const countdownElement = document.getElementById('countdown-days');
@@ -1381,15 +1646,16 @@
             document.getElementById('infoModal').style.display = 'none';
         }
 
-        window.onclick = function(event) {
+        window.addEventListener('click', function(event) {
             const modal = document.getElementById('infoModal');
             if (event.target === modal) {
                 closeInfoModal();
             }
-        }
+        });
 
         // Initialize on load
         window.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
             updateCountdown();
             initializeReviews();
             loadHistory();
