@@ -11,6 +11,9 @@ const taskTracker = {
     startTime: null,
     userId: null,
     wordsAnswered: [], // Track words answered this session
+    questionsAnswered: 0,
+    correctAnswers: 0,
+    saveInterval: null,
     
     // Initialize - check if user is logged in
     async init() {
@@ -42,6 +45,8 @@ const taskTracker = {
         
         this.startTime = new Date();
         this.wordsAnswered = [];
+        this.questionsAnswered = 0;
+        this.correctAnswers = 0;
         
         // Create attempt record
         const { data, error } = await supabase
@@ -62,6 +67,53 @@ const taskTracker = {
         this.attemptId = data.id;
         this.isTracking = true;
         console.log('Tracking started', { attemptId: this.attemptId, taskId: this.taskId });
+        
+        // Set up auto-save every 30 seconds
+        this.saveInterval = setInterval(() => this.saveProgress(), 30000);
+        
+        // Save on page leave
+        window.addEventListener('beforeunload', this.handlePageLeave.bind(this));
+        window.addEventListener('pagehide', this.handlePageLeave.bind(this));
+    },
+    
+    // Handle page leave - save progress
+    handlePageLeave() {
+        if (this.isTracking && this.attemptId) {
+            this.saveProgress(true);
+        }
+    },
+    
+    // Save current progress (without marking complete)
+    async saveProgress(isLeaving = false) {
+        if (!this.isTracking || !this.attemptId) return;
+        
+        const now = new Date();
+        const timeSpentSeconds = Math.round((now - this.startTime) / 1000);
+        const percentage = this.questionsAnswered > 0 
+            ? Math.round((this.correctAnswers / this.questionsAnswered) * 100) 
+            : 0;
+        
+        // Use sendBeacon for page leave (more reliable)
+        if (isLeaving && navigator.sendBeacon) {
+            // sendBeacon doesn't work well with Supabase, so we use a sync approach
+            // Just let the regular save handle it
+        }
+        
+        const { error } = await supabase
+            .from('task_attempts')
+            .update({
+                score: percentage,
+                total_questions: this.questionsAnswered,
+                correct_answers: this.correctAnswers,
+                time_spent_seconds: timeSpentSeconds
+            })
+            .eq('id', this.attemptId);
+        
+        if (error) {
+            console.error('Error saving progress:', error);
+        } else {
+            console.log('Progress saved', { time: timeSpentSeconds, questions: this.questionsAnswered });
+        }
     },
     
     // Record a word answer (correct or incorrect)
@@ -74,6 +126,10 @@ const taskTracker = {
                 return;
             }
         }
+        
+        // Track counts for this session
+        this.questionsAnswered++;
+        if (isCorrect) this.correctAnswers++;
         
         // Track for this session
         this.wordsAnswered.push({
@@ -146,6 +202,16 @@ const taskTracker = {
             console.log('Not tracking or no attempt ID');
             return;
         }
+        
+        // Clear auto-save interval
+        if (this.saveInterval) {
+            clearInterval(this.saveInterval);
+            this.saveInterval = null;
+        }
+        
+        // Remove page leave handlers
+        window.removeEventListener('beforeunload', this.handlePageLeave.bind(this));
+        window.removeEventListener('pagehide', this.handlePageLeave.bind(this));
         
         const endTime = new Date();
         const timeSpentSeconds = Math.round((endTime - this.startTime) / 1000);
