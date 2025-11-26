@@ -9,11 +9,11 @@ let selectedChapter = null;
 let fromIndex = null;
 let toIndex = null;
 
-// Spaced repetition variables
-let incorrectWords = []; // Words that were answered incorrectly
-let reviewQueue = []; // Queue for words to be reviewed
-let questionsUntilReview = 3; // Number of questions between reviews
-let questionsSinceLastReview = 0;
+// Mastery mode variables
+const MASTERY_THRESHOLD = 2; // Number of times a word must be answered correctly
+let wordMastery = {}; // Track correct count per word: { "latin_word": correctCount }
+let masteredCount = 0; // How many words have been fully mastered
+let totalWordsToMaster = 0; // Total words that need mastering
 
 // Practice mode - initialized from the setup panel
 function initializePractice(practiceWords, chapter, fromIdx, toIdx) {
@@ -21,16 +21,22 @@ function initializePractice(practiceWords, chapter, fromIdx, toIdx) {
     fromIndex = fromIdx;
     toIndex = toIdx;
     
-    // Shuffle the words for practice
+    // Set up words for practice
     currentTestWords = [...practiceWords];
     shuffleArray(currentTestWords);
     
     currentQuestionIndex = 0;
     score = 0;
     questionsAnswered = 0;
-    incorrectWords = [];
-    reviewQueue = [];
-    questionsSinceLastReview = 0;
+    
+    // Initialize mastery tracking
+    wordMastery = {};
+    masteredCount = 0;
+    totalWordsToMaster = practiceWords.length;
+    
+    for (const word of practiceWords) {
+        wordMastery[word.latin] = 0;
+    }
     
     // Hide completion message
     document.getElementById('completion-message').classList.add('hidden');
@@ -46,41 +52,57 @@ function shuffleArray(array) {
     }
 }
 
+function getUnmasteredWords() {
+    // Return words that haven't reached mastery threshold yet
+    return currentTestWords.filter(word => wordMastery[word.latin] < MASTERY_THRESHOLD);
+}
+
 function updateDisplay() {
-    document.getElementById('current-question').textContent = currentQuestionIndex + 1;
-    document.getElementById('total-questions').textContent = currentTestWords.length;
+    const unmasteredWords = getUnmasteredWords();
+    
+    document.getElementById('current-question').textContent = questionsAnswered + 1;
+    document.getElementById('total-questions').textContent = '∞'; // Continuous until mastery
     document.getElementById('score').textContent = score;
     document.getElementById('answered').textContent = questionsAnswered;
     
     const percentage = questionsAnswered > 0 ? Math.round((score / questionsAnswered) * 100) : 0;
     document.getElementById('percentage').textContent = percentage;
     
-    const progress = ((currentQuestionIndex + 1) / currentTestWords.length) * 100;
-    document.getElementById('progress-fill').style.width = progress + '%';
+    // Progress bar shows mastery progress
+    const masteryProgress = (masteredCount / totalWordsToMaster) * 100;
+    document.getElementById('progress-fill').style.width = masteryProgress + '%';
+    
+    // Update mastery display if element exists
+    const masteryDisplay = document.getElementById('mastery-display');
+    if (masteryDisplay) {
+        masteryDisplay.textContent = `${masteredCount}/${totalWordsToMaster} words mastered`;
+    }
 }
 
 function loadQuestion() {
-    // Check if we should show a review question instead
-    if (shouldShowReviewQuestion()) {
-        loadReviewQuestion();
+    // Get words that still need practice
+    const unmasteredWords = getUnmasteredWords();
+    
+    // Check if all words are mastered
+    if (unmasteredWords.length === 0) {
+        showCompletion();
         return;
     }
     
-    // Check if we've finished all questions
-    if (currentQuestionIndex >= currentTestWords.length) {
-        // If there are still words in review queue, continue with reviews only
-        if (reviewQueue.length > 0) {
-            loadReviewQuestion();
-            return;
-        } else {
-            showCompletion();
-            return;
-        }
-    }
+    // Pick a random unmastered word
+    const randomIndex = Math.floor(Math.random() * unmasteredWords.length);
+    const word = unmasteredWords[randomIndex];
     
-    const word = currentTestWords[currentQuestionIndex];
+    // Store current word for checking
+    currentTestWords.currentWord = word;
+    
     document.getElementById('latin-word').textContent = word.latin;
-    document.getElementById('word-info').textContent = word.info;
+    
+    // Show mastery progress for this word
+    const currentMastery = wordMastery[word.latin];
+    const masteryIndicator = currentMastery > 0 ? ` (${currentMastery}/${MASTERY_THRESHOLD} ✓)` : '';
+    document.getElementById('word-info').textContent = word.info + masteryIndicator;
+    
     document.getElementById('answer-input').value = '';
     
     const feedback = document.getElementById('feedback');
@@ -93,50 +115,10 @@ function loadQuestion() {
     
     updateDisplay();
     document.getElementById('answer-input').focus();
-}
-
-function shouldShowReviewQuestion() {
-    return reviewQueue.length > 0 && 
-           questionsSinceLastReview >= questionsUntilReview && 
-           currentQuestionIndex < currentTestWords.length;
-}
-
-function loadReviewQuestion() {
-    if (reviewQueue.length === 0) return;
-    
-    // Get the next review word
-    const reviewWord = reviewQueue.shift();
-    
-    document.getElementById('latin-word').textContent = reviewWord.latin;
-    document.getElementById('word-info').textContent = reviewWord.info + ' (Review)';
-    document.getElementById('answer-input').value = '';
-    
-    const feedback = document.getElementById('feedback');
-    feedback.innerHTML = '';
-    feedback.className = 'feedback';
-    
-    document.getElementById('check-btn').style.display = 'inline-block';
-    document.getElementById('next-btn').style.display = 'none';
-    document.getElementById('reveal-btn').style.display = 'inline-block';
-    
-    // Store that this is a review question
-    reviewWord.isReview = true;
-    
-    // Set the current word to the review word temporarily
-    currentTestWords.reviewWord = reviewWord;
-    
-    updateDisplay();
-    document.getElementById('answer-input').focus();
-    
-    questionsSinceLastReview = 0;
 }
 
 function getCurrentWord() {
-    // Check if we're showing a review question
-    if (currentTestWords.reviewWord && currentTestWords.reviewWord.isReview) {
-        return currentTestWords.reviewWord;
-    }
-    return currentTestWords[currentQuestionIndex];
+    return currentTestWords.currentWord;
 }
 
 function checkAnswer() {
@@ -180,41 +162,36 @@ function checkAnswer() {
         if (isCorrect) break;
     }
     
-    const isReviewQuestion = word.isReview;
-    
     if (isCorrect) {
-        let feedbackText = `<strong>Correct!</strong> ✓<br><small>"${word.latin}" = "${word.english}"</small>`;
-        if (isReviewQuestion) {
-            feedbackText += '<br><em>Great! You remembered this one!</em>';
-        }
-        feedback.innerHTML = feedbackText;
-        feedback.className = 'feedback feedback-correct';
+        // Increment mastery count
+        wordMastery[word.latin]++;
         score++;
-    } else {
-        let feedbackText = `<strong>Incorrect</strong> ✗<br>You wrote: "<em>${userAnswer}</em>"<br>Correct: "<strong>${word.english}</strong>"`;
-        feedback.innerHTML = feedbackText;
-        feedback.className = 'feedback feedback-incorrect';
         
-        // Add to incorrect words for review (only if not already a review question)
-        if (!isReviewQuestion) {
-            addWordForReview(word);
-            feedbackText += '<br><em>Don\'t worry - you\'ll see this word again soon!</em>';
-            feedback.innerHTML = feedbackText;
+        const newMastery = wordMastery[word.latin];
+        
+        if (newMastery >= MASTERY_THRESHOLD) {
+            // Word is now mastered!
+            masteredCount++;
+            feedback.innerHTML = `<strong>Correct!</strong> ✓ <span style="color: #059669; font-weight: bold;">MASTERED! 🌟</span><br><small>"${word.latin}" = "${word.english}"</small>`;
         } else {
-            // If it's a review question and still incorrect, add it back to the review queue
-            addWordForReview(word);
-            feedbackText += '<br><em>Added back to review - keep practising!</em>';
-            feedback.innerHTML = feedbackText;
+            feedback.innerHTML = `<strong>Correct!</strong> ✓ (${newMastery}/${MASTERY_THRESHOLD} towards mastery)<br><small>"${word.latin}" = "${word.english}"</small>`;
         }
+        feedback.className = 'feedback feedback-correct';
+    } else {
+        // Reset mastery count for this word
+        const previousMastery = wordMastery[word.latin];
+        wordMastery[word.latin] = 0;
+        
+        let resetMessage = '';
+        if (previousMastery > 0) {
+            resetMessage = `<br><em>Progress reset - you'll need to get this right ${MASTERY_THRESHOLD} times again.</em>`;
+        }
+        
+        feedback.innerHTML = `<strong>Incorrect</strong> ✗<br>You wrote: "<em>${userAnswer}</em>"<br>Correct: "<strong>${word.english}</strong>"${resetMessage}`;
+        feedback.className = 'feedback feedback-incorrect';
     }
     
     questionsAnswered++;
-    questionsSinceLastReview++;
-    
-    // Clear the review word marker
-    if (isReviewQuestion) {
-        delete currentTestWords.reviewWord;
-    }
     
     updateDisplay();
     
@@ -223,27 +200,7 @@ function checkAnswer() {
     document.getElementById('reveal-btn').style.display = 'none';
 }
 
-function addWordForReview(word) {
-    // Don't add duplicates to the review queue
-    const isAlreadyInQueue = reviewQueue.some(reviewWord => reviewWord.latin === word.latin);
-    const isAlreadyInIncorrect = incorrectWords.some(incorrectWord => incorrectWord.latin === word.latin);
-    
-    if (!isAlreadyInQueue) {
-        // Add to review queue (will appear in a few questions)
-        reviewQueue.push({...word, isReview: true});
-    }
-    
-    if (!isAlreadyInIncorrect) {
-        incorrectWords.push({...word});
-    }
-}
-
 function nextQuestion() {
-    // Only increment question index if we weren't showing a review question
-    if (!getCurrentWord().isReview) {
-        currentQuestionIndex++;
-    }
-    
     loadQuestion();
 }
 
@@ -259,23 +216,19 @@ function showCompletion() {
     } else if (percentage >= 70) {
         message = "Good effort! Keep practising! 📚";
     } else {
-        message = "Keep studying! Practice makes perfect! 💪";
+        message = "You did it! Practice makes perfect! 💪";
     }
     
     const chapterWords = vocabularyData.filter(word => word.chapter == selectedChapter);
     const fromWord = chapterWords[fromIndex].latin;
     const toWord = chapterWords[toIndex].latin;
     
-    let reviewMessage = '';
-    if (incorrectWords.length > 0) {
-        reviewMessage = `<br><small>You reviewed ${incorrectWords.length} word(s) that needed extra practice.</small>`;
-    }
-    
     document.getElementById('final-message').innerHTML = `
-        Final Score: ${score}/${totalQuestions} (${percentage}%)
+        <strong>All ${totalWordsToMaster} words mastered!</strong> 🎉
+        <br><br>Final Score: ${score}/${totalQuestions} (${percentage}%)
         <br>${message}
         <br><small>Range: Chapter ${selectedChapter} (${fromWord} to ${toWord})</small>
-        ${reviewMessage}
+        <br><small>Each word answered correctly ${MASTERY_THRESHOLD} times.</small>
         <br><br><button class="btn" onclick="resetPractice()" style="margin-top: 1rem;">New Practice Session</button>
     `;
     document.getElementById('completion-message').classList.remove('hidden');
@@ -301,31 +254,26 @@ function resetPractice() {
     currentQuestionIndex = 0;
     score = 0;
     questionsAnswered = 0;
-    incorrectWords = [];
-    reviewQueue = [];
-    questionsSinceLastReview = 0;
+    wordMastery = {};
+    masteredCount = 0;
+    totalWordsToMaster = 0;
 }
 
 function revealAnswer() {
     const word = getCurrentWord();
     const feedback = document.getElementById('feedback');
     
-    let feedbackText = `<strong>Answer:</strong> "${word.english}"`;
-    if (word.isReview) {
-        feedbackText += '<br><em>This was a review question - try to remember it next time!</em>';
-        // Add it back to review queue since they needed to reveal it
-        addWordForReview(word);
+    // Reset mastery count since they needed help
+    const previousMastery = wordMastery[word.latin];
+    wordMastery[word.latin] = 0;
+    
+    let resetMessage = '';
+    if (previousMastery > 0) {
+        resetMessage = '<br><em>Progress reset - try to remember it next time!</em>';
     }
     
-    feedback.innerHTML = feedbackText;
+    feedback.innerHTML = `<strong>Answer:</strong> "${word.english}"${resetMessage}`;
     feedback.className = 'feedback feedback-revealed';
-    
-    questionsSinceLastReview++;
-    
-    // Clear the review word marker
-    if (word.isReview) {
-        delete currentTestWords.reviewWord;
-    }
     
     document.getElementById('check-btn').style.display = 'none';
     document.getElementById('next-btn').style.display = 'inline-block';
