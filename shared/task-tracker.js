@@ -9,11 +9,17 @@ const taskTracker = {
     attemptId: null,
     taskId: null,
     startTime: null,
+    lastActivityTime: null,
+    activeTimeSeconds: 0, // Only counts actual activity time
     userId: null,
     wordsAnswered: [], // Track words answered this session
     questionsAnswered: 0,
     correctAnswers: 0,
     saveInterval: null,
+    
+    // Config
+    MAX_TIME_PER_QUESTION: 120, // Max 2 minutes counted per question
+    IDLE_THRESHOLD: 180, // 3 minutes - if gap > this, don't count idle time
     
     // Initialize - check if user is logged in
     async init() {
@@ -44,6 +50,8 @@ const taskTracker = {
         if (!ready) return;
         
         this.startTime = new Date();
+        this.lastActivityTime = new Date();
+        this.activeTimeSeconds = 0;
         this.wordsAnswered = [];
         this.questionsAnswered = 0;
         this.correctAnswers = 0;
@@ -76,6 +84,22 @@ const taskTracker = {
         window.addEventListener('pagehide', this.handlePageLeave.bind(this));
     },
     
+    // Record activity and update active time
+    recordActivity() {
+        const now = new Date();
+        const gap = (now - this.lastActivityTime) / 1000; // seconds since last activity
+        
+        // Only count time if gap is reasonable (not idle)
+        if (gap <= this.IDLE_THRESHOLD) {
+            // Cap at MAX_TIME_PER_QUESTION
+            const timeToAdd = Math.min(gap, this.MAX_TIME_PER_QUESTION);
+            this.activeTimeSeconds += timeToAdd;
+        }
+        // If gap > IDLE_THRESHOLD, they were idle - don't count that time
+        
+        this.lastActivityTime = now;
+    },
+    
     // Handle page leave - save progress
     handlePageLeave() {
         if (this.isTracking && this.attemptId) {
@@ -87,17 +111,9 @@ const taskTracker = {
     async saveProgress(isLeaving = false) {
         if (!this.isTracking || !this.attemptId) return;
         
-        const now = new Date();
-        const timeSpentSeconds = Math.round((now - this.startTime) / 1000);
         const percentage = this.questionsAnswered > 0 
             ? Math.round((this.correctAnswers / this.questionsAnswered) * 100) 
             : 0;
-        
-        // Use sendBeacon for page leave (more reliable)
-        if (isLeaving && navigator.sendBeacon) {
-            // sendBeacon doesn't work well with Supabase, so we use a sync approach
-            // Just let the regular save handle it
-        }
         
         const { error } = await supabase
             .from('task_attempts')
@@ -105,14 +121,14 @@ const taskTracker = {
                 score: percentage,
                 total_questions: this.questionsAnswered,
                 correct_answers: this.correctAnswers,
-                time_spent_seconds: timeSpentSeconds
+                time_spent_seconds: Math.round(this.activeTimeSeconds)
             })
             .eq('id', this.attemptId);
         
         if (error) {
             console.error('Error saving progress:', error);
         } else {
-            console.log('Progress saved', { time: timeSpentSeconds, questions: this.questionsAnswered });
+            console.log('Progress saved', { activeTime: Math.round(this.activeTimeSeconds), questions: this.questionsAnswered });
         }
     },
     
@@ -126,6 +142,9 @@ const taskTracker = {
                 return;
             }
         }
+        
+        // Record activity time (only counts active time, not idle)
+        this.recordActivity();
         
         // Track counts for this session
         this.questionsAnswered++;
@@ -203,6 +222,9 @@ const taskTracker = {
             return;
         }
         
+        // Record final activity
+        this.recordActivity();
+        
         // Clear auto-save interval
         if (this.saveInterval) {
             clearInterval(this.saveInterval);
@@ -214,7 +236,6 @@ const taskTracker = {
         window.removeEventListener('pagehide', this.handlePageLeave.bind(this));
         
         const endTime = new Date();
-        const timeSpentSeconds = Math.round((endTime - this.startTime) / 1000);
         
         const { error } = await supabase
             .from('task_attempts')
@@ -223,7 +244,7 @@ const taskTracker = {
                 score: Math.round(score),
                 total_questions: totalQuestions,
                 correct_answers: correctAnswers,
-                time_spent_seconds: timeSpentSeconds
+                time_spent_seconds: Math.round(this.activeTimeSeconds)
             })
             .eq('id', this.attemptId);
         
@@ -235,7 +256,7 @@ const taskTracker = {
         console.log('Practice completed', {
             attemptId: this.attemptId,
             score: score,
-            timeSpent: timeSpentSeconds,
+            activeTime: Math.round(this.activeTimeSeconds),
             wordsAnswered: this.wordsAnswered.length
         });
         
