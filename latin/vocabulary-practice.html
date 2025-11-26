@@ -118,27 +118,6 @@
             letter-spacing: 0.02em;
         }
 
-        /* Task banner - shows when doing an assigned task */
-        .task-banner {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-            display: none;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .task-banner.active {
-            display: flex;
-        }
-
-        .task-banner .task-icon {
-            font-size: 1.2rem;
-        }
-
         .info-btn {
             position: absolute;
             right: 2rem;
@@ -477,19 +456,6 @@
             background: #0052cc;
         }
 
-        .btn-dashboard {
-            background: #10b981;
-            width: 100%;
-            padding: 0.875rem 1.5rem;
-            border-radius: 8px;
-            font-size: 0.95rem;
-            margin-top: 0.5rem;
-        }
-
-        .btn-dashboard:hover {
-            background: #059669;
-        }
-
         /* Modal */
         .modal {
             position: fixed;
@@ -724,11 +690,6 @@
                     <p class="header-subtitle">Learn at your own pace with instant feedback</p>
                     <p class="header-author">by Lawrence McNally</p>
                 </div>
-                <!-- Task banner - shown when doing an assigned task -->
-                <div class="task-banner" id="taskBanner">
-                    <span class="task-icon">📝</span>
-                    <span id="taskBannerText">Assigned Task - Your progress is being tracked</span>
-                </div>
             </div>
             <button class="info-btn" onclick="showInfoModal()">ℹ️</button>
         </div>
@@ -828,15 +789,6 @@
 
             <!-- Right Sidebar -->
             <aside class="right-sidebar">
-                <!-- Student Dashboard Link (shown when logged in) -->
-                <div class="widget" id="dashboardWidget" style="display: none;">
-                    <h3>📊 Your Dashboard</h3>
-                    <p>View your classes, tasks, and progress.</p>
-                    <a href="/dashboard/student.html" class="btn btn-dashboard">
-                        <span style="margin-right: 0.5rem;">←</span>Back to Dashboard
-                    </a>
-                </div>
-
                 <!-- Practice Info Widget -->
                 <div class="widget">
                     <h3>Practice Information</h3>
@@ -932,24 +884,14 @@
         </div>
     </div>
 
-    <!-- Supabase (for tracking) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/auth/config.js"></script>
-    <script src="/shared/task-tracker.js"></script>
-    
-    <!-- Vocabulary Data and Quiz Logic -->
+    <!-- JavaScript -->
     <script src="../shared/vocabulary-data.js"></script>
     <script src="../shared/navigation.js"></script>
     <script src="../shared/vocabulary-quiz.js"></script>
     
     <script>
-        // ============================================
-        // URL PARAMETER HANDLING & TASK TRACKING
-        // ============================================
-        
-        // Variables for setup
-        let isAssignedTask = false;
-        let taskParams = null;
+        // Setup state (declared in vocabulary-quiz.js)
+        // let selectedChapter, fromIndex, toIndex are already declared in the quiz file
 
         function waitForVocabularyData() {
             return new Promise((resolve) => {
@@ -964,61 +906,10 @@
             });
         }
 
-        // Check for URL parameters and pre-fill if present
-        async function checkUrlParams() {
-            await waitForVocabularyData();
-            
-            const params = new URLSearchParams(window.location.search);
-            const chapter = params.get('chapter');
-            const from = params.get('from');
-            const to = params.get('to');
-            const taskId = params.get('task_id');
-            
-            // Show task banner if this is an assigned task
-            if (taskId) {
-                isAssignedTask = true;
-                document.getElementById('taskBanner').classList.add('active');
-                taskParams = { chapter, from, to, taskId };
-            }
-            
-            // If all params present, auto-fill the dropdowns
-            if (chapter && from !== null && to !== null) {
-                console.log('URL params found:', { chapter, from, to, taskId });
-                
-                // Set chapter
-                document.getElementById('chapterSelect').value = chapter;
-                await handleChapterSelect();
-                
-                // Set from word
-                document.getElementById('fromWord').value = from;
-                await handleFromWordSelect();
-                
-                // Set to word
-                document.getElementById('toWord').value = to;
-                handleToWordSelect();
-                
-                // Auto-start if it's an assigned task
-                if (taskId) {
-                    setTimeout(() => {
-                        startPractice();
-                    }, 500);
-                }
-            }
-        }
-
-        // Check if user is logged in and show dashboard link
-        async function checkLoginStatus() {
-            if (typeof supabase === 'undefined') return;
-            
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                document.getElementById('dashboardWidget').style.display = 'block';
-            }
-        }
-
         async function handleChapterSelect() {
             console.log('Chapter select triggered');
             
+            // Wait for vocabulary data to be available
             await waitForVocabularyData();
             
             const chapter = document.getElementById('chapterSelect').value;
@@ -1063,7 +954,7 @@
             
             console.log('From word select triggered:', fromValue);
             
-            if (!fromValue && fromValue !== '0') {
+            if (!fromValue) {
                 toSelect.disabled = true;
                 document.getElementById('startPracticeBtn').disabled = true;
                 return;
@@ -1072,7 +963,7 @@
             fromIndex = parseInt(fromValue);
             const chapterWords = vocabularyData.filter(word => word.chapter == selectedChapter);
             
-            // Populate to word dropdown (only words from the from word onwards)
+            // Populate to word dropdown (only words after the from word)
             toSelect.innerHTML = '<option value="">Select end word</option>';
             for (let i = fromIndex; i < chapterWords.length; i++) {
                 const word = chapterWords[i];
@@ -1090,7 +981,7 @@
             const toValue = document.getElementById('toWord').value;
             console.log('To word select triggered:', toValue);
             
-            if (toValue || toValue === '0') {
+            if (toValue) {
                 toIndex = parseInt(toValue);
                 document.getElementById('startPracticeBtn').disabled = false;
                 console.log('Practice button enabled');
@@ -1109,11 +1000,6 @@
             
             console.log('Practice words:', practiceWords.length);
             
-            // Start tracking if this is an assigned task
-            if (isAssignedTask) {
-                await taskTracker.start();
-            }
-            
             // Initialize the practice with the selected word range
             initializePractice(practiceWords, selectedChapter, fromIndex, toIndex);
             
@@ -1121,21 +1007,6 @@
             document.getElementById('setupPanel').style.display = 'none';
             document.getElementById('quizArea').classList.add('active');
         }
-
-        // Override the completion function to add tracking
-        // This will be called by vocabulary-quiz.js when practice is complete
-        window.onPracticeComplete = async function(score, total, correct) {
-            if (isAssignedTask) {
-                await taskTracker.complete(score, total, correct);
-                
-                // Update completion message for tasks
-                const completionMsg = document.getElementById('completion-message');
-                if (completionMsg) {
-                    const existingText = completionMsg.innerHTML;
-                    completionMsg.innerHTML = existingText + '<br><br>✅ <strong>Your results have been saved!</strong><br><a href="/dashboard/student.html" class="btn" style="margin-top: 1rem;">Return to Dashboard</a>';
-                }
-            }
-        };
 
         // Modal functions
         function showInfoModal() {
@@ -1163,15 +1034,34 @@
             document.getElementById('fromWord').addEventListener('change', handleFromWordSelect);
             document.getElementById('toWord').addEventListener('change', handleToWordSelect);
             document.getElementById('startPracticeBtn').addEventListener('click', startPractice);
+            // Check for URL parameters (for assigned tasks)
+const urlParams = new URLSearchParams(window.location.search);
+const urlChapter = urlParams.get('chapter');
+const urlFrom = urlParams.get('from');
+const urlTo = urlParams.get('to');
+
+if (urlChapter && urlFrom !== null && urlTo !== null) {
+    // Auto-fill the dropdowns
+    document.getElementById('chapterSelect').value = urlChapter;
+    handleChapterSelect().then(() => {
+        document.getElementById('fromWord').value = urlFrom;
+        handleFromWordSelect().then(() => {
+            document.getElementById('toWord').value = urlTo;
+            handleToWordSelect();
+        });
+    });
+}
             
             // Ensure modal stays closed
             document.getElementById('infoModal').style.display = 'none';
             
-            // Check login status
-            checkLoginStatus();
-            
-            // Check for URL parameters
-            checkUrlParams();
+            // Check if data is available
+            setTimeout(() => {
+                console.log('vocabularyData available:', typeof vocabularyData !== 'undefined');
+                if (typeof vocabularyData !== 'undefined') {
+                    console.log('vocabularyData length:', vocabularyData.length);
+                }
+            }, 1000);
         });
     </script>
 </body>
