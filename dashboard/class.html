@@ -174,6 +174,10 @@
             font-weight: 500;
             color: #1f2937;
         }
+        .student-name:hover {
+            color: #0066ff;
+            cursor: pointer;
+        }
         .student-email {
             color: #6b7280;
             font-size: 0.8rem;
@@ -469,6 +473,88 @@
             color: #6b7280;
         }
 
+        /* Student Mastery Modal */
+        .mastery-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .mastery-stat {
+            text-align: center;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .mastery-stat.mastered { border-left: 3px solid #10b981; }
+        .mastery-stat.learning { border-left: 3px solid #f59e0b; }
+        .mastery-stat.struggling { border-left: 3px solid #ef4444; }
+        .mastery-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .mastery-stat.mastered .mastery-stat-value { color: #10b981; }
+        .mastery-stat.learning .mastery-stat-value { color: #f59e0b; }
+        .mastery-stat.struggling .mastery-stat-value { color: #ef4444; }
+        .mastery-stat-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        .word-list {
+            list-style: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .word-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border: 1px solid #f0f0f0;
+        }
+        .word-latin {
+            font-weight: 600;
+            color: #0066ff;
+        }
+        .word-english {
+            color: #6b7280;
+            font-size: 0.85rem;
+        }
+        .word-stats {
+            text-align: right;
+            font-size: 0.8rem;
+        }
+        .word-accuracy {
+            font-weight: 600;
+        }
+        .word-accuracy.good { color: #10b981; }
+        .word-accuracy.okay { color: #f59e0b; }
+        .word-accuracy.bad { color: #ef4444; }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 1rem;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem;
+            background: none;
+            border: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tab-btn:hover { color: #1f2937; }
+        .tab-btn.active {
+            color: #0066ff;
+            border-bottom-color: #0066ff;
+        }
+
         /* Responsive */
         @media (max-width: 900px) {
             .dashboard-grid {
@@ -717,6 +803,40 @@
         </div>
     </div>
 
+    <!-- Student Mastery Modal -->
+    <div class="modal-overlay" id="studentMasteryModal">
+        <div class="modal" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3>📚 <span id="studentMasteryName">Student</span>'s Word Bank</h3>
+                <button class="modal-close" onclick="closeModal('studentMasteryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="mastery-stats">
+                    <div class="mastery-stat mastered">
+                        <div class="mastery-stat-value" id="smMastered">0</div>
+                        <div class="mastery-stat-label">🌟 Mastered</div>
+                    </div>
+                    <div class="mastery-stat learning">
+                        <div class="mastery-stat-value" id="smLearning">0</div>
+                        <div class="mastery-stat-label">📖 Learning</div>
+                    </div>
+                    <div class="mastery-stat struggling">
+                        <div class="mastery-stat-value" id="smStruggling">0</div>
+                        <div class="mastery-stat-label">💪 Need Practice</div>
+                    </div>
+                </div>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="showStudentTab('all', this)">All</button>
+                    <button class="tab-btn" onclick="showStudentTab('mastered', this)">Mastered</button>
+                    <button class="tab-btn" onclick="showStudentTab('struggling', this)">Struggling</button>
+                </div>
+                <div id="studentWordList">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="../auth/config.js"></script>
     <script src="../shared/vocabulary-data.js"></script>
     
@@ -832,10 +952,11 @@
                 html += `
                     <li>
                         <div>
-                            <div class="student-name">${student.full_name || 'Unknown'}</div>
+                            <div class="student-name" onclick="viewStudentMastery('${student.id}', '${(student.full_name || 'Student').replace(/'/g, "\\'")}')" title="Click to view word mastery">${student.full_name || 'Unknown'}</div>
                             <div class="student-email">${student.email}</div>
                         </div>
                         <div class="student-actions">
+                            <button class="btn-icon" onclick="viewStudentMastery('${student.id}', '${(student.full_name || 'Student').replace(/'/g, "\\'")}')" title="View word mastery">📚</button>
                             <button class="btn-icon" onclick="showRenameStudent('${student.id}', '${(student.full_name || '').replace(/'/g, "\\'")}')" title="Rename">✏️</button>
                             <button class="btn-icon danger" onclick="showRemoveStudent('${student.id}', '${(student.full_name || student.email).replace(/'/g, "\\'")}')" title="Remove">🗑️</button>
                         </div>
@@ -844,6 +965,86 @@
             }
             html += '</ul>';
             container.innerHTML = html;
+        }
+        
+        // View student word mastery
+        let currentStudentMastery = { all: [], mastered: [], learning: [], struggling: [] };
+        
+        async function viewStudentMastery(studentId, studentName) {
+            document.getElementById('studentMasteryName').textContent = studentName;
+            openModal('studentMasteryModal');
+            document.getElementById('studentWordList').innerHTML = '<div class="loading">Loading...</div>';
+            
+            // Fetch word mastery for this student
+            const { data, error } = await supabase
+                .from('word_mastery')
+                .select('*')
+                .eq('student_id', studentId)
+                .order('last_seen_at', { ascending: false });
+            
+            if (error) {
+                document.getElementById('studentWordList').innerHTML = '<p style="color: #dc2626;">Error loading word mastery</p>';
+                return;
+            }
+            
+            // Categorise words
+            currentStudentMastery = { all: data || [], mastered: [], learning: [], struggling: [] };
+            
+            (data || []).forEach(word => {
+                const total = word.correct_count + word.incorrect_count;
+                const accuracy = total > 0 ? (word.correct_count / total) * 100 : 0;
+                
+                if (word.correct_count >= 3 && accuracy >= 70) {
+                    currentStudentMastery.mastered.push({ ...word, accuracy });
+                } else if (accuracy < 50 && word.incorrect_count >= 2) {
+                    currentStudentMastery.struggling.push({ ...word, accuracy });
+                } else {
+                    currentStudentMastery.learning.push({ ...word, accuracy });
+                }
+            });
+            
+            // Update stats
+            document.getElementById('smMastered').textContent = currentStudentMastery.mastered.length;
+            document.getElementById('smLearning').textContent = currentStudentMastery.learning.length;
+            document.getElementById('smStruggling').textContent = currentStudentMastery.struggling.length;
+            
+            // Show all words by default
+            showStudentTab('all', document.querySelector('.tab-btn'));
+        }
+        
+        function showStudentTab(tab, btn) {
+            // Update active tab
+            document.querySelectorAll('#studentMasteryModal .tab-btn').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Get words for this tab
+            let words = currentStudentMastery[tab] || [];
+            
+            const container = document.getElementById('studentWordList');
+            
+            if (words.length === 0) {
+                container.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 2rem;">No words in this category yet.</p>';
+                return;
+            }
+            
+            container.innerHTML = '<ul class="word-list">' + words.map(word => {
+                const total = word.correct_count + word.incorrect_count;
+                const accuracy = total > 0 ? Math.round((word.correct_count / total) * 100) : 0;
+                const accuracyClass = accuracy >= 70 ? 'good' : accuracy >= 50 ? 'okay' : 'bad';
+                
+                return `
+                    <li class="word-item">
+                        <div>
+                            <div class="word-latin">${word.word_latin}</div>
+                            <div class="word-english">${word.word_english || ''}</div>
+                        </div>
+                        <div class="word-stats">
+                            <div class="word-accuracy ${accuracyClass}">${accuracy}%</div>
+                            <div>${word.correct_count}✓ ${word.incorrect_count}✗</div>
+                        </div>
+                    </li>
+                `;
+            }).join('') + '</ul>';
         }
         
         // Student management
