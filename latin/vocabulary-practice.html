@@ -457,6 +457,44 @@
             background: #0052cc;
         }
 
+        /* Tracking indicator */
+        .tracking-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #065f46;
+            margin-bottom: 1rem;
+        }
+        
+        .tracking-indicator.not-tracking {
+            background: #fef3c7;
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+        
+        .tracking-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        
+        .tracking-indicator.not-tracking .tracking-dot {
+            background: #f59e0b;
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
         .modal {
             position: fixed;
             z-index: 1000;
@@ -699,6 +737,13 @@
             <main class="main-content">
                 <div class="setup-panel" id="setupPanel">
                     <h2>Practice Setup</h2>
+                    
+                    <!-- Tracking indicator -->
+                    <div class="tracking-indicator not-tracking" id="trackingIndicator">
+                        <div class="tracking-dot"></div>
+                        <span id="trackingText">Log in to track your progress</span>
+                    </div>
+                    
                     <div class="setup-controls">
                         <div class="control-group">
                             <label for="chapterSelect">Chapter</label>
@@ -883,6 +928,9 @@
     <script src="../shared/vocabulary-quiz.js"></script>
     
     <script>
+        // Current word being practised (for tracking)
+        let currentWordData = null;
+        
         function waitForVocabularyData() {
             return new Promise((resolve) => {
                 const checkData = () => {
@@ -894,6 +942,37 @@
                 };
                 checkData();
             });
+        }
+
+        // Check if user is logged in and update tracking indicator
+        async function checkTrackingStatus() {
+            const indicator = document.getElementById('trackingIndicator');
+            const text = document.getElementById('trackingText');
+            
+            if (typeof supabase === 'undefined') {
+                indicator.classList.add('not-tracking');
+                text.textContent = 'Progress tracking unavailable';
+                return;
+            }
+            
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (user) {
+                indicator.classList.remove('not-tracking');
+                
+                // Check if this is an assigned task
+                const urlParams = new URLSearchParams(window.location.search);
+                const taskId = urlParams.get('task_id');
+                
+                if (taskId) {
+                    text.textContent = '📋 Assigned task — progress will be recorded';
+                } else {
+                    text.textContent = '✓ Logged in — your practice will be tracked';
+                }
+            } else {
+                indicator.classList.add('not-tracking');
+                text.innerHTML = 'Log in to track progress — <a href="/auth/login.html" style="color: #0066ff;">Sign in</a>';
+            }
         }
 
         async function handleChapterSelect() {
@@ -967,7 +1046,7 @@
         async function startPractice() {
             await waitForVocabularyData();
             
-            // Start tracking if this is an assigned task
+            // Start tracking (works for both assigned tasks and free practice)
             if (typeof taskTracker !== 'undefined') {
                 await taskTracker.start();
             }
@@ -981,6 +1060,19 @@
             document.getElementById('quizArea').classList.add('active');
         }
 
+        // Called by vocabulary-quiz.js when displaying a new word
+        window.onWordDisplayed = function(wordData) {
+            currentWordData = wordData;
+        };
+
+        // Called by vocabulary-quiz.js when an answer is checked
+        window.onWordAnswered = async function(wordData, isCorrect) {
+            if (typeof taskTracker !== 'undefined') {
+                await taskTracker.recordWordAnswer(wordData, isCorrect);
+            }
+        };
+
+        // Called when practice is complete
         window.onPracticeComplete = async function(percentage, totalQuestions, correctAnswers) {
             if (typeof taskTracker !== 'undefined' && taskTracker.isTracking) {
                 await taskTracker.complete(percentage, totalQuestions, correctAnswers);
@@ -1003,6 +1095,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Check tracking status
+            checkTrackingStatus();
+            
             document.getElementById('chapterSelect').addEventListener('change', handleChapterSelect);
             document.getElementById('fromWord').addEventListener('change', handleFromWordSelect);
             document.getElementById('toWord').addEventListener('change', handleToWordSelect);
