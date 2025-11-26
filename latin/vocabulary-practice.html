@@ -884,18 +884,17 @@
         </div>
     </div>
 
-   <!-- JavaScript -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/auth/config.js"></script>
-<script src="/shared/task-tracker.js"></script>
-<script src="../shared/vocabulary-data.js"></script>
-<script src="../shared/navigation.js"></script>
-<script src="../shared/vocabulary-quiz.js"></script>
+    <!-- JavaScript - Supabase and Tracker FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/auth/config.js"></script>
+    <script src="/shared/task-tracker.js"></script>
+    
+    <!-- Then vocabulary scripts -->
+    <script src="../shared/vocabulary-data.js"></script>
+    <script src="../shared/navigation.js"></script>
+    <script src="../shared/vocabulary-quiz.js"></script>
     
     <script>
-        // Setup state (declared in vocabulary-quiz.js)
-        // let selectedChapter, fromIndex, toIndex are already declared in the quiz file
-
         function waitForVocabularyData() {
             return new Promise((resolve) => {
                 const checkData = () => {
@@ -912,7 +911,6 @@
         async function handleChapterSelect() {
             console.log('Chapter select triggered');
             
-            // Wait for vocabulary data to be available
             await waitForVocabularyData();
             
             const chapter = document.getElementById('chapterSelect').value;
@@ -933,7 +931,6 @@
             
             console.log('Chapter words found:', chapterWords.length);
             
-            // Populate from word dropdown
             fromSelect.innerHTML = '<option value="">Select start word</option>';
             chapterWords.forEach((word, index) => {
                 const option = document.createElement('option');
@@ -943,7 +940,6 @@
             });
             fromSelect.disabled = false;
             
-            // Reset to word dropdown
             toSelect.innerHTML = '<option value="">Select end word</option>';
             toSelect.disabled = true;
             document.getElementById('startPracticeBtn').disabled = true;
@@ -966,7 +962,6 @@
             fromIndex = parseInt(fromValue);
             const chapterWords = vocabularyData.filter(word => word.chapter == selectedChapter);
             
-            // Populate to word dropdown (only words after the from word)
             toSelect.innerHTML = '<option value="">Select end word</option>';
             for (let i = fromIndex; i < chapterWords.length; i++) {
                 const word = chapterWords[i];
@@ -998,18 +993,34 @@
             
             console.log('Starting practice with:', selectedChapter, fromIndex, toIndex);
             
+            // Start tracking if this is an assigned task
+            if (typeof taskTracker !== 'undefined') {
+                await taskTracker.start();
+                console.log('Task tracker started, isTracking:', taskTracker.isTracking);
+            }
+            
             const chapterWords = vocabularyData.filter(word => word.chapter == selectedChapter);
             const practiceWords = chapterWords.slice(fromIndex, toIndex + 1);
             
             console.log('Practice words:', practiceWords.length);
             
-            // Initialize the practice with the selected word range
             initializePractice(practiceWords, selectedChapter, fromIndex, toIndex);
             
-            // Show quiz area, hide setup
             document.getElementById('setupPanel').style.display = 'none';
             document.getElementById('quizArea').classList.add('active');
         }
+
+        // Called when practice is complete - sends results to tracker
+        window.onPracticeComplete = async function(percentage, totalQuestions, correctAnswers) {
+            console.log('Practice complete callback:', percentage, totalQuestions, correctAnswers);
+            if (typeof taskTracker !== 'undefined' && taskTracker.isTracking) {
+                console.log('Saving to database...');
+                await taskTracker.complete(percentage, totalQuestions, correctAnswers);
+                console.log('Results saved to database!');
+            } else {
+                console.log('Not tracking - taskTracker:', typeof taskTracker, 'isTracking:', taskTracker ? taskTracker.isTracking : 'N/A');
+            }
+        };
 
         // Modal functions
         function showInfoModal() {
@@ -1020,7 +1031,6 @@
             document.getElementById('infoModal').style.display = 'none';
         }
 
-        // Close modal when clicking outside
         window.onclick = function(event) {
             const modal = document.getElementById('infoModal');
             if (event.target === modal) {
@@ -1028,39 +1038,36 @@
             }
         }
 
-        // Set up event listeners when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, setting up event listeners');
             
-            // Setup event listeners
             document.getElementById('chapterSelect').addEventListener('change', handleChapterSelect);
             document.getElementById('fromWord').addEventListener('change', handleFromWordSelect);
             document.getElementById('toWord').addEventListener('change', handleToWordSelect);
             document.getElementById('startPracticeBtn').addEventListener('click', startPractice);
-            // Check for URL parameters (for assigned tasks)
-const urlParams = new URLSearchParams(window.location.search);
-const urlChapter = urlParams.get('chapter');
-const urlFrom = urlParams.get('from');
-const urlTo = urlParams.get('to');
-
-if (urlChapter && urlFrom !== null && urlTo !== null) {
-    // Auto-fill the dropdowns
-    document.getElementById('chapterSelect').value = urlChapter;
-    handleChapterSelect().then(() => {
-        document.getElementById('fromWord').value = urlFrom;
-        handleFromWordSelect().then(() => {
-            document.getElementById('toWord').value = urlTo;
-            handleToWordSelect();
-        });
-    });
-}
             
-            // Ensure modal stays closed
+            // Check for URL parameters (for assigned tasks)
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlChapter = urlParams.get('chapter');
+            const urlFrom = urlParams.get('from');
+            const urlTo = urlParams.get('to');
+
+            if (urlChapter && urlFrom !== null && urlTo !== null) {
+                document.getElementById('chapterSelect').value = urlChapter;
+                handleChapterSelect().then(() => {
+                    document.getElementById('fromWord').value = urlFrom;
+                    handleFromWordSelect().then(() => {
+                        document.getElementById('toWord').value = urlTo;
+                        handleToWordSelect();
+                    });
+                });
+            }
+            
             document.getElementById('infoModal').style.display = 'none';
             
-            // Check if data is available
             setTimeout(() => {
                 console.log('vocabularyData available:', typeof vocabularyData !== 'undefined');
+                console.log('taskTracker available:', typeof taskTracker !== 'undefined');
                 if (typeof vocabularyData !== 'undefined') {
                     console.log('vocabularyData length:', vocabularyData.length);
                 }
