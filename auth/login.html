@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Classicalia</title>
+    
+    <!-- Supabase JavaScript library (loaded from CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        /* ============================================
+           CLASSICALIA LOGIN PAGE STYLES
+           ============================================ */
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            color: #1a1a2e;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #4a90a4;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #4a90a4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #3a7a8a;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .message.error {
+            background: #fee;
+            color: #c00;
+            border: 1px solid #fcc;
+            display: block;
+        }
+        
+        .message.success {
+            background: #efe;
+            color: #060;
+            border: 1px solid #cfc;
+            display: block;
+        }
+        
+        .links {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .links a {
+            color: #4a90a4;
+            text-decoration: none;
+        }
+        
+        .links a:hover {
+            text-decoration: underline;
+        }
+        
+        .divider {
+            margin: 15px 0;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>Classicalia</h1>
+            <p>Latin Learning Platform</p>
+        </div>
+        
+        <!-- This is where error/success messages appear -->
+        <div id="message" class="message"></div>
+        
+        <!-- The login form -->
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email address</label>
+                <input type="email" id="email" name="email" required placeholder="you@example.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Your password">
+            </div>
+            
+            <button type="submit" class="btn" id="submitBtn">Log in</button>
+        </form>
+        
+        <div class="links">
+            <p>Don't have an account?</p>
+            <p class="divider"><a href="register.html">Create an account</a></p>
+            <p><a href="/">← Back to Classicalia</a></p>
+        </div>
+    </div>
+    
+    <!-- Load our Supabase configuration -->
+    <script src="config.js"></script>
+    <!-- Load our authentication functions -->
+    <script src="auth.js"></script>
+    
+    <script>
+        // ============================================
+        // LOGIN PAGE LOGIC
+        // ============================================
+        
+        const form = document.getElementById('loginForm');
+        const messageDiv = document.getElementById('message');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        // Show a message to the user (error or success)
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = 'message ' + type;
+        }
+        
+        // When the page loads, check if user is already logged in
+        document.addEventListener('DOMContentLoaded', async function() {
+            // If already logged in, redirect to dashboard
+            await redirectIfLoggedIn();
+        });
+        
+        // Handle the login form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault(); // Stop the form from refreshing the page
+            
+            // Get the values from the form
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // Disable the button while we're logging in
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Logging in...';
+            
+            // Try to log in
+            const result = await signIn(email, password);
+            
+            if (result.success) {
+                showMessage('Login successful! Redirecting...', 'success');
+                
+                // Get user profile to check if teacher or student
+                const profile = await getUserProfile();
+                
+                // Wait a moment, then redirect to appropriate dashboard
+                setTimeout(function() {
+                    if (profile && profile.role === 'teacher') {
+                        window.location.href = '/dashboard/teacher.html';
+                    } else {
+                        window.location.href = '/dashboard/student.html';
+                    }
+                }, 1000);
+            } else {
+                // Show the error message
+                showMessage(result.error, 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Log in';
+            }
+        });
+    </script>
+</body>
+</html>
