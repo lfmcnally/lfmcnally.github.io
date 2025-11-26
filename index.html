@@ -8,122 +8,707 @@
     <meta property="og:title" content="Classicalia">
     <meta property="og:description" content="Your comprehensive resource for Latin, Greek, and Classical Civilisation studies with interactive tools and video tutorials.">
     
-    <!-- Supabase -->
+    <!-- Supabase (for auth) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: #f8f9fa; min-height: 100vh; }
-        header { background: transparent; border-bottom: none; }
-        .header-container { max-width: 1400px; margin: 0 auto; padding: 2rem 2rem 1rem 2rem; position: relative; }
-        .header-content { background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%); border-radius: 24px; padding: 2rem 2rem; display: flex; flex-direction: column; align-items: center; gap: 0.75rem; box-shadow: 0 8px 24px rgba(0, 102, 255, 0.2); position: relative; overflow: hidden; }
-        .header-content::before { content: ''; position: absolute; top: -50%; right: -10%; width: 300px; height: 300px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; pointer-events: none; }
-        .header-content::after { content: ''; position: absolute; bottom: -30%; left: -5%; width: 200px; height: 200px; background: rgba(255, 255, 255, 0.08); border-radius: 50%; pointer-events: none; }
-        .logo-icon { width: 60px; height: 60px; background: white; border-radius: 18px; display: flex; align-items: center; justify-content: center; color: #0066ff; font-weight: 700; font-size: 2rem; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1); z-index: 1; }
-        .header-text { text-align: center; z-index: 1; }
-        .header-title { font-size: 2rem; font-weight: 700; color: white; margin-bottom: 0.35rem; letter-spacing: -0.02em; }
-        .header-subtitle { font-size: 1.1rem; color: rgba(255, 255, 255, 0.9); margin-bottom: 0.25rem; font-weight: 400; }
-        .header-author { font-size: 0.85rem; color: rgba(255, 255, 255, 0.75); font-weight: 400; letter-spacing: 0.03em; }
-        .info-btn { position: absolute; right: 2rem; top: 2rem; width: 44px; height: 44px; border-radius: 50%; background: white; border: none; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); z-index: 10; }
-        .info-btn:hover { background: #f8f9fa; transform: scale(1.05); }
-        
-        /* Auth Section */
-        .auth-section { position: absolute; left: 2rem; top: 2rem; z-index: 10; display: flex; align-items: center; gap: 10px; }
-        .auth-btn { padding: 10px 18px; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border: none; }
-        .auth-btn-login { background: white; color: #0066ff; }
-        .auth-btn-login:hover { background: #f0f4ff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
-        .auth-btn-register { background: rgba(255, 255, 255, 0.2); color: white; border: 2px solid rgba(255, 255, 255, 0.4); }
-        .auth-btn-register:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
-        .guest-buttons { display: flex; gap: 10px; }
-        .guest-buttons.hidden { display: none; }
-        
-        /* User Menu */
-        .user-menu { display: none; align-items: center; gap: 8px; }
-        .user-menu.visible { display: flex; }
-        .user-dropdown { position: relative; }
-        .dropdown-toggle { background: white; border: none; padding: 8px 14px 8px 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; font-weight: 500; color: #333; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
-        .dropdown-toggle:hover { background: #f0f4ff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
-        .user-avatar { width: 32px; height: 32px; background: linear-gradient(135deg, #0066ff, #0052cc); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; color: white; font-size: 0.85rem; }
-        .user-name { font-size: 0.9rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .dropdown-arrow { font-size: 0.7rem; color: #666; transition: transform 0.2s; }
-        .dropdown-toggle.open .dropdown-arrow { transform: rotate(180deg); }
-        .dropdown-menu { display: none; position: absolute; top: calc(100% + 8px); right: 0; background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18); min-width: 220px; overflow: hidden; z-index: 100; border: 1px solid #e5e7eb; }
-        .dropdown-menu.open { display: block; animation: dropdownFade 0.2s ease; }
-        @keyframes dropdownFade { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .dropdown-header { padding: 14px 16px; border-bottom: 1px solid #f0f0f0; background: #f9fafb; }
-        .dropdown-header-name { font-weight: 600; color: #333; font-size: 0.95rem; }
-        .dropdown-header-role { font-size: 0.8rem; color: #666; margin-top: 2px; text-transform: capitalize; }
-        .dropdown-item { display: flex; align-items: center; gap: 10px; padding: 12px 16px; color: #333; text-decoration: none; font-size: 0.9rem; transition: background 0.2s; border: none; background: none; width: 100%; text-align: left; cursor: pointer; }
-        .dropdown-item:hover { background: #f5f7ff; }
-        .dropdown-item-icon { font-size: 1.1rem; width: 24px; text-align: center; }
-        .dropdown-divider { height: 1px; background: #f0f0f0; margin: 4px 0; }
-        .dropdown-item.danger { color: #dc2626; }
-        .dropdown-item.danger:hover { background: #fef2f2; }
-        
-        /* Christmas Countdown */
-        .christmas-countdown { position: fixed; right: 24px; top: 20px; background: white; padding: 1.5rem; border-radius: 20px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12); transform: rotate(2deg); z-index: 1000; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 2px solid #f0f0f0; min-width: 140px; }
-        .christmas-countdown:hover { transform: rotate(0deg) translateY(-4px); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15); }
-        .countdown-icon { font-size: 2rem; text-align: center; margin-bottom: 0.75rem; }
-        .countdown-number { font-size: 4rem; font-weight: 900; color: #c41e3a; text-align: center; line-height: 1; margin-bottom: 0.5rem; }
-        .countdown-label { font-size: 0.7rem; color: #6b7280; text-align: center; margin-top: 0.5rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
-        .countdown-subtitle { font-size: 0.8rem; color: #165b33; text-align: center; margin-top: 0.25rem; font-weight: 600; }
-        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            background: transparent;
+            border-bottom: none;
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 2rem 1rem 2rem;
+            position: relative;
+        }
+
+        .header-content {
+            background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+            border-radius: 24px;
+            padding: 2rem 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 8px 24px rgba(0, 102, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-content::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .header-content::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -5%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0066ff;
+            font-weight: 700;
+            font-size: 2rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+        }
+
+        .header-text {
+            text-align: center;
+            z-index: 1;
+        }
+
+        .header-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.35rem;
+            letter-spacing: -0.02em;
+        }
+
+        .header-subtitle {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 0.25rem;
+            font-weight: 400;
+        }
+
+        .header-author {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.75);
+            font-weight: 400;
+            letter-spacing: 0.03em;
+        }
+
+        .info-btn {
+            position: absolute;
+            right: 2rem;
+            top: 2rem;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+
+        .info-btn:hover {
+            background: #f8f9fa;
+            transform: scale(1.05);
+        }
+
+        /* ========== AUTH SECTION STYLES ========== */
+        .auth-section {
+            position: absolute;
+            left: 2rem;
+            top: 2rem;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .auth-btn {
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: none;
+        }
+
+        .auth-btn-login {
+            background: white;
+            color: #0066ff;
+        }
+
+        .auth-btn-login:hover {
+            background: #f0f4ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .auth-btn-register {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+        }
+
+        .auth-btn-register:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .guest-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .guest-buttons.hidden {
+            display: none;
+        }
+
+        .user-menu {
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-menu.visible {
+            display: flex;
+        }
+
+        .user-dropdown {
+            position: relative;
+        }
+
+        .dropdown-toggle {
+            background: white;
+            border: none;
+            padding: 8px 14px 8px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            color: #333;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .dropdown-toggle:hover {
+            background: #f0f4ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #0066ff, #0052cc);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+            font-size: 0.85rem;
+        }
+
+        .user-name-display {
+            font-size: 0.9rem;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .dropdown-arrow {
+            font-size: 0.7rem;
+            color: #666;
+            transition: transform 0.2s;
+        }
+
+        .dropdown-toggle.open .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+            min-width: 220px;
+            overflow: hidden;
+            z-index: 100;
+            border: 1px solid #e5e7eb;
+        }
+
+        .dropdown-menu.open {
+            display: block;
+            animation: dropdownFade 0.2s ease;
+        }
+
+        @keyframes dropdownFade {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .dropdown-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            background: #f9fafb;
+        }
+
+        .dropdown-header-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .dropdown-header-role {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 2px;
+            text-transform: capitalize;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            color: #333;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+            background: #f5f7ff;
+        }
+
+        .dropdown-item-icon {
+            font-size: 1.1rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: #f0f0f0;
+            margin: 4px 0;
+        }
+
+        .dropdown-item.danger {
+            color: #dc2626;
+        }
+
+        .dropdown-item.danger:hover {
+            background: #fef2f2;
+        }
+        /* ========== END AUTH STYLES ========== */
+
+        /* Christmas Countdown Sticker */
+        .christmas-countdown {
+            position: fixed;
+            right: 24px;
+            top: 20px;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+            transform: rotate(2deg);
+            z-index: 1000;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid #f0f0f0;
+            min-width: 140px;
+        }
+
+        .christmas-countdown:hover {
+            transform: rotate(0deg) translateY(-4px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+        }
+
+        .countdown-icon {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 0.75rem;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        .countdown-number {
+            font-size: 4rem;
+            font-weight: 900;
+            color: #c41e3a;
+            text-align: center;
+            line-height: 1;
+            letter-spacing: -0.02em;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            margin-bottom: 0.5rem;
+        }
+
+        .countdown-label {
+            font-size: 0.7rem;
+            color: #6b7280;
+            text-align: center;
+            margin-top: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+        }
+
+        .countdown-subtitle {
+            font-size: 0.8rem;
+            color: #165b33;
+            text-align: center;
+            margin-top: 0.25rem;
+            font-weight: 600;
+        }
+
         /* Main Container */
-        .main-container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
-        .dashboard-grid { display: grid; grid-template-columns: 180px 1fr 300px; gap: 2rem; align-items: start; }
-        .left-sidebar { display: flex; flex-direction: column; gap: 2rem; }
-        .nav-section { margin-bottom: 0; }
-        .nav-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; margin-bottom: 0.5rem; font-weight: 600; }
-        .nav-link { display: block; padding: 0.5rem 0; color: #4b5563; text-decoration: none; font-size: 0.9rem; transition: color 0.2s ease; }
-        .nav-link:hover { color: #0066ff; }
-        .main-content { display: flex; flex-direction: column; gap: 1.5rem; }
-        .card { background: white; border-radius: 16px; border: 1px solid #e5e7eb; overflow: hidden; }
-        .card-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid #f3f4f6; }
-        .card-title { font-size: 1.25rem; font-weight: 600; color: #1f2937; }
-        .card-body { padding: 1.5rem; }
-        
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 180px 1fr 300px;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        /* Left Sidebar */
+        .left-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .nav-section {
+            margin-bottom: 0;
+        }
+
+        .nav-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9ca3af;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 0.5rem 0;
+            color: #4b5563;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: #0066ff;
+        }
+
+        /* Main Content */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
         /* Subject Cards */
-        .subjects-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-        .subject-card { background: #f9fafb; border: 1px solid #f3f4f6; border-radius: 12px; padding: 1.25rem; transition: all 0.2s ease; cursor: pointer; display: flex; align-items: start; gap: 1rem; }
-        .subject-card:hover { background: #f3f4f6; transform: translateY(-2px); }
-        .subject-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; flex-shrink: 0; }
+        .subjects-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .subject-card {
+            background: #f9fafb;
+            border: 1px solid #f3f4f6;
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: start;
+            gap: 1rem;
+        }
+
+        .subject-card:hover {
+            background: #f3f4f6;
+            transform: translateY(-2px);
+        }
+
+        .subject-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            flex-shrink: 0;
+        }
+
         .latin-icon { background: #fce4ec; }
         .greek-icon { background: #e8f5e9; }
         .civ-icon { background: #e3f2fd; }
         .english-icon { background: #fff3e0; }
-        .subject-info { flex: 1; min-width: 0; }
-        .subject-name { font-weight: 600; color: #1f2937; margin-bottom: 0.5rem; }
-        .subject-links { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-        .subject-link { font-size: 0.75rem; color: #6b7280; text-decoration: none; padding: 0.25rem 0.6rem; background: white; border: 1px solid #e5e7eb; border-radius: 6px; transition: all 0.2s ease; }
-        .subject-link:hover { border-color: #0066ff; color: #0066ff; }
-        
+
+        .subject-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .subject-name {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .subject-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .subject-link {
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-decoration: none;
+            padding: 0.25rem 0.6rem;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .subject-link:hover {
+            border-color: #0066ff;
+            color: #0066ff;
+        }
+
         /* Stats */
-        .stats-section { background: #f9fafb; padding: 1.5rem; border-top: 1px solid #f3f4f6; }
-        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; text-align: center; }
-        .stat-number { font-size: 2rem; font-weight: 700; color: #0066ff; }
-        .stat-label { font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem; }
-        
+        .stats-section {
+            background: #f9fafb;
+            padding: 1.5rem;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0066ff;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+
         /* Reviews */
-        .review-content { background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%); border: 1px solid #f3f4f6; border-radius: 12px; padding: 1.5rem; min-height: 200px; }
-        .review-card { display: none; }
-        .review-card.active { display: block; }
-        .review-text { font-size: 1.05rem; line-height: 1.6; color: #4b5563; font-style: italic; margin-bottom: 1.5rem; }
-        .review-author { border-top: 1px solid #e5e7eb; padding-top: 1rem; }
-        .review-name { font-weight: 600; color: #0066ff; }
-        .review-role { font-size: 0.875rem; color: #6b7280; margin-top: 0.25rem; }
-        .carousel-controls { display: flex; align-items: center; justify-content: center; gap: 2rem; margin-top: 1.5rem; }
-        .carousel-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(0, 102, 255, 0.1); border: 1px solid rgba(0, 102, 255, 0.2); color: #0066ff; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; }
-        .carousel-btn:hover { background: #0066ff; color: white; }
-        .carousel-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-        .carousel-dots { display: flex; gap: 0.5rem; }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(0, 102, 255, 0.3); cursor: pointer; transition: all 0.2s ease; }
-        .dot.active { background: #0066ff; width: 24px; border-radius: 4px; }
-        
+        .review-content {
+            background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+            border: 1px solid #f3f4f6;
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-height: 200px;
+        }
+
+        .review-card {
+            display: none;
+        }
+
+        .review-card.active {
+            display: block;
+        }
+
+        .review-text {
+            font-size: 1.05rem;
+            line-height: 1.6;
+            color: #4b5563;
+            font-style: italic;
+            margin-bottom: 1.5rem;
+        }
+
+        .review-author {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 1rem;
+        }
+
+        .review-name {
+            font-weight: 600;
+            color: #0066ff;
+        }
+
+        .review-role {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .carousel-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        .carousel-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0, 102, 255, 0.1);
+            border: 1px solid rgba(0, 102, 255, 0.2);
+            color: #0066ff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .carousel-btn:hover {
+            background: #0066ff;
+            color: white;
+        }
+
+        .carousel-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .carousel-dots {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(0, 102, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .dot.active {
+            background: #0066ff;
+            width: 24px;
+            border-radius: 4px;
+        }
+
         /* Tools Grid */
-        .tools-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-        .tool-card { background: #f9fafb; border: 1px solid #f3f4f6; border-radius: 12px; padding: 1.25rem; text-align: center; transition: all 0.2s ease; cursor: pointer; }
-        .tool-card:hover { background: #f3f4f6; transform: translateY(-2px); border-color: #0066ff; }
-        .tool-icon { width: 48px; height: 48px; margin: 0 auto 0.75rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .tool-card {
+            background: #f9fafb;
+            border: 1px solid #f3f4f6;
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .tool-card:hover {
+            background: #f3f4f6;
+            transform: translateY(-2px);
+            border-color: #0066ff;
+        }
+
+        .tool-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 0.75rem;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
         .timer-icon { background: #fef3e2; }
         .seating-icon { background: #e8f5e9; }
         .noise-icon { background: #ffe8e8; }
@@ -131,70 +716,325 @@
         .quiz-icon { background: #f3e5f5; }
         .flashcard-icon { background: #fff3e0; }
         .visualiser-icon { background: #e1f5fe; }
-        .tool-name { font-size: 0.95rem; font-weight: 600; color: #1f2937; margin-bottom: 0.25rem; }
-        .tool-description { font-size: 0.75rem; color: #9ca3af; }
-        
+
+        .tool-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+
+        .tool-description {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
         /* Right Sidebar */
-        .right-sidebar { display: flex; flex-direction: column; gap: 1.5rem; }
-        .widget { background: white; border-radius: 16px; border: 1px solid #e5e7eb; padding: 1.5rem; }
-        .widget h3 { font-size: 1.05rem; font-weight: 600; color: #1f2937; margin-bottom: 1rem; }
-        .history-event { padding: 0.75rem 0; border-bottom: 1px solid #f3f4f6; }
-        .history-event:last-child { border-bottom: none; }
-        .event-year { font-weight: 600; color: #0066ff; font-size: 0.85rem; }
-        .event-text { color: #6b7280; font-size: 0.85rem; line-height: 1.4; margin-top: 0.25rem; }
-        .latin-quote { color: #0066ff; font-style: italic; font-size: 1rem; line-height: 1.5; margin-bottom: 0.5rem; font-family: Georgia, serif; }
-        .quote-translation { color: #6b7280; font-size: 0.85rem; line-height: 1.4; margin-bottom: 0.75rem; }
-        .quote-attribution { font-size: 0.8rem; color: #9ca3af; text-align: right; border-top: 1px solid #f3f4f6; padding-top: 0.5rem; margin-top: 0.5rem; }
-        .quote-author { font-weight: 600; color: #0066ff; }
-        .widget p { color: #6b7280; line-height: 1.5; font-size: 0.9rem; }
-        .widget p + p { margin-top: 0.75rem; }
-        
+        .right-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .widget {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            padding: 1.5rem;
+        }
+
+        .widget h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .history-event {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .history-event:last-child {
+            border-bottom: none;
+        }
+
+        .event-year {
+            font-weight: 600;
+            color: #0066ff;
+            font-size: 0.85rem;
+        }
+
+        .event-text {
+            color: #6b7280;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            margin-top: 0.25rem;
+        }
+
+        .latin-quote {
+            color: #0066ff;
+            font-style: italic;
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+            font-family: Georgia, serif;
+        }
+
+        .quote-translation {
+            color: #6b7280;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            margin-bottom: 0.75rem;
+        }
+
+        .quote-attribution {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            text-align: right;
+            border-top: 1px solid #f3f4f6;
+            padding-top: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .quote-author {
+            font-weight: 600;
+            color: #0066ff;
+        }
+
+        .widget p {
+            color: #6b7280;
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+
+        .widget p + p {
+            margin-top: 0.75rem;
+        }
+
         /* Modal */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
-        .modal-content { background-color: white; margin: 3% auto; padding: 0; border-radius: 16px; width: 90%; max-width: 900px; position: relative; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
-        .modal-header { padding: 1.5rem 2rem 1rem 2rem; }
-        .modal-header h2 { margin: 0; font-size: 1.8rem; font-weight: 700; color: #333; }
-        .modal-body { display: flex; gap: 2rem; padding: 1rem 2rem; align-items: flex-start; }
-        .modal-text { flex: 2; }
-        .modal-text p { margin: 0 0 1rem 0; line-height: 1.5; color: #555; font-size: 0.9rem; }
-        .modal-image img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 3px solid #e0e0e0; }
-        .modal-footer { padding: 1.5rem 2rem; border-top: 1px solid #f0f0f0; background-color: #fafafa; border-radius: 0 0 16px 16px; }
-        .contact-items { display: flex; gap: 1rem; flex-wrap: wrap; }
-        .contact-item { flex: 1; min-width: 200px; display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: white; border-radius: 8px; border: 1px solid #e5e5e5; }
-        .contact-item a { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: inherit; width: 100%; }
-        .contact-icon { font-size: 1.2rem; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border-radius: 50%; }
-        .contact-label { font-weight: 600; color: #333; font-size: 0.85rem; }
-        .contact-value { color: #666; font-size: 0.8rem; }
-        .modal-signature { text-align: center; margin-top: 1rem; }
-        .modal-signature p { margin: 0.25rem 0; color: #777; font-size: 0.9rem; }
-        .close { position: absolute; right: 20px; top: 20px; font-size: 24px; font-weight: bold; cursor: pointer; background: none; border: none; color: #aaa; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-        .close:hover { color: #333; background-color: #f0f0f0; }
-        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 3% auto;
+            padding: 0;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 900px;
+            position: relative;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .modal-header {
+            padding: 1.5rem 2rem 1rem 2rem;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .modal-body {
+            display: flex;
+            gap: 2rem;
+            padding: 1rem 2rem;
+            align-items: flex-start;
+        }
+
+        .modal-text {
+            flex: 2;
+        }
+
+        .modal-text p {
+            margin: 0 0 1rem 0;
+            line-height: 1.5;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .modal-image img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #e0e0e0;
+        }
+
+        .modal-footer {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #f0f0f0;
+            background-color: #fafafa;
+            border-radius: 0 0 16px 16px;
+        }
+
+        .contact-items {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .contact-item {
+            flex: 1;
+            min-width: 200px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e5e5;
+        }
+
+        .contact-item a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: inherit;
+            width: 100%;
+        }
+
+        .contact-icon {
+            font-size: 1.2rem;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border-radius: 50%;
+        }
+
+        .contact-label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.85rem;
+        }
+
+        .contact-value {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        .modal-signature {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .modal-signature p {
+            margin: 0.25rem 0;
+            color: #777;
+            font-size: 0.9rem;
+        }
+
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #aaa;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close:hover {
+            color: #333;
+            background-color: #f0f0f0;
+        }
+
         /* Responsive */
         @media (max-width: 1200px) {
-            .dashboard-grid { grid-template-columns: 1fr; }
-            .left-sidebar { flex-direction: row; gap: 2rem; flex-wrap: wrap; }
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .left-sidebar {
+                flex-direction: row;
+                gap: 2rem;
+                flex-wrap: wrap;
+            }
         }
+
         @media (max-width: 768px) {
-            .christmas-countdown { right: 12px; top: 15px; padding: 1.25rem; transform: rotate(1.5deg); min-width: 120px; }
-            .countdown-number { font-size: 3rem; }
-            .countdown-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
-            .subjects-grid { grid-template-columns: 1fr; }
-            .tools-grid { grid-template-columns: repeat(2, 1fr); }
-            .modal-body { flex-direction: column; align-items: center; }
-            .auth-section { left: 1rem; top: 1rem; }
-            .auth-btn { padding: 8px 12px; font-size: 0.8rem; }
-            .user-name { display: none; }
-            .dropdown-toggle { padding: 6px 10px 6px 6px; }
+            .christmas-countdown {
+                right: 12px;
+                top: 15px;
+                padding: 1.25rem;
+                transform: rotate(1.5deg);
+                min-width: 120px;
+            }
+            
+            .countdown-number {
+                font-size: 3rem;
+            }
+            
+            .countdown-icon {
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .subjects-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tools-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .modal-body {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .auth-section {
+                left: 1rem;
+                top: 1rem;
+            }
+            
+            .auth-btn {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+            
+            .user-name-display {
+                display: none;
+            }
+            
+            .dropdown-toggle {
+                padding: 6px 10px 6px 6px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- Christmas Countdown -->
+    <!-- Christmas Countdown Sticker -->
     <div class="christmas-countdown" onclick="alert('Christmas Update Coming December 1st, 2025!')">
         <div class="countdown-icon">🎄</div>
-        <div class="countdown-number" id="countdown-days">5</div>
+        <div class="countdown-number" id="countdown-days">374</div>
         <div class="countdown-label">Days Until</div>
         <div class="countdown-subtitle">Christmas Update</div>
     </div>
@@ -204,7 +1044,7 @@
         <div class="header-container">
             <div class="header-content">
                 
-                <!-- Auth Section -->
+                <!-- ========== AUTH SECTION ========== -->
                 <div class="auth-section">
                     <!-- Guest buttons (shown when NOT logged in) -->
                     <div class="guest-buttons" id="guestButtons">
@@ -217,7 +1057,7 @@
                         <div class="user-dropdown">
                             <button class="dropdown-toggle" id="dropdownToggle">
                                 <span class="user-avatar" id="userAvatar">?</span>
-                                <span class="user-name" id="userName">User</span>
+                                <span class="user-name-display" id="userName">User</span>
                                 <span class="dropdown-arrow">▼</span>
                             </button>
                             <div class="dropdown-menu" id="dropdownMenu">
@@ -238,6 +1078,7 @@
                         </div>
                     </div>
                 </div>
+                <!-- ========== END AUTH SECTION ========== -->
                 
                 <div class="logo-icon">C</div>
                 <div class="header-text">
@@ -301,6 +1142,7 @@
                     
                     <div class="card-body">
                         <div class="subjects-grid">
+                            
                             <div class="subject-card" onclick="window.location.href='latin/courses/index.html'">
                                 <div class="subject-icon latin-icon">🏛️</div>
                                 <div class="subject-info">
@@ -347,9 +1189,11 @@
                                     </div>
                                 </div>
                             </div>
+
                         </div>
                     </div>
 
+                    <!-- Stats -->
                     <div class="stats-section">
                         <div class="stats-grid">
                             <div>
@@ -373,8 +1217,12 @@
                     <div class="card-header">
                         <h2 class="card-title">What People Are Saying</h2>
                     </div>
+                    
                     <div class="card-body">
-                        <div class="review-content" id="reviewsCarousel"></div>
+                        <div class="review-content" id="reviewsCarousel">
+                            <!-- Reviews will be loaded here -->
+                        </div>
+
                         <div class="carousel-controls">
                             <button class="carousel-btn" onclick="previousReview()" id="prevBtn">‹</button>
                             <div class="carousel-dots" id="carouselDots"></div>
@@ -388,64 +1236,86 @@
                     <div class="card-header">
                         <h2 class="card-title">Resources & Tools</h2>
                     </div>
+                    
                     <div class="card-body">
                         <div class="tools-grid">
+                            
                             <div class="tool-card" onclick="window.location.href='tools/timer.html'">
                                 <div class="tool-icon timer-icon">⏱️</div>
                                 <div class="tool-name">Class Timer</div>
                                 <div class="tool-description">Countdown timer for activities</div>
                             </div>
+
                             <div class="tool-card" onclick="window.location.href='tools/seating.html'">
                                 <div class="tool-icon seating-icon">🪑</div>
                                 <div class="tool-name">Seating Plan</div>
                                 <div class="tool-description">Random seating generator</div>
                             </div>
+
                             <div class="tool-card" onclick="window.location.href='tools/noise.html'">
                                 <div class="tool-icon noise-icon">🔊</div>
                                 <div class="tool-name">Noise Level</div>
                                 <div class="tool-description">Classroom noise monitor</div>
                             </div>
+
                             <div class="tool-card" onclick="window.location.href='tools/randomizer.html'">
                                 <div class="tool-icon randomizer-icon">🎲</div>
                                 <div class="tool-name">Name Picker</div>
                                 <div class="tool-description">Random student selector</div>
                             </div>
+
                             <div class="tool-card" onclick="window.location.href='tools/quiz.html'">
                                 <div class="tool-icon quiz-icon">❓</div>
                                 <div class="tool-name">Quick Quiz</div>
                                 <div class="tool-description">Interactive quiz creator</div>
                             </div>
+
                             <div class="tool-card" onclick="window.location.href='tools/flashcards.html'">
                                 <div class="tool-icon flashcard-icon">📋</div>
                                 <div class="tool-name">Flashcards</div>
                                 <div class="tool-description">Digital flashcard maker</div>
                             </div>
+
                             <div class="tool-card" onclick="window.location.href='tools/visualiser.html'">
                                 <div class="tool-icon visualiser-icon">📷</div>
                                 <div class="tool-name">Visualiser</div>
                                 <div class="tool-description">Document camera display</div>
                             </div>
+
                         </div>
                     </div>
                 </div>
+
             </main>
 
             <!-- Right Sidebar -->
             <aside class="right-sidebar">
+                
+                <!-- Today's Connections -->
                 <div class="widget" style="cursor: pointer; border: 2px solid #0066ff;" onclick="window.location.href='games/connections/connections.html'">
                     <div style="text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: 700; color: #0066ff; margin-bottom: 0.5rem; font-family: Georgia, serif;">Connexiones</div>
-                        <div style="font-size: 0.85rem; color: #6b7280;">Latin & Classics word puzzle</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #0066ff; margin-bottom: 0.5rem; font-family: Georgia, serif;">
+                            Connexiones
+                        </div>
+                        <div style="font-size: 0.85rem; color: #6b7280;">
+                            Latin & Classics word puzzle
+                        </div>
                     </div>
                 </div>
                 
+                <!-- Today's Date in Roman Numerals -->
                 <div class="widget">
                     <div id="roman-date" style="text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: 700; color: #0066ff; margin-bottom: 0.5rem; font-family: Georgia, serif;" id="roman-date-display">Loading...</div>
-                        <div style="font-size: 0.85rem; color: #6b7280;" id="roman-date-translation">Loading...</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: #0066ff; margin-bottom: 0.5rem; font-family: Georgia, serif;" id="roman-date-display">
+                            Loading...
+                        </div>
+                        <div style="font-size: 0.85rem; color: #6b7280;" id="roman-date-translation">
+                            Loading...
+                        </div>
                     </div>
                 </div>
 
+                <!-- Today in History -->
                 <div class="widget">
                     <h3>Today in Ancient History</h3>
                     <div id="history-events">
@@ -456,6 +1326,7 @@
                     </div>
                 </div>
 
+                <!-- Latin Quote -->
                 <div class="widget">
                     <h3>Latin Quote of the Day</h3>
                     <div id="quote-content">
@@ -468,12 +1339,15 @@
                     </div>
                 </div>
 
+                <!-- About -->
                 <div class="widget">
                     <h3>About This Project</h3>
                     <p>Classicalia is designed to make learning Classics more accessible and engaging.</p>
                     <p>All tools are free to use and designed with students and teachers in mind.</p>
                 </div>
+
             </aside>
+
         </div>
     </div>
 
@@ -481,23 +1355,70 @@
     <div id="infoModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeInfoModal()">&times;</span>
-            <div class="modal-header"><h2>salve! 👋</h2></div>
+            
+            <div class="modal-header">
+                <h2>salve! 👋</h2>
+            </div>
+            
             <div class="modal-body">
                 <div class="modal-text">
                     <p>Thank you for checking out Classicalia! I'm Lawrence and I teach Latin and Classics in Bristol.</p>
+                    
                     <p>I have a BA in Ancient History from King's College London, a PGCE in Latin with Classics from the University of Cambridge and an MEd (Transforming Practice) from Darwin College, Cambridge. I am particularly interested in Tacitean studies and the history of memory in classical antiquity. In 2021 I won the Classical Association's 'Outstanding New Teacher' award.</p>
+                    
                     <p>I also enjoy creating teacher guides and student workbooks. Please feel free to use my resources!</p>
+                    
                     <p>If you have any feedback, thoughts or questions, please don't hesitate to get in touch!</p>
                 </div>
-                <div class="modal-image"><img src="images/lmc.jpg" alt="Lawrence McNally"></div>
+                
+                <div class="modal-image">
+                    <img src="images/lmc.jpg" alt="Lawrence McNally">
+                </div>
             </div>
+            
             <div class="modal-footer">
                 <div class="contact-items">
-                    <div class="contact-item"><a href="https://twitter.com/lfmcnally" target="_blank"><div class="contact-icon">🐦</div><div><div class="contact-label">Twitter</div><div class="contact-value">@lfmcnally</div></div></a></div>
-                    <div class="contact-item"><a href="https://www.tiktok.com/@classicalcivilisation" target="_blank"><div class="contact-icon">🎵</div><div><div class="contact-label">TikTok</div><div class="contact-value">@classicalcivilisation</div></div></a></div>
-                    <div class="contact-item"><a href="https://www.linkedin.com/in/lawrence-mcnally-318651116/" target="_blank"><div class="contact-icon">💼</div><div><div class="contact-label">LinkedIn</div><div class="contact-value">Lawrence McNally</div></div></a></div>
-                    <div class="contact-item"><a href="https://buymeacoffee.com/lfmcnally" target="_blank"><div class="contact-icon">☕</div><div><div class="contact-label">Buy me a coffee</div><div class="contact-value">@lfmcnally</div></div></a></div>
+                    <div class="contact-item">
+                        <a href="https://twitter.com/lfmcnally" target="_blank">
+                            <div class="contact-icon">🐦</div>
+                            <div>
+                                <div class="contact-label">Twitter</div>
+                                <div class="contact-value">@lfmcnally</div>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <a href="https://www.tiktok.com/@classicalcivilisation" target="_blank">
+                            <div class="contact-icon">🎵</div>
+                            <div>
+                                <div class="contact-label">TikTok</div>
+                                <div class="contact-value">@classicalcivilisation</div>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <a href="https://www.linkedin.com/in/lawrence-mcnally-318651116/" target="_blank">
+                            <div class="contact-icon">💼</div>
+                            <div>
+                                <div class="contact-label">LinkedIn</div>
+                                <div class="contact-value">Lawrence McNally</div>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <a href="https://buymeacoffee.com/lfmcnally" target="_blank">
+                            <div class="contact-icon">☕</div>
+                            <div>
+                                <div class="contact-label">Buy me a coffee</div>
+                                <div class="contact-value">@lfmcnally</div>
+                            </div>
+                        </a>
+                    </div>
                 </div>
+                
                 <div class="modal-signature">
                     <p>An open-source project made with ❤️</p>
                     <p><strong>-Lawrence</strong></p>
@@ -513,11 +1434,19 @@
     <script src="latin-quotes.js"></script>
     
     <script>
-        // Initialize Supabase
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // ========== AUTH SYSTEM ==========
+        // Initialize Supabase (only if config is loaded)
+        let supabase = null;
+        if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
         
-        // ============ AUTH MANAGEMENT ============
         async function checkAuth() {
+            if (!supabase) {
+                showGuestButtons();
+                return;
+            }
+            
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 
@@ -576,6 +1505,7 @@
             document.getElementById('dropdownMenu').classList.toggle('open');
         });
         
+        // Close dropdown when clicking outside
         document.addEventListener('click', function(e) {
             if (!e.target.closest('.user-dropdown')) {
                 document.getElementById('dropdownToggle').classList.remove('open');
@@ -583,41 +1513,61 @@
             }
         });
         
+        // Logout
         document.getElementById('logoutBtn').addEventListener('click', async function() {
-            await supabase.auth.signOut();
+            if (supabase) {
+                await supabase.auth.signOut();
+            }
             showGuestButtons();
             document.getElementById('dropdownMenu').classList.remove('open');
         });
-        
-        // ============ COUNTDOWN ============
+        // ========== END AUTH SYSTEM ==========
+
+        // Countdown Calculator
         function updateCountdown() {
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            const updateDate = new Date(2025, 11, 1);
+            const updateDate = new Date(2025, 11, 1); // December 1, 2025 (month is 0-indexed, so 11 = December)
+            
+            // Calculate difference in milliseconds
             const diffTime = updateDate - today;
+            // Convert to days
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            document.getElementById('countdown-days').innerHTML = diffDays >= 0 ? String(diffDays) : '0';
+            
+            const countdownElement = document.getElementById('countdown-days');
+            if (countdownElement) {
+                countdownElement.innerHTML = diffDays >= 0 ? String(diffDays) : '0';
+            }
         }
 
-        // ============ REVIEWS CAROUSEL ============
+        // Reviews Carousel
         let currentReviewIndex = 0;
         let totalReviews = 0;
 
         function initializeReviews() {
             if (typeof getReviews !== 'function') return;
+            
             const reviews = getReviews();
             totalReviews = getTotalReviews();
+            
             if (totalReviews === 0) return;
 
             const carousel = document.getElementById('reviewsCarousel');
             const dotsContainer = document.getElementById('carouselDots');
+            
             carousel.innerHTML = '';
             dotsContainer.innerHTML = '';
             
             reviews.forEach((review, index) => {
                 const reviewCard = document.createElement('div');
                 reviewCard.className = `review-card ${index === 0 ? 'active' : ''}`;
-                reviewCard.innerHTML = `<div class="review-text">"${review.text}"</div><div class="review-author"><div class="review-name">${review.name}</div><div class="review-role">${review.role}</div></div>`;
+                reviewCard.innerHTML = `
+                    <div class="review-text">"${review.text}"</div>
+                    <div class="review-author">
+                        <div class="review-name">${review.name}</div>
+                        <div class="review-role">${review.role}</div>
+                    </div>
+                `;
                 carousel.appendChild(reviewCard);
                 
                 const dot = document.createElement('span');
@@ -625,76 +1575,175 @@
                 dot.onclick = () => currentReview(index);
                 dotsContainer.appendChild(dot);
             });
+            
             updateCarouselButtons();
         }
 
         function showReview(index) {
-            document.querySelectorAll('.review-card').forEach(card => card.classList.remove('active'));
-            document.querySelectorAll('.dot').forEach(dot => dot.classList.remove('active'));
-            document.querySelectorAll('.review-card')[index]?.classList.add('active');
-            document.querySelectorAll('.dot')[index]?.classList.add('active');
+            const cards = document.querySelectorAll('.review-card');
+            const dots = document.querySelectorAll('.dot');
+            
+            cards.forEach(card => card.classList.remove('active'));
+            dots.forEach(dot => dot.classList.remove('active'));
+            
+            if (cards[index]) cards[index].classList.add('active');
+            if (dots[index]) dots[index].classList.add('active');
+            
             updateCarouselButtons();
         }
 
-        function nextReview() { if (currentReviewIndex < totalReviews - 1) { currentReviewIndex++; showReview(currentReviewIndex); } }
-        function previousReview() { if (currentReviewIndex > 0) { currentReviewIndex--; showReview(currentReviewIndex); } }
-        function currentReview(index) { currentReviewIndex = index; showReview(currentReviewIndex); }
-        function updateCarouselButtons() {
-            document.getElementById('prevBtn').disabled = currentReviewIndex === 0;
-            document.getElementById('nextBtn').disabled = currentReviewIndex === totalReviews - 1;
+        function nextReview() {
+            if (currentReviewIndex < totalReviews - 1) {
+                currentReviewIndex++;
+                showReview(currentReviewIndex);
+            }
         }
 
-        // ============ HISTORY & QUOTES ============
+        function previousReview() {
+            if (currentReviewIndex > 0) {
+                currentReviewIndex--;
+                showReview(currentReviewIndex);
+            }
+        }
+
+        function currentReview(index) {
+            currentReviewIndex = index;
+            showReview(currentReviewIndex);
+        }
+
+        function updateCarouselButtons() {
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            if (prevBtn) prevBtn.disabled = currentReviewIndex === 0;
+            if (nextBtn) nextBtn.disabled = currentReviewIndex === totalReviews - 1;
+        }
+
+        // Today in History
         function loadHistory() {
             const eventsContainer = document.getElementById('history-events');
+            
             if (typeof getTodayInHistory === 'function') {
                 const events = getTodayInHistory();
+                
                 if (events && events.length > 0) {
-                    eventsContainer.innerHTML = events.map(e => `<div class="history-event"><div class="event-year">${e.year}</div><div class="event-text">${e.event}</div></div>`).join('');
+                    let html = '';
+                    events.forEach(event => {
+                        html += `<div class="history-event">
+                            <div class="event-year">${event.year}</div>
+                            <div class="event-text">${event.event}</div>
+                        </div>`;
+                    });
+                    eventsContainer.innerHTML = html;
                 } else {
-                    eventsContainer.innerHTML = '<p style="text-align: center; color: #9ca3af;">No recorded events for today</p>';
+                    eventsContainer.innerHTML = '<p style="text-align: center; color: #9ca3af; font-size: 0.9rem;">No recorded events for today</p>';
                 }
             }
         }
 
+        // Latin Quote
         function loadQuote() {
+            const quoteContainer = document.getElementById('quote-content');
+            
             if (typeof getTodayQuote === 'function') {
                 const quote = getTodayQuote();
+                
                 if (quote) {
-                    document.getElementById('quote-content').innerHTML = `<div class="latin-quote">"${quote.quote}"</div><div class="quote-translation">"${quote.translation}"</div><div class="quote-attribution"><span class="quote-author">— ${quote.author}</span><br><span style="font-style: italic; color: #9ca3af; font-size: 0.75rem;">${quote.source}</span></div>`;
+                    quoteContainer.innerHTML = `
+                        <div class="latin-quote">"${quote.quote}"</div>
+                        <div class="quote-translation">"${quote.translation}"</div>
+                        <div class="quote-attribution">
+                            <span class="quote-author">— ${quote.author}</span><br>
+                            <span style="font-style: italic; color: #9ca3af; font-size: 0.75rem;">${quote.source}</span>
+                        </div>
+                    `;
                 }
             }
         }
 
+        // Visit Counter
         function loadVisitCounter() {
             fetch('https://api.counterapi.dev/v1/classicalia/visits/up')
-                .then(r => r.json())
-                .then(data => document.getElementById('visit-counter').innerText = data.count.toLocaleString())
-                .catch(() => document.getElementById('visit-counter').innerText = '12,847');
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('visit-counter').innerText = data.count.toLocaleString();
+                })
+                .catch(() => {
+                    document.getElementById('visit-counter').innerText = '12,847';
+                });
         }
 
-        // ============ ROMAN DATE ============
+        // Roman Date Converter
         function convertToRoman(num) {
-            const numerals = [{v:1000,n:'M'},{v:900,n:'CM'},{v:500,n:'D'},{v:400,n:'CD'},{v:100,n:'C'},{v:90,n:'XC'},{v:50,n:'L'},{v:40,n:'XL'},{v:10,n:'X'},{v:9,n:'IX'},{v:5,n:'V'},{v:4,n:'IV'},{v:1,n:'I'}];
+            const romanNumerals = [
+                { value: 1000, numeral: 'M' },
+                { value: 900, numeral: 'CM' },
+                { value: 500, numeral: 'D' },
+                { value: 400, numeral: 'CD' },
+                { value: 100, numeral: 'C' },
+                { value: 90, numeral: 'XC' },
+                { value: 50, numeral: 'L' },
+                { value: 40, numeral: 'XL' },
+                { value: 10, numeral: 'X' },
+                { value: 9, numeral: 'IX' },
+                { value: 5, numeral: 'V' },
+                { value: 4, numeral: 'IV' },
+                { value: 1, numeral: 'I' }
+            ];
+            
             let result = '';
-            for (let i = 0; i < numerals.length; i++) { while (num >= numerals[i].v) { result += numerals[i].n; num -= numerals[i].v; } }
+            for (let i = 0; i < romanNumerals.length; i++) {
+                while (num >= romanNumerals[i].value) {
+                    result += romanNumerals[i].numeral;
+                    num -= romanNumerals[i].value;
+                }
+            }
             return result;
         }
 
         function loadRomanDate() {
             const today = new Date();
-            const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-            const monthsLatin = ['Ianuarii','Februarii','Martii','Aprilis','Maii','Iunii','Iulii','Augusti','Septembris','Octobris','Novembris','Decembris'];
-            document.getElementById('roman-date-display').textContent = `${convertToRoman(today.getDate())} ${monthsLatin[today.getMonth()]} ${convertToRoman(today.getFullYear())}`;
-            document.getElementById('roman-date-translation').textContent = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+            const day = today.getDate();
+            const month = today.getMonth();
+            const year = today.getFullYear();
+            
+            const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            
+            const monthsLatin = [
+                'Ianuarii', 'Februarii', 'Martii', 'Aprilis', 'Maii', 'Iunii',
+                'Iulii', 'Augusti', 'Septembris', 'Octobris', 'Novembris', 'Decembris'
+            ];
+            
+            const romanDay = convertToRoman(day);
+            const romanYear = convertToRoman(year);
+            
+            const romanDate = `${romanDay} ${monthsLatin[month]} ${romanYear}`;
+            const translation = `${day} ${months[month]} ${year}`;
+            
+            document.getElementById('roman-date-display').textContent = romanDate;
+            document.getElementById('roman-date-translation').textContent = translation;
         }
 
-        // ============ MODAL ============
-        function showInfoModal() { document.getElementById('infoModal').style.display = 'block'; }
-        function closeInfoModal() { document.getElementById('infoModal').style.display = 'none'; }
-        window.addEventListener('click', function(e) { if (e.target === document.getElementById('infoModal')) closeInfoModal(); });
+        // Modal
+        function showInfoModal() {
+            document.getElementById('infoModal').style.display = 'block';
+        }
 
-        // ============ INIT ============
+        function closeInfoModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('infoModal');
+            if (event.target === modal) {
+                closeInfoModal();
+            }
+        }
+
+        // Initialize on load
         window.addEventListener('DOMContentLoaded', function() {
             checkAuth();
             updateCountdown();
@@ -705,5 +1754,6 @@
             loadRomanDate();
         });
     </script>
+
 </body>
 </html>
