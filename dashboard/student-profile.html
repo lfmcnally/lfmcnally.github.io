@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Profile - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            color: white;
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+        }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .student-name {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        .student-email {
+            opacity: 0.8;
+            font-size: 0.95rem;
+        }
+        .header-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .header-stat {
+            background: rgba(255,255,255,0.15);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .header-stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+        .header-stat-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        /* Grid layout */
+        .grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+        .grid-full {
+            grid-column: 1 / -1;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #f0f0f0;
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 250px;
+        }
+        .chart-container.tall {
+            height: 300px;
+        }
+
+        /* Mastery breakdown */
+        .mastery-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .mastery-item {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 10px;
+            background: #f9fafb;
+        }
+        .mastery-item.mastered { border-left: 4px solid #10b981; }
+        .mastery-item.learning { border-left: 4px solid #f59e0b; }
+        .mastery-item.struggling { border-left: 4px solid #ef4444; }
+        .mastery-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        .mastery-item.mastered .mastery-value { color: #10b981; }
+        .mastery-item.learning .mastery-value { color: #f59e0b; }
+        .mastery-item.struggling .mastery-value { color: #ef4444; }
+        .mastery-label {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        /* Word list */
+        .word-list {
+            list-style: none;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .word-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border: 1px solid #f0f0f0;
+        }
+        .word-latin {
+            font-weight: 600;
+            color: #0066ff;
+        }
+        .word-english {
+            color: #6b7280;
+            font-size: 0.85rem;
+        }
+        .word-accuracy {
+            font-weight: 600;
+        }
+        .word-accuracy.good { color: #10b981; }
+        .word-accuracy.bad { color: #ef4444; }
+
+        /* Session list */
+        .session-list {
+            list-style: none;
+        }
+        .session-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .session-item:last-child {
+            border-bottom: none;
+        }
+        .session-title {
+            font-weight: 500;
+            color: #1f2937;
+        }
+        .session-meta {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        .session-score {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .session-score.good { color: #10b981; }
+        .session-score.okay { color: #f59e0b; }
+        .session-score.bad { color: #ef4444; }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+        }
+        .tab-btn:hover {
+            background: #e5e7eb;
+        }
+        .tab-btn.active {
+            background: #0066ff;
+            color: white;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .header-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 600px) {
+            body { padding: 1rem; }
+            .header-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+            .mastery-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="loading" class="loading">Loading student data...</div>
+        
+        <div id="content" style="display: none;">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-top">
+                    <div>
+                        <div class="student-name" id="studentName">Student Name</div>
+                        <div class="student-email" id="studentEmail">student@email.com</div>
+                    </div>
+                    <a href="#" class="back-btn" id="backBtn">← Back to Class</a>
+                </div>
+                <div class="header-stats">
+                    <div class="header-stat">
+                        <div class="header-stat-value" id="statSessions">0</div>
+                        <div class="header-stat-label">Total Sessions</div>
+                    </div>
+                    <div class="header-stat">
+                        <div class="header-stat-value" id="statTime">0m</div>
+                        <div class="header-stat-label">Time Practised</div>
+                    </div>
+                    <div class="header-stat">
+                        <div class="header-stat-value" id="statAvgScore">0%</div>
+                        <div class="header-stat-label">Average Score</div>
+                    </div>
+                    <div class="header-stat">
+                        <div class="header-stat-value" id="statWords">0</div>
+                        <div class="header-stat-label">Words Learned</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Grid -->
+            <div class="grid">
+                <!-- Activity Chart -->
+                <div class="card">
+                    <div class="card-header">
+                        📈 Activity Over Time
+                        <div class="tabs">
+                            <button class="tab-btn active" onclick="setActivityRange(30, this)">30 days</button>
+                            <button class="tab-btn" onclick="setActivityRange(90, this)">90 days</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="activityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Word Mastery -->
+                <div class="card">
+                    <div class="card-header">📚 Word Mastery</div>
+                    <div class="card-body">
+                        <div class="mastery-grid">
+                            <div class="mastery-item mastered">
+                                <div class="mastery-value" id="masteredCount">0</div>
+                                <div class="mastery-label">🌟 Mastered</div>
+                            </div>
+                            <div class="mastery-item learning">
+                                <div class="mastery-value" id="learningCount">0</div>
+                                <div class="mastery-label">📖 Learning</div>
+                            </div>
+                            <div class="mastery-item struggling">
+                                <div class="mastery-value" id="strugglingCount">0</div>
+                                <div class="mastery-label">💪 Struggling</div>
+                            </div>
+                        </div>
+                        <div class="chart-container" style="height: 180px;">
+                            <canvas id="masteryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Score Trend -->
+                <div class="card">
+                    <div class="card-header">🎯 Score Trend</div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="scoreChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Struggling Words -->
+                <div class="card">
+                    <div class="card-header">💪 Needs Practice</div>
+                    <div class="card-body">
+                        <ul class="word-list" id="strugglingWords">
+                            <li class="empty-state">
+                                <div>No struggling words - great job!</div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Recent Sessions -->
+                <div class="card grid-full">
+                    <div class="card-header">📅 Recent Sessions</div>
+                    <div class="card-body" style="padding: 0;">
+                        <ul class="session-list" id="sessionList">
+                            <li class="loading">Loading sessions...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../auth/config.js"></script>
+    <script>
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let studentId = null;
+        let classId = null;
+        let allAttempts = [];
+        let allWords = [];
+        let activityChart = null;
+        let scoreChart = null;
+        let masteryChart = null;
+
+        async function init() {
+            // Get student_id and class_id from URL
+            const params = new URLSearchParams(window.location.search);
+            studentId = params.get('student_id');
+            classId = params.get('class_id');
+
+            if (!studentId) {
+                alert('No student specified');
+                window.history.back();
+                return;
+            }
+
+            // Set back button
+            document.getElementById('backBtn').href = classId 
+                ? `class.html?id=${classId}` 
+                : 'teacher.html';
+
+            // Check auth
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            // Load all data
+            await Promise.all([
+                loadStudentInfo(),
+                loadAttempts(),
+                loadWordMastery()
+            ]);
+
+            // Render everything
+            renderStats();
+            renderActivityChart(30);
+            renderScoreChart();
+            renderMasteryChart();
+            renderStrugglingWords();
+            renderSessions();
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+        }
+
+        async function loadStudentInfo() {
+            const { data, error } = await supabase
+                .from('users')
+                .select('full_name, email')
+                .eq('id', studentId)
+                .single();
+
+            if (data) {
+                document.getElementById('studentName').textContent = data.full_name || 'Unknown Student';
+                document.getElementById('studentEmail').textContent = data.email;
+            }
+        }
+
+        async function loadAttempts() {
+            const { data, error } = await supabase
+                .from('task_attempts')
+                .select('*, tasks(title)')
+                .eq('student_id', studentId)
+                .order('started_at', { ascending: false });
+
+            allAttempts = data || [];
+        }
+
+        async function loadWordMastery() {
+            const { data, error } = await supabase
+                .from('word_mastery')
+                .select('*')
+                .eq('student_id', studentId)
+                .order('last_seen_at', { ascending: false });
+
+            allWords = data || [];
+        }
+
+        function renderStats() {
+            const totalSessions = allAttempts.length;
+            const totalSeconds = allAttempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
+            const totalMinutes = Math.round(totalSeconds / 60);
+            const hours = Math.floor(totalMinutes / 60);
+            const mins = totalMinutes % 60;
+            const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+
+            const withScores = allAttempts.filter(a => a.score !== null);
+            const avgScore = withScores.length > 0
+                ? Math.round(withScores.reduce((sum, a) => sum + a.score, 0) / withScores.length)
+                : 0;
+
+            const masteredWords = allWords.filter(w => {
+                const total = w.correct_count + w.incorrect_count;
+                const acc = total > 0 ? (w.correct_count / total) * 100 : 0;
+                return w.correct_count >= 3 && acc >= 70;
+            }).length;
+
+            document.getElementById('statSessions').textContent = totalSessions;
+            document.getElementById('statTime').textContent = timeStr;
+            document.getElementById('statAvgScore').textContent = avgScore + '%';
+            document.getElementById('statWords').textContent = masteredWords;
+        }
+
+        function renderActivityChart(days) {
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            
+            // Group attempts by date
+            const activityByDate = {};
+            const now = new Date();
+            
+            // Initialize all dates
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date(now);
+                date.setDate(date.getDate() - i);
+                const key = date.toISOString().split('T')[0];
+                activityByDate[key] = { sessions: 0, minutes: 0 };
+            }
+
+            // Fill in actual data
+            allAttempts.forEach(a => {
+                const date = new Date(a.started_at).toISOString().split('T')[0];
+                if (activityByDate[date]) {
+                    activityByDate[date].sessions++;
+                    activityByDate[date].minutes += Math.round((a.time_spent_seconds || 0) / 60);
+                }
+            });
+
+            const labels = Object.keys(activityByDate).map(d => {
+                const date = new Date(d);
+                return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            });
+            const sessionData = Object.values(activityByDate).map(d => d.sessions);
+            const minuteData = Object.values(activityByDate).map(d => d.minutes);
+
+            if (activityChart) activityChart.destroy();
+
+            activityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Minutes',
+                        data: minuteData,
+                        backgroundColor: 'rgba(0, 102, 255, 0.7)',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Minutes' }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                maxTicksLimit: days <= 30 ? 15 : 12
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function setActivityRange(days, btn) {
+            document.querySelectorAll('.card-header .tab-btn').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            renderActivityChart(days);
+        }
+
+        function renderScoreChart() {
+            const ctx = document.getElementById('scoreChart').getContext('2d');
+
+            // Get last 20 sessions with scores
+            const withScores = allAttempts
+                .filter(a => a.score !== null)
+                .slice(0, 20)
+                .reverse();
+
+            if (withScores.length === 0) {
+                ctx.canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>No completed sessions yet</p></div>';
+                return;
+            }
+
+            const labels = withScores.map((a, i) => {
+                const date = new Date(a.started_at);
+                return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            });
+            const scores = withScores.map(a => a.score);
+
+            scoreChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Score %',
+                        data: scores,
+                        borderColor: '#0066ff',
+                        backgroundColor: 'rgba(0, 102, 255, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#0066ff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: { display: true, text: 'Score %' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderMasteryChart() {
+            const ctx = document.getElementById('masteryChart').getContext('2d');
+
+            let mastered = 0, learning = 0, struggling = 0;
+
+            allWords.forEach(w => {
+                const total = w.correct_count + w.incorrect_count;
+                const acc = total > 0 ? (w.correct_count / total) * 100 : 0;
+
+                if (w.correct_count >= 3 && acc >= 70) {
+                    mastered++;
+                } else if (acc < 50 && w.incorrect_count >= 2) {
+                    struggling++;
+                } else {
+                    learning++;
+                }
+            });
+
+            document.getElementById('masteredCount').textContent = mastered;
+            document.getElementById('learningCount').textContent = learning;
+            document.getElementById('strugglingCount').textContent = struggling;
+
+            if (allWords.length === 0) {
+                ctx.canvas.parentElement.innerHTML = '<div class="empty-state" style="padding: 1rem;"><p>No words practised yet</p></div>';
+                return;
+            }
+
+            masteryChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Mastered', 'Learning', 'Struggling'],
+                    datasets: [{
+                        data: [mastered, learning, struggling],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, padding: 15 }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+
+        function renderStrugglingWords() {
+            const struggling = allWords
+                .filter(w => {
+                    const total = w.correct_count + w.incorrect_count;
+                    const acc = total > 0 ? (w.correct_count / total) * 100 : 0;
+                    return acc < 50 || w.incorrect_count > w.correct_count;
+                })
+                .sort((a, b) => b.incorrect_count - a.incorrect_count)
+                .slice(0, 10);
+
+            const container = document.getElementById('strugglingWords');
+
+            if (struggling.length === 0) {
+                container.innerHTML = '<li class="empty-state" style="padding: 2rem;"><div class="empty-state-icon">🌟</div><p>No struggling words!</p></li>';
+                return;
+            }
+
+            container.innerHTML = struggling.map(w => {
+                const total = w.correct_count + w.incorrect_count;
+                const acc = total > 0 ? Math.round((w.correct_count / total) * 100) : 0;
+                return `
+                    <li class="word-item">
+                        <div>
+                            <div class="word-latin">${w.word_latin}</div>
+                            <div class="word-english">${w.word_english || ''}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="word-accuracy bad">${acc}%</div>
+                            <div style="font-size: 0.75rem; color: #6b7280;">${w.correct_count}✓ ${w.incorrect_count}✗</div>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        function renderSessions() {
+            const container = document.getElementById('sessionList');
+            
+            if (allAttempts.length === 0) {
+                container.innerHTML = '<li class="empty-state"><div class="empty-state-icon">📅</div><p>No sessions yet</p></li>';
+                return;
+            }
+
+            container.innerHTML = allAttempts.slice(0, 20).map(a => {
+                const title = a.tasks?.title || 'Free Practice';
+                const date = new Date(a.started_at);
+                const dateStr = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+                const timeStr = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                const duration = a.time_spent_seconds ? Math.round(a.time_spent_seconds / 60) + ' min' : '-';
+                const score = a.score !== null ? a.score + '%' : '-';
+                const scoreClass = a.score >= 70 ? 'good' : a.score >= 50 ? 'okay' : 'bad';
+                const status = a.completed_at ? '✅' : '⏸️';
+
+                return `
+                    <li class="session-item">
+                        <div>
+                            <div class="session-title">${status} ${title}</div>
+                            <div class="session-meta">${dateStr} at ${timeStr} · ${duration} · ${a.total_questions || 0} questions</div>
+                        </div>
+                        <div class="session-score ${scoreClass}">${score}</div>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
