@@ -1,147 +1,237 @@
 // ============================================
-// CLASSICALIA - TASK TRACKER
+// CLASSICALIA - TASK & WORD MASTERY TRACKER
 // ============================================
-// Add this script to any exercise page to track student progress.
-// It will only track if the student is logged in and doing an assigned task.
-//
-// Usage: Include these scripts at the bottom of your exercise page:
-//   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-//   <script src="/auth/config.js"></script>
-//   <script src="/shared/task-tracker.js"></script>
-//
-// Then call these functions from your quiz code:
-//   taskTracker.start()        - Call when quiz begins
-//   taskTracker.complete(score, total, correct)  - Call when quiz ends
-// ============================================
+// Tracks practice sessions (both assigned tasks and free practice)
+// and individual word mastery for each student.
 
 const taskTracker = {
-    taskId: null,
+    isTracking: false,
     attemptId: null,
+    taskId: null,
     startTime: null,
     userId: null,
-    isTracking: false,
-
-    // Initialize the tracker - checks if user is logged in and doing a task
+    wordsAnswered: [], // Track words answered this session
+    
+    // Initialize - check if user is logged in
     async init() {
-        // Check if Supabase is available
         if (typeof supabase === 'undefined') {
-            console.log('TaskTracker: Supabase not loaded, tracking disabled');
+            console.log('Supabase not available - tracking disabled');
             return false;
         }
-
-        // Check if user is logged in
+        
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-            console.log('TaskTracker: User not logged in, tracking disabled');
+            console.log('User not logged in - tracking disabled');
             return false;
         }
-        this.userId = user.id;
-
-        // Check if there's a task_id in the URL
-        const params = new URLSearchParams(window.location.search);
-        this.taskId = params.get('task_id');
         
-        if (!this.taskId) {
-            console.log('TaskTracker: No task_id in URL, tracking disabled (free practice)');
-            return false;
-        }
-
-        console.log('TaskTracker: Ready to track task', this.taskId);
-        this.isTracking = true;
+        this.userId = user.id;
+        
+        // Check for task_id in URL (assigned task)
+        const urlParams = new URLSearchParams(window.location.search);
+        this.taskId = urlParams.get('task_id') || null;
+        
+        console.log('Task tracker initialized', { userId: this.userId, taskId: this.taskId });
         return true;
     },
-
-    // Call this when the quiz/exercise starts
+    
+    // Start tracking a practice session
     async start() {
-        if (!this.isTracking) {
-            await this.init();
-        }
+        const ready = await this.init();
+        if (!ready) return;
         
-        if (!this.isTracking) {
-            return null;
-        }
-
         this.startTime = new Date();
-
-        // Create an attempt record
+        this.wordsAnswered = [];
+        
+        // Create attempt record
         const { data, error } = await supabase
             .from('task_attempts')
             .insert({
-                task_id: this.taskId,
+                task_id: this.taskId, // null for free practice
                 student_id: this.userId,
                 started_at: this.startTime.toISOString()
             })
             .select()
             .single();
-
+        
         if (error) {
-            console.error('TaskTracker: Error creating attempt', error);
-            return null;
+            console.error('Error creating attempt:', error);
+            return;
         }
-
+        
         this.attemptId = data.id;
-        console.log('TaskTracker: Started tracking attempt', this.attemptId);
-        return this.attemptId;
+        this.isTracking = true;
+        console.log('Tracking started', { attemptId: this.attemptId, taskId: this.taskId });
     },
-
-    // Call this when the quiz/exercise is complete
+    
+    // Record a word answer (correct or incorrect)
+    async recordWordAnswer(wordData, isCorrect) {
+        if (!this.userId) {
+            // Try to init if not done
+            const ready = await this.init();
+            if (!ready) return;
+        }
+        
+        // Track for this session
+        this.wordsAnswered.push({
+            word: wordData.latin,
+            correct: isCorrect,
+            timestamp: new Date()
+        });
+        
+        // Update word_mastery table
+        try {
+            // First, try to get existing record
+            const { data: existing } = await supabase
+                .from('word_mastery')
+                .select('*')
+                .eq('student_id', this.userId)
+                .eq('word_latin', wordData.latin)
+                .single();
+            
+            if (existing) {
+                // Update existing record
+                const updates = {
+                    last_seen_at: new Date().toISOString()
+                };
+                
+                if (isCorrect) {
+                    updates.correct_count = existing.correct_count + 1;
+                } else {
+                    updates.incorrect_count = existing.incorrect_count + 1;
+                }
+                
+                await supabase
+                    .from('word_mastery')
+                    .update(updates)
+                    .eq('id', existing.id);
+                    
+            } else {
+                // Insert new record
+                await supabase
+                    .from('word_mastery')
+                    .insert({
+                        student_id: this.userId,
+                        word_latin: wordData.latin,
+                        word_english: wordData.english,
+                        chapter: wordData.chapter,
+                        correct_count: isCorrect ? 1 : 0,
+                        incorrect_count: isCorrect ? 0 : 1,
+                        last_seen_at: new Date().toISOString()
+                    });
+            }
+            
+            console.log('Word mastery updated:', wordData.latin, isCorrect ? '✓' : '✗');
+            
+        } catch (err) {
+            console.error('Error updating word mastery:', err);
+        }
+    },
+    
+    // Complete the practice session
     async complete(score, totalQuestions, correctAnswers) {
         if (!this.isTracking || !this.attemptId) {
-            console.log('TaskTracker: Not tracking, skipping completion');
-            return null;
+            console.log('Not tracking or no attempt ID');
+            return;
         }
-
+        
         const endTime = new Date();
         const timeSpentSeconds = Math.round((endTime - this.startTime) / 1000);
-
-        // Update the attempt record
-        const { data, error } = await supabase
+        
+        const { error } = await supabase
             .from('task_attempts')
             .update({
                 completed_at: endTime.toISOString(),
-                score: score,
+                score: Math.round(score),
                 total_questions: totalQuestions,
                 correct_answers: correctAnswers,
                 time_spent_seconds: timeSpentSeconds
             })
-            .eq('id', this.attemptId)
-            .select()
-            .single();
-
+            .eq('id', this.attemptId);
+        
         if (error) {
-            console.error('TaskTracker: Error updating attempt', error);
+            console.error('Error completing attempt:', error);
+            return;
+        }
+        
+        console.log('Practice completed', {
+            attemptId: this.attemptId,
+            score: score,
+            timeSpent: timeSpentSeconds,
+            wordsAnswered: this.wordsAnswered.length
+        });
+        
+        this.isTracking = false;
+    },
+    
+    // Get word mastery stats for current user
+    async getWordMasteryStats() {
+        if (!this.userId) {
+            const ready = await this.init();
+            if (!ready) return null;
+        }
+        
+        const { data, error } = await supabase
+            .from('word_mastery')
+            .select('*')
+            .eq('student_id', this.userId);
+        
+        if (error) {
+            console.error('Error fetching word mastery:', error);
             return null;
         }
-
-        console.log('TaskTracker: Completed tracking', {
-            score: score,
-            total: totalQuestions,
-            correct: correctAnswers,
-            timeSpent: timeSpentSeconds + 's'
-        });
-
-        return data;
-    },
-
-    // Get URL parameters for pre-filling quiz settings
-    getParams() {
-        const params = new URLSearchParams(window.location.search);
-        return {
-            taskId: params.get('task_id'),
-            chapter: params.get('chapter'),
-            from: params.get('from'),
-            to: params.get('to')
+        
+        // Categorise words
+        const stats = {
+            mastered: [],    // 3+ correct, >70% accuracy
+            learning: [],    // Some attempts, <70% accuracy or <3 correct
+            struggling: [],  // >50% incorrect
+            total: data.length
         };
+        
+        data.forEach(word => {
+            const total = word.correct_count + word.incorrect_count;
+            const accuracy = total > 0 ? (word.correct_count / total) * 100 : 0;
+            
+            if (word.correct_count >= 3 && accuracy >= 70) {
+                stats.mastered.push(word);
+            } else if (accuracy < 50 && word.incorrect_count >= 2) {
+                stats.struggling.push(word);
+            } else {
+                stats.learning.push(word);
+            }
+        });
+        
+        return stats;
     },
-
-    // Check if this is a task (vs free practice)
-    isTask() {
-        const params = new URLSearchParams(window.location.search);
-        return params.get('task_id') !== null;
+    
+    // Get struggling words for review
+    async getStrugglingWords(limit = 20) {
+        if (!this.userId) {
+            const ready = await this.init();
+            if (!ready) return [];
+        }
+        
+        const { data, error } = await supabase
+            .from('word_mastery')
+            .select('*')
+            .eq('student_id', this.userId)
+            .order('incorrect_count', { ascending: false })
+            .limit(limit);
+        
+        if (error) {
+            console.error('Error fetching struggling words:', error);
+            return [];
+        }
+        
+        // Filter to words where incorrect > correct or accuracy < 60%
+        return data.filter(word => {
+            const total = word.correct_count + word.incorrect_count;
+            const accuracy = total > 0 ? (word.correct_count / total) * 100 : 0;
+            return accuracy < 60 || word.incorrect_count > word.correct_count;
+        });
     }
 };
 
-// Auto-initialize when the script loads
-document.addEventListener('DOMContentLoaded', function() {
-    taskTracker.init();
-});
+// Make available globally
+window.taskTracker = taskTracker;
