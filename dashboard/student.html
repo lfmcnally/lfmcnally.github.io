@@ -363,12 +363,12 @@
         <div class="header">
             <div class="header-content">
                 <div>
-                    <h1>👋 Welcome back, <span id="userName">Student</span>!</h1>
+                    <h1>👋 Welcome back<span id="userName"></span>!</h1>
                     <p>Keep up the great work with your Latin studies</p>
                 </div>
                 <div class="header-actions">
                     <a href="../index.html" class="btn btn-ghost">← Home</a>
-                    <a href="../latin/vocabulary-hub.html" class="btn btn-white">Practice Now</a>
+                    <a href="../latin/vocabulary-hub.html" class="btn btn-white">Practise Now</a>
                 </div>
             </div>
         </div>
@@ -492,7 +492,7 @@
             }
 
             currentUser = profile;
-            document.getElementById('userName').textContent = profile.full_name.split(' ')[0];
+            document.getElementById('userName').textContent = ', ' + profile.full_name.split(' ')[0];
 
             // Load all data
             await loadAttempts();
@@ -612,36 +612,68 @@
                 }
             });
 
-            // Generate last 12 weeks
+            // Generate last 12 weeks (84 days)
             const today = new Date();
-            const weeks = [];
-            const months = [];
+            today.setHours(0, 0, 0, 0);
             
-            for (let w = 11; w >= 0; w--) {
+            // Find the most recent Sunday to align the grid
+            const dayOfWeek = today.getDay(); // 0 = Sunday
+            const endDate = new Date(today);
+            
+            // Start from 12 weeks ago
+            const startDate = new Date(endDate);
+            startDate.setDate(startDate.getDate() - 83); // 84 days including today
+            
+            // Adjust to start on a Sunday
+            const startDayOfWeek = startDate.getDay();
+            if (startDayOfWeek !== 0) {
+                startDate.setDate(startDate.getDate() - startDayOfWeek);
+            }
+
+            const weeks = [];
+            let currentDate = new Date(startDate);
+            let lastMonth = -1;
+            const monthLabels = [];
+
+            // Generate weeks
+            while (currentDate <= endDate) {
                 const week = [];
-                for (let d = 6; d >= 0; d--) {
-                    const date = new Date(today);
-                    date.setDate(date.getDate() - (w * 7 + d));
-                    week.unshift({
-                        date: date.toISOString().split('T')[0],
-                        count: dayCounts[date.toISOString().split('T')[0]] || 0,
-                        month: date.getMonth()
-                    });
-                }
-                weeks.push(week);
                 
-                // Track month labels
-                if (weeks.length === 1 || week[0].month !== weeks[weeks.length - 2]?.[0]?.month) {
-                    months.push({ week: weeks.length - 1, name: new Date(week[0].date).toLocaleString('default', { month: 'short' }) });
+                for (let d = 0; d < 7; d++) {
+                    const dateStr = currentDate.toISOString().split('T')[0];
+                    const dateObj = new Date(currentDate);
+                    
+                    // Track month changes for labels
+                    if (d === 0 && dateObj.getMonth() !== lastMonth) {
+                        monthLabels.push({
+                            weekIndex: weeks.length,
+                            name: dateObj.toLocaleString('en-GB', { month: 'short' })
+                        });
+                        lastMonth = dateObj.getMonth();
+                    }
+                    
+                    week.push({
+                        date: dateStr,
+                        display: dateObj.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
+                        count: dayCounts[dateStr] || 0,
+                        isFuture: dateObj > today
+                    });
+                    
+                    currentDate.setDate(currentDate.getDate() + 1);
                 }
+                
+                weeks.push(week);
             }
 
             // Render month labels
-            const monthNames = ['', '', '', '', '', '', '', '', '', '', '', ''];
-            months.forEach(m => {
-                monthNames[m.week] = m.name;
+            let monthHtml = '';
+            let lastLabelWeek = -1;
+            monthLabels.forEach((label, i) => {
+                const nextLabel = monthLabels[i + 1];
+                const span = nextLabel ? nextLabel.weekIndex - label.weekIndex : weeks.length - label.weekIndex;
+                monthHtml += `<span style="flex: ${span};">${label.name}</span>`;
             });
-            monthsDiv.innerHTML = monthNames.map(m => `<span>${m}</span>`).join('');
+            monthsDiv.innerHTML = monthHtml;
 
             // Render calendar grid
             weeks.forEach(week => {
@@ -652,12 +684,16 @@
                     const dayDiv = document.createElement('div');
                     dayDiv.className = 'calendar-day';
                     
-                    if (day.count >= 4) dayDiv.classList.add('level-4');
-                    else if (day.count >= 3) dayDiv.classList.add('level-3');
-                    else if (day.count >= 2) dayDiv.classList.add('level-2');
-                    else if (day.count >= 1) dayDiv.classList.add('level-1');
+                    if (day.isFuture) {
+                        dayDiv.style.opacity = '0.3';
+                    } else {
+                        if (day.count >= 4) dayDiv.classList.add('level-4');
+                        else if (day.count >= 3) dayDiv.classList.add('level-3');
+                        else if (day.count >= 2) dayDiv.classList.add('level-2');
+                        else if (day.count >= 1) dayDiv.classList.add('level-1');
+                    }
                     
-                    dayDiv.title = `${day.date}: ${day.count} ${day.count === 1 ? 'activity' : 'activities'}`;
+                    dayDiv.title = `${day.display}\n${day.count} ${day.count === 1 ? 'activity' : 'activities'}`;
                     weekDiv.appendChild(dayDiv);
                 });
                 
@@ -732,7 +768,7 @@
             }).join('');
         }
 
-        // Load pending tasks
+        // Load pending tasks (shows all tasks until due date passes)
         async function loadPendingTasks() {
             const container = document.getElementById('pendingTasks');
 
@@ -754,56 +790,57 @@
 
             const classIds = memberships.map(m => m.class_id);
 
-            // Get tasks for these classes
+            // Get tasks for these classes that haven't passed their due date
+            const now = new Date();
             const { data: tasks } = await supabase
                 .from('tasks')
                 .select('*')
                 .in('class_id', classIds)
+                .gte('due_date', now.toISOString())
                 .order('due_date', { ascending: true });
 
-            // Filter out completed tasks
-            const completedTaskIds = new Set(attempts.filter(a => a.completed_at).map(a => a.task_id));
-            const pendingTasks = (tasks || []).filter(t => !completedTaskIds.has(t.id));
-
-            if (pendingTasks.length === 0) {
+            if (!tasks || tasks.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">🎉</div>
-                        <p>All caught up!</p>
+                        <p>No upcoming tasks!</p>
                     </div>
                 `;
                 return;
             }
 
-            const now = new Date();
-            container.innerHTML = pendingTasks.slice(0, 5).map(task => {
+            // Check which tasks have been completed (for visual indicator)
+            const completedTaskIds = new Set(attempts.filter(a => a.completed_at).map(a => a.task_id));
+
+            container.innerHTML = tasks.slice(0, 5).map(task => {
                 const due = new Date(task.due_date);
                 const daysUntil = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+                const isCompleted = completedTaskIds.has(task.id);
                 
                 let dueClass = '';
                 let dueText = '';
                 
-                if (daysUntil < 0) {
-                    dueClass = 'overdue';
-                    dueText = `Overdue by ${Math.abs(daysUntil)} day${Math.abs(daysUntil) === 1 ? '' : 's'}`;
-                } else if (daysUntil === 0) {
-                    dueClass = 'overdue';
-                    dueText = 'Due today!';
-                } else if (daysUntil <= 2) {
+                if (daysUntil === 0) {
                     dueClass = 'soon';
-                    dueText = `Due in ${daysUntil} day${daysUntil === 1 ? '' : 's'}`;
+                    dueText = 'Due today!';
+                } else if (daysUntil === 1) {
+                    dueClass = 'soon';
+                    dueText = 'Due tomorrow';
+                } else if (daysUntil <= 3) {
+                    dueClass = 'soon';
+                    dueText = `Due in ${daysUntil} days`;
                 } else {
                     dueText = `Due ${due.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
                 }
 
                 return `
                     <div class="task-item">
-                        <div class="task-icon">📝</div>
+                        <div class="task-icon">${isCompleted ? '✅' : '📝'}</div>
                         <div class="task-info">
-                            <div class="task-title">${task.title}</div>
+                            <div class="task-title">${task.title}${isCompleted ? ' <span style="color: #10b981; font-size: 0.75rem;">(completed)</span>' : ''}</div>
                             <div class="task-due ${dueClass}">${dueText}</div>
                         </div>
-                        <a href="${task.content_path}" class="task-btn">Start</a>
+                        <a href="${task.content_path}" class="task-btn">${isCompleted ? 'Practise Again' : 'Practise Now'}</a>
                     </div>
                 `;
             }).join('');
