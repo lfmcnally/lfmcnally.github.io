@@ -292,6 +292,12 @@ function getSectionData(textId, sectionNum) {
             if (sectionNum === 2 && typeof messalinaSection2 !== 'undefined') {
                 return messalinaSection2;
             }
+            if (sectionNum === 3 && typeof messalinaSection3 !== 'undefined') {
+                return messalinaSection3;
+            }
+            if (sectionNum === 4 && typeof messalinaSection4 !== 'undefined') {
+                return messalinaSection4;
+            }
             // Add more sections as they're created
             break;
     }
