@@ -229,15 +229,21 @@ function showCompletion() {
         message = "You did it! Practice makes perfect! 💪";
     }
     
-    const chapterWords = vocabularyData.filter(word => word.chapter == selectedChapter);
-    const fromWord = chapterWords[fromIndex].latin;
-    const toWord = chapterWords[toIndex].latin;
+    let rangeText = '';
+    if (selectedChapter === 'review') {
+        rangeText = `<br><small>Review Mode: ${totalWordsToMaster} weak words</small>`;
+    } else {
+        const chapterWords = vocabularyData.filter(word => word.chapter == selectedChapter);
+        const fromWord = chapterWords[fromIndex].latin;
+        const toWord = chapterWords[toIndex].latin;
+        rangeText = `<br><small>Range: Chapter ${selectedChapter} (${fromWord} to ${toWord})</small>`;
+    }
     
     document.getElementById('final-message').innerHTML = `
         <strong>All ${totalWordsToMaster} words mastered!</strong> 🎉
         <br><br>Final Score: ${score}/${totalQuestions} (${percentage}%)
         <br>${message}
-        <br><small>Range: Chapter ${selectedChapter} (${fromWord} to ${toWord})</small>
+        ${rangeText}
         <br><small>Each word answered correctly ${MASTERY_THRESHOLD} times.</small>
         <br><br><button class="btn" onclick="resetPractice()" style="margin-top: 1rem;">New Practice Session</button>
     `;
@@ -254,6 +260,12 @@ function showCompletion() {
 }
 
 function resetPractice() {
+    // If in review mode, go back to student dashboard
+    if (selectedChapter === 'review') {
+        window.location.href = '../dashboard/student.html';
+        return;
+    }
+    
     // Show setup panel, hide quiz area
     document.getElementById('setupPanel').style.display = 'block';
     document.getElementById('quizArea').classList.remove('active');
