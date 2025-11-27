@@ -328,10 +328,26 @@ function showCompletion() {
     if (selectedChapter === 'review') {
         rangeText = `<br><small>Review Mode: ${totalWordsToMaster} weak words</small>`;
     } else {
-        const chapterWords = vocabularyData.filter(word => word.chapter == selectedChapter);
-        const fromWord = chapterWords[fromIndex].latin;
-        const toWord = chapterWords[toIndex].latin;
-        rangeText = `<br><small>Range: Chapter ${selectedChapter} (${fromWord} to ${toWord})</small>`;
+        // Try to get the range text - handle different vocab data sources
+        try {
+            // Try different vocab data sources
+            const vocabData = (typeof vocabularyData !== 'undefined') ? vocabularyData :
+                              (typeof suburaniVocabularyData !== 'undefined') ? suburaniVocabularyData :
+                              (typeof greekVocabularyData !== 'undefined') ? greekVocabularyData : null;
+            
+            if (vocabData && fromIndex !== null && toIndex !== null) {
+                const chapterWords = vocabData.filter(word => word.chapter == selectedChapter);
+                const wordProp = chapterWords[0]?.greek ? 'greek' : 'latin';
+                const fromWord = chapterWords[fromIndex]?.[wordProp] || '';
+                const toWord = chapterWords[toIndex]?.[wordProp] || '';
+                if (fromWord && toWord) {
+                    rangeText = `<br><small>Range: Chapter ${selectedChapter} (${fromWord} to ${toWord})</small>`;
+                }
+            }
+        } catch (e) {
+            // Silently fail - range text is optional
+            console.log('Could not generate range text:', e);
+        }
     }
     
     document.getElementById('final-message').innerHTML = `
