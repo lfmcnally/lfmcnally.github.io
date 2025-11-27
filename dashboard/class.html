@@ -917,16 +917,7 @@
                                     <label>Chapter</label>
                                     <select class="form-input" id="taskChapter" required>
                                         <option value="">Select...</option>
-                                        <option value="1">Chapter 1</option>
-                                        <option value="2">Chapter 2</option>
-                                        <option value="3">Chapter 3</option>
-                                        <option value="4">Chapter 4</option>
-                                        <option value="5">Chapter 5</option>
-                                        <option value="6">Chapter 6</option>
-                                        <option value="7">Chapter 7</option>
-                                        <option value="8">Chapter 8</option>
-                                        <option value="9">Chapter 9</option>
-                                        <option value="10">Chapter 10</option>
+                                        <!-- Populated dynamically based on class type -->
                                     </select>
                                 </div>
                                 
@@ -1139,11 +1130,54 @@
 
     <script src="../auth/config.js"></script>
     <script src="../shared/vocabulary-data.js"></script>
+    <script src="../shared/greek-vocabulary-data.js"></script>
+    <script src="../latin/data/suburani-vocab.js"></script>
     
     <script>
         let currentUser = null;
         let currentClass = null;
         let classStudents = [];
+        
+        // Get vocab data based on class type
+        function getVocabData() {
+            if (!currentClass) return [];
+            const type = currentClass.type;
+            if (type === 'latin') return typeof vocabularyData !== 'undefined' ? vocabularyData : [];
+            if (type === 'greek') return typeof greekVocabularyData !== 'undefined' ? greekVocabularyData : [];
+            if (type === 'prep-latin') return typeof suburaniVocabularyData !== 'undefined' ? suburaniVocabularyData : [];
+            return [];
+        }
+        
+        // Get vocab practice URL based on class type
+        function getVocabPracticeUrl(chapter, from, to) {
+            const type = currentClass?.type;
+            if (type === 'latin') return `/latin/vocabulary-practice.html?chapter=${chapter}&from=${from}&to=${to}`;
+            if (type === 'greek') return `/greek/vocabulary-practice.html?chapter=${chapter}&from=${from}&to=${to}`;
+            if (type === 'prep-latin') return `/latin/prep-vocabulary-practice.html?chapter=${chapter}&from=${from}&to=${to}`;
+            return `/latin/vocabulary-practice.html?chapter=${chapter}&from=${from}&to=${to}`;
+        }
+        
+        // Get word display property based on class type
+        function getWordProperty(word) {
+            if (currentClass?.type === 'greek') return word.greek;
+            return word.latin;
+        }
+        
+        // Populate chapter dropdown based on class type
+        function populateChapterDropdown() {
+            const select = document.getElementById('taskChapter');
+            select.innerHTML = '<option value="">Select...</option>';
+            
+            const type = currentClass?.type;
+            const maxChapter = (type === 'prep-latin') ? 16 : 10;
+            
+            for (let i = 1; i <= maxChapter; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Chapter ${i}`;
+                select.appendChild(option);
+            }
+        }
         
         function showMessage(elementId, text, type) {
             const el = document.getElementById(elementId);
@@ -1217,7 +1251,7 @@
             document.getElementById('className').textContent = classData.name;
             document.getElementById('joinCode').textContent = classData.join_code;
             
-            // Handle class type - hide vocab stuff for non-Latin classes
+            // Handle class type - configure vocab picker based on type
             if (classData.type === 'classics') {
                 // Hide words mastered stat
                 document.getElementById('wordsMasteredStat').style.display = 'none';
@@ -1226,14 +1260,22 @@
                 selectTaskType('custom');
                 // Hide words tab in leaderboard
                 document.getElementById('leaderboardWordsTab').style.display = 'none';
-            } else if (classData.type === 'greek' || classData.type === 'prep-latin') {
-                // Greek and Prep Latin have vocab tracking, but Latin GCSE vocab picker doesn't apply
-                // Hide Latin vocab task form, use custom links
-                document.getElementById('vocabTaskOption').style.display = 'none';
-                selectTaskType('custom');
-                // Keep words mastered stat and leaderboard tab visible
+            } else {
+                // Latin GCSE, Greek, and Prep Latin all have vocab tracking
+                // Show vocab picker and populate chapters appropriately
+                document.getElementById('vocabTaskOption').style.display = '';
+                populateChapterDropdown();
+                
+                // Update vocab button text based on type
+                const vocabBtn = document.getElementById('vocabTaskOption');
+                if (classData.type === 'greek') {
+                    vocabBtn.textContent = '🏺 Vocabulary';
+                } else if (classData.type === 'prep-latin') {
+                    vocabBtn.textContent = '📚 Vocabulary';
+                } else {
+                    vocabBtn.textContent = '📖 Vocabulary';
+                }
             }
-            // Latin GCSE classes show everything by default
         }
         
         async function loadStudents() {
@@ -1783,7 +1825,8 @@
         function waitForVocabularyData() {
             return new Promise((resolve) => {
                 const checkData = () => {
-                    if (typeof vocabularyData !== 'undefined' && vocabularyData.length > 0) {
+                    const vocabData = getVocabData();
+                    if (vocabData && vocabData.length > 0) {
                         resolve();
                     } else {
                         setTimeout(checkData, 100);
@@ -1808,11 +1851,13 @@
                 return;
             }
             
-            const chapterWords = vocabularyData.filter(word => word.chapter == chapter);
+            const vocabData = getVocabData();
+            const chapterWords = vocabData.filter(word => word.chapter == chapter);
             
             fromSelect.innerHTML = '<option value="">Select start word</option>';
             chapterWords.forEach((word, index) => {
-                fromSelect.innerHTML += `<option value="${index}">${word.latin}</option>`;
+                const wordText = getWordProperty(word);
+                fromSelect.innerHTML += `<option value="${index}">${wordText}</option>`;
             });
             fromSelect.disabled = false;
             
@@ -1833,11 +1878,13 @@
                 return;
             }
             
-            const chapterWords = vocabularyData.filter(word => word.chapter == chapter);
+            const vocabData = getVocabData();
+            const chapterWords = vocabData.filter(word => word.chapter == chapter);
             
             toSelect.innerHTML = '<option value="">Select end word</option>';
             for (let i = fromIndex; i < chapterWords.length; i++) {
-                toSelect.innerHTML += `<option value="${i}">${chapterWords[i].latin}</option>`;
+                const wordText = getWordProperty(chapterWords[i]);
+                toSelect.innerHTML += `<option value="${i}">${wordText}</option>`;
             }
             toSelect.disabled = false;
         }
@@ -2131,7 +2178,7 @@
                 return;
             }
             
-            const contentPath = `/latin/vocabulary-practice.html?chapter=${chapter}&from=${fromWord}&to=${toWord}`;
+            const contentPath = getVocabPracticeUrl(chapter, fromWord, toWord);
             
             const result = await setTask(title, contentPath, dueDate);
             
