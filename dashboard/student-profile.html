@@ -509,7 +509,7 @@
                 <div class="header-top">
                     <div>
                         <div class="student-name" id="studentName">Student Name</div>
-                        <div class="student-email" id="studentEmail">student@email.com</div>
+                        <div class="student-email" id="studentEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="94e7e0e1f0f1fae0d4f1f9f5fdf8baf7fbf9">[email&#160;protected]</a></div>
                     </div>
                     <a href="#" class="back-btn" id="backBtn">← Back to Class</a>
                 </div>
@@ -597,6 +597,19 @@
                     </div>
                 </div>
 
+                <!-- Set Text Progress -->
+                <div class="card">
+                    <div class="card-header">📜 Set Text Progress</div>
+                    <div class="card-body">
+                        <div id="setTextContainer">
+                            <div class="loading">Loading set text data...</div>
+                        </div>
+                        <div class="chart-container" style="height: 200px;">
+                            <canvas id="setTextChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Task Completion Grid -->
                 <div class="card grid-full task-grid-card">
                     <div class="card-header">
@@ -646,7 +659,7 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../auth/config.js"></script>
     <script>
         // Use existing supabase client from config.js, or create one
@@ -661,6 +674,7 @@
         let activityChart = null;
         let scoreChart = null;
         let masteryChart = null;
+        let setTextChart = null;
 
         async function init() {
             // Get student_id and class_id from URL
@@ -691,7 +705,8 @@
                 loadStudentInfo(),
                 loadAttempts(),
                 loadWordMastery(),
-                loadTaskGrid()
+                loadTaskGrid(),
+                loadSetTextProgress()
             ]);
 
             // Render everything
@@ -1005,6 +1020,157 @@
             }).join('');
         }
 
+        // ============ SET TEXT PROGRESS ============
+        
+        let setTextProgress = [];
+        let setTextAnswers = [];
+
+        async function loadSetTextProgress() {
+            const container = document.getElementById('setTextContainer');
+            
+            try {
+                // Load progress and answers
+                const [progressResult, answersResult] = await Promise.all([
+                    supabaseClient
+                        .from('set_text_progress')
+                        .select('*')
+                        .eq('user_id', studentId)
+                        .order('completed_at', { ascending: false }),
+                    supabaseClient
+                        .from('set_text_answers')
+                        .select('text_id, is_correct, created_at')
+                        .eq('user_id', studentId)
+                ]);
+                
+                setTextProgress = progressResult.data || [];
+                setTextAnswers = answersResult.data || [];
+                
+                if (setTextProgress.length === 0) {
+                    container.innerHTML = '<p style="color: #6b7280; text-align: center;">No set text attempts yet</p>';
+                    document.getElementById('setTextChart').style.display = 'none';
+                    return;
+                }
+                
+                // Known texts and their section counts
+                const textInfo = {
+                    'messalina': { name: 'Messalina', sections: 9, color: '#8b5cf6' }
+                    // Add more texts here with different colors
+                };
+                
+                // Group progress by text
+                const byText = {};
+                setTextProgress.forEach(p => {
+                    if (!byText[p.text_id]) {
+                        byText[p.text_id] = { sections: new Set(), totalCorrect: 0, totalQuestions: 0 };
+                    }
+                    byText[p.text_id].sections.add(p.section_id);
+                    byText[p.text_id].totalCorrect += p.questions_correct || 0;
+                    byText[p.text_id].totalQuestions += p.questions_total || 0;
+                });
+                
+                // Group answers by text for accuracy
+                const answersByText = {};
+                setTextAnswers.forEach(a => {
+                    if (!answersByText[a.text_id]) {
+                        answersByText[a.text_id] = { correct: 0, total: 0 };
+                    }
+                    answersByText[a.text_id].total++;
+                    if (a.is_correct) answersByText[a.text_id].correct++;
+                });
+                
+                // Build summary HTML
+                let html = '<div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">';
+                
+                for (const [textId, data] of Object.entries(byText)) {
+                    const info = textInfo[textId] || { name: textId, sections: 9, color: '#6b7280' };
+                    const answerStats = answersByText[textId] || { correct: 0, total: 0 };
+                    const accuracy = answerStats.total > 0 ? Math.round((answerStats.correct / answerStats.total) * 100) : 0;
+                    
+                    html += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f3f4f6;">
+                            <div>
+                                <span style="display: inline-block; width: 10px; height: 10px; background: ${info.color}; border-radius: 50%; margin-right: 0.5rem;"></span>
+                                <strong>${info.name}</strong>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #6b7280;">
+                                ${data.sections.size}/${info.sections} sections · ${accuracy}% accuracy
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += '</div>';
+                container.innerHTML = html;
+                
+                // Render the chart
+                renderSetTextChart(byText, answersByText, textInfo);
+                
+            } catch (err) {
+                console.error('Error loading set text progress:', err);
+                container.innerHTML = '<p style="color: #dc2626;">Error loading data</p>';
+            }
+        }
+
+        function renderSetTextChart(byText, answersByText, textInfo) {
+            const ctx = document.getElementById('setTextChart');
+            if (!ctx) return;
+            
+            // Prepare data for doughnut chart showing questions answered per text
+            const labels = [];
+            const data = [];
+            const colors = [];
+            
+            for (const [textId, stats] of Object.entries(answersByText)) {
+                const info = textInfo[textId] || { name: textId, color: '#6b7280' };
+                labels.push(info.name);
+                data.push(stats.total);
+                colors.push(info.color);
+            }
+            
+            if (data.length === 0) {
+                ctx.style.display = 'none';
+                return;
+            }
+            
+            if (setTextChart) setTextChart.destroy();
+            
+            setTextChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const textId = Object.keys(answersByText)[context.dataIndex];
+                                    const stats = answersByText[textId];
+                                    const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+                                    return `${context.label}: ${stats.total} questions (${accuracy}% correct)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '60%'
+                }
+            });
+        }
+
         // ============ TASK COMPLETION GRID ============
         
         let allTasks = [];
@@ -1236,14 +1402,4 @@
         }
         
         // Close modal on overlay click
-        document.getElementById('noteModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeNoteModal();
-            }
-        });
-
-        // Initialize
-        init();
-    </script>
-</body>
-</html>
+        document.getEle
