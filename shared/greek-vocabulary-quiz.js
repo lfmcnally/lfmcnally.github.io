@@ -1,95 +1,129 @@
-// Greek Quiz variables
+// Quiz variables
 let currentTestWords = [];
 let currentQuestionIndex = 0;
 let score = 0;
 let questionsAnswered = 0;
-let selectedChapter = 'all';
-let selectedLength = 10;
 
-// Get words for specific chapter
-function getWordsForChapter(chapter) {
-    if (chapter === 'all') {
-        return greekVocabularyData;
+// Shared setup variables (used by both practice setup and quiz)
+let selectedChapter = null;
+let fromIndex = null;
+let toIndex = null;
+
+// Mastery mode variables
+const MASTERY_THRESHOLD = 2; // Number of times a word must be answered correctly
+let wordMastery = {}; // Track correct count per word: { "greek_word": correctCount }
+let masteredCount = 0; // How many words have been fully mastered
+let totalWordsToMaster = 0; // Total words that need mastering
+
+// Practice mode - initialized from the setup panel
+function initializePractice(practiceWords, chapter, fromIdx, toIdx) {
+    selectedChapter = chapter;
+    fromIndex = fromIdx;
+    toIndex = toIdx;
+    
+    // Set up words for practice
+    currentTestWords = [...practiceWords];
+    shuffleArray(currentTestWords);
+    
+    currentQuestionIndex = 0;
+    score = 0;
+    questionsAnswered = 0;
+    
+    // Initialize mastery tracking
+    wordMastery = {};
+    masteredCount = 0;
+    totalWordsToMaster = practiceWords.length;
+    
+    for (const word of practiceWords) {
+        wordMastery[word.greek] = 0;
     }
-    return greekVocabularyData.filter(word => word.chapter == chapter);
+    
+    // Hide completion message
+    document.getElementById('completion-message').classList.add('hidden');
+    
+    loadQuestion();
+}
+
+// Utility function to shuffle array
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
+function getUnmasteredWords() {
+    // Return words that haven't reached mastery threshold yet
+    return currentTestWords.filter(word => wordMastery[word.greek] < MASTERY_THRESHOLD);
 }
 
 function updateDisplay() {
-    document.getElementById('current-question').textContent = currentQuestionIndex + 1;
-    document.getElementById('total-questions').textContent = currentTestWords.length;
+    const unmasteredWords = getUnmasteredWords();
+    
+    document.getElementById('current-question').textContent = questionsAnswered + 1;
+    document.getElementById('total-questions').textContent = '∞'; // Continuous until mastery
     document.getElementById('score').textContent = score;
     document.getElementById('answered').textContent = questionsAnswered;
     
     const percentage = questionsAnswered > 0 ? Math.round((score / questionsAnswered) * 100) : 0;
     document.getElementById('percentage').textContent = percentage;
     
-    const progress = ((currentQuestionIndex + 1) / currentTestWords.length) * 100;
-    document.getElementById('progress-fill').style.width = progress + '%';
-}
-
-function createNewTest() {
-    const availableWords = getWordsForChapter(selectedChapter);
+    // Progress bar shows mastery progress
+    const masteryProgress = (masteredCount / totalWordsToMaster) * 100;
+    document.getElementById('progress-fill').style.width = masteryProgress + '%';
     
-    if (availableWords.length === 0) {
-        alert('No words available for the selected chapter.');
-        return;
-    }
-    
-    // Determine test length
-    let testLength = selectedLength;
-    if (selectedLength === 'all' || selectedLength > availableWords.length) {
-        testLength = availableWords.length;
-    }
-    
-    const shuffled = [...availableWords];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    
-    currentTestWords = shuffled.slice(0, testLength);
-    currentQuestionIndex = 0;
-    score = 0;
-    questionsAnswered = 0;
-    
-    // Hide completion message
-    document.getElementById('completion-message').classList.add('hidden');
-    
-    // Update chapter info
-    updateChapterInfo();
-    
-    loadQuestion();
-}
-
-function updateChapterInfo() {
-    const infoDiv = document.getElementById('chapter-info');
-    const detailsDiv = document.getElementById('chapter-details');
-    
-    if (selectedChapter === 'all') {
-        infoDiv.classList.add('hidden');
-    } else {
-        const wordCount = getWordsForChapter(selectedChapter).length;
-        detailsDiv.innerHTML = `<strong>Chapter ${selectedChapter}</strong><br>${wordCount} words available`;
-        infoDiv.classList.remove('hidden');
+    // Update mastery display if element exists
+    const masteryDisplay = document.getElementById('mastery-display');
+    if (masteryDisplay) {
+        masteryDisplay.textContent = `${masteredCount}/${totalWordsToMaster} words mastered`;
     }
 }
 
 function loadQuestion() {
-    const word = currentTestWords[currentQuestionIndex];
+    // Get words that still need practice
+    const unmasteredWords = getUnmasteredWords();
+    
+    // Check if all words are mastered
+    if (unmasteredWords.length === 0) {
+        showCompletion();
+        return;
+    }
+    
+    // Pick a random unmastered word
+    const randomIndex = Math.floor(Math.random() * unmasteredWords.length);
+    const word = unmasteredWords[randomIndex];
+    
+    // Store current word for checking
+    currentTestWords.currentWord = word;
+    
     document.getElementById('greek-word').textContent = word.greek;
-    document.getElementById('word-info').textContent = word.info;
+    
+    // Show mastery progress for this word
+    const currentMastery = wordMastery[word.greek];
+    const masteryIndicator = currentMastery > 0 ? ` (${currentMastery}/${MASTERY_THRESHOLD} ✓)` : '';
+    document.getElementById('word-info').textContent = word.info + masteryIndicator;
+    
     document.getElementById('answer-input').value = '';
     
     const feedback = document.getElementById('feedback');
     feedback.innerHTML = '';
     feedback.className = 'feedback';
     
-    document.getElementById('check-btn').classList.remove('hidden');
-    document.getElementById('next-btn').classList.add('hidden');
-    document.getElementById('reveal-btn').classList.remove('hidden');
+    document.getElementById('check-btn').style.display = 'inline-block';
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('reveal-btn').style.display = 'inline-block';
     
     updateDisplay();
     document.getElementById('answer-input').focus();
+    
+    // === TRACKING: Notify that a new word is displayed ===
+    if (typeof window.onWordDisplayed === 'function') {
+        window.onWordDisplayed(word);
+    }
+}
+
+function getCurrentWord() {
+    return currentTestWords.currentWord;
 }
 
 function checkAnswer() {
@@ -101,14 +135,14 @@ function checkAnswer() {
         return;
     }
     
-    const word = currentTestWords[currentQuestionIndex];
+    const word = getCurrentWord();
     const correctAnswer = word.english.toLowerCase();
     const userAnswerLower = userAnswer.toLowerCase();
     
     const feedback = document.getElementById('feedback');
     
-    // Split correct answer by commas and semicolons to handle multiple acceptable answers
-    const correctParts = correctAnswer.split(/[,;]/).map(p => p.trim());
+    // Split correct answer by commas to handle multiple acceptable answers
+    const correctParts = correctAnswer.split(',').map(p => p.trim());
     let isCorrect = false;
     
     for (const correctPart of correctParts) {
@@ -133,34 +167,56 @@ function checkAnswer() {
         if (isCorrect) break;
     }
     
+    // === TRACKING: Record the word answer ===
+    if (typeof window.onWordAnswered === 'function') {
+        window.onWordAnswered(word, isCorrect);
+    }
+    
     if (isCorrect) {
-        feedback.innerHTML = `<strong>Correct!</strong> ✓<br><small>"${word.greek}" = "${word.english}"</small>`;
-        feedback.className = 'feedback feedback-correct';
+        // Increment mastery count
+        wordMastery[word.greek]++;
         score++;
+        
+        const newMastery = wordMastery[word.greek];
+        
+        if (newMastery >= MASTERY_THRESHOLD) {
+            // Word is now mastered!
+            masteredCount++;
+            feedback.innerHTML = `<strong>Correct!</strong> ✓ <span style="color: #059669; font-weight: bold;">MASTERED! 🌟</span><br><small>"${word.greek}" = "${word.english}"</small>`;
+        } else {
+            feedback.innerHTML = `<strong>Correct!</strong> ✓ (${newMastery}/${MASTERY_THRESHOLD} towards mastery)<br><small>"${word.greek}" = "${word.english}"</small>`;
+        }
+        feedback.className = 'feedback feedback-correct';
     } else {
-        feedback.innerHTML = `<strong>Incorrect</strong> ✗<br>You wrote: "<em>${userAnswer}</em>"<br>Correct: "<strong>${word.english}</strong>"`;
+        // Reset mastery count for this word
+        const previousMastery = wordMastery[word.greek];
+        wordMastery[word.greek] = 0;
+        
+        let resetMessage = '';
+        if (previousMastery > 0) {
+            resetMessage = `<br><em>Progress reset - you'll need to get this right ${MASTERY_THRESHOLD} times again.</em>`;
+        }
+        
+        feedback.innerHTML = `<strong>Incorrect</strong> ✗<br>You wrote: "<em>${userAnswer}</em>"<br>Correct: "<strong>${word.english}</strong>"${resetMessage}`;
         feedback.className = 'feedback feedback-incorrect';
     }
     
     questionsAnswered++;
+    
     updateDisplay();
     
-    document.getElementById('check-btn').classList.add('hidden');
-    document.getElementById('next-btn').classList.remove('hidden');
-    document.getElementById('reveal-btn').classList.add('hidden');
+    document.getElementById('check-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'inline-block';
+    document.getElementById('reveal-btn').style.display = 'none';
 }
 
 function nextQuestion() {
-    currentQuestionIndex++;
-    if (currentQuestionIndex < currentTestWords.length) {
-        loadQuestion();
-    } else {
-        showCompletion();
-    }
+    loadQuestion();
 }
 
 function showCompletion() {
-    const percentage = Math.round((score / currentTestWords.length) * 100);
+    const totalQuestions = questionsAnswered;
+    const percentage = Math.round((score / totalQuestions) * 100);
     let message = "";
     
     if (percentage >= 90) {
@@ -170,73 +226,99 @@ function showCompletion() {
     } else if (percentage >= 70) {
         message = "Good effort! Keep practising! 📚";
     } else {
-        message = "Keep studying! Practice makes perfect! 💪";
+        message = "You did it! Practice makes perfect! 💪";
     }
     
-    const chapterText = selectedChapter === 'all' ? 'all chapters' : `Chapter ${selectedChapter}`;
+    let rangeText = '';
+    if (selectedChapter === 'review') {
+        rangeText = `<br><small>Review Mode: ${totalWordsToMaster} weak words</small>`;
+    } else {
+        const chapterWords = vocabularyData.filter(word => word.chapter == selectedChapter);
+        const fromWord = chapterWords[fromIndex].latin;
+        const toWord = chapterWords[toIndex].latin;
+        rangeText = `<br><small>Range: Chapter ${selectedChapter} (${fromWord} to ${toWord})</small>`;
+    }
     
-    document.getElementById('final-message').innerHTML = `Final Score: ${score}/${currentTestWords.length} (${percentage}%)<br>${message}<br><small>Test: ${chapterText}</small>`;
+    document.getElementById('final-message').innerHTML = `
+        <strong>All ${totalWordsToMaster} words mastered!</strong> 🎉
+        <br><br>Final Score: ${score}/${totalQuestions} (${percentage}%)
+        <br>${message}
+        ${rangeText}
+        <br><small>Each word answered correctly ${MASTERY_THRESHOLD} times.</small>
+        <br><br><button class="btn" onclick="resetPractice()" style="margin-top: 1rem;">New Practice Session</button>
+    `;
     document.getElementById('completion-message').classList.remove('hidden');
     
-    document.getElementById('check-btn').classList.add('hidden');
-    document.getElementById('next-btn').classList.add('hidden');
-    document.getElementById('reveal-btn').classList.add('hidden');
+    document.getElementById('check-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'none';
+    document.getElementById('reveal-btn').style.display = 'none';
+    
+    // Send results to task tracker (if tracking is active)
+    if (typeof window.onPracticeComplete === 'function') {
+        window.onPracticeComplete(percentage, totalQuestions, score);
+    }
+}
+
+function resetPractice() {
+    // If in review mode, go back to student dashboard
+    if (selectedChapter === 'review') {
+        window.location.href = '../dashboard/student.html';
+        return;
+    }
+    
+    // Show setup panel, hide quiz area
+    document.getElementById('setupPanel').style.display = 'block';
+    document.getElementById('quizArea').classList.remove('active');
+    document.getElementById('completion-message').classList.add('hidden');
+    
+    // Reset all variables
+    currentTestWords = [];
+    currentQuestionIndex = 0;
+    score = 0;
+    questionsAnswered = 0;
+    wordMastery = {};
+    masteredCount = 0;
+    totalWordsToMaster = 0;
 }
 
 function revealAnswer() {
-    const word = currentTestWords[currentQuestionIndex];
+    const word = getCurrentWord();
     const feedback = document.getElementById('feedback');
-    feedback.innerHTML = `<strong>Answer:</strong> "${word.english}"`;
+    
+    // Reset mastery count since they needed help
+    const previousMastery = wordMastery[word.greek];
+    wordMastery[word.greek] = 0;
+    
+    let resetMessage = '';
+    if (previousMastery > 0) {
+        resetMessage = '<br><em>Progress reset - try to remember it next time!</em>';
+    }
+    
+    feedback.innerHTML = `<strong>Answer:</strong> "${word.english}"${resetMessage}`;
     feedback.className = 'feedback feedback-revealed';
     
-    document.getElementById('check-btn').classList.add('hidden');
-    document.getElementById('next-btn').classList.remove('hidden');
-    document.getElementById('reveal-btn').classList.add('hidden');
+    document.getElementById('check-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'inline-block';
+    document.getElementById('reveal-btn').style.display = 'none';
+    
+    // === TRACKING: Record as incorrect when revealed ===
+    if (typeof window.onWordAnswered === 'function') {
+        window.onWordAnswered(word, false);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Chapter button handlers
-    document.querySelectorAll('.chapter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Remove active class from all chapter buttons
-            document.querySelectorAll('.chapter-btn').forEach(b => b.classList.remove('active'));
-            // Add active class to clicked button
-            this.classList.add('active');
-            // Update selected chapter
-            selectedChapter = this.dataset.chapter;
-            // Create new test
-            createNewTest();
-        });
-    });
-    
-    // Length button handlers
-    document.querySelectorAll('.length-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Remove active class from all length buttons
-            document.querySelectorAll('.length-btn').forEach(b => b.classList.remove('active'));
-            // Add active class to clicked button
-            this.classList.add('active');
-            // Update selected length
-            selectedLength = this.dataset.length === 'all' ? 'all' : parseInt(this.dataset.length);
-            // Create new test
-            createNewTest();
-        });
-    });
-    
     // Enter key support
     document.getElementById('answer-input').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             const checkBtn = document.getElementById('check-btn');
             const nextBtn = document.getElementById('next-btn');
             
-            if (!checkBtn.classList.contains('hidden')) {
+            if (checkBtn.style.display !== 'none') {
                 checkAnswer();
-            } else if (!nextBtn.classList.contains('hidden')) {
+            } else if (nextBtn.style.display !== 'none') {
                 nextQuestion();
             }
         }
     });
-    
-    // Initialize
-    createNewTest();
 });
