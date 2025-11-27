@@ -2163,25 +2163,21 @@
                     // Keep best score per section
                     if (!textProgress[p.text_id].sections[p.section_id] || 
                         p.questions_correct > textProgress[p.text_id].sections[p.section_id].correct) {
+                        // Subtract old values if replacing
+                        if (textProgress[p.text_id].sections[p.section_id]) {
+                            textProgress[p.text_id].totalCorrect -= textProgress[p.text_id].sections[p.section_id].correct;
+                            textProgress[p.text_id].totalQuestions -= textProgress[p.text_id].sections[p.section_id].total;
+                        }
                         textProgress[p.text_id].sections[p.section_id] = {
                             correct: p.questions_correct,
                             total: p.questions_total,
                             date: p.created_at
                         };
+                        // Add new values
+                        textProgress[p.text_id].totalCorrect += p.questions_correct || 0;
+                        textProgress[p.text_id].totalQuestions += p.questions_total || 0;
                     }
                 });
-                
-                // Calculate answer accuracy
-                const answerStats = {};
-                if (answers) {
-                    answers.forEach(a => {
-                        if (!answerStats[a.text_id]) {
-                            answerStats[a.text_id] = { correct: 0, total: 0 };
-                        }
-                        answerStats[a.text_id].total++;
-                        if (a.is_correct) answerStats[a.text_id].correct++;
-                    });
-                }
                 
                 // Known texts and their section counts
                 const textInfo = {
@@ -2192,8 +2188,8 @@
                 
                 for (const [textId, data] of Object.entries(textProgress)) {
                     const info = textInfo[textId] || { name: textId, sections: 9 };
-                    const stats = answerStats[textId] || { correct: 0, total: 0 };
-                    const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+                    // Calculate accuracy from progress data
+                    const accuracy = data.totalQuestions > 0 ? Math.round((data.totalCorrect / data.totalQuestions) * 100) : 0;
                     const sectionsCompleted = Object.keys(data.sections).length;
                     
                     html += `
@@ -2221,7 +2217,7 @@
                             </div>
                             <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: #6b7280;">
                                 <span>🎯 ${accuracy}% accuracy</span>
-                                <span>❓ ${stats.total} questions</span>
+                                <span>❓ ${data.totalQuestions} questions</span>
                             </div>
                         </div>
                     `;
