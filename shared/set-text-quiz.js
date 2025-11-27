@@ -1,7 +1,7 @@
 // Set Text Quiz Logic with Progress Tracking
 // Handles quiz flow, answer checking, and saves progress to Supabase
 
-let supabase;
+let supabaseClient;
 let currentUser = null;
 let taskId = null;
 
@@ -24,34 +24,48 @@ const completionScreen = document.getElementById('completionScreen');
 
 // Initialise
 document.addEventListener('DOMContentLoaded', async function() {
-    // Init Supabase
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    // Check auth
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-        currentUser = session.user;
-    }
-    
-    // Get URL params
-    const urlParams = new URLSearchParams(window.location.search);
-    const textId = urlParams.get('text') || 'messalina';
-    const sectionNum = urlParams.get('section');
-    taskId = urlParams.get('task_id');
-    
-    // Load text info
-    textInfo = getTextInfo(textId);
-    if (!textInfo) {
-        showError('Text not found: ' + textId);
-        return;
-    }
-    
-    if (sectionNum) {
-        // Load specific section
-        await loadSection(textId, parseInt(sectionNum));
-    } else {
-        // Show section selector
-        showSectionSelector();
+    try {
+        console.log('Set text quiz initialising...');
+        
+        // Init Supabase
+        if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_ANON_KEY === 'undefined') {
+            throw new Error('Supabase config not loaded - check config.js path');
+        }
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('Supabase initialised');
+        
+        // Check auth
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            currentUser = session.user;
+        }
+        
+        // Get URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const textId = urlParams.get('text') || 'messalina';
+        const sectionNum = urlParams.get('section');
+        taskId = urlParams.get('task_id');
+        
+        console.log('Loading text:', textId, 'section:', sectionNum);
+        
+        // Load text info
+        textInfo = getTextInfo(textId);
+        if (!textInfo) {
+            showError('Text not found: ' + textId + '. Check that messalina-info.js is loaded.');
+            return;
+        }
+        console.log('Text info loaded:', textInfo.title);
+        
+        if (sectionNum) {
+            // Load specific section
+            await loadSection(textId, parseInt(sectionNum));
+        } else {
+            // Show section selector
+            showSectionSelector();
+        }
+    } catch (error) {
+        console.error('Initialisation error:', error);
+        showError('Failed to initialise: ' + error.message);
     }
 });
 
@@ -69,25 +83,32 @@ function getTextInfo(textId) {
 // Load section data dynamically
 async function loadSection(textId, sectionNum) {
     try {
+        console.log('Loading section file:', `../data/literature/${textId}-section-${sectionNum}.js`);
+        
         // Dynamically load the section file
         const script = document.createElement('script');
         script.src = `../data/literature/${textId}-section-${sectionNum}.js`;
         
         await new Promise((resolve, reject) => {
-            script.onload = resolve;
-            script.onerror = () => reject(new Error('Failed to load section data'));
+            script.onload = () => {
+                console.log('Section script loaded successfully');
+                resolve();
+            };
+            script.onerror = () => reject(new Error('Failed to load section data file'));
             document.head.appendChild(script);
         });
         
         // Get section data
         sectionData = getSectionData(textId, sectionNum);
         if (!sectionData) {
-            showError('Section not found');
+            showError('Section data variable not found. Check messalina-section-' + sectionNum + '.js');
             return;
         }
+        console.log('Section data loaded:', sectionData.title);
         
         // Prepare questions (shuffle)
         prepareQuestions();
+        console.log('Questions prepared:', questions.length);
         
         // Show quiz
         showQuiz();
@@ -340,7 +361,7 @@ async function showCompletion() {
 async function saveProgress(percentage) {
     try {
         // Check if record exists
-        const { data: existing } = await supabase
+        const { data: existing } = await supabaseClient
             .from('set_text_progress')
             .select('*')
             .eq('student_id', currentUser.id)
@@ -350,7 +371,7 @@ async function saveProgress(percentage) {
         
         if (existing) {
             // Update existing record
-            await supabase
+            await supabaseClient
                 .from('set_text_progress')
                 .update({
                     attempts: existing.attempts + 1,
@@ -360,7 +381,7 @@ async function saveProgress(percentage) {
                 .eq('id', existing.id);
         } else {
             // Insert new record
-            await supabase
+            await supabaseClient
                 .from('set_text_progress')
                 .insert({
                     student_id: currentUser.id,
@@ -374,7 +395,7 @@ async function saveProgress(percentage) {
         
         // If this was an assigned task, also record the attempt
         if (taskId) {
-            await supabase
+            await supabaseClient
                 .from('task_attempts')
                 .insert({
                     task_id: taskId,
