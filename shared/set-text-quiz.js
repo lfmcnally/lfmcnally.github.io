@@ -1,23 +1,13 @@
-// Set Text Quiz Logic with Progress Tracking
-// Handles quiz flow, answer checking, and saves progress to Supabase
+// Set Text Quiz Logic with Progress Tracking and Answer Recording
+// Handles quiz flow, answer checking, and saves progress + individual answers to Supabase
 
-let supabaseClient;
+let supabase;
 let currentUser = null;
 let taskId = null;
 
-// Available texts
-const availableTexts = [
-    {
-        id: 'messalina',
-        title: 'Messalina',
-        author: 'Tacitus',
-        source: 'Annals XI',
-        icon: '👑',
-        sections: 9
-    }
-    // Add more texts here as they're created:
-    // { id: 'aeneid-4', title: 'Aeneid Book 4', author: 'Virgil', icon: '⚔️', sections: 8 }
-];
+// Current text/section identifiers
+let currentText = null;
+let currentSection = null;
 
 // Quiz state
 let textInfo = null;
@@ -28,75 +18,50 @@ let score = 0;
 let answered = 0;
 let selectedAnswer = null;
 let showingFeedback = false;
-let selectedSection = null;
 
-// DOM elements - will be set after DOM loads
-let loadingState, setupPanel, quizArea, completionMessage;
+// Answer tracking
+let currentAttemptNumber = 1;
+let answersToSave = [];
+
+// DOM elements
+const loadingState = document.getElementById('loadingState');
+const errorState = document.getElementById('errorState');
+const sectionSelector = document.getElementById('sectionSelector');
+const quizInterface = document.getElementById('quizInterface');
+const completionScreen = document.getElementById('completionScreen');
 
 // Initialise
 document.addEventListener('DOMContentLoaded', async function() {
-    // Cache DOM elements
-    loadingState = document.getElementById('loadingState');
-    setupPanel = document.getElementById('setupPanel');
-    quizArea = document.getElementById('quizArea');
-    completionMessage = document.getElementById('completionMessage');
+    // Init Supabase
+    if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // Check auth
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            currentUser = session.user;
+        }
+    }
     
-    try {
-        console.log('Set text quiz initialising...');
-        
-        // Init Supabase
-        if (typeof SUPABASE_URL === 'undefined' || typeof SUPABASE_ANON_KEY === 'undefined') {
-            console.warn('Supabase config not loaded - progress won\'t be saved');
-        } else {
-            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log('Supabase initialised');
-            
-            // Check auth
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                currentUser = session.user;
-                updateTrackingStatus(true);
-            }
-        }
-        
-        // Get URL params
-        const urlParams = new URLSearchParams(window.location.search);
-        const textId = urlParams.get('text');
-        const sectionNum = urlParams.get('section');
-        taskId = urlParams.get('task_id');
-        
-        console.log('Loading text:', textId, 'section:', sectionNum);
-        
-        if (textId) {
-            // Load specific text info
-            textInfo = getTextInfo(textId);
-            if (!textInfo) {
-                showError('Text not found: ' + textId);
-                return;
-            }
-            
-            // Update header
-            document.getElementById('headerTitle').textContent = textInfo.title;
-            document.getElementById('headerSubtitle').textContent = `${textInfo.author} • ${textInfo.source}`;
-            document.getElementById('headerMeta').textContent = `${textInfo.totalSections} sections to master`;
-            document.getElementById('textDescription').textContent = `${textInfo.title} by ${textInfo.author} from ${textInfo.source}. Practice translation, style analysis, and comprehension.`;
-            
-            if (sectionNum) {
-                // Load specific section directly
-                selectedSection = parseInt(sectionNum);
-                await startQuiz();
-            } else {
-                // Show section selector for this text
-                showSectionSelector();
-            }
-        } else {
-            // No text specified - show text selector
-            showTextSelector();
-        }
-        
-    } catch (error) {
-        console.error('Initialisation error:', error);
-        showError('Failed to initialise: ' + error.message);
+    // Get URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    currentText = urlParams.get('text') || 'messalina';
+    const sectionNum = urlParams.get('section');
+    taskId = urlParams.get('task_id');
+    
+    // Load text info
+    textInfo = getTextInfo(currentText);
+    if (!textInfo) {
+        showError('Text not found: ' + currentText);
+        return;
+    }
+    
+    if (sectionNum) {
+        currentSection = parseInt(sectionNum);
+        await loadSection(currentText, currentSection);
+    } else {
+        // Show section selector
+        await showSectionSelector();
     }
 });
 
@@ -111,187 +76,77 @@ function getTextInfo(textId) {
     }
 }
 
-// Update tracking status display
-function updateTrackingStatus(isTracking) {
-    const statusDiv = document.getElementById('trackingStatus');
-    if (isTracking) {
-        statusDiv.innerHTML = `
-            <div class="tracking-indicator">
-                <div class="tracking-dot"></div>
-                <span>Progress is being saved</span>
-            </div>
-        `;
-    } else {
-        statusDiv.innerHTML = `
-            <div class="tracking-indicator not-tracking">
-                <div class="tracking-dot"></div>
-                <span>Log in to track your progress</span>
-            </div>
-        `;
-    }
-}
-
-// Show text selector (landing page)
-function showTextSelector() {
-    loadingState.style.display = 'none';
-    setupPanel.style.display = 'block';
-    document.getElementById('textSelector').style.display = 'block';
-    document.getElementById('sectionSelector').style.display = 'none';
-    
-    const grid = document.getElementById('textGrid');
-    grid.innerHTML = availableTexts.map(t => `
-        <div class="text-card" onclick="selectText('${t.id}')">
-            <div class="text-card-icon">${t.icon}</div>
-            <div class="text-card-title">${t.title}</div>
-            <div class="text-card-author">${t.author}</div>
-            <div class="text-card-meta">${t.sections} sections • ${t.source}</div>
-        </div>
-    `).join('');
-}
-
-// Select a text and show its sections
-function selectText(textId) {
-    textInfo = getTextInfo(textId);
-    if (!textInfo) {
-        showError('Text not found: ' + textId);
-        return;
-    }
-    
-    // Update header
-    document.getElementById('headerTitle').textContent = textInfo.title;
-    document.getElementById('headerSubtitle').textContent = `${textInfo.author} • ${textInfo.source}`;
-    document.getElementById('headerMeta').textContent = `${textInfo.totalSections} sections to master`;
-    document.getElementById('textDescription').textContent = `${textInfo.title} by ${textInfo.author} from ${textInfo.source}. Practice translation, style analysis, and comprehension.`;
-    
-    // Show section selector
-    showSectionSelector();
-}
-
-// Show section selector
-function showSectionSelector() {
-    loadingState.style.display = 'none';
-    setupPanel.style.display = 'block';
-    document.getElementById('textSelector').style.display = 'none';
-    document.getElementById('sectionSelector').style.display = 'block';
-    
-    const grid = document.getElementById('sectionGrid');
-    grid.innerHTML = textInfo.sections.map(s => `
-        <div class="section-card" data-section="${s.section}" onclick="selectSection(${s.section})">
-            <div class="section-card-header">
-                <span class="section-card-num">Section ${s.section}</span>
-                <span class="section-card-lines">Lines ${s.lines}</span>
-            </div>
-            <div class="section-card-title">${s.title}</div>
-        </div>
-    `).join('');
-    
-    // Set up start button
-    const startBtn = document.getElementById('startBtn');
-    startBtn.disabled = true;
-    startBtn.textContent = 'Select a section to begin';
-    startBtn.onclick = startQuiz;
-}
-
-// Select a section
-function selectSection(sectionNum) {
-    selectedSection = sectionNum;
-    
-    // Update visual state
-    document.querySelectorAll('.section-card').forEach(card => {
-        card.classList.remove('selected');
-        if (parseInt(card.dataset.section) === sectionNum) {
-            card.classList.add('selected');
-        }
-    });
-    
-    // Enable start button
-    const startBtn = document.getElementById('startBtn');
-    startBtn.disabled = false;
-    startBtn.textContent = `Start Section ${sectionNum}`;
-}
-
-// Start the quiz
-async function startQuiz() {
-    if (!selectedSection) return;
+// Get the next attempt number for this user/text/section
+async function getNextAttemptNumber(textId, sectionNum) {
+    if (!supabase || !currentUser) return 1;
     
     try {
-        // Show loading
-        setupPanel.style.display = 'none';
-        loadingState.style.display = 'block';
+        const { data, error } = await supabase
+            .from('set_text_answers')
+            .select('attempt_number')
+            .eq('user_id', currentUser.id)
+            .eq('text_id', textId)
+            .eq('section_number', sectionNum)
+            .order('attempt_number', { ascending: false })
+            .limit(1);
         
-        // Load section data
-        await loadSectionData(textInfo.id, selectedSection);
-        
-        // Prepare questions
-        prepareQuestions();
-        
-        // Update full Latin text in sidebar
-        document.getElementById('latinPanel').style.display = 'block';
-        document.getElementById('fullLatinText').textContent = sectionData.latinText;
-        
-        // Show quiz
-        loadingState.style.display = 'none';
-        quizArea.classList.add('active');
-        
-        // Set total questions
-        document.getElementById('totalQ').textContent = questions.length;
-        
-        // Display first question
-        displayQuestion();
-        
-        // Set up event listeners
-        document.getElementById('checkBtn').addEventListener('click', checkAnswer);
-        document.getElementById('nextBtn').addEventListener('click', nextQuestion);
-        
-    } catch (error) {
-        console.error('Error starting quiz:', error);
-        showError('Failed to load section: ' + error.message);
+        if (error || !data || data.length === 0) return 1;
+        return data[0].attempt_number + 1;
+    } catch (err) {
+        console.error('Error getting attempt number:', err);
+        return 1;
     }
 }
 
 // Load section data dynamically
-async function loadSectionData(textId, sectionNum) {
-    console.log('Loading section file:', `../data/literature/${textId}-section-${sectionNum}.js`);
-    
-    // Check if already loaded
-    const existingData = getSectionData(textId, sectionNum);
-    if (existingData) {
-        sectionData = existingData;
-        console.log('Section data already loaded');
-        return;
+async function loadSection(textId, sectionNum) {
+    try {
+        // Get attempt number for tracking
+        currentAttemptNumber = await getNextAttemptNumber(textId, sectionNum);
+        answersToSave = [];
+        
+        // Dynamically load the section file
+        const script = document.createElement('script');
+        script.src = `../latin/data/literature/${textId}-section-${sectionNum}.js`;
+        
+        await new Promise((resolve, reject) => {
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('Failed to load section data'));
+            document.head.appendChild(script);
+        });
+        
+        // Get section data
+        sectionData = getSectionData(textId, sectionNum);
+        if (!sectionData) {
+            showError('Section not found');
+            return;
+        }
+        
+        // Prepare questions (shuffle)
+        prepareQuestions();
+        
+        // Show quiz
+        showQuiz();
+        
+        // Show tracking indicator if logged in
+        if (currentUser) {
+            document.getElementById('trackingIndicator').style.display = 'flex';
+            document.getElementById('trackingIndicator').classList.add('active');
+        }
+        
+    } catch (error) {
+        console.error('Error loading section:', error);
+        showError('Failed to load section: ' + error.message);
     }
-    
-    // Dynamically load the section file
-    const script = document.createElement('script');
-    script.src = `../data/literature/${textId}-section-${sectionNum}.js`;
-    
-    await new Promise((resolve, reject) => {
-        script.onload = () => {
-            console.log('Section script loaded successfully');
-            resolve();
-        };
-        script.onerror = () => reject(new Error('Failed to load section data file'));
-        document.head.appendChild(script);
-    });
-    
-    // Get section data
-    sectionData = getSectionData(textId, sectionNum);
-    if (!sectionData) {
-        throw new Error('Section data variable not found');
-    }
-    console.log('Section data loaded:', sectionData.title);
 }
 
-// Get section data variable
+// Get section data variable - uses dynamic naming convention
 function getSectionData(textId, sectionNum) {
-    // Dynamically check for section variable based on naming convention
-    // e.g., messalinaSection1, messalinaSection2, etc.
-    const varName = `${textId}Section${sectionNum}`;
-    
+    // Try the naming convention: textIdSection1, textIdSection2, etc.
+    const varName = textId + 'Section' + sectionNum;
     if (typeof window[varName] !== 'undefined') {
         return window[varName];
     }
-    
     return null;
 }
 
@@ -319,6 +174,74 @@ function shuffleArray(array) {
     }
 }
 
+// Show section selector
+async function showSectionSelector() {
+    loadingState.style.display = 'none';
+    sectionSelector.style.display = 'block';
+    
+    document.getElementById('textTitle').textContent = textInfo.title;
+    document.getElementById('textAuthor').textContent = `${textInfo.author} • ${textInfo.source}`;
+    
+    // Load user's progress for each section if logged in
+    let progressMap = {};
+    if (currentUser && supabase) {
+        try {
+            const { data } = await supabase
+                .from('set_text_progress')
+                .select('section_id, best_score, attempts')
+                .eq('user_id', currentUser.id)
+                .eq('text_id', textInfo.id);
+            
+            if (data) {
+                data.forEach(p => {
+                    progressMap[p.section_id] = p;
+                });
+            }
+        } catch (err) {
+            console.error('Error loading progress:', err);
+        }
+    }
+    
+    const grid = document.getElementById('sectionGrid');
+    grid.innerHTML = textInfo.sections.map(s => {
+        const progress = progressMap[s.section];
+        let progressHtml = '';
+        if (progress) {
+            progressHtml = `<div class="section-card-progress">✓ Best: ${progress.best_score}% (${progress.attempts} attempt${progress.attempts !== 1 ? 's' : ''})</div>`;
+        }
+        return `
+            <div class="section-card" onclick="loadSection('${textInfo.id}', ${s.section})">
+                <div class="section-card-title">Section ${s.section}</div>
+                <div class="section-card-lines">Lines ${s.lines}</div>
+                <div style="font-size: 0.85rem; color: #374151; margin-top: 0.5rem;">${s.title}</div>
+                ${progressHtml}
+            </div>
+        `;
+    }).join('');
+}
+
+// Show quiz interface
+function showQuiz() {
+    loadingState.style.display = 'none';
+    sectionSelector.style.display = 'none';
+    quizInterface.style.display = 'block';
+    
+    // Set header info
+    document.getElementById('quizTitle').textContent = textInfo.title;
+    document.getElementById('sectionNum').textContent = sectionData.section;
+    document.getElementById('sectionTitle').textContent = sectionData.title;
+    document.getElementById('linesInfo').textContent = `Lines ${sectionData.lines}`;
+    document.getElementById('fullLatinText').textContent = sectionData.latinText;
+    document.getElementById('totalQ').textContent = questions.length;
+    
+    // Display first question
+    displayQuestion();
+    
+    // Set up event listeners
+    document.getElementById('checkBtn').addEventListener('click', checkAnswer);
+    document.getElementById('nextBtn').addEventListener('click', nextQuestion);
+}
+
 // Display current question
 function displayQuestion() {
     const q = questions[currentQuestionIndex];
@@ -329,7 +252,10 @@ function displayQuestion() {
     
     // Set type badge
     const typeBadge = document.getElementById('typeBadge');
-    typeBadge.className = 'question-type-badge ' + q.type;
+    const latinQuote = document.getElementById('latinQuote');
+    
+    typeBadge.className = 'type-badge ' + q.type;
+    latinQuote.className = 'latin-quote ' + q.type;
     
     const typeLabels = {
         translation: '🔤 Translation',
@@ -338,8 +264,13 @@ function displayQuestion() {
     };
     typeBadge.textContent = typeLabels[q.type] || q.type;
     
-    // Set Latin text
-    document.getElementById('latinDisplay').textContent = q.latin;
+    // Set Latin text (hide if comprehension with no latin)
+    if (q.latin) {
+        document.getElementById('latinText').textContent = q.latin;
+        latinQuote.style.display = 'block';
+    } else {
+        latinQuote.style.display = 'none';
+    }
     
     // Set question
     document.getElementById('questionText').textContent = q.question;
@@ -361,11 +292,10 @@ function displayQuestion() {
     // Reset state
     selectedAnswer = null;
     showingFeedback = false;
-    document.getElementById('feedbackBox').className = 'feedback-box';
-    document.getElementById('feedbackBox').style.display = 'none';
-    document.getElementById('checkBtn').classList.remove('hidden');
+    document.getElementById('feedback').style.display = 'none';
+    document.getElementById('checkBtn').style.display = 'block';
     document.getElementById('checkBtn').disabled = true;
-    document.getElementById('nextBtn').classList.add('hidden');
+    document.getElementById('nextBtn').style.display = 'none';
 }
 
 // Select an option
@@ -399,9 +329,13 @@ function checkAnswer() {
         score++;
     }
     
+    // Track this answer for saving later
+    trackAnswer(q, selectedAnswer, isCorrect);
+    
     // Update score display
     document.getElementById('score').textContent = score;
     document.getElementById('answered').textContent = answered;
+    document.getElementById('percentage').textContent = answered > 0 ? Math.round((score / answered) * 100) : 0;
     
     // Show correct/incorrect styling
     document.querySelectorAll('.option-btn').forEach((btn, i) => {
@@ -414,22 +348,44 @@ function checkAnswer() {
     });
     
     // Show feedback
-    const feedbackBox = document.getElementById('feedbackBox');
-    feedbackBox.style.display = 'block';
+    const feedback = document.getElementById('feedback');
+    feedback.style.display = 'block';
+    feedback.className = 'feedback ' + (isCorrect ? 'correct' : 'incorrect');
     
     if (isCorrect) {
-        feedbackBox.className = 'feedback-box correct';
-        feedbackBox.innerHTML = `✓ ${q.correctFeedback}`;
+        feedback.innerHTML = `✓ ${q.correctFeedback}`;
     } else {
-        feedbackBox.className = 'feedback-box incorrect';
-        feedbackBox.innerHTML = `✗ ${q.shuffledOptions[selectedAnswer].feedback}`;
+        feedback.innerHTML = `✗ ${q.shuffledOptions[selectedAnswer].feedback}`;
     }
     
     // Show next button
-    document.getElementById('checkBtn').classList.add('hidden');
-    document.getElementById('nextBtn').classList.remove('hidden');
+    document.getElementById('checkBtn').style.display = 'none';
+    document.getElementById('nextBtn').style.display = 'block';
     document.getElementById('nextBtn').textContent = 
         currentQuestionIndex < questions.length - 1 ? 'Next Question →' : 'See Results';
+}
+
+// Track answer for saving to database
+function trackAnswer(question, selectedIndex, isCorrect) {
+    const selectedOption = question.shuffledOptions[selectedIndex];
+    const correctOption = question.shuffledOptions.find(o => o.correct);
+    
+    // Find original question index
+    const originalIndex = sectionData.questions.findIndex(q => q.question === question.question);
+    
+    answersToSave.push({
+        text_id: currentText,
+        section_number: currentSection,
+        question_index: originalIndex >= 0 ? originalIndex : currentQuestionIndex,
+        question_type: question.type,
+        question_latin: question.latin || '',
+        question_text: question.question,
+        selected_option: selectedOption.text,
+        correct_option: correctOption.text,
+        is_correct: isCorrect,
+        feedback: isCorrect ? (question.correctFeedback || '') : (selectedOption.feedback || ''),
+        attempt_number: currentAttemptNumber
+    });
 }
 
 // Move to next question
@@ -444,10 +400,8 @@ function nextQuestion() {
 
 // Show completion screen
 async function showCompletion() {
-    // Hide quiz content, show completion
-    document.querySelector('.question-display').style.display = 'none';
-    document.querySelector('.quiz-content').style.display = 'none';
-    completionMessage.classList.remove('hidden');
+    quizInterface.style.display = 'none';
+    completionScreen.style.display = 'block';
     
     const percentage = Math.round((score / questions.length) * 100);
     
@@ -466,53 +420,85 @@ async function showCompletion() {
     } else {
         message = 'Keep studying — you\'ll get there! 💪';
     }
-    document.getElementById('completionFeedback').textContent = message;
+    document.getElementById('completionMessage').textContent = message;
     
-    // Save progress to database
-    if (currentUser && supabaseClient) {
+    // Save progress and answers to database
+    if (currentUser && supabase) {
+        await saveAnswersToDatabase();
         await saveProgress(percentage);
+    }
+}
+
+// Save individual answers to database
+async function saveAnswersToDatabase() {
+    if (!supabase || !currentUser || answersToSave.length === 0) return;
+    
+    try {
+        // Add user_id to each answer
+        const answersWithUser = answersToSave.map(a => ({
+            ...a,
+            user_id: currentUser.id
+        }));
+        
+        const { error } = await supabase
+            .from('set_text_answers')
+            .insert(answersWithUser);
+        
+        if (error) {
+            console.error('Error saving answers:', error);
+        } else {
+            console.log(`Saved ${answersWithUser.length} answers to database`);
+        }
+    } catch (err) {
+        console.error('Error saving answers:', err);
     }
 }
 
 // Save progress to Supabase
 async function saveProgress(percentage) {
+    if (!supabase || !currentUser) return;
+    
     try {
         // Check if record exists
-        const { data: existing } = await supabaseClient
+        const { data: existing } = await supabase
             .from('set_text_progress')
             .select('*')
-            .eq('student_id', currentUser.id)
+            .eq('user_id', currentUser.id)
             .eq('text_id', textInfo.id)
             .eq('section_id', sectionData.section)
             .single();
         
         if (existing) {
             // Update existing record
-            await supabaseClient
+            await supabase
                 .from('set_text_progress')
                 .update({
                     attempts: existing.attempts + 1,
                     best_score: Math.max(existing.best_score, percentage),
-                    last_attempt_at: new Date().toISOString()
+                    questions_correct: score,
+                    questions_total: questions.length,
+                    completed_at: new Date().toISOString()
                 })
                 .eq('id', existing.id);
         } else {
             // Insert new record
-            await supabaseClient
+            await supabase
                 .from('set_text_progress')
                 .insert({
-                    student_id: currentUser.id,
+                    user_id: currentUser.id,
                     text_id: textInfo.id,
                     section_id: sectionData.section,
                     best_score: percentage,
                     attempts: 1,
-                    last_attempt_at: new Date().toISOString()
+                    questions_correct: score,
+                    questions_total: questions.length,
+                    completed_at: new Date().toISOString()
                 });
         }
         
         // If this was an assigned task, also record the attempt
         if (taskId) {
-            await supabaseClient
+            await supabase
                 .from('task_attempts')
                 .insert({
                     task_id: taskId,
@@ -540,45 +526,36 @@ function restartQuiz() {
     selectedAnswer = null;
     showingFeedback = false;
     
+    // Increment attempt number and reset answers array
+    currentAttemptNumber++;
+    answersToSave = [];
+    
     // Re-shuffle questions
     prepareQuestions();
     
     // Reset UI
     document.getElementById('score').textContent = '0';
     document.getElementById('answered').textContent = '0';
-    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('percentage').textContent = '0';
     
-    // Show quiz content again
-    document.querySelector('.question-display').style.display = 'block';
-    document.querySelector('.quiz-content').style.display = 'block';
-    completionMessage.classList.add('hidden');
+    completionScreen.style.display = 'none';
+    quizInterface.style.display = 'block';
     
     displayQuestion();
 }
 
-// Go back to section selector (or text selector)
+// Go back to section selector
 function goBack() {
-    // Reset quiz state
-    quizArea.classList.remove('active');
-    document.querySelector('.question-display').style.display = 'block';
-    document.querySelector('.quiz-content').style.display = 'block';
-    completionMessage.classList.add('hidden');
-    
-    currentQuestionIndex = 0;
-    score = 0;
-    answered = 0;
-    selectedSection = null;
-    
-    // Show section selector
-    showSectionSelector();
+    // Remove section param from URL and reload
+    const url = new URL(window.location);
+    url.searchParams.delete('section');
+    url.searchParams.delete('task_id');
+    window.location.href = url.toString();
 }
 
 // Show error
 function showError(message) {
-    loadingState.innerHTML = `
-        <div style="text-align: center; padding: 2rem; color: #991b1b;">
-            <p style="font-size: 1.1rem; margin-bottom: 1rem;">⚠️ ${message}</p>
-            <p style="color: #6b7280;">Check the browser console for more details.</p>
-        </div>
-    `;
+    loadingState.style.display = 'none';
+    errorState.style.display = 'block';
+    document.getElementById('errorMessage').textContent = message;
 }
