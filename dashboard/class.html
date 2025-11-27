@@ -820,6 +820,8 @@
                 </div>
                 <div class="header-actions">
                     <button class="btn btn-ghost" onclick="copyJoinCode()">📋 Copy Code</button>
+                    <button class="btn btn-ghost" onclick="openEditClassModal()">✏️ Rename</button>
+                    <button class="btn btn-ghost" onclick="openDeleteClassModal()" style="color: #ef4444;">🗑️ Delete</button>
                     <a href="teacher.html" class="btn btn-white">← Back to Dashboard</a>
                 </div>
             </div>
@@ -1060,6 +1062,50 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('deleteTaskModal')">Cancel</button>
                 <button class="btn btn-danger" onclick="confirmDeleteTask()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Class Modal -->
+    <div class="modal-overlay" id="editClassModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Rename Class</h3>
+                <button class="modal-close" onclick="closeModal('editClassModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Class Name</label>
+                    <input type="text" class="form-input" id="editClassName" placeholder="e.g. Year 9 Latin">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editClassModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmEditClass()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Class Modal -->
+    <div class="modal-overlay" id="deleteClassModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Delete Class</h3>
+                <button class="modal-close" onclick="closeModal('deleteClassModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="deleteClassName"></strong>?</p>
+                <p class="warning-text">⚠️ This will permanently delete:</p>
+                <ul style="color: #6b7280; margin: 0.5rem 0 1rem 1.5rem; font-size: 0.9rem;">
+                    <li>All student enrolments</li>
+                    <li>All assigned tasks</li>
+                    <li>All task attempts and progress data</li>
+                </ul>
+                <p class="warning-text">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('deleteClassModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDeleteClass()">Delete Class</button>
             </div>
         </div>
     </div>
@@ -1620,6 +1666,85 @@
             
             closeModal('deleteTaskModal');
             await loadTasks();
+        }
+        
+        // Class edit/delete functions
+        function openEditClassModal() {
+            document.getElementById('editClassName').value = currentClass.name;
+            openModal('editClassModal');
+        }
+        
+        function openDeleteClassModal() {
+            document.getElementById('deleteClassName').textContent = currentClass.name;
+            openModal('deleteClassModal');
+        }
+        
+        async function confirmEditClass() {
+            const newName = document.getElementById('editClassName').value.trim();
+            
+            if (!newName) {
+                alert('Please enter a class name.');
+                return;
+            }
+            
+            const { error } = await supabase
+                .from('classes')
+                .update({ name: newName })
+                .eq('id', currentClass.id);
+            
+            if (error) {
+                alert('Error renaming class: ' + error.message);
+                return;
+            }
+            
+            currentClass.name = newName;
+            document.getElementById('className').textContent = newName;
+            closeModal('editClassModal');
+        }
+        
+        async function confirmDeleteClass() {
+            // Delete in order: task_attempts -> tasks -> class_members -> class
+            
+            // 1. Get all task IDs for this class
+            const { data: tasks } = await supabase
+                .from('tasks')
+                .select('id')
+                .eq('class_id', currentClass.id);
+            
+            // 2. Delete task attempts for those tasks
+            if (tasks && tasks.length > 0) {
+                const taskIds = tasks.map(t => t.id);
+                await supabase
+                    .from('task_attempts')
+                    .delete()
+                    .in('task_id', taskIds);
+            }
+            
+            // 3. Delete tasks
+            await supabase
+                .from('tasks')
+                .delete()
+                .eq('class_id', currentClass.id);
+            
+            // 4. Delete class members
+            await supabase
+                .from('class_members')
+                .delete()
+                .eq('class_id', currentClass.id);
+            
+            // 5. Delete the class
+            const { error } = await supabase
+                .from('classes')
+                .delete()
+                .eq('id', currentClass.id);
+            
+            if (error) {
+                alert('Error deleting class: ' + error.message);
+                return;
+            }
+            
+            // Redirect to teacher dashboard
+            window.location.href = 'teacher.html';
         }
         
         async function loadTasks() {
