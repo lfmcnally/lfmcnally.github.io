@@ -284,23 +284,14 @@ async function loadSectionData(textId, sectionNum) {
 
 // Get section data variable
 function getSectionData(textId, sectionNum) {
-    switch(textId) {
-        case 'messalina':
-            if (sectionNum === 1 && typeof messalinaSection1 !== 'undefined') {
-                return messalinaSection1;
-            }
-            if (sectionNum === 2 && typeof messalinaSection2 !== 'undefined') {
-                return messalinaSection2;
-            }
-            if (sectionNum === 3 && typeof messalinaSection3 !== 'undefined') {
-                return messalinaSection3;
-            }
-            if (sectionNum === 4 && typeof messalinaSection4 !== 'undefined') {
-                return messalinaSection4;
-            }
-            // Add more sections as they're created
-            break;
+    // Dynamically check for section variable based on naming convention
+    // e.g., messalinaSection1, messalinaSection2, etc.
+    const varName = `${textId}Section${sectionNum}`;
+    
+    if (typeof window[varName] !== 'undefined') {
+        return window[varName];
     }
+    
     return null;
 }
 
