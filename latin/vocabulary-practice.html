@@ -1059,6 +1059,76 @@
             document.getElementById('setupPanel').style.display = 'none';
             document.getElementById('quizArea').classList.add('active');
         }
+        
+        // Start review mode with struggling words
+        async function startReviewMode() {
+            // Check if logged in
+            if (typeof supabase === 'undefined') {
+                alert('Please log in to review your weak words.');
+                window.location.href = '../auth/login.html';
+                return;
+            }
+            
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert('Please log in to review your weak words.');
+                window.location.href = '../auth/login.html';
+                return;
+            }
+            
+            // Fetch struggling words
+            const { data: wordMasteryData, error } = await supabase
+                .from('word_mastery')
+                .select('*')
+                .eq('student_id', user.id);
+            
+            if (error) {
+                alert('Error loading your weak words. Please try again.');
+                return;
+            }
+            
+            // Get struggling words (same criteria as student dashboard)
+            const strugglingWords = (wordMasteryData || []).filter(w => {
+                const total = w.correct_count + w.incorrect_count;
+                const accuracy = total > 0 ? (w.correct_count / total) * 100 : 0;
+                return accuracy < 50 && w.incorrect_count >= 2;
+            });
+            
+            if (strugglingWords.length === 0) {
+                alert('Great job! You have no weak words to review.');
+                window.location.href = '../dashboard/student.html';
+                return;
+            }
+            
+            // Convert to practice format
+            const practiceWords = strugglingWords.map(w => ({
+                latin: w.word_latin,
+                english: w.word_english || '',
+                chapter: w.chapter || 0,
+                info: `Review Mode - ${Math.round((w.correct_count / (w.correct_count + w.incorrect_count)) * 100)}% accuracy`
+            }));
+            
+            // Update header to show review mode
+            document.querySelector('.header-content h1').textContent = '💪 Review Weak Words';
+            document.querySelector('.header-content p').textContent = `Practising ${practiceWords.length} words that need more work`;
+            
+            // Start tracking
+            if (typeof taskTracker !== 'undefined') {
+                await taskTracker.start();
+            }
+            
+            // Hide setup panel, show quiz
+            document.getElementById('setupPanel').style.display = 'none';
+            document.getElementById('quizArea').classList.add('active');
+            
+            // Initialize practice with review words
+            // Set globals for the quiz
+            selectedChapter = 'review';
+            fromIndex = 0;
+            toIndex = practiceWords.length - 1;
+            
+            initializePractice(practiceWords, 'review', 0, practiceWords.length - 1);
+        }
 
         // Called by vocabulary-quiz.js when displaying a new word
         window.onWordDisplayed = function(wordData) {
@@ -1104,6 +1174,13 @@
             document.getElementById('startPracticeBtn').addEventListener('click', startPractice);
             
             const urlParams = new URLSearchParams(window.location.search);
+            
+            // Check for review mode
+            if (urlParams.get('mode') === 'review') {
+                startReviewMode();
+                return;
+            }
+            
             const urlChapter = urlParams.get('chapter');
             const urlFrom = urlParams.get('from');
             const urlTo = urlParams.get('to');
