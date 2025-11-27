@@ -1074,25 +1074,27 @@
                     // Add more texts here with different colors
                 };
                 
-                // Group progress by text
+                // Group progress by text - only count best attempt per section
                 const byText = {};
                 setTextProgress.forEach(p => {
                     if (!byText[p.text_id]) {
-                        byText[p.text_id] = { sections: new Set(), totalCorrect: 0, totalQuestions: 0 };
+                        byText[p.text_id] = { sections: {}, totalCorrect: 0, totalQuestions: 0 };
                     }
-                    byText[p.text_id].sections.add(p.section_id);
-                    byText[p.text_id].totalCorrect += p.questions_correct || 0;
-                    byText[p.text_id].totalQuestions += p.questions_total || 0;
-                });
-                
-                // Group answers by text for accuracy
-                const answersByText = {};
-                setTextAnswers.forEach(a => {
-                    if (!answersByText[a.text_id]) {
-                        answersByText[a.text_id] = { correct: 0, total: 0 };
+                    // Only keep best score per section
+                    const existing = byText[p.text_id].sections[p.section_id];
+                    if (!existing || p.questions_correct > existing.correct) {
+                        // Subtract old values if replacing
+                        if (existing) {
+                            byText[p.text_id].totalCorrect -= existing.correct;
+                            byText[p.text_id].totalQuestions -= existing.total;
+                        }
+                        byText[p.text_id].sections[p.section_id] = {
+                            correct: p.questions_correct || 0,
+                            total: p.questions_total || 0
+                        };
+                        byText[p.text_id].totalCorrect += p.questions_correct || 0;
+                        byText[p.text_id].totalQuestions += p.questions_total || 0;
                     }
-                    answersByText[a.text_id].total++;
-                    if (a.is_correct) answersByText[a.text_id].correct++;
                 });
                 
                 // Build summary HTML
@@ -1100,8 +1102,8 @@
                 
                 for (const [textId, data] of Object.entries(byText)) {
                     const info = textInfo[textId] || { name: textId, sections: 9, color: '#6b7280' };
-                    const answerStats = answersByText[textId] || { correct: 0, total: 0 };
-                    const accuracy = answerStats.total > 0 ? Math.round((answerStats.correct / answerStats.total) * 100) : 0;
+                    // Use progress data for accuracy (more reliable than answers table)
+                    const accuracy = data.totalQuestions > 0 ? Math.round((data.totalCorrect / data.totalQuestions) * 100) : 0;
                     
                     html += `
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f3f4f6;">
@@ -1110,7 +1112,7 @@
                                 <strong>${info.name}</strong>
                             </div>
                             <div style="font-size: 0.85rem; color: #6b7280;">
-                                ${data.sections.size}/${info.sections} sections · ${accuracy}% accuracy
+                                ${Object.keys(data.sections).length}/${info.sections} sections · ${accuracy}% accuracy
                             </div>
                         </div>
                     `;
@@ -1120,7 +1122,7 @@
                 container.innerHTML = html;
                 
                 // Render the chart
-                renderSetTextChart(byText, answersByText, textInfo);
+                renderSetTextChart(byText, textInfo);
                 
             } catch (err) {
                 console.error('Error loading set text progress:', err);
@@ -1128,7 +1130,7 @@
             }
         }
 
-        function renderSetTextChart(byText, answersByText, textInfo) {
+        function renderSetTextChart(byText, textInfo) {
             const canvas = document.getElementById('setTextChart');
             if (!canvas) return;
             
@@ -1139,10 +1141,10 @@
             const data = [];
             const colors = [];
             
-            for (const [textId, stats] of Object.entries(answersByText)) {
+            for (const [textId, stats] of Object.entries(byText)) {
                 const info = textInfo[textId] || { name: textId, color: '#6b7280' };
                 labels.push(info.name);
-                data.push(stats.total);
+                data.push(stats.totalQuestions);
                 colors.push(info.color);
             }
             
@@ -1177,10 +1179,10 @@
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    const textId = Object.keys(answersByText)[context.dataIndex];
-                                    const stats = answersByText[textId];
-                                    const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
-                                    return `${context.label}: ${stats.total} questions (${accuracy}% correct)`;
+                                    const textId = Object.keys(byText)[context.dataIndex];
+                                    const stats = byText[textId];
+                                    const accuracy = stats.totalQuestions > 0 ? Math.round((stats.totalCorrect / stats.totalQuestions) * 100) : 0;
+                                    return `${context.label}: ${stats.totalQuestions} questions (${accuracy}% correct)`;
                                 }
                             }
                         }
