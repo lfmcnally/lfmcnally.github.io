@@ -182,7 +182,16 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .class-type-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            color: #6b7280;
+            background: #f3f4f6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
         }
         .class-name {
             font-weight: 600;
@@ -467,6 +476,13 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
+                    <label class="form-label">Class Type</label>
+                    <select class="form-input" id="classType">
+                        <option value="latin">📖 Latin (vocabulary tracking)</option>
+                        <option value="classics">🏛️ Classical Civilisation</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label class="form-label">Class Name</label>
                     <input type="text" class="form-input" id="className" placeholder="e.g. Year 9 Latin">
                 </div>
@@ -551,12 +567,16 @@
 
             container.innerHTML = `
                 <div class="classes-grid">
-                    ${classes.map(cls => `
+                    ${classes.map(cls => {
+                        const typeIcon = cls.type === 'classics' ? '🏛️' : '📖';
+                        const typeName = cls.type === 'classics' ? 'Classical Civ' : 'Latin';
+                        return `
                         <div class="class-card">
                             <div class="class-header">
                                 <div class="class-name">${cls.name}</div>
                                 <div class="class-code">${cls.join_code}</div>
                             </div>
+                            <div class="class-type-badge">${typeIcon} ${typeName}</div>
                             <div class="class-stats">
                                 <div class="class-stat">
                                     <span>👥</span>
@@ -572,7 +592,7 @@
                                 <button class="btn btn-success btn-sm" onclick="copyJoinCode('${cls.join_code}')">Copy Code</button>
                             </div>
                         </div>
-                    `).join('')}
+                    `}).join('')}
                 </div>
             `;
         }
@@ -692,21 +712,24 @@
         // Create class
         async function createClass() {
             const name = document.getElementById('className').value.trim();
+            const type = document.getElementById('classType').value;
             
             if (!name) {
                 alert('Please enter a class name');
                 return;
             }
 
-            // Generate join code
-            const joinCode = 'LATIN-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+            // Generate join code based on type
+            const prefix = type === 'latin' ? 'LATIN' : 'CLASS';
+            const joinCode = prefix + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
 
             const { data, error } = await supabase
                 .from('classes')
                 .insert({
                     name: name,
                     join_code: joinCode,
-                    teacher_id: currentUser.id
+                    teacher_id: currentUser.id,
+                    type: type
                 })
                 .select()
                 .single();
@@ -718,6 +741,7 @@
 
             closeCreateClassModal();
             document.getElementById('className').value = '';
+            document.getElementById('classType').value = 'latin';
             
             // Reload
             await loadClasses();
