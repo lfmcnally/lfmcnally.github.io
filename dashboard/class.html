@@ -904,6 +904,7 @@
                     
                     <div class="task-type-selector">
                         <button class="task-type-btn active" id="vocabTaskOption" onclick="selectTaskType('vocab')">📖 Vocabulary</button>
+                        <button class="task-type-btn" id="setTextTaskOption" onclick="selectTaskType('settext')">📜 Set Text</button>
                         <button class="task-type-btn" onclick="selectTaskType('custom')">🔗 Custom Link</button>
                     </div>
                     
@@ -944,6 +945,39 @@
                             </div>
                             
                             <button type="submit" class="btn btn-primary" style="width: 100%;">Set Vocabulary Task</button>
+                        </form>
+                    </div>
+                    
+                    <div id="setTextForm" class="task-form-section">
+                        <form id="setSetTextTaskForm">
+                            <div class="form-group">
+                                <label>Task Title</label>
+                                <input type="text" class="form-input" id="setTextTitle" placeholder="e.g. Messalina Section 1" required>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Set Text</label>
+                                    <select class="form-input" id="setTextSelect" required>
+                                        <option value="">Select text...</option>
+                                        <option value="messalina">Messalina (Tacitus)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Section</label>
+                                    <select class="form-input" id="setTextSection" required disabled>
+                                        <option value="">Select text first</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Due Date</label>
+                                <input type="datetime-local" class="form-input" id="setTextDueDate" required>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">Set Literature Task</button>
                         </form>
                     </div>
                     
@@ -1260,8 +1294,11 @@
             document.querySelectorAll('.task-form-section').forEach(form => form.classList.remove('active'));
             
             if (type === 'vocab') {
-                document.querySelector('.task-type-btn:first-child').classList.add('active');
+                document.getElementById('vocabTaskOption').classList.add('active');
                 document.getElementById('vocabForm').classList.add('active');
+            } else if (type === 'settext') {
+                document.getElementById('setTextTaskOption').classList.add('active');
+                document.getElementById('setTextForm').classList.add('active');
             } else {
                 document.querySelector('.task-type-btn:last-child').classList.add('active');
                 document.getElementById('customForm').classList.add('active');
@@ -1297,12 +1334,13 @@
             document.getElementById('className').textContent = classData.name;
             document.getElementById('joinCode').textContent = classData.join_code;
             
-            // Handle class type - configure vocab picker based on type
+            // Handle class type - configure task options based on type
             if (classData.type === 'classics') {
                 // Hide words mastered stat
                 document.getElementById('wordsMasteredStat').style.display = 'none';
                 // Hide vocab task form, show only custom
                 document.getElementById('vocabTaskOption').style.display = 'none';
+                document.getElementById('setTextTaskOption').style.display = 'none';
                 selectTaskType('custom');
                 // Hide words tab in leaderboard
                 document.getElementById('leaderboardWordsTab').style.display = 'none';
@@ -1316,10 +1354,13 @@
                 const vocabBtn = document.getElementById('vocabTaskOption');
                 if (classData.type === 'greek') {
                     vocabBtn.textContent = '🏺 Vocabulary';
+                    document.getElementById('setTextTaskOption').style.display = 'none'; // No Greek set texts yet
                 } else if (classData.type === 'prep-latin') {
                     vocabBtn.textContent = '📚 Vocabulary';
+                    document.getElementById('setTextTaskOption').style.display = 'none'; // No Prep set texts
                 } else {
                     vocabBtn.textContent = '📖 Vocabulary';
+                    document.getElementById('setTextTaskOption').style.display = ''; // Show for Latin GCSE
                 }
             }
         }
@@ -2330,6 +2371,95 @@
             if (result.success) {
                 showMessage('taskMessage', 'Task created successfully!', 'success');
                 document.getElementById('setCustomTaskForm').reset();
+                await loadTasks();
+            } else {
+                showMessage('taskMessage', result.error, 'error');
+            }
+        });
+        
+        // Set Text data
+        const setTextData = {
+            messalina: {
+                title: 'Messalina',
+                author: 'Tacitus',
+                sections: [
+                    { num: 1, lines: '1-8', title: 'Silius is forced to have an affair with Messalina' },
+                    { num: 2, lines: '8-17', title: "Messalina's visits to Silius become increasingly more frequent" },
+                    { num: 3, lines: '17-26', title: 'Eventually, Messalina decides to marry Silius' },
+                    { num: 4, lines: '27-38', title: 'Widespread knowledge of the affair prompts Narcissus to take action' },
+                    { num: 5, lines: '39-49', title: 'The marriage becomes known to Claudius' },
+                    { num: 6, lines: '49-59', title: 'Silius hides and Messalina appeals to Claudius' },
+                    { num: 7, lines: '60-69', title: 'Narcissus arranges the assassination of Messalina' },
+                    { num: 8, lines: '70-79', title: 'Narcissus orders a tribune to murder Messalina' },
+                    { num: 9, lines: '79-89', title: 'Messalina is killed by the tribune' }
+                ]
+            }
+        };
+        
+        // Handle text selection change
+        document.getElementById('setTextSelect').addEventListener('change', function() {
+            const textId = this.value;
+            const sectionSelect = document.getElementById('setTextSection');
+            
+            if (!textId) {
+                sectionSelect.innerHTML = '<option value="">Select text first</option>';
+                sectionSelect.disabled = true;
+                return;
+            }
+            
+            const textData = setTextData[textId];
+            sectionSelect.innerHTML = '<option value="">Select section...</option>';
+            
+            textData.sections.forEach(s => {
+                const option = document.createElement('option');
+                option.value = s.num;
+                option.textContent = `Section ${s.num} (Lines ${s.lines}): ${s.title}`;
+                sectionSelect.appendChild(option);
+            });
+            
+            sectionSelect.disabled = false;
+            
+            // Auto-fill title
+            const titleInput = document.getElementById('setTextTitle');
+            if (!titleInput.value) {
+                titleInput.value = `${textData.title} Section`;
+            }
+        });
+        
+        // Handle section selection - update title
+        document.getElementById('setTextSection').addEventListener('change', function() {
+            const textId = document.getElementById('setTextSelect').value;
+            const sectionNum = this.value;
+            
+            if (textId && sectionNum) {
+                const textData = setTextData[textId];
+                const section = textData.sections.find(s => s.num == sectionNum);
+                document.getElementById('setTextTitle').value = `${textData.title} Section ${sectionNum}: ${section.title}`;
+            }
+        });
+        
+        // Set text form submission
+        document.getElementById('setSetTextTaskForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('setTextTitle').value.trim();
+            const textId = document.getElementById('setTextSelect').value;
+            const sectionNum = document.getElementById('setTextSection').value;
+            const dueDate = document.getElementById('setTextDueDate').value;
+            
+            if (!textId || !sectionNum) {
+                showMessage('taskMessage', 'Please select a text and section', 'error');
+                return;
+            }
+            
+            const contentPath = `/latin/literature/set-text-quiz.html?text=${textId}&section=${sectionNum}`;
+            
+            const result = await setTask(title, contentPath, dueDate);
+            
+            if (result.success) {
+                showMessage('taskMessage', 'Literature task created successfully!', 'success');
+                document.getElementById('setSetTextTaskForm').reset();
+                document.getElementById('setTextSection').disabled = true;
                 await loadTasks();
             } else {
                 showMessage('taskMessage', result.error, 'error');
