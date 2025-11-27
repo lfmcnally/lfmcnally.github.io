@@ -1039,6 +1039,23 @@
             </div>
         </div>
 
+        <!-- Set Text Progress Grid -->
+        <div class="card completion-grid-card" style="margin-top: 1.5rem;">
+            <div class="card-header">
+                <span class="card-title">📜 Set Text Progress</span>
+                <div class="grid-legend">
+                    <span class="legend-item"><span class="legend-dot" style="background: #d1fae5;"></span> 70%+</span>
+                    <span class="legend-item"><span class="legend-dot" style="background: #fef3c7;"></span> &lt;70%</span>
+                    <span class="legend-item"><span class="legend-dot" style="background: #f3f4f6;"></span> Not started</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="setTextGridContainer">
+                    <div class="loading">Loading set text data...</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Main Grid -->
         <div class="dashboard-grid">
             <!-- Students Card -->
@@ -2256,6 +2273,109 @@
             container.innerHTML = html;
         }
         
+        // Load the set text progress grid
+        async function loadSetTextGrid() {
+            const container = document.getElementById('setTextGridContainer');
+            
+            if (classStudents.length === 0) {
+                container.innerHTML = '<div class="no-tasks-message">No students in class yet.</div>';
+                return;
+            }
+            
+            const studentIds = classStudents.map(s => s.id);
+            
+            // Get all set text progress for students in this class
+            const { data: progress, error: progressError } = await supabase
+                .from('set_text_progress')
+                .select('*')
+                .in('user_id', studentIds);
+            
+            if (progressError) {
+                console.error('Error loading set text progress:', progressError);
+                container.innerHTML = '<div class="no-tasks-message">Error loading set text data.</div>';
+                return;
+            }
+            
+            // Define available texts and their sections
+            const texts = [
+                { id: 'messalina', name: 'Messalina', shortName: 'Mess.', sections: 9 }
+                // Add more texts here
+            ];
+            
+            // Build lookup: { textId: { sectionNum: { userId: { score, attempts } } } }
+            const progressLookup = {};
+            if (progress) {
+                progress.forEach(p => {
+                    if (!progressLookup[p.text_id]) progressLookup[p.text_id] = {};
+                    if (!progressLookup[p.text_id][p.section_id]) progressLookup[p.text_id][p.section_id] = {};
+                    
+                    const existing = progressLookup[p.text_id][p.section_id][p.user_id];
+                    const score = p.questions_total > 0 ? Math.round((p.questions_correct / p.questions_total) * 100) : 0;
+                    
+                    if (!existing || score > existing.score) {
+                        progressLookup[p.text_id][p.section_id][p.user_id] = {
+                            score: score,
+                            correct: p.questions_correct,
+                            total: p.questions_total,
+                            attempts: p.attempts || 1
+                        };
+                    }
+                });
+            }
+            
+            // Check if any progress exists
+            const hasAnyProgress = progress && progress.length > 0;
+            if (!hasAnyProgress) {
+                container.innerHTML = '<div class="no-tasks-message">No set text attempts yet. Students can practise at the Set Text Tester.</div>';
+                return;
+            }
+            
+            // Build HTML table
+            let html = '<div class="completion-grid-wrapper"><table class="completion-grid">';
+            
+            // Header row
+            html += '<thead><tr><th class="student-col">Student</th>';
+            texts.forEach(text => {
+                for (let s = 1; s <= text.sections; s++) {
+                    html += `<th class="task-col" title="${text.name} Section ${s}">${text.shortName} §${s}</th>`;
+                }
+            });
+            html += '</tr></thead>';
+            
+            // Body rows
+            html += '<tbody>';
+            
+            classStudents.forEach(student => {
+                const name = student.full_name || student.email.split('@')[0];
+                html += `<tr><td class="student-name">${name}</td>`;
+                
+                texts.forEach(text => {
+                    for (let s = 1; s <= text.sections; s++) {
+                        const data = progressLookup[text.id]?.[s]?.[student.id];
+                        
+                        let cellClass = 'not-started';
+                        let cellContent = '<span class="task-cell-icon">—</span>';
+                        
+                        if (data) {
+                            if (data.score >= 70) {
+                                cellClass = 'completed';
+                            } else {
+                                cellClass = 'completed-late'; // Yellow for <70%
+                            }
+                            cellContent = `<span class="task-cell-score" style="font-size: 0.9rem; font-weight: 600;">${data.score}%</span>`;
+                        }
+                        
+                        html += `<td class="task-cell"><div class="task-cell-inner ${cellClass}">${cellContent}</div></td>`;
+                    }
+                });
+                
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+        
         async function setTask(title, contentPath, dueDate) {
             const { data, error } = await supabase
                 .from('tasks')
@@ -2366,6 +2486,7 @@
             await loadStudents();
             await loadTasks();
             await loadCompletionGrid();
+            await loadSetTextGrid();
             await loadClassStats();
             await loadLeaderboard();
             
