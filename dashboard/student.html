@@ -1011,7 +1011,13 @@
             renderRecentActivity();
             renderAchievements();
             loadPendingTasks();
-            await loadSetTextProgress();
+            
+            // Load set text progress (don't let errors crash the whole page)
+            try {
+                await loadSetTextProgress();
+            } catch (e) {
+                console.error('Error loading set text progress:', e);
+            }
         }
         
         // Language progress data
@@ -2113,15 +2119,25 @@
                     .from('set_text_progress')
                     .select('*')
                     .eq('student_id', currentUser.id)
-                    .order('completed_at', { ascending: false });
+                    .order('created_at', { ascending: false });
                 
-                // Get answer stats for accuracy
-                const { data: answers, error: answersError } = await supabase
-                    .from('set_text_answers')
-                    .select('text_id, is_correct')
-                    .eq('user_id', currentUser.id);
+                // Get answer stats for accuracy (may not exist yet)
+                let answers = [];
+                try {
+                    const { data: answerData } = await supabase
+                        .from('set_text_answers')
+                        .select('text_id, is_correct')
+                        .eq('user_id', currentUser.id);
+                    answers = answerData || [];
+                } catch (e) {
+                    // Table may not exist yet
+                }
                 
-                if (progressError) throw progressError;
+                if (progressError) {
+                    console.error('Set text progress error:', progressError);
+                    container.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 1rem;">Set text tracking not available</p>';
+                    return;
+                }
                 
                 if (!progress || progress.length === 0) {
                     container.innerHTML = `
@@ -2150,7 +2166,7 @@
                         textProgress[p.text_id].sections[p.section_id] = {
                             correct: p.questions_correct,
                             total: p.questions_total,
-                            date: p.completed_at
+                            date: p.created_at
                         };
                     }
                 });
