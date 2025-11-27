@@ -23,27 +23,27 @@ const messalinaSection1 = {
         },
         {
             type: 'translation',
-            latin: 'nam in C. Silium, iuventutis Romanae pulcherrimum',
+            latin: 'nam in C. Silium, iuventutis Romanae pulcherrimum, ita exarserat',
             question: 'Which translation is correct?',
             options: [
-                { text: 'for she had fallen for C. Silius, the most handsome of Roman youth', correct: true },
-                { text: 'for she had fallen for C. Silius, the most handsome Roman youth', correct: false, feedback: 'This misses the partitive genitive — "iuventutis Romanae" means "OF Roman youth", showing he was the best among them all.' },
-                { text: 'for she had fallen for C. Silius, a very handsome Roman youth', correct: false, feedback: '"pulcherrimum" is superlative (MOST handsome), not just "very handsome".' },
-                { text: 'for she had fallen for C. Silius, more handsome than Roman youth', correct: false, feedback: 'This would need the comparative (pulchrior), not superlative (pulcherrimus).' }
+                { text: 'for she had become so inflamed with passion for C. Silius, the most handsome of Roman youth', correct: true },
+                { text: 'for she became so inflamed with passion for C. Silius, the most handsome of Roman youth', correct: false, feedback: '"exarserat" is pluperfect ("had become inflamed"), not perfect ("became"). The pluperfect shows her passion had already been burning before the events described.' },
+                { text: 'for she had become so inflamed with passion for C. Silius, the most handsome Roman youth', correct: false, feedback: 'This misses the partitive genitive — "iuventutis Romanae" means "OF Roman youth", showing he was the best among them all.' },
+                { text: 'for she had become so inflamed with passion for C. Silius, a very handsome Roman youth', correct: false, feedback: '"pulcherrimum" is superlative (MOST handsome), not just "very handsome".' }
             ],
-            correctFeedback: 'Correct! The genitive "iuventutis Romanae" with superlative means "most handsome OF Roman youth" — he was THE best in all of Rome.'
+            correctFeedback: 'Correct! "exarserat" (had blazed up/become inflamed) continues the fire imagery from "incensa est". The genitive "iuventutis Romanae" with superlative means "most handsome OF Roman youth" — he was THE best in all of Rome.'
         },
         {
             type: 'translation',
-            latin: 'ita exarserat ut Iuniam Silanam, nobilem feminam, matrimonio eius exturbaret',
+            latin: 'ut Iuniam Silanam, nobilem feminam, matrimonio eius exturbaret',
             question: 'Which translation is correct?',
             options: [
-                { text: 'she had blazed up so much that she drove out Junia Silana, a noble woman, from her marriage to him', correct: true },
-                { text: 'she blazed up so much that she drove out Junia Silana, a noble woman, from her marriage to him', correct: false, feedback: '"exarserat" is pluperfect ("had blazed"), not perfect ("blazed"). The pluperfect shows this passion preceded the action.' },
-                { text: 'she had blazed up so that she might drive out Junia Silana, a noble woman, from her marriage to him', correct: false, feedback: 'This is a result clause (ita...ut), so translate as "so much that she drove" not "so that she might drive".' },
-                { text: 'she had blazed up so much that she was driving out Junia Silana, a noble woman, from her marriage to him', correct: false, feedback: '"exturbaret" is imperfect subjunctive in a result clause — translate as simple past "drove out", not continuous "was driving".' }
+                { text: 'that she drove out Junia Silana, a noble woman, from her marriage to him', correct: true },
+                { text: 'so that she might drive out Junia Silana, a noble woman, from her marriage to him', correct: false, feedback: 'With "ita...ut" this is a result clause, so translate as "that she drove" (consequence), not "so that she might" (purpose).' },
+                { text: 'that she was driving out Junia Silana, a noble woman, from her marriage to him', correct: false, feedback: '"exturbaret" is imperfect subjunctive in a result clause — translate as simple past "drove out", not continuous "was driving".' },
+                { text: 'that she drove out Junia Silana, the noble woman, from her marriage to him', correct: false, feedback: '"nobilem feminam" uses the indefinite — "a noble woman" not "the noble woman". Tacitus is emphasising her status, not identifying her.' }
             ],
-            correctFeedback: 'Correct! "ita...ut + subjunctive" is a result clause: she had blazed SO much THAT she drove her out. The pluperfect "exarserat" shows the passion came first.'
+            correctFeedback: 'Correct! This is a result clause (following "ita...exarserat"): she had become SO inflamed THAT she drove her out. "nobilem feminam" adds moral weight — she destroyed a respectable woman.'
         },
         {
             type: 'translation',
@@ -134,14 +134,14 @@ const messalinaSection1 = {
         {
             type: 'style',
             latin: 'incensa est... exarserat',
-            question: 'Tacitus uses "incensa" (inflamed) and "exarserat" (had blazed up). What is the effect of this repeated fire imagery?',
+            question: 'Tacitus uses "incensa" (inflamed) and "exarserat" (had become inflamed). What is the effect of this repeated fire imagery?',
             options: [
                 { text: 'It portrays her passion as dangerous and destructive, foreshadowing disaster', correct: true },
                 { text: 'It shows the depth of her romantic feelings in a positive light', correct: false, feedback: 'Fire imagery in Latin literature is almost never positive — it suggests destruction, loss of control, and catastrophe. Tacitus is not romanticising her passion; he\'s warning us it will burn everything down.' },
-                { text: 'It\'s coincidental repetition with no deliberate effect', correct: false, feedback: 'Nothing in Tacitus is accidental. The sustained fire metaphor — inflamed, blazed up — creates a pattern. Her passion is a conflagration that will consume not just Silius but eventually herself and many others.' },
+                { text: 'It\'s coincidental repetition with no deliberate effect', correct: false, feedback: 'Nothing in Tacitus is accidental. The sustained fire metaphor — "was inflamed", "had become inflamed" — creates a pattern. Her passion is a conflagration that will consume not just Silius but eventually herself and many others.' },
                 { text: 'It suggests she had a fever or was physically unwell', correct: false, feedback: 'The fire is metaphorical, describing passion, not physical illness. Romans associated fire with destructive emotion — anger, lust, madness. This passion will prove literally fatal.' }
             ],
-            correctFeedback: 'Correct! The sustained fire imagery — "incensa" (set on fire), "exarserat" (had blazed up) — presents Messalina\'s passion as a conflagration. Fire in Roman thought meant destruction and loss of control. This isn\'t romance; it\'s catastrophe. The imagery foreshadows the destruction that will engulf everyone involved.'
+            correctFeedback: 'Correct! The sustained fire imagery — "incensa" (set on fire/inflamed), "exarserat" (had become inflamed) — presents Messalina\'s passion as a conflagration. Fire in Roman thought meant destruction and loss of control. This isn\'t romance; it\'s catastrophe. The imagery foreshadows the destruction that will engulf everyone involved.'
         },
         {
             type: 'style',
