@@ -15,6 +15,124 @@ let wordMastery = {}; // Track correct count per word: { "latin_word": correctCo
 let masteredCount = 0; // How many words have been fully mastered
 let totalWordsToMaster = 0; // Total words that need mastering
 
+// ========== LENIENT ANSWER CHECKING ==========
+
+// Calculate Levenshtein distance (edit distance) between two strings
+function levenshteinDistance(str1, str2) {
+    const m = str1.length;
+    const n = str2.length;
+    const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+    
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    
+    for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+            if (str1[i - 1] === str2[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1];
+            } else {
+                dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+            }
+        }
+    }
+    return dp[m][n];
+}
+
+// Normalize text for comparison (remove dashes, extra spaces, parenthetical content)
+function normalizeText(text) {
+    return text
+        .toLowerCase()
+        .replace(/[-–—]/g, ' ')      // Replace dashes with spaces
+        .replace(/\s+/g, ' ')         // Collapse multiple spaces
+        .replace(/['']/g, "'")        // Normalize apostrophes
+        .trim();
+}
+
+// Remove all spaces and dashes for very lenient comparison
+function removeSpacesAndDashes(text) {
+    return text.toLowerCase().replace(/[-–—\s]/g, '');
+}
+
+// Remove common prefixes that students might omit
+function removeCommonPrefixes(text) {
+    return text
+        .replace(/^(to |i |a |an |the )/, '')
+        .replace(/^(he\/she\/it |he |she |it )/, '')
+        .replace(/^(we |you |they )/, '')
+        .trim();
+}
+
+// Check if two answers are close enough (allowing for typos)
+function isCloseMatch(userAnswer, correctAnswer, maxDistance = 1) {
+    // Exact match
+    if (userAnswer === correctAnswer) return true;
+    
+    // Allow 1 typo for words 4+ characters, 2 typos for words 8+ characters
+    const allowedDistance = correctAnswer.length >= 8 ? 2 : (correctAnswer.length >= 4 ? 1 : 0);
+    const distance = levenshteinDistance(userAnswer, correctAnswer);
+    
+    return distance <= Math.min(maxDistance, allowedDistance);
+}
+
+// Main answer checking function
+function isAnswerCorrect(userAnswer, correctAnswer) {
+    const userNorm = normalizeText(userAnswer);
+    const correctNorm = normalizeText(correctAnswer);
+    
+    // Split by commas, semicolons, or slashes to get all acceptable answers
+    const acceptableAnswers = correctNorm
+        .split(/[,;\/]/)
+        .map(a => a.trim())
+        .filter(a => a.length > 0);
+    
+    // Also add the full answer as an option
+    acceptableAnswers.push(correctNorm);
+    
+    for (const acceptable of acceptableAnswers) {
+        // Remove parenthetical content for comparison
+        // e.g., "(he/she/it) is" becomes "is"
+        const withoutParens = acceptable.replace(/\([^)]*\)/g, '').trim().replace(/\s+/g, ' ');
+        
+        // Try various comparisons
+        const variations = [
+            acceptable,
+            withoutParens,
+            removeCommonPrefixes(acceptable),
+            removeCommonPrefixes(withoutParens)
+        ];
+        
+        const userVariations = [
+            userNorm,
+            removeCommonPrefixes(userNorm)
+        ];
+        
+        for (const correctVar of variations) {
+            if (!correctVar) continue;
+            
+            for (const userVar of userVariations) {
+                // Exact match
+                if (userVar === correctVar) return true;
+                
+                // Close match (allow typos)
+                if (isCloseMatch(userVar, correctVar)) return true;
+                
+                // No-space comparison (e.g., "slavegirl" vs "slave girl")
+                if (removeSpacesAndDashes(userVar) === removeSpacesAndDashes(correctVar)) return true;
+                
+                // Check if user typed just one key word from a multi-word answer
+                const correctWords = correctVar.split(' ').filter(w => w.length > 2);
+                for (const word of correctWords) {
+                    if (isCloseMatch(userVar, word)) return true;
+                }
+            }
+        }
+    }
+    
+    return false;
+}
+
+// ========== END LENIENT ANSWER CHECKING ==========
+
 // Practice mode - initialized from the setup panel
 function initializePractice(practiceWords, chapter, fromIdx, toIdx) {
     selectedChapter = chapter;
@@ -141,31 +259,8 @@ function checkAnswer() {
     
     const feedback = document.getElementById('feedback');
     
-    // Split correct answer by commas to handle multiple acceptable answers
-    const correctParts = correctAnswer.split(',').map(p => p.trim());
-    let isCorrect = false;
-    
-    for (const correctPart of correctParts) {
-        // Split each part by spaces to get individual words
-        const correctWords = correctPart.split(/\s+/);
-        const userWords = userAnswerLower.split(/\s+/);
-        
-        // Check if user answer exactly matches any correct part
-        if (userAnswerLower === correctPart) {
-            isCorrect = true;
-            break;
-        }
-        
-        // Check if user answer matches any individual word in the correct answer
-        for (const correctWord of correctWords) {
-            if (userWords.includes(correctWord)) {
-                isCorrect = true;
-                break;
-            }
-        }
-        
-        if (isCorrect) break;
-    }
+    // Check if answer is correct using lenient matching
+    const isCorrect = isAnswerCorrect(userAnswerLower, correctAnswer);
     
     // === TRACKING: Record the word answer ===
     if (typeof window.onWordAnswered === 'function') {
