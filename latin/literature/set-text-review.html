@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Set Text Questions - Classicalia</title>
+    <link rel="icon" type="image/png" href="../../images/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 2rem;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .back-link:hover {
+            color: #0066ff;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            font-size: 1rem;
+        }
+
+        /* Filter tabs */
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .filter-tab:hover {
+            border-color: #0066ff;
+            color: #0066ff;
+        }
+
+        .filter-tab.active {
+            background: #0066ff;
+            border-color: #0066ff;
+            color: white;
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            padding: 1rem 1.5rem;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .stat-value.wrong {
+            color: #dc2626;
+        }
+
+        .stat-value.correct {
+            color: #16a34a;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        /* Question cards */
+        .questions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+
+        .question-card.wrong {
+            border-left: 4px solid #dc2626;
+        }
+
+        .question-card.correct {
+            border-left: 4px solid #16a34a;
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: #f9fafb;
+            border-bottom: 1px solid #f3f4f6;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .question-meta {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .text-badge {
+            padding: 0.25rem 0.6rem;
+            background: #e0e7ff;
+            color: #4338ca;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .section-badge {
+            padding: 0.25rem 0.6rem;
+            background: #f3f4f6;
+            color: #6b7280;
+            border-radius: 6px;
+            font-size: 0.75rem;
+        }
+
+        .type-badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .type-badge.translation {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .type-badge.style {
+            background: #fce7f3;
+            color: #be185d;
+        }
+
+        .type-badge.comprehension {
+            background: #d1fae5;
+            color: #047857;
+        }
+
+        .question-date {
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+
+        .question-body {
+            padding: 1.5rem;
+        }
+
+        .latin-text {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-style: italic;
+            color: #0066ff;
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            padding: 0.75rem;
+            background: #f0f7ff;
+            border-radius: 8px;
+        }
+
+        .question-text {
+            color: #374151;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+
+        .answers-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .answer-box {
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .answer-box.your-answer {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+
+        .answer-box.your-answer.was-correct {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+        }
+
+        .answer-box.correct-answer {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+        }
+
+        .answer-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .answer-box.your-answer .answer-label {
+            color: #dc2626;
+        }
+
+        .answer-box.your-answer.was-correct .answer-label {
+            color: #16a34a;
+        }
+
+        .answer-box.correct-answer .answer-label {
+            color: #16a34a;
+        }
+
+        .answer-text {
+            color: #374151;
+            font-size: 0.95rem;
+        }
+
+        .feedback-box {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 8px;
+        }
+
+        .feedback-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #b45309;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .feedback-text {
+            color: #78350f;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Retry button */
+        .retry-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f3f4f6;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .retry-btn {
+            padding: 0.5rem 1rem;
+            background: #0066ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+
+        .retry-btn:hover {
+            background: #0052cc;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-title {
+            font-size: 1.25rem;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-text {
+            color: #6b7280;
+        }
+
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: #6b7280;
+        }
+
+        /* Login prompt */
+        .login-prompt {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .login-prompt h2 {
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+
+        .login-prompt p {
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+        }
+
+        .login-btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #0066ff;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .login-btn:hover {
+            background: #0052cc;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .answers-comparison {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-bar {
+                justify-content: space-around;
+            }
+
+            .filter-tabs {
+                overflow-x: auto;
+                flex-wrap: nowrap;
+                padding-bottom: 0.5rem;
+            }
+
+            .filter-tab {
+                white-space: nowrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="set-text-quiz.html" class="back-link">← Back to Set Texts</a>
+            <h1>📝 Review Your Answers</h1>
+            <p class="subtitle">Study the questions you've answered and learn from mistakes</p>
+        </div>
+
+        <div id="content">
+            <div class="loading">Loading your answers...</div>
+        </div>
+    </div>
+
+    <script src="../../auth/config.js"></script>
+    <script>
+        let supabase;
+        let allAnswers = [];
+        let currentFilter = 'wrong'; // 'all', 'wrong', 'correct', or a text_id
+
+        async function init() {
+            // Init Supabase
+            if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            } else {
+                document.getElementById('content').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚠️</div>
+                        <div class="empty-title">Configuration Error</div>
+                        <div class="empty-text">Unable to connect to database.</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (!user) {
+                document.getElementById('content').innerHTML = `
+                    <div class="login-prompt">
+                        <h2>Sign in to Review</h2>
+                        <p>You need to be logged in to see your answer history.</p>
+                        <a href="../../auth/login.html" class="login-btn">Log In</a>
+                    </div>
+                `;
+                return;
+            }
+
+            await loadAnswers(user.id);
+        }
+
+        async function loadAnswers(userId) {
+            try {
+                const { data, error } = await supabase
+                    .from('set_text_answers')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                allAnswers = data || [];
+                renderPage();
+            } catch (err) {
+                console.error('Error loading answers:', err);
+                document.getElementById('content').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚠️</div>
+                        <div class="empty-title">Error Loading Answers</div>
+                        <div class="empty-text">${err.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderPage() {
+            if (allAnswers.length === 0) {
+                document.getElementById('content').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📚</div>
+                        <div class="empty-title">No Answers Yet</div>
+                        <div class="empty-text">Complete some set text quizzes to see your answers here.</div>
+                        <a href="set-text-quiz.html" style="color: #0066ff; display: inline-block; margin-top: 1rem;">Start practising →</a>
+                    </div>
+                `;
+                return;
+            }
+
+            // Get unique texts for filters
+            const texts = [...new Set(allAnswers.map(a => a.text_id))];
+            
+            // Calculate stats
+            const totalAnswers = allAnswers.length;
+            const correctAnswers = allAnswers.filter(a => a.is_correct).length;
+            const wrongAnswers = totalAnswers - correctAnswers;
+
+            // Filter answers
+            let filteredAnswers = allAnswers;
+            if (currentFilter === 'wrong') {
+                filteredAnswers = allAnswers.filter(a => !a.is_correct);
+            } else if (currentFilter === 'correct') {
+                filteredAnswers = allAnswers.filter(a => a.is_correct);
+            } else if (currentFilter !== 'all') {
+                filteredAnswers = allAnswers.filter(a => a.text_id === currentFilter);
+            }
+
+            const html = `
+                <div class="filter-tabs">
+                    <button class="filter-tab ${currentFilter === 'wrong' ? 'active' : ''}" onclick="setFilter('wrong')">
+                        ❌ Wrong (${wrongAnswers})
+                    </button>
+                    <button class="filter-tab ${currentFilter === 'correct' ? 'active' : ''}" onclick="setFilter('correct')">
+                        ✓ Correct (${correctAnswers})
+                    </button>
+                    <button class="filter-tab ${currentFilter === 'all' ? 'active' : ''}" onclick="setFilter('all')">
+                        All (${totalAnswers})
+                    </button>
+                    ${texts.map(t => `
+                        <button class="filter-tab ${currentFilter === t ? 'active' : ''}" onclick="setFilter('${t}')">
+                            ${formatTextName(t)}
+                        </button>
+                    `).join('')}
+                </div>
+
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <div class="stat-value">${totalAnswers}</div>
+                        <div class="stat-label">Total Answers</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value correct">${correctAnswers}</div>
+                        <div class="stat-label">Correct</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value wrong">${wrongAnswers}</div>
+                        <div class="stat-label">Wrong</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0}%</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                </div>
+
+                <div class="questions-list">
+                    ${filteredAnswers.length === 0 ? `
+                        <div class="empty-state">
+                            <div class="empty-icon">${currentFilter === 'wrong' ? '🎉' : '📋'}</div>
+                            <div class="empty-title">${currentFilter === 'wrong' ? 'No Wrong Answers!' : 'No Answers in This Category'}</div>
+                            <div class="empty-text">${currentFilter === 'wrong' ? 'Great work - keep it up!' : 'Try a different filter.'}</div>
+                        </div>
+                    ` : filteredAnswers.map(answer => renderQuestionCard(answer)).join('')}
+                </div>
+            `;
+
+            document.getElementById('content').innerHTML = html;
+        }
+
+        function renderQuestionCard(answer) {
+            const date = new Date(answer.created_at).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+
+            return `
+                <div class="question-card ${answer.is_correct ? 'correct' : 'wrong'}">
+                    <div class="question-header">
+                        <div class="question-meta">
+                            <span class="text-badge">${formatTextName(answer.text_id)}</span>
+                            <span class="section-badge">Section ${answer.section_number}</span>
+                            <span class="type-badge ${answer.question_type}">${answer.question_type}</span>
+                        </div>
+                        <span class="question-date">${date}</span>
+                    </div>
+                    <div class="question-body">
+                        ${answer.question_latin ? `<div class="latin-text">${escapeHtml(answer.question_latin)}</div>` : ''}
+                        <div class="question-text">${escapeHtml(answer.question_text)}</div>
+                        
+                        <div class="answers-comparison">
+                            <div class="answer-box your-answer ${answer.is_correct ? 'was-correct' : ''}">
+                                <div class="answer-label">${answer.is_correct ? '✓ Your Answer (Correct)' : '✗ Your Answer'}</div>
+                                <div class="answer-text">${escapeHtml(answer.selected_option)}</div>
+                            </div>
+                            ${!answer.is_correct ? `
+                                <div class="answer-box correct-answer">
+                                    <div class="answer-label">✓ Correct Answer</div>
+                                    <div class="answer-text">${escapeHtml(answer.correct_option)}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        ${answer.feedback ? `
+                            <div class="feedback-box">
+                                <div class="feedback-label">💡 Explanation</div>
+                                <div class="feedback-text">${escapeHtml(answer.feedback)}</div>
+                            </div>
+                        ` : ''}
+
+                        ${!answer.is_correct ? `
+                            <div class="retry-section">
+                                <a href="set-text-quiz.html?text=${answer.text_id}&section=${answer.section_number}" class="retry-btn">
+                                    🔄 Retry Section ${answer.section_number}
+                                </a>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            renderPage();
+        }
+
+        function formatTextName(textId) {
+            // Convert text_id to display name
+            const names = {
+                'messalina': 'Messalina'
+            };
+            return names[textId] || textId.charAt(0).toUpperCase() + textId.slice(1);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
