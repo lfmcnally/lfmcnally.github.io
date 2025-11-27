@@ -706,7 +706,7 @@
                 loadAttempts(),
                 loadWordMastery(),
                 loadTaskGrid(),
-                loadSetTextProgress()
+                loadSetTextProgress().catch(e => console.error('Set text error:', e))
             ]);
 
             // Render everything
@@ -1027,23 +1027,35 @@
 
         async function loadSetTextProgress() {
             const container = document.getElementById('setTextContainer');
+            if (!container) return;
             
             try {
-                // Load progress and answers
-                const [progressResult, answersResult] = await Promise.all([
-                    supabaseClient
-                        .from('set_text_progress')
-                        .select('*')
-                        .eq('student_id', studentId)
-                        .order('completed_at', { ascending: false }),
-                    supabaseClient
+                // Load progress (required)
+                const { data: progressData, error: progressError } = await supabaseClient
+                    .from('set_text_progress')
+                    .select('*')
+                    .eq('student_id', studentId)
+                    .order('completed_at', { ascending: false });
+                
+                if (progressError) {
+                    console.error('Set text progress error:', progressError);
+                    container.innerHTML = '<p style="color: #6b7280; text-align: center;">Set text data not available</p>';
+                    document.getElementById('setTextChart').style.display = 'none';
+                    return;
+                }
+                
+                setTextProgress = progressData || [];
+                
+                // Load answers (optional - may not exist)
+                try {
+                    const { data: answerData } = await supabaseClient
                         .from('set_text_answers')
                         .select('text_id, is_correct, created_at')
-                        .eq('user_id', studentId)
-                ]);
-                
-                setTextProgress = progressResult.data || [];
-                setTextAnswers = answersResult.data || [];
+                        .eq('user_id', studentId);
+                    setTextAnswers = answerData || [];
+                } catch (e) {
+                    setTextAnswers = [];
+                }
                 
                 if (setTextProgress.length === 0) {
                     container.innerHTML = '<p style="color: #6b7280; text-align: center;">No set text attempts yet</p>';
@@ -1112,8 +1124,10 @@
         }
 
         function renderSetTextChart(byText, answersByText, textInfo) {
-            const ctx = document.getElementById('setTextChart');
-            if (!ctx) return;
+            const canvas = document.getElementById('setTextChart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
             
             // Prepare data for doughnut chart showing questions answered per text
             const labels = [];
@@ -1128,7 +1142,7 @@
             }
             
             if (data.length === 0) {
-                ctx.style.display = 'none';
+                canvas.style.display = 'none';
                 return;
             }
             
