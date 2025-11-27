@@ -1048,6 +1048,7 @@
             
             // Start tracking (works for both assigned tasks and free practice)
             if (typeof taskTracker !== 'undefined') {
+                taskTracker.setLanguage('latin');
                 await taskTracker.start();
             }
             
@@ -1076,11 +1077,16 @@
                 return;
             }
             
-            // Fetch struggling words
+            // Get language from URL (default to latin for this page)
+            const urlParams = new URLSearchParams(window.location.search);
+            const language = urlParams.get('language') || 'latin';
+            
+            // Fetch struggling words for this language
             const { data: wordMasteryData, error } = await supabase
                 .from('word_mastery')
                 .select('*')
-                .eq('student_id', user.id);
+                .eq('student_id', user.id)
+                .eq('language', language);
             
             if (error) {
                 alert('Error loading your weak words. Please try again.');
@@ -1109,11 +1115,13 @@
             }));
             
             // Update header to show review mode
-            document.querySelector('.header-content h1').textContent = '💪 Review Weak Words';
+            const langName = language === 'greek' ? 'Greek' : 'Latin';
+            document.querySelector('.header-content h1').textContent = `💪 Review Weak ${langName} Words`;
             document.querySelector('.header-content p').textContent = `Practising ${practiceWords.length} words that need more work`;
             
-            // Start tracking
+            // Start tracking with correct language
             if (typeof taskTracker !== 'undefined') {
+                taskTracker.setLanguage(language);
                 await taskTracker.start();
             }
             
