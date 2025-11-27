@@ -930,6 +930,14 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Set Text Progress -->
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header">📜 Set Text Progress</div>
+                    <div class="card-body" id="setTextProgress">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1003,6 +1011,7 @@
             renderRecentActivity();
             renderAchievements();
             loadPendingTasks();
+            await loadSetTextProgress();
         }
         
         // Language progress data
@@ -2091,6 +2100,128 @@
             if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
             
             return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        }
+
+        // Load Set Text Progress
+        async function loadSetTextProgress() {
+            const container = document.getElementById('setTextProgress');
+            if (!container) return;
+            
+            try {
+                // Get set text progress
+                const { data: progress, error: progressError } = await supabase
+                    .from('set_text_progress')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('completed_at', { ascending: false });
+                
+                // Get answer stats for accuracy
+                const { data: answers, error: answersError } = await supabase
+                    .from('set_text_answers')
+                    .select('text_id, is_correct')
+                    .eq('user_id', currentUser.id);
+                
+                if (progressError) throw progressError;
+                
+                if (!progress || progress.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 1.5rem; color: #6b7280;">
+                            <p style="font-size: 2rem; margin-bottom: 0.5rem;">📚</p>
+                            <p style="margin-bottom: 0.75rem;">No set text attempts yet</p>
+                            <a href="../latin/literature/set-text-quiz.html" style="color: #0066ff; text-decoration: none; font-weight: 500;">Start practising →</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Group by text
+                const textProgress = {};
+                progress.forEach(p => {
+                    if (!textProgress[p.text_id]) {
+                        textProgress[p.text_id] = {
+                            sections: {},
+                            totalCorrect: 0,
+                            totalQuestions: 0
+                        };
+                    }
+                    // Keep best score per section
+                    if (!textProgress[p.text_id].sections[p.section_id] || 
+                        p.questions_correct > textProgress[p.text_id].sections[p.section_id].correct) {
+                        textProgress[p.text_id].sections[p.section_id] = {
+                            correct: p.questions_correct,
+                            total: p.questions_total,
+                            date: p.completed_at
+                        };
+                    }
+                });
+                
+                // Calculate answer accuracy
+                const answerStats = {};
+                if (answers) {
+                    answers.forEach(a => {
+                        if (!answerStats[a.text_id]) {
+                            answerStats[a.text_id] = { correct: 0, total: 0 };
+                        }
+                        answerStats[a.text_id].total++;
+                        if (a.is_correct) answerStats[a.text_id].correct++;
+                    });
+                }
+                
+                // Known texts and their section counts
+                const textInfo = {
+                    'messalina': { name: 'Messalina', sections: 9 }
+                };
+                
+                let html = '<div style="display: flex; flex-direction: column; gap: 1rem;">';
+                
+                for (const [textId, data] of Object.entries(textProgress)) {
+                    const info = textInfo[textId] || { name: textId, sections: 9 };
+                    const stats = answerStats[textId] || { correct: 0, total: 0 };
+                    const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+                    const sectionsCompleted = Object.keys(data.sections).length;
+                    
+                    html += `
+                        <div style="background: #f9fafb; border-radius: 12px; padding: 1rem; border: 1px solid #e5e7eb;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <strong style="color: #1f2937;">${info.name}</strong>
+                                <span style="font-size: 0.85rem; color: #6b7280;">${sectionsCompleted}/${info.sections} sections</span>
+                            </div>
+                            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+                    `;
+                    
+                    for (let i = 1; i <= info.sections; i++) {
+                        const section = data.sections[i];
+                        if (section) {
+                            const pct = Math.round((section.correct / section.total) * 100);
+                            const bgColor = pct >= 70 ? '#dcfce7' : '#fef3c7';
+                            const textColor = pct >= 70 ? '#16a34a' : '#d97706';
+                            html += `<span style="padding: 0.25rem 0.5rem; background: ${bgColor}; color: ${textColor}; border-radius: 4px; font-size: 0.75rem; font-weight: 500;" title="${section.correct}/${section.total}">§${i}: ${pct}%</span>`;
+                        } else {
+                            html += `<span style="padding: 0.25rem 0.5rem; background: #f3f4f6; color: #9ca3af; border-radius: 4px; font-size: 0.75rem;">§${i}</span>`;
+                        }
+                    }
+                    
+                    html += `
+                            </div>
+                            <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: #6b7280;">
+                                <span>🎯 ${accuracy}% accuracy</span>
+                                <span>❓ ${stats.total} questions</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += '</div>';
+                html += `<div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f3f4f6;">
+                    <a href="../latin/literature/set-text-review.html" style="color: #0066ff; text-decoration: none; font-weight: 500;">📝 Review wrong answers →</a>
+                </div>`;
+                
+                container.innerHTML = html;
+                
+            } catch (err) {
+                console.error('Error loading set text progress:', err);
+                container.innerHTML = '<p style="color: #dc2626; padding: 1rem;">Error loading progress</p>';
+            }
         }
 
         // Start
