@@ -509,7 +509,7 @@
                 <div class="header-top">
                     <div>
                         <div class="student-name" id="studentName">Student Name</div>
-                        <div class="student-email" id="studentEmail"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="94e7e0e1f0f1fae0d4f1f9f5fdf8baf7fbf9">[email&#160;protected]</a></div>
+                        <div class="student-email" id="studentEmail">Loading...</div>
                     </div>
                     <a href="#" class="back-btn" id="backBtn">← Back to Class</a>
                 </div>
@@ -659,7 +659,7 @@
         </div>
     </div>
 
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../auth/config.js"></script>
     <script>
         // Use existing supabase client from config.js, or create one
@@ -677,48 +677,53 @@
         let setTextChart = null;
 
         async function init() {
-            // Get student_id and class_id from URL
-            const params = new URLSearchParams(window.location.search);
-            studentId = params.get('student_id');
-            classId = params.get('class_id');
+            try {
+                // Get student_id and class_id from URL
+                const params = new URLSearchParams(window.location.search);
+                studentId = params.get('student_id');
+                classId = params.get('class_id');
 
-            if (!studentId) {
-                alert('No student specified');
-                window.history.back();
-                return;
+                if (!studentId) {
+                    alert('No student specified');
+                    window.history.back();
+                    return;
+                }
+
+                // Set back button
+                document.getElementById('backBtn').href = classId 
+                    ? `class.html?id=${classId}` 
+                    : 'teacher.html';
+
+                // Check auth
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (!user) {
+                    window.location.href = '../auth/login.html';
+                    return;
+                }
+
+                // Load all data with individual error handling
+                await Promise.all([
+                    loadStudentInfo().catch(e => console.error('loadStudentInfo error:', e)),
+                    loadAttempts().catch(e => console.error('loadAttempts error:', e)),
+                    loadWordMastery().catch(e => console.error('loadWordMastery error:', e)),
+                    loadTaskGrid().catch(e => console.error('loadTaskGrid error:', e)),
+                    loadSetTextProgress().catch(e => console.error('loadSetTextProgress error:', e))
+                ]);
+
+                // Render everything
+                renderStats();
+                renderActivityChart(30);
+                renderScoreChart();
+                renderMasteryChart();
+                renderStrugglingWords();
+                renderSessions();
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            } catch (err) {
+                console.error('Init error:', err);
+                document.getElementById('loading').textContent = 'Error loading page: ' + err.message;
             }
-
-            // Set back button
-            document.getElementById('backBtn').href = classId 
-                ? `class.html?id=${classId}` 
-                : 'teacher.html';
-
-            // Check auth
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            if (!user) {
-                window.location.href = '../auth/login.html';
-                return;
-            }
-
-            // Load all data
-            await Promise.all([
-                loadStudentInfo(),
-                loadAttempts(),
-                loadWordMastery(),
-                loadTaskGrid(),
-                loadSetTextProgress().catch(e => console.error('Set text error:', e))
-            ]);
-
-            // Render everything
-            renderStats();
-            renderActivityChart(30);
-            renderScoreChart();
-            renderMasteryChart();
-            renderStrugglingWords();
-            renderSessions();
-
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('content').style.display = 'block';
         }
 
         async function loadStudentInfo() {
