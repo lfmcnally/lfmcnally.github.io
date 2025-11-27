@@ -758,6 +758,150 @@
             color: #6b7280;
         }
 
+        /* Task Completion Grid */
+        .completion-grid-card {
+            margin-bottom: 2rem;
+        }
+        .completion-grid-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .grid-legend {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        .legend-dot.not-started { background: #f3f4f6; border: 1px solid #d1d5db; }
+        .legend-dot.completed { background: #10b981; }
+        .legend-dot.overdue { background: #ef4444; }
+        
+        .completion-grid-wrapper {
+            overflow-x: auto;
+        }
+        .completion-grid {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .completion-grid th,
+        .completion-grid td {
+            padding: 0.6rem 0.5rem;
+            text-align: center;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .completion-grid th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            white-space: nowrap;
+        }
+        .completion-grid th.student-col {
+            text-align: left;
+            min-width: 140px;
+            position: sticky;
+            left: 0;
+            background: #f9fafb;
+            z-index: 1;
+        }
+        .completion-grid td.student-name {
+            text-align: left;
+            font-weight: 500;
+            color: #1f2937;
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 1;
+        }
+        .completion-grid th.task-col {
+            max-width: 120px;
+            font-size: 0.75rem;
+            line-height: 1.3;
+        }
+        .completion-grid th.task-col .task-title {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.15rem;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .completion-grid th.task-col .task-due {
+            display: block;
+            font-weight: 400;
+            color: #9ca3af;
+            font-size: 0.7rem;
+        }
+        .completion-grid tbody tr:hover {
+            background: #f9fafb;
+        }
+        .completion-grid tbody tr:hover td.student-name {
+            background: #f9fafb;
+        }
+        
+        /* Cell styling */
+        .task-cell {
+            min-width: 70px;
+        }
+        .task-cell-inner {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.4rem 0.6rem;
+            border-radius: 6px;
+            min-width: 50px;
+        }
+        .task-cell-inner.not-started {
+            background: #f3f4f6;
+            color: #9ca3af;
+        }
+        .task-cell-inner.completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .task-cell-inner.completed-late {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .task-cell-inner.overdue {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .task-cell-inner.in-progress {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .task-cell-time {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .task-cell-score {
+            font-size: 0.7rem;
+            opacity: 0.85;
+        }
+        .task-cell-icon {
+            font-size: 0.85rem;
+        }
+        
+        .no-tasks-message {
+            text-align: center;
+            color: #6b7280;
+            padding: 2rem;
+        }
+
         /* Responsive */
         @media (max-width: 900px) {
             .dashboard-grid {
@@ -878,6 +1022,23 @@
                 </div>
                 <div class="card-body" id="alertsContainer">
                     <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Completion Grid -->
+        <div class="card completion-grid-card">
+            <div class="card-header">
+                <span class="card-title">📊 Task Completion Overview</span>
+                <div class="grid-legend">
+                    <span class="legend-item"><span class="legend-dot not-started"></span> Not started</span>
+                    <span class="legend-item"><span class="legend-dot completed"></span> Completed</span>
+                    <span class="legend-item"><span class="legend-dot overdue"></span> Overdue</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="completionGridContainer">
+                    <div class="loading">Loading task data...</div>
                 </div>
             </div>
         </div>
@@ -1679,6 +1840,7 @@
             
             closeModal('editTaskModal');
             await loadTasks();
+            await loadCompletionGrid();
         }
         
         function showDeleteTask(taskId, taskName) {
@@ -1707,6 +1869,7 @@
             
             closeModal('deleteTaskModal');
             await loadTasks();
+            await loadCompletionGrid();
         }
         
         // Class edit/delete functions
@@ -1970,6 +2133,124 @@
             tbody.innerHTML = html;
         }
         
+        // Load the task completion grid
+        async function loadCompletionGrid() {
+            const container = document.getElementById('completionGridContainer');
+            
+            // Get tasks for this class (most recent 10)
+            const { data: tasks, error: tasksError } = await supabase
+                .from('tasks')
+                .select('*')
+                .eq('class_id', currentClass.id)
+                .order('due_date', { ascending: false })
+                .limit(10);
+            
+            if (tasksError || !tasks || tasks.length === 0) {
+                container.innerHTML = '<div class="no-tasks-message">No tasks set yet. Create a task to see completion tracking.</div>';
+                return;
+            }
+            
+            // Reverse so oldest is first (left to right = chronological)
+            const sortedTasks = [...tasks].reverse();
+            
+            // Get all students in class
+            if (classStudents.length === 0) {
+                container.innerHTML = '<div class="no-tasks-message">No students in class yet.</div>';
+                return;
+            }
+            
+            // Get all task attempts for these tasks
+            const taskIds = sortedTasks.map(t => t.id);
+            const studentIds = classStudents.map(s => s.id);
+            
+            const { data: attempts, error: attemptsError } = await supabase
+                .from('task_attempts')
+                .select('*')
+                .in('task_id', taskIds)
+                .in('student_id', studentIds);
+            
+            // Build lookup: { taskId: { studentId: { completed, time, score } } }
+            const attemptLookup = {};
+            if (attempts) {
+                attempts.forEach(a => {
+                    if (!attemptLookup[a.task_id]) {
+                        attemptLookup[a.task_id] = {};
+                    }
+                    const existing = attemptLookup[a.task_id][a.student_id];
+                    const time = a.time_spent_seconds || 0;
+                    const score = a.score || 0;
+                    
+                    if (!existing || score > existing.score) {
+                        attemptLookup[a.task_id][a.student_id] = {
+                            completed: !!a.completed_at,
+                            completedAt: a.completed_at ? new Date(a.completed_at) : null,
+                            time: time,
+                            score: score,
+                            attempts: (existing?.attempts || 0) + 1
+                        };
+                    } else if (existing) {
+                        existing.attempts++;
+                        existing.time += time;
+                    }
+                });
+            }
+            
+            // Build HTML table
+            let html = '<div class="completion-grid-wrapper"><table class="completion-grid">';
+            
+            // Header row
+            html += '<thead><tr><th class="student-col">Student</th>';
+            sortedTasks.forEach(task => {
+                const dueDate = new Date(task.due_date);
+                const dueDateStr = dueDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                const title = task.title.length > 20 ? task.title.substring(0, 18) + '...' : task.title;
+                html += `<th class="task-col"><span class="task-title" title="${task.title}">${title}</span><span class="task-due">Due ${dueDateStr}</span></th>`;
+            });
+            html += '</tr></thead>';
+            
+            // Body rows
+            html += '<tbody>';
+            const now = new Date();
+            
+            classStudents.forEach(student => {
+                const name = student.full_name || student.email.split('@')[0];
+                html += `<tr><td class="student-name">${name}</td>`;
+                
+                sortedTasks.forEach(task => {
+                    const attempt = attemptLookup[task.id]?.[student.id];
+                    const dueDate = new Date(task.due_date);
+                    const isOverdue = now > dueDate;
+                    
+                    let cellClass = 'not-started';
+                    let cellContent = '<span class="task-cell-icon">—</span>';
+                    
+                    if (attempt && attempt.completed) {
+                        const wasLate = attempt.completedAt && attempt.completedAt > dueDate;
+                        cellClass = wasLate ? 'completed-late' : 'completed';
+                        const mins = Math.round(attempt.time / 60);
+                        const timeStr = mins > 0 ? `${mins}m` : '<1m';
+                        cellContent = `<span class="task-cell-time">${timeStr}</span>`;
+                        if (attempt.score) {
+                            cellContent += `<span class="task-cell-score">${attempt.score}%</span>`;
+                        }
+                    } else if (attempt && !attempt.completed) {
+                        cellClass = 'in-progress';
+                        cellContent = '<span class="task-cell-icon">⏳</span>';
+                    } else if (isOverdue) {
+                        cellClass = 'overdue';
+                        cellContent = '<span class="task-cell-icon">✗</span>';
+                    }
+                    
+                    html += `<td class="task-cell"><div class="task-cell-inner ${cellClass}">${cellContent}</div></td>`;
+                });
+                
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+        
         async function setTask(title, contentPath, dueDate) {
             const { data, error } = await supabase
                 .from('tasks')
@@ -2079,6 +2360,7 @@
             await loadClassDetails();
             await loadStudents();
             await loadTasks();
+            await loadCompletionGrid();
             await loadClassStats();
             await loadLeaderboard();
             
@@ -2354,6 +2636,7 @@
                 document.getElementById('taskFromWord').disabled = true;
                 document.getElementById('taskToWord').disabled = true;
                 await loadTasks();
+                await loadCompletionGrid();
             } else {
                 showMessage('taskMessage', result.error, 'error');
             }
@@ -2372,6 +2655,7 @@
                 showMessage('taskMessage', 'Task created successfully!', 'success');
                 document.getElementById('setCustomTaskForm').reset();
                 await loadTasks();
+                await loadCompletionGrid();
             } else {
                 showMessage('taskMessage', result.error, 'error');
             }
@@ -2461,6 +2745,7 @@
                 document.getElementById('setSetTextTaskForm').reset();
                 document.getElementById('setTextSection').disabled = true;
                 await loadTasks();
+                await loadCompletionGrid();
             } else {
                 showMessage('taskMessage', result.error, 'error');
             }
