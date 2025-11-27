@@ -1264,19 +1264,36 @@
                     classes (
                         id,
                         name,
-                        join_code
+                        join_code,
+                        type
                     )
                 `)
                 .eq('student_id', currentUser.id);
 
             if (error || !memberships || memberships.length === 0) {
                 document.getElementById('myClasses').innerHTML = '<p style="color: #6b7280; font-size: 0.85rem;">You haven\'t joined any classes yet.</p>';
+                // Hide word mastery if no classes
+                document.querySelector('.word-mastery-section').style.display = 'none';
+                document.getElementById('reviewWeakSection').style.display = 'none';
                 return;
             }
 
-            const classesHtml = memberships.map(m => 
-                `<span class="class-tag">📚 ${m.classes.name}</span>`
-            ).join('');
+            // Check if student is in any Latin classes
+            const hasLatinClass = memberships.some(m => m.classes.type !== 'classics');
+            
+            // Hide word mastery stuff if only in Classics classes
+            if (!hasLatinClass) {
+                document.querySelector('.word-mastery-section').style.display = 'none';
+                document.getElementById('reviewWeakSection').style.display = 'none';
+                // Hide words option in leaderboard
+                const wordsOption = document.querySelector('#leaderboardType option[value="words"]');
+                if (wordsOption) wordsOption.style.display = 'none';
+            }
+
+            const classesHtml = memberships.map(m => {
+                const icon = m.classes.type === 'classics' ? '🏛️' : '📚';
+                return `<span class="class-tag">${icon} ${m.classes.name}</span>`;
+            }).join('');
             
             document.getElementById('myClasses').innerHTML = '<p style="color: #6b7280; font-size: 0.85rem; margin-bottom: 0.5rem;">Your classes:</p>' + classesHtml;
         }
