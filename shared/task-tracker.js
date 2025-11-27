@@ -12,6 +12,7 @@ const taskTracker = {
     lastActivityTime: null,
     activeTimeSeconds: 0, // Only counts actual activity time
     userId: null,
+    language: 'latin', // Default language for word tracking
     wordsAnswered: [], // Track words answered this session
     questionsAnswered: 0,
     correctAnswers: 0,
@@ -20,6 +21,12 @@ const taskTracker = {
     // Config
     MAX_TIME_PER_QUESTION: 120, // Max 2 minutes counted per question
     IDLE_THRESHOLD: 180, // 3 minutes - if gap > this, don't count idle time
+    
+    // Set language for this session
+    setLanguage(lang) {
+        this.language = lang || 'latin';
+        console.log('Task tracker language set to:', this.language);
+    },
     
     // Initialize - check if user is logged in
     async init() {
@@ -159,12 +166,13 @@ const taskTracker = {
         
         // Update word_mastery table
         try {
-            // First, try to get existing record
+            // First, try to get existing record (check by language too)
             const { data: existing, error: fetchError } = await supabase
                 .from('word_mastery')
                 .select('*')
                 .eq('student_id', this.userId)
                 .eq('word_latin', wordData.latin)
+                .eq('language', this.language)
                 .maybeSingle();
             
             if (fetchError) {
@@ -190,7 +198,7 @@ const taskTracker = {
                 }
                     
             } else {
-                // Insert new record
+                // Insert new record with language
                 const { error: insertError } = await supabase
                     .from('word_mastery')
                     .insert({
@@ -198,6 +206,7 @@ const taskTracker = {
                         word_latin: wordData.latin,
                         word_english: wordData.english,
                         chapter: parseInt(wordData.chapter) || null,
+                        language: this.language,
                         correct_count: isCorrect ? 1 : 0,
                         incorrect_count: isCorrect ? 0 : 1,
                         last_seen_at: new Date().toISOString()
@@ -206,7 +215,7 @@ const taskTracker = {
                 if (insertError) {
                     console.error('Error inserting word mastery:', insertError);
                 } else {
-                    console.log('Word mastery created:', wordData.latin, isCorrect ? '✓' : '✗');
+                    console.log('Word mastery created:', wordData.latin, '(' + this.language + ')', isCorrect ? '✓' : '✗');
                 }
             }
             
