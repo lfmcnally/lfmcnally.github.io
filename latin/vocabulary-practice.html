@@ -495,6 +495,74 @@
             50% { opacity: 0.5; }
         }
 
+        /* Task Mode */
+        .task-mode-banner {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            border: 2px solid #60a5fa;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+        .task-mode-banner.active {
+            display: flex;
+        }
+        .task-mode-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .task-mode-icon {
+            font-size: 1.5rem;
+        }
+        .task-mode-text h4 {
+            margin: 0 0 0.25rem 0;
+            color: #1e40af;
+            font-size: 0.95rem;
+        }
+        .task-mode-text p {
+            margin: 0;
+            color: #3b82f6;
+            font-size: 0.8rem;
+        }
+        .free-practice-btn {
+            padding: 0.5rem 1rem;
+            background: white;
+            color: #1e40af;
+            border: 1px solid #60a5fa;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .free-practice-btn:hover {
+            background: #1e40af;
+            color: white;
+        }
+        
+        /* Locked controls in task mode */
+        .setup-controls.locked select {
+            pointer-events: none;
+            opacity: 0.7;
+            background: #f3f4f6;
+        }
+        .setup-controls.locked .control-group::after {
+            content: '🔒';
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8rem;
+        }
+        .setup-controls.locked .control-group {
+            position: relative;
+        }
+
         .modal {
             position: fixed;
             z-index: 1000;
@@ -738,6 +806,20 @@
                 <div class="setup-panel" id="setupPanel">
                     <h2>Practice Setup</h2>
                     
+                    <!-- Task Mode Banner -->
+                    <div class="task-mode-banner" id="taskModeBanner">
+                        <div class="task-mode-info">
+                            <span class="task-mode-icon">📋</span>
+                            <div class="task-mode-text">
+                                <h4>Assigned Task</h4>
+                                <p id="taskModeDescription">Practise these specific words for your class</p>
+                            </div>
+                        </div>
+                        <button class="free-practice-btn" onclick="switchToFreePractice()">
+                            🎯 Free Practice
+                        </button>
+                    </div>
+                    
                     <!-- Tracking indicator -->
                     <div class="tracking-indicator not-tracking" id="trackingIndicator">
                         <div class="tracking-dot"></div>
@@ -930,6 +1012,8 @@
     <script>
         // Current word being practised (for tracking)
         let currentWordData = null;
+        let isTaskMode = false;
+        let currentTaskId = null;
         
         function waitForVocabularyData() {
             return new Promise((resolve) => {
@@ -942,6 +1026,46 @@
                 };
                 checkData();
             });
+        }
+
+        // Initialize task mode if task_id is present
+        function initTaskMode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentTaskId = urlParams.get('task_id');
+            
+            if (currentTaskId) {
+                isTaskMode = true;
+                
+                // Show task mode banner
+                document.getElementById('taskModeBanner').classList.add('active');
+                
+                // Lock the controls
+                document.querySelector('.setup-controls').classList.add('locked');
+                
+                // Hide tracking indicator (redundant with banner)
+                document.getElementById('trackingIndicator').style.display = 'none';
+                
+                // Update description with word range if available
+                const chapter = urlParams.get('chapter');
+                const from = urlParams.get('from');
+                const to = urlParams.get('to');
+                if (chapter) {
+                    const desc = document.getElementById('taskModeDescription');
+                    desc.textContent = `Chapter ${chapter} vocabulary — complete all words to finish`;
+                }
+            }
+        }
+        
+        // Switch to free practice mode
+        function switchToFreePractice() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Keep chapter and word range, remove task_id
+            urlParams.delete('task_id');
+            
+            // Redirect to same page without task_id
+            const newUrl = window.location.pathname + '?' + urlParams.toString();
+            window.location.href = newUrl;
         }
 
         // Check if user is logged in and update tracking indicator
@@ -1173,6 +1297,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize task mode first
+            initTaskMode();
+            
             // Check tracking status
             checkTrackingStatus();
             
@@ -1200,6 +1327,13 @@
                     handleFromWordSelect().then(() => {
                         document.getElementById('toWord').value = urlTo;
                         handleToWordSelect();
+                        
+                        // Auto-start if in task mode
+                        if (isTaskMode) {
+                            setTimeout(() => {
+                                startPractice();
+                            }, 300);
+                        }
                     });
                 });
             }
