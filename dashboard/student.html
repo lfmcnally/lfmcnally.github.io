@@ -591,44 +591,74 @@
         .activity-score.partial { background: #fef3c7; color: #92400e; }
         .activity-score.low { background: #fee2e2; color: #dc2626; }
 
-        /* Achievements */
-        .achievements-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-        }
-        .achievement {
-            display: flex;
+        /* Achievements & Badges */
+        .badge {
+            display: inline-flex;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem;
-            background: #f9fafb;
-            border-radius: 10px;
-            border: 1px solid #f0f0f0;
-        }
-        .achievement.locked {
-            opacity: 0.5;
-            filter: grayscale(1);
-        }
-        .achievement-icon {
-            font-size: 1.25rem;
-            flex-shrink: 0;
-        }
-        .achievement-info {
-            flex: 1;
-            min-width: 0;
-        }
-        .achievement-name {
-            font-weight: 600;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 20px;
             font-size: 0.85rem;
-            color: #1f2937;
-        }
-        .achievement-desc {
-            font-size: 0.7rem;
+            font-weight: 500;
+            background: #f3f4f6;
             color: #6b7280;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            border: 2px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+        .badge.earned {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+            border-color: #fbbf24;
+            box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+        }
+        .badge.earned.gold {
+            background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+            border-color: #f59e0b;
+        }
+        .badge.earned.purple {
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+            color: #6d28d9;
+            border-color: #a78bfa;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+        .badge.earned.green {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+            border-color: #4ade80;
+            box-shadow: 0 2px 8px rgba(74, 222, 128, 0.3);
+        }
+        .badge.earned.blue {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1e40af;
+            border-color: #60a5fa;
+            box-shadow: 0 2px 8px rgba(96, 165, 250, 0.3);
+        }
+        .badge.earned.red {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+            border-color: #f87171;
+            box-shadow: 0 2px 8px rgba(248, 113, 113, 0.3);
+        }
+        .badge-icon {
+            font-size: 1.1rem;
+        }
+        .badge-info {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        .badge-name {
+            font-weight: 600;
+        }
+        .badge-detail {
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+        .badge:not(.earned) {
+            opacity: 0.5;
+        }
+        .badge:not(.earned) .badge-icon {
+            filter: grayscale(100%);
         }
 
         /* Pending Tasks */
@@ -814,9 +844,6 @@
                 text-align: center;
                 gap: 1rem;
             }
-            .achievements-grid {
-                grid-template-columns: 1fr;
-            }
             .modal-tabs {
                 flex-wrap: wrap;
             }
@@ -883,20 +910,6 @@
 
             <!-- Right Column -->
             <div class="right-column">
-                <!-- Join a Class -->
-                <div class="card" style="margin-bottom: 1.5rem;">
-                    <div class="card-header">🎒 Join a Class</div>
-                    <div class="card-body">
-                        <div id="joinMessage" class="join-message"></div>
-                        <div class="join-form">
-                            <label style="font-size: 0.85rem; color: #6b7280; margin-bottom: -0.25rem;">Enter your class code:</label>
-                            <input type="text" id="joinCodeInput" class="join-input" placeholder="e.g. LATIN-7X" maxlength="10">
-                            <button class="join-btn" onclick="joinClass()">Join Class</button>
-                        </div>
-                        <div id="myClasses" class="my-classes"></div>
-                    </div>
-                </div>
-
                 <!-- Pending Tasks -->
                 <div class="card" style="margin-bottom: 1.5rem;">
                     <div class="card-header">📝 Pending Tasks</div>
@@ -922,11 +935,11 @@
                 </div>
 
                 <!-- Achievements -->
-                <div class="card">
+                <div class="card" style="margin-bottom: 1.5rem;">
                     <div class="card-header">🏆 Achievements</div>
                     <div class="card-body">
-                        <div class="achievements-grid" id="achievements">
-                            <!-- Achievements will be populated by JS -->
+                        <div id="achievementsContainer">
+                            <div class="loading">Loading...</div>
                         </div>
                     </div>
                 </div>
@@ -967,18 +980,6 @@
         let currentUser = null;
         let attempts = [];
 
-        // Achievement definitions
-        const ACHIEVEMENTS = [
-            { key: 'first_steps', icon: '🌟', name: 'First Steps', desc: 'Complete your first exercise', check: (stats) => stats.completed >= 1 },
-            { key: 'streak_3', icon: '🔥', name: 'Getting Warm', desc: '3-day streak', check: (stats) => stats.streak >= 3 },
-            { key: 'streak_7', icon: '🔥', name: 'On Fire', desc: '7-day streak', check: (stats) => stats.streak >= 7 },
-            { key: 'perfect', icon: '💯', name: 'Perfectionist', desc: 'Get 100% on an exercise', check: (stats) => stats.hasPerfect },
-            { key: 'five_complete', icon: '📚', name: 'Scholar', desc: 'Complete 5 tasks', check: (stats) => stats.completed >= 5 },
-            { key: 'ten_complete', icon: '🎓', name: 'Graduate', desc: 'Complete 10 tasks', check: (stats) => stats.completed >= 10 },
-            { key: 'hour', icon: '⏰', name: 'Dedicated', desc: 'Practice for 1 hour total', check: (stats) => stats.totalMinutes >= 60 },
-            { key: 'early_bird', icon: '⚡', name: 'Early Bird', desc: 'Complete a task before due date', check: (stats) => stats.hasEarly },
-        ];
-
         // Initialize
         async function init() {
             const { data: { user } } = await supabase.auth.getUser();
@@ -1009,8 +1010,14 @@
             await loadLeaderboardData();
             renderCalendar();
             renderRecentActivity();
-            renderAchievements();
             loadPendingTasks();
+            
+            // Load achievements (don't crash page on error)
+            try {
+                await loadAchievements();
+            } catch (e) {
+                console.error('Error loading achievements:', e);
+            }
             
             // Load set text progress (don't let errors crash the whole page)
             try {
@@ -1985,35 +1992,232 @@
             }).join('');
         }
 
-        // Render achievements
-        function renderAchievements() {
-            const container = document.getElementById('achievements');
+        // Load achievements
+        async function loadAchievements() {
+            const container = document.getElementById('achievementsContainer');
+            if (!container) return;
             
-            // Calculate stats for achievement checks
-            const completedAttempts = attempts.filter(a => a.completed_at);
-            const stats = {
-                completed: completedAttempts.length,
-                streak: calculateStreak(),
-                hasPerfect: completedAttempts.some(a => a.score === 100),
-                totalMinutes: Math.round(attempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0) / 60),
-                hasEarly: attempts.some(a => {
-                    if (!a.completed_at || !a.tasks?.due_date) return false;
-                    return new Date(a.completed_at) < new Date(a.tasks.due_date);
-                })
-            };
-
-            container.innerHTML = ACHIEVEMENTS.map(ach => {
-                const unlocked = ach.check(stats);
-                return `
-                    <div class="achievement ${unlocked ? '' : 'locked'}">
-                        <div class="achievement-icon">${ach.icon}</div>
-                        <div class="achievement-info">
-                            <div class="achievement-name">${ach.name}</div>
-                            <div class="achievement-desc">${ach.desc}</div>
+            try {
+                // Get word mastery data
+                const { data: wordData } = await supabase
+                    .from('word_mastery')
+                    .select('correct_count, incorrect_count')
+                    .eq('student_id', currentUser.id);
+                
+                const allWords = wordData || [];
+                
+                // Calculate achievements based on loaded data
+                const achievements = [];
+                
+                // --- STREAK BADGES ---
+                const streak = calculateStreak();
+                achievements.push({
+                    icon: '🔥',
+                    name: '3 Day Streak',
+                    detail: 'Practise 3 days in a row',
+                    earned: streak >= 3,
+                    color: 'red'
+                });
+                achievements.push({
+                    icon: '🔥',
+                    name: '7 Day Streak',
+                    detail: 'Practise 7 days in a row',
+                    earned: streak >= 7,
+                    color: 'red'
+                });
+                achievements.push({
+                    icon: '🔥',
+                    name: '30 Day Streak',
+                    detail: 'Practise 30 days in a row',
+                    earned: streak >= 30,
+                    color: 'red'
+                });
+                
+                // --- TIME BADGES ---
+                const totalMinutes = attempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0) / 60;
+                achievements.push({
+                    icon: '⏱️',
+                    name: '1 Hour Club',
+                    detail: `${Math.round(totalMinutes)} mins practised`,
+                    earned: totalMinutes >= 60,
+                    color: 'blue'
+                });
+                achievements.push({
+                    icon: '⏱️',
+                    name: '5 Hour Club',
+                    detail: `${Math.round(totalMinutes / 60 * 10) / 10} hours practised`,
+                    earned: totalMinutes >= 300,
+                    color: 'blue'
+                });
+                
+                // --- WORD MASTERY BADGES ---
+                const masteredWords = allWords.filter(w => {
+                    const total = w.correct_count + w.incorrect_count;
+                    const acc = total > 0 ? (w.correct_count / total) * 100 : 0;
+                    return w.correct_count >= 3 && acc >= 70;
+                }).length;
+                
+                achievements.push({
+                    icon: '📚',
+                    name: 'Word Collector',
+                    detail: '50 words mastered',
+                    earned: masteredWords >= 50,
+                    color: 'green'
+                });
+                achievements.push({
+                    icon: '📚',
+                    name: 'Vocabulary Master',
+                    detail: '100 words mastered',
+                    earned: masteredWords >= 100,
+                    color: 'green'
+                });
+                achievements.push({
+                    icon: '📚',
+                    name: 'Lexicon Legend',
+                    detail: '250 words mastered',
+                    earned: masteredWords >= 250,
+                    color: 'purple'
+                });
+                
+                // --- SCORE BADGES ---
+                const perfectScores = attempts.filter(a => a.score === 100).length;
+                const highScores = attempts.filter(a => a.score >= 90).length;
+                
+                achievements.push({
+                    icon: '🎯',
+                    name: 'Perfectionist',
+                    detail: 'First 100% score',
+                    earned: perfectScores >= 1,
+                    color: 'gold'
+                });
+                achievements.push({
+                    icon: '🎯',
+                    name: 'Sharpshooter',
+                    detail: '10 scores of 90%+',
+                    earned: highScores >= 10,
+                    color: 'gold'
+                });
+                
+                // --- SESSION BADGES ---
+                const totalSessions = attempts.filter(a => a.completed_at).length;
+                achievements.push({
+                    icon: '✅',
+                    name: 'Getting Started',
+                    detail: 'Complete 10 sessions',
+                    earned: totalSessions >= 10,
+                    color: 'green'
+                });
+                achievements.push({
+                    icon: '✅',
+                    name: 'Dedicated Learner',
+                    detail: 'Complete 50 sessions',
+                    earned: totalSessions >= 50,
+                    color: 'green'
+                });
+                achievements.push({
+                    icon: '✅',
+                    name: 'Latin Legend',
+                    detail: 'Complete 100 sessions',
+                    earned: totalSessions >= 100,
+                    color: 'purple'
+                });
+                
+                // --- LEADERBOARD BADGES ---
+                if (myClassIds && myClassIds.length > 0) {
+                    const myPosition = await getMyLeaderboardPosition();
+                    
+                    achievements.push({
+                        icon: '🥇',
+                        name: 'Class Champion',
+                        detail: '#1 in class leaderboard',
+                        earned: myPosition === 1,
+                        color: 'gold'
+                    });
+                    achievements.push({
+                        icon: '🏆',
+                        name: 'Top 3',
+                        detail: 'Top 3 in class',
+                        earned: myPosition > 0 && myPosition <= 3,
+                        color: 'gold'
+                    });
+                }
+                
+                // Sort: earned first
+                achievements.sort((a, b) => {
+                    if (a.earned && !b.earned) return -1;
+                    if (!a.earned && b.earned) return 1;
+                    return 0;
+                });
+                
+                // Render badges
+                const earnedCount = achievements.filter(a => a.earned).length;
+                let html = `<p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.75rem;">${earnedCount}/${achievements.length} unlocked</p>`;
+                html += '<div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">';
+                
+                achievements.forEach(badge => {
+                    const colorClass = badge.earned ? `earned ${badge.color}` : '';
+                    html += `
+                        <div class="badge ${colorClass}" title="${badge.detail}">
+                            <span class="badge-icon">${badge.icon}</span>
+                            <div class="badge-info">
+                                <span class="badge-name">${badge.name}</span>
+                            </div>
                         </div>
-                    </div>
-                `;
-            }).join('');
+                    `;
+                });
+                
+                html += '</div>';
+                container.innerHTML = html;
+                
+            } catch (err) {
+                console.error('Error loading achievements:', err);
+                container.innerHTML = '<p style="color: #6b7280;">Could not load achievements</p>';
+            }
+        }
+        
+        async function getMyLeaderboardPosition() {
+            if (!myClassIds || myClassIds.length === 0) return 0;
+            
+            try {
+                // Get all students in my classes
+                const { data: members } = await supabase
+                    .from('class_members')
+                    .select('student_id')
+                    .in('class_id', myClassIds);
+                
+                if (!members || members.length === 0) return 0;
+                
+                const studentIds = [...new Set(members.map(m => m.student_id))];
+                
+                // Get word mastery for all students
+                const { data: allMastery } = await supabase
+                    .from('word_mastery')
+                    .select('student_id, correct_count, incorrect_count')
+                    .in('student_id', studentIds);
+                
+                // Calculate mastered words per student
+                const studentScores = {};
+                studentIds.forEach(id => studentScores[id] = 0);
+                
+                (allMastery || []).forEach(w => {
+                    const total = w.correct_count + w.incorrect_count;
+                    const acc = total > 0 ? (w.correct_count / total) * 100 : 0;
+                    if (w.correct_count >= 3 && acc >= 70) {
+                        studentScores[w.student_id] = (studentScores[w.student_id] || 0) + 1;
+                    }
+                });
+                
+                // Sort and find my position
+                const sorted = Object.entries(studentScores)
+                    .sort((a, b) => b[1] - a[1]);
+                
+                const position = sorted.findIndex(([id]) => id === currentUser.id) + 1;
+                return position;
+                
+            } catch (err) {
+                console.error('Error getting leaderboard position:', err);
+                return 0;
+            }
         }
 
         // Load pending tasks (shows all tasks until due date passes)
@@ -2239,10 +2443,13 @@
         // Start
         init();
         
-        // Allow Enter key to join
-        document.getElementById('joinCodeInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') joinClass();
-        });
+        // Allow Enter key to join (if join input exists)
+        const joinInput = document.getElementById('joinCodeInput');
+        if (joinInput) {
+            joinInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') joinClass();
+            });
+        }
     </script>
 </body>
 </html>
