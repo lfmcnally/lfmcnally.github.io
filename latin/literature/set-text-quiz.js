@@ -113,24 +113,33 @@ async function getNextAttemptNumber(textId, sectionNum) {
 // Load section data dynamically
 async function loadSection(textId, sectionNum) {
     try {
+        // Show loading state
+        loadingState.style.display = 'block';
+        sectionSelector.style.display = 'none';
+        quizInterface.style.display = 'none';
+        
         // Get attempt number for tracking
         currentAttemptNumber = await getNextAttemptNumber(textId, sectionNum);
         answersToSave = [];
         
-        // Dynamically load the section file
-        const script = document.createElement('script');
-        script.src = `../data/literature/${textId}-section-${sectionNum}.js`;
-        
-        await new Promise((resolve, reject) => {
-            script.onload = resolve;
-            script.onerror = () => reject(new Error(`Failed to load section data from ${script.src}`));
-            document.head.appendChild(script);
-        });
+        // Check if section is already loaded
+        const varName = textId + 'Section' + sectionNum;
+        if (typeof window[varName] === 'undefined') {
+            // Dynamically load the section file
+            const script = document.createElement('script');
+            script.src = `../data/literature/${textId}-section-${sectionNum}.js`;
+            
+            await new Promise((resolve, reject) => {
+                script.onload = resolve;
+                script.onerror = () => reject(new Error(`Failed to load section data from ${script.src}`));
+                document.head.appendChild(script);
+            });
+        }
         
         // Get section data
         sectionData = getSectionData(textId, sectionNum);
         if (!sectionData) {
-            showError('Section not found');
+            showError('Section not found: ' + varName);
             return;
         }
         
@@ -191,8 +200,10 @@ async function showSectionSelector() {
     loadingState.style.display = 'none';
     sectionSelector.style.display = 'block';
     
-    document.getElementById('textTitle').textContent = textInfo.title;
-    document.getElementById('textAuthor').textContent = `${textInfo.author} • ${textInfo.source}`;
+    // Update header
+    document.getElementById('headerTitle').textContent = textInfo.title;
+    document.getElementById('headerSubtitle').textContent = 'Select a section to begin';
+    document.getElementById('headerAuthor').textContent = `${textInfo.author} • ${textInfo.source}`;
     
     // Load user's progress for each section if logged in
     let progressMap = {};
@@ -239,19 +250,13 @@ function showQuiz() {
     quizInterface.style.display = 'block';
     
     // Set header info
-    document.getElementById('quizTitle').textContent = textInfo.title;
-    document.getElementById('sectionNum').textContent = sectionData.section;
-    document.getElementById('sectionTitle').textContent = sectionData.title;
-    document.getElementById('linesInfo').textContent = `Lines ${sectionData.lines}`;
+    document.getElementById('headerTitle').textContent = textInfo.title;
+    document.getElementById('headerSubtitle').textContent = `Section ${sectionData.section}: ${sectionData.title}`;
+    document.getElementById('headerAuthor').textContent = `Lines ${sectionData.lines} • ${questions.length} questions`;
     document.getElementById('fullLatinText').textContent = sectionData.latinText;
-    document.getElementById('totalQ').textContent = questions.length;
     
     // Display first question
     displayQuestion();
-    
-    // Set up event listeners
-    document.getElementById('checkBtn').addEventListener('click', checkAnswer);
-    document.getElementById('nextBtn').addEventListener('click', nextQuestion);
 }
 
 // Display current question
@@ -259,7 +264,8 @@ function displayQuestion() {
     const q = questions[currentQuestionIndex];
     
     // Update progress
-    document.getElementById('currentQ').textContent = currentQuestionIndex + 1;
+    document.getElementById('progressText').textContent = `Question ${currentQuestionIndex + 1} of ${questions.length}`;
+    document.getElementById('scoreText').textContent = `${score} correct`;
     document.getElementById('progressFill').style.width = `${((currentQuestionIndex + 1) / questions.length) * 100}%`;
     
     // Set type badge
@@ -278,7 +284,7 @@ function displayQuestion() {
     
     // Set Latin text (hide if comprehension with no latin)
     if (q.latin) {
-        document.getElementById('latinText').textContent = q.latin;
+        document.getElementById('latinPhrase').textContent = q.latin;
         latinQuote.style.display = 'block';
     } else {
         latinQuote.style.display = 'none';
@@ -304,33 +310,16 @@ function displayQuestion() {
     // Reset state
     selectedAnswer = null;
     showingFeedback = false;
-    document.getElementById('feedback').style.display = 'none';
-    document.getElementById('checkBtn').style.display = 'block';
-    document.getElementById('checkBtn').disabled = true;
-    document.getElementById('nextBtn').style.display = 'none';
+    document.getElementById('feedbackBox').style.display = 'none';
+    document.getElementById('feedbackBox').className = 'feedback-box';
+    document.getElementById('nextBtn').classList.remove('show');
 }
 
-// Select an option
+// Select an option - immediately checks answer
 function selectOption(index) {
     if (showingFeedback) return;
     
     selectedAnswer = index;
-    
-    // Update visual state
-    document.querySelectorAll('.option-btn').forEach((btn, i) => {
-        btn.classList.remove('selected');
-        if (i === index) {
-            btn.classList.add('selected');
-        }
-    });
-    
-    document.getElementById('checkBtn').disabled = false;
-}
-
-// Check the answer
-function checkAnswer() {
-    if (selectedAnswer === null) return;
-    
     showingFeedback = true;
     answered++;
     
@@ -344,10 +333,8 @@ function checkAnswer() {
     // Track this answer for saving later
     trackAnswer(q, selectedAnswer, isCorrect);
     
-    // Update score display
-    document.getElementById('score').textContent = score;
-    document.getElementById('answered').textContent = answered;
-    document.getElementById('percentage').textContent = answered > 0 ? Math.round((score / answered) * 100) : 0;
+    // Update progress display
+    document.getElementById('scoreText').textContent = `${score} correct`;
     
     // Show correct/incorrect styling
     document.querySelectorAll('.option-btn').forEach((btn, i) => {
@@ -360,19 +347,18 @@ function checkAnswer() {
     });
     
     // Show feedback
-    const feedback = document.getElementById('feedback');
-    feedback.style.display = 'block';
-    feedback.className = 'feedback ' + (isCorrect ? 'correct' : 'incorrect');
+    const feedbackBox = document.getElementById('feedbackBox');
+    feedbackBox.className = 'feedback-box ' + (isCorrect ? 'correct' : 'incorrect');
+    feedbackBox.style.display = 'block';
     
     if (isCorrect) {
-        feedback.innerHTML = `✓ ${q.correctFeedback}`;
+        feedbackBox.innerHTML = `✓ ${q.correctFeedback}`;
     } else {
-        feedback.innerHTML = `✗ ${q.shuffledOptions[selectedAnswer].feedback}`;
+        feedbackBox.innerHTML = `✗ ${q.shuffledOptions[selectedAnswer].feedback}`;
     }
     
     // Show next button
-    document.getElementById('checkBtn').style.display = 'none';
-    document.getElementById('nextBtn').style.display = 'block';
+    document.getElementById('nextBtn').classList.add('show');
     document.getElementById('nextBtn').textContent = 
         currentQuestionIndex < questions.length - 1 ? 'Next Question →' : 'See Results';
 }
@@ -543,10 +529,6 @@ function restartQuiz() {
     prepareQuestions();
     
     // Reset UI
-    document.getElementById('score').textContent = '0';
-    document.getElementById('answered').textContent = '0';
-    document.getElementById('percentage').textContent = '0';
-    
     completionScreen.style.display = 'none';
     quizInterface.style.display = 'block';
     
