@@ -8,7 +8,6 @@ const messalinaSection1 = {
     latinText: 'Messalina novo et quasi insano amore incensa est. nam in C. Silium, iuventutis Romanae pulcherrimum, ita exarserat ut Iuniam Silanam, nobilem feminam, matrimonio eius, exturbaret liberoque adultero potiretur. neque Silius flagitii aut periculi nescius erat: sed intellexit exitium, si abnueret, fore certum et, si consentiret, nonnullam facinoris celandi spem esse; simulque se magna praemia accepturum. igitur placuit neglegere futura praesentibus frui.',
     
     questions: [
-        // ========== TRANSLATION QUESTIONS ==========
         {
             type: 'translation',
             latin: 'Messalina novo et quasi insano amore incensa est',
@@ -117,8 +116,6 @@ const messalinaSection1 = {
             ],
             correctFeedback: 'Correct! Two parallel infinitives after "placuit": to neglect AND to enjoy. This pithy, balanced phrase sums up his fatalistic choice with almost philosophical resignation.'
         },
-
-        // ========== STYLE QUESTIONS ==========
         {
             type: 'style',
             latin: 'novo et quasi insano amore',
@@ -203,8 +200,6 @@ const messalinaSection1 = {
             ],
             correctFeedback: 'Correct! This epigram is quintessential Tacitus: balanced, compressed, memorable. The parallel infinitives (neglegere... frui) give Silius\'s choice an almost Stoic dignity — carpe diem in the shadow of death. He\'s not just giving in; he\'s making a calculated, fatalistic decision. The elegant phrasing makes his doom feel tragic rather than merely sordid.'
         },
-
-        // ========== COMPREHENSION QUESTIONS ==========
         {
             type: 'comprehension',
             latin: 'matrimonio eius exturbaret',
