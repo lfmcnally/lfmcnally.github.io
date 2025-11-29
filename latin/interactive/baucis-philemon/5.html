@@ -650,12 +650,29 @@
         let currentStep = 0;
         
         // Build ordered list of all word orders for sequential navigation
-        const wordOrders = [];
+        // Sort by line number first, then by the word order number within each line
+        const wordOrdersUnsorted = [];
         document.querySelectorAll('.latin-column .word-group').forEach(group => {
             if (group.dataset.order) {
-                wordOrders.push(group.dataset.order);
+                const order = group.dataset.order;
+                // Extract line number and word number from format "50-1", "50-2", etc.
+                const parts = order.split('-');
+                const lineNum = parseInt(parts[0]);
+                // Handle special cases like "1…1" or "(10)"
+                let wordNum = parts[1].replace(/[()…]/g, '');
+                // If it contains letters like "7b", extract just the number
+                wordNum = parseInt(wordNum) || 0;
+                wordOrdersUnsorted.push({ order, lineNum, wordNum });
             }
         });
+        
+        // Sort by line number, then by word order number
+        wordOrdersUnsorted.sort((a, b) => {
+            if (a.lineNum !== b.lineNum) return a.lineNum - b.lineNum;
+            return a.wordNum - b.wordNum;
+        });
+        
+        const wordOrders = wordOrdersUnsorted.map(w => w.order);
         
         function revealWord(order) {
             document.querySelectorAll('.latin-column .word-group').forEach(group => {
