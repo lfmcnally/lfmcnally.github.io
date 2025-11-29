@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baucis and Philemon - Lines 50-63</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            color: #333;
+            padding: 15px 25px;
+            min-height: 100vh;
+            margin: 0;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        h1 {
+            color: #222;
+            margin: 0;
+            font-size: 1.4em;
+        }
+        
+        h1 span {
+            font-weight: normal;
+            font-style: italic;
+            color: #555;
+        }
+        
+        /* Compact controls */
+        .controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .controls button {
+            padding: 6px 14px;
+            font-size: 0.8em;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .controls button:hover {
+            opacity: 0.85;
+        }
+        
+        #showAllBtn { background: #4a7c59; color: white; }
+        #hideAllBtn { background: #888; color: #fff; }
+        #toggleColoursBtn { background: #2d5a87; color: #fff; }
+        
+        /* Key - horizontal and compact */
+        .key {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .key-item {
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            color: #000;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s;
+        }
+        
+        .key-item:hover {
+            transform: translateY(-1px);
+        }
+        
+        .key-item.active {
+            outline: 2px solid #333;
+            outline-offset: 1px;
+        }
+        
+        /* Main content area */
+        .translation-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            overflow-x: auto;
+        }
+        
+        .latin-column, .english-column {
+            min-width: max-content;
+        }
+        
+        .column-header {
+            font-size: 0.75em;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            padding-left: 38px;
+        }
+        
+        /* Each line row */
+        .line-row {
+            display: flex;
+            align-items: flex-end;
+            margin-bottom: 8px;
+            white-space: nowrap;
+        }
+        
+        .line-number {
+            color: #cc0000;
+            font-weight: bold;
+            min-width: 32px;
+            margin-right: 6px;
+            font-size: 1.05em;
+            align-self: flex-end;
+            padding-bottom: 3px;
+        }
+        
+        .words-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 3px;
+        }
+        
+        /* Word group with number above */
+        .word-group {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .word-order {
+            font-size: 0.65em;
+            color: #888;
+            margin-bottom: 1px;
+            height: 1em;
+        }
+        
+        .latin-word, .english-word {
+            padding: 3px 7px;
+            border-radius: 3px;
+            font-size: 1em;
+            transition: background-color 0.3s, opacity 0.3s;
+            cursor: pointer;
+        }
+        
+        .latin-word {
+            background-color: transparent;
+        }
+        
+        .english-word {
+            opacity: 0;
+        }
+        
+        .english-word.revealed {
+            opacity: 1;
+        }
+        
+        /* Colours */
+        .subject .latin-word { background-color: #ffb3b3; }
+        .english-word.subject { background-color: #ffb3b3; }
+        
+        .verb .latin-word { background-color: #b3e6ff; }
+        .english-word.verb { background-color: #b3e6ff; }
+        
+        .object .latin-word { background-color: #b3ffcc; }
+        .english-word.object { background-color: #b3ffcc; }
+        
+        .genitive .latin-word { background-color: #ffd9b3; }
+        .english-word.genitive { background-color: #ffd9b3; }
+        
+        .dative .latin-word { background-color: #e6b3ff; }
+        .english-word.dative { background-color: #e6b3ff; }
+        
+        .ablative .latin-word { background-color: #ffffb3; }
+        .english-word.ablative { background-color: #ffffb3; }
+        
+        .preposition .latin-word { background-color: #ffb3e6; }
+        .english-word.preposition { background-color: #ffb3e6; }
+        
+        .conjunction .latin-word { background-color: #d9ffb3; }
+        .english-word.conjunction { background-color: #d9ffb3; }
+        
+        .adverb .latin-word { background-color: #ccb3ff; }
+        .english-word.adverb { background-color: #ccb3ff; }
+        
+        /* Highlighting */
+        .subject.highlighted .latin-word { background-color: #ffb3b3 !important; }
+        .english-word.subject.highlighted { background-color: #ffb3b3 !important; }
+        .verb.highlighted .latin-word { background-color: #b3e6ff !important; }
+        .english-word.verb.highlighted { background-color: #b3e6ff !important; }
+        .object.highlighted .latin-word { background-color: #b3ffcc !important; }
+        .english-word.object.highlighted { background-color: #b3ffcc !important; }
+        .genitive.highlighted .latin-word { background-color: #ffd9b3 !important; }
+        .english-word.genitive.highlighted { background-color: #ffd9b3 !important; }
+        .dative.highlighted .latin-word { background-color: #e6b3ff !important; }
+        .english-word.dative.highlighted { background-color: #e6b3ff !important; }
+        .ablative.highlighted .latin-word { background-color: #ffffb3 !important; }
+        .english-word.ablative.highlighted { background-color: #ffffb3 !important; }
+        .preposition.highlighted .latin-word { background-color: #ffb3e6 !important; }
+        .english-word.preposition.highlighted { background-color: #ffb3e6 !important; }
+        .conjunction.highlighted .latin-word { background-color: #d9ffb3 !important; }
+        .english-word.conjunction.highlighted { background-color: #d9ffb3 !important; }
+        .adverb.highlighted .latin-word { background-color: #ccb3ff !important; }
+        .english-word.adverb.highlighted { background-color: #ccb3ff !important; }
+        
+        /* Hide colours mode */
+        body.hide-colours .subject .latin-word,
+        body.hide-colours .english-word.subject.revealed,
+        body.hide-colours .verb .latin-word,
+        body.hide-colours .english-word.verb.revealed,
+        body.hide-colours .object .latin-word,
+        body.hide-colours .english-word.object.revealed,
+        body.hide-colours .genitive .latin-word,
+        body.hide-colours .english-word.genitive.revealed,
+        body.hide-colours .dative .latin-word,
+        body.hide-colours .english-word.dative.revealed,
+        body.hide-colours .ablative .latin-word,
+        body.hide-colours .english-word.ablative.revealed,
+        body.hide-colours .preposition .latin-word,
+        body.hide-colours .english-word.preposition.revealed,
+        body.hide-colours .conjunction .latin-word,
+        body.hide-colours .english-word.conjunction.revealed,
+        body.hide-colours .adverb .latin-word,
+        body.hide-colours .english-word.adverb.revealed {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Lines 50-63: <span>The house of Baucis and Philemon is turned into a temple</span></h1>
+        <div class="controls">
+            <button id="showAllBtn">Show All</button>
+            <button id="hideAllBtn">Hide All</button>
+            <button id="toggleColoursBtn">Hide Colours</button>
+        </div>
+    </div>
+    
+    <div class="key">
+        <span class="key-item" data-category="subject" style="background-color: #ffb3b3;">Subject</span>
+        <span class="key-item" data-category="object" style="background-color: #b3ffcc;">Object</span>
+        <span class="key-item" data-category="verb" style="background-color: #b3e6ff;">Verb</span>
+        <span class="key-item" data-category="genitive" style="background-color: #ffd9b3;">Genitive</span>
+        <span class="key-item" data-category="dative" style="background-color: #e6b3ff;">Dative</span>
+        <span class="key-item" data-category="ablative" style="background-color: #ffffb3;">Ablative</span>
+        <span class="key-item" data-category="preposition" style="background-color: #ffb3e6;">Preposition</span>
+        <span class="key-item" data-category="conjunction" style="background-color: #d9ffb3;">Conjunction</span>
+        <span class="key-item" data-category="adverb" style="background-color: #ccb3ff;">Adverb</span>
+    </div>
+    
+    <div class="translation-area">
+        <!-- LATIN COLUMN -->
+        <div class="latin-column">
+            <div class="column-header">Latin</div>
+            
+            <!-- Line 50 -->
+            <div class="line-row" data-line="50">
+                <span class="line-number">50</span>
+                <div class="words-container">
+                    <span class="word-group verb" data-order="50-2"><span class="word-order">2</span><span class="latin-word">parent</span></span>
+                    <span class="word-group subject" data-order="50-1"><span class="word-order">1</span><span class="latin-word">ambo</span></span>
+                    <span class="word-group ablative" data-order="50-5"><span class="word-order">5</span><span class="latin-word">baculīs</span></span>
+                    <span class="word-group conjunction" data-order="50-3"><span class="word-order">3</span><span class="latin-word">-que</span></span>
+                    <span class="word-group verb" data-order="50-4"><span class="word-order">4</span><span class="latin-word">levātī</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 51 -->
+            <div class="line-row" data-line="51">
+                <span class="line-number">51</span>
+                <div class="words-container">
+                    <span class="word-group verb" data-order="51-6"><span class="word-order">6</span><span class="latin-word">nītuntur</span></span>
+                    <span class="word-group ablative" data-order="51-9"><span class="word-order">9</span><span class="latin-word">longō</span></span>
+                    <span class="word-group object" data-order="51-8"><span class="word-order">8</span><span class="latin-word">vestīgia</span></span>
+                    <span class="word-group verb" data-order="51-7"><span class="word-order">7</span><span class="latin-word">pōnere</span></span>
+                    <span class="word-group ablative" data-order="51-10"><span class="word-order">10</span><span class="latin-word">clīvō.</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 52 -->
+            <div class="line-row" data-line="52">
+                <span class="line-number">52</span>
+                <div class="words-container">
+                    <span class="word-group adverb" data-order="52-2"><span class="word-order">2</span><span class="latin-word">tantum</span></span>
+                    <span class="word-group verb" data-order="52-1"><span class="word-order">1…1</span><span class="latin-word">aberant</span></span>
+                    <span class="word-group ablative" data-order="52-3"><span class="word-order">3</span><span class="latin-word">summō,</span></span>
+                    <span class="word-group adverb" data-order="52-4"><span class="word-order">4</span><span class="latin-word">quantum</span></span>
+                    <span class="word-group adverb" data-order="52-6"><span class="word-order">6</span><span class="latin-word">semel</span></span>
+                    <span class="word-group verb" data-order="52-9"><span class="word-order">9</span><span class="latin-word">īre</span></span>
+                    <span class="word-group subject" data-order="52-5"><span class="word-order">5</span><span class="latin-word">sagitta</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 53 -->
+            <div class="line-row" data-line="53">
+                <span class="line-number">53</span>
+                <div class="words-container">
+                    <span class="word-group verb" data-order="53-7"><span class="word-order">7</span><span class="latin-word">missa</span></span>
+                    <span class="word-group verb" data-order="53-8"><span class="word-order">8</span><span class="latin-word">potest;</span></span>
+                    <span class="word-group verb" data-order="53-1"><span class="word-order">1</span><span class="latin-word">flexēre</span></span>
+                    <span class="word-group object" data-order="53-2"><span class="word-order">2</span><span class="latin-word">oculōs</span></span>
+                    <span class="word-group conjunction" data-order="53-3"><span class="word-order">3</span><span class="latin-word">et</span></span>
+                    <span class="word-group verb" data-order="53-6"><span class="word-order">6</span><span class="latin-word">mersā</span></span>
+                    <span class="word-group ablative" data-order="53-7b"><span class="word-order">7</span><span class="latin-word">palūde</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 54 -->
+            <div class="line-row" data-line="54">
+                <span class="line-number">54</span>
+                <div class="words-container">
+                    <span class="word-group object" data-order="54-5"><span class="word-order">5</span><span class="latin-word">cētera</span></span>
+                    <span class="word-group verb" data-order="54-4"><span class="word-order">4</span><span class="latin-word">prōspiciunt,</span></span>
+                    <span class="word-group adverb" data-order="54-8"><span class="word-order">8</span><span class="latin-word">tantum</span></span>
+                    <span class="word-group object" data-order="54-9"><span class="word-order">9</span><span class="latin-word">sua</span></span>
+                    <span class="word-group object" data-order="54-10"><span class="word-order">10</span><span class="latin-word">tēcta</span></span>
+                    <span class="word-group verb" data-order="54-11"><span class="word-order">11</span><span class="latin-word">manēre.</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 55 -->
+            <div class="line-row" data-line="55">
+                <span class="line-number">55</span>
+                <div class="words-container">
+                    <span class="word-group conjunction" data-order="55-2"><span class="word-order">2</span><span class="latin-word">dum</span></span>
+                    <span class="word-group conjunction" data-order="55-1"><span class="word-order">1</span><span class="latin-word">-que</span></span>
+                    <span class="word-group object" data-order="55-4"><span class="word-order">4</span><span class="latin-word">ea</span></span>
+                    <span class="word-group verb" data-order="55-3"><span class="word-order">3</span><span class="latin-word">mīrantur,</span></span>
+                    <span class="word-group conjunction" data-order="55-5"><span class="word-order">5</span><span class="latin-word">dum</span></span>
+                    <span class="word-group verb" data-order="55-6"><span class="word-order">6</span><span class="latin-word">dēflent</span></span>
+                    <span class="word-group object" data-order="55-7"><span class="word-order">7</span><span class="latin-word">fāta</span></span>
+                    <span class="word-group genitive" data-order="55-8"><span class="word-order">8</span><span class="latin-word">suōrum,</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 56 -->
+            <div class="line-row" data-line="56">
+                <span class="line-number">56</span>
+                <div class="words-container">
+                    <span class="word-group subject" data-order="56-9"><span class="word-order">9</span><span class="latin-word">illa</span></span>
+                    <span class="word-group subject" data-order="56-10"><span class="word-order">10</span><span class="latin-word">vetus</span></span>
+                    <span class="word-group dative" data-order="56-15"><span class="word-order">15</span><span class="latin-word">dominīs</span></span>
+                    <span class="word-group adverb" data-order="56-13"><span class="word-order">13</span><span class="latin-word">etiam</span></span>
+                    <span class="word-group subject" data-order="56-11"><span class="word-order">11</span><span class="latin-word">casa</span></span>
+                    <span class="word-group subject" data-order="56-12"><span class="word-order">12</span><span class="latin-word">parva</span></span>
+                    <span class="word-group dative" data-order="56-14"><span class="word-order">14</span><span class="latin-word">duōbus</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 57 -->
+            <div class="line-row" data-line="57">
+                <span class="line-number">57</span>
+                <div class="words-container">
+                    <span class="word-group verb" data-order="57-16"><span class="word-order">16</span><span class="latin-word">vertitur</span></span>
+                    <span class="word-group preposition" data-order="57-17"><span class="word-order">17</span><span class="latin-word">in</span></span>
+                    <span class="word-group object" data-order="57-18"><span class="word-order">18</span><span class="latin-word">templum;</span></span>
+                    <span class="word-group object" data-order="57-3"><span class="word-order">3</span><span class="latin-word">furcās</span></span>
+                    <span class="word-group verb" data-order="57-2"><span class="word-order">2</span><span class="latin-word">subiēre</span></span>
+                    <span class="word-group subject" data-order="57-1"><span class="word-order">1</span><span class="latin-word">columnae,</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 58 -->
+            <div class="line-row" data-line="58">
+                <span class="line-number">58</span>
+                <div class="words-container">
+                    <span class="word-group subject" data-order="58-4"><span class="word-order">4</span><span class="latin-word">strāmina</span></span>
+                    <span class="word-group verb" data-order="58-5"><span class="word-order">5</span><span class="latin-word">flāvēscunt</span></span>
+                    <span class="word-group subject" data-order="58-7"><span class="word-order">7</span><span class="latin-word">aurāta</span></span>
+                    <span class="word-group conjunction" data-order="58-6"><span class="word-order">6</span><span class="latin-word">-que</span></span>
+                    <span class="word-group subject" data-order="58-8"><span class="word-order">8</span><span class="latin-word">tēcta</span></span>
+                    <span class="word-group verb" data-order="58-9"><span class="word-order">9</span><span class="latin-word">videntur</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 59 -->
+            <div class="line-row" data-line="59">
+                <span class="line-number">59</span>
+                <div class="words-container">
+                    <span class="word-group verb" data-order="59-12"><span class="word-order">12</span><span class="latin-word">caelātae</span></span>
+                    <span class="word-group conjunction" data-order="59-10"><span class="word-order">(10)</span><span class="latin-word">-que</span></span>
+                    <span class="word-group subject" data-order="59-11"><span class="word-order">11</span><span class="latin-word">forēs</span></span>
+                    <span class="word-group verb" data-order="59-15"><span class="word-order">15</span><span class="latin-word">adoperta</span></span>
+                    <span class="word-group conjunction" data-order="59-13"><span class="word-order">13</span><span class="latin-word">-que</span></span>
+                    <span class="word-group ablative" data-order="59-16"><span class="word-order">16</span><span class="latin-word">marmore</span></span>
+                    <span class="word-group subject" data-order="59-14"><span class="word-order">14</span><span class="latin-word">tellus.</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 60 -->
+            <div class="line-row" data-line="60">
+                <span class="line-number">60</span>
+                <div class="words-container">
+                    <span class="word-group object" data-order="60-4"><span class="word-order">4</span><span class="latin-word">tālia</span></span>
+                    <span class="word-group adverb" data-order="60-1"><span class="word-order">1</span><span class="latin-word">tum</span></span>
+                    <span class="word-group ablative" data-order="60-5"><span class="word-order">5</span><span class="latin-word">placidō</span></span>
+                    <span class="word-group subject" data-order="60-2"><span class="word-order">2</span><span class="latin-word">Sāturnius</span></span>
+                    <span class="word-group verb" data-order="60-3"><span class="word-order">3</span><span class="latin-word">ēdidit</span></span>
+                    <span class="word-group ablative" data-order="60-6"><span class="word-order">6</span><span class="latin-word">ōre:</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 61 -->
+            <div class="line-row" data-line="61">
+                <span class="line-number">61</span>
+                <div class="words-container">
+                    <span class="word-group verb" data-order="61-8"><span class="word-order">8</span><span class="latin-word">'dīcite,</span></span>
+                    <span class="word-group subject" data-order="61-1"><span class="word-order">1</span><span class="latin-word">iūste</span></span>
+                    <span class="word-group subject" data-order="61-2"><span class="word-order">2</span><span class="latin-word">senex</span></span>
+                    <span class="word-group conjunction" data-order="61-3"><span class="word-order">3</span><span class="latin-word">et</span></span>
+                    <span class="word-group subject" data-order="61-4"><span class="word-order">4</span><span class="latin-word">fēmina</span></span>
+                    <span class="word-group ablative" data-order="61-7"><span class="word-order">7</span><span class="latin-word">coniuge</span></span>
+                    <span class="word-group ablative" data-order="61-6"><span class="word-order">6</span><span class="latin-word">iūstō</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 62 -->
+            <div class="line-row" data-line="62">
+                <span class="line-number">62</span>
+                <div class="words-container">
+                    <span class="word-group subject" data-order="62-5"><span class="word-order">5</span><span class="latin-word">digna,</span></span>
+                    <span class="word-group object" data-order="62-9"><span class="word-order">9</span><span class="latin-word">quid</span></span>
+                    <span class="word-group verb" data-order="62-10"><span class="word-order">10</span><span class="latin-word">optētis.'</span></span>
+                    <span class="word-group preposition" data-order="62-3"><span class="word-order">3</span><span class="latin-word">cum</span></span>
+                    <span class="word-group ablative" data-order="62-4"><span class="word-order">4</span><span class="latin-word">Baucide</span></span>
+                    <span class="word-group object" data-order="62-2"><span class="word-order">2</span><span class="latin-word">pauca</span></span>
+                    <span class="word-group verb" data-order="62-1"><span class="word-order">1</span><span class="latin-word">locūtus</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 63 -->
+            <div class="line-row" data-line="63">
+                <span class="line-number">63</span>
+                <div class="words-container">
+                    <span class="word-group object" data-order="63-8"><span class="word-order">8</span><span class="latin-word">iūdicium</span></span>
+                    <span class="word-group dative" data-order="63-9"><span class="word-order">9</span><span class="latin-word">superīs</span></span>
+                    <span class="word-group verb" data-order="63-6"><span class="word-order">6</span><span class="latin-word">aperit</span></span>
+                    <span class="word-group object" data-order="63-7"><span class="word-order">7</span><span class="latin-word">commūne</span></span>
+                    <span class="word-group subject" data-order="63-5"><span class="word-order">5</span><span class="latin-word">Philēmōn:</span></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ENGLISH COLUMN -->
+        <div class="english-column">
+            <div class="column-header">English</div>
+            
+            <!-- Line 50 English -->
+            <div class="line-row" data-line="50">
+                <span class="line-number">50</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="50-1">Both</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="50-2">obey,</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word conjunction" data-order="50-3">and</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="50-4">supported</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word ablative" data-order="50-5">by their staffs,</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 51 English -->
+            <div class="line-row" data-line="51">
+                <span class="line-number">51</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="51-6">they strive</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="51-7">to place</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word object" data-order="51-8">their footsteps</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word ablative" data-order="51-9">on the long</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word ablative" data-order="51-10">slope.</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 52 English -->
+            <div class="line-row" data-line="52">
+                <span class="line-number">52</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="52-1">They were (about)</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word adverb" data-order="52-2">as far</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="52-1">away</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word ablative" data-order="52-3">from the top</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word adverb" data-order="52-4">as</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="52-5">an arrow,</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word adverb" data-order="52-6">once</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="53-7">discharged,</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 53 English -->
+            <div class="line-row" data-line="53">
+                <span class="line-number">53</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="53-8">can</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="52-9">go;</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="53-1">They turned</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word object" data-order="53-2">their eyes</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word conjunction" data-order="53-3">and</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="54-4">see</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word object" data-order="54-5">the rest (of the houses)</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 54 English -->
+            <div class="line-row" data-line="54">
+                <span class="line-number">54</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="53-6">submerged</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word ablative" data-order="53-7b">by a marsh,</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word adverb" data-order="54-8">only</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word object" data-order="54-9,54-10">their own house</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="54-11">remaining.</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 55 English -->
+            <div class="line-row" data-line="55">
+                <span class="line-number">55</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word conjunction" data-order="55-1">And</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word conjunction" data-order="55-2">while</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="55-3">they were marvelling at</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word object" data-order="55-4">these things,</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word conjunction" data-order="55-5">while</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="55-6">they were weeping</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word object" data-order="55-7">for the fates</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 56 English -->
+            <div class="line-row" data-line="56">
+                <span class="line-number">56</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word genitive" data-order="55-8">of their friends,</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="56-9">that</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="56-10">old</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="56-11">house,</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="56-12">small</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word adverb" data-order="56-13">even</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word dative" data-order="56-14">for its two</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word dative" data-order="56-15">owners,</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 57 English -->
+            <div class="line-row" data-line="57">
+                <span class="line-number">57</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="57-16">is turned</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word preposition" data-order="57-17">into</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word object" data-order="57-18">a temple;</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="57-1">columns</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="57-2">replaced</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word object" data-order="57-3">the poles,</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 58 English -->
+            <div class="line-row" data-line="58">
+                <span class="line-number">58</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="58-4">the thatch</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="58-5">becomes yellow,</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word conjunction" data-order="58-6">and</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="58-7,58-8">a golden roof</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="58-9">is seen,</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 59 English -->
+            <div class="line-row" data-line="59">
+                <span class="line-number">59</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word conjunction" data-order="59-10">and</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="59-11">doors</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="59-12">engraved,</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word conjunction" data-order="59-13">and</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="59-14">the earth</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="59-15">covered</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word ablative" data-order="59-16">with marble.</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 60 English -->
+            <div class="line-row" data-line="60">
+                <span class="line-number">60</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word adverb" data-order="60-1">Then</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="60-2">the son of Saturn</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="60-3">uttered</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word object" data-order="60-4">the following (words)</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word ablative" data-order="60-5,60-6">with a calm expression:</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 61 English -->
+            <div class="line-row" data-line="61">
+                <span class="line-number">61</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="61-1,61-2">'Honest old man</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word conjunction" data-order="61-3">and</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="61-4">woman</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="62-5">worthy</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word ablative" data-order="61-6,61-7">of an honest husband,</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 62 English -->
+            <div class="line-row" data-line="62">
+                <span class="line-number">62</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="61-8">tell me</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word object" data-order="62-9">what</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="62-10">you desire!'</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="62-1">Having spoken</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word object" data-order="62-2">a few words</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word preposition" data-order="62-3">with</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word ablative" data-order="62-4">Baucis,</span></span>
+                </div>
+            </div>
+            
+            <!-- Line 63 English -->
+            <div class="line-row" data-line="63">
+                <span class="line-number">63</span>
+                <div class="words-container">
+                    <span class="word-group"><span class="word-order"></span><span class="english-word subject" data-order="63-5">Philemon</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word verb" data-order="63-6">reveals</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word object" data-order="63-7,63-8">their joint decision</span></span>
+                    <span class="word-group"><span class="word-order"></span><span class="english-word dative" data-order="63-9">to the gods:</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let coloursHidden = false;
+        let activeCategories = new Set();
+        
+        function revealWord(order) {
+            document.querySelectorAll('.latin-column .word-group').forEach(group => {
+                if (group.dataset.order === order) {
+                    group.classList.add('revealed');
+                }
+            });
+            
+            document.querySelectorAll('.english-word').forEach(word => {
+                const orders = word.dataset.order ? word.dataset.order.split(',') : [];
+                if (orders.includes(order)) {
+                    word.classList.add('revealed');
+                }
+            });
+        }
+        
+        function hideWord(order) {
+            document.querySelectorAll('.latin-column .word-group').forEach(group => {
+                if (group.dataset.order === order) {
+                    group.classList.remove('revealed');
+                    group.classList.remove('highlighted');
+                }
+            });
+            
+            document.querySelectorAll('.english-word').forEach(word => {
+                const orders = word.dataset.order ? word.dataset.order.split(',') : [];
+                if (orders.includes(order)) {
+                    word.classList.remove('revealed');
+                    word.classList.remove('highlighted');
+                }
+            });
+        }
+        
+        function toggleWord(order) {
+            // In hide-colours mode, toggle highlight instead of reveal
+            if (coloursHidden) {
+                let isHighlighted = false;
+                document.querySelectorAll('.latin-column .word-group').forEach(group => {
+                    if (group.dataset.order === order && group.classList.contains('highlighted')) {
+                        isHighlighted = true;
+                    }
+                });
+                
+                if (isHighlighted) {
+                    // Remove highlight
+                    document.querySelectorAll('.latin-column .word-group').forEach(group => {
+                        if (group.dataset.order === order) {
+                            group.classList.remove('highlighted');
+                        }
+                    });
+                    document.querySelectorAll('.english-word').forEach(word => {
+                        const orders = word.dataset.order ? word.dataset.order.split(',') : [];
+                        if (orders.includes(order)) {
+                            word.classList.remove('highlighted');
+                        }
+                    });
+                } else {
+                    // Add highlight (show colour) and reveal English
+                    document.querySelectorAll('.latin-column .word-group').forEach(group => {
+                        if (group.dataset.order === order) {
+                            group.classList.add('highlighted');
+                            group.classList.add('revealed');
+                        }
+                    });
+                    document.querySelectorAll('.english-word').forEach(word => {
+                        const orders = word.dataset.order ? word.dataset.order.split(',') : [];
+                        if (orders.includes(order)) {
+                            word.classList.add('highlighted');
+                            word.classList.add('revealed');
+                        }
+                    });
+                }
+            } else {
+                // Normal mode - just toggle reveal
+                let isRevealed = false;
+                document.querySelectorAll('.latin-column .word-group').forEach(group => {
+                    if (group.dataset.order === order && group.classList.contains('revealed')) {
+                        isRevealed = true;
+                    }
+                });
+                
+                if (isRevealed) {
+                    hideWord(order);
+                } else {
+                    revealWord(order);
+                }
+            }
+        }
+        
+        function toggleCategory(category) {
+            const keyItem = document.querySelector(`.key-item[data-category="${category}"]`);
+            
+            if (activeCategories.has(category)) {
+                // Remove this category
+                activeCategories.delete(category);
+                keyItem.classList.remove('active');
+                
+                document.querySelectorAll(`.latin-column .word-group.${category}`).forEach(group => {
+                    group.classList.remove('highlighted');
+                });
+                
+                document.querySelectorAll(`.english-word.${category}`).forEach(word => {
+                    word.classList.remove('highlighted');
+                });
+            } else {
+                // Add this category
+                activeCategories.add(category);
+                keyItem.classList.add('active');
+                
+                document.querySelectorAll(`.latin-column .word-group.${category}`).forEach(group => {
+                    group.classList.add('highlighted');
+                });
+                
+                document.querySelectorAll(`.english-word.${category}`).forEach(word => {
+                    word.classList.add('highlighted');
+                });
+            }
+        }
+        
+        document.getElementById('showAllBtn').addEventListener('click', () => {
+            document.querySelectorAll('.latin-column .word-group').forEach(group => {
+                if (group.dataset.order) {
+                    revealWord(group.dataset.order);
+                }
+            });
+        });
+        
+        document.getElementById('hideAllBtn').addEventListener('click', () => {
+            document.querySelectorAll('.revealed').forEach(el => {
+                el.classList.remove('revealed');
+            });
+            document.querySelectorAll('.english-word').forEach(el => {
+                el.classList.remove('revealed');
+            });
+            // Also clear highlights
+            document.querySelectorAll('.highlighted').forEach(el => {
+                el.classList.remove('highlighted');
+            });
+            document.querySelectorAll('.key-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            activeCategories.clear();
+        });
+        
+        document.getElementById('toggleColoursBtn').addEventListener('click', () => {
+            coloursHidden = !coloursHidden;
+            document.body.classList.toggle('hide-colours', coloursHidden);
+            document.getElementById('toggleColoursBtn').textContent = 
+                coloursHidden ? 'Show Colours' : 'Hide Colours';
+        });
+        
+        document.querySelectorAll('.key-item').forEach(item => {
+            item.addEventListener('click', () => {
+                toggleCategory(item.dataset.category);
+            });
+        });
+        
+        document.querySelectorAll('.latin-column .word-group').forEach(group => {
+            group.addEventListener('click', () => {
+                if (group.dataset.order) {
+                    toggleWord(group.dataset.order);
+                }
+            });
+        });
+        
+        document.querySelectorAll('.english-word').forEach(word => {
+            word.addEventListener('click', () => {
+                if (word.dataset.order) {
+                    // Get the first order if there are multiple
+                    const order = word.dataset.order.split(',')[0];
+                    toggleWord(order);
+                }
+            });
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                document.getElementById('showAllBtn').click();
+            } else if (e.code === 'KeyR' || e.code === 'Escape') {
+                document.getElementById('hideAllBtn').click();
+            }
+        });
+    </script>
+</body>
+</html>
