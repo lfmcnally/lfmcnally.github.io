@@ -1,7 +1,7 @@
 // Set Text Quiz Logic with Progress Tracking and Answer Recording
 // Handles quiz flow, answer checking, and saves progress + individual answers to Supabase
 
-let supabase;
+// Note: supabase client is initialised in config.js
 let currentUser = null;
 let taskId = null;
 
@@ -35,13 +35,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     const loadingText = document.querySelector('#loadingState p');
     
     try {
-        loadingText.textContent = 'Initializing Supabase...';
+        loadingText.textContent = 'Checking login...';
         
-        // Init Supabase
-        if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            
-            // Check auth
+        // Check auth (supabase is already initialised in config.js)
+        if (typeof supabase !== 'undefined') {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
                 currentUser = session.user;
@@ -93,7 +90,7 @@ function getTextInfo(textId) {
 
 // Get the next attempt number for this user/text/section
 async function getNextAttemptNumber(textId, sectionNum) {
-    if (!supabase || !currentUser) return 1;
+    if (typeof supabase === 'undefined' || !currentUser) return 1;
     
     try {
         const { data, error } = await supabase
@@ -199,7 +196,7 @@ async function showSectionSelector() {
     
     // Load user's progress for each section if logged in
     let progressMap = {};
-    if (currentUser && supabase) {
+    if (currentUser && typeof supabase !== 'undefined') {
         try {
             const { data } = await supabase
                 .from('set_text_progress')
@@ -438,15 +435,13 @@ async function showCompletion() {
     document.getElementById('completionMessage').textContent = message;
     
     // Save progress and answers to database
-    if (currentUser && supabase) {
-        await saveAnswersToDatabase();
-        await saveProgress(percentage);
-    }
+    await saveAnswersToDatabase();
+    await saveProgress(percentage);
 }
 
 // Save individual answers to database
 async function saveAnswersToDatabase() {
-    if (!supabase || !currentUser || answersToSave.length === 0) return;
+    if (typeof supabase === 'undefined' || !currentUser || answersToSave.length === 0) return;
     
     try {
         // Add user_id to each answer
@@ -471,7 +466,7 @@ async function saveAnswersToDatabase() {
 
 // Save progress to Supabase
 async function saveProgress(percentage) {
-    if (!supabase || !currentUser) return;
+    if (typeof supabase === 'undefined' || !currentUser) return;
     
     try {
         // Check if record exists
