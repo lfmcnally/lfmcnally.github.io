@@ -647,6 +647,15 @@
     <script>
         let coloursHidden = false;
         let activeCategories = new Set();
+        let currentStep = 0;
+        
+        // Build ordered list of all word orders for sequential navigation
+        const wordOrders = [];
+        document.querySelectorAll('.latin-column .word-group').forEach(group => {
+            if (group.dataset.order) {
+                wordOrders.push(group.dataset.order);
+            }
+        });
         
         function revealWord(order) {
             document.querySelectorAll('.latin-column .word-group').forEach(group => {
@@ -736,6 +745,20 @@
             }
         }
         
+        function stepForward() {
+            if (currentStep < wordOrders.length) {
+                revealWord(wordOrders[currentStep]);
+                currentStep++;
+            }
+        }
+        
+        function stepBackward() {
+            if (currentStep > 0) {
+                currentStep--;
+                hideWord(wordOrders[currentStep]);
+            }
+        }
+        
         function toggleCategory(category) {
             const keyItem = document.querySelector(`.key-item[data-category="${category}"]`);
             
@@ -772,6 +795,7 @@
                     revealWord(group.dataset.order);
                 }
             });
+            currentStep = wordOrders.length;
         });
         
         document.getElementById('hideAllBtn').addEventListener('click', () => {
@@ -789,6 +813,7 @@
                 el.classList.remove('active');
             });
             activeCategories.clear();
+            currentStep = 0;
         });
         
         document.getElementById('toggleColoursBtn').addEventListener('click', () => {
@@ -823,10 +848,18 @@
         });
         
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
+            // Forward: Right arrow, Down arrow, Page Down, Space, Enter
+            if (e.code === 'ArrowRight' || e.code === 'ArrowDown' || e.code === 'PageDown' || e.code === 'Space' || e.code === 'Enter') {
                 e.preventDefault();
-                document.getElementById('showAllBtn').click();
-            } else if (e.code === 'KeyR' || e.code === 'Escape') {
+                stepForward();
+            }
+            // Backward: Left arrow, Up arrow, Page Up, Backspace
+            else if (e.code === 'ArrowLeft' || e.code === 'ArrowUp' || e.code === 'PageUp' || e.code === 'Backspace') {
+                e.preventDefault();
+                stepBackward();
+            }
+            // Reset: Escape or R
+            else if (e.code === 'Escape' || e.code === 'KeyR') {
                 document.getElementById('hideAllBtn').click();
             }
         });
