@@ -32,7 +32,11 @@ const completionScreen = document.getElementById('completionScreen');
 
 // Initialise
 document.addEventListener('DOMContentLoaded', async function() {
+    const loadingText = document.querySelector('#loadingState p');
+    
     try {
+        loadingText.textContent = 'Initializing Supabase...';
+        
         // Init Supabase
         if (typeof SUPABASE_URL !== 'undefined' && typeof SUPABASE_ANON_KEY !== 'undefined') {
             supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -44,6 +48,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
         
+        loadingText.textContent = 'Loading text info...';
+        
         // Get URL params
         const urlParams = new URLSearchParams(window.location.search);
         currentText = urlParams.get('text') || 'messalina';
@@ -54,10 +60,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         textInfo = getTextInfo(currentText);
         if (!textInfo) {
             console.error('textInfo is null for:', currentText);
-            console.error('messalinaInfo defined?', typeof messalinaInfo !== 'undefined');
-            showError('Text not found: ' + currentText + '. Check that the data file is loaded.');
+            console.error('messalinaInfo defined?', typeof messalinaInfo);
+            showError('Text not found: ' + currentText + '. messalinaInfo is ' + (typeof messalinaInfo));
             return;
         }
+        
+        loadingText.textContent = 'Loading section...';
         
         if (sectionNum) {
             currentSection = parseInt(sectionNum);
