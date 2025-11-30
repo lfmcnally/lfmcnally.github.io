@@ -299,16 +299,28 @@ function shuffleArray(array) {
     }
 }
 
-// Show section selector
+// Show section selector (hub layout)
 async function showSectionSelector() {
     loadingState.style.display = 'none';
     sectionSelector.style.display = 'block';
-    
+
     // Update header
     document.getElementById('headerTitle').textContent = textInfo.title;
-    document.getElementById('headerSubtitle').textContent = 'Select a section to begin';
+    document.getElementById('headerSubtitle').textContent = 'Select a section to practise';
     document.getElementById('headerAuthor').textContent = `${textInfo.author} • ${textInfo.source}`;
-    
+
+    // Update card header
+    document.getElementById('sectionCardTitle').textContent = `${textInfo.title} Sections`;
+    document.getElementById('sectionCardDescription').textContent =
+        `${textInfo.sections.length} sections covering ${textInfo.source}. Each section includes translation, style, and comprehension questions.`;
+
+    // Update sidebar about text
+    const aboutTexts = {
+        'messalina': 'From Tacitus\'s Annals Book XI. This passage describes the scandalous affair and eventual downfall of Empress Messalina, wife of Emperor Claudius. Tacitus\'s trademark irony and devastating understatement are on full display.',
+        'baucis-philemon': 'From Ovid\'s Metamorphoses Book VIII. This touching tale describes an elderly couple who unknowingly offer hospitality to Jupiter and Mercury in disguise, and are rewarded for their piety.'
+    };
+    document.getElementById('sectionSidebarAbout').textContent = aboutTexts[textInfo.id] || `A set text from ${textInfo.source}.`;
+
     // Load user's progress for each section if logged in
     let progressMap = {};
     if (currentUser && typeof supabase !== 'undefined') {
@@ -318,7 +330,7 @@ async function showSectionSelector() {
                 .select('section_id, best_score, attempts')
                 .eq('student_id', currentUser.id)
                 .eq('text_id', textInfo.id);
-            
+
             if (data) {
                 data.forEach(p => {
                     progressMap[p.section_id] = p;
@@ -328,7 +340,7 @@ async function showSectionSelector() {
             console.error('Error loading progress:', err);
         }
     }
-    
+
     const grid = document.getElementById('sectionGrid');
     grid.innerHTML = textInfo.sections.map(s => {
         const progress = progressMap[s.section];
