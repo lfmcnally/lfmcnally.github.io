@@ -82,7 +82,8 @@ function getTextInfo(textId) {
     switch(textId) {
         case 'messalina':
             return typeof messalinaInfo !== 'undefined' ? messalinaInfo : null;
-        // Add other texts here as needed
+        case 'baucis-philemon':
+            return typeof baucisPhilemonInfo !== 'undefined' ? baucisPhilemonInfo : null;
         default:
             return null;
     }
@@ -163,8 +164,9 @@ async function loadSection(textId, sectionNum) {
 
 // Get section data variable - uses dynamic naming convention
 function getSectionData(textId, sectionNum) {
-    // Try the naming convention: textIdSection1, textIdSection2, etc.
-    const varName = textId + 'Section' + sectionNum;
+    // Convert textId to camelCase for variable name (e.g., 'baucis-philemon' -> 'baucisPhilemon')
+    const camelCaseId = textId.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
+    const varName = camelCaseId + 'Section' + sectionNum;
     if (typeof window[varName] !== 'undefined') {
         return window[varName];
     }
