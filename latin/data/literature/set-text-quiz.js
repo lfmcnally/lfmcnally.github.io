@@ -14,9 +14,15 @@ const availableTexts = [
         source: 'Annals XI',
         icon: '👑',
         sections: 9
+    },
+    {
+        id: 'baucis-philemon',
+        title: 'Baucis and Philemon',
+        author: 'Ovid',
+        source: 'Metamorphoses VIII',
+        icon: '🌳',
+        sections: 6
     }
-    // Add more texts here as they're created:
-    // { id: 'aeneid-4', title: 'Aeneid Book 4', author: 'Virgil', icon: '⚔️', sections: 8 }
 ];
 
 // Quiz state
@@ -105,7 +111,8 @@ function getTextInfo(textId) {
     switch(textId) {
         case 'messalina':
             return typeof messalinaInfo !== 'undefined' ? messalinaInfo : null;
-        // Add other texts here as needed
+        case 'baucis-philemon':
+            return typeof baucisPhilemonInfo !== 'undefined' ? baucisPhilemonInfo : null;
         default:
             return null;
     }
@@ -299,6 +306,26 @@ function getSectionData(textId, sectionNum) {
                 return messalinaSection4;
             }
             // Add more sections as they're created
+            break;
+        case 'baucis-philemon':
+            if (sectionNum === 1 && typeof baucisPhilemonSection1 !== 'undefined') {
+                return baucisPhilemonSection1;
+            }
+            if (sectionNum === 2 && typeof baucisPhilemonSection2 !== 'undefined') {
+                return baucisPhilemonSection2;
+            }
+            if (sectionNum === 3 && typeof baucisPhilemonSection3 !== 'undefined') {
+                return baucisPhilemonSection3;
+            }
+            if (sectionNum === 4 && typeof baucisPhilemonSection4 !== 'undefined') {
+                return baucisPhilemonSection4;
+            }
+            if (sectionNum === 5 && typeof baucisPhilemonSection5 !== 'undefined') {
+                return baucisPhilemonSection5;
+            }
+            if (sectionNum === 6 && typeof baucisPhilemonSection6 !== 'undefined') {
+                return baucisPhilemonSection6;
+            }
             break;
     }
     return null;
