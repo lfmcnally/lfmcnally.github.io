@@ -178,7 +178,9 @@ async function loadSection(textId, sectionNum) {
         answersToSave = [];
         
         // Check if section is already loaded
-        const varName = textId + 'Section' + sectionNum;
+        // Convert textId to camelCase for variable name (e.g., 'baucis-philemon' -> 'baucisPhilemon')
+        const camelCaseId = textId.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase());
+        const varName = camelCaseId + 'Section' + sectionNum;
         if (typeof window[varName] === 'undefined') {
             // Dynamically load the section file
             const script = document.createElement('script');
