@@ -1,7 +1,7 @@
 // Baucis and Philemon - Text Information
 // OCR GCSE Latin Literature Prescribed Text
 
-const baucisPhilemonInfo = {
+var baucisPhilemonInfo = {
     id: 'baucis-philemon',
     title: 'Baucis and Philemon',
     author: 'Ovid',

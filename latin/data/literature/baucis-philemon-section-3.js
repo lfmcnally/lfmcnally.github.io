@@ -1,7 +1,7 @@
 // Baucis and Philemon Section 3: Lines 26-35
 // Arrangements for the Unexpected Guests
 
-const baucisPhilemonSection3 = {
+var baucisPhilemonSection3 = {
     section: 3,
     title: 'Arrangements for the Unexpected Guests',
     lines: '26-35',

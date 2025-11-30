@@ -1,7 +1,7 @@
 // Baucis and Philemon Section 6: Lines 64-76
 // Philemon asks that he and Baucis may die at the same time
 
-const baucisPhilemonSection6 = {
+var baucisPhilemonSection6 = {
     section: 6,
     title: 'Philemon asks that he and Baucis may die at the same time',
     lines: '64-76',
