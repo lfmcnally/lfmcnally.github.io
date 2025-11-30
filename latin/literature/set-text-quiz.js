@@ -51,23 +51,54 @@ const sectionSelector = document.getElementById('sectionSelector');
 const quizInterface = document.getElementById('quizInterface');
 const completionScreen = document.getElementById('completionScreen');
 
+// Check tracking status (non-blocking, runs in background)
+async function checkTrackingStatus() {
+    const indicator = document.getElementById('trackingIndicator');
+    const trackingText = indicator ? indicator.querySelector('span') : null;
+
+    if (!indicator || !trackingText) return;
+
+    if (typeof supabase === 'undefined') {
+        indicator.classList.add('not-tracking');
+        trackingText.textContent = 'Progress tracking unavailable';
+        return;
+    }
+
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+            currentUser = user;
+            indicator.classList.remove('not-tracking');
+            indicator.classList.add('active');
+
+            // Check if this is an assigned task
+            const urlParams = new URLSearchParams(window.location.search);
+            const taskIdParam = urlParams.get('task_id');
+
+            if (taskIdParam) {
+                trackingText.textContent = '📋 Assigned task — progress will be recorded';
+            } else {
+                trackingText.textContent = '✓ Logged in — your progress will be tracked';
+            }
+        } else {
+            indicator.classList.add('not-tracking');
+            indicator.classList.add('active');
+            trackingText.innerHTML = 'Log in to track progress — <a href="/auth/login.html" style="color: #0066ff;">Sign in</a>';
+        }
+    } catch (err) {
+        console.error('Error checking tracking status:', err);
+        indicator.classList.add('not-tracking');
+        trackingText.textContent = 'Progress tracking unavailable';
+    }
+}
+
 // Initialise
 document.addEventListener('DOMContentLoaded', async function() {
-    const loadingText = document.querySelector('#loadingState p');
-    
     try {
-        loadingText.textContent = 'Checking login...';
-        
-        // Check auth (supabase is already initialised in config.js)
-        if (typeof supabase !== 'undefined') {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                currentUser = session.user;
-            }
-        }
-        
-        loadingText.textContent = 'Loading text info...';
-        
+        // Check auth in background (non-blocking)
+        checkTrackingStatus();
+
         // Get URL params
         const urlParams = new URLSearchParams(window.location.search);
         currentText = urlParams.get('text');
@@ -88,8 +119,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             showError('Text not found: ' + currentText + '. messalinaInfo is ' + (typeof messalinaInfo));
             return;
         }
-
-        loadingText.textContent = 'Loading section...';
 
         if (sectionNum) {
             currentSection = parseInt(sectionNum);
@@ -205,13 +234,7 @@ async function loadSection(textId, sectionNum) {
         
         // Show quiz
         showQuiz();
-        
-        // Show tracking indicator if logged in
-        if (currentUser) {
-            document.getElementById('trackingIndicator').style.display = 'flex';
-            document.getElementById('trackingIndicator').classList.add('active');
-        }
-        
+
     } catch (error) {
         console.error('Error loading section:', error);
         showError('Failed to load section: ' + error.message);
