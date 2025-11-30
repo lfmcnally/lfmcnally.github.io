@@ -1,7 +1,7 @@
 // Baucis and Philemon Section 5: Lines 50-63
 // The house is turned into a temple
 
-const baucisPhilemonSection5 = {
+var baucisPhilemonSection5 = {
     section: 5,
     title: 'The house is turned into a temple',
     lines: '50-63',

@@ -1,7 +1,7 @@
 // Baucis and Philemon Section 2: Lines 12-25
 // The Gods are Welcomed
 
-const baucisPhilemonSection2 = {
+var baucisPhilemonSection2 = {
     section: 2,
     title: 'The Gods are Welcomed',
     lines: '12-25',

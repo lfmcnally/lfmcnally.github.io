@@ -1,7 +1,7 @@
 // Baucis and Philemon Section 4: Lines 36-50
 // The Miracle & The Command
 
-const baucisPhilemonSection4 = {
+var baucisPhilemonSection4 = {
     section: 4,
     title: 'The Miracle & The Command',
     lines: '36-50',

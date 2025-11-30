@@ -1,7 +1,7 @@
 // Baucis and Philemon Section 1: Lines 1-11
 // Jupiter and Mercury Arrive
 
-const baucisPhilemonSection1 = {
+var baucisPhilemonSection1 = {
     section: 1,
     title: 'Jupiter and Mercury Arrive',
     lines: '1-11',
