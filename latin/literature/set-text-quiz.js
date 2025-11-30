@@ -23,9 +23,30 @@ let showingFeedback = false;
 let currentAttemptNumber = 1;
 let answersToSave = [];
 
+// Available texts
+const availableTexts = [
+    {
+        id: 'messalina',
+        title: 'Messalina',
+        author: 'Tacitus',
+        source: 'Annals XI',
+        icon: '👑',
+        sections: 9
+    },
+    {
+        id: 'baucis-philemon',
+        title: 'Baucis and Philemon',
+        author: 'Ovid',
+        source: 'Metamorphoses VIII',
+        icon: '🌳',
+        sections: 6
+    }
+];
+
 // DOM elements
 const loadingState = document.getElementById('loadingState');
 const errorState = document.getElementById('errorState');
+const textSelector = document.getElementById('textSelector');
 const sectionSelector = document.getElementById('sectionSelector');
 const quizInterface = document.getElementById('quizInterface');
 const completionScreen = document.getElementById('completionScreen');
@@ -49,10 +70,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         // Get URL params
         const urlParams = new URLSearchParams(window.location.search);
-        currentText = urlParams.get('text') || 'messalina';
+        currentText = urlParams.get('text');
         const sectionNum = urlParams.get('section');
         taskId = urlParams.get('task_id');
-        
+
+        // If no text specified, show text selector
+        if (!currentText) {
+            showTextSelector();
+            return;
+        }
+
         // Load text info
         textInfo = getTextInfo(currentText);
         if (!textInfo) {
@@ -61,9 +88,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             showError('Text not found: ' + currentText + '. messalinaInfo is ' + (typeof messalinaInfo));
             return;
         }
-        
+
         loadingText.textContent = 'Loading section...';
-        
+
         if (sectionNum) {
             currentSection = parseInt(sectionNum);
             await loadSection(currentText, currentSection);
@@ -87,6 +114,33 @@ function getTextInfo(textId) {
         default:
             return null;
     }
+}
+
+// Show text selector (landing page)
+function showTextSelector() {
+    loadingState.style.display = 'none';
+    textSelector.style.display = 'block';
+    sectionSelector.style.display = 'none';
+
+    // Update header
+    document.getElementById('headerTitle').textContent = 'Set Text Practice';
+    document.getElementById('headerSubtitle').textContent = 'Choose a text to begin';
+    document.getElementById('headerAuthor').textContent = '';
+
+    const grid = document.getElementById('textGrid');
+    grid.innerHTML = availableTexts.map(t => `
+        <div class="section-card" onclick="selectText('${t.id}')">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">${t.icon}</div>
+            <div class="section-card-title">${t.title}</div>
+            <div class="section-card-lines">${t.author}</div>
+            <div style="font-size: 0.85rem; color: #6b7280; margin-top: 0.5rem;">${t.sections} sections • ${t.source}</div>
+        </div>
+    `).join('');
+}
+
+// Select a text and navigate to its sections
+function selectText(textId) {
+    window.location.href = `set-text-quiz.html?text=${textId}`;
 }
 
 // Get the next attempt number for this user/text/section
