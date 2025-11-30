@@ -1,7 +1,7 @@
 // Messalina Section 6 - Lines 49-59
 // Silius hides and Messalina appeals to Claudius
 
-const messalinaSection6 = {
+var messalinaSection6 = {
     section: 6,
     lines: '49-59',
     title: 'Silius hides and Messalina appeals to Claudius',

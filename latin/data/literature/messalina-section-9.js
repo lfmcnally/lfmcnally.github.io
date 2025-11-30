@@ -1,7 +1,7 @@
 // Messalina Section 9 - Lines 79-89
 // Messalina is killed by the tribune
 
-const messalinaSection9 = {
+var messalinaSection9 = {
     section: 9,
     lines: '79-89',
     title: 'Messalina is killed by the tribune',

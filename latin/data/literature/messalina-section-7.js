@@ -1,7 +1,7 @@
 // Messalina Section 7 - Lines 60-69
 // Narcissus arranges the assassination of Messalina
 
-const messalinaSection7 = {
+var messalinaSection7 = {
     section: 7,
     lines: '60-69',
     title: 'Narcissus arranges the assassination of Messalina',

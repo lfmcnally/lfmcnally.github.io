@@ -1,7 +1,7 @@
 // Messalina Section 1: Lines 1-8
 // Silius is forced to have an affair with Messalina
 
-const messalinaSection1 = {
+var messalinaSection1 = {
     section: 1,
     title: 'Silius is forced to have an affair with Messalina',
     lines: '1-8',
