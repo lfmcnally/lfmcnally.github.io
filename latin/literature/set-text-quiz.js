@@ -40,6 +40,14 @@ const availableTexts = [
         source: 'Metamorphoses VIII',
         icon: '🌳',
         sections: 6
+    },
+    {
+        id: 'otium',
+        title: 'Otium',
+        author: 'Catullus',
+        source: 'Poems 50 & 13',
+        icon: '📜',
+        sections: 3
     }
 ];
 
