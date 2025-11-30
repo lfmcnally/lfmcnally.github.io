@@ -1,7 +1,7 @@
 // Messalina Section 3 - Lines 17-26
 // Eventually, Messalina decides to marry Silius
 
-const messalinaSection3 = {
+var messalinaSection3 = {
     section: 3,
     lines: '17-26',
     title: 'Eventually, Messalina decides to marry Silius',

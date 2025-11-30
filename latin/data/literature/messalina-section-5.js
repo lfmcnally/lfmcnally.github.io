@@ -1,7 +1,7 @@
 // Messalina Section 5 - Lines 39-49
 // The marriage becomes known to Claudius
 
-const messalinaSection5 = {
+var messalinaSection5 = {
     section: 5,
     lines: '39-49',
     title: 'The marriage becomes known to Claudius',

@@ -145,7 +145,7 @@ function getTextInfo(textId) {
     }
 }
 
-// Show text selector (landing page)
+// Show text selector (landing page - hub layout)
 function showTextSelector() {
     loadingState.style.display = 'none';
     textSelector.style.display = 'block';
@@ -153,16 +153,39 @@ function showTextSelector() {
 
     // Update header
     document.getElementById('headerTitle').textContent = 'Set Text Practice';
-    document.getElementById('headerSubtitle').textContent = 'Choose a text to begin';
-    document.getElementById('headerAuthor').textContent = '';
+    document.getElementById('headerSubtitle').textContent = 'Practise translation, style, and comprehension questions';
+    document.getElementById('headerAuthor').textContent = 'by Lawrence McNally';
+
+    // Text descriptions for each set text
+    const descriptions = {
+        'messalina': 'The scandalous fall of Empress Messalina from Tacitus\'s Annals — featuring his trademark irony and devastating understatement.',
+        'baucis-philemon': 'The touching tale of an elderly couple\'s hospitality to the gods, from Ovid\'s Metamorphoses.'
+    };
+
+    const badges = {
+        'messalina': '<span class="badge">GCSE Set Text</span>',
+        'baucis-philemon': '<span class="badge new">New</span>'
+    };
 
     const grid = document.getElementById('textGrid');
-    grid.innerHTML = availableTexts.map(t => `
-        <div class="section-card" onclick="selectText('${t.id}')">
-            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">${t.icon}</div>
-            <div class="section-card-title">${t.title}</div>
-            <div class="section-card-lines">${t.author}</div>
-            <div style="font-size: 0.85rem; color: #6b7280; margin-top: 0.5rem;">${t.sections} sections • ${t.source}</div>
+    grid.innerHTML = availableTexts.map((t, i) => `
+        <div class="text-card${i === 0 ? ' featured' : ''}" onclick="selectText('${t.id}')">
+            ${badges[t.id] || ''}
+            <div class="text-icon">${t.icon}</div>
+            <h2 class="text-card-name">${t.title}</h2>
+            <div class="text-card-level">${t.author} • ${t.source}</div>
+            <p class="text-card-description">${descriptions[t.id] || ''}</p>
+
+            <div class="text-stats">
+                <div class="stat-item">
+                    <div class="stat-value">${t.sections}</div>
+                    <div class="stat-label">Sections</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">15+</div>
+                    <div class="stat-label">Questions each</div>
+                </div>
+            </div>
         </div>
     `).join('');
 }

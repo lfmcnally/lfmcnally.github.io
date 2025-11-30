@@ -1,7 +1,7 @@
 // Messalina Section 2 - Lines 8-17
 // Messalina's visits to Silius become increasingly more frequent
 
-const messalinaSection2 = {
+var messalinaSection2 = {
     section: 2,
     lines: '8-17',
     title: "Messalina's visits to Silius become increasingly more frequent",

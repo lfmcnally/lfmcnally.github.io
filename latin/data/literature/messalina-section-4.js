@@ -1,7 +1,7 @@
 // Messalina Section 4 - Lines 27-38
 // Widespread knowledge of the affair prompts Narcissus to take action
 
-const messalinaSection4 = {
+var messalinaSection4 = {
     section: 4,
     lines: '27-38',
     title: 'Widespread knowledge of the affair prompts Narcissus to take action',
