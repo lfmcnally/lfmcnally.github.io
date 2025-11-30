@@ -1043,10 +1043,16 @@
         <div class="card completion-grid-card" style="margin-top: 1.5rem;">
             <div class="card-header">
                 <span class="card-title">📜 Set Text Progress</span>
-                <div class="grid-legend">
-                    <span class="legend-item"><span class="legend-dot" style="background: #d1fae5;"></span> 70%+</span>
-                    <span class="legend-item"><span class="legend-dot" style="background: #fef3c7;"></span> &lt;70%</span>
-                    <span class="legend-item"><span class="legend-dot" style="background: #f3f4f6;"></span> Not started</span>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <select id="setTextGridSelector" class="form-input" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; min-width: 180px;" onchange="loadSetTextGrid()">
+                        <option value="messalina">Messalina (Tacitus)</option>
+                        <option value="baucis-philemon">Baucis and Philemon (Ovid)</option>
+                    </select>
+                    <div class="grid-legend">
+                        <span class="legend-item"><span class="legend-dot" style="background: #d1fae5;"></span> 70%+</span>
+                        <span class="legend-item"><span class="legend-dot" style="background: #fef3c7;"></span> &lt;70%</span>
+                        <span class="legend-item"><span class="legend-dot" style="background: #f3f4f6;"></span> Not started</span>
+                    </div>
                 </div>
             </div>
             <div class="card-body">
@@ -2277,31 +2283,38 @@
         // Load the set text progress grid
         async function loadSetTextGrid() {
             const container = document.getElementById('setTextGridContainer');
-            
+            const selector = document.getElementById('setTextGridSelector');
+            const selectedTextId = selector ? selector.value : 'messalina';
+
             if (classStudents.length === 0) {
                 container.innerHTML = '<div class="no-tasks-message">No students in class yet.</div>';
                 return;
             }
-            
+
             const studentIds = classStudents.map(s => s.id);
-            
-            // Get all set text progress for students in this class
+
+            // Get set text progress for students in this class, filtered by selected text
             const { data: progress, error: progressError } = await supabase
                 .from('set_text_progress')
                 .select('*')
-                .in('student_id', studentIds);
-            
+                .in('student_id', studentIds)
+                .eq('text_id', selectedTextId);
+
             if (progressError) {
                 console.error('Error loading set text progress:', progressError);
                 container.innerHTML = '<div class="no-tasks-message">Error loading set text data.</div>';
                 return;
             }
-            
+
             // Define available texts and their sections
-            const texts = [
-                { id: 'messalina', name: 'Messalina', shortName: 'Mess.', sections: 9 }
-                // Add more texts here
-            ];
+            const allTexts = {
+                'messalina': { id: 'messalina', name: 'Messalina', shortName: 'Mess.', sections: 9 },
+                'baucis-philemon': { id: 'baucis-philemon', name: 'Baucis & Philemon', shortName: 'B&P', sections: 6 }
+            };
+
+            // Get selected text config
+            const selectedText = allTexts[selectedTextId];
+            const texts = [selectedText];
             
             // Build lookup: { textId: { sectionNum: { userId: { score, attempts } } } }
             const progressLookup = {};
@@ -2324,10 +2337,10 @@
                 });
             }
             
-            // Check if any progress exists
+            // Check if any progress exists for this text
             const hasAnyProgress = progress && progress.length > 0;
             if (!hasAnyProgress) {
-                container.innerHTML = '<div class="no-tasks-message">No set text attempts yet. Students can practise at the Set Text Tester.</div>';
+                container.innerHTML = `<div class="no-tasks-message">No ${selectedText.name} attempts yet. Students can practise at the <a href="/latin/literature/set-text-quiz.html?text=${selectedTextId}" target="_blank">Set Text Tester</a>.</div>`;
                 return;
             }
             
