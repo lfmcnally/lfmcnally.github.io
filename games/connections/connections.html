@@ -580,6 +580,20 @@
                 <div class="logo-icon">C</div>
                 <div class="game-subtitle">Connexiones</div>
             </div>
+            <!-- Streak indicator (shown when logged in) -->
+            <div id="streak-container" style="display: none; margin-top: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.75rem; background: #fef3c7; border-radius: 20px; font-size: 0.85rem; font-weight: 600; color: #92400e;">
+                    <span>🔥</span>
+                    <span id="streak-count">0</span>
+                    <span>day streak</span>
+                </div>
+            </div>
+            <!-- Login prompt (shown when not logged in) -->
+            <div id="login-prompt" style="display: none; margin-top: 0.5rem;">
+                <a href="/auth/login.html" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.75rem; background: #f3f4f6; border-radius: 20px; font-size: 0.8rem; color: #6b7280; text-decoration: none;">
+                    <span>Sign in to track your streak</span>
+                </a>
+            </div>
         </div>
         <button class="contrast-toggle" onclick="toggleHighContrast()" id="contrast-btn" style="position: absolute; top: 1.25rem; right: 2rem;">
             High Contrast
@@ -658,10 +672,18 @@
         </div>
     </main>
 
-    <!-- Load puzzle data FIRST -->
+    <!-- Supabase for auth and streak tracking -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../auth/config.js"></script>
+
+    <!-- Load puzzle data -->
     <script src="connections-november-2025.js"></script>
 
     <script>
+        // Auth state
+        let currentUser = null;
+        let currentStreak = 0;
+
         // Game state
         let gameState = {
             puzzle: null,
@@ -977,6 +999,9 @@
                                    gameState.mistakes === 1 ? 'Great job!' :
                                    'Well done!';
                 document.getElementById('victory-message').textContent = mistakeText;
+
+                // Save win to database (if logged in)
+                saveWin();
             } else {
                 document.getElementById('gameover-screen').style.display = 'block';
                 showRemainingGroups();
@@ -1087,10 +1112,161 @@
             dateInput.setAttribute('min', '2025-11-14');
         }
 
+        // Check auth status and load streak
+        async function checkAuthAndLoadStreak() {
+            if (typeof supabase === 'undefined') {
+                document.getElementById('login-prompt').style.display = 'block';
+                return;
+            }
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (user) {
+                    currentUser = user;
+                    await loadStreak();
+                    document.getElementById('streak-container').style.display = 'block';
+                } else {
+                    document.getElementById('login-prompt').style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Auth check error:', err);
+                document.getElementById('login-prompt').style.display = 'block';
+            }
+        }
+
+        // Load user's streak from database
+        async function loadStreak() {
+            if (!currentUser || typeof supabase === 'undefined') return;
+
+            try {
+                // Get all wins for this user, ordered by date
+                const { data: wins, error } = await supabase
+                    .from('connections_wins')
+                    .select('puzzle_date')
+                    .eq('user_id', currentUser.id)
+                    .order('puzzle_date', { ascending: false });
+
+                if (error) {
+                    console.error('Error loading wins:', error);
+                    return;
+                }
+
+                if (!wins || wins.length === 0) {
+                    currentStreak = 0;
+                    updateStreakDisplay();
+                    return;
+                }
+
+                // Calculate streak from consecutive days
+                currentStreak = calculateStreak(wins.map(w => w.puzzle_date));
+                updateStreakDisplay();
+            } catch (err) {
+                console.error('Error loading streak:', err);
+            }
+        }
+
+        // Calculate streak from array of dates
+        function calculateStreak(dates) {
+            if (!dates || dates.length === 0) return 0;
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            // Sort dates descending (most recent first)
+            const sortedDates = dates
+                .map(d => new Date(d))
+                .sort((a, b) => b - a);
+
+            // Check if most recent win is today or yesterday
+            const mostRecent = sortedDates[0];
+            mostRecent.setHours(0, 0, 0, 0);
+
+            if (mostRecent < yesterday) {
+                // Streak broken - most recent win is older than yesterday
+                return 0;
+            }
+
+            // Count consecutive days
+            let streak = 1;
+            let expectedDate = new Date(mostRecent);
+
+            for (let i = 1; i < sortedDates.length; i++) {
+                expectedDate.setDate(expectedDate.getDate() - 1);
+                const currentDate = sortedDates[i];
+                currentDate.setHours(0, 0, 0, 0);
+
+                if (currentDate.getTime() === expectedDate.getTime()) {
+                    streak++;
+                } else {
+                    break;
+                }
+            }
+
+            return streak;
+        }
+
+        // Update streak display
+        function updateStreakDisplay() {
+            const countEl = document.getElementById('streak-count');
+            if (countEl) {
+                countEl.textContent = currentStreak;
+            }
+        }
+
+        // Save win to database
+        async function saveWin() {
+            if (!currentUser || typeof supabase === 'undefined') return;
+            if (!gameState.puzzle) return;
+
+            const { day, month, year } = gameState.puzzle;
+            // Format date as YYYY-MM-DD
+            const monthNum = new Date(`${month} 1, ${year}`).getMonth() + 1;
+            const puzzleDate = `${year}-${String(monthNum).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+            try {
+                // Check if already saved for this date
+                const { data: existing } = await supabase
+                    .from('connections_wins')
+                    .select('id')
+                    .eq('user_id', currentUser.id)
+                    .eq('puzzle_date', puzzleDate)
+                    .single();
+
+                if (existing) {
+                    // Already saved
+                    return;
+                }
+
+                // Save the win
+                const { error } = await supabase
+                    .from('connections_wins')
+                    .insert({
+                        user_id: currentUser.id,
+                        puzzle_date: puzzleDate
+                    });
+
+                if (error) {
+                    console.error('Error saving win:', error);
+                    return;
+                }
+
+                // Reload streak to update display
+                await loadStreak();
+            } catch (err) {
+                console.error('Error saving win:', err);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             loadHighContrastPreference();
             setupDatePicker();
             initGame();
+            // Check auth in background (non-blocking)
+            checkAuthAndLoadStreak();
         });
     </script>
 </body>
