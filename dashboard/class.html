@@ -1040,7 +1040,7 @@
         </div>
 
         <!-- Set Text Progress Grid -->
-        <div class="card completion-grid-card" style="margin-top: 1.5rem;">
+        <div class="card completion-grid-card" id="setTextProgressCard" style="margin-top: 1.5rem;">
             <div class="card-header">
                 <span class="card-title">📜 Set Text Progress</span>
                 <div style="display: flex; align-items: center; gap: 1rem;">
@@ -1059,6 +1059,31 @@
             <div class="card-body">
                 <div id="setTextGridContainer">
                     <div class="loading">Loading set text data...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Classics Quiz Progress Grid (for Classics classes) -->
+        <div class="card completion-grid-card" id="classicsQuizProgressCard" style="margin-top: 1.5rem; display: none;">
+            <div class="card-header">
+                <span class="card-title">🏛️ Classics Quiz Progress</span>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <select id="classicsCourseSelector" class="form-input" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; min-width: 180px;" onchange="loadClassicsTopicSelector(); loadClassicsGrid()">
+                        <option value="politics">Politics of the Late Republic</option>
+                    </select>
+                    <select id="classicsTopicSelector" class="form-input" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; min-width: 180px;" onchange="loadClassicsGrid()">
+                        <option value="topic-1">Topic 1: The Roman Republic</option>
+                    </select>
+                    <div class="grid-legend">
+                        <span class="legend-item"><span class="legend-dot" style="background: #d1fae5;"></span> 70%+</span>
+                        <span class="legend-item"><span class="legend-dot" style="background: #fef3c7;"></span> &lt;70%</span>
+                        <span class="legend-item"><span class="legend-dot" style="background: #f3f4f6;"></span> Not started</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="classicsGridContainer">
+                    <div class="loading">Loading classics quiz data...</div>
                 </div>
             </div>
         </div>
@@ -1086,6 +1111,7 @@
                     <div class="task-type-selector">
                         <button class="task-type-btn active" id="vocabTaskOption" onclick="selectTaskType('vocab')">📖 Vocabulary</button>
                         <button class="task-type-btn" id="setTextTaskOption" onclick="selectTaskType('settext')">📜 Set Text</button>
+                        <button class="task-type-btn" id="classicsQuizTaskOption" style="display: none;" onclick="selectTaskType('classicsquiz')">🏛️ Classics Quiz</button>
                         <button class="task-type-btn" onclick="selectTaskType('custom')">🔗 Custom Link</button>
                     </div>
                     
@@ -1163,14 +1189,54 @@
                             <button type="submit" class="btn btn-primary" style="width: 100%;">Set Literature Task</button>
                         </form>
                     </div>
-                    
+
+                    <div id="classicsQuizForm" class="task-form-section">
+                        <form id="setClassicsQuizTaskForm">
+                            <div class="form-group">
+                                <label>Task Title</label>
+                                <input type="text" class="form-input" id="classicsQuizTitle" placeholder="e.g. Topic 1.1: What was the Roman Republic?" required>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Course</label>
+                                    <select class="form-input" id="classicsQuizCourse" required onchange="populateClassicsTopicDropdown()">
+                                        <option value="">Select course...</option>
+                                        <option value="politics">Politics of the Late Republic</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Topic</label>
+                                    <select class="form-input" id="classicsQuizTopic" required disabled onchange="populateClassicsSubtopicDropdown()">
+                                        <option value="">Select course first</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Subtopic</label>
+                                    <select class="form-input" id="classicsQuizSubtopic" required disabled>
+                                        <option value="">Select topic first</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Due Date</label>
+                                <input type="datetime-local" class="form-input" id="classicsQuizDueDate" required>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">Set Classics Quiz Task</button>
+                        </form>
+                    </div>
+
                     <div id="customForm" class="task-form-section">
                         <form id="setCustomTaskForm">
                             <div class="form-group">
                                 <label>Task Title</label>
                                 <input type="text" class="form-input" id="customTitle" placeholder="e.g. Translation Exercise" required>
                             </div>
-                            
+
                             <div class="form-group">
                                 <label>Content URL</label>
                                 <input type="url" class="form-input" id="customUrl" placeholder="https://classicalia.co.uk/..." required>
@@ -1475,13 +1541,16 @@
         function selectTaskType(type) {
             document.querySelectorAll('.task-type-btn').forEach(btn => btn.classList.remove('active'));
             document.querySelectorAll('.task-form-section').forEach(form => form.classList.remove('active'));
-            
+
             if (type === 'vocab') {
                 document.getElementById('vocabTaskOption').classList.add('active');
                 document.getElementById('vocabForm').classList.add('active');
             } else if (type === 'settext') {
                 document.getElementById('setTextTaskOption').classList.add('active');
                 document.getElementById('setTextForm').classList.add('active');
+            } else if (type === 'classicsquiz') {
+                document.getElementById('classicsQuizTaskOption').classList.add('active');
+                document.getElementById('classicsQuizForm').classList.add('active');
             } else {
                 document.querySelector('.task-type-btn:last-child').classList.add('active');
                 document.getElementById('customForm').classList.add('active');
@@ -1521,12 +1590,16 @@
             if (classData.type === 'classics') {
                 // Hide words mastered stat
                 document.getElementById('wordsMasteredStat').style.display = 'none';
-                // Hide vocab task form, show only custom
+                // Hide vocab and set text task forms, show classics quiz
                 document.getElementById('vocabTaskOption').style.display = 'none';
                 document.getElementById('setTextTaskOption').style.display = 'none';
-                selectTaskType('custom');
+                document.getElementById('classicsQuizTaskOption').style.display = '';
+                selectTaskType('classicsquiz');
                 // Hide words tab in leaderboard
                 document.getElementById('leaderboardWordsTab').style.display = 'none';
+                // Hide set text progress grid, show classics quiz grid
+                document.getElementById('setTextProgressCard').style.display = 'none';
+                document.getElementById('classicsQuizProgressCard').style.display = 'block';
             } else {
                 // Latin GCSE, Greek, and Prep Latin all have vocab tracking
                 // Show vocab picker and populate chapters appropriately
@@ -2392,7 +2465,218 @@
             html += '</tbody></table></div>';
             container.innerHTML = html;
         }
-        
+
+        // Classics Quiz Progress Grid Functions
+        const classicsCoursesData = {
+            'politics': {
+                id: 'politics',
+                title: 'Politics of the Late Republic',
+                shortTitle: 'Politics',
+                topics: {
+                    'topic-1': { title: 'Topic 1: The Roman Republic', subtopics: 5 },
+                    'topic-2': { title: 'Topic 2: The End of the Republic', subtopics: 3 },
+                    'topic-3': { title: 'Topic 3: Political Violence', subtopics: 4 },
+                    'topic-4': { title: 'Topic 4: The First Triumvirate', subtopics: 3 },
+                    'topic-5': { title: 'Topic 5: Caesar and the Civil War', subtopics: 4 },
+                    'topic-6': { title: 'Topic 6: The Assassination', subtopics: 3 }
+                }
+            }
+        };
+
+        const classicsSubtopicsData = {
+            'politics': {
+                'topic-1': [
+                    { id: '1', number: '1.1', title: 'What was the Roman Republic?' },
+                    { id: '2', number: '1.2', title: 'The Constitution' },
+                    { id: '3', number: '1.3', title: 'Patronage and Amicitia' },
+                    { id: '4', number: '1.4', title: 'Political Ideals' },
+                    { id: '5', number: '1.5', title: 'Political Factions' }
+                ]
+            }
+        };
+
+        function loadClassicsTopicSelector() {
+            const courseId = document.getElementById('classicsCourseSelector').value;
+            const topicSelector = document.getElementById('classicsTopicSelector');
+            const course = classicsCoursesData[courseId];
+
+            if (!course) return;
+
+            topicSelector.innerHTML = '';
+            Object.entries(course.topics).forEach(([topicId, topic]) => {
+                const option = document.createElement('option');
+                option.value = topicId;
+                option.textContent = topic.title;
+                topicSelector.appendChild(option);
+            });
+        }
+
+        async function loadClassicsGrid() {
+            const container = document.getElementById('classicsGridContainer');
+            const courseId = document.getElementById('classicsCourseSelector').value;
+            const topicId = document.getElementById('classicsTopicSelector').value;
+
+            if (classStudents.length === 0) {
+                container.innerHTML = '<div class="no-tasks-message">No students in class yet.</div>';
+                return;
+            }
+
+            const studentIds = classStudents.map(s => s.id);
+            const course = classicsCoursesData[courseId];
+            const topic = course?.topics[topicId];
+
+            if (!topic) {
+                container.innerHTML = '<div class="no-tasks-message">Topic not found.</div>';
+                return;
+            }
+
+            // Get classics quiz progress for students in this class, filtered by course and topic
+            const { data: progress, error: progressError } = await supabase
+                .from('classics_quiz_progress')
+                .select('*')
+                .in('student_id', studentIds)
+                .eq('course_id', courseId)
+                .eq('topic_id', topicId);
+
+            if (progressError) {
+                console.error('Error loading classics quiz progress:', progressError);
+                container.innerHTML = '<div class="no-tasks-message">Error loading classics quiz data.</div>';
+                return;
+            }
+
+            // Build lookup: { subtopicId: { userId: { score, attempts } } }
+            const progressLookup = {};
+            if (progress) {
+                progress.forEach(p => {
+                    if (!progressLookup[p.subtopic_id]) progressLookup[p.subtopic_id] = {};
+
+                    const existing = progressLookup[p.subtopic_id][p.student_id];
+                    const score = p.score_percentage || 0;
+
+                    if (!existing || score > existing.score) {
+                        progressLookup[p.subtopic_id][p.student_id] = {
+                            score: score,
+                            correct: p.questions_correct,
+                            total: p.questions_total,
+                            attempts: p.attempts || 1
+                        };
+                    }
+                });
+            }
+
+            // Check if any progress exists
+            const hasAnyProgress = progress && progress.length > 0;
+            if (!hasAnyProgress) {
+                container.innerHTML = `<div class="no-tasks-message">No ${topic.title} attempts yet. Students can practise at the <a href="/classics/quiz.html?course=${courseId}&topic=${topicId}" target="_blank">Classics Quiz</a>.</div>`;
+                return;
+            }
+
+            // Get subtopic data for this topic (only topic-1 has data currently)
+            const subtopics = classicsSubtopicsData[courseId]?.[topicId] || [];
+            const numSubtopics = topic.subtopics;
+
+            // Build HTML table
+            let html = '<div class="completion-grid-wrapper"><table class="completion-grid">';
+
+            // Header row
+            html += '<thead><tr><th class="student-col">Student</th>';
+            for (let s = 1; s <= numSubtopics; s++) {
+                const subtopic = subtopics[s - 1];
+                const label = subtopic ? subtopic.number : `§${s}`;
+                const title = subtopic ? `${subtopic.number}: ${subtopic.title}` : `Subtopic ${s}`;
+                html += `<th class="task-col" title="${title}">${label}</th>`;
+            }
+            html += '</tr></thead>';
+
+            // Body rows
+            html += '<tbody>';
+
+            classStudents.forEach(student => {
+                const name = student.full_name || student.email.split('@')[0];
+                html += `<tr><td class="student-name">${name}</td>`;
+
+                for (let s = 1; s <= numSubtopics; s++) {
+                    const subtopicId = String(s);
+                    const data = progressLookup[subtopicId]?.[student.id];
+
+                    let cellClass = 'not-started';
+                    let cellContent = '<span class="task-cell-icon">—</span>';
+
+                    if (data) {
+                        if (data.score >= 70) {
+                            cellClass = 'completed';
+                        } else {
+                            cellClass = 'completed-late'; // Yellow for <70%
+                        }
+                        cellContent = `<span class="task-cell-score" style="font-size: 0.9rem; font-weight: 600;">${data.score}%</span>`;
+                    }
+
+                    html += `<td class="task-cell"><div class="task-cell-inner ${cellClass}">${cellContent}</div></td>`;
+                }
+
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        // Classics Quiz Task Form Functions
+        function populateClassicsTopicDropdown() {
+            const courseId = document.getElementById('classicsQuizCourse').value;
+            const topicSelect = document.getElementById('classicsQuizTopic');
+            const subtopicSelect = document.getElementById('classicsQuizSubtopic');
+
+            if (!courseId) {
+                topicSelect.innerHTML = '<option value="">Select course first</option>';
+                topicSelect.disabled = true;
+                subtopicSelect.innerHTML = '<option value="">Select topic first</option>';
+                subtopicSelect.disabled = true;
+                return;
+            }
+
+            const course = classicsCoursesData[courseId];
+            topicSelect.innerHTML = '<option value="">Select topic...</option>';
+            Object.entries(course.topics).forEach(([topicId, topic]) => {
+                topicSelect.innerHTML += `<option value="${topicId}">${topic.title}</option>`;
+            });
+            topicSelect.disabled = false;
+
+            subtopicSelect.innerHTML = '<option value="">Select topic first</option>';
+            subtopicSelect.disabled = true;
+        }
+
+        function populateClassicsSubtopicDropdown() {
+            const courseId = document.getElementById('classicsQuizCourse').value;
+            const topicId = document.getElementById('classicsQuizTopic').value;
+            const subtopicSelect = document.getElementById('classicsQuizSubtopic');
+
+            if (!topicId) {
+                subtopicSelect.innerHTML = '<option value="">Select topic first</option>';
+                subtopicSelect.disabled = true;
+                return;
+            }
+
+            const subtopics = classicsSubtopicsData[courseId]?.[topicId];
+            const topic = classicsCoursesData[courseId]?.topics[topicId];
+
+            subtopicSelect.innerHTML = '<option value="">Select subtopic...</option>';
+
+            if (subtopics && subtopics.length > 0) {
+                // Use named subtopics if available
+                subtopics.forEach(sub => {
+                    subtopicSelect.innerHTML += `<option value="${sub.id}">${sub.number}: ${sub.title}</option>`;
+                });
+            } else if (topic) {
+                // Fall back to generic subtopic numbers
+                for (let i = 1; i <= topic.subtopics; i++) {
+                    subtopicSelect.innerHTML += `<option value="${i}">Subtopic ${i}</option>`;
+                }
+            }
+
+            subtopicSelect.disabled = false;
+        }
+
         async function setTask(title, contentPath, dueDate) {
             const { data, error } = await supabase
                 .from('tasks')
@@ -2503,10 +2787,17 @@
             await loadStudents();
             await loadTasks();
             await loadCompletionGrid();
-            await loadSetTextGrid();
+
+            // Load appropriate progress grid based on class type
+            if (currentClass.type === 'classics') {
+                await loadClassicsGrid();
+            } else {
+                await loadSetTextGrid();
+            }
+
             await loadClassStats();
             await loadLeaderboard();
-            
+
             document.getElementById('taskChapter').addEventListener('change', handleChapterChange);
             document.getElementById('taskFromWord').addEventListener('change', handleFromWordChange);
         }
@@ -2880,21 +3171,21 @@
         // Set text form submission
         document.getElementById('setSetTextTaskForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const title = document.getElementById('setTextTitle').value.trim();
             const textId = document.getElementById('setTextSelect').value;
             const sectionNum = document.getElementById('setTextSection').value;
             const dueDate = document.getElementById('setTextDueDate').value;
-            
+
             if (!textId || !sectionNum) {
                 showMessage('taskMessage', 'Please select a text and section', 'error');
                 return;
             }
-            
+
             const contentPath = `/latin/literature/set-text-quiz.html?text=${textId}&section=${sectionNum}`;
-            
+
             const result = await setTask(title, contentPath, dueDate);
-            
+
             if (result.success) {
                 showMessage('taskMessage', 'Literature task created successfully!', 'success');
                 document.getElementById('setSetTextTaskForm').reset();
@@ -2905,7 +3196,38 @@
                 showMessage('taskMessage', result.error, 'error');
             }
         });
-        
+
+        // Classics quiz form submission
+        document.getElementById('setClassicsQuizTaskForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const title = document.getElementById('classicsQuizTitle').value.trim();
+            const courseId = document.getElementById('classicsQuizCourse').value;
+            const topicId = document.getElementById('classicsQuizTopic').value;
+            const subtopicId = document.getElementById('classicsQuizSubtopic').value;
+            const dueDate = document.getElementById('classicsQuizDueDate').value;
+
+            if (!courseId || !topicId || !subtopicId) {
+                showMessage('taskMessage', 'Please select a course, topic, and subtopic', 'error');
+                return;
+            }
+
+            const contentPath = `/classics/quiz.html?course=${courseId}&topic=${topicId}&subtopic=${subtopicId}`;
+
+            const result = await setTask(title, contentPath, dueDate);
+
+            if (result.success) {
+                showMessage('taskMessage', 'Classics quiz task created successfully!', 'success');
+                document.getElementById('setClassicsQuizTaskForm').reset();
+                document.getElementById('classicsQuizTopic').disabled = true;
+                document.getElementById('classicsQuizSubtopic').disabled = true;
+                await loadTasks();
+                await loadCompletionGrid();
+            } else {
+                showMessage('taskMessage', result.error, 'error');
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
