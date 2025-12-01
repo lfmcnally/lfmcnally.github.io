@@ -119,3 +119,33 @@ async function redirectIfLoggedIn() {
     }
     return false;
 }
+
+// ============================================
+// REQUEST PASSWORD RESET
+// ============================================
+// Sends a password reset email to the user
+async function requestPasswordReset(email) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/auth/reset-password.html'
+    });
+
+    if (error) {
+        return { success: false, error: error.message };
+    }
+    return { success: true };
+}
+
+// ============================================
+// UPDATE PASSWORD
+// ============================================
+// Updates the user's password (used after clicking reset link)
+async function updatePassword(newPassword) {
+    const { error } = await supabase.auth.updateUser({
+        password: newPassword
+    });
+
+    if (error) {
+        return { success: false, error: error.message };
+    }
+    return { success: true };
+}
