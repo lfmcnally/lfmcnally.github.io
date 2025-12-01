@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Cloud - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+            padding: 1.5rem 2rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .join-code-display {
+            background: rgba(255,255,255,0.2);
+            padding: 0.75rem 1.25rem;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 1.5rem;
+            letter-spacing: 3px;
+            font-weight: 700;
+            border: 2px solid rgba(255,255,255,0.3);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .join-code-display:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-white {
+            background: white;
+            color: #0066ff;
+        }
+
+        .btn-white:hover {
+            background: #f0f4ff;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        .btn-ghost {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.4);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* States */
+        .state {
+            display: none;
+        }
+
+        .state.active {
+            display: block;
+        }
+
+        /* Login Required */
+        .login-required {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .login-required h2 {
+            font-size: 1.75rem;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .login-required p {
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+
+        .btn-primary {
+            background: #0066ff;
+            color: white;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+        }
+
+        .btn-primary:hover {
+            background: #0052cc;
+        }
+
+        /* Create Session */
+        .create-session {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .card-header h2 {
+            font-size: 1.25rem;
+            color: #1f2937;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #0066ff;
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn-block {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+        }
+
+        /* Active Session */
+        .session-header {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .question-display {
+            flex: 1;
+        }
+
+        .question-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .question-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .session-stats {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0066ff;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        /* Word Cloud Container */
+        .wordcloud-container {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+
+        .wordcloud-tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .wordcloud-tab {
+            flex: 1;
+            padding: 1rem;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .wordcloud-tab:hover {
+            background: #f9fafb;
+        }
+
+        .wordcloud-tab.active {
+            color: #0066ff;
+            border-bottom-color: #0066ff;
+        }
+
+        .wordcloud-canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #wordcloudCanvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .empty-cloud {
+            text-align: center;
+            color: #9ca3af;
+            padding: 4rem;
+        }
+
+        .empty-cloud-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Responses List */
+        .responses-panel {
+            display: none;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .responses-panel.active {
+            display: block;
+        }
+
+        .response-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .response-item:last-child {
+            border-bottom: none;
+        }
+
+        .response-text {
+            font-size: 1rem;
+            color: #1f2937;
+            flex: 1;
+        }
+
+        .response-author {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-left: 1rem;
+        }
+
+        .response-time {
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-left: 1rem;
+        }
+
+        /* Fullscreen Mode */
+        .fullscreen-btn {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #0066ff;
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
+            transition: all 0.2s;
+            z-index: 100;
+        }
+
+        .fullscreen-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 102, 255, 0.4);
+        }
+
+        body.fullscreen-mode {
+            background: #1a1a2e;
+        }
+
+        body.fullscreen-mode header,
+        body.fullscreen-mode .session-header,
+        body.fullscreen-mode .wordcloud-tabs {
+            display: none;
+        }
+
+        body.fullscreen-mode .container {
+            max-width: 100%;
+            padding: 0;
+            height: 100vh;
+        }
+
+        body.fullscreen-mode .wordcloud-container {
+            border-radius: 0;
+            border: none;
+            height: 100vh;
+        }
+
+        body.fullscreen-mode .wordcloud-canvas-wrapper {
+            height: 100vh;
+        }
+
+        body.fullscreen-mode .fullscreen-question {
+            display: block;
+            position: fixed;
+            top: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.95);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 100;
+            max-width: 80%;
+            text-align: center;
+        }
+
+        body.fullscreen-mode .fullscreen-code {
+            display: block;
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            background: rgba(255,255,255,0.95);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #0066ff;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+
+        body.fullscreen-mode .fullscreen-count {
+            display: flex;
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: rgba(255,255,255,0.95);
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 100;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        body.fullscreen-mode .fullscreen-count-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #0066ff;
+        }
+
+        body.fullscreen-mode .fullscreen-count-label {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .fullscreen-question,
+        .fullscreen-code,
+        .fullscreen-count {
+            display: none;
+        }
+
+        /* Join URL Display */
+        .join-url {
+            background: #f0f4ff;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .join-url-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .join-url-text {
+            font-family: monospace;
+            font-size: 1.1rem;
+            color: #0066ff;
+            word-break: break-all;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .header-left, .header-right {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .session-header {
+                flex-direction: column;
+                gap: 1.5rem;
+                text-align: center;
+            }
+
+            .question-text {
+                font-size: 1.25rem;
+            }
+
+            .wordcloud-canvas-wrapper {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <a href="../index.html" class="back-btn">←</a>
+            <h1>Word Cloud</h1>
+        </div>
+        <div class="header-right" id="headerRight" style="display: none;">
+            <div class="join-code-display" id="headerJoinCode" onclick="copyJoinCode()" title="Click to copy">----</div>
+            <button class="btn btn-danger" onclick="endSession()">End Session</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Login Required State -->
+        <div class="state" id="loginState">
+            <div class="login-required">
+                <h2>Teacher Login Required</h2>
+                <p>You need to be logged in as a teacher to create word cloud sessions.</p>
+                <a href="../auth/login.html" class="btn btn-primary">Log In</a>
+            </div>
+        </div>
+
+        <!-- Create Session State -->
+        <div class="state" id="createState">
+            <div class="create-session">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Create Word Cloud Session</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="createSessionForm">
+                            <div class="form-group">
+                                <label>Your Question</label>
+                                <textarea class="form-input" id="questionInput" placeholder="e.g., What themes do you see in this passage?" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Start Session</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Session State -->
+        <div class="state" id="sessionState">
+            <div class="session-header">
+                <div class="question-display">
+                    <div class="question-label">Question</div>
+                    <div class="question-text" id="questionDisplay"></div>
+                </div>
+                <div class="session-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="responseCount">0</div>
+                        <div class="stat-label">Responses</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="uniqueWords">0</div>
+                        <div class="stat-label">Unique Words</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="join-url">
+                <div class="join-url-label">Students join at:</div>
+                <div class="join-url-text" id="joinUrl"></div>
+            </div>
+
+            <div class="wordcloud-container">
+                <div class="wordcloud-tabs">
+                    <button class="wordcloud-tab active" onclick="showTab('cloud')">Word Cloud</button>
+                    <button class="wordcloud-tab" onclick="showTab('responses')">Who Said What</button>
+                </div>
+
+                <div class="wordcloud-canvas-wrapper" id="cloudPanel">
+                    <div class="empty-cloud" id="emptyCloud">
+                        <div class="empty-cloud-icon">☁️</div>
+                        <p>Waiting for responses...</p>
+                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Share the join code with your students</p>
+                    </div>
+                    <canvas id="wordcloudCanvas" style="display: none;"></canvas>
+                </div>
+
+                <div class="responses-panel" id="responsesPanel">
+                    <div id="responsesList"></div>
+                </div>
+            </div>
+
+            <!-- Fullscreen overlays -->
+            <div class="fullscreen-question" id="fullscreenQuestion"></div>
+            <div class="fullscreen-code" id="fullscreenCode"></div>
+            <div class="fullscreen-count">
+                <span class="fullscreen-count-number" id="fullscreenCount">0</span>
+                <span class="fullscreen-count-label">responses</span>
+            </div>
+        </div>
+    </div>
+
+    <button class="fullscreen-btn" id="fullscreenBtn" onclick="toggleFullscreen()" title="Fullscreen mode" style="display: none;">⛶</button>
+
+    <script src="../auth/config.js"></script>
+    <script>
+        let currentUser = null;
+        let currentSession = null;
+        let responses = [];
+        let subscription = null;
+
+        // Word frequency map
+        let wordFrequency = {};
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkAuth();
+        });
+
+        async function checkAuth() {
+            if (typeof supabase === 'undefined') {
+                showState('loginState');
+                return;
+            }
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (!user) {
+                    showState('loginState');
+                    return;
+                }
+
+                // Check if teacher
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                if (!profile || profile.role !== 'teacher') {
+                    showState('loginState');
+                    return;
+                }
+
+                currentUser = profile;
+
+                // Check for existing active session
+                const { data: existingSession } = await supabase
+                    .from('wordcloud_sessions')
+                    .select('*')
+                    .eq('teacher_id', user.id)
+                    .eq('is_active', true)
+                    .single();
+
+                if (existingSession) {
+                    currentSession = existingSession;
+                    await loadExistingSession();
+                } else {
+                    showState('createState');
+                }
+            } catch (err) {
+                console.error('Auth error:', err);
+                showState('loginState');
+            }
+        }
+
+        function showState(stateId) {
+            document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+            document.getElementById(stateId).classList.add('active');
+
+            // Show/hide header elements
+            document.getElementById('headerRight').style.display = stateId === 'sessionState' ? 'flex' : 'none';
+            document.getElementById('fullscreenBtn').style.display = stateId === 'sessionState' ? 'block' : 'none';
+        }
+
+        // Generate join code
+        function generateJoinCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        // Create session
+        document.getElementById('createSessionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const question = document.getElementById('questionInput').value.trim();
+            if (!question) return;
+
+            const joinCode = generateJoinCode();
+
+            try {
+                const { data, error } = await supabase
+                    .from('wordcloud_sessions')
+                    .insert({
+                        teacher_id: currentUser.id,
+                        question: question,
+                        join_code: joinCode
+                    })
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                currentSession = data;
+                await loadExistingSession();
+            } catch (err) {
+                console.error('Error creating session:', err);
+                alert('Failed to create session: ' + err.message);
+            }
+        });
+
+        // Load existing session
+        async function loadExistingSession() {
+            if (!currentSession) return;
+
+            // Update UI
+            document.getElementById('questionDisplay').textContent = currentSession.question;
+            document.getElementById('headerJoinCode').textContent = currentSession.join_code;
+            document.getElementById('fullscreenQuestion').textContent = currentSession.question;
+            document.getElementById('fullscreenCode').textContent = currentSession.join_code;
+
+            const joinUrl = window.location.origin + '/tools/wordcloud-join.html?code=' + currentSession.join_code;
+            document.getElementById('joinUrl').textContent = joinUrl;
+
+            showState('sessionState');
+
+            // Load existing responses
+            const { data: existingResponses } = await supabase
+                .from('wordcloud_responses')
+                .select('*')
+                .eq('session_id', currentSession.id)
+                .order('created_at', { ascending: true });
+
+            if (existingResponses) {
+                responses = existingResponses;
+                updateWordCloud();
+                updateResponsesList();
+            }
+
+            // Subscribe to new responses
+            subscribeToResponses();
+        }
+
+        // Subscribe to realtime responses
+        function subscribeToResponses() {
+            if (subscription) {
+                subscription.unsubscribe();
+            }
+
+            subscription = supabase
+                .channel('wordcloud_' + currentSession.id)
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'wordcloud_responses',
+                    filter: 'session_id=eq.' + currentSession.id
+                }, (payload) => {
+                    responses.push(payload.new);
+                    updateWordCloud();
+                    updateResponsesList();
+                })
+                .subscribe();
+        }
+
+        // Update word cloud
+        function updateWordCloud() {
+            // Count word frequencies
+            wordFrequency = {};
+            responses.forEach(r => {
+                const words = r.response_text.toLowerCase()
+                    .replace(/[^\w\s]/g, '')
+                    .split(/\s+/)
+                    .filter(w => w.length > 2);
+
+                words.forEach(word => {
+                    wordFrequency[word] = (wordFrequency[word] || 0) + 1;
+                });
+            });
+
+            // Update stats
+            document.getElementById('responseCount').textContent = responses.length;
+            document.getElementById('fullscreenCount').textContent = responses.length;
+            document.getElementById('uniqueWords').textContent = Object.keys(wordFrequency).length;
+
+            // Show/hide empty state
+            const hasResponses = Object.keys(wordFrequency).length > 0;
+            document.getElementById('emptyCloud').style.display = hasResponses ? 'none' : 'block';
+            document.getElementById('wordcloudCanvas').style.display = hasResponses ? 'block' : 'none';
+
+            if (!hasResponses) return;
+
+            // Prepare word list for wordcloud2
+            const wordList = Object.entries(wordFrequency)
+                .map(([word, count]) => [word, count * 20])
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 100);
+
+            // Generate word cloud
+            const canvas = document.getElementById('wordcloudCanvas');
+            const wrapper = canvas.parentElement;
+            canvas.width = wrapper.offsetWidth;
+            canvas.height = wrapper.offsetHeight;
+
+            WordCloud(canvas, {
+                list: wordList,
+                gridSize: 8,
+                weightFactor: function(size) {
+                    return Math.pow(size, 0.8) * (canvas.width / 600);
+                },
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                color: function() {
+                    const colors = ['#0066ff', '#0052cc', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+                    return colors[Math.floor(Math.random() * colors.length)];
+                },
+                rotateRatio: 0.3,
+                backgroundColor: 'transparent',
+                shuffle: false
+            });
+        }
+
+        // Update responses list
+        function updateResponsesList() {
+            const list = document.getElementById('responsesList');
+
+            if (responses.length === 0) {
+                list.innerHTML = '<div style="padding: 2rem; text-align: center; color: #9ca3af;">No responses yet</div>';
+                return;
+            }
+
+            list.innerHTML = responses.map(r => {
+                const time = new Date(r.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                const author = r.student_name || 'Anonymous';
+                return `
+                    <div class="response-item">
+                        <span class="response-text">${escapeHtml(r.response_text)}</span>
+                        <span class="response-author">${escapeHtml(author)}</span>
+                        <span class="response-time">${time}</span>
+                    </div>
+                `;
+            }).reverse().join('');
+        }
+
+        // Show tab
+        function showTab(tab) {
+            document.querySelectorAll('.wordcloud-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.getElementById('cloudPanel').style.display = tab === 'cloud' ? 'flex' : 'none';
+            document.getElementById('responsesPanel').classList.toggle('active', tab === 'responses');
+
+            if (tab === 'cloud') {
+                setTimeout(updateWordCloud, 100);
+            }
+        }
+
+        // Toggle fullscreen
+        function toggleFullscreen() {
+            document.body.classList.toggle('fullscreen-mode');
+
+            if (document.body.classList.contains('fullscreen-mode')) {
+                setTimeout(updateWordCloud, 100);
+            }
+        }
+
+        // Copy join code
+        function copyJoinCode() {
+            const code = currentSession.join_code;
+            navigator.clipboard.writeText(code).then(() => {
+                const el = document.getElementById('headerJoinCode');
+                const original = el.textContent;
+                el.textContent = 'Copied!';
+                setTimeout(() => el.textContent = original, 1500);
+            });
+        }
+
+        // End session
+        async function endSession() {
+            if (!confirm('End this session? Students will no longer be able to submit responses.')) return;
+
+            try {
+                await supabase
+                    .from('wordcloud_sessions')
+                    .update({ is_active: false, ended_at: new Date().toISOString() })
+                    .eq('id', currentSession.id);
+
+                if (subscription) {
+                    subscription.unsubscribe();
+                }
+
+                currentSession = null;
+                responses = [];
+                wordFrequency = {};
+
+                showState('createState');
+                document.getElementById('questionInput').value = '';
+            } catch (err) {
+                console.error('Error ending session:', err);
+                alert('Failed to end session');
+            }
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (currentSession && Object.keys(wordFrequency).length > 0) {
+                setTimeout(updateWordCloud, 100);
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.body.classList.contains('fullscreen-mode')) {
+                toggleFullscreen();
+            }
+            if (e.key === 'f' && currentSession && !e.target.matches('input, textarea')) {
+                toggleFullscreen();
+            }
+        });
+    </script>
+</body>
+</html>

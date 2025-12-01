@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Word Cloud - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+            padding: 2rem;
+            text-align: center;
+            color: white;
+        }
+
+        .card-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-header p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        /* States */
+        .state {
+            display: none;
+        }
+
+        .state.active {
+            display: block;
+        }
+
+        /* Join Form */
+        .join-form {
+            text-align: center;
+        }
+
+        .code-input-wrapper {
+            margin-bottom: 1.5rem;
+        }
+
+        .code-input {
+            width: 100%;
+            padding: 1.25rem;
+            font-size: 2rem;
+            font-family: monospace;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            border: 3px solid #e5e7eb;
+            border-radius: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .code-input:focus {
+            border-color: #0066ff;
+        }
+
+        .code-input::placeholder {
+            letter-spacing: 2px;
+            font-size: 1.25rem;
+            color: #9ca3af;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1.25rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #0066ff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0052cc;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+
+        /* Question Display */
+        .question-card {
+            background: #f0f4ff;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .question-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        .question-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            line-height: 1.4;
+        }
+
+        /* Response Form */
+        .response-form {
+            margin-bottom: 1rem;
+        }
+
+        .response-input {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            outline: none;
+            transition: border-color 0.2s;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .response-input:focus {
+            border-color: #0066ff;
+        }
+
+        .char-count {
+            text-align: right;
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-top: 0.5rem;
+        }
+
+        /* Success State */
+        .success-state {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .success-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #10b981;
+            margin-bottom: 0.5rem;
+        }
+
+        .success-message {
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        /* Name input */
+        .name-section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .name-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .name-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            font-size: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .name-input:focus {
+            border-color: #0066ff;
+        }
+
+        .name-hint {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-top: 0.5rem;
+        }
+
+        /* Session ended */
+        .ended-state {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .ended-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .ended-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Footer link */
+        .footer-link {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .footer-link a {
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .footer-link a:hover {
+            color: #0066ff;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e5e7eb;
+            border-top-color: #0066ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h1>Word Cloud</h1>
+                <p>Share your thoughts</p>
+            </div>
+
+            <div class="card-body">
+                <!-- Loading State -->
+                <div class="state" id="loadingState">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading...</p>
+                    </div>
+                </div>
+
+                <!-- Join State -->
+                <div class="state active" id="joinState">
+                    <div class="join-form">
+                        <div class="error-message" id="errorMessage"></div>
+                        <div class="code-input-wrapper">
+                            <input type="text" class="code-input" id="codeInput" placeholder="CODE" maxlength="6" autocomplete="off" autocapitalize="characters">
+                        </div>
+                        <button class="btn btn-primary" id="joinBtn" onclick="joinSession()">Join</button>
+                    </div>
+                </div>
+
+                <!-- Response State -->
+                <div class="state" id="responseState">
+                    <div class="question-card">
+                        <div class="question-label">Question</div>
+                        <div class="question-text" id="questionText"></div>
+                    </div>
+
+                    <div class="name-section">
+                        <label class="name-label">Your Name (optional)</label>
+                        <input type="text" class="name-input" id="nameInput" placeholder="Anonymous">
+                        <div class="name-hint">Your teacher can see who submitted each response</div>
+                    </div>
+
+                    <form class="response-form" id="responseForm">
+                        <textarea class="response-input" id="responseInput" placeholder="Type your response..." maxlength="500" required></textarea>
+                        <div class="char-count"><span id="charCount">0</span>/500</div>
+                        <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Submit</button>
+                    </form>
+                </div>
+
+                <!-- Success State -->
+                <div class="state" id="successState">
+                    <div class="success-state">
+                        <div class="success-icon">✓</div>
+                        <div class="success-title">Response Submitted!</div>
+                        <div class="success-message">Your answer has been added to the word cloud.</div>
+                        <button class="btn btn-secondary" onclick="submitAnother()">Submit Another Response</button>
+                    </div>
+                </div>
+
+                <!-- Session Ended State -->
+                <div class="state" id="endedState">
+                    <div class="ended-state">
+                        <div class="ended-icon">⏹️</div>
+                        <div class="ended-title">Session Ended</div>
+                        <p style="color: #6b7280;">This word cloud session is no longer accepting responses.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-link">
+            <a href="../index.html">← Back to Classicalia</a>
+        </div>
+    </div>
+
+    <script src="../auth/config.js"></script>
+    <script>
+        let currentSession = null;
+        let currentUser = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check for code in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const codeParam = urlParams.get('code');
+
+            if (codeParam) {
+                document.getElementById('codeInput').value = codeParam.toUpperCase();
+                await joinSession();
+            }
+
+            // Check if logged in
+            if (typeof supabase !== 'undefined') {
+                try {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                        const { data: profile } = await supabase
+                            .from('users')
+                            .select('full_name')
+                            .eq('id', user.id)
+                            .single();
+
+                        if (profile && profile.full_name) {
+                            currentUser = profile;
+                            document.getElementById('nameInput').value = profile.full_name;
+                        }
+                    }
+                } catch (err) {
+                    console.log('Not logged in');
+                }
+            }
+
+            // Auto-focus code input
+            document.getElementById('codeInput').focus();
+
+            // Character count
+            document.getElementById('responseInput').addEventListener('input', function() {
+                document.getElementById('charCount').textContent = this.value.length;
+            });
+
+            // Code input formatting
+            document.getElementById('codeInput').addEventListener('input', function() {
+                this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            });
+
+            // Enter key on code input
+            document.getElementById('codeInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    joinSession();
+                }
+            });
+        });
+
+        function showState(stateId) {
+            document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+            document.getElementById(stateId).classList.add('active');
+        }
+
+        function showError(message) {
+            const el = document.getElementById('errorMessage');
+            el.textContent = message;
+            el.classList.add('visible');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('visible');
+        }
+
+        async function joinSession() {
+            const code = document.getElementById('codeInput').value.trim().toUpperCase();
+
+            if (!code || code.length < 4) {
+                showError('Please enter a valid join code');
+                return;
+            }
+
+            hideError();
+            showState('loadingState');
+
+            try {
+                const { data: session, error } = await supabase
+                    .from('wordcloud_sessions')
+                    .select('*')
+                    .eq('join_code', code)
+                    .single();
+
+                if (error || !session) {
+                    showState('joinState');
+                    showError('Session not found. Check the code and try again.');
+                    return;
+                }
+
+                if (!session.is_active) {
+                    showState('endedState');
+                    return;
+                }
+
+                currentSession = session;
+                document.getElementById('questionText').textContent = session.question;
+                showState('responseState');
+                document.getElementById('responseInput').focus();
+
+            } catch (err) {
+                console.error('Error joining session:', err);
+                showState('joinState');
+                showError('Failed to join session. Please try again.');
+            }
+        }
+
+        // Submit response
+        document.getElementById('responseForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const responseText = document.getElementById('responseInput').value.trim();
+            const studentName = document.getElementById('nameInput').value.trim() || 'Anonymous';
+
+            if (!responseText) return;
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            try {
+                // Get current user ID if logged in
+                let studentId = null;
+                if (typeof supabase !== 'undefined') {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) studentId = user.id;
+                }
+
+                const { error } = await supabase
+                    .from('wordcloud_responses')
+                    .insert({
+                        session_id: currentSession.id,
+                        student_id: studentId,
+                        student_name: studentName,
+                        response_text: responseText
+                    });
+
+                if (error) throw error;
+
+                showState('successState');
+
+            } catch (err) {
+                console.error('Error submitting response:', err);
+                alert('Failed to submit response. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit';
+            }
+        });
+
+        function submitAnother() {
+            document.getElementById('responseInput').value = '';
+            document.getElementById('charCount').textContent = '0';
+            const submitBtn = document.querySelector('#responseForm button[type="submit"]');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit';
+            showState('responseState');
+            document.getElementById('responseInput').focus();
+        }
+    </script>
+</body>
+</html>
