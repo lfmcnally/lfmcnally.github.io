@@ -2651,26 +2651,31 @@
                     if (!textProgress[p.text_id]) {
                         textProgress[p.text_id] = {
                             sections: {},
-                            totalCorrect: 0,
-                            totalQuestions: 0
+                            totalScore: 0,
+                            sectionsCount: 0
                         };
                     }
+                    // Use best_score if available, otherwise calculate from questions
+                    const sectionScore = p.best_score != null ? p.best_score :
+                        (p.questions_total > 0 ? Math.round((p.questions_correct / p.questions_total) * 100) : 0);
+
                     // Keep best score per section
-                    if (!textProgress[p.text_id].sections[p.section_id] || 
-                        p.questions_correct > textProgress[p.text_id].sections[p.section_id].correct) {
+                    const existingSection = textProgress[p.text_id].sections[p.section_id];
+                    if (!existingSection || sectionScore > existingSection.score) {
                         // Subtract old values if replacing
-                        if (textProgress[p.text_id].sections[p.section_id]) {
-                            textProgress[p.text_id].totalCorrect -= textProgress[p.text_id].sections[p.section_id].correct;
-                            textProgress[p.text_id].totalQuestions -= textProgress[p.text_id].sections[p.section_id].total;
+                        if (existingSection) {
+                            textProgress[p.text_id].totalScore -= existingSection.score;
+                            textProgress[p.text_id].sectionsCount--;
                         }
                         textProgress[p.text_id].sections[p.section_id] = {
+                            score: sectionScore,
                             correct: p.questions_correct,
                             total: p.questions_total,
                             date: p.created_at
                         };
                         // Add new values
-                        textProgress[p.text_id].totalCorrect += p.questions_correct || 0;
-                        textProgress[p.text_id].totalQuestions += p.questions_total || 0;
+                        textProgress[p.text_id].totalScore += sectionScore;
+                        textProgress[p.text_id].sectionsCount++;
                     }
                 });
                 
@@ -2683,8 +2688,8 @@
                 
                 for (const [textId, data] of Object.entries(textProgress)) {
                     const info = textInfo[textId] || { name: textId, sections: 9 };
-                    // Calculate accuracy from progress data
-                    const accuracy = data.totalQuestions > 0 ? Math.round((data.totalCorrect / data.totalQuestions) * 100) : 0;
+                    // Calculate average score from progress data
+                    const avgScore = data.sectionsCount > 0 ? Math.round(data.totalScore / data.sectionsCount) : 0;
                     const sectionsCompleted = Object.keys(data.sections).length;
                     
                     html += `
@@ -2699,10 +2704,11 @@
                     for (let i = 1; i <= info.sections; i++) {
                         const section = data.sections[i];
                         if (section) {
-                            const pct = Math.round((section.correct / section.total) * 100);
+                            const pct = section.score;
                             const bgColor = pct >= 70 ? '#dcfce7' : '#fef3c7';
                             const textColor = pct >= 70 ? '#16a34a' : '#d97706';
-                            html += `<span style="padding: 0.25rem 0.5rem; background: ${bgColor}; color: ${textColor}; border-radius: 4px; font-size: 0.75rem; font-weight: 500;" title="${section.correct}/${section.total}">§${i}: ${pct}%</span>`;
+                            const tooltip = section.total ? `${section.correct}/${section.total}` : `${pct}%`;
+                            html += `<span style="padding: 0.25rem 0.5rem; background: ${bgColor}; color: ${textColor}; border-radius: 4px; font-size: 0.75rem; font-weight: 500;" title="${tooltip}">§${i}: ${pct}%</span>`;
                         } else {
                             html += `<span style="padding: 0.25rem 0.5rem; background: #f3f4f6; color: #9ca3af; border-radius: 4px; font-size: 0.75rem;">§${i}</span>`;
                         }
@@ -2711,8 +2717,8 @@
                     html += `
                             </div>
                             <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: #6b7280;">
-                                <span>🎯 ${accuracy}% accuracy</span>
-                                <span>❓ ${data.totalQuestions} questions</span>
+                                <span>🎯 ${avgScore}% average</span>
+                                <span>📊 ${sectionsCompleted} sections completed</span>
                             </div>
                         </div>
                     `;

@@ -101,6 +101,10 @@ async function checkTrackingStatus() {
     }
 }
 
+// Review mode flag
+let isReviewMode = false;
+let reviewQuestions = [];
+
 // Initialise
 document.addEventListener('DOMContentLoaded', async function() {
     try {
@@ -109,9 +113,17 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         // Get URL params
         const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
         currentText = urlParams.get('text');
         const sectionNum = urlParams.get('section');
         taskId = urlParams.get('task_id');
+
+        // Check for review mode
+        if (mode === 'review') {
+            isReviewMode = true;
+            await startReviewMode();
+            return;
+        }
 
         // If no text specified, show text selector
         if (!currentText) {
@@ -301,6 +313,122 @@ function showTextSelector() {
 // Select a text and navigate to its sections
 function selectText(textId) {
     window.location.href = `set-text-quiz.html?text=${textId}`;
+}
+
+// Start review mode - practice questions you got wrong
+async function startReviewMode() {
+    loadingState.style.display = 'block';
+    textSelector.style.display = 'none';
+    sectionSelector.style.display = 'none';
+
+    // Check if logged in
+    if (typeof supabase === 'undefined') {
+        showError('Please log in to review your tricky questions.');
+        return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        showError('Please log in to review your tricky questions.');
+        return;
+    }
+    currentUser = user;
+
+    try {
+        // Get wrong answers from database
+        const { data: wrongAnswers, error } = await supabase
+            .from('set_text_answers')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('is_correct', false)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!wrongAnswers || wrongAnswers.length === 0) {
+            loadingState.style.display = 'none';
+            document.getElementById('content') || document.body.insertAdjacentHTML('beforeend', '<div id="content"></div>');
+            const contentEl = document.getElementById('content') || document.querySelector('.container');
+            contentEl.innerHTML = `
+                <div style="text-align: center; padding: 4rem 2rem; background: white; border-radius: 12px; border: 1px solid #e5e7eb; margin-top: 2rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div>
+                    <h2 style="color: #1f2937; margin-bottom: 0.5rem;">No Tricky Questions!</h2>
+                    <p style="color: #6b7280; margin-bottom: 1.5rem;">You haven't got any questions wrong yet. Keep up the great work!</p>
+                    <a href="set-text-quiz.html" style="display: inline-block; padding: 0.75rem 1.5rem; background: #0066ff; color: white; text-decoration: none; border-radius: 8px; font-weight: 500;">Continue Practising →</a>
+                </div>
+            `;
+            return;
+        }
+
+        // Deduplicate - keep only the most recent wrong answer for each unique question
+        const questionMap = new Map();
+        wrongAnswers.forEach(answer => {
+            const key = `${answer.text_id}-${answer.section_number}-${answer.question_text}`;
+            if (!questionMap.has(key)) {
+                questionMap.set(key, answer);
+            }
+        });
+        reviewQuestions = Array.from(questionMap.values());
+
+        // Shuffle review questions
+        shuffleArray(reviewQuestions);
+
+        // Convert to quiz format
+        questions = reviewQuestions.map(answer => ({
+            type: answer.question_type || 'comprehension',
+            latin: answer.question_latin || '',
+            question: answer.question_text,
+            correctFeedback: 'Well done! You got it right this time.',
+            // We'll create options from the stored correct answer
+            options: [
+                { text: answer.correct_option, correct: true },
+                { text: answer.selected_option, correct: false, feedback: answer.feedback || 'This was your previous incorrect answer.' }
+            ],
+            // Store original info for display
+            _originalText: answer.text_id,
+            _originalSection: answer.section_number
+        }));
+
+        // Create shuffled options for each question
+        questions.forEach(q => {
+            q.shuffledOptions = [...q.options];
+            shuffleArray(q.shuffledOptions);
+            q.correctIndex = q.shuffledOptions.findIndex(opt => opt.correct);
+        });
+
+        // Reset quiz state
+        currentQuestionIndex = 0;
+        score = 0;
+        answered = 0;
+        selectedAnswer = null;
+        showingFeedback = false;
+
+        // Show quiz with review header
+        showReviewQuiz();
+
+    } catch (err) {
+        console.error('Error loading review questions:', err);
+        showError('Failed to load review questions: ' + err.message);
+    }
+}
+
+// Show quiz interface for review mode
+function showReviewQuiz() {
+    loadingState.style.display = 'none';
+    sectionSelector.style.display = 'none';
+    quizInterface.style.display = 'block';
+
+    // Set header info for review mode
+    document.getElementById('headerTitle').textContent = '💪 Tricky Questions Review';
+    document.getElementById('headerSubtitle').textContent = 'Practice questions you got wrong';
+    document.getElementById('headerAuthor').textContent = `${questions.length} questions from across your set texts`;
+
+    // Hide the Latin text panel as questions are from different sections
+    const latinPanel = document.querySelector('.latin-panel');
+    if (latinPanel) latinPanel.style.display = 'none';
+
+    // Display first question
+    displayQuestion();
 }
 
 // Get the next attempt number for this user/text/section
@@ -644,29 +772,43 @@ function nextQuestion() {
 async function showCompletion() {
     quizInterface.style.display = 'none';
     completionScreen.style.display = 'block';
-    
+
     const percentage = Math.round((score / questions.length) * 100);
-    
+
     document.getElementById('finalScore').textContent = percentage + '%';
     document.getElementById('finalCorrect').textContent = score;
     document.getElementById('finalTotal').textContent = questions.length;
-    
-    // Set message based on score
+
+    // Set message based on score and mode
     let message = '';
-    if (percentage >= 90) {
-        message = 'Outstanding! Excellent knowledge of this section! 🌟';
-    } else if (percentage >= 70) {
-        message = 'Great work! You know this text well. 👏';
-    } else if (percentage >= 50) {
-        message = 'Good effort — keep reviewing! 📚';
+    if (isReviewMode) {
+        if (percentage >= 90) {
+            message = 'Excellent! You\'ve mastered these tricky questions! 🌟';
+        } else if (percentage >= 70) {
+            message = 'Great improvement! Keep practising! 👏';
+        } else if (percentage >= 50) {
+            message = 'Getting better! Try again to improve. 📚';
+        } else {
+            message = 'Keep reviewing — you\'ll get there! 💪';
+        }
     } else {
-        message = 'Keep studying — you\'ll get there! 💪';
+        if (percentage >= 90) {
+            message = 'Outstanding! Excellent knowledge of this section! 🌟';
+        } else if (percentage >= 70) {
+            message = 'Great work! You know this text well. 👏';
+        } else if (percentage >= 50) {
+            message = 'Good effort — keep reviewing! 📚';
+        } else {
+            message = 'Keep studying — you\'ll get there! 💪';
+        }
     }
     document.getElementById('completionMessage').textContent = message;
-    
-    // Save progress and answers to database
-    await saveAnswersToDatabase();
-    await saveProgress(percentage);
+
+    // Save progress and answers to database (skip for review mode)
+    if (!isReviewMode) {
+        await saveAnswersToDatabase();
+        await saveProgress(percentage);
+    }
 }
 
 // Save individual answers to database
@@ -764,23 +906,38 @@ function restartQuiz() {
     answered = 0;
     selectedAnswer = null;
     showingFeedback = false;
-    
+
     // Increment attempt number and reset answers array
     currentAttemptNumber++;
     answersToSave = [];
-    
+
     // Re-shuffle questions
-    prepareQuestions();
-    
+    if (isReviewMode) {
+        // For review mode, re-shuffle the existing questions
+        shuffleArray(questions);
+        questions.forEach(q => {
+            q.shuffledOptions = [...q.options];
+            shuffleArray(q.shuffledOptions);
+            q.correctIndex = q.shuffledOptions.findIndex(opt => opt.correct);
+        });
+    } else {
+        prepareQuestions();
+    }
+
     // Reset UI
     completionScreen.style.display = 'none';
     quizInterface.style.display = 'block';
-    
+
     displayQuestion();
 }
 
 // Go back to section selector
 function goBack() {
+    if (isReviewMode) {
+        // In review mode, go back to the review page
+        window.location.href = 'set-text-review.html';
+        return;
+    }
     // Remove section param from URL and reload
     const url = new URL(window.location);
     url.searchParams.delete('section');
