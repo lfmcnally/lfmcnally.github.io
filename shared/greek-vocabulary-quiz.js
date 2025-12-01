@@ -214,7 +214,7 @@ function loadQuestion() {
     // Store current word for checking
     currentTestWords.currentWord = word;
     
-    document.getElementById('latin-word').textContent = word.greek;
+    document.getElementById('greek-word').textContent = word.greek;
     
     // Show mastery progress for this word
     const currentMastery = wordMastery[word.greek];
