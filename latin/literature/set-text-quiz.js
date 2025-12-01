@@ -347,16 +347,22 @@ async function startReviewMode() {
 
         if (!wrongAnswers || wrongAnswers.length === 0) {
             loadingState.style.display = 'none';
-            document.getElementById('content') || document.body.insertAdjacentHTML('beforeend', '<div id="content"></div>');
-            const contentEl = document.getElementById('content') || document.querySelector('.container');
-            contentEl.innerHTML = `
-                <div style="text-align: center; padding: 4rem 2rem; background: white; border-radius: 12px; border: 1px solid #e5e7eb; margin-top: 2rem;">
+            textSelector.style.display = 'none';
+            sectionSelector.style.display = 'none';
+            // Show empty state in quiz interface area
+            quizInterface.style.display = 'block';
+            quizInterface.innerHTML = `
+                <div style="text-align: center; padding: 4rem 2rem; background: white; border-radius: 12px; border: 1px solid #e5e7eb;">
                     <div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div>
                     <h2 style="color: #1f2937; margin-bottom: 0.5rem;">No Tricky Questions!</h2>
                     <p style="color: #6b7280; margin-bottom: 1.5rem;">You haven't got any questions wrong yet. Keep up the great work!</p>
                     <a href="set-text-quiz.html" style="display: inline-block; padding: 0.75rem 1.5rem; background: #0066ff; color: white; text-decoration: none; border-radius: 8px; font-weight: 500;">Continue Practising →</a>
                 </div>
             `;
+            // Update header
+            document.getElementById('headerTitle').textContent = '💪 Tricky Questions Review';
+            document.getElementById('headerSubtitle').textContent = 'No questions to review';
+            document.getElementById('headerAuthor').textContent = '';
             return;
         }
 
