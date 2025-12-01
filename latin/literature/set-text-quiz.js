@@ -407,6 +407,9 @@ function shuffleArray(array) {
     }
 }
 
+// Section emojis for visual interest
+const sectionEmojis = ['📖', '📜', '✨', '🏛️', '⚡', '🌟', '📚', '🎭', '🔥', '💫'];
+
 // Show section selector (hub layout)
 async function showSectionSelector() {
     loadingState.style.display = 'none';
@@ -425,7 +428,8 @@ async function showSectionSelector() {
     // Update sidebar about text
     const aboutTexts = {
         'messalina': 'From Tacitus\'s Annals Book XI. This passage describes the scandalous affair and eventual downfall of Empress Messalina, wife of Emperor Claudius. Tacitus\'s trademark irony and devastating understatement are on full display.',
-        'baucis-philemon': 'From Ovid\'s Metamorphoses Book VIII. This touching tale describes an elderly couple who unknowingly offer hospitality to Jupiter and Mercury in disguise, and are rewarded for their piety.'
+        'baucis-philemon': 'From Ovid\'s Metamorphoses Book VIII. This touching tale describes an elderly couple who unknowingly offer hospitality to Jupiter and Mercury in disguise, and are rewarded for their piety.',
+        'otium': 'Two poems by Catullus exploring themes of leisure, friendship, and the creative process. Poem 50 recalls a day of playful poetry with Calvus, while Poem 13 is a witty dinner invitation.'
     };
     document.getElementById('sectionSidebarAbout').textContent = aboutTexts[textInfo.id] || `A set text from ${textInfo.source}.`;
 
@@ -450,17 +454,33 @@ async function showSectionSelector() {
     }
 
     const grid = document.getElementById('sectionGrid');
-    grid.innerHTML = textInfo.sections.map(s => {
+    grid.innerHTML = textInfo.sections.map((s, index) => {
         const progress = progressMap[s.section];
+        const emoji = sectionEmojis[index % sectionEmojis.length];
+
         let progressHtml = '';
         if (progress) {
-            progressHtml = `<div class="section-card-progress">✓ Best: ${progress.best_score}% (${progress.attempts} attempt${progress.attempts !== 1 ? 's' : ''})</div>`;
+            progressHtml = `<div class="section-card-progress">✓ ${progress.best_score}%</div>`;
+        } else {
+            progressHtml = `<div class="section-card-progress not-started">Not started</div>`;
         }
+
         return `
             <div class="section-card" onclick="loadSection('${textInfo.id}', ${s.section})">
-                <div class="section-card-title">Section ${s.section}</div>
-                <div class="section-card-lines">Lines ${s.lines}</div>
-                <div style="font-size: 0.85rem; color: #374151; margin-top: 0.5rem;">${s.title}</div>
+                <div class="section-icon">${emoji}</div>
+                <div class="section-card-content">
+                    <div class="section-card-header">
+                        <h3 class="section-card-title">Section ${s.section}</h3>
+                    </div>
+                    <div class="section-card-lines">Lines ${s.lines}</div>
+                    <p class="section-card-description">${s.title}</p>
+                </div>
+                <div class="section-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">15+</div>
+                        <div class="stat-label">Questions</div>
+                    </div>
+                </div>
                 ${progressHtml}
             </div>
         `;
