@@ -148,6 +148,8 @@ function getTextInfo(textId) {
             return typeof messalinaInfo !== 'undefined' ? messalinaInfo : null;
         case 'baucis-philemon':
             return typeof baucisPhilemonInfo !== 'undefined' ? baucisPhilemonInfo : null;
+        case 'otium':
+            return typeof otiumInfo !== 'undefined' ? otiumInfo : null;
         default:
             return null;
     }
