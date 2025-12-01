@@ -334,14 +334,24 @@ async function startReviewMode() {
     }
     currentUser = user;
 
+    // Get text filter from URL if specified
+    const urlParams = new URLSearchParams(window.location.search);
+    const reviewTextFilter = urlParams.get('text');
+
     try {
         // Get wrong answers from database
-        const { data: wrongAnswers, error } = await supabase
+        let query = supabase
             .from('set_text_answers')
             .select('*')
             .eq('user_id', user.id)
-            .eq('is_correct', false)
-            .order('created_at', { ascending: false });
+            .eq('is_correct', false);
+
+        // Filter by text if specified
+        if (reviewTextFilter) {
+            query = query.eq('text_id', reviewTextFilter);
+        }
+
+        const { data: wrongAnswers, error } = await query.order('created_at', { ascending: false });
 
         if (error) throw error;
 
@@ -351,17 +361,28 @@ async function startReviewMode() {
             sectionSelector.style.display = 'none';
             // Show empty state in quiz interface area
             quizInterface.style.display = 'block';
+
+            const textNames = {
+                'messalina': 'Messalina',
+                'baucis-philemon': 'Baucis & Philemon',
+                'otium': 'Otium'
+            };
+            const filterTextName = reviewTextFilter ? (textNames[reviewTextFilter] || reviewTextFilter) : null;
+            const emptyMessage = filterTextName
+                ? `You haven't got any ${filterTextName} questions wrong yet. Keep up the great work!`
+                : `You haven't got any questions wrong yet. Keep up the great work!`;
+
             quizInterface.innerHTML = `
                 <div style="text-align: center; padding: 4rem 2rem; background: white; border-radius: 12px; border: 1px solid #e5e7eb;">
                     <div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div>
                     <h2 style="color: #1f2937; margin-bottom: 0.5rem;">No Tricky Questions!</h2>
-                    <p style="color: #6b7280; margin-bottom: 1.5rem;">You haven't got any questions wrong yet. Keep up the great work!</p>
+                    <p style="color: #6b7280; margin-bottom: 1.5rem;">${emptyMessage}</p>
                     <a href="set-text-quiz.html" style="display: inline-block; padding: 0.75rem 1.5rem; background: #0066ff; color: white; text-decoration: none; border-radius: 8px; font-weight: 500;">Continue Practising →</a>
                 </div>
             `;
             // Update header
             document.getElementById('headerTitle').textContent = '💪 Tricky Questions Review';
-            document.getElementById('headerSubtitle').textContent = 'No questions to review';
+            document.getElementById('headerSubtitle').textContent = filterTextName ? `No ${filterTextName} questions to review` : 'No questions to review';
             document.getElementById('headerAuthor').textContent = '';
             return;
         }
@@ -410,7 +431,7 @@ async function startReviewMode() {
         showingFeedback = false;
 
         // Show quiz with review header
-        showReviewQuiz();
+        showReviewQuiz(reviewTextFilter);
 
     } catch (err) {
         console.error('Error loading review questions:', err);
@@ -419,15 +440,28 @@ async function startReviewMode() {
 }
 
 // Show quiz interface for review mode
-function showReviewQuiz() {
+function showReviewQuiz(textFilter) {
     loadingState.style.display = 'none';
     sectionSelector.style.display = 'none';
     quizInterface.style.display = 'block';
 
     // Set header info for review mode
     document.getElementById('headerTitle').textContent = '💪 Tricky Questions Review';
-    document.getElementById('headerSubtitle').textContent = 'Practice questions you got wrong';
-    document.getElementById('headerAuthor').textContent = `${questions.length} questions from across your set texts`;
+
+    if (textFilter) {
+        // Show filtered text name
+        const textNames = {
+            'messalina': 'Messalina',
+            'baucis-philemon': 'Baucis & Philemon',
+            'otium': 'Otium'
+        };
+        const textName = textNames[textFilter] || textFilter;
+        document.getElementById('headerSubtitle').textContent = `Practice ${textName} questions you got wrong`;
+        document.getElementById('headerAuthor').textContent = `${questions.length} questions from ${textName}`;
+    } else {
+        document.getElementById('headerSubtitle').textContent = 'Practice questions you got wrong';
+        document.getElementById('headerAuthor').textContent = `${questions.length} questions from across your set texts`;
+    }
 
     // Hide the Latin text panel as questions are from different sections
     const latinPanel = document.querySelector('.latin-panel');
@@ -462,11 +496,15 @@ async function getNextAttemptNumber(textId, sectionNum) {
 // Load section data dynamically
 async function loadSection(textId, sectionNum) {
     try {
+        // Update global tracking variables
+        currentText = textId;
+        currentSection = sectionNum;
+
         // Show loading state
         loadingState.style.display = 'block';
         sectionSelector.style.display = 'none';
         quizInterface.style.display = 'none';
-        
+
         // Get attempt number for tracking
         currentAttemptNumber = await getNextAttemptNumber(textId, sectionNum);
         answersToSave = [];
