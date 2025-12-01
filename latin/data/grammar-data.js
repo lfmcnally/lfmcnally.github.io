@@ -101,13 +101,14 @@ const grammarData = {
         },
         '3rd': {
             name: '3rd Declension',
-            modelWord: 'rēx',
-            stem: 'rēg',
+            modelWord: 'mercātor',
+            stem: 'mercātōr',
             gender: 'masculine',
+            note: 'Nominative singular = stem (no ending)',
             endings: {
                 singular: {
-                    nominative: 's',
-                    vocative: 's',
+                    nominative: '',
+                    vocative: '',
                     accusative: 'em',
                     genitive: 'is',
                     dative: 'ī',
@@ -123,16 +124,42 @@ const grammarData = {
                 }
             }
         },
-        '3rd_neut': {
-            name: '3rd Declension (Neuter)',
-            modelWord: 'nōmen',
-            stem: 'nōmin',
-            gender: 'neuter',
+        '3rd_i': {
+            name: '3rd Declension (i-stem)',
+            modelWord: 'cīvis',
+            stem: 'cīv',
+            gender: 'masculine',
             endings: {
                 singular: {
-                    nominative: '',
-                    vocative: '',
-                    accusative: '',
+                    nominative: 'is',
+                    vocative: 'is',
+                    accusative: 'em',
+                    genitive: 'is',
+                    dative: 'ī',
+                    ablative: 'e'
+                },
+                plural: {
+                    nominative: 'ēs',
+                    vocative: 'ēs',
+                    accusative: 'ēs',
+                    genitive: 'ium',
+                    dative: 'ibus',
+                    ablative: 'ibus'
+                }
+            }
+        },
+        '3rd_neut': {
+            name: '3rd Declension (Neuter)',
+            modelWord: 'tempus',
+            stem: 'tempor',
+            gender: 'neuter',
+            specialNomSg: 'tempus',
+            note: 'Nom/Acc/Voc singular = tempus (irregular)',
+            endings: {
+                singular: {
+                    nominative: 'tempus',
+                    vocative: 'tempus',
+                    accusative: 'tempus',
                     genitive: 'is',
                     dative: 'ī',
                     ablative: 'e'
