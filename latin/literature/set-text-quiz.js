@@ -917,18 +917,25 @@ async function saveProgress(percentage) {
     }
 
     try {
-        // Check if record exists
-        const { data: existing } = await supabase
+        // Ensure section_id is an integer for consistent querying
+        const sectionId = parseInt(sectionData.section, 10);
+
+        // Check if record exists (use maybeSingle to handle 0 rows gracefully)
+        const { data: existing, error: fetchError } = await supabase
             .from('set_text_progress')
             .select('*')
             .eq('student_id', currentUser.id)
             .eq('text_id', textInfo.id)
-            .eq('section_id', sectionData.section)
-            .single();
+            .eq('section_id', sectionId)
+            .maybeSingle();
+
+        if (fetchError) {
+            console.error('Error fetching existing progress:', fetchError);
+        }
 
         if (existing) {
             // Update existing record
-            await supabase
+            const { error: updateError } = await supabase
                 .from('set_text_progress')
                 .update({
                     attempts: existing.attempts + 1,
@@ -938,19 +945,31 @@ async function saveProgress(percentage) {
                     completed_at: new Date().toISOString()
                 })
                 .eq('id', existing.id);
+
+            if (updateError) {
+                console.error('Error updating progress:', updateError);
+            } else {
+                console.log('Progress updated successfully');
+            }
         } else {
             // Insert new record
-            await supabase
+            const { error: insertError } = await supabase
                 .from('set_text_progress')
                 .insert({
                     student_id: currentUser.id,
                     text_id: textInfo.id,
-                    section_id: sectionData.section,
+                    section_id: sectionId,
                     best_score: percentage,
                     attempts: 1,
                     questions_correct: score,
                     questions_total: questions.length
                 });
+
+            if (insertError) {
+                console.error('Error inserting progress:', insertError);
+            } else {
+                console.log('Progress saved successfully');
+            }
         }
         
         // If this was an assigned task, also record the attempt
