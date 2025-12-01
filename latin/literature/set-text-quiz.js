@@ -155,6 +155,60 @@ function getTextInfo(textId) {
     }
 }
 
+// GCSE texts (in order)
+const gcseTexts = [
+    {
+        id: 'messalina',
+        title: 'Messalina',
+        author: 'Tacitus',
+        source: 'Annals XI',
+        icon: '👑',
+        sections: 9,
+        description: 'The scandalous fall of Empress Messalina — featuring Tacitus\'s trademark irony and devastating understatement.'
+    },
+    {
+        id: 'baucis-philemon',
+        title: 'Baucis and Philemon',
+        author: 'Ovid',
+        source: 'Metamorphoses VIII',
+        icon: '🌳',
+        sections: 6,
+        description: 'The touching tale of an elderly couple\'s hospitality to the gods.',
+        badge: 'new'
+    },
+    {
+        id: 'otium',
+        title: 'Otium',
+        author: 'Catullus',
+        source: 'Poems 50 & 13',
+        icon: '📜',
+        sections: 3,
+        description: 'Catullus reflects on leisure, friendship, and the pleasures of poetry.'
+    }
+];
+
+// A Level texts (coming soon)
+const alevelTexts = [
+    {
+        id: 'death-of-claudius',
+        title: 'The Death of Claudius',
+        author: 'Tacitus',
+        source: 'Annals XII',
+        icon: '💀',
+        description: 'The mysterious death of Emperor Claudius and the machinations of Agrippina.',
+        comingSoon: true
+    },
+    {
+        id: 'death-of-agrippina',
+        title: 'The Death of Agrippina',
+        author: 'Tacitus',
+        source: 'Annals XIV',
+        icon: '⚔️',
+        description: 'Nero\'s assassination of his own mother — a chilling tale of imperial murder.',
+        comingSoon: true
+    }
+];
+
 // Show text selector (landing page - hub layout)
 function showTextSelector() {
     loadingState.style.display = 'none';
@@ -166,38 +220,82 @@ function showTextSelector() {
     document.getElementById('headerSubtitle').textContent = 'Practise translation, style, and comprehension questions';
     document.getElementById('headerAuthor').textContent = 'by Lawrence McNally';
 
-    // Text descriptions for each set text
-    const descriptions = {
-        'messalina': 'The scandalous fall of Empress Messalina from Tacitus\'s Annals — featuring his trademark irony and devastating understatement.',
-        'baucis-philemon': 'The touching tale of an elderly couple\'s hospitality to the gods, from Ovid\'s Metamorphoses.'
-    };
-
-    const badges = {
-        'messalina': '<span class="badge">GCSE Set Text</span>',
-        'baucis-philemon': '<span class="badge new">New</span>'
-    };
-
     const grid = document.getElementById('textGrid');
-    grid.innerHTML = availableTexts.map((t, i) => `
-        <div class="text-card${i === 0 ? ' featured' : ''}" onclick="selectText('${t.id}')">
-            ${badges[t.id] || ''}
-            <div class="text-icon">${t.icon}</div>
-            <h2 class="text-card-name">${t.title}</h2>
-            <div class="text-card-level">${t.author} • ${t.source}</div>
-            <p class="text-card-description">${descriptions[t.id] || ''}</p>
 
-            <div class="text-stats">
-                <div class="stat-item">
-                    <div class="stat-value">${t.sections}</div>
-                    <div class="stat-label">Sections</div>
+    // Build GCSE section
+    let html = `
+        <div class="level-section">
+            <div class="level-header">
+                <h3>GCSE</h3>
+                <span class="level-badge gcse">OCR Latin</span>
+            </div>
+            <div class="text-list">
+    `;
+
+    gcseTexts.forEach(t => {
+        const badgeHtml = t.badge === 'new' ? '<span class="badge new">New</span>' : '';
+        html += `
+            <div class="text-card" onclick="selectText('${t.id}')">
+                <div class="text-icon">${t.icon}</div>
+                <div class="text-card-content">
+                    <div class="text-card-header">
+                        <h2 class="text-card-name">${t.title}</h2>
+                        ${badgeHtml}
+                    </div>
+                    <div class="text-card-level">${t.author} • ${t.source}</div>
+                    <p class="text-card-description">${t.description}</p>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-value">15+</div>
-                    <div class="stat-label">Questions each</div>
+                <div class="text-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">${t.sections}</div>
+                        <div class="stat-label">Sections</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">15+</div>
+                        <div class="stat-label">Questions</div>
+                    </div>
                 </div>
             </div>
+        `;
+    });
+
+    html += `
+            </div>
         </div>
-    `).join('');
+    `;
+
+    // Build A Level section
+    html += `
+        <div class="level-section">
+            <div class="level-header">
+                <h3>A Level</h3>
+                <span class="level-badge alevel">OCR Latin</span>
+            </div>
+            <div class="text-list">
+    `;
+
+    alevelTexts.forEach(t => {
+        html += `
+            <div class="text-card coming-soon">
+                <div class="text-icon">${t.icon}</div>
+                <div class="text-card-content">
+                    <div class="text-card-header">
+                        <h2 class="text-card-name">${t.title}</h2>
+                        <span class="badge coming">Coming Soon</span>
+                    </div>
+                    <div class="text-card-level">${t.author} • ${t.source}</div>
+                    <p class="text-card-description">${t.description}</p>
+                </div>
+            </div>
+        `;
+    });
+
+    html += `
+            </div>
+        </div>
+    `;
+
+    grid.innerHTML = html;
 }
 
 // Select a text and navigate to its sections
