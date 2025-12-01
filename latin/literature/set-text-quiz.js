@@ -857,19 +857,35 @@ async function showCompletion() {
 
 // Save individual answers to database
 async function saveAnswersToDatabase() {
-    if (typeof supabase === 'undefined' || !currentUser || answersToSave.length === 0) return;
-    
+    if (typeof supabase === 'undefined' || answersToSave.length === 0) return;
+
+    // Ensure we have the current user (may not be set if auth check was slow)
+    if (!currentUser) {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                currentUser = user;
+            } else {
+                console.log('User not logged in, skipping answers save');
+                return;
+            }
+        } catch (err) {
+            console.error('Error getting user for answers save:', err);
+            return;
+        }
+    }
+
     try {
         // Add user_id to each answer
         const answersWithUser = answersToSave.map(a => ({
             ...a,
             user_id: currentUser.id
         }));
-        
+
         const { error } = await supabase
             .from('set_text_answers')
             .insert(answersWithUser);
-        
+
         if (error) {
             console.error('Error saving answers:', error);
         } else {
@@ -882,8 +898,24 @@ async function saveAnswersToDatabase() {
 
 // Save progress to Supabase
 async function saveProgress(percentage) {
-    if (typeof supabase === 'undefined' || !currentUser) return;
-    
+    if (typeof supabase === 'undefined') return;
+
+    // Ensure we have the current user (may not be set if auth check was slow)
+    if (!currentUser) {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                currentUser = user;
+            } else {
+                console.log('User not logged in, skipping progress save');
+                return;
+            }
+        } catch (err) {
+            console.error('Error getting user for progress save:', err);
+            return;
+        }
+    }
+
     try {
         // Check if record exists
         const { data: existing } = await supabase
@@ -893,7 +925,7 @@ async function saveProgress(percentage) {
             .eq('text_id', textInfo.id)
             .eq('section_id', sectionData.section)
             .single();
-        
+
         if (existing) {
             // Update existing record
             await supabase
