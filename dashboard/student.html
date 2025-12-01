@@ -1063,7 +1063,14 @@
 
                 <!-- Set Text Progress -->
                 <div class="card">
-                    <div class="card-header">📜 Set Text Progress</div>
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>📜 Set Text Progress</span>
+                        <select id="setTextSelector" onchange="loadSetTextProgress()" style="padding: 0.3rem 0.5rem; font-size: 0.85rem; border: 1px solid #e5e7eb; border-radius: 6px; background: white;">
+                            <option value="messalina">Messalina</option>
+                            <option value="baucis-philemon">Baucis & Philemon</option>
+                            <option value="otium">Otium</option>
+                        </select>
+                    </div>
                     <div class="card-body" id="setTextProgress">
                         <div class="loading">Loading...</div>
                     </div>
@@ -2607,130 +2614,116 @@
         async function loadSetTextProgress() {
             const container = document.getElementById('setTextProgress');
             if (!container) return;
-            
+
+            // Get selected text from dropdown
+            const selector = document.getElementById('setTextSelector');
+            const selectedTextId = selector ? selector.value : 'messalina';
+
+            // Known texts and their section counts
+            const allTextInfo = {
+                'messalina': { name: 'Messalina', sections: 9 },
+                'baucis-philemon': { name: 'Baucis & Philemon', sections: 6 },
+                'otium': { name: 'Otium', sections: 3 }
+            };
+            const textInfo = allTextInfo[selectedTextId];
+
             try {
-                // Get set text progress
+                // Get set text progress for selected text only
                 const { data: progress, error: progressError } = await supabase
                     .from('set_text_progress')
                     .select('*')
                     .eq('student_id', currentUser.id)
+                    .eq('text_id', selectedTextId)
                     .order('created_at', { ascending: false });
-                
-                // Get answer stats for accuracy (may not exist yet)
-                let answers = [];
-                try {
-                    const { data: answerData } = await supabase
-                        .from('set_text_answers')
-                        .select('text_id, is_correct')
-                        .eq('user_id', currentUser.id);
-                    answers = answerData || [];
-                } catch (e) {
-                    // Table may not exist yet
-                }
-                
+
                 if (progressError) {
                     console.error('Set text progress error:', progressError);
                     container.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 1rem;">Set text tracking not available</p>';
                     return;
                 }
-                
+
                 if (!progress || progress.length === 0) {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 1.5rem; color: #6b7280;">
                             <p style="font-size: 2rem; margin-bottom: 0.5rem;">📚</p>
-                            <p style="margin-bottom: 0.75rem;">No set text attempts yet</p>
-                            <a href="../latin/literature/set-text-quiz.html" style="color: #0066ff; text-decoration: none; font-weight: 500;">Start practising →</a>
+                            <p style="margin-bottom: 0.75rem;">No ${textInfo.name} attempts yet</p>
+                            <a href="../latin/literature/set-text-quiz.html?text=${selectedTextId}" style="color: #0066ff; text-decoration: none; font-weight: 500;">Start practising →</a>
                         </div>
                     `;
                     return;
                 }
-                
-                // Group by text
-                const textProgress = {};
+
+                // Build section progress map
+                const sectionProgress = {};
+                let totalScore = 0;
+                let sectionsCount = 0;
+
                 progress.forEach(p => {
-                    if (!textProgress[p.text_id]) {
-                        textProgress[p.text_id] = {
-                            sections: {},
-                            totalScore: 0,
-                            sectionsCount: 0
-                        };
-                    }
                     // Use best_score if available, otherwise calculate from questions
                     const sectionScore = p.best_score != null ? p.best_score :
                         (p.questions_total > 0 ? Math.round((p.questions_correct / p.questions_total) * 100) : 0);
 
                     // Keep best score per section
-                    const existingSection = textProgress[p.text_id].sections[p.section_id];
+                    const existingSection = sectionProgress[p.section_id];
                     if (!existingSection || sectionScore > existingSection.score) {
                         // Subtract old values if replacing
                         if (existingSection) {
-                            textProgress[p.text_id].totalScore -= existingSection.score;
-                            textProgress[p.text_id].sectionsCount--;
+                            totalScore -= existingSection.score;
+                            sectionsCount--;
                         }
-                        textProgress[p.text_id].sections[p.section_id] = {
+                        sectionProgress[p.section_id] = {
                             score: sectionScore,
                             correct: p.questions_correct,
                             total: p.questions_total,
                             date: p.created_at
                         };
                         // Add new values
-                        textProgress[p.text_id].totalScore += sectionScore;
-                        textProgress[p.text_id].sectionsCount++;
+                        totalScore += sectionScore;
+                        sectionsCount++;
                     }
                 });
-                
-                // Known texts and their section counts
-                const textInfo = {
-                    'messalina': { name: 'Messalina', sections: 9 }
-                };
-                
-                let html = '<div style="display: flex; flex-direction: column; gap: 1rem;">';
-                
-                for (const [textId, data] of Object.entries(textProgress)) {
-                    const info = textInfo[textId] || { name: textId, sections: 9 };
-                    // Calculate average score from progress data
-                    const avgScore = data.sectionsCount > 0 ? Math.round(data.totalScore / data.sectionsCount) : 0;
-                    const sectionsCompleted = Object.keys(data.sections).length;
-                    
-                    html += `
-                        <div style="background: #f9fafb; border-radius: 12px; padding: 1rem; border: 1px solid #e5e7eb;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                                <strong style="color: #1f2937;">${info.name}</strong>
-                                <span style="font-size: 0.85rem; color: #6b7280;">${sectionsCompleted}/${info.sections} sections</span>
-                            </div>
-                            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
-                    `;
-                    
-                    for (let i = 1; i <= info.sections; i++) {
-                        const section = data.sections[i];
-                        if (section) {
-                            const pct = section.score;
-                            const bgColor = pct >= 70 ? '#dcfce7' : '#fef3c7';
-                            const textColor = pct >= 70 ? '#16a34a' : '#d97706';
-                            const tooltip = section.total ? `${section.correct}/${section.total}` : `${pct}%`;
-                            html += `<span style="padding: 0.25rem 0.5rem; background: ${bgColor}; color: ${textColor}; border-radius: 4px; font-size: 0.75rem; font-weight: 500;" title="${tooltip}">§${i}: ${pct}%</span>`;
-                        } else {
-                            html += `<span style="padding: 0.25rem 0.5rem; background: #f3f4f6; color: #9ca3af; border-radius: 4px; font-size: 0.75rem;">§${i}</span>`;
-                        }
-                    }
-                    
-                    html += `
-                            </div>
-                            <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: #6b7280;">
-                                <span>🎯 ${avgScore}% average</span>
-                                <span>📊 ${sectionsCompleted} sections completed</span>
-                            </div>
+
+                // Calculate average score
+                const avgScore = sectionsCount > 0 ? Math.round(totalScore / sectionsCount) : 0;
+                const sectionsCompleted = Object.keys(sectionProgress).length;
+
+                let html = `
+                    <div style="background: #f9fafb; border-radius: 12px; padding: 1rem; border: 1px solid #e5e7eb;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <strong style="color: #1f2937;">${textInfo.name}</strong>
+                            <span style="font-size: 0.85rem; color: #6b7280;">${sectionsCompleted}/${textInfo.sections} sections</span>
                         </div>
-                    `;
+                        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+                `;
+
+                for (let i = 1; i <= textInfo.sections; i++) {
+                    const section = sectionProgress[i];
+                    if (section) {
+                        const pct = section.score;
+                        const bgColor = pct >= 70 ? '#dcfce7' : '#fef3c7';
+                        const textColor = pct >= 70 ? '#16a34a' : '#d97706';
+                        const tooltip = section.total ? `${section.correct}/${section.total}` : `${pct}%`;
+                        html += `<span style="padding: 0.25rem 0.5rem; background: ${bgColor}; color: ${textColor}; border-radius: 4px; font-size: 0.75rem; font-weight: 500;" title="${tooltip}">§${i}: ${pct}%</span>`;
+                    } else {
+                        html += `<span style="padding: 0.25rem 0.5rem; background: #f3f4f6; color: #9ca3af; border-radius: 4px; font-size: 0.75rem;">§${i}</span>`;
+                    }
                 }
-                
-                html += '</div>';
+
+                html += `
+                        </div>
+                        <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: #6b7280;">
+                            <span>🎯 ${avgScore}% average</span>
+                            <span>📊 ${sectionsCompleted} sections completed</span>
+                        </div>
+                    </div>
+                `;
+
                 html += `<div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f3f4f6;">
                     <a href="../latin/literature/set-text-review.html" style="color: #0066ff; text-decoration: none; font-weight: 500;">📝 Review wrong answers →</a>
                 </div>`;
-                
+
                 container.innerHTML = html;
-                
+
             } catch (err) {
                 console.error('Error loading set text progress:', err);
                 container.innerHTML = '<p style="color: #dc2626; padding: 1rem;">Error loading progress</p>';
