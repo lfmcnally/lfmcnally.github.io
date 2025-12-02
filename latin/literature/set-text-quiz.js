@@ -921,7 +921,7 @@ async function saveProgress(percentage) {
         const { data: existing } = await supabase
             .from('set_text_progress')
             .select('*')
-            .eq('student_id', currentUser.id)
+            .eq('user_id', currentUser.id)
             .eq('text_id', textInfo.id)
             .eq('section_id', sectionData.section)
             .single();
@@ -943,13 +943,14 @@ async function saveProgress(percentage) {
             await supabase
                 .from('set_text_progress')
                 .insert({
-                    student_id: currentUser.id,
+                    user_id: currentUser.id,
                     text_id: textInfo.id,
                     section_id: sectionData.section,
                     best_score: percentage,
                     attempts: 1,
                     questions_correct: score,
-                    questions_total: questions.length
+                    questions_total: questions.length,
+                    completed_at: new Date().toISOString()
                 });
         }
         
