@@ -1323,7 +1323,7 @@
                 a.tasks && a.tasks.class_id === currentClassId
             );
 
-            // For classics, also get quiz progress (since classics uses a different tracking table)
+            // For classics, get quiz progress
             let classicsProgress = [];
             if (type === 'classics') {
                 const { data: quizProgress } = await supabase
@@ -1333,8 +1333,18 @@
                 classicsProgress = quizProgress || [];
             }
 
+            // For Latin, also get set text progress
+            let setTextProgress = [];
+            if (type === 'latin') {
+                const { data: stProgress } = await supabase
+                    .from('set_text_progress')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
+                setTextProgress = stProgress || [];
+            }
+
             // Calculate stats
-            const stats = calculateLanguageStats(classAttempts, words, type, classicsProgress);
+            const stats = calculateLanguageStats(classAttempts, words, type, classicsProgress, setTextProgress);
 
             languageData[type] = {
                 classes: [currentClass],
@@ -1464,11 +1474,11 @@
             if (setTexts.length === 0) return '';
 
             try {
-                // Get all set text progress
+                // Get all set text progress (uses user_id, not student_id)
                 const { data: progress } = await supabase
                     .from('set_text_progress')
                     .select('text_id, section_id, best_score')
-                    .eq('student_id', currentUser.id);
+                    .eq('user_id', currentUser.id);
 
                 if (!progress) return '';
 
@@ -1757,7 +1767,7 @@
             renderLanguageSections(container, classTypes);
         }
         
-        function calculateLanguageStats(attempts, words, type, classicsProgress = []) {
+        function calculateLanguageStats(attempts, words, type, classicsProgress = [], setTextProgress = []) {
             let totalMinutes = 0;
             let streak = 0;
             let avgAccuracy = 0;
@@ -1778,15 +1788,32 @@
                 const totalSeconds = attempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
                 totalMinutes = Math.round(totalSeconds / 60);
 
-                // Streak calculation
-                streak = calculateStreak(attempts);
+                // For Latin, also include set text sessions
+                if (type === 'latin' && setTextProgress.length > 0) {
+                    sessionsCompleted = setTextProgress.reduce((sum, p) => sum + (p.attempts || 0), 0);
+                    const stScores = setTextProgress.map(p => p.best_score).filter(s => s !== null);
+                    if (stScores.length > 0) {
+                        avgAccuracy = Math.round(stScores.reduce((a, b) => a + b, 0) / stScores.length);
+                    }
+                    // Add set text dates to streak calculation
+                    const allDates = [
+                        ...attempts.filter(a => a.completed_at).map(a => a.completed_at),
+                        ...setTextProgress.filter(p => p.completed_at).map(p => p.completed_at)
+                    ];
+                    streak = calculateStreakFromDates(allDates);
+                    // Estimate time for set text sessions
+                    totalMinutes += sessionsCompleted * 5;
+                } else {
+                    // Streak calculation from task attempts only
+                    streak = calculateStreak(attempts);
 
-                // Average accuracy from attempts
-                const completedAttempts = attempts.filter(a => a.score !== null);
-                avgAccuracy = completedAttempts.length > 0
-                    ? Math.round(completedAttempts.reduce((sum, a) => sum + a.score, 0) / completedAttempts.length)
-                    : 0;
-                sessionsCompleted = completedAttempts.length;
+                    // Average accuracy from attempts
+                    const completedAttempts = attempts.filter(a => a.score !== null);
+                    avgAccuracy = completedAttempts.length > 0
+                        ? Math.round(completedAttempts.reduce((sum, a) => sum + a.score, 0) / completedAttempts.length)
+                        : 0;
+                    sessionsCompleted = completedAttempts.length;
+                }
             }
 
             const timeStr = totalMinutes >= 60
