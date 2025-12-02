@@ -948,11 +948,14 @@
         <div class="header">
             <div class="header-content">
                 <div>
-                    <h1>👋 Welcome back<span id="userName"></span>!</h1>
-                    <p>Keep up the great work with your studies</p>
+                    <h1 id="headerTitle">👋 Welcome back<span id="userName"></span>!</h1>
+                    <p id="headerSubtitle">Keep up the great work with your studies</p>
                 </div>
                 <div class="header-actions">
-                    <a href="../index.html" class="btn btn-ghost">← Home</a>
+                    <select id="classSwitcher" class="btn btn-ghost" style="cursor: pointer; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3); color: white; font-weight: 600;" onchange="switchClass(this.value)">
+                        <!-- Populated dynamically -->
+                    </select>
+                    <a href="student-hub.html" class="btn btn-ghost">← All Classes</a>
                 </div>
             </div>
         </div>
@@ -1103,11 +1106,23 @@
     <script>
         let currentUser = null;
         let attempts = [];
+        let currentClassId = null;
+        let currentClass = null;
 
         // Initialize
         async function init() {
+            // Parse class_id from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentClassId = urlParams.get('class_id');
+
+            // If no class_id, redirect to hub
+            if (!currentClassId) {
+                window.location.href = 'student-hub.html';
+                return;
+            }
+
             const { data: { user } } = await supabase.auth.getUser();
-            
+
             if (!user) {
                 window.location.href = '../auth/login.html';
                 return;
@@ -1126,16 +1141,37 @@
             }
 
             currentUser = profile;
-            document.getElementById('userName').textContent = ', ' + profile.full_name.split(' ')[0];
 
-            // Load all data
+            // Load current class info
+            const { data: classData, error: classError } = await supabase
+                .from('classes')
+                .select('*')
+                .eq('id', currentClassId)
+                .single();
+
+            if (classError || !classData) {
+                window.location.href = 'student-hub.html';
+                return;
+            }
+
+            currentClass = classData;
+
+            // Update header with class info
+            document.getElementById('userName').textContent = '';
+            document.getElementById('headerTitle').textContent = currentClass.name;
+            document.getElementById('headerSubtitle').textContent = getClassTypeLabel(currentClass.type);
+
+            // Load all data (filtered to current class)
             await loadAttempts();
-            await loadLanguageProgress(); // New: builds per-language sections
+            await loadLanguageProgress(); // Builds class-specific section
             await loadLeaderboardData();
             renderCalendar();
             renderRecentActivity();
             loadPendingTasks();
             renderQuickActions();
+
+            // Show/hide sections based on class type
+            updateSectionsForClassType();
 
             // Load announcements and resources
             try {
@@ -1163,15 +1199,236 @@
             } catch (e) {
                 console.error('Error loading set text progress:', e);
             }
+
+            // Load class switcher
+            await loadClassSwitcher();
         }
-        
+
+        // Load class switcher dropdown
+        async function loadClassSwitcher() {
+            const switcher = document.getElementById('classSwitcher');
+            if (!switcher) return;
+
+            // Get all classes this student is in
+            const { data: memberships } = await supabase
+                .from('class_members')
+                .select(`
+                    class_id,
+                    classes (
+                        id,
+                        name,
+                        type
+                    )
+                `)
+                .eq('student_id', currentUser.id);
+
+            if (!memberships || memberships.length <= 1) {
+                // Only one class or none - hide the switcher
+                switcher.style.display = 'none';
+                return;
+            }
+
+            const typeIcons = {
+                latin: '📖',
+                'prep-latin': '📚',
+                greek: '🏺',
+                classics: '🏛️'
+            };
+
+            switcher.innerHTML = memberships.map(m => {
+                const icon = typeIcons[m.classes.type] || '📚';
+                const selected = m.class_id === currentClassId ? 'selected' : '';
+                return `<option value="${m.class_id}" ${selected}>${icon} ${m.classes.name}</option>`;
+            }).join('');
+        }
+
+        // Switch to a different class
+        function switchClass(classId) {
+            if (classId && classId !== currentClassId) {
+                window.location.href = `student.html?class_id=${classId}`;
+            }
+        }
+
+        // Helper: get class type label
+        function getClassTypeLabel(type) {
+            const labels = {
+                latin: 'Latin GCSE',
+                'prep-latin': 'Prep Latin',
+                greek: 'Greek GCSE',
+                classics: 'Classical Civilisation'
+            };
+            return labels[type] || type;
+        }
+
+        // Helper: get class type icon
+        function getClassTypeIcon(type) {
+            const icons = {
+                latin: '📖',
+                'prep-latin': '📚',
+                greek: '🏺',
+                classics: '🏛️'
+            };
+            return icons[type] || '📚';
+        }
+
+        // Update sections based on class type
+        function updateSectionsForClassType() {
+            const type = currentClass.type;
+
+            // Show/hide set text progress (only for Latin GCSE)
+            const setTextCard = document.querySelector('.card:has(#setTextProgress)')?.closest('.card');
+            if (setTextCard) {
+                setTextCard.style.display = type === 'latin' ? 'block' : 'none';
+            }
+
+            // Show/hide word mastery section if only classics
+            const wordMasterySection = document.querySelector('.word-mastery-section');
+            if (wordMasterySection) {
+                wordMasterySection.style.display = type === 'classics' ? 'none' : 'block';
+            }
+
+            // Update leaderboard options based on class type
+            const wordsOption = document.querySelector('#leaderboardType option[value="words"]');
+            if (wordsOption) {
+                wordsOption.style.display = type === 'classics' ? 'none' : 'block';
+            }
+        }
+
         // Language progress data
         let languageData = {}; // { latin: { classes, attempts, words, stats }, greek: {...}, classics: {...} }
-        
-        // Load and render language progress sections
+
+        // Load and render language progress sections (now class-specific)
         async function loadLanguageProgress() {
             const container = document.getElementById('languageProgressSections');
-            
+            const type = currentClass.type;
+
+            // Get word mastery data for this language type
+            let words = [];
+            if (type !== 'classics') {
+                const { data: wordData } = await supabase
+                    .from('word_mastery')
+                    .select('*')
+                    .eq('student_id', currentUser.id)
+                    .eq('language', type);
+                words = wordData || [];
+            }
+
+            // Get task attempts for tasks in this class
+            const { data: taskAttempts } = await supabase
+                .from('task_attempts')
+                .select('*, tasks(class_id)')
+                .eq('student_id', currentUser.id);
+
+            const classAttempts = (taskAttempts || []).filter(a =>
+                a.tasks && a.tasks.class_id === currentClassId
+            );
+
+            // Calculate stats
+            const stats = calculateLanguageStats(classAttempts, words, type);
+
+            languageData[type] = {
+                classes: [currentClass],
+                attempts: classAttempts,
+                words: words,
+                stats
+            };
+
+            // Render single class section
+            renderClassProgressSection(container, type, stats);
+        }
+
+        // Render progress section for current class
+        function renderClassProgressSection(container, type, stats) {
+            const typeConfig = {
+                latin: {
+                    icon: '📖',
+                    name: 'Latin GCSE',
+                    hasVocab: true,
+                    practiseUrl: '../latin/vocabulary-hub.html',
+                    reviewUrl: '../latin/vocabulary-practice.html?mode=review&language=latin'
+                },
+                'prep-latin': {
+                    icon: '📚',
+                    name: 'Prep Latin',
+                    hasVocab: true,
+                    practiseUrl: '../latin/prep-vocabulary-practice.html',
+                    reviewUrl: '../latin/prep-vocabulary-practice.html?mode=review&language=prep-latin'
+                },
+                greek: {
+                    icon: '🏺',
+                    name: 'Greek',
+                    hasVocab: true,
+                    practiseUrl: '../greek/vocabulary-practice.html',
+                    reviewUrl: '../greek/vocabulary-practice.html?mode=review&language=greek'
+                },
+                classics: {
+                    icon: '🏛️',
+                    name: 'Classical Civilisation',
+                    hasVocab: false,
+                    practiseUrl: '../classics/quiz.html'
+                }
+            };
+
+            const config = typeConfig[type] || typeConfig.latin;
+
+            let html = `
+                <div class="language-section">
+                    <div class="language-header">
+                        <div class="language-title">
+                            <span class="language-title-icon">${config.icon}</span>
+                            Your Progress
+                        </div>
+                        <a href="${config.practiseUrl}" class="language-practise-btn">Practise Now</a>
+                    </div>
+
+                    <div class="language-stats">
+                        ${config.hasVocab ? `
+                            <div class="language-stat">
+                                <div class="language-stat-value">${stats.mastered}</div>
+                                <div class="language-stat-label">🌟 Words Mastered</div>
+                            </div>
+                        ` : `
+                            <div class="language-stat">
+                                <div class="language-stat-value">${stats.sessionsCompleted}</div>
+                                <div class="language-stat-label">✅ Sessions</div>
+                            </div>
+                        `}
+                        <div class="language-stat">
+                            <div class="language-stat-value">${stats.timeStr}</div>
+                            <div class="language-stat-label">⏱️ Time Practised</div>
+                        </div>
+                        <div class="language-stat">
+                            <div class="language-stat-value">${stats.streak}</div>
+                            <div class="language-stat-label">🔥 Day Streak</div>
+                        </div>
+                        ${config.hasVocab ? `
+                            <div class="language-stat">
+                                <div class="language-stat-value">${stats.struggling}</div>
+                                <div class="language-stat-label">💪 Need Practice</div>
+                            </div>
+                        ` : `
+                            <div class="language-stat">
+                                <div class="language-stat-value">${stats.avgAccuracy}%</div>
+                                <div class="language-stat-label">🎯 Avg Score</div>
+                            </div>
+                        `}
+                    </div>
+
+                    ${config.hasVocab && stats.struggling > 0 ? `
+                        <a href="${config.reviewUrl}" class="language-review-btn">
+                            💪 Review Weak Words (${stats.struggling})
+                        </a>
+                    ` : ''}
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Old loadLanguageProgress code kept for reference but replaced above
+        async function loadLanguageProgressOld() {
+            const container = document.getElementById('languageProgressSections');
+
             // Get all classes the student is in
             const { data: memberships, error } = await supabase
                 .from('class_members')
@@ -1184,23 +1441,18 @@
                     )
                 `)
                 .eq('student_id', currentUser.id);
-            
+
             if (error || !memberships || memberships.length === 0) {
                 container.innerHTML = `
                     <div class="no-classes-message">
                         <div class="no-classes-icon">📚</div>
                         <h3>No classes yet</h3>
                         <p>Join a class using a code from your teacher to start tracking your progress.</p>
-                        <div style="margin-top: 1rem;">
-                            <input type="text" id="joinCodeInput" class="join-input" placeholder="e.g. LATIN-7X" style="padding: 0.75rem; border: 1px solid #e5e7eb; border-radius: 8px; margin-right: 0.5rem;">
-                            <button onclick="joinClass()" class="language-practise-btn">Join Class</button>
-                        </div>
-                        <div id="joinMessage" class="join-message" style="margin-top: 0.5rem;"></div>
                     </div>
                 `;
                 return;
             }
-            
+
             // Group classes by type
             const classTypes = {};
             memberships.forEach(m => {
@@ -1485,27 +1737,51 @@
         // Quick Actions
         function renderQuickActions() {
             const container = document.getElementById('quickActions');
-            if (!container) return;
+            if (!container || !currentClass) return;
 
-            const hasLatin = languageData['latin'] || languageData['prep-latin'];
-            const hasGreek = languageData['greek'];
+            const type = currentClass.type;
+            const data = languageData[type];
+            const struggling = data?.stats?.struggling || 0;
 
+            const typeConfig = {
+                latin: {
+                    icon: '📖',
+                    practiseUrl: '../latin/vocabulary-hub.html',
+                    reviewUrl: '../latin/vocabulary-practice.html?mode=review&language=latin',
+                    practiseLabel: 'Practise Vocabulary'
+                },
+                'prep-latin': {
+                    icon: '📚',
+                    practiseUrl: '../latin/prep-vocabulary-practice.html',
+                    reviewUrl: '../latin/prep-vocabulary-practice.html?mode=review&language=prep-latin',
+                    practiseLabel: 'Practise Vocabulary'
+                },
+                greek: {
+                    icon: '🏺',
+                    practiseUrl: '../greek/vocabulary-practice.html',
+                    reviewUrl: '../greek/vocabulary-practice.html?mode=review&language=greek',
+                    practiseLabel: 'Practise Vocabulary'
+                },
+                classics: {
+                    icon: '🏛️',
+                    practiseUrl: '../classics/quiz.html',
+                    practiseLabel: 'Practise Content'
+                }
+            };
+
+            const config = typeConfig[type] || typeConfig.latin;
             let html = '';
 
-            if (hasLatin) {
-                html += `<a href="../latin/vocabulary-hub.html" class="quick-action-btn primary">📖 Practise Latin</a>`;
-            }
-            if (hasGreek) {
-                html += `<a href="../greek/vocabulary-practice.html" class="quick-action-btn primary">🏺 Practise Greek</a>`;
+            html += `<a href="${config.practiseUrl}" class="quick-action-btn primary">${config.icon} ${config.practiseLabel}</a>`;
+
+            // Add weak words review if there are struggling words (vocab classes only)
+            if (type !== 'classics' && struggling > 0 && config.reviewUrl) {
+                html += `<a href="${config.reviewUrl}" class="quick-action-btn" style="border-color: #fca5a5; color: #dc2626;">💪 Review Weak Words (${struggling})</a>`;
             }
 
-            // Add weak words review if there are struggling words
-            let totalStruggling = 0;
-            for (const data of Object.values(languageData)) {
-                totalStruggling += data.stats?.struggling || 0;
-            }
-            if (totalStruggling > 0) {
-                html += `<a href="../latin/vocabulary-practice.html?mode=review" class="quick-action-btn" style="border-color: #fca5a5; color: #dc2626;">💪 Review Weak Words (${totalStruggling})</a>`;
+            // Add set texts link for Latin GCSE
+            if (type === 'latin') {
+                html += `<a href="../latin/literature/set-text-quiz.html" class="quick-action-btn">📜 Set Texts</a>`;
             }
 
             container.innerHTML = html;
@@ -1516,7 +1792,7 @@
             const section = document.getElementById('announcementsSection');
             const container = document.getElementById('announcementsContainer');
 
-            if (!myClassIds || myClassIds.length === 0) {
+            if (!currentClassId) {
                 section.style.display = 'none';
                 return;
             }
@@ -1526,7 +1802,7 @@
                 const { data: announcements, error } = await supabase
                     .from('class_announcements')
                     .select('*, classes(name)')
-                    .in('class_id', myClassIds)
+                    .eq('class_id', currentClassId)
                     .gte('expires_at', new Date().toISOString())
                     .order('created_at', { ascending: false })
                     .limit(5);
@@ -1573,7 +1849,7 @@
             const section = document.getElementById('resourcesSection');
             const container = document.getElementById('resourcesContainer');
 
-            if (!myClassIds || myClassIds.length === 0) {
+            if (!currentClassId) {
                 section.style.display = 'none';
                 return;
             }
@@ -1583,7 +1859,7 @@
                 const { data: resources, error } = await supabase
                     .from('class_resources')
                     .select('*, classes(name)')
-                    .in('class_id', myClassIds)
+                    .eq('class_id', currentClassId)
                     .order('created_at', { ascending: false })
                     .limit(8);
 
@@ -1644,20 +1920,15 @@
 
         // Load leaderboard data for all classmates
         async function loadLeaderboardData() {
-            // First get my classes
-            const { data: memberships, error: memberError } = await supabase
-                .from('class_members')
-                .select('class_id')
-                .eq('student_id', currentUser.id);
-
-            if (memberError || !memberships || memberships.length === 0) {
+            if (!currentClassId) {
                 document.getElementById('leaderboardCard').style.display = 'none';
                 return;
             }
 
-            myClassIds = memberships.map(m => m.class_id);
+            myClassIds = [currentClassId];
+            const classType = currentClass.type;
 
-            // Get all students in my classes
+            // Get all students in this class
             const { data: classmates, error: classmatesError } = await supabase
                 .from('class_members')
                 .select(`
@@ -1667,7 +1938,7 @@
                         full_name
                     )
                 `)
-                .in('class_id', myClassIds);
+                .eq('class_id', currentClassId);
 
             if (classmatesError || !classmates) {
                 return;
@@ -1683,23 +1954,33 @@
 
             const studentIds = Object.keys(uniqueStudents);
 
-            // Get all attempts for these students
+            // Get all attempts for these students (for tasks in this class)
             const { data: allAttempts } = await supabase
                 .from('task_attempts')
-                .select('*')
+                .select('*, tasks(class_id)')
                 .in('student_id', studentIds);
 
-            // Get word mastery for these students
-            const { data: allWords } = await supabase
-                .from('word_mastery')
-                .select('*')
-                .in('student_id', studentIds);
+            // Filter to attempts for this class's tasks
+            const classAttempts = (allAttempts || []).filter(a =>
+                a.tasks && a.tasks.class_id === currentClassId
+            );
+
+            // Get word mastery for these students (filtered by class language type)
+            let allWords = [];
+            if (classType !== 'classics') {
+                const { data: wordsData } = await supabase
+                    .from('word_mastery')
+                    .select('*')
+                    .in('student_id', studentIds)
+                    .eq('language', classType);
+                allWords = wordsData || [];
+            }
 
             // Calculate stats for each student
             leaderboardData = studentIds.map(studentId => {
                 const student = uniqueStudents[studentId];
-                const studentAttempts = (allAttempts || []).filter(a => a.student_id === studentId);
-                const studentWords = (allWords || []).filter(w => w.student_id === studentId);
+                const studentAttempts = classAttempts.filter(a => a.student_id === studentId);
+                const studentWords = allWords.filter(w => w.student_id === studentId);
 
                 const totalTime = studentAttempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
                 const completedAttempts = studentAttempts.filter(a => a.score !== null);
@@ -2056,9 +2337,10 @@
 
         // Load all attempts for this user
         async function loadAttempts() {
+            // Get all attempts with task info
             const { data, error } = await supabase
                 .from('task_attempts')
-                .select('*, tasks(title, due_date)')
+                .select('*, tasks(title, due_date, class_id)')
                 .eq('student_id', currentUser.id)
                 .order('started_at', { ascending: false });
 
@@ -2067,7 +2349,10 @@
                 return;
             }
 
-            attempts = data || [];
+            // Filter to attempts for tasks in current class
+            attempts = (data || []).filter(a =>
+                a.tasks && a.tasks.class_id === currentClassId
+            );
         }
 
         // Calculate stats from attempts
@@ -2518,34 +2803,26 @@
             }
         }
 
-        // Load pending tasks (shows all tasks until due date passes)
+        // Load pending tasks (filtered to current class)
         async function loadPendingTasks() {
             const container = document.getElementById('pendingTasks');
 
-            // Get classes this student is in
-            const { data: memberships } = await supabase
-                .from('class_members')
-                .select('class_id')
-                .eq('student_id', currentUser.id);
-
-            if (!memberships || memberships.length === 0) {
+            if (!currentClassId) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">🎒</div>
-                        <p>Join a class to see tasks</p>
+                        <p>No class selected</p>
                     </div>
                 `;
                 return;
             }
 
-            const classIds = memberships.map(m => m.class_id);
-
-            // Get tasks for these classes that haven't passed their due date
+            // Get tasks for current class that haven't passed their due date
             const now = new Date();
             const { data: tasks } = await supabase
                 .from('tasks')
                 .select('*')
-                .in('class_id', classIds)
+                .eq('class_id', currentClassId)
                 .gte('due_date', now.toISOString())
                 .order('due_date', { ascending: true });
 
