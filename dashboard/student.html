@@ -1334,11 +1334,11 @@
             };
 
             // Render single class section
-            renderClassProgressSection(container, type, stats);
+            await renderClassProgressSection(container, type, stats);
         }
 
         // Render progress section for current class
-        function renderClassProgressSection(container, type, stats) {
+        async function renderClassProgressSection(container, type, stats) {
             const typeConfig = {
                 latin: {
                     icon: '📖',
@@ -1370,6 +1370,17 @@
             };
 
             const config = typeConfig[type] || typeConfig.latin;
+
+            // Build additional progress sections based on type
+            let additionalContent = '';
+
+            if (type === 'latin') {
+                // Load set text progress for Latin GCSE
+                additionalContent = await buildSetTextOverview();
+            } else if (type === 'classics') {
+                // Load topic overview for Classical Civ
+                additionalContent = await buildClassicsTopicOverview();
+            }
 
             let html = `
                 <div class="language-section">
@@ -1419,10 +1430,177 @@
                             💪 Review Weak Words (${stats.struggling})
                         </a>
                     ` : ''}
+
+                    ${additionalContent}
                 </div>
             `;
 
             container.innerHTML = html;
+        }
+
+        // Build set text overview for Latin GCSE
+        async function buildSetTextOverview() {
+            const setTexts = [
+                { id: 'messalina', name: 'Messalina', sections: 9 },
+                { id: 'baucis-philemon', name: 'Baucis & Philemon', sections: 6 },
+                { id: 'otium', name: 'Otium', sections: 3 }
+            ];
+
+            try {
+                // Get all set text progress
+                const { data: progress } = await supabase
+                    .from('set_text_progress')
+                    .select('text_id, section_id, best_score')
+                    .eq('student_id', currentUser.id);
+
+                if (!progress) return '';
+
+                // Build progress map by text
+                const progressByText = {};
+                progress.forEach(p => {
+                    if (!progressByText[p.text_id]) progressByText[p.text_id] = {};
+                    progressByText[p.text_id][p.section_id] = p.best_score;
+                });
+
+                let html = `
+                    <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;">
+                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.75rem; font-size: 0.95rem;">📜 Set Text Progress</div>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                `;
+
+                for (const text of setTexts) {
+                    const textProgress = progressByText[text.id] || {};
+                    const completedSections = Object.keys(textProgress).length;
+                    const avgScore = completedSections > 0
+                        ? Math.round(Object.values(textProgress).reduce((a, b) => a + b, 0) / completedSections)
+                        : 0;
+
+                    // Build section indicators
+                    let sectionHtml = '';
+                    for (let i = 1; i <= text.sections; i++) {
+                        const score = textProgress[i];
+                        if (score !== undefined) {
+                            const bg = score >= 70 ? '#dcfce7' : score >= 50 ? '#fef3c7' : '#fee2e2';
+                            const color = score >= 70 ? '#16a34a' : score >= 50 ? '#d97706' : '#dc2626';
+                            sectionHtml += `<span style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: ${bg}; color: ${color}; border-radius: 6px; font-size: 0.7rem; font-weight: 600;" title="Section ${i}: ${score}%">${i}</span>`;
+                        } else {
+                            sectionHtml += `<span style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: #f3f4f6; color: #9ca3af; border-radius: 6px; font-size: 0.7rem;" title="Section ${i}: Not started">${i}</span>`;
+                        }
+                    }
+
+                    html += `
+                        <div style="background: #f9fafb; border-radius: 10px; padding: 0.75rem; border: 1px solid #e5e7eb;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-weight: 500; color: #374151; font-size: 0.85rem;">${text.name}</span>
+                                <span style="font-size: 0.75rem; color: #6b7280;">${completedSections}/${text.sections} sections ${avgScore > 0 ? `• ${avgScore}% avg` : ''}</span>
+                            </div>
+                            <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">${sectionHtml}</div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                        </div>
+                        <a href="../latin/literature/set-text-quiz.html" style="display: block; margin-top: 0.75rem; color: #0066ff; font-size: 0.85rem; font-weight: 500; text-decoration: none;">Practice Set Texts →</a>
+                    </div>
+                `;
+
+                return html;
+            } catch (err) {
+                console.error('Error building set text overview:', err);
+                return '';
+            }
+        }
+
+        // Build topic overview for Classical Civ
+        async function buildClassicsTopicOverview() {
+            // Define the topics structure
+            const topics = [
+                { id: 'politics', name: 'Politics of the Late Republic', subtopics: [
+                    { id: '1', name: 'Topic 1: The First Triumvirate' },
+                    { id: '2', name: 'Topic 2: The Civil War' },
+                    { id: '3', name: 'Topic 3: The Second Triumvirate' }
+                ]},
+                { id: 'myth', name: 'Myth & Religion', subtopics: [
+                    { id: '1', name: 'Topic 1: Hercules - The Twelve Labours' },
+                    { id: '2', name: 'Topic 2: Hercules - Distant Labours' },
+                    { id: '3', name: 'Topic 3: The Iliad' }
+                ]}
+            ];
+
+            try {
+                // Get classics quiz progress
+                const { data: progress } = await supabase
+                    .from('classics_quiz_progress')
+                    .select('course, topic, subtopic, score_percentage, attempts')
+                    .eq('student_id', currentUser.id);
+
+                // Build progress map
+                const progressMap = {};
+                (progress || []).forEach(p => {
+                    const key = `${p.course}-${p.topic}-${p.subtopic}`;
+                    if (!progressMap[key] || p.score_percentage > progressMap[key].score) {
+                        progressMap[key] = { score: p.score_percentage, attempts: p.attempts };
+                    }
+                });
+
+                let html = `
+                    <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;">
+                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.75rem; font-size: 0.95rem;">🏛️ Topic Progress</div>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                `;
+
+                for (const topic of topics) {
+                    let topicCompleted = 0;
+                    let topicTotal = topic.subtopics.length;
+                    let subtopicHtml = '';
+
+                    for (const sub of topic.subtopics) {
+                        const key = `${topic.id}-${sub.id}-1`; // Assuming subtopic 1 for now
+                        const p = progressMap[key];
+
+                        if (p && p.score >= 50) {
+                            topicCompleted++;
+                            const bg = p.score >= 80 ? '#dcfce7' : p.score >= 60 ? '#fef3c7' : '#fee2e2';
+                            const color = p.score >= 80 ? '#16a34a' : p.score >= 60 ? '#d97706' : '#dc2626';
+                            subtopicHtml += `
+                                <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: ${bg}; border-radius: 8px;">
+                                    <span style="color: ${color}; font-weight: 600; font-size: 0.8rem;">${p.score}%</span>
+                                    <span style="font-size: 0.8rem; color: #374151;">${sub.name}</span>
+                                </div>
+                            `;
+                        } else {
+                            subtopicHtml += `
+                                <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background: #f3f4f6; border-radius: 8px;">
+                                    <span style="color: #9ca3af; font-size: 0.8rem;">—</span>
+                                    <span style="font-size: 0.8rem; color: #9ca3af;">${sub.name}</span>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    html += `
+                        <div style="background: #f9fafb; border-radius: 10px; padding: 0.75rem; border: 1px solid #e5e7eb;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-weight: 600; color: #1f2937; font-size: 0.9rem;">${topic.name}</span>
+                                <span style="font-size: 0.75rem; color: #6b7280; background: ${topicCompleted === topicTotal ? '#dcfce7' : '#f3f4f6'}; padding: 0.25rem 0.5rem; border-radius: 4px;">${topicCompleted}/${topicTotal}</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.35rem;">${subtopicHtml}</div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                        </div>
+                        <a href="../classics/quiz.html" style="display: block; margin-top: 0.75rem; color: #0066ff; font-size: 0.85rem; font-weight: 500; text-decoration: none;">Practice Topics →</a>
+                    </div>
+                `;
+
+                return html;
+            } catch (err) {
+                console.error('Error building classics topic overview:', err);
+                return '';
+            }
         }
 
         // Old loadLanguageProgress code kept for reference but replaced above
