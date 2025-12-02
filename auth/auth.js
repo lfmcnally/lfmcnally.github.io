@@ -112,7 +112,7 @@ async function redirectIfLoggedIn() {
             window.location.href = '/dashboard/teacher.html';
             return true;
         } else if (profile && profile.role === 'student') {
-            window.location.href = '/dashboard/student.html';
+            window.location.href = '/dashboard/student-hub.html';
             return true;
         }
         // If no profile or unknown role, stay on the page

@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Classes - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f0f4ff 0%, #f8f9fa 50%, #fff5f5 100%);
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+            border-radius: 20px;
+            padding: 2rem;
+            color: white;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 102, 255, 0.3);
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -80%;
+            right: -5%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        .header p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .btn {
+            padding: 0.6rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+        }
+        .btn-ghost {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .btn-ghost:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Section Title */
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Class Cards Grid */
+        .classes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Class Card */
+        .class-card {
+            background: white;
+            border-radius: 16px;
+            border: 2px solid #e5e7eb;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+        }
+        .class-card:hover {
+            border-color: #0066ff;
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 102, 255, 0.15);
+        }
+        .class-card-header {
+            padding: 1.25rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .class-card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .class-card-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+        .class-card-type {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+        .class-card-body {
+            padding: 1.25rem;
+        }
+        .class-card-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+        .class-stat {
+            text-align: center;
+            padding: 0.75rem;
+            background: #f9fafb;
+            border-radius: 10px;
+        }
+        .class-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0066ff;
+        }
+        .class-stat-label {
+            font-size: 0.7rem;
+            color: #6b7280;
+            margin-top: 0.2rem;
+        }
+        .class-card-footer {
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+            color: white;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .class-card:hover .class-card-footer {
+            background: linear-gradient(135deg, #0052cc 0%, #003d99 100%);
+        }
+
+        /* Pending Tasks Badge */
+        .tasks-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+        .tasks-badge.none {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        /* No Classes State */
+        .no-classes {
+            background: white;
+            border-radius: 16px;
+            padding: 3rem;
+            text-align: center;
+            border: 2px dashed #e5e7eb;
+        }
+        .no-classes-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .no-classes h3 {
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+            font-size: 1.25rem;
+        }
+        .no-classes p {
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Join Class Card */
+        .join-class-card {
+            background: white;
+            border-radius: 16px;
+            border: 2px solid #e5e7eb;
+            padding: 1.5rem;
+        }
+        .join-class-card h3 {
+            font-size: 1rem;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .join-form {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .join-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            transition: border-color 0.2s;
+        }
+        .join-input:focus {
+            outline: none;
+            border-color: #0066ff;
+        }
+        .join-btn {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #0066ff 0%, #0052cc 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .join-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
+        }
+        .join-message {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+        .join-message.success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        .join-message.error {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e5e7eb;
+            border-top-color: #0066ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body { padding: 1rem; }
+            .header { padding: 1.5rem; }
+            .header h1 { font-size: 1.5rem; }
+            .header-content { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .join-form { flex-direction: column; }
+            .classes-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading your classes...</p>
+        </div>
+
+        <!-- Main Content (hidden until loaded) -->
+        <div id="content" style="display: none;">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-content">
+                    <div>
+                        <h1 id="greeting">Welcome back!</h1>
+                        <p>Select a class to view your progress and practice</p>
+                    </div>
+                    <div class="header-actions">
+                        <a href="../index.html" class="btn btn-ghost">Home</a>
+                        <button onclick="signOut()" class="btn btn-ghost">Sign Out</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Classes Section -->
+            <h2 class="section-title">My Classes</h2>
+            <div id="classesGrid" class="classes-grid">
+                <!-- Class cards inserted here -->
+            </div>
+
+            <!-- Join Class Section -->
+            <div class="join-class-card">
+                <h3>Join a New Class</h3>
+                <div class="join-form">
+                    <input type="text" id="joinCodeInput" class="join-input" placeholder="Enter class code (e.g. LATIN-7X)">
+                    <button onclick="joinClass()" class="join-btn">Join Class</button>
+                </div>
+                <div id="joinMessage" class="join-message" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../auth/config.js"></script>
+    <script>
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let currentUser = null;
+        let userClasses = [];
+
+        // Type configuration
+        const typeConfig = {
+            latin: {
+                icon: '📖',
+                name: 'Latin GCSE',
+                trackingType: 'vocab + set texts'
+            },
+            'prep-latin': {
+                icon: '📚',
+                name: 'Prep Latin',
+                trackingType: 'vocabulary'
+            },
+            greek: {
+                icon: '🏺',
+                name: 'Greek GCSE',
+                trackingType: 'vocabulary'
+            },
+            classics: {
+                icon: '🏛️',
+                name: 'Classical Civilisation',
+                trackingType: 'content mastery'
+            }
+        };
+
+        // Initialize
+        async function init() {
+            try {
+                // Check auth
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+                if (!user) {
+                    window.location.href = '../auth/login.html';
+                    return;
+                }
+
+                currentUser = user;
+
+                // Get user profile for name
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('full_name')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile && profile.full_name) {
+                    const firstName = profile.full_name.split(' ')[0];
+                    document.getElementById('greeting').textContent = `Welcome back, ${firstName}!`;
+                }
+
+                // Load classes
+                await loadClasses();
+
+                // Show content
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            } catch (err) {
+                console.error('Init error:', err);
+                document.getElementById('loading').innerHTML = '<p>Error loading page. Please try again.</p>';
+            }
+        }
+
+        // Load user's classes with stats
+        async function loadClasses() {
+            // Get class memberships
+            const { data: memberships, error } = await supabase
+                .from('class_members')
+                .select(`
+                    class_id,
+                    classes (
+                        id,
+                        name,
+                        type
+                    )
+                `)
+                .eq('student_id', currentUser.id);
+
+            if (error || !memberships || memberships.length === 0) {
+                renderNoClasses();
+                return;
+            }
+
+            userClasses = memberships.map(m => m.classes);
+
+            // Get stats for each class
+            const classStats = await Promise.all(userClasses.map(c => getClassStats(c)));
+
+            // Render class cards
+            renderClasses(classStats);
+        }
+
+        // Get stats for a single class
+        async function getClassStats(classInfo) {
+            const stats = {
+                ...classInfo,
+                mastered: 0,
+                struggling: 0,
+                pendingTasks: 0,
+                sessionsCompleted: 0
+            };
+
+            const classType = classInfo.type || 'latin';
+
+            // Get vocab stats for vocab-based classes
+            if (classType !== 'classics') {
+                const langKey = classType;
+                const { data: words } = await supabase
+                    .from('word_mastery')
+                    .select('correct_count, incorrect_count')
+                    .eq('student_id', currentUser.id)
+                    .eq('language', langKey);
+
+                if (words) {
+                    words.forEach(w => {
+                        const total = w.correct_count + w.incorrect_count;
+                        const accuracy = total > 0 ? (w.correct_count / total) * 100 : 0;
+                        if (w.correct_count >= 3 && accuracy >= 70) {
+                            stats.mastered++;
+                        } else if (accuracy < 50 && w.incorrect_count >= 2) {
+                            stats.struggling++;
+                        }
+                    });
+                }
+            } else {
+                // Get classics quiz stats
+                const { data: progress } = await supabase
+                    .from('classics_quiz_progress')
+                    .select('score_percentage')
+                    .eq('student_id', currentUser.id);
+
+                if (progress) {
+                    stats.sessionsCompleted = progress.length;
+                    // Count "mastered" as subtopics with 80%+ score
+                    stats.mastered = progress.filter(p => p.score_percentage >= 80).length;
+                    stats.struggling = progress.filter(p => p.score_percentage < 50).length;
+                }
+            }
+
+            // Get pending tasks for this class
+            const { data: tasks } = await supabase
+                .from('tasks')
+                .select(`
+                    id,
+                    due_date,
+                    task_attempts (
+                        completed_at
+                    )
+                `)
+                .eq('class_id', classInfo.id)
+                .gte('due_date', new Date().toISOString().split('T')[0]);
+
+            if (tasks) {
+                const now = new Date();
+                tasks.forEach(task => {
+                    const hasCompleted = task.task_attempts?.some(a => a.completed_at);
+                    if (!hasCompleted && new Date(task.due_date) >= now) {
+                        stats.pendingTasks++;
+                    }
+                });
+            }
+
+            return stats;
+        }
+
+        // Render class cards
+        function renderClasses(classStats) {
+            const grid = document.getElementById('classesGrid');
+
+            grid.innerHTML = classStats.map(c => {
+                const config = typeConfig[c.type] || typeConfig.latin;
+                const isVocab = c.type !== 'classics';
+
+                return `
+                    <a href="student.html?class_id=${c.id}" class="class-card">
+                        <div class="class-card-header">
+                            <div class="class-card-icon">${config.icon}</div>
+                            <div class="class-card-name">
+                                ${c.name}
+                                ${c.pendingTasks > 0 ? `<span class="tasks-badge">${c.pendingTasks} due</span>` : '<span class="tasks-badge none">All done</span>'}
+                            </div>
+                            <div class="class-card-type">${config.name}</div>
+                        </div>
+                        <div class="class-card-body">
+                            <div class="class-card-stats">
+                                <div class="class-stat">
+                                    <div class="class-stat-value">${c.mastered}</div>
+                                    <div class="class-stat-label">${isVocab ? 'Words Mastered' : 'Topics Mastered'}</div>
+                                </div>
+                                <div class="class-stat">
+                                    <div class="class-stat-value">${c.struggling}</div>
+                                    <div class="class-stat-label">${isVocab ? 'Need Practice' : 'Need Review'}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="class-card-footer">
+                            View Progress & Practice
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        // Render no classes state
+        function renderNoClasses() {
+            const grid = document.getElementById('classesGrid');
+            grid.innerHTML = `
+                <div class="no-classes" style="grid-column: 1 / -1;">
+                    <div class="no-classes-icon">📚</div>
+                    <h3>No classes yet</h3>
+                    <p>Ask your teacher for a class code to get started!</p>
+                </div>
+            `;
+        }
+
+        // Join a class
+        async function joinClass() {
+            const input = document.getElementById('joinCodeInput');
+            const messageEl = document.getElementById('joinMessage');
+            const code = input.value.trim().toUpperCase();
+
+            if (!code) {
+                showMessage('Please enter a class code', 'error');
+                return;
+            }
+
+            // Find class
+            const { data: classData, error: classError } = await supabase
+                .from('classes')
+                .select('id, name')
+                .eq('join_code', code)
+                .single();
+
+            if (classError || !classData) {
+                showMessage('Class not found. Check the code and try again.', 'error');
+                return;
+            }
+
+            // Check if already a member
+            const { data: existing } = await supabase
+                .from('class_members')
+                .select('id')
+                .eq('class_id', classData.id)
+                .eq('student_id', currentUser.id)
+                .single();
+
+            if (existing) {
+                showMessage("You're already in this class!", 'error');
+                return;
+            }
+
+            // Join
+            const { error: joinError } = await supabase
+                .from('class_members')
+                .insert({
+                    class_id: classData.id,
+                    student_id: currentUser.id
+                });
+
+            if (joinError) {
+                showMessage('Error joining class. Please try again.', 'error');
+                return;
+            }
+
+            showMessage(`Successfully joined "${classData.name}"!`, 'success');
+            input.value = '';
+
+            // Reload classes
+            await loadClasses();
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            const el = document.getElementById('joinMessage');
+            el.textContent = text;
+            el.className = 'join-message ' + type;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 5000);
+        }
+
+        // Sign out
+        async function signOut() {
+            await supabase.auth.signOut();
+            window.location.href = '../auth/login.html';
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
