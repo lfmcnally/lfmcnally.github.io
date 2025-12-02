@@ -70,7 +70,10 @@ function getTextInfo(textId) {
     switch(textId) {
         case 'messalina':
             return typeof messalinaInfo !== 'undefined' ? messalinaInfo : null;
-        // Add other texts here as needed
+        case 'otium':
+            return typeof otiumInfo !== 'undefined' ? otiumInfo : null;
+        case 'baucis-philemon':
+            return typeof baucisPhilemonInfo !== 'undefined' ? baucisPhilemonInfo : null;
         default:
             return null;
     }
