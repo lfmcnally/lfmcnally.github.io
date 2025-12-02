@@ -1088,6 +1088,49 @@
             </div>
         </div>
 
+        <!-- Content Settings (for Latin: set texts, for Classics: courses) -->
+        <div class="card" id="contentSettingsCard" style="margin-bottom: 1.5rem; display: none;">
+            <div class="card-header">
+                <span class="card-title">📋 Content Settings</span>
+                <span style="font-size: 0.8rem; color: #6b7280;">Select which content students should track</span>
+            </div>
+            <div class="card-body" id="contentSettingsBody">
+                <!-- Latin Set Texts -->
+                <div id="setTextSettings" style="display: none;">
+                    <div style="font-weight: 600; color: #374151; margin-bottom: 0.75rem;">📜 Set Texts</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: #f9fafb; border-radius: 8px; cursor: pointer; border: 2px solid #e5e7eb;">
+                            <input type="checkbox" id="settext_messalina" onchange="saveContentSettings()" style="width: 18px; height: 18px;">
+                            <span>Messalina</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: #f9fafb; border-radius: 8px; cursor: pointer; border: 2px solid #e5e7eb;">
+                            <input type="checkbox" id="settext_baucis-philemon" onchange="saveContentSettings()" style="width: 18px; height: 18px;">
+                            <span>Baucis & Philemon</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: #f9fafb; border-radius: 8px; cursor: pointer; border: 2px solid #e5e7eb;">
+                            <input type="checkbox" id="settext_otium" onchange="saveContentSettings()" style="width: 18px; height: 18px;">
+                            <span>Otium</span>
+                        </label>
+                    </div>
+                </div>
+                <!-- Classics Courses -->
+                <div id="classicsCourseSettings" style="display: none;">
+                    <div style="font-weight: 600; color: #374151; margin-bottom: 0.75rem;">🏛️ Courses</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: #f9fafb; border-radius: 8px; cursor: pointer; border: 2px solid #e5e7eb;">
+                            <input type="checkbox" id="course_politics" onchange="saveContentSettings()" style="width: 18px; height: 18px;">
+                            <span>Politics of the Late Republic</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: #f9fafb; border-radius: 8px; cursor: pointer; border: 2px solid #e5e7eb;">
+                            <input type="checkbox" id="course_myth" onchange="saveContentSettings()" style="width: 18px; height: 18px;">
+                            <span>Myth & Religion</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="settingsSaveStatus" style="margin-top: 0.75rem; font-size: 0.85rem; color: #6b7280;"></div>
+            </div>
+        </div>
+
         <!-- Class Stats Overview -->
         <div class="class-stats-grid">
             <div class="class-stat">
@@ -1816,8 +1859,91 @@
                     document.getElementById('setTextTaskOption').style.display = ''; // Show for Latin GCSE
                 }
             }
+
+            // Show and load content settings
+            await loadContentSettings();
         }
-        
+
+        // Load content settings for this class
+        async function loadContentSettings() {
+            const settingsCard = document.getElementById('contentSettingsCard');
+            const setTextSettings = document.getElementById('setTextSettings');
+            const classicsCourseSettings = document.getElementById('classicsCourseSettings');
+
+            // Show appropriate settings based on class type
+            if (currentClass.type === 'latin') {
+                settingsCard.style.display = 'block';
+                setTextSettings.style.display = 'block';
+                classicsCourseSettings.style.display = 'none';
+            } else if (currentClass.type === 'classics') {
+                settingsCard.style.display = 'block';
+                setTextSettings.style.display = 'none';
+                classicsCourseSettings.style.display = 'block';
+            } else {
+                // Prep Latin and Greek don't have content settings yet
+                settingsCard.style.display = 'none';
+                return;
+            }
+
+            // Load saved settings
+            const settings = currentClass.content_settings || {};
+
+            // Apply set text settings
+            if (currentClass.type === 'latin') {
+                const enabledTexts = settings.set_texts || ['messalina', 'baucis-philemon', 'otium']; // Default all enabled
+                document.getElementById('settext_messalina').checked = enabledTexts.includes('messalina');
+                document.getElementById('settext_baucis-philemon').checked = enabledTexts.includes('baucis-philemon');
+                document.getElementById('settext_otium').checked = enabledTexts.includes('otium');
+            }
+
+            // Apply classics course settings
+            if (currentClass.type === 'classics') {
+                const enabledCourses = settings.courses || ['politics', 'myth']; // Default all enabled
+                document.getElementById('course_politics').checked = enabledCourses.includes('politics');
+                document.getElementById('course_myth').checked = enabledCourses.includes('myth');
+            }
+        }
+
+        // Save content settings
+        async function saveContentSettings() {
+            const statusEl = document.getElementById('settingsSaveStatus');
+            statusEl.textContent = 'Saving...';
+            statusEl.style.color = '#6b7280';
+
+            let settings = currentClass.content_settings || {};
+
+            if (currentClass.type === 'latin') {
+                const enabledTexts = [];
+                if (document.getElementById('settext_messalina').checked) enabledTexts.push('messalina');
+                if (document.getElementById('settext_baucis-philemon').checked) enabledTexts.push('baucis-philemon');
+                if (document.getElementById('settext_otium').checked) enabledTexts.push('otium');
+                settings.set_texts = enabledTexts;
+            }
+
+            if (currentClass.type === 'classics') {
+                const enabledCourses = [];
+                if (document.getElementById('course_politics').checked) enabledCourses.push('politics');
+                if (document.getElementById('course_myth').checked) enabledCourses.push('myth');
+                settings.courses = enabledCourses;
+            }
+
+            const { error } = await supabase
+                .from('classes')
+                .update({ content_settings: settings })
+                .eq('id', currentClass.id);
+
+            if (error) {
+                statusEl.textContent = 'Error saving settings';
+                statusEl.style.color = '#dc2626';
+                console.error('Error saving content settings:', error);
+            } else {
+                currentClass.content_settings = settings;
+                statusEl.textContent = 'Settings saved ✓';
+                statusEl.style.color = '#16a34a';
+                setTimeout(() => { statusEl.textContent = ''; }, 2000);
+            }
+        }
+
         async function loadStudents() {
             const container = document.getElementById('studentsContainer');
             
