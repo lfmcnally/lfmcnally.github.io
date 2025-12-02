@@ -1323,8 +1323,18 @@
                 a.tasks && a.tasks.class_id === currentClassId
             );
 
+            // For classics, also get quiz progress (since classics uses a different tracking table)
+            let classicsProgress = [];
+            if (type === 'classics') {
+                const { data: quizProgress } = await supabase
+                    .from('classics_quiz_progress')
+                    .select('*')
+                    .eq('student_id', currentUser.id);
+                classicsProgress = quizProgress || [];
+            }
+
             // Calculate stats
-            const stats = calculateLanguageStats(classAttempts, words, type);
+            const stats = calculateLanguageStats(classAttempts, words, type, classicsProgress);
 
             languageData[type] = {
                 classes: [currentClass],
@@ -1747,24 +1757,49 @@
             renderLanguageSections(container, classTypes);
         }
         
-        function calculateLanguageStats(attempts, words, type) {
-            // Time spent (sum of all attempts)
-            const totalSeconds = attempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
-            const totalMinutes = Math.round(totalSeconds / 60);
-            const timeStr = totalMinutes >= 60 
-                ? `${Math.floor(totalMinutes/60)}h ${totalMinutes%60}m` 
+        function calculateLanguageStats(attempts, words, type, classicsProgress = []) {
+            let totalMinutes = 0;
+            let streak = 0;
+            let avgAccuracy = 0;
+            let sessionsCompleted = 0;
+
+            // For classics, use classicsProgress data
+            if (type === 'classics' && classicsProgress.length > 0) {
+                sessionsCompleted = classicsProgress.length;
+                avgAccuracy = Math.round(
+                    classicsProgress.reduce((sum, p) => sum + (p.score_percentage || 0), 0) / classicsProgress.length
+                );
+                // Calculate streak from classics progress
+                streak = calculateStreakFromDates(classicsProgress.map(p => p.completed_at).filter(d => d));
+                // Estimate time (no direct time tracking in classics_quiz_progress)
+                totalMinutes = sessionsCompleted * 5; // Rough estimate: 5 min per session
+            } else {
+                // Time spent (sum of all attempts)
+                const totalSeconds = attempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
+                totalMinutes = Math.round(totalSeconds / 60);
+
+                // Streak calculation
+                streak = calculateStreak(attempts);
+
+                // Average accuracy from attempts
+                const completedAttempts = attempts.filter(a => a.score !== null);
+                avgAccuracy = completedAttempts.length > 0
+                    ? Math.round(completedAttempts.reduce((sum, a) => sum + a.score, 0) / completedAttempts.length)
+                    : 0;
+                sessionsCompleted = completedAttempts.length;
+            }
+
+            const timeStr = totalMinutes >= 60
+                ? `${Math.floor(totalMinutes/60)}h ${totalMinutes%60}m`
                 : `${totalMinutes}m`;
-            
-            // Streak calculation
-            const streak = calculateStreak(attempts);
-            
+
             // Word mastery (for latin/greek only)
             let mastered = 0, learning = 0, struggling = 0;
             if (type !== 'classics') {
                 words.forEach(word => {
                     const total = word.correct_count + word.incorrect_count;
                     const accuracy = total > 0 ? (word.correct_count / total) * 100 : 0;
-                    
+
                     if (word.correct_count >= 3 && accuracy >= 70) {
                         mastered++;
                     } else if (accuracy < 50 && word.incorrect_count >= 2) {
@@ -1774,13 +1809,7 @@
                     }
                 });
             }
-            
-            // Average accuracy from attempts
-            const completedAttempts = attempts.filter(a => a.score !== null);
-            const avgAccuracy = completedAttempts.length > 0
-                ? Math.round(completedAttempts.reduce((sum, a) => sum + a.score, 0) / completedAttempts.length)
-                : 0;
-            
+
             return {
                 timeStr,
                 totalMinutes,
@@ -1790,8 +1819,39 @@
                 struggling,
                 totalWords: words.length,
                 avgAccuracy,
-                sessionsCompleted: completedAttempts.length
+                sessionsCompleted
             };
+        }
+
+        // Calculate streak from date strings
+        function calculateStreakFromDates(dates) {
+            if (!dates || dates.length === 0) return 0;
+
+            const uniqueDates = [...new Set(dates.map(d =>
+                new Date(d).toISOString().split('T')[0]
+            ))].sort().reverse();
+
+            if (uniqueDates.length === 0) return 0;
+
+            const today = new Date().toISOString().split('T')[0];
+            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+            if (uniqueDates[0] !== today && uniqueDates[0] !== yesterday) return 0;
+
+            let streak = 1;
+            for (let i = 1; i < uniqueDates.length; i++) {
+                const prevDate = new Date(uniqueDates[i - 1]);
+                const currDate = new Date(uniqueDates[i]);
+                const diff = (prevDate - currDate) / 86400000;
+
+                if (diff === 1) {
+                    streak++;
+                } else {
+                    break;
+                }
+            }
+
+            return streak;
         }
         
         function calculateStreak(attempts) {
