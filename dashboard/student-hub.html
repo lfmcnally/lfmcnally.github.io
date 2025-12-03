@@ -1139,10 +1139,10 @@
             const classId = document.getElementById('leaderboardClassSelect').value;
             selectedLeaderboardClass = classId;
 
-            // Get all students in this class with their profile info and XP
+            // Get all students in this class with their profile info
             const { data: members, error } = await supabase
                 .from('class_members')
-                .select('student_id, users(id, full_name, selected_emoji, selected_tag, total_xp_earned)')
+                .select('student_id, users(id, full_name, selected_emoji, selected_tag)')
                 .eq('class_id', classId);
 
             if (error) {
@@ -1156,20 +1156,31 @@
                 return;
             }
 
-            // Build leaderboard data using XP from users table
+            const studentIds = members.map(m => m.student_id);
+
+            // Get ALL practice time for these students (includes vocab tests, practice, etc.)
+            const { data: attempts } = await supabase
+                .from('task_attempts')
+                .select('student_id, time_spent_seconds')
+                .in('student_id', studentIds);
+
+            // Calculate total time for each student
             leaderboardData = members.map(m => {
+                const studentAttempts = (attempts || []).filter(a => a.student_id === m.student_id);
+                const totalTime = studentAttempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
+
                 return {
                     id: m.student_id,
                     name: m.users?.full_name || 'Student',
                     emoji: m.users?.selected_emoji || null,
                     tag: m.users?.selected_tag || null,
                     isMe: m.student_id === currentUser.id,
-                    totalXp: m.users?.total_xp_earned || 0
+                    totalTime
                 };
             });
 
-            // Sort by XP descending
-            leaderboardData.sort((a, b) => b.totalXp - a.totalXp);
+            // Sort by time descending
+            leaderboardData.sort((a, b) => b.totalTime - a.totalTime);
 
             renderLeaderboard();
         }
@@ -1191,7 +1202,7 @@
                 const tagHtml = s.tag
                     ? `<div class="profile-tag">${getTagEmoji(s.tag)} ${getTagText(s.tag)}</div>`
                     : '<div class="profile-tag-empty"></div>';
-                const xpStr = formatXp(s.totalXp);
+                const timeStr = formatTime(s.totalTime);
                 const displayName = s.isMe ? 'You' : s.name.split(' ')[0];
 
                 return `
@@ -1205,7 +1216,7 @@
                             </div>
                             <div class="profile-name">${displayName}</div>
                             ${tagHtml}
-                            <div class="profile-xp">${xpStr} XP</div>
+                            <div class="profile-xp">${timeStr}</div>
                         </div>
                         <div class="podium-base">#${i + 1}</div>
                     </div>
@@ -1224,7 +1235,7 @@
             listContainer.innerHTML = rest.map((s, i) => {
                 const rank = i + 4;
                 const tagHtml = s.tag ? `<div class="lb-tag">${getTagEmoji(s.tag)} ${getTagText(s.tag)}</div>` : '';
-                const xpStr = formatXp(s.totalXp);
+                const timeStr = formatTime(s.totalTime);
                 const displayName = s.isMe ? 'You' : s.name;
 
                 return `
@@ -1237,17 +1248,20 @@
                             <div class="lb-name">${displayName}</div>
                             ${tagHtml}
                         </div>
-                        <span class="lb-value">${xpStr} XP</span>
+                        <span class="lb-value">${timeStr}</span>
                     </div>
                 `;
             }).join('');
         }
 
-        function formatXp(xp) {
-            if (xp >= 1000) {
-                return (xp / 1000).toFixed(1) + 'k';
+        function formatTime(seconds) {
+            if (!seconds || seconds === 0) return '0m';
+            const hours = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            if (hours > 0) {
+                return `${hours}h ${mins}m`;
             }
-            return xp.toString();
+            return `${mins}m`;
         }
 
         function renderEmptyLeaderboard() {
