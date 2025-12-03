@@ -1071,7 +1071,11 @@
         </div>
     </div>
 
-    <!-- Include Greek vocabulary data and quiz logic -->
+    <!-- Include Supabase and tracking -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../auth/config.js"></script>
+    <script src="../shared/task-tracker.js"></script>
+    <script src="../shared/xp-system.js"></script>
     <script src="../shared/greek-vocabulary-data.js"></script>
     <script>
         // Test state
@@ -1080,6 +1084,7 @@
         let selectedChapter = null;
         let fromIndex = null;
         let toIndex = null;
+        let testStartTime = null;
 
         // Setup event listeners
         document.getElementById('chapterSelect').addEventListener('change', handleChapterSelect);
@@ -1310,20 +1315,20 @@
             }, 250);
         }
 
-        function startTest() {
+        async function startTest() {
             const chapterWords = greekVocabularyData.filter(word => word.chapter == selectedChapter);
             testWords = chapterWords.slice(fromIndex, toIndex + 1);
-            
+
             // Update test header
             const fromWord = chapterWords[fromIndex].greek;
             const toWord = chapterWords[toIndex].greek;
             document.getElementById('testTitle').textContent = `Chapter ${selectedChapter}: ${fromWord} to ${toWord}`;
             document.getElementById('testInfo').textContent = `${testWords.length} words`;
-            
+
             // Build test table
             const tbody = document.getElementById('testTableBody');
             tbody.innerHTML = '';
-            
+
             testWords.forEach((word, index) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -1332,54 +1337,62 @@
                         <div class="word-info">${word.info}</div>
                     </td>
                     <td class="answer-cell">
-                        <input type="text" class="answer-input" id="answer-${index}" 
+                        <input type="text" class="answer-input" id="answer-${index}"
                                placeholder="Enter English meaning..." autocomplete="off">
                     </td>
                 `;
                 tbody.appendChild(row);
             });
-            
+
             // Show test area, hide setup
             document.getElementById('setupPanel').style.display = 'none';
             document.getElementById('testArea').classList.add('active');
-            
+
+            // Start tracking
+            testStartTime = new Date();
+            if (typeof taskTracker !== 'undefined') {
+                taskTracker.setLanguage('greek');
+                await taskTracker.start();
+            }
+
             // Focus first input
             document.getElementById('answer-0').focus();
         }
 
-        function markTest() {
+        async function markTest() {
             isMarked = true;
             let correctCount = 0;
-            
+            const wordResults = [];
+
             testWords.forEach((word, index) => {
                 const input = document.getElementById(`answer-${index}`);
                 const userAnswer = input.value.trim().toLowerCase();
                 const row = input.closest('tr');
                 const answerCell = input.closest('td');
-                
+
                 // Disable input
                 input.disabled = true;
-                
+
                 // Check answer
                 const correctAnswers = word.english.toLowerCase().split(',').map(a => a.trim());
                 let isCorrect = false;
-                
+
                 // Check for exact match or partial match
                 for (const correctAnswer of correctAnswers) {
                     if (userAnswer === correctAnswer) {
                         isCorrect = true;
                         break;
                     }
-                    
+
                     // Also accept variations like "I love" for "love" or "to love" for "love"
                     const cleanUserAnswer = userAnswer.replace(/^(to |i |a |the )/i, '').trim();
                     const cleanCorrectAnswer = correctAnswer.replace(/^(to |i |a |the )/i, '').trim();
-                    
+
                     if (cleanUserAnswer === cleanCorrectAnswer) {
                         isCorrect = true;
                         break;
                     }
-                    
+
                     // Check if user answer contains the main word
                     const correctWords = correctAnswer.split(' ');
                     for (const correctWord of correctWords) {
@@ -1389,7 +1402,13 @@
                         }
                     }
                 }
-                
+
+                // Store result for tracking (adapt Greek word to expected format)
+                wordResults.push({
+                    word: { latin: word.greek, english: word.english, chapter: word.chapter },
+                    isCorrect
+                });
+
                 if (isCorrect) {
                     row.classList.add('correct');
                     const icon = document.createElement('span');
@@ -1409,11 +1428,11 @@
                     answerCell.appendChild(correctDiv);
                 }
             });
-            
+
             // Show results
             const percentage = Math.round((correctCount / testWords.length) * 100);
             document.getElementById('scoreDisplay').textContent = `${correctCount}/${testWords.length}`;
-            
+
             let message = '';
             if (percentage >= 90) {
                 message = 'Outstanding! 🌟';
@@ -1426,10 +1445,20 @@
             } else {
                 message = 'Keep studying! You can do it! 📖';
             }
-            
+
             document.getElementById('scoreMessage').textContent = `${message} (${percentage}%)`;
             document.getElementById('resultsBox').classList.add('show');
-            
+
+            // Track word answers and complete session
+            if (typeof taskTracker !== 'undefined' && taskTracker.isTracking) {
+                // Record each word answer
+                for (const result of wordResults) {
+                    await taskTracker.recordWordAnswer(result.word, result.isCorrect);
+                }
+                // Complete the session
+                await taskTracker.complete(percentage, testWords.length, correctCount);
+            }
+
             // Update buttons
             document.getElementById('markBtn').style.display = 'none';
             document.getElementById('resetBtn').style.display = 'inline-block';
