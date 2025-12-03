@@ -3,6 +3,7 @@
 // ============================================
 // Tracks practice sessions (both assigned tasks and free practice)
 // and individual word mastery for each student.
+// Also awards XP for practice time and achievements.
 
 const taskTracker = {
     isTracking: false,
@@ -230,22 +231,22 @@ const taskTracker = {
             console.log('Not tracking or no attempt ID');
             return;
         }
-        
+
         // Record final activity
         this.recordActivity();
-        
+
         // Clear auto-save interval
         if (this.saveInterval) {
             clearInterval(this.saveInterval);
             this.saveInterval = null;
         }
-        
+
         // Remove page leave handlers
         window.removeEventListener('beforeunload', this.handlePageLeave.bind(this));
         window.removeEventListener('pagehide', this.handlePageLeave.bind(this));
-        
+
         const endTime = new Date();
-        
+
         const { error } = await supabase
             .from('task_attempts')
             .update({
@@ -256,20 +257,87 @@ const taskTracker = {
                 time_spent_seconds: Math.round(this.activeTimeSeconds)
             })
             .eq('id', this.attemptId);
-        
+
         if (error) {
             console.error('Error completing attempt:', error);
             return;
         }
-        
+
         console.log('Practice completed', {
             attemptId: this.attemptId,
             score: score,
             activeTime: Math.round(this.activeTimeSeconds),
             wordsAnswered: this.wordsAnswered.length
         });
-        
+
+        // Award XP for this session
+        await this.awardSessionXp(score, Math.round(this.activeTimeSeconds));
+
         this.isTracking = false;
+    },
+
+    // Award XP for completing a practice session
+    async awardSessionXp(score, timeSeconds) {
+        // Check if xpSystem is available
+        if (typeof xpSystem === 'undefined') {
+            console.log('XP system not loaded - skipping XP award');
+            return;
+        }
+
+        try {
+            // Initialize XP system if needed
+            if (!xpSystem.userId) {
+                await xpSystem.init();
+            }
+
+            if (!xpSystem.userId) {
+                console.log('XP system not initialized - skipping XP award');
+                return;
+            }
+
+            // Check if this is first session today
+            const isFirstToday = await this.isFirstSessionToday();
+
+            // Calculate XP to award
+            const xpEarned = xpSystem.calculateSessionXp(timeSeconds, score, isFirstToday);
+
+            if (xpEarned > 0) {
+                const result = await xpSystem.awardXp(xpEarned, 'practice_session', this.attemptId);
+
+                console.log('XP awarded:', {
+                    amount: xpEarned,
+                    levelUp: result?.levelUp,
+                    breakdown: {
+                        time: xpSystem.calculateTimeXp(timeSeconds),
+                        perfectBonus: score === 100 ? xpSystem.XP_RATES.PERFECT_SCORE : 0,
+                        firstTodayBonus: isFirstToday ? xpSystem.XP_RATES.FIRST_SESSION_DAY : 0
+                    }
+                });
+
+                // Show XP notification if there's a UI handler
+                if (typeof showXpNotification === 'function') {
+                    showXpNotification(xpEarned, result?.levelUp);
+                }
+            }
+        } catch (err) {
+            console.error('Error awarding XP:', err);
+        }
+    },
+
+    // Check if this is the user's first completed session today
+    async isFirstSessionToday() {
+        const today = new Date().toISOString().split('T')[0];
+
+        const { data, error } = await supabase
+            .from('task_attempts')
+            .select('id')
+            .eq('student_id', this.userId)
+            .gte('completed_at', today + 'T00:00:00')
+            .lt('completed_at', today + 'T23:59:59')
+            .limit(2);
+
+        // If this is the only completed session today (count <= 1), it's the first
+        return !error && (!data || data.length <= 1);
     },
     
     // Get word mastery stats for current user

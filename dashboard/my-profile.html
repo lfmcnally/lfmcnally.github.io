@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f0f4ff 0%, #f8f9fa 50%, #fff5f5 100%);
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            border-radius: 20px;
+            padding: 2rem;
+            color: white;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(139, 92, 246, 0.3);
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -80%;
+            right: -5%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            border: 3px solid rgba(255,255,255,0.3);
+        }
+        .profile-info h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        .profile-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            background: rgba(255,255,255,0.2);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .btn {
+            padding: 0.6rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+        }
+        .btn-ghost {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .btn-ghost:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        /* XP Bar */
+        .xp-section {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 2px solid #e5e7eb;
+        }
+        .xp-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .xp-level {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .level-badge {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        .level-title {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        .xp-balance {
+            text-align: right;
+        }
+        .xp-amount {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #8b5cf6;
+        }
+        .xp-label {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        .xp-bar-container {
+            background: #e5e7eb;
+            border-radius: 10px;
+            height: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+        .xp-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        .xp-bar-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        /* Section */
+        .section {
+            background: white;
+            border-radius: 16px;
+            border: 2px solid #e5e7eb;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .section-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .section-body {
+            padding: 1.25rem;
+        }
+
+        /* Emoji Grid */
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 0.75rem;
+        }
+        .emoji-item {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .emoji-item:hover:not(.locked) {
+            border-color: #8b5cf6;
+            transform: scale(1.1);
+        }
+        .emoji-item.selected {
+            border-color: #8b5cf6;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.1));
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+        .emoji-item.locked {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(100%);
+        }
+        .emoji-item .lock-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            font-size: 0.7rem;
+            background: #6b7280;
+            color: white;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+        }
+
+        /* Level Divider */
+        .level-divider {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+            color: #6b7280;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .level-divider::before,
+        .level-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #e5e7eb;
+        }
+        .level-divider.unlocked {
+            color: #8b5cf6;
+        }
+
+        /* Tag Grid */
+        .tag-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .tag-item {
+            padding: 1rem;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tag-item:hover:not(.locked) {
+            border-color: #8b5cf6;
+            transform: translateY(-2px);
+        }
+        .tag-item.selected {
+            border-color: #8b5cf6;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.1));
+        }
+        .tag-item.locked {
+            opacity: 0.7;
+        }
+        .tag-item.owned {
+            border-color: #10b981;
+        }
+        .tag-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .tag-emoji {
+            font-size: 1.5rem;
+        }
+        .tag-cost {
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+        }
+        .tag-cost.affordable {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        .tag-cost.expensive {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        .tag-cost.owned {
+            background: #dbeafe;
+            color: #2563eb;
+        }
+        .tag-text {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .tag-category {
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-top: 0.25rem;
+        }
+
+        /* Category Filter */
+        .category-filter {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+        .filter-btn {
+            padding: 0.4rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover {
+            border-color: #8b5cf6;
+        }
+        .filter-btn.active {
+            background: #8b5cf6;
+            color: white;
+            border-color: #8b5cf6;
+        }
+
+        /* Clear Selection Button */
+        .clear-btn {
+            background: #f3f4f6;
+            color: #6b7280;
+            border: 1px solid #e5e7eb;
+            padding: 0.4rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .clear-btn:hover {
+            background: #e5e7eb;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1f2937;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 500;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        .toast.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        .toast.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+        .toast.levelup {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            font-size: 1.1rem;
+        }
+
+        /* Purchase Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+        .modal-overlay.open {
+            display: flex;
+        }
+        .modal {
+            background: white;
+            border-radius: 20px;
+            max-width: 400px;
+            width: 100%;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal-emoji {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .modal h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: #1f2937;
+        }
+        .modal p {
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+        }
+        .modal-cost {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #8b5cf6;
+            margin-bottom: 1.5rem;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+        .modal-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .modal-btn-cancel {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        .modal-btn-cancel:hover {
+            background: #e5e7eb;
+        }
+        .modal-btn-confirm {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+        .modal-btn-confirm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+        .modal-btn-confirm:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e5e7eb;
+            border-top-color: #8b5cf6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body { padding: 1rem; }
+            .header { padding: 1.5rem; }
+            .header-content { flex-direction: column; gap: 1.5rem; }
+            .header-left { flex-direction: column; text-align: center; }
+            .emoji-grid { grid-template-columns: repeat(6, 1fr); gap: 0.5rem; }
+            .emoji-item { font-size: 1.5rem; }
+            .tag-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading your profile...</p>
+        </div>
+
+        <!-- Main Content -->
+        <div id="content" style="display: none;">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-content">
+                    <div class="header-left">
+                        <div class="profile-avatar" id="profileAvatar">🙂</div>
+                        <div class="profile-info">
+                            <h1 id="userName">Student Name</h1>
+                            <div class="profile-tag" id="profileTag" style="display: none;">
+                                <span id="tagEmoji"></span>
+                                <span id="tagText"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="header-actions">
+                        <a href="student-hub.html" class="btn btn-ghost">Back to Hub</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- XP Section -->
+            <div class="xp-section">
+                <div class="xp-header">
+                    <div class="xp-level">
+                        <div class="level-badge">Level <span id="levelNum">1</span></div>
+                        <div class="level-title" id="levelTitle">Novice</div>
+                    </div>
+                    <div class="xp-balance">
+                        <div class="xp-amount"><span id="xpBalance">0</span> XP</div>
+                        <div class="xp-label">Available to spend</div>
+                    </div>
+                </div>
+                <div class="xp-bar-container">
+                    <div class="xp-bar-fill" id="xpBar" style="width: 0%"></div>
+                    <div class="xp-bar-text" id="xpBarText">0 / 100 XP to next level</div>
+                </div>
+            </div>
+
+            <!-- Emoji Selection -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Choose Your Emoji</h2>
+                    <button class="clear-btn" onclick="clearEmoji()">Clear Selection</button>
+                </div>
+                <div class="section-body">
+                    <div class="emoji-grid" id="emojiGrid">
+                        <!-- Emojis inserted by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tag Shop -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Tag Shop</h2>
+                    <button class="clear-btn" onclick="clearTag()">Remove Tag</button>
+                </div>
+                <div class="section-body">
+                    <div class="category-filter" id="categoryFilter">
+                        <button class="filter-btn active" data-category="all">All</button>
+                        <button class="filter-btn" data-category="starter">Starter</button>
+                        <button class="filter-btn" data-category="latin">Latin</button>
+                        <button class="filter-btn" data-category="greek">Greek</button>
+                        <button class="filter-btn" data-category="achievement">Achievement</button>
+                        <button class="filter-btn" data-category="fun">Fun</button>
+                        <button class="filter-btn" data-category="premium">Premium</button>
+                    </div>
+                    <div class="tag-grid" id="tagGrid">
+                        <!-- Tags inserted by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Modal -->
+    <div class="modal-overlay" id="purchaseModal">
+        <div class="modal">
+            <div class="modal-emoji" id="modalEmoji"></div>
+            <h3 id="modalTitle">Purchase Tag?</h3>
+            <p id="modalDesc">This tag will be yours forever!</p>
+            <div class="modal-cost">
+                <span id="modalCost">100</span> XP
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="modal-btn modal-btn-confirm" id="modalConfirm" onclick="confirmPurchase()">Buy Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="../auth/config.js"></script>
+    <script src="../shared/xp-system.js"></script>
+    <script>
+        let currentUser = null;
+        let currentCategory = 'all';
+        let pendingPurchase = null;
+
+        async function init() {
+            try {
+                // Check auth
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                if (!user) {
+                    window.location.href = '../auth/login.html';
+                    return;
+                }
+                currentUser = user;
+
+                // Get user name
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('full_name')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile) {
+                    document.getElementById('userName').textContent = profile.full_name || 'Student';
+                }
+
+                // Initialize XP system
+                await xpSystem.init();
+
+                // Render everything
+                renderXpSection();
+                renderEmojis();
+                renderTags();
+                updateHeaderDisplay();
+
+                // Set up category filter
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        currentCategory = btn.dataset.category;
+                        renderTags();
+                    });
+                });
+
+                // Show content
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('content').style.display = 'block';
+            } catch (err) {
+                console.error('Init error:', err);
+                document.getElementById('loading').innerHTML = '<p>Error loading profile</p>';
+            }
+        }
+
+        function renderXpSection() {
+            const data = xpSystem.getDisplayData();
+
+            document.getElementById('levelNum').textContent = data.level;
+            document.getElementById('levelTitle').textContent = data.levelTitle;
+            document.getElementById('xpBalance').textContent = data.xp.toLocaleString();
+            document.getElementById('xpBar').style.width = data.progress + '%';
+
+            const nextLevel = xpSystem.getNextLevel();
+            if (nextLevel) {
+                document.getElementById('xpBarText').textContent =
+                    `${data.totalXp.toLocaleString()} / ${nextLevel.xp.toLocaleString()} XP to Level ${nextLevel.level}`;
+            } else {
+                document.getElementById('xpBarText').textContent = 'MAX LEVEL!';
+                document.getElementById('xpBar').style.width = '100%';
+            }
+        }
+
+        function renderEmojis() {
+            const grid = document.getElementById('emojiGrid');
+            const allEmojis = xpSystem.getAllEmojisWithStatus();
+            const currentLevel = xpSystem.getLevel().level;
+
+            let html = '';
+            let lastLevel = 0;
+
+            for (const item of allEmojis) {
+                // Add level divider
+                if (item.level !== lastLevel) {
+                    const unlocked = item.level <= currentLevel;
+                    html += `
+                        <div class="level-divider ${unlocked ? 'unlocked' : ''}">
+                            ${unlocked ? '✓' : '🔒'} Level ${item.level}
+                        </div>
+                    `;
+                    lastLevel = item.level;
+                }
+
+                const classes = ['emoji-item'];
+                if (item.selected) classes.push('selected');
+                if (!item.unlocked) classes.push('locked');
+
+                html += `
+                    <div class="${classes.join(' ')}" onclick="${item.unlocked ? `selectEmoji('${item.emoji}')` : ''}">
+                        ${item.emoji}
+                        ${!item.unlocked ? `<span class="lock-badge">Lv${item.level}</span>` : ''}
+                    </div>
+                `;
+            }
+
+            grid.innerHTML = html;
+        }
+
+        function renderTags() {
+            const grid = document.getElementById('tagGrid');
+            const allTags = xpSystem.getAllTagsWithStatus();
+
+            const filteredTags = currentCategory === 'all'
+                ? allTags
+                : allTags.filter(t => t.category === currentCategory);
+
+            grid.innerHTML = filteredTags.map(tag => {
+                const classes = ['tag-item'];
+                if (tag.selected) classes.push('selected');
+                if (tag.purchased) classes.push('owned');
+                if (!tag.purchased && !tag.canAfford) classes.push('locked');
+
+                let costClass = 'expensive';
+                let costText = tag.cost + ' XP';
+                if (tag.purchased) {
+                    costClass = 'owned';
+                    costText = 'Owned';
+                } else if (tag.canAfford) {
+                    costClass = 'affordable';
+                }
+
+                const onclick = tag.purchased
+                    ? `selectTag('${tag.id}')`
+                    : `openPurchaseModal('${tag.id}')`;
+
+                return `
+                    <div class="${classes.join(' ')}" onclick="${onclick}">
+                        <div class="tag-header">
+                            <span class="tag-emoji">${tag.emoji}</span>
+                            <span class="tag-cost ${costClass}">${costText}</span>
+                        </div>
+                        <div class="tag-text">${tag.text}</div>
+                        <div class="tag-category">${tag.category}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateHeaderDisplay() {
+            const data = xpSystem.getDisplayData();
+
+            // Update avatar
+            document.getElementById('profileAvatar').textContent = data.emoji || '🙂';
+
+            // Update tag
+            const tagEl = document.getElementById('profileTag');
+            if (data.tag) {
+                document.getElementById('tagEmoji').textContent = data.tag.emoji;
+                document.getElementById('tagText').textContent = data.tag.text;
+                tagEl.style.display = 'inline-flex';
+            } else {
+                tagEl.style.display = 'none';
+            }
+        }
+
+        async function selectEmoji(emoji) {
+            try {
+                await xpSystem.selectEmoji(emoji);
+                renderEmojis();
+                updateHeaderDisplay();
+                showToast('Emoji updated!', 'success');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function clearEmoji() {
+            try {
+                await xpSystem.clearEmoji();
+                renderEmojis();
+                updateHeaderDisplay();
+                showToast('Emoji cleared', 'success');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function selectTag(tagId) {
+            try {
+                await xpSystem.selectTag(tagId);
+                renderTags();
+                updateHeaderDisplay();
+                showToast('Tag equipped!', 'success');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function clearTag() {
+            try {
+                await xpSystem.clearTag();
+                renderTags();
+                updateHeaderDisplay();
+                showToast('Tag removed', 'success');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function openPurchaseModal(tagId) {
+            const tag = xpSystem.getTagById(tagId);
+            if (!tag) return;
+
+            pendingPurchase = tagId;
+            document.getElementById('modalEmoji').textContent = tag.emoji;
+            document.getElementById('modalTitle').textContent = tag.text;
+            document.getElementById('modalDesc').textContent =
+                tag.purchased ? 'You already own this tag!' : 'This tag will be yours forever!';
+            document.getElementById('modalCost').textContent = tag.cost.toLocaleString();
+
+            const confirmBtn = document.getElementById('modalConfirm');
+            confirmBtn.disabled = xpSystem.userXp < tag.cost;
+            confirmBtn.textContent = xpSystem.userXp < tag.cost
+                ? `Need ${(tag.cost - xpSystem.userXp).toLocaleString()} more XP`
+                : 'Buy Now';
+
+            document.getElementById('purchaseModal').classList.add('open');
+        }
+
+        function closeModal() {
+            document.getElementById('purchaseModal').classList.remove('open');
+            pendingPurchase = null;
+        }
+
+        async function confirmPurchase() {
+            if (!pendingPurchase) return;
+
+            try {
+                await xpSystem.purchaseTag(pendingPurchase);
+                closeModal();
+                renderXpSection();
+                renderTags();
+                showToast('Tag purchased! It has been equipped.', 'success');
+
+                // Auto-select the purchased tag
+                await xpSystem.selectTag(pendingPurchase);
+                renderTags();
+                updateHeaderDisplay();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function showToast(message, type = '') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Close modal on overlay click
+        document.getElementById('purchaseModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
