@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            color: white;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+        .header p {
+            opacity: 0.9;
+            margin-top: 0.25rem;
+        }
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-white {
+            background: white;
+            color: #dc2626;
+        }
+        .btn-white:hover {
+            background: #fef2f2;
+            transform: translateY(-2px);
+        }
+        .btn-ghost {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.4);
+        }
+        .btn-ghost:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #dc2626;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: white;
+            padding: 0.5rem;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #6b7280;
+        }
+        .tab-btn:hover {
+            background: #f3f4f6;
+        }
+        .tab-btn.active {
+            background: #dc2626;
+            color: white;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-title {
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .card-body {
+            padding: 1.25rem;
+        }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .data-table th,
+        .data-table td {
+            padding: 0.875rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .data-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #4b5563;
+            font-size: 0.85rem;
+        }
+        .data-table tr:hover {
+            background: #f9fafb;
+        }
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-teacher {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        .badge-student {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .badge-admin {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Tab content */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #6b7280;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+            }
+            .tabs {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <div>
+                    <h1>Admin Panel</h1>
+                    <p>System overview and management</p>
+                </div>
+                <div class="header-actions">
+                    <a href="teacher.html" class="btn btn-ghost">Teacher Dashboard</a>
+                    <a href="../index.html" class="btn btn-white">Home</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-value" id="statUsers">0</div>
+                <div class="stat-label">Total Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">👨‍🏫</div>
+                <div class="stat-value" id="statTeachers">0</div>
+                <div class="stat-label">Teachers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🎓</div>
+                <div class="stat-value" id="statStudents">0</div>
+                <div class="stat-label">Students</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📚</div>
+                <div class="stat-value" id="statClasses">0</div>
+                <div class="stat-label">Classes</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('classes', this)">All Classes</button>
+            <button class="tab-btn" onclick="showTab('teachers', this)">Teachers</button>
+            <button class="tab-btn" onclick="showTab('students', this)">Students</button>
+        </div>
+
+        <!-- Classes Tab -->
+        <div id="classesTab" class="tab-content active">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">All Classes</span>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="classesTable" class="loading">Loading classes...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teachers Tab -->
+        <div id="teachersTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">All Teachers</span>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="teachersTable" class="loading">Loading teachers...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Students Tab -->
+        <div id="studentsTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">All Students</span>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="studentsTable" class="loading">Loading students...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../auth/config.js"></script>
+    <script>
+        let currentUser = null;
+
+        async function init() {
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            // Get user profile and check admin
+            const { data: profile } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (!profile || !profile.is_admin) {
+                alert('Access denied. Admin only.');
+                window.location.href = 'teacher.html';
+                return;
+            }
+
+            currentUser = profile;
+
+            // Load all data
+            await loadStats();
+            await loadClasses();
+            await loadTeachers();
+            await loadStudents();
+        }
+
+        async function loadStats() {
+            // Get all users
+            const { data: users } = await supabase
+                .from('users')
+                .select('role');
+
+            const teachers = users?.filter(u => u.role === 'teacher') || [];
+            const students = users?.filter(u => u.role === 'student') || [];
+
+            document.getElementById('statUsers').textContent = users?.length || 0;
+            document.getElementById('statTeachers').textContent = teachers.length;
+            document.getElementById('statStudents').textContent = students.length;
+
+            // Get classes count
+            const { data: classes } = await supabase
+                .from('classes')
+                .select('id');
+
+            document.getElementById('statClasses').textContent = classes?.length || 0;
+        }
+
+        async function loadClasses() {
+            const { data: classes, error } = await supabase
+                .from('classes')
+                .select(`
+                    *,
+                    users:teacher_id (full_name, email),
+                    class_members(count),
+                    tasks(count)
+                `)
+                .order('created_at', { ascending: false });
+
+            const container = document.getElementById('classesTable');
+
+            if (error || !classes || classes.length === 0) {
+                container.innerHTML = '<div class="empty-state">No classes found</div>';
+                return;
+            }
+
+            const typeNames = { latin: 'Latin GCSE', 'prep-latin': 'Prep Latin', greek: 'Greek', classics: 'Classical Civ' };
+
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Class Name</th>
+                            <th>Type</th>
+                            <th>Teacher</th>
+                            <th>Join Code</th>
+                            <th>Students</th>
+                            <th>Tasks</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${classes.map(cls => `
+                            <tr>
+                                <td><strong>${cls.name}</strong></td>
+                                <td>${typeNames[cls.type] || cls.type}</td>
+                                <td>${cls.users?.full_name || 'Unknown'}<br><small style="color: #6b7280;">${cls.users?.email || ''}</small></td>
+                                <td><code style="background: #f3f4f6; padding: 0.25rem 0.5rem; border-radius: 4px;">${cls.join_code}</code></td>
+                                <td>${cls.class_members?.[0]?.count || 0}</td>
+                                <td>${cls.tasks?.[0]?.count || 0}</td>
+                                <td><a href="class.html?id=${cls.id}" class="btn btn-ghost" style="padding: 0.4rem 0.75rem; font-size: 0.8rem; background: #f3f4f6; color: #374151;">View</a></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function loadTeachers() {
+            const { data: teachers, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('role', 'teacher')
+                .order('created_at', { ascending: false });
+
+            const container = document.getElementById('teachersTable');
+
+            if (error || !teachers || teachers.length === 0) {
+                container.innerHTML = '<div class="empty-state">No teachers found</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Admin</th>
+                            <th>Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${teachers.map(t => `
+                            <tr>
+                                <td><strong>${t.full_name || 'Unknown'}</strong></td>
+                                <td>${t.email}</td>
+                                <td>${t.is_admin ? '<span class="badge badge-admin">Admin</span>' : '-'}</td>
+                                <td>${new Date(t.created_at).toLocaleDateString('en-GB')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        async function loadStudents() {
+            const { data: students, error } = await supabase
+                .from('users')
+                .select(`
+                    *,
+                    class_members(
+                        classes(name)
+                    )
+                `)
+                .eq('role', 'student')
+                .order('created_at', { ascending: false });
+
+            const container = document.getElementById('studentsTable');
+
+            if (error || !students || students.length === 0) {
+                container.innerHTML = '<div class="empty-state">No students found</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Classes</th>
+                            <th>Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${students.map(s => {
+                            const classNames = s.class_members?.map(cm => cm.classes?.name).filter(Boolean) || [];
+                            return `
+                                <tr>
+                                    <td><strong>${s.full_name || 'Unknown'}</strong></td>
+                                    <td>${s.email}</td>
+                                    <td>${classNames.length > 0 ? classNames.join(', ') : '<span style="color: #9ca3af;">No classes</span>'}</td>
+                                    <td>${new Date(s.created_at).toLocaleDateString('en-GB')}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function showTab(tabName, btn) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            btn.classList.add('active');
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
