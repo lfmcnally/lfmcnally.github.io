@@ -228,6 +228,26 @@
             justify-content: center;
         }
 
+        /* Co-teacher styles */
+        .co-teacher-badge {
+            display: inline-block;
+            font-size: 0.65rem;
+            color: #7c3aed;
+            background: #ede9fe;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            font-weight: 500;
+            vertical-align: middle;
+        }
+        .class-card.co-taught {
+            border-color: #c4b5fd;
+        }
+        .class-card.co-taught:hover {
+            border-color: #7c3aed;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+        }
+
         /* Recent Activity */
         .activity-item {
             display: flex;
@@ -531,9 +551,10 @@
             await loadRecentActivity();
         }
 
-        // Load classes
+        // Load classes (owned + co-taught)
         async function loadClasses() {
-            const { data, error } = await supabase
+            // Load classes where user is the owner
+            const { data: ownedClasses, error: ownedError } = await supabase
                 .from('classes')
                 .select(`
                     *,
@@ -543,12 +564,42 @@
                 .eq('teacher_id', currentUser.id)
                 .order('created_at', { ascending: false });
 
-            if (error) {
-                console.error('Error loading classes:', error);
-                return;
+            if (ownedError) {
+                console.error('Error loading owned classes:', ownedError);
             }
 
-            classes = data || [];
+            // Load classes where user is a co-teacher
+            const { data: coTeacherEntries, error: coTeacherError } = await supabase
+                .from('class_teachers')
+                .select(`
+                    class_id,
+                    classes (
+                        *,
+                        class_members(count),
+                        tasks(count)
+                    )
+                `)
+                .eq('teacher_id', currentUser.id);
+
+            // Process co-taught classes
+            let coTaughtClasses = [];
+            if (!coTeacherError && coTeacherEntries) {
+                coTaughtClasses = coTeacherEntries
+                    .map(entry => entry.classes)
+                    .filter(cls => cls !== null);
+            }
+
+            // Combine and mark classes
+            const owned = (ownedClasses || []).map(cls => ({ ...cls, isOwner: true }));
+            const coTaught = coTaughtClasses.map(cls => ({ ...cls, isOwner: false }));
+
+            // Merge, avoiding duplicates (owner takes precedence)
+            const ownedIds = new Set(owned.map(c => c.id));
+            const uniqueCoTaught = coTaught.filter(c => !ownedIds.has(c.id));
+
+            classes = [...owned, ...uniqueCoTaught];
+            classes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
             renderClasses();
         }
 
@@ -574,10 +625,11 @@
                         const typeNames = { latin: 'Latin GCSE', 'prep-latin': 'Prep Latin', greek: 'Greek', classics: 'Classical Civ' };
                         const typeIcon = typeIcons[cls.type] || '📚';
                         const typeName = typeNames[cls.type] || 'Class';
+                        const coTeacherBadge = cls.isOwner === false ? '<span class="co-teacher-badge">Co-teacher</span>' : '';
                         return `
-                        <div class="class-card">
+                        <div class="class-card${cls.isOwner === false ? ' co-taught' : ''}">
                             <div class="class-header">
-                                <div class="class-name">${cls.name}</div>
+                                <div class="class-name">${cls.name}${coTeacherBadge}</div>
                                 <div class="class-code">${cls.join_code}</div>
                             </div>
                             <div class="class-type-badge">${typeIcon} ${typeName}</div>
