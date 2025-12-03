@@ -479,6 +479,91 @@
             color: #6b7280;
         }
 
+        /* Class Leaderboard */
+        .leaderboard-tabs {
+            display: flex;
+            gap: 0.25rem;
+            background: #f3f4f6;
+            padding: 0.25rem;
+            border-radius: 10px;
+        }
+        .leaderboard-tab {
+            flex: 1;
+            padding: 0.5rem;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .leaderboard-tab:hover {
+            background: rgba(0,0,0,0.05);
+        }
+        .leaderboard-tab.active {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .leaderboard-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            background: #f9fafb;
+            transition: all 0.2s;
+        }
+        .leaderboard-item.current-student {
+            background: linear-gradient(135deg, rgba(0, 102, 255, 0.1) 0%, rgba(0, 82, 204, 0.1) 100%);
+            border: 2px solid #0066ff;
+        }
+        .leaderboard-rank {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            border-radius: 50%;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+        }
+        .leaderboard-rank.gold { background: #fef3c7; color: #b45309; }
+        .leaderboard-rank.silver { background: #f3f4f6; color: #6b7280; }
+        .leaderboard-rank.bronze { background: #fed7aa; color: #c2410c; }
+        .leaderboard-rank.normal { background: #e5e7eb; color: #6b7280; }
+        .leaderboard-name {
+            flex: 1;
+            font-weight: 500;
+            color: #1f2937;
+        }
+        .leaderboard-name .you-badge {
+            display: inline-block;
+            background: #0066ff;
+            color: white;
+            font-size: 0.65rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .leaderboard-value {
+            font-weight: 600;
+            color: #0066ff;
+            font-size: 0.95rem;
+        }
+        .leaderboard-empty {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+
         /* Responsive */
         @media (max-width: 900px) {
             .grid {
@@ -530,6 +615,24 @@
                         <div class="header-stat-value" id="statWords">0</div>
                         <div class="header-stat-label">Words Learned</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Class Leaderboard -->
+            <div class="card" id="leaderboardCard" style="margin-bottom: 1.5rem; display: none;">
+                <div class="card-header">
+                    🏆 Class Leaderboard
+                </div>
+                <div class="card-body">
+                    <div class="leaderboard-tabs">
+                        <button class="leaderboard-tab active" onclick="showLeaderboard('time', this)" title="Time Practised">⏱️</button>
+                        <button class="leaderboard-tab" onclick="showLeaderboard('words', this)" title="Words Mastered" id="wordsLeaderboardTab">📚</button>
+                        <button class="leaderboard-tab" onclick="showLeaderboard('streak', this)" title="Practice Streak">🔥</button>
+                        <button class="leaderboard-tab" onclick="showLeaderboard('score', this)" title="Average Score">🎯</button>
+                    </div>
+                    <ul class="leaderboard-list" id="leaderboardList">
+                        <li class="leaderboard-empty">Loading classmates...</li>
+                    </ul>
                 </div>
             </div>
 
@@ -675,6 +778,8 @@
         let scoreChart = null;
         let masteryChart = null;
         let setTextChart = null;
+        let classmatesData = [];
+        let classType = null;
 
         async function init() {
             try {
@@ -707,7 +812,8 @@
                     loadAttempts().catch(e => console.error('loadAttempts error:', e)),
                     loadWordMastery().catch(e => console.error('loadWordMastery error:', e)),
                     loadTaskGrid().catch(e => console.error('loadTaskGrid error:', e)),
-                    loadSetTextProgress().catch(e => console.error('loadSetTextProgress error:', e))
+                    loadSetTextProgress().catch(e => console.error('loadSetTextProgress error:', e)),
+                    loadClassmates().catch(e => console.error('loadClassmates error:', e))
                 ]);
 
                 // Render everything
@@ -757,6 +863,225 @@
                 .order('last_seen_at', { ascending: false });
 
             allWords = data || [];
+        }
+
+        // ============ CLASS LEADERBOARD ============
+
+        async function loadClassmates() {
+            if (!classId) {
+                // No class context, hide leaderboard
+                return;
+            }
+
+            try {
+                // Get class info for type
+                const { data: classData } = await supabaseClient
+                    .from('classes')
+                    .select('type')
+                    .eq('id', classId)
+                    .single();
+
+                classType = classData?.type || 'latin';
+
+                // Hide words tab for classics classes
+                if (classType === 'classics') {
+                    document.getElementById('wordsLeaderboardTab').style.display = 'none';
+                }
+
+                // Get all students in the class
+                const { data: members, error: membersError } = await supabaseClient
+                    .from('class_members')
+                    .select('student_id, users(id, full_name)')
+                    .eq('class_id', classId);
+
+                if (membersError || !members || members.length === 0) {
+                    return;
+                }
+
+                const studentIds = members.map(m => m.student_id);
+
+                // Get all attempts for these students
+                const { data: attempts } = await supabaseClient
+                    .from('task_attempts')
+                    .select('student_id, started_at, completed_at, time_spent_seconds, score')
+                    .in('student_id', studentIds);
+
+                // Get word mastery for these students (for non-classics classes)
+                let wordMasteryData = [];
+                if (classType !== 'classics') {
+                    const { data: words } = await supabaseClient
+                        .from('word_mastery')
+                        .select('student_id, correct_count, incorrect_count')
+                        .in('student_id', studentIds);
+                    wordMasteryData = words || [];
+                }
+
+                // Calculate stats for each student
+                classmatesData = members.map(m => {
+                    const studentAttempts = (attempts || []).filter(a => a.student_id === m.student_id);
+                    const studentWords = wordMasteryData.filter(w => w.student_id === m.student_id);
+
+                    // Total time
+                    const totalTime = studentAttempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
+
+                    // Words mastered
+                    const wordsMastered = studentWords.filter(w => {
+                        const total = w.correct_count + w.incorrect_count;
+                        const acc = total > 0 ? (w.correct_count / total) * 100 : 0;
+                        return w.correct_count >= 3 && acc >= 70;
+                    }).length;
+
+                    // Average score
+                    const withScores = studentAttempts.filter(a => a.score !== null && a.completed_at);
+                    const avgScore = withScores.length > 0
+                        ? Math.round(withScores.reduce((sum, a) => sum + a.score, 0) / withScores.length)
+                        : null;
+
+                    // Calculate streak
+                    const streak = calculateStreak(studentAttempts);
+
+                    return {
+                        id: m.student_id,
+                        name: m.users?.full_name || 'Unknown',
+                        totalTime,
+                        wordsMastered,
+                        avgScore,
+                        streak
+                    };
+                });
+
+                // Show leaderboard card and render
+                document.getElementById('leaderboardCard').style.display = 'block';
+                showLeaderboard('time', document.querySelector('.leaderboard-tab.active'));
+
+            } catch (err) {
+                console.error('Error loading classmates:', err);
+            }
+        }
+
+        function calculateStreak(attempts) {
+            if (!attempts || attempts.length === 0) return 0;
+
+            // Get unique dates with completed attempts
+            const dates = [...new Set(
+                attempts
+                    .filter(a => a.completed_at)
+                    .map(a => new Date(a.completed_at).toISOString().split('T')[0])
+            )].sort().reverse();
+
+            if (dates.length === 0) return 0;
+
+            const today = new Date().toISOString().split('T')[0];
+            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+            // Streak only counts if active today or yesterday
+            if (dates[0] !== today && dates[0] !== yesterday) return 0;
+
+            let streak = 1;
+            for (let i = 1; i < dates.length; i++) {
+                const prev = new Date(dates[i - 1]);
+                const curr = new Date(dates[i]);
+                const diffDays = (prev - curr) / 86400000;
+
+                if (diffDays === 1) {
+                    streak++;
+                } else {
+                    break;
+                }
+            }
+
+            return streak;
+        }
+
+        function showLeaderboard(type, btn) {
+            // Update active tab
+            document.querySelectorAll('.leaderboard-tab').forEach(t => t.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            const container = document.getElementById('leaderboardList');
+
+            if (classmatesData.length === 0) {
+                container.innerHTML = '<li class="leaderboard-empty">No classmates found</li>';
+                return;
+            }
+
+            // Sort and format based on type
+            let sorted = [...classmatesData];
+            let formatValue;
+
+            switch (type) {
+                case 'time':
+                    sorted.sort((a, b) => b.totalTime - a.totalTime);
+                    formatValue = (s) => {
+                        const mins = Math.round(s.totalTime / 60);
+                        if (mins >= 60) {
+                            return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+                        }
+                        return `${mins}m`;
+                    };
+                    break;
+                case 'words':
+                    sorted.sort((a, b) => b.wordsMastered - a.wordsMastered);
+                    formatValue = (s) => `${s.wordsMastered} words`;
+                    break;
+                case 'streak':
+                    sorted.sort((a, b) => b.streak - a.streak);
+                    formatValue = (s) => s.streak > 0 ? `${s.streak} days` : '-';
+                    break;
+                case 'score':
+                    sorted.sort((a, b) => (b.avgScore || 0) - (a.avgScore || 0));
+                    formatValue = (s) => s.avgScore !== null ? `${s.avgScore}%` : '-';
+                    break;
+            }
+
+            // Render top 10
+            const top10 = sorted.slice(0, 10);
+
+            container.innerHTML = top10.map((s, i) => {
+                const rank = i + 1;
+                const isCurrentStudent = s.id === studentId;
+
+                let rankDisplay, rankClass;
+                if (rank === 1) {
+                    rankDisplay = '🥇';
+                    rankClass = 'gold';
+                } else if (rank === 2) {
+                    rankDisplay = '🥈';
+                    rankClass = 'silver';
+                } else if (rank === 3) {
+                    rankDisplay = '🥉';
+                    rankClass = 'bronze';
+                } else {
+                    rankDisplay = rank;
+                    rankClass = 'normal';
+                }
+
+                const youBadge = isCurrentStudent ? '<span class="you-badge">You</span>' : '';
+                const itemClass = isCurrentStudent ? 'leaderboard-item current-student' : 'leaderboard-item';
+
+                return `
+                    <li class="${itemClass}">
+                        <div class="leaderboard-rank ${rankClass}">${rankDisplay}</div>
+                        <div class="leaderboard-name">${escapeHtml(s.name)}${youBadge}</div>
+                        <div class="leaderboard-value">${formatValue(s)}</div>
+                    </li>
+                `;
+            }).join('');
+
+            // If current student is not in top 10, show their position
+            const currentStudentIndex = sorted.findIndex(s => s.id === studentId);
+            if (currentStudentIndex >= 10) {
+                const s = sorted[currentStudentIndex];
+                const rank = currentStudentIndex + 1;
+                container.innerHTML += `
+                    <li style="text-align: center; padding: 0.5rem; color: #6b7280; font-size: 0.85rem;">···</li>
+                    <li class="leaderboard-item current-student">
+                        <div class="leaderboard-rank normal">${rank}</div>
+                        <div class="leaderboard-name">${escapeHtml(s.name)}<span class="you-badge">You</span></div>
+                        <div class="leaderboard-value">${formatValue(s)}</div>
+                    </li>
+                `;
+            }
         }
 
         function renderStats() {
