@@ -1023,45 +1023,37 @@
             const classId = document.getElementById('leaderboardClassSelect').value;
             selectedLeaderboardClass = classId;
 
-            // Get all students in this class with emoji/tag
+            // Get all students in this class with their profile info and XP
             const { data: members, error } = await supabase
                 .from('class_members')
-                .select('student_id, users(id, full_name, selected_emoji, selected_tag)')
+                .select('student_id, users(id, full_name, selected_emoji, selected_tag, total_xp_earned)')
                 .eq('class_id', classId);
 
-            if (error || !members || members.length === 0) {
+            if (error) {
+                console.error('Leaderboard error:', error);
                 renderEmptyLeaderboard();
                 return;
             }
 
-            const studentIds = members.map(m => m.student_id);
+            if (!members || members.length === 0) {
+                renderEmptyLeaderboard();
+                return;
+            }
 
-            // Get attempts for these students (for tasks in this class)
-            const { data: attempts } = await supabase
-                .from('task_attempts')
-                .select('student_id, time_spent_seconds, tasks(class_id)')
-                .in('student_id', studentIds);
-
-            // Filter to this class's attempts
-            const classAttempts = (attempts || []).filter(a => a.tasks?.class_id === classId);
-
-            // Calculate time for each student
+            // Build leaderboard data using XP from users table
             leaderboardData = members.map(m => {
-                const studentAttempts = classAttempts.filter(a => a.student_id === m.student_id);
-                const totalTime = studentAttempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
-
                 return {
                     id: m.student_id,
                     name: m.users?.full_name || 'Student',
                     emoji: m.users?.selected_emoji || null,
                     tag: m.users?.selected_tag || null,
                     isMe: m.student_id === currentUser.id,
-                    totalTime
+                    totalXp: m.users?.total_xp_earned || 0
                 };
             });
 
-            // Sort by time descending
-            leaderboardData.sort((a, b) => b.totalTime - a.totalTime);
+            // Sort by XP descending
+            leaderboardData.sort((a, b) => b.totalXp - a.totalXp);
 
             renderLeaderboard();
         }
@@ -1081,7 +1073,7 @@
 
             podiumContainer.innerHTML = top3.map((s, i) => {
                 const tagHtml = s.tag ? `<div class="podium-tag">${getTagEmoji(s.tag)} ${getTagText(s.tag)}</div>` : '';
-                const timeStr = formatTime(s.totalTime);
+                const xpStr = formatXp(s.totalXp);
                 const displayName = s.isMe ? 'You' : s.name.split(' ')[0]; // First name only
 
                 return `
@@ -1092,7 +1084,7 @@
                         </div>
                         <div class="podium-name">${displayName}</div>
                         ${tagHtml}
-                        <div class="podium-stat">${timeStr}</div>
+                        <div class="podium-stat">${xpStr} XP</div>
                         <div class="podium-base">#${i + 1}</div>
                     </div>
                 `;
@@ -1110,7 +1102,7 @@
             listContainer.innerHTML = rest.map((s, i) => {
                 const rank = i + 4;
                 const tagHtml = s.tag ? `<span class="lb-tag">${getTagEmoji(s.tag)} ${getTagText(s.tag)}</span>` : '';
-                const timeStr = formatTime(s.totalTime);
+                const xpStr = formatXp(s.totalXp);
                 const displayName = s.isMe ? 'You' : s.name;
 
                 return `
@@ -1121,7 +1113,7 @@
                             <span class="lb-name">${displayName}</span>
                             ${tagHtml}
                         </div>
-                        <span class="lb-value">${timeStr}</span>
+                        <span class="lb-value">${xpStr} XP</span>
                     </div>
                 `;
             }).join('');
@@ -1131,6 +1123,13 @@
             if (myIndex >= 3) {
                 // Already shown in list
             }
+        }
+
+        function formatXp(xp) {
+            if (xp >= 1000) {
+                return (xp / 1000).toFixed(1) + 'k';
+            }
+            return xp.toString();
         }
 
         function renderEmptyLeaderboard() {
