@@ -684,6 +684,11 @@
             font-weight: 500;
             color: #1f2937;
             font-size: 0.85rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.2rem;
+            line-height: 1.4;
         }
         .leaderboard-item.is-me .leaderboard-name {
             color: #0066ff;
@@ -692,6 +697,8 @@
             font-weight: 600;
             color: #0066ff;
             font-size: 0.8rem;
+            flex-shrink: 0;
+            margin-left: 0.5rem;
         }
 
         /* Join Class */
@@ -2241,14 +2248,16 @@
             myClassIds = [currentClassId];
             const classType = currentClass.type;
 
-            // Get all students in this class
+            // Get all students in this class (including emoji and tag for display)
             const { data: classmates, error: classmatesError } = await supabase
                 .from('class_members')
                 .select(`
                     student_id,
                     users (
                         id,
-                        full_name
+                        full_name,
+                        selected_emoji,
+                        selected_tag
                     )
                 `)
                 .eq('class_id', currentClassId);
@@ -2314,6 +2323,8 @@
                 return {
                     id: studentId,
                     name: student.full_name || 'Student',
+                    emoji: student.selected_emoji || null,
+                    tag: student.selected_tag || null,
                     isMe: studentId === currentUser.id,
                     totalTime,
                     avgScore,
@@ -2412,14 +2423,53 @@
                     const actualRank = s.isMe && !showingMe ? myPosition + 1 : i + 1;
                     const rankClass = actualRank === 1 ? 'gold' : actualRank === 2 ? 'silver' : actualRank === 3 ? 'bronze' : '';
                     const medal = actualRank === 1 ? '🥇' : actualRank === 2 ? '🥈' : actualRank === 3 ? '🥉' : actualRank;
+                    const emojiDisplay = s.emoji ? `<span style="margin-right: 0.3rem;">${s.emoji}</span>` : '';
+                    const displayName = s.isMe ? 'You' : s.name;
+                    const tagDisplay = s.tag ? getTagDisplay(s.tag) : '';
                     return `
                         <li class="leaderboard-item ${s.isMe ? 'is-me' : ''}">
                             <span class="leaderboard-rank ${rankClass}">${medal}</span>
-                            <span class="leaderboard-name">${s.isMe ? 'You' : s.name}</span>
+                            <span class="leaderboard-name">${emojiDisplay}${displayName}${tagDisplay}</span>
                             <span class="leaderboard-value">${valueFormatter(s)}</span>
                         </li>
                     `;
                 }).join('') + '</ul>';
+        }
+
+        // Helper to get tag display from tag ID
+        function getTagDisplay(tagId) {
+            const tags = {
+                'novice_learner': { text: 'Novice Learner', emoji: '📖' },
+                'eager_student': { text: 'Eager Student', emoji: '✨' },
+                'word_warrior': { text: 'Word Warrior', emoji: '⚔️' },
+                'latin_lover': { text: 'Latin Lover', emoji: '❤️' },
+                'roman_soldier': { text: 'Roman Soldier', emoji: '🛡️' },
+                'senator': { text: 'Senator', emoji: '🏛️' },
+                'caesar': { text: 'Ave Caesar', emoji: '👑' },
+                'latin_legend': { text: 'Latin Legend', emoji: '🏆' },
+                'greek_explorer': { text: 'Greek Explorer', emoji: '🏺' },
+                'spartan': { text: 'Spartan', emoji: '⚔️' },
+                'philosopher': { text: 'Philosopher', emoji: '🤔' },
+                'olympian': { text: 'Olympian', emoji: '⚡' },
+                'greek_god': { text: 'Greek God', emoji: '🌩️' },
+                'vocab_victor': { text: 'Vocab Victor', emoji: '📚' },
+                'streak_master': { text: 'Streak Master', emoji: '🔥' },
+                'perfectionist': { text: 'Perfectionist', emoji: '💯' },
+                'time_lord': { text: 'Time Lord', emoji: '⏰' },
+                'dedication': { text: 'Dedicated Scholar', emoji: '💪' },
+                'big_brain': { text: 'Big Brain', emoji: '🧠' },
+                'night_owl': { text: 'Night Owl', emoji: '🦉' },
+                'coffee_addict': { text: 'Coffee Addict', emoji: '☕' },
+                'bookworm': { text: 'Bookworm', emoji: '🐛' },
+                'galaxy_brain': { text: 'Galaxy Brain', emoji: '🌌' },
+                'enlightened': { text: 'Enlightened One', emoji: '✨' },
+                'ancient_wisdom': { text: 'Ancient Wisdom', emoji: '📿' },
+                'immortal_scholar': { text: 'Immortal Scholar', emoji: '🌟' },
+                'classicalia_legend': { text: 'Classicalia Legend', emoji: '🏛️' }
+            };
+            const tag = tags[tagId];
+            if (!tag) return '';
+            return `<span style="display: inline-block; margin-left: 0.4rem; font-size: 0.65rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 500;">${tag.emoji} ${tag.text}</span>`;
         }
 
         // Word mastery data
