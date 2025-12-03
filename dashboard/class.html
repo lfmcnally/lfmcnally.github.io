@@ -1253,6 +1253,17 @@
             </div>
         </div>
 
+        <!-- Co-Teachers Card (only visible to class owner) -->
+        <div class="card" id="coTeachersCard" style="margin-bottom: 1.5rem; display: none;">
+            <div class="card-header">
+                <span class="card-title">👨‍🏫 Co-Teachers (<span id="coTeacherCount">0</span>)</span>
+                <button class="btn btn-primary btn-sm" id="addCoTeacherBtn" onclick="openAddCoTeacherModal()">+ Add Co-Teacher</button>
+            </div>
+            <div class="card-body" id="coTeachersContainer">
+                <div class="loading">Loading co-teachers...</div>
+            </div>
+        </div>
+
         <!-- Main Grid -->
         <div class="dashboard-grid">
             <!-- Students Card -->
@@ -1697,15 +1708,58 @@
         </div>
     </div>
 
+    <!-- Add Co-Teacher Modal -->
+    <div class="modal-overlay" id="addCoTeacherModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add Co-Teacher</h3>
+                <button class="modal-close" onclick="closeModal('addCoTeacherModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">Enter the email address of the teacher you want to add as a co-teacher. They must already have a teacher account.</p>
+                <div class="form-group">
+                    <label>Teacher Email</label>
+                    <input type="email" class="form-input" id="coTeacherEmail" placeholder="teacher@school.edu">
+                </div>
+                <div id="addCoTeacherMessage" class="message"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addCoTeacherModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addCoTeacher()">Add Co-Teacher</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remove Co-Teacher Modal -->
+    <div class="modal-overlay" id="removeCoTeacherModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Remove Co-Teacher</h3>
+                <button class="modal-close" onclick="closeModal('removeCoTeacherModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove <strong id="removeCoTeacherName"></strong> as a co-teacher?</p>
+                <p class="warning-text">They will no longer have access to this class.</p>
+                <input type="hidden" id="removeCoTeacherId">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('removeCoTeacherModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmRemoveCoTeacher()">Remove</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../auth/config.js"></script>
     <script src="../shared/vocabulary-data.js"></script>
     <script src="../shared/greek-vocabulary-data.js"></script>
     <script src="../latin/data/suburani-vocab.js"></script>
-    
+
     <script>
         let currentUser = null;
         let currentClass = null;
         let classStudents = [];
+        let classCoTeachers = [];
+        let isClassOwner = false;
         
         // Get vocab data based on class type
         function getVocabData() {
@@ -1805,24 +1859,55 @@
         async function loadClassDetails() {
             const urlParams = new URLSearchParams(window.location.search);
             const classId = urlParams.get('id');
-            
+
             if (!classId) {
                 window.location.href = 'teacher.html';
                 return;
             }
-            
+
             const { data: classData, error } = await supabase
                 .from('classes')
                 .select('*')
                 .eq('id', classId)
                 .single();
-            
+
             if (error || !classData) {
                 window.location.href = 'teacher.html';
                 return;
             }
-            
+
             currentClass = classData;
+
+            // Check if user is owner or co-teacher
+            isClassOwner = classData.teacher_id === currentUser.id;
+
+            if (!isClassOwner) {
+                // Check if user is a co-teacher
+                const { data: coTeacherEntry } = await supabase
+                    .from('class_teachers')
+                    .select('id')
+                    .eq('class_id', classId)
+                    .eq('teacher_id', currentUser.id)
+                    .single();
+
+                if (!coTeacherEntry) {
+                    // User is neither owner nor co-teacher
+                    window.location.href = 'teacher.html';
+                    return;
+                }
+            }
+
+            // Update UI based on ownership status
+            if (isClassOwner) {
+                // Show co-teachers section
+                document.getElementById('coTeachersCard').style.display = 'block';
+                await loadCoTeachers();
+            } else {
+                // Co-teachers can't delete the class
+                const deleteBtn = document.querySelector('button[onclick="openDeleteClassModal()"]');
+                if (deleteBtn) deleteBtn.style.display = 'none';
+            }
+
             document.getElementById('className').textContent = classData.name;
             document.getElementById('joinCode').textContent = classData.join_code;
             
@@ -1945,6 +2030,166 @@
                 statusEl.style.color = '#16a34a';
                 setTimeout(() => { statusEl.textContent = ''; }, 2000);
             }
+        }
+
+        // Co-Teacher Management Functions
+        async function loadCoTeachers() {
+            const container = document.getElementById('coTeachersContainer');
+
+            const { data: coTeacherEntries, error } = await supabase
+                .from('class_teachers')
+                .select(`
+                    id,
+                    teacher_id,
+                    added_at,
+                    users:teacher_id (
+                        id,
+                        full_name,
+                        email
+                    )
+                `)
+                .eq('class_id', currentClass.id);
+
+            if (error) {
+                console.error('Error loading co-teachers:', error);
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><p>Error loading co-teachers</p></div>';
+                return;
+            }
+
+            classCoTeachers = (coTeacherEntries || []).map(entry => ({
+                id: entry.id,
+                teacher_id: entry.teacher_id,
+                ...entry.users
+            }));
+
+            document.getElementById('coTeacherCount').textContent = classCoTeachers.length;
+
+            if (classCoTeachers.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👨‍🏫</div><p>No co-teachers yet.<br>Add a co-teacher to share class management.</p></div>';
+                return;
+            }
+
+            let html = '<ul class="students-list">';
+            for (const teacher of classCoTeachers) {
+                html += `
+                    <li>
+                        <div>
+                            <span class="student-name" style="cursor: default;">${teacher.full_name || 'Unknown'}</span>
+                            <div class="student-email">${teacher.email || ''}</div>
+                        </div>
+                        <div class="student-actions">
+                            <button class="btn-icon danger" onclick="showRemoveCoTeacher('${teacher.id}', '${(teacher.full_name || teacher.email || 'this teacher').replace(/'/g, "\\'")}')" title="Remove co-teacher">🗑️</button>
+                        </div>
+                    </li>
+                `;
+            }
+            html += '</ul>';
+            container.innerHTML = html;
+        }
+
+        function openAddCoTeacherModal() {
+            document.getElementById('coTeacherEmail').value = '';
+            document.getElementById('addCoTeacherMessage').className = 'message';
+            document.getElementById('addCoTeacherMessage').textContent = '';
+            document.getElementById('addCoTeacherModal').classList.add('open');
+        }
+
+        async function addCoTeacher() {
+            const email = document.getElementById('coTeacherEmail').value.trim().toLowerCase();
+            const messageEl = document.getElementById('addCoTeacherMessage');
+
+            if (!email) {
+                messageEl.className = 'message error';
+                messageEl.textContent = 'Please enter an email address.';
+                return;
+            }
+
+            // Find the teacher by email
+            const { data: teacherData, error: teacherError } = await supabase
+                .from('users')
+                .select('id, full_name, email, role')
+                .eq('email', email)
+                .single();
+
+            if (teacherError || !teacherData) {
+                messageEl.className = 'message error';
+                messageEl.textContent = 'No user found with this email address.';
+                return;
+            }
+
+            if (teacherData.role !== 'teacher') {
+                messageEl.className = 'message error';
+                messageEl.textContent = 'This user is not a teacher account.';
+                return;
+            }
+
+            if (teacherData.id === currentUser.id) {
+                messageEl.className = 'message error';
+                messageEl.textContent = 'You cannot add yourself as a co-teacher.';
+                return;
+            }
+
+            if (teacherData.id === currentClass.teacher_id) {
+                messageEl.className = 'message error';
+                messageEl.textContent = 'This user is already the class owner.';
+                return;
+            }
+
+            // Check if already a co-teacher
+            const existingCoTeacher = classCoTeachers.find(ct => ct.teacher_id === teacherData.id);
+            if (existingCoTeacher) {
+                messageEl.className = 'message error';
+                messageEl.textContent = 'This teacher is already a co-teacher for this class.';
+                return;
+            }
+
+            // Add co-teacher
+            const { error: insertError } = await supabase
+                .from('class_teachers')
+                .insert({
+                    class_id: currentClass.id,
+                    teacher_id: teacherData.id
+                });
+
+            if (insertError) {
+                messageEl.className = 'message error';
+                messageEl.textContent = 'Error adding co-teacher: ' + (insertError.message || 'Unknown error');
+                return;
+            }
+
+            messageEl.className = 'message success';
+            messageEl.textContent = `${teacherData.full_name || email} has been added as a co-teacher!`;
+
+            // Refresh the co-teachers list
+            await loadCoTeachers();
+
+            // Close modal after a short delay
+            setTimeout(() => {
+                closeModal('addCoTeacherModal');
+            }, 1500);
+        }
+
+        function showRemoveCoTeacher(entryId, name) {
+            document.getElementById('removeCoTeacherId').value = entryId;
+            document.getElementById('removeCoTeacherName').textContent = name;
+            document.getElementById('removeCoTeacherModal').classList.add('open');
+        }
+
+        async function confirmRemoveCoTeacher() {
+            const entryId = document.getElementById('removeCoTeacherId').value;
+
+            const { error } = await supabase
+                .from('class_teachers')
+                .delete()
+                .eq('id', entryId);
+
+            if (error) {
+                alert('Error removing co-teacher: ' + error.message);
+                return;
+            }
+
+            closeModal('removeCoTeacherModal');
+            await loadCoTeachers();
         }
 
         async function loadStudents() {
