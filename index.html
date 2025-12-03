@@ -1677,6 +1677,49 @@
                 grid-template-columns: repeat(3, 1fr);
             }
         }
+
+        /* Site Announcements */
+        .announcements-container {
+            margin-bottom: 1.5rem;
+        }
+        .announcement-banner {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .announcement-banner.info {
+            background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%);
+            border: 1px solid #93c5fd;
+        }
+        .announcement-banner.warning {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 1px solid #fbbf24;
+        }
+        .announcement-banner.success {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border: 1px solid #34d399;
+        }
+        .announcement-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        .announcement-content {
+            flex: 1;
+        }
+        .announcement-title {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+        .announcement-text {
+            font-size: 0.9rem;
+            color: #4b5563;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
@@ -1829,7 +1872,12 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                
+
+                <!-- Site Announcements -->
+                <div class="announcements-container" id="announcementsContainer">
+                    <!-- Announcements loaded from Supabase -->
+                </div>
+
                 <!-- Subjects Card -->
                 <div class="card">
                     <div class="card-header">
@@ -2859,6 +2907,44 @@
             }
         }
 
+        // Load Site Announcements
+        async function loadAnnouncements() {
+            const container = document.getElementById('announcementsContainer');
+            if (!container || typeof supabase === 'undefined') return;
+
+            try {
+                const { data: announcements, error } = await supabase
+                    .from('site_announcements')
+                    .select('*')
+                    .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString())
+                    .order('created_at', { ascending: false });
+
+                if (error || !announcements || announcements.length === 0) {
+                    container.style.display = 'none';
+                    return;
+                }
+
+                const icons = {
+                    info: 'ℹ️',
+                    warning: '⚠️',
+                    success: '✅'
+                };
+
+                container.innerHTML = announcements.map(a => `
+                    <div class="announcement-banner ${a.type || 'info'}">
+                        <div class="announcement-icon">${icons[a.type] || icons.info}</div>
+                        <div class="announcement-content">
+                            <div class="announcement-title">${a.title}</div>
+                            <div class="announcement-text">${a.content}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.log('Could not load announcements');
+                container.style.display = 'none';
+            }
+        }
+
         // Initialize on load
         window.addEventListener('DOMContentLoaded', function() {
             initMobileMenu();
@@ -2871,6 +2957,7 @@
             loadRomanDate();
             createChristmasLights();
             initAdventCalendar();
+            loadAnnouncements();
         });
 
         // Create Christmas light bulbs
