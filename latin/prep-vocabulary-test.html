@@ -957,14 +957,19 @@
         </div>
     </div>
 
-    <!-- Load vocabulary data -->
+    <!-- Include Supabase and tracking -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../auth/config.js"></script>
+    <script src="../shared/task-tracker.js"></script>
+    <script src="../shared/xp-system.js"></script>
     <script src="data/suburani-vocab.js"></script>
-    
+
     <script>
         // Test state
         let testWords = [];
         let chapterWords = [];
         let isMarked = false;
+        let testStartTime = null;
 
         // Normalize Latin text (remove macrons)
         function normalizeLatin(text) {
@@ -1053,42 +1058,42 @@
         }
 
         // Start test
-        function startTest() {
+        async function startTest() {
             const chapter = document.getElementById('chapterSelect').value;
             const fromIndex = parseInt(document.getElementById('fromWord').value);
             const toIndex = parseInt(document.getElementById('toWord').value);
-            
+
             if (!chapter || isNaN(fromIndex) || isNaN(toIndex)) {
                 alert('Please select chapter and word range!');
                 return;
             }
-            
+
             // Get selected word range
             testWords = chapterWords.slice(fromIndex, toIndex + 1);
-            
+
             // Update test title
             const fromWord = chapterWords[fromIndex].latin;
             const toWord = chapterWords[toIndex].latin;
-            document.getElementById('testTitle').textContent = 
+            document.getElementById('testTitle').textContent =
                 `Chapter ${chapter}: ${fromWord} to ${toWord}`;
             document.getElementById('testInfo').textContent = `${testWords.length} words`;
-            
+
             // Create test table
             const tbody = document.getElementById('testTableBody');
             tbody.innerHTML = '';
-            
+
             testWords.forEach((word, index) => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td class="word-cell">${word.latin}</td>
                     <td class="answer-cell">
-                        <input type="text" class="answer-input" data-index="${index}" 
+                        <input type="text" class="answer-input" data-index="${index}"
                                placeholder="Enter English translation..." autocomplete="off">
                     </td>
                 `;
                 tbody.appendChild(row);
             });
-            
+
             // Show test area, hide setup
             document.getElementById('setupPanel').style.display = 'none';
             document.getElementById('testArea').classList.add('active');
@@ -1096,6 +1101,13 @@
             document.getElementById('markBtn').style.display = 'inline-block';
             document.getElementById('resetBtn').style.display = 'none';
             isMarked = false;
+
+            // Start tracking
+            testStartTime = new Date();
+            if (typeof taskTracker !== 'undefined') {
+                taskTracker.setLanguage('latin');
+                await taskTracker.start();
+            }
         }
 
         // Mark test
@@ -1253,6 +1265,21 @@
             document.getElementById('markBtn').style.display = 'none';
             document.getElementById('resetBtn').style.display = 'inline-block';
             isMarked = true;
+
+            // Track word answers and complete session
+            if (typeof taskTracker !== 'undefined' && taskTracker.isTracking) {
+                (async () => {
+                    // Record each word answer
+                    const rows = tbody.querySelectorAll('tr');
+                    rows.forEach((row, index) => {
+                        const word = testWords[index];
+                        const isCorrect = row.classList.contains('correct');
+                        taskTracker.recordWordAnswer(word, isCorrect);
+                    });
+                    // Complete the session
+                    await taskTracker.complete(percentage, testWords.length, correctCount);
+                })();
+            }
         }
 
         // Reset test
