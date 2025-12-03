@@ -80,6 +80,83 @@
             transform: translateY(-2px);
         }
 
+        /* XP Card */
+        .xp-card {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            border-radius: 16px;
+            padding: 1.25rem;
+            color: white;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+        .xp-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+        }
+        .xp-avatar {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+        .xp-info {
+            flex: 1;
+        }
+        .xp-level-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .xp-level-badge {
+            background: rgba(255,255,255,0.25);
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        .xp-level-title {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        .xp-bar-bg {
+            background: rgba(255,255,255,0.2);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.4rem;
+        }
+        .xp-bar-fill {
+            height: 100%;
+            background: white;
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+        .xp-balance-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+        .xp-cta {
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
         /* Section Title */
         .section-title {
             font-size: 1.25rem;
@@ -325,6 +402,25 @@
                 </div>
             </div>
 
+            <!-- XP Card -->
+            <a href="my-profile.html" class="xp-card" id="xpCard" style="display: none; text-decoration: none;">
+                <div class="xp-avatar" id="xpAvatar">🙂</div>
+                <div class="xp-info">
+                    <div class="xp-level-row">
+                        <span class="xp-level-badge">Level <span id="xpLevel">1</span></span>
+                        <span class="xp-level-title" id="xpLevelTitle">Novice</span>
+                    </div>
+                    <div class="xp-bar-bg">
+                        <div class="xp-bar-fill" id="xpBarFill" style="width: 0%"></div>
+                    </div>
+                    <div class="xp-balance-row">
+                        <span><span id="xpBalance">0</span> XP available</span>
+                        <span id="xpToNext">100 XP to next level</span>
+                    </div>
+                </div>
+                <div class="xp-cta">Customise Profile</div>
+            </a>
+
             <!-- Classes Section -->
             <h2 class="section-title">My Classes</h2>
             <div id="classesGrid" class="classes-grid">
@@ -344,6 +440,7 @@
     </div>
 
     <script src="../auth/config.js"></script>
+    <script src="../shared/xp-system.js"></script>
     <script>
         let currentUser = null;
         let userClasses = [];
@@ -397,8 +494,11 @@
                     document.getElementById('greeting').textContent = `Welcome back, ${firstName}!`;
                 }
 
-                // Load classes
-                await loadClasses();
+                // Load classes and XP
+                await Promise.all([
+                    loadClasses(),
+                    loadXpData()
+                ]);
 
                 // Show content
                 document.getElementById('loading').style.display = 'none';
@@ -630,6 +730,40 @@
         async function signOut() {
             await supabase.auth.signOut();
             window.location.href = '../auth/login.html';
+        }
+
+        // Load XP data
+        async function loadXpData() {
+            try {
+                await xpSystem.init();
+
+                if (!xpSystem.userId) {
+                    console.log('XP system not initialized');
+                    return;
+                }
+
+                const data = xpSystem.getDisplayData();
+
+                // Update XP card
+                document.getElementById('xpAvatar').textContent = data.emoji || '🙂';
+                document.getElementById('xpLevel').textContent = data.level;
+                document.getElementById('xpLevelTitle').textContent = data.levelTitle;
+                document.getElementById('xpBalance').textContent = data.xp.toLocaleString();
+                document.getElementById('xpBarFill').style.width = data.progress + '%';
+
+                if (data.xpToNext > 0) {
+                    document.getElementById('xpToNext').textContent =
+                        data.xpToNext.toLocaleString() + ' XP to next level';
+                } else {
+                    document.getElementById('xpToNext').textContent = 'MAX LEVEL!';
+                }
+
+                // Show the XP card
+                document.getElementById('xpCard').style.display = 'flex';
+            } catch (err) {
+                console.error('Error loading XP data:', err);
+                // Keep XP card hidden on error
+            }
         }
 
         // Start

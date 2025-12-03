@@ -888,10 +888,10 @@
                     document.getElementById('wordsLeaderboardTab').style.display = 'none';
                 }
 
-                // Get all students in the class
+                // Get all students in the class (including emoji and tag)
                 const { data: members, error: membersError } = await supabaseClient
                     .from('class_members')
-                    .select('student_id, users(id, full_name)')
+                    .select('student_id, users(id, full_name, selected_emoji, selected_tag)')
                     .eq('class_id', classId);
 
                 if (membersError || !members || members.length === 0) {
@@ -943,6 +943,7 @@
                     return {
                         id: m.student_id,
                         name: m.users?.full_name || 'Unknown',
+                        emoji: m.users?.selected_emoji || null,
                         totalTime,
                         wordsMastered,
                         avgScore,
@@ -1056,13 +1057,14 @@
                     rankClass = 'normal';
                 }
 
+                const emojiPrefix = s.emoji ? `<span style="margin-right: 0.4rem;">${s.emoji}</span>` : '';
                 const youBadge = isCurrentStudent ? '<span class="you-badge">You</span>' : '';
                 const itemClass = isCurrentStudent ? 'leaderboard-item current-student' : 'leaderboard-item';
 
                 return `
                     <li class="${itemClass}">
                         <div class="leaderboard-rank ${rankClass}">${rankDisplay}</div>
-                        <div class="leaderboard-name">${escapeHtml(s.name)}${youBadge}</div>
+                        <div class="leaderboard-name">${emojiPrefix}${escapeHtml(s.name)}${youBadge}</div>
                         <div class="leaderboard-value">${formatValue(s)}</div>
                     </li>
                 `;
@@ -1073,11 +1075,12 @@
             if (currentStudentIndex >= 10) {
                 const s = sorted[currentStudentIndex];
                 const rank = currentStudentIndex + 1;
+                const emojiPrefix = s.emoji ? `<span style="margin-right: 0.4rem;">${s.emoji}</span>` : '';
                 container.innerHTML += `
                     <li style="text-align: center; padding: 0.5rem; color: #6b7280; font-size: 0.85rem;">···</li>
                     <li class="leaderboard-item current-student">
                         <div class="leaderboard-rank normal">${rank}</div>
-                        <div class="leaderboard-name">${escapeHtml(s.name)}<span class="you-badge">You</span></div>
+                        <div class="leaderboard-name">${emojiPrefix}${escapeHtml(s.name)}<span class="you-badge">You</span></div>
                         <div class="leaderboard-value">${formatValue(s)}</div>
                     </li>
                 `;
