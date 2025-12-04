@@ -192,21 +192,33 @@ const taskTracker = {
                 const newCorrect = isCorrect ? existing.correct_count + 1 : existing.correct_count;
                 const newIncorrect = isCorrect ? existing.incorrect_count : existing.incorrect_count + 1;
 
-                // Check if this answer causes word to become mastered
+                // Check if word meets mastery criteria NOW
                 // Mastered = 3+ correct AND >70% accuracy
-                const wasntMastered = existing.correct_count < 3 ||
-                    (existing.correct_count / (existing.correct_count + existing.incorrect_count)) < 0.7;
-                const isNowMastered = newCorrect >= 3 &&
+                const meetsMasteryCriteria = newCorrect >= 3 &&
                     (newCorrect / (newCorrect + newIncorrect)) >= 0.7;
+
+                // Only award mastery bonus if:
+                // 1. Word has NEVER been mastered before (mastered_at is null)
+                // 2. Word now meets mastery criteria
+                const neverMasteredBefore = !existing.mastered_at;
+                const shouldAwardMasteryBonus = neverMasteredBefore && meetsMasteryCriteria;
+
+                // Build update object
+                const updateData = {
+                    correct_count: newCorrect,
+                    incorrect_count: newIncorrect,
+                    last_seen_at: new Date().toISOString()
+                };
+
+                // Set mastered_at timestamp if this is first time mastering
+                if (shouldAwardMasteryBonus) {
+                    updateData.mastered_at = new Date().toISOString();
+                }
 
                 // Update existing record
                 const { error: updateError } = await supabase
                     .from('word_mastery')
-                    .update({
-                        correct_count: newCorrect,
-                        incorrect_count: newIncorrect,
-                        last_seen_at: new Date().toISOString()
-                    })
+                    .update(updateData)
                     .eq('id', existing.id);
 
                 if (updateError) {
@@ -214,8 +226,8 @@ const taskTracker = {
                 } else {
                     console.log('Word mastery updated:', wordData.latin, isCorrect ? '✓' : '✗');
 
-                    // Award mastery bonus if word just became mastered
-                    if (wasntMastered && isNowMastered) {
+                    // Award mastery bonus ONLY if first time mastering this word
+                    if (shouldAwardMasteryBonus) {
                         await this.awardMasteryBonusXp(wordData.latin);
                     }
                 }
