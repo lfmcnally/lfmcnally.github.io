@@ -457,6 +457,20 @@
                 </div>
                 <div id="searchResults" style="margin-top: 0.5rem;"></div>
             </div>
+
+            <!-- Grant XP -->
+            <div class="action-card">
+                <h3>✨ Grant XP</h3>
+                <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 1rem;">Award XP to a student</p>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <select id="grantXpStudentSelect" class="form-select" style="flex: 2;">
+                        <option value="">Select a student...</option>
+                    </select>
+                    <input type="number" id="grantXpAmount" class="form-input" placeholder="XP" min="1" style="flex: 1; width: 80px;">
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="grantXpToStudent()">Grant XP</button>
+                <div id="grantXpMessage" style="margin-top: 0.5rem;"></div>
+            </div>
         </div>
 
         <!-- Tabs -->
@@ -621,11 +635,16 @@
                 .order('full_name');
 
             allStudents = students || [];
-            const select = document.getElementById('viewAsStudentSelect');
-            select.innerHTML = '<option value="">Select a student...</option>';
+            const viewSelect = document.getElementById('viewAsStudentSelect');
+            const grantSelect = document.getElementById('grantXpStudentSelect');
+
+            viewSelect.innerHTML = '<option value="">Select a student...</option>';
+            grantSelect.innerHTML = '<option value="">Select a student...</option>';
 
             students?.forEach(s => {
-                select.innerHTML += `<option value="${s.id}">${s.full_name || 'Unknown'} (${s.email})</option>`;
+                const option = `<option value="${s.id}">${s.full_name || 'Unknown'} (${s.email})</option>`;
+                viewSelect.innerHTML += option;
+                grantSelect.innerHTML += option;
             });
         }
 
@@ -637,6 +656,65 @@
             }
             // Open student dashboard in new tab with view-as parameter
             window.open(`student.html?view_as=${studentId}`, '_blank');
+        }
+
+        // Grant XP to Student
+        async function grantXpToStudent() {
+            const studentId = document.getElementById('grantXpStudentSelect').value;
+            const amount = parseInt(document.getElementById('grantXpAmount').value);
+            const messageDiv = document.getElementById('grantXpMessage');
+
+            if (!studentId) {
+                messageDiv.innerHTML = '<div class="message error">Please select a student</div>';
+                return;
+            }
+            if (!amount || amount < 1) {
+                messageDiv.innerHTML = '<div class="message error">Please enter a valid XP amount</div>';
+                return;
+            }
+
+            // Get student's current XP
+            const { data: student, error: fetchError } = await supabase
+                .from('users')
+                .select('xp, total_xp_earned, full_name')
+                .eq('id', studentId)
+                .single();
+
+            if (fetchError || !student) {
+                messageDiv.innerHTML = '<div class="message error">Error fetching student data</div>';
+                return;
+            }
+
+            const newXp = (student.xp || 0) + amount;
+            const newTotal = (student.total_xp_earned || 0) + amount;
+
+            // Update student XP
+            const { error: updateError } = await supabase
+                .from('users')
+                .update({
+                    xp: newXp,
+                    total_xp_earned: newTotal
+                })
+                .eq('id', studentId);
+
+            if (updateError) {
+                messageDiv.innerHTML = `<div class="message error">Error: ${updateError.message}</div>`;
+                return;
+            }
+
+            // Log the transaction
+            await supabase
+                .from('xp_transactions')
+                .insert({
+                    user_id: studentId,
+                    amount: amount,
+                    reason: 'admin_grant'
+                });
+
+            messageDiv.innerHTML = `<div class="message success">Granted ${amount} XP to ${student.full_name || 'student'}!</div>`;
+            document.getElementById('grantXpAmount').value = '';
+
+            setTimeout(() => { messageDiv.innerHTML = ''; }, 3000);
         }
 
         // Search
