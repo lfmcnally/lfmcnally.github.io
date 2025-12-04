@@ -149,15 +149,43 @@ const xpSystem = {
         { id: 'work_in_progress', text: 'Work in Progress', emoji: '🚧', cost: 75, category: 'starter' },
         { id: 'trying_my_best', text: 'Trying My Best', emoji: '💪', cost: 100, category: 'starter' },
 
-        // Gaming style
-        { id: 'first_blood', text: 'First Blood', emoji: '🩸', cost: 150, category: 'gaming' },
-        { id: 'on_a_streak', text: 'On a Streak', emoji: '🔥', cost: 200, category: 'gaming' },
-        { id: 'unstoppable', text: 'Unstoppable', emoji: '⚡', cost: 300, category: 'gaming' },
-        { id: 'prestige', text: 'Prestige', emoji: '⭐', cost: 500, category: 'gaming' },
-        { id: 'mvp', text: 'MVP', emoji: '🏆', cost: 400, category: 'gaming' },
-        { id: 'goated', text: 'Goated', emoji: '🐐', cost: 350, category: 'gaming' },
-        { id: 'built_different', text: 'Built Different', emoji: '🏗️', cost: 450, category: 'gaming' },
-        { id: 'final_boss', text: 'Final Boss', emoji: '👾', cost: 750, category: 'gaming' },
+        // Latin
+        { id: 'carpe_diem', text: 'Carpe Diem', emoji: '☀️', cost: 150, category: 'latin' },
+        { id: 'veni_vidi_vici', text: 'Veni, Vidi, Vici', emoji: '⚔️', cost: 300, category: 'latin' },
+        { id: 'per_aspera', text: 'Per Aspera Ad Astra', emoji: '⭐', cost: 250, category: 'latin' },
+        { id: 'dulce_periculum', text: 'Dulce Periculum', emoji: '🎲', cost: 200, category: 'latin' },
+        { id: 'audentes_fortuna', text: 'Audentes Fortuna Iuvat', emoji: '🍀', cost: 350, category: 'latin' },
+        { id: 'memento_mori', text: 'Memento Mori', emoji: '💀', cost: 400, category: 'latin' },
+        { id: 'tempus_fugit', text: 'Tempus Fugit', emoji: '⏳', cost: 175, category: 'latin' },
+        { id: 'in_vino_veritas', text: 'In Vino Veritas', emoji: '🍷', cost: 225, category: 'latin' },
+
+        // Greek
+        { id: 'eureka', text: 'Eureka!', emoji: '💡', cost: 150, category: 'greek' },
+        { id: 'know_thyself', text: 'Γνῶθι Σεαυτόν', emoji: '🪞', cost: 200, category: 'greek' },
+        { id: 'nothing_excess', text: 'Μηδὲν Ἄγαν', emoji: '⚖️', cost: 175, category: 'greek' },
+        { id: 'arete', text: 'Ἀρετή', emoji: '🏅', cost: 250, category: 'greek' },
+        { id: 'sophrosyne', text: 'Σωφροσύνη', emoji: '🧘', cost: 225, category: 'greek' },
+        { id: 'kudos', text: 'Κῦδος', emoji: '🌟', cost: 300, category: 'greek' },
+        { id: 'kalos_kagathos', text: 'Καλὸς κἀγαθός', emoji: '✨', cost: 350, category: 'greek' },
+
+        // Ancient Rome
+        { id: 'senator', text: 'Senator', emoji: '🏛️', cost: 200, category: 'roman' },
+        { id: 'centurion', text: 'Centurion', emoji: '🛡️', cost: 300, category: 'roman' },
+        { id: 'gladiator', text: 'Gladiator', emoji: '⚔️', cost: 350, category: 'roman' },
+        { id: 'praetor', text: 'Praetor', emoji: '📜', cost: 400, category: 'roman' },
+        { id: 'consul', text: 'Consul', emoji: '🦅', cost: 500, category: 'roman' },
+        { id: 'ave_caesar', text: 'Ave Caesar', emoji: '👑', cost: 750, category: 'roman' },
+        { id: 'spqr', text: 'S.P.Q.R.', emoji: '🏛️', cost: 450, category: 'roman' },
+        { id: 'roma_invicta', text: 'Roma Invicta', emoji: '🐺', cost: 600, category: 'roman' },
+
+        // Ancient Greece
+        { id: 'philosopher', text: 'Philosopher', emoji: '🤔', cost: 200, category: 'greek_culture' },
+        { id: 'olympian', text: 'Olympian', emoji: '🏆', cost: 350, category: 'greek_culture' },
+        { id: 'spartan', text: 'Spartan', emoji: '🔱', cost: 400, category: 'greek_culture' },
+        { id: 'athenian', text: 'Athenian', emoji: '🦉', cost: 300, category: 'greek_culture' },
+        { id: 'oracle', text: 'Oracle of Delphi', emoji: '🔮', cost: 500, category: 'greek_culture' },
+        { id: 'muse', text: 'Muse', emoji: '🎭', cost: 275, category: 'greek_culture' },
+        { id: 'argonaut', text: 'Argonaut', emoji: '⛵', cost: 450, category: 'greek_culture' },
 
         // Teacher sayings
         { id: 'piece_of_string', text: 'How long is a piece of string?', emoji: '🧵', cost: 200, category: 'teacher' },
@@ -167,23 +195,23 @@ const xpSystem = {
         { id: 'context_is_key', text: 'Context is Key', emoji: '🔑', cost: 200, category: 'teacher' },
         { id: 'nearly_there', text: 'Nearly There...', emoji: '🎯', cost: 150, category: 'teacher' },
 
-        // Fun/Meme
+        // Fun Student
         { id: 'no_thoughts', text: 'No Thoughts Head Empty', emoji: '💭', cost: 200, category: 'fun' },
         { id: 'professional_guesser', text: 'Professional Guesser', emoji: '🎲', cost: 175, category: 'fun' },
         { id: 'chaotic_energy', text: 'Chaotic Energy', emoji: '🌀', cost: 250, category: 'fun' },
-        { id: 'menace', text: 'Certified Menace', emoji: '😈', cost: 300, category: 'fun' },
         { id: 'sleep_deprived', text: 'Sleep Deprived', emoji: '😴', cost: 150, category: 'fun' },
-        { id: 'living_legend', text: 'Living Legend', emoji: '🗿', cost: 400, category: 'fun' },
-        { id: 'main_character', text: 'Main Character', emoji: '✨', cost: 350, category: 'fun' },
-        { id: 'npc_energy', text: 'NPC Energy', emoji: '🤖', cost: 200, category: 'fun' },
+        { id: 'big_brain', text: 'Big Brain', emoji: '🧠', cost: 300, category: 'fun' },
+        { id: 'procrastinator', text: 'Professional Procrastinator', emoji: '⏰', cost: 200, category: 'fun' },
+        { id: 'caffeine_powered', text: 'Caffeine Powered', emoji: '☕', cost: 175, category: 'fun' },
+        { id: 'night_owl', text: 'Night Owl', emoji: '🦉', cost: 225, category: 'fun' },
 
-        // Premium/Rare
-        { id: 'ascended', text: 'Ascended', emoji: '🌟', cost: 1000, category: 'premium' },
-        { id: 'galaxy_brain', text: 'Galaxy Brain', emoji: '🌌', cost: 800, category: 'premium' },
-        { id: 'sigma', text: 'Sigma', emoji: '🐺', cost: 600, category: 'premium' },
-        { id: 'god_mode', text: 'God Mode', emoji: '👑', cost: 1500, category: 'premium' },
-        { id: 'mythical', text: 'Mythical', emoji: '🐉', cost: 1250, category: 'premium' },
-        { id: 'legendary', text: 'Legendary', emoji: '💎', cost: 2000, category: 'premium' },
+        // Mythical/Premium
+        { id: 'titan', text: 'Titan', emoji: '🗻', cost: 800, category: 'mythical' },
+        { id: 'demigod', text: 'Demigod', emoji: '⚡', cost: 1000, category: 'mythical' },
+        { id: 'immortal', text: 'Immortal', emoji: '🌟', cost: 1500, category: 'mythical' },
+        { id: 'olympus', text: 'Dweller of Olympus', emoji: '☁️', cost: 2000, category: 'mythical' },
+        { id: 'phoenix', text: 'Phoenix', emoji: '🔥', cost: 1250, category: 'mythical' },
+        { id: 'pegasus', text: 'Pegasus', emoji: '🐴', cost: 900, category: 'mythical' },
     ],
 
     // ============================================
