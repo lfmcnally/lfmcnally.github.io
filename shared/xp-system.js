@@ -143,44 +143,47 @@ const xpSystem = {
     // ============================================
     // Tags cost XP to purchase (one-time, permanent)
     TAGS: [
-        // Starter tags (cheap)
-        { id: 'novice_learner', text: 'Novice Learner', emoji: '📖', cost: 50, category: 'starter' },
-        { id: 'eager_student', text: 'Eager Student', emoji: '✨', cost: 75, category: 'starter' },
-        { id: 'word_warrior', text: 'Word Warrior', emoji: '⚔️', cost: 100, category: 'starter' },
+        // Starter (cheap entry tags)
+        { id: 'rookie', text: 'Rookie', emoji: '🌱', cost: 25, category: 'starter' },
+        { id: 'just_vibing', text: 'Just Vibing', emoji: '😎', cost: 50, category: 'starter' },
+        { id: 'work_in_progress', text: 'Work in Progress', emoji: '🚧', cost: 75, category: 'starter' },
+        { id: 'trying_my_best', text: 'Trying My Best', emoji: '💪', cost: 100, category: 'starter' },
 
-        // Latin themed
-        { id: 'latin_lover', text: 'Latin Lover', emoji: '❤️', cost: 150, category: 'latin' },
-        { id: 'roman_soldier', text: 'Roman Soldier', emoji: '🛡️', cost: 200, category: 'latin' },
-        { id: 'senator', text: 'Senator', emoji: '🏛️', cost: 300, category: 'latin' },
-        { id: 'caesar', text: 'Ave Caesar', emoji: '👑', cost: 500, category: 'latin' },
-        { id: 'latin_legend', text: 'Latin Legend', emoji: '🏆', cost: 750, category: 'latin' },
+        // Gaming style
+        { id: 'first_blood', text: 'First Blood', emoji: '🩸', cost: 150, category: 'gaming' },
+        { id: 'on_a_streak', text: 'On a Streak', emoji: '🔥', cost: 200, category: 'gaming' },
+        { id: 'unstoppable', text: 'Unstoppable', emoji: '⚡', cost: 300, category: 'gaming' },
+        { id: 'prestige', text: 'Prestige', emoji: '⭐', cost: 500, category: 'gaming' },
+        { id: 'mvp', text: 'MVP', emoji: '🏆', cost: 400, category: 'gaming' },
+        { id: 'goated', text: 'Goated', emoji: '🐐', cost: 350, category: 'gaming' },
+        { id: 'built_different', text: 'Built Different', emoji: '🏗️', cost: 450, category: 'gaming' },
+        { id: 'final_boss', text: 'Final Boss', emoji: '👾', cost: 750, category: 'gaming' },
 
-        // Greek themed
-        { id: 'greek_explorer', text: 'Greek Explorer', emoji: '🏺', cost: 150, category: 'greek' },
-        { id: 'spartan', text: 'Spartan', emoji: '⚔️', cost: 200, category: 'greek' },
-        { id: 'philosopher', text: 'Philosopher', emoji: '🤔', cost: 300, category: 'greek' },
-        { id: 'olympian', text: 'Olympian', emoji: '⚡', cost: 500, category: 'greek' },
-        { id: 'greek_god', text: 'Greek God', emoji: '🌩️', cost: 750, category: 'greek' },
+        // Teacher sayings
+        { id: 'piece_of_string', text: 'How long is a piece of string?', emoji: '🧵', cost: 200, category: 'teacher' },
+        { id: 'depends', text: 'It Depends...', emoji: '🤔', cost: 150, category: 'teacher' },
+        { id: 'read_the_question', text: 'Read the Question!', emoji: '👀', cost: 175, category: 'teacher' },
+        { id: 'show_working', text: 'Show Your Working', emoji: '📝', cost: 125, category: 'teacher' },
+        { id: 'context_is_key', text: 'Context is Key', emoji: '🔑', cost: 200, category: 'teacher' },
+        { id: 'nearly_there', text: 'Nearly There...', emoji: '🎯', cost: 150, category: 'teacher' },
 
-        // Achievement themed
-        { id: 'vocab_victor', text: 'Vocab Victor', emoji: '📚', cost: 250, category: 'achievement' },
-        { id: 'streak_master', text: 'Streak Master', emoji: '🔥', cost: 300, category: 'achievement' },
-        { id: 'perfectionist', text: 'Perfectionist', emoji: '💯', cost: 400, category: 'achievement' },
-        { id: 'time_lord', text: 'Time Lord', emoji: '⏰', cost: 350, category: 'achievement' },
-        { id: 'dedication', text: 'Dedicated Scholar', emoji: '💪', cost: 500, category: 'achievement' },
+        // Fun/Meme
+        { id: 'no_thoughts', text: 'No Thoughts Head Empty', emoji: '💭', cost: 200, category: 'fun' },
+        { id: 'professional_guesser', text: 'Professional Guesser', emoji: '🎲', cost: 175, category: 'fun' },
+        { id: 'chaotic_energy', text: 'Chaotic Energy', emoji: '🌀', cost: 250, category: 'fun' },
+        { id: 'menace', text: 'Certified Menace', emoji: '😈', cost: 300, category: 'fun' },
+        { id: 'sleep_deprived', text: 'Sleep Deprived', emoji: '😴', cost: 150, category: 'fun' },
+        { id: 'living_legend', text: 'Living Legend', emoji: '🗿', cost: 400, category: 'fun' },
+        { id: 'main_character', text: 'Main Character', emoji: '✨', cost: 350, category: 'fun' },
+        { id: 'npc_energy', text: 'NPC Energy', emoji: '🤖', cost: 200, category: 'fun' },
 
-        // Fun/meme
-        { id: 'big_brain', text: 'Big Brain', emoji: '🧠', cost: 200, category: 'fun' },
-        { id: 'night_owl', text: 'Night Owl', emoji: '🦉', cost: 175, category: 'fun' },
-        { id: 'coffee_addict', text: 'Coffee Addict', emoji: '☕', cost: 125, category: 'fun' },
-        { id: 'bookworm', text: 'Bookworm', emoji: '🐛', cost: 150, category: 'fun' },
-        { id: 'galaxy_brain', text: 'Galaxy Brain', emoji: '🌌', cost: 600, category: 'fun' },
-
-        // Premium/rare
-        { id: 'enlightened', text: 'Enlightened One', emoji: '✨', cost: 1000, category: 'premium' },
-        { id: 'ancient_wisdom', text: 'Ancient Wisdom', emoji: '📿', cost: 1250, category: 'premium' },
-        { id: 'immortal_scholar', text: 'Immortal Scholar', emoji: '🌟', cost: 1500, category: 'premium' },
-        { id: 'classicalia_legend', text: 'Classicalia Legend', emoji: '🏛️', cost: 2000, category: 'premium' },
+        // Premium/Rare
+        { id: 'ascended', text: 'Ascended', emoji: '🌟', cost: 1000, category: 'premium' },
+        { id: 'galaxy_brain', text: 'Galaxy Brain', emoji: '🌌', cost: 800, category: 'premium' },
+        { id: 'sigma', text: 'Sigma', emoji: '🐺', cost: 600, category: 'premium' },
+        { id: 'god_mode', text: 'God Mode', emoji: '👑', cost: 1500, category: 'premium' },
+        { id: 'mythical', text: 'Mythical', emoji: '🐉', cost: 1250, category: 'premium' },
+        { id: 'legendary', text: 'Legendary', emoji: '💎', cost: 2000, category: 'premium' },
     ],
 
     // ============================================
