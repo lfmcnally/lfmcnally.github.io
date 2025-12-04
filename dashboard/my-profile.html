@@ -62,6 +62,24 @@
             justify-content: center;
             font-size: 3rem;
             border: 3px solid rgba(255,255,255,0.3);
+            position: relative;
+        }
+        .level-badge-avatar {
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: #1f2937;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 800;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         .profile-info h1 {
             font-size: 1.75rem;
@@ -194,18 +212,68 @@
             padding: 1.25rem;
         }
 
+        /* Emoji Collection Header */
+        .emoji-collection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .collection-progress {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .collection-count {
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+        .collection-count strong {
+            color: #8b5cf6;
+        }
+        .unlock-btn {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .unlock-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        }
+        .unlock-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .unlock-btn .cost {
+            background: rgba(255,255,255,0.2);
+            padding: 0.15rem 0.4rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
         /* Emoji Grid */
         .emoji-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-            gap: 0.75rem;
+            grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+            gap: 0.5rem;
         }
         .emoji-item {
             aspect-ratio: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 1.75rem;
             background: #f9fafb;
             border: 2px solid #e5e7eb;
             border-radius: 12px;
@@ -223,41 +291,13 @@
             box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
         }
         .emoji-item.locked {
-            opacity: 0.4;
-            cursor: not-allowed;
-            filter: grayscale(100%);
+            background: linear-gradient(135deg, #e5e7eb, #d1d5db);
+            cursor: default;
+            font-size: 1.25rem;
+            color: #9ca3af;
         }
-        .emoji-item .lock-badge {
-            position: absolute;
-            bottom: 2px;
-            right: 2px;
-            font-size: 0.7rem;
-            background: #6b7280;
-            color: white;
-            padding: 0.1rem 0.3rem;
-            border-radius: 4px;
-        }
-
-        /* Level Divider */
-        .level-divider {
-            grid-column: 1 / -1;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem 0;
-            color: #6b7280;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        .level-divider::before,
-        .level-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: #e5e7eb;
-        }
-        .level-divider.unlocked {
-            color: #8b5cf6;
+        .emoji-item.locked:hover {
+            transform: none;
         }
 
         /* Tag Grid */
@@ -524,7 +564,10 @@
             <div class="header">
                 <div class="header-content">
                     <div class="header-left">
-                        <div class="profile-avatar" id="profileAvatar">🙂</div>
+                        <div class="profile-avatar" id="profileAvatar">
+                            <span id="avatarEmoji">🙂</span>
+                            <div class="level-badge-avatar" id="avatarLevelBadge">1</div>
+                        </div>
                         <div class="profile-info">
                             <h1 id="userName">Student Name</h1>
                             <div class="profile-tag" id="profileTag" style="display: none;">
@@ -557,13 +600,24 @@
                 </div>
             </div>
 
-            <!-- Emoji Selection -->
+            <!-- Emoji Collection -->
             <div class="section">
                 <div class="section-header">
-                    <h2 class="section-title">Choose Your Emoji</h2>
+                    <h2 class="section-title">🎲 Emoji Collection</h2>
                     <button class="clear-btn" onclick="clearEmoji()">Clear Selection</button>
                 </div>
                 <div class="section-body">
+                    <div class="emoji-collection-header">
+                        <div class="collection-progress">
+                            <span class="collection-count">
+                                <strong id="emojiUnlockedCount">0</strong> / <span id="emojiTotalCount">96</span> unlocked
+                            </span>
+                        </div>
+                        <button class="unlock-btn" id="unlockBtn" onclick="unlockRandomEmoji()">
+                            🎲 Unlock Random
+                            <span class="cost" id="unlockCost">100 XP</span>
+                        </button>
+                    </div>
                     <div class="emoji-grid" id="emojiGrid">
                         <!-- Emojis inserted by JS -->
                     </div>
@@ -690,31 +744,32 @@
         function renderEmojis() {
             const grid = document.getElementById('emojiGrid');
             const allEmojis = xpSystem.getAllEmojisWithStatus();
-            const currentLevel = xpSystem.getLevel().level;
+            const collection = xpSystem.getCollectionProgress();
+
+            // Update collection counts
+            document.getElementById('emojiUnlockedCount').textContent = collection.unlocked;
+            document.getElementById('emojiTotalCount').textContent = collection.total;
+
+            // Update unlock button state
+            const unlockBtn = document.getElementById('unlockBtn');
+            const canUnlock = xpSystem.canUnlockEmoji();
+            unlockBtn.disabled = !canUnlock;
+            document.getElementById('unlockCost').textContent = xpSystem.EMOJI_UNLOCK_COST + ' XP';
 
             let html = '';
-            let lastLevel = 0;
 
             for (const item of allEmojis) {
-                // Add level divider
-                if (item.level !== lastLevel) {
-                    const unlocked = item.level <= currentLevel;
-                    html += `
-                        <div class="level-divider ${unlocked ? 'unlocked' : ''}">
-                            ${unlocked ? '✓' : '🔒'} Level ${item.level}
-                        </div>
-                    `;
-                    lastLevel = item.level;
-                }
-
                 const classes = ['emoji-item'];
                 if (item.selected) classes.push('selected');
                 if (!item.unlocked) classes.push('locked');
 
+                // Show ❓ for locked emojis (mystery), actual emoji for unlocked
+                const displayEmoji = item.unlocked ? item.emoji : '❓';
+                const onclick = item.unlocked ? `selectEmoji('${item.emoji}')` : '';
+
                 html += `
-                    <div class="${classes.join(' ')}" onclick="${item.unlocked ? `selectEmoji('${item.emoji}')` : ''}">
-                        ${item.emoji}
-                        ${!item.unlocked ? `<span class="lock-badge">Lv${item.level}</span>` : ''}
+                    <div class="${classes.join(' ')}" onclick="${onclick}">
+                        ${displayEmoji}
                     </div>
                 `;
             }
@@ -765,8 +820,11 @@
         function updateHeaderDisplay() {
             const data = xpSystem.getDisplayData();
 
-            // Update avatar
-            document.getElementById('profileAvatar').textContent = data.emoji || '🙂';
+            // Update avatar emoji
+            document.getElementById('avatarEmoji').textContent = data.emoji || '🙂';
+
+            // Update level badge on avatar
+            document.getElementById('avatarLevelBadge').textContent = data.level;
 
             // Update tag
             const tagEl = document.getElementById('profileTag');
@@ -818,6 +876,26 @@
                 renderTags();
                 updateHeaderDisplay();
                 showToast('Tag removed', 'success');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function unlockRandomEmoji() {
+            try {
+                const result = await xpSystem.unlockRandomEmoji();
+
+                // Refresh displays
+                renderXpSection();
+                renderEmojis();
+
+                // Show celebration toast with the new emoji
+                showToast(`🎉 You unlocked: ${result.emoji}`, 'success');
+
+                // Auto-select the new emoji
+                await xpSystem.selectEmoji(result.emoji);
+                renderEmojis();
+                updateHeaderDisplay();
             } catch (err) {
                 showToast(err.message, 'error');
             }

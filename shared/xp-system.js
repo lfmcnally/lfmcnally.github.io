@@ -43,23 +43,38 @@ const xpSystem = {
     ],
 
     // ============================================
-    // EMOJI UNLOCKS BY LEVEL
+    // EMOJI COLLECTION (Mystery unlock system)
     // ============================================
-    // Each level unlocks new emoji options
-    EMOJI_UNLOCKS: {
-        1:  ['😊', '🙂', '😎', '🤓'],                    // Starter faces
-        2:  ['📚', '📖', '✏️', '📝'],                    // Study basics
-        3:  ['⭐', '🌟', '✨', '💫'],                    // Stars
-        4:  ['🏛️', '🏺', '📜', '🗿'],                    // Classical
-        5:  ['🦁', '🐺', '🦅', '🐉'],                    // Animals
-        6:  ['⚔️', '🛡️', '🗡️', '🏹'],                   // Weapons
-        7:  ['👑', '💎', '🔮', '🎭'],                    // Royal/Magic
-        8:  ['🔥', '💀', '⚡', '🌙'],                    // Epic
-        9:  ['🌈', '🎨', '🎵', '🎪'],                    // Creative
-        10: ['🚀', '🌍', '☀️', '🌌'],                    // Cosmic
-        11: ['🐲', '🦄', '🧙', '🧝'],                    // Mythical
-        12: ['👾', '🤖', '💯', '🏆'],                    // Ultimate
-    },
+    // All emojis cost XP to unlock - random selection, no level-gating
+    EMOJI_UNLOCK_COST: 100,  // Cost to unlock one random emoji
+
+    // All collectible emojis (mystery pool)
+    ALL_EMOJIS: [
+        // Faces
+        '😊', '🙂', '😎', '🤓', '😄', '🥳', '🤩', '😇',
+        // Study
+        '📚', '📖', '✏️', '📝', '🎓', '📜', '🖋️', '📕',
+        // Stars & sparkles
+        '⭐', '🌟', '✨', '💫', '🔆', '💥', '🎇', '🎆',
+        // Classical
+        '🏛️', '🏺', '🗿', '⚱️', '🪔', '🎭', '🏟️', '⛩️',
+        // Animals
+        '🦁', '🐺', '🦅', '🐉', '🦊', '🐻', '🦉', '🐍',
+        // Weapons & shields
+        '⚔️', '🛡️', '🗡️', '🏹', '🔱', '⚒️', '🪓', '💣',
+        // Royal & magic
+        '👑', '💎', '🔮', '💍', '🧿', '🪬', '📿', '🎪',
+        // Epic & dark
+        '🔥', '💀', '⚡', '🌙', '☄️', '🌋', '👻', '💜',
+        // Creative
+        '🌈', '🎨', '🎵', '🎸', '🎤', '🎬', '🎯', '🎲',
+        // Cosmic
+        '🚀', '🌍', '☀️', '🌌', '🪐', '🌕', '💫', '🛸',
+        // Mythical
+        '🐲', '🦄', '🧙', '🧝', '🧚', '🧜', '🧞', '🦋',
+        // Ultimate
+        '👾', '🤖', '💯', '🏆', '🎖️', '🥇', '👁️', '🗝️',
+    ],
 
     // ============================================
     // TAGS SHOP
@@ -239,49 +254,94 @@ const xpSystem = {
     },
 
     // ============================================
-    // EMOJI METHODS
+    // EMOJI METHODS (Mystery unlock system)
     // ============================================
 
     getAvailableEmojis() {
-        // Get all emojis unlocked by level
-        const level = this.getLevel().level;
-        let available = [];
+        // Only return emojis that have been unlocked/purchased
+        return [...this.unlockedEmojis];
+    },
 
-        for (let l = 1; l <= level; l++) {
-            if (this.EMOJI_UNLOCKS[l]) {
-                available = available.concat(this.EMOJI_UNLOCKS[l]);
-            }
-        }
-
-        // Add any additionally unlocked emojis (from purchases, seasons, etc.)
-        for (const emoji of this.unlockedEmojis) {
-            if (!available.includes(emoji)) {
-                available.push(emoji);
-            }
-        }
-
-        return available;
+    getLockedEmojis() {
+        // Get emojis that haven't been unlocked yet
+        return this.ALL_EMOJIS.filter(emoji => !this.unlockedEmojis.includes(emoji));
     },
 
     getAllEmojisWithStatus() {
-        // Returns all emojis with their unlock status
-        const available = this.getAvailableEmojis();
-        const currentLevel = this.getLevel().level;
-        const result = [];
+        // Returns all emojis with their unlock status (for display grid)
+        return this.ALL_EMOJIS.map(emoji => ({
+            emoji,
+            unlocked: this.unlockedEmojis.includes(emoji),
+            selected: this.selectedEmoji === emoji
+        }));
+    },
 
-        for (const [levelNum, emojis] of Object.entries(this.EMOJI_UNLOCKS)) {
-            const level = parseInt(levelNum);
-            for (const emoji of emojis) {
-                result.push({
-                    emoji,
-                    level,
-                    unlocked: available.includes(emoji),
-                    selected: this.selectedEmoji === emoji
-                });
-            }
+    getCollectionProgress() {
+        return {
+            unlocked: this.unlockedEmojis.length,
+            total: this.ALL_EMOJIS.length,
+            percent: Math.round((this.unlockedEmojis.length / this.ALL_EMOJIS.length) * 100)
+        };
+    },
+
+    canUnlockEmoji() {
+        // Check if user can afford to unlock and there are emojis left
+        const lockedEmojis = this.getLockedEmojis();
+        return this.userXp >= this.EMOJI_UNLOCK_COST && lockedEmojis.length > 0;
+    },
+
+    async unlockRandomEmoji() {
+        // Get emojis that haven't been unlocked yet
+        const lockedEmojis = this.getLockedEmojis();
+
+        if (lockedEmojis.length === 0) {
+            throw new Error('All emojis already unlocked!');
         }
 
-        return result;
+        if (this.userXp < this.EMOJI_UNLOCK_COST) {
+            throw new Error(`Not enough XP. Need ${this.EMOJI_UNLOCK_COST} XP.`);
+        }
+
+        // Pick a random emoji from the locked pool
+        const randomIndex = Math.floor(Math.random() * lockedEmojis.length);
+        const newEmoji = lockedEmojis[randomIndex];
+
+        // Deduct XP
+        const newXp = this.userXp - this.EMOJI_UNLOCK_COST;
+
+        // Update user XP
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ xp: newXp })
+            .eq('id', this.userId);
+
+        if (updateError) throw updateError;
+
+        // Record the unlock
+        const { error: unlockError } = await supabase
+            .from('emoji_unlocks')
+            .insert({
+                user_id: this.userId,
+                emoji: newEmoji,
+                unlock_source: 'purchase'
+            });
+
+        if (unlockError) throw unlockError;
+
+        // Log transaction
+        await this.logTransaction(-this.EMOJI_UNLOCK_COST, 'emoji_unlock', null);
+
+        // Update local state
+        this.userXp = newXp;
+        this.unlockedEmojis.push(newEmoji);
+
+        console.log(`🎉 Unlocked new emoji: ${newEmoji}`);
+
+        return {
+            emoji: newEmoji,
+            remaining: lockedEmojis.length - 1,
+            newXpBalance: newXp
+        };
     },
 
     async selectEmoji(emoji) {
@@ -448,10 +508,9 @@ const xpSystem = {
             }));
         }
 
-        // Check for level up and unlock new emojis
+        // Check for level up (no automatic emoji unlocks - those are purchased now)
         const newLevel = this.getLevel().level;
         if (newLevel > oldLevel) {
-            await this.unlockLevelEmojis(newLevel);
             console.log(`Level up! ${oldLevel} -> ${newLevel}`);
             // Emit level up event
             if (typeof window !== 'undefined') {
@@ -463,28 +522,6 @@ const xpSystem = {
         }
 
         return { levelUp: false, xpAwarded: amount };
-    },
-
-    async unlockLevelEmojis(level) {
-        const emojis = this.EMOJI_UNLOCKS[level];
-        if (!emojis) return;
-
-        for (const emoji of emojis) {
-            if (!this.unlockedEmojis.includes(emoji)) {
-                try {
-                    await supabase
-                        .from('emoji_unlocks')
-                        .insert({
-                            user_id: this.userId,
-                            emoji: emoji,
-                            unlock_source: 'level'
-                        });
-                    this.unlockedEmojis.push(emoji);
-                } catch (e) {
-                    // Ignore duplicates
-                }
-            }
-        }
     },
 
     async logTransaction(amount, reason, referenceId) {
@@ -545,6 +582,7 @@ const xpSystem = {
     getDisplayData() {
         const level = this.getLevel();
         const tag = this.selectedTag ? this.getTagById(this.selectedTag) : null;
+        const collection = this.getCollectionProgress();
 
         return {
             xp: this.userXp,
@@ -554,7 +592,11 @@ const xpSystem = {
             emoji: this.selectedEmoji,
             tag: tag ? { text: tag.text, emoji: tag.emoji } : null,
             progress: this.getLevelProgress(),
-            xpToNext: this.getXpToNextLevel()
+            xpToNext: this.getXpToNextLevel(),
+            // Emoji collection info
+            emojiCollection: collection,
+            emojiUnlockCost: this.EMOJI_UNLOCK_COST,
+            canUnlockEmoji: this.canUnlockEmoji()
         };
     }
 };
