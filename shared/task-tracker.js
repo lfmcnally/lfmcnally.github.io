@@ -141,6 +141,7 @@ const taskTracker = {
     },
     
     // Record a word answer (correct or incorrect)
+    // Awards XP immediately for correct answers and word mastery
     async recordWordAnswer(wordData, isCorrect) {
         if (!this.userId) {
             // Try to init if not done
@@ -150,21 +151,26 @@ const taskTracker = {
                 return;
             }
         }
-        
+
         // Record activity time (only counts active time, not idle)
         this.recordActivity();
-        
+
         // Track counts for this session
         this.questionsAnswered++;
         if (isCorrect) this.correctAnswers++;
-        
+
         // Track for this session
         this.wordsAnswered.push({
             word: wordData.latin,
             correct: isCorrect,
             timestamp: new Date()
         });
-        
+
+        // Award XP immediately for correct answers
+        if (isCorrect) {
+            await this.awardWordXp(wordData.latin);
+        }
+
         // Update word_mastery table
         try {
             // First, try to get existing record (check by language too)
@@ -175,29 +181,45 @@ const taskTracker = {
                 .eq('word_latin', wordData.latin)
                 .eq('language', this.language)
                 .maybeSingle();
-            
+
             if (fetchError) {
                 console.error('Error fetching word mastery:', fetchError);
                 return;
             }
-            
+
             if (existing) {
+                // Calculate new counts
+                const newCorrect = isCorrect ? existing.correct_count + 1 : existing.correct_count;
+                const newIncorrect = isCorrect ? existing.incorrect_count : existing.incorrect_count + 1;
+
+                // Check if this answer causes word to become mastered
+                // Mastered = 3+ correct AND >70% accuracy
+                const wasntMastered = existing.correct_count < 3 ||
+                    (existing.correct_count / (existing.correct_count + existing.incorrect_count)) < 0.7;
+                const isNowMastered = newCorrect >= 3 &&
+                    (newCorrect / (newCorrect + newIncorrect)) >= 0.7;
+
                 // Update existing record
                 const { error: updateError } = await supabase
                     .from('word_mastery')
                     .update({
-                        correct_count: isCorrect ? existing.correct_count + 1 : existing.correct_count,
-                        incorrect_count: isCorrect ? existing.incorrect_count : existing.incorrect_count + 1,
+                        correct_count: newCorrect,
+                        incorrect_count: newIncorrect,
                         last_seen_at: new Date().toISOString()
                     })
                     .eq('id', existing.id);
-                
+
                 if (updateError) {
                     console.error('Error updating word mastery:', updateError);
                 } else {
                     console.log('Word mastery updated:', wordData.latin, isCorrect ? '✓' : '✗');
+
+                    // Award mastery bonus if word just became mastered
+                    if (wasntMastered && isNowMastered) {
+                        await this.awardMasteryBonusXp(wordData.latin);
+                    }
                 }
-                    
+
             } else {
                 // Insert new record with language
                 const { error: insertError } = await supabase
@@ -212,16 +234,59 @@ const taskTracker = {
                         incorrect_count: isCorrect ? 0 : 1,
                         last_seen_at: new Date().toISOString()
                     });
-                
+
                 if (insertError) {
                     console.error('Error inserting word mastery:', insertError);
                 } else {
                     console.log('Word mastery created:', wordData.latin, '(' + this.language + ')', isCorrect ? '✓' : '✗');
                 }
             }
-            
+
         } catch (err) {
             console.error('Error in recordWordAnswer:', err);
+        }
+    },
+
+    // Award XP for a correct answer (1 XP per correct answer)
+    async awardWordXp(wordLatin) {
+        if (typeof xpSystem === 'undefined' || !xpSystem.userId) {
+            // Initialize XP system if needed
+            if (typeof xpSystem !== 'undefined' && !xpSystem.userId) {
+                await xpSystem.init();
+            }
+            if (typeof xpSystem === 'undefined' || !xpSystem.userId) {
+                return; // Can't award XP
+            }
+        }
+
+        try {
+            const result = await xpSystem.awardXp(1, 'correct_answer', this.attemptId);
+            if (result === false) {
+                console.warn('Failed to award XP for correct answer');
+            }
+        } catch (err) {
+            console.error('Error awarding word XP:', err);
+        }
+    },
+
+    // Award bonus XP when a word reaches mastered status
+    async awardMasteryBonusXp(wordLatin) {
+        if (typeof xpSystem === 'undefined' || !xpSystem.userId) {
+            return;
+        }
+
+        try {
+            const masteryBonus = xpSystem.XP_RATES?.WORD_MASTERED || 10;
+            const result = await xpSystem.awardXp(masteryBonus, 'word_mastered', this.attemptId);
+            if (result !== false) {
+                console.log(`🎉 Word mastered: ${wordLatin} (+${masteryBonus} XP bonus)`);
+                // Show notification if handler exists
+                if (typeof showXpNotification === 'function') {
+                    showXpNotification(masteryBonus, false, `Word mastered: ${wordLatin}`);
+                }
+            }
+        } catch (err) {
+            console.error('Error awarding mastery bonus:', err);
         }
     },
     
@@ -276,12 +341,13 @@ const taskTracker = {
         this.isTracking = false;
     },
 
-    // Award XP for completing a practice session
+    // Award completion bonuses for finishing a practice session
+    // Note: XP for correct answers is now awarded immediately in recordWordAnswer()
     async awardSessionXp(score, timeSeconds) {
         // Check if xpSystem is available
         if (typeof xpSystem === 'undefined') {
-            console.log('XP system not loaded - skipping XP award');
-            return;
+            console.log('XP system not loaded - skipping completion bonuses');
+            return { success: false, reason: 'xp_system_not_loaded' };
         }
 
         try {
@@ -291,36 +357,59 @@ const taskTracker = {
             }
 
             if (!xpSystem.userId) {
-                console.log('XP system not initialized - skipping XP award');
-                return;
+                console.log('XP system not initialized - skipping completion bonuses');
+                return { success: false, reason: 'xp_system_not_initialized' };
             }
 
-            // Check if this is first session today
+            let totalBonusXp = 0;
+            const bonuses = [];
+
+            // Perfect score bonus
+            if (score === 100) {
+                const perfectBonus = xpSystem.XP_RATES?.PERFECT_SCORE || 25;
+                totalBonusXp += perfectBonus;
+                bonuses.push({ type: 'perfect_score', amount: perfectBonus });
+            }
+
+            // First session of day bonus
             const isFirstToday = await this.isFirstSessionToday();
+            if (isFirstToday) {
+                const firstDayBonus = xpSystem.XP_RATES?.FIRST_SESSION_DAY || 15;
+                totalBonusXp += firstDayBonus;
+                bonuses.push({ type: 'first_session_today', amount: firstDayBonus });
+            }
 
-            // Calculate XP to award
-            const xpEarned = xpSystem.calculateSessionXp(timeSeconds, score, isFirstToday);
+            // Award completion bonuses if any
+            if (totalBonusXp > 0) {
+                const result = await xpSystem.awardXp(totalBonusXp, 'session_completion_bonus', this.attemptId);
 
-            if (xpEarned > 0) {
-                const result = await xpSystem.awardXp(xpEarned, 'practice_session', this.attemptId);
+                if (result === false) {
+                    console.error('Failed to award completion bonus XP');
+                    return { success: false, reason: 'award_failed', bonuses };
+                }
 
-                console.log('XP awarded:', {
-                    amount: xpEarned,
-                    levelUp: result?.levelUp,
-                    breakdown: {
-                        time: xpSystem.calculateTimeXp(timeSeconds),
-                        perfectBonus: score === 100 ? xpSystem.XP_RATES.PERFECT_SCORE : 0,
-                        firstTodayBonus: isFirstToday ? xpSystem.XP_RATES.FIRST_SESSION_DAY : 0
-                    }
+                console.log('Completion bonuses awarded:', {
+                    total: totalBonusXp,
+                    bonuses,
+                    levelUp: result?.levelUp
                 });
 
                 // Show XP notification if there's a UI handler
                 if (typeof showXpNotification === 'function') {
-                    showXpNotification(xpEarned, result?.levelUp);
+                    const bonusText = bonuses.map(b =>
+                        b.type === 'perfect_score' ? 'Perfect score!' :
+                        b.type === 'first_session_today' ? 'First session today!' : b.type
+                    ).join(' + ');
+                    showXpNotification(totalBonusXp, result?.levelUp, bonusText);
                 }
+
+                return { success: true, totalBonusXp, bonuses, levelUp: result?.levelUp };
             }
+
+            return { success: true, totalBonusXp: 0, bonuses: [] };
         } catch (err) {
-            console.error('Error awarding XP:', err);
+            console.error('Error awarding completion bonuses:', err);
+            return { success: false, reason: 'exception', error: err.message };
         }
     },
 
