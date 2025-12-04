@@ -404,7 +404,12 @@ const xpSystem = {
     // ============================================
 
     async awardXp(amount, reason, referenceId = null) {
-        if (amount <= 0) return;
+        if (amount <= 0) return { levelUp: false, xpAwarded: 0 };
+
+        if (!this.userId) {
+            console.error('Cannot award XP: user not initialized');
+            return false;
+        }
 
         const newXp = this.userXp + amount;
         const newTotal = this.totalXpEarned + amount;
@@ -421,20 +426,39 @@ const xpSystem = {
 
         if (error) {
             console.error('Error awarding XP:', error);
+            // Emit custom event for UI to catch
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('xp-award-failed', {
+                    detail: { amount, reason, error: error.message || 'Database error' }
+                }));
+            }
             return false;
         }
 
-        // Log transaction
+        // Log transaction (don't fail if this fails)
         await this.logTransaction(amount, reason, referenceId);
 
         this.userXp = newXp;
         this.totalXpEarned = newTotal;
+
+        // Emit success event
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('xp-awarded', {
+                detail: { amount, reason, newXp, newTotal }
+            }));
+        }
 
         // Check for level up and unlock new emojis
         const newLevel = this.getLevel().level;
         if (newLevel > oldLevel) {
             await this.unlockLevelEmojis(newLevel);
             console.log(`Level up! ${oldLevel} -> ${newLevel}`);
+            // Emit level up event
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('xp-level-up', {
+                    detail: { oldLevel, newLevel, xpAwarded: amount }
+                }));
+            }
             return { levelUp: true, oldLevel, newLevel, xpAwarded: amount };
         }
 
