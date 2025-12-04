@@ -9,7 +9,11 @@ const xpSystem = {
     totalXpEarned: 0,
     selectedEmoji: null,
     selectedTag: null,
+    selectedBackground: null,
+    selectedBorder: null,
     unlockedEmojis: [],
+    unlockedBackgrounds: [],
+    unlockedBorders: [],
     purchasedTags: [],
 
     // ============================================
@@ -51,29 +55,87 @@ const xpSystem = {
     // All collectible emojis (mystery pool)
     ALL_EMOJIS: [
         // Faces
-        '😊', '🙂', '😎', '🤓', '😄', '🥳', '🤩', '😇',
-        // Study
-        '📚', '📖', '✏️', '📝', '🎓', '📜', '🖋️', '📕',
-        // Stars & sparkles
-        '⭐', '🌟', '✨', '💫', '🔆', '💥', '🎇', '🎆',
-        // Classical
-        '🏛️', '🏺', '🗿', '⚱️', '🪔', '🎭', '🏟️', '⛩️',
-        // Animals
-        '🦁', '🐺', '🦅', '🐉', '🦊', '🐻', '🦉', '🐍',
-        // Weapons & shields
-        '⚔️', '🛡️', '🗡️', '🏹', '🔱', '⚒️', '🪓', '💣',
-        // Royal & magic
-        '👑', '💎', '🔮', '💍', '🧿', '🪬', '📿', '🎪',
-        // Epic & dark
-        '🔥', '💀', '⚡', '🌙', '☄️', '🌋', '👻', '💜',
-        // Creative
-        '🌈', '🎨', '🎵', '🎸', '🎤', '🎬', '🎯', '🎲',
-        // Cosmic
-        '🚀', '🌍', '☀️', '🌌', '🪐', '🌕', '💫', '🛸',
-        // Mythical
-        '🐲', '🦄', '🧙', '🧝', '🧚', '🧜', '🧞', '🦋',
-        // Ultimate
-        '👾', '🤖', '💯', '🏆', '🎖️', '🥇', '👁️', '🗝️',
+        '😀', '😄', '😁', '😊', '🙂', '😇', '🤓', '🥳', '🤯', '🥹', '🥴',
+        // Characters
+        '🧛‍♂️', '🧛‍♀️', '🧚‍♀️', '🧙‍♀️', '🧙‍♂️', '🧙', '🧝‍♀️', '🧑‍🎓', '🧑‍🚀', '🧑‍💻', '🧑‍🎤', '🤹‍♀️', '🤹‍♂️', '🤡',
+        // Mammals
+        '🐶', '🐕', '🐱', '🐈', '🐭', '🐹', '🐰', '🦝', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐄', '🐷', '🐖', '🐗',
+        '🐴', '🐎', '🦄', '🐑', '🐏', '🐐', '🐪', '🐫', '🦒', '🐘', '🦏', '🦛', '🐁', '🐀', '🐿️', '🦔', '🦡',
+        // Birds
+        '🐔', '🐣', '🐤', '🐦', '🐧', '🦆', '🦅', '🦉', '🦇',
+        // Reptiles & Amphibians
+        '🐸', '🐊', '🐢', '🦎', '🐍', '🐉', '🐲',
+        // Sea creatures
+        '🐳', '🐋', '🐬', '🐟', '🐠', '🐡', '🦈', '🦀', '🦞', '🦐', '🦑', '🐙', '🪼', '🐚',
+        // Other animals
+        '🦦', '🦨', '🦥', '🦘', '🐺', '🦌', '🦋', '🐝',
+        // Food
+        '🥗', '🥑', '🥝', '🥨', '🌽', '🥕', '🥪', '🥙', '🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍿', '🍫', '🍪',
+        // Flowers & Nature
+        '🌹', '🌷', '🌼', '🌻', '🌺', '🌸', '🌱', '🌵', '🌲', '🌳', '🍁', '🍂', '🌿', '☘️', '🍄',
+        // Classical & Space
+        '🏛️', '🏺', '🌍', '☀️', '🌙', '⭐', '✨', '🌚', '🌛', '🌜', '🌝', '🌟',
+        // Animal tracks & misc
+        '🐾',
+    ],
+
+    // ============================================
+    // BACKGROUND COLORS (Mystery unlock system)
+    // ============================================
+    BACKGROUND_UNLOCK_COST: 100,
+
+    ALL_BACKGROUNDS: [
+        // Soft pastels
+        { id: 'pastel_pink', name: 'Pastel Pink', color: '#FFD1DC' },
+        { id: 'pastel_blue', name: 'Pastel Blue', color: '#AEC6CF' },
+        { id: 'pastel_green', name: 'Pastel Green', color: '#B5EAD7' },
+        { id: 'pastel_yellow', name: 'Pastel Yellow', color: '#FDFD96' },
+        { id: 'pastel_purple', name: 'Pastel Purple', color: '#E0BBE4' },
+        { id: 'pastel_orange', name: 'Pastel Orange', color: '#FFB347' },
+        // Vibrant
+        { id: 'coral', name: 'Coral', color: '#FF6B6B' },
+        { id: 'teal', name: 'Teal', color: '#4ECDC4' },
+        { id: 'gold', name: 'Gold', color: '#FFD700' },
+        { id: 'royal_purple', name: 'Royal Purple', color: '#7B68EE' },
+        { id: 'ocean_blue', name: 'Ocean Blue', color: '#006994' },
+        { id: 'forest_green', name: 'Forest Green', color: '#228B22' },
+        // Gradients (CSS gradient strings)
+        { id: 'sunset', name: 'Sunset', color: 'linear-gradient(135deg, #FF6B6B, #FFE66D)' },
+        { id: 'ocean', name: 'Ocean', color: 'linear-gradient(135deg, #667eea, #764ba2)' },
+        { id: 'mint', name: 'Mint Fresh', color: 'linear-gradient(135deg, #11998e, #38ef7d)' },
+        { id: 'cotton_candy', name: 'Cotton Candy', color: 'linear-gradient(135deg, #ff9a9e, #fecfef)' },
+        { id: 'night_sky', name: 'Night Sky', color: 'linear-gradient(135deg, #2c3e50, #4ca1af)' },
+        { id: 'aurora', name: 'Aurora', color: 'linear-gradient(135deg, #a8edea, #fed6e3)' },
+        { id: 'fire', name: 'Fire', color: 'linear-gradient(135deg, #f12711, #f5af19)' },
+        { id: 'galaxy', name: 'Galaxy', color: 'linear-gradient(135deg, #654ea3, #eaafc8)' },
+    ],
+
+    // ============================================
+    // BORDERS (Mystery unlock system)
+    // ============================================
+    BORDER_UNLOCK_COST: 100,
+
+    ALL_BORDERS: [
+        // Solid colors
+        { id: 'gold_solid', name: 'Gold', style: '3px solid #FFD700' },
+        { id: 'silver_solid', name: 'Silver', style: '3px solid #C0C0C0' },
+        { id: 'bronze_solid', name: 'Bronze', style: '3px solid #CD7F32' },
+        { id: 'ruby_solid', name: 'Ruby', style: '3px solid #E0115F' },
+        { id: 'emerald_solid', name: 'Emerald', style: '3px solid #50C878' },
+        { id: 'sapphire_solid', name: 'Sapphire', style: '3px solid #0F52BA' },
+        { id: 'amethyst_solid', name: 'Amethyst', style: '3px solid #9966CC' },
+        // Dashed
+        { id: 'gold_dashed', name: 'Gold Dashed', style: '3px dashed #FFD700' },
+        { id: 'rainbow_dashed', name: 'Rainbow Dashed', style: '3px dashed #FF6B6B' },
+        // Double borders
+        { id: 'gold_double', name: 'Gold Double', style: '4px double #FFD700' },
+        { id: 'royal_double', name: 'Royal Double', style: '4px double #7B68EE' },
+        // Thick borders
+        { id: 'thick_black', name: 'Bold Black', style: '5px solid #1a1a1a' },
+        { id: 'thick_white', name: 'Bold White', style: '5px solid #ffffff' },
+        // Dotted
+        { id: 'dotted_gold', name: 'Dotted Gold', style: '3px dotted #FFD700' },
+        { id: 'dotted_pink', name: 'Dotted Pink', style: '3px dotted #FF69B4' },
     ],
 
     // ============================================
@@ -187,7 +249,7 @@ const xpSystem = {
         // Load user XP and selections
         const { data: userData, error: userError } = await supabase
             .from('users')
-            .select('xp, total_xp_earned, selected_emoji, selected_tag')
+            .select('xp, total_xp_earned, selected_emoji, selected_tag, selected_background, selected_border')
             .eq('id', this.userId)
             .single();
 
@@ -196,6 +258,8 @@ const xpSystem = {
             this.totalXpEarned = userData.total_xp_earned || 0;
             this.selectedEmoji = userData.selected_emoji;
             this.selectedTag = userData.selected_tag;
+            this.selectedBackground = userData.selected_background;
+            this.selectedBorder = userData.selected_border;
         }
 
         // Load unlocked emojis
@@ -205,6 +269,22 @@ const xpSystem = {
             .eq('user_id', this.userId);
 
         this.unlockedEmojis = emojiData ? emojiData.map(e => e.emoji) : [];
+
+        // Load unlocked backgrounds
+        const { data: bgData } = await supabase
+            .from('background_unlocks')
+            .select('background_id')
+            .eq('user_id', this.userId);
+
+        this.unlockedBackgrounds = bgData ? bgData.map(b => b.background_id) : [];
+
+        // Load unlocked borders
+        const { data: borderData } = await supabase
+            .from('border_unlocks')
+            .select('border_id')
+            .eq('user_id', this.userId);
+
+        this.unlockedBorders = borderData ? borderData.map(b => b.border_id) : [];
 
         // Load purchased tags
         const { data: tagData } = await supabase
@@ -460,6 +540,224 @@ const xpSystem = {
     },
 
     // ============================================
+    // BACKGROUND METHODS
+    // ============================================
+
+    getAvailableBackgrounds() {
+        return this.ALL_BACKGROUNDS.filter(bg => this.unlockedBackgrounds.includes(bg.id));
+    },
+
+    getLockedBackgrounds() {
+        return this.ALL_BACKGROUNDS.filter(bg => !this.unlockedBackgrounds.includes(bg.id));
+    },
+
+    getAllBackgroundsWithStatus() {
+        return this.ALL_BACKGROUNDS.map(bg => ({
+            ...bg,
+            unlocked: this.unlockedBackgrounds.includes(bg.id),
+            selected: this.selectedBackground === bg.id
+        }));
+    },
+
+    getBackgroundProgress() {
+        return {
+            unlocked: this.unlockedBackgrounds.length,
+            total: this.ALL_BACKGROUNDS.length,
+            percent: Math.round((this.unlockedBackgrounds.length / this.ALL_BACKGROUNDS.length) * 100)
+        };
+    },
+
+    canUnlockBackground() {
+        const lockedBgs = this.getLockedBackgrounds();
+        return this.userXp >= this.BACKGROUND_UNLOCK_COST && lockedBgs.length > 0;
+    },
+
+    async unlockRandomBackground() {
+        const lockedBgs = this.getLockedBackgrounds();
+
+        if (lockedBgs.length === 0) {
+            throw new Error('All backgrounds already unlocked!');
+        }
+
+        if (this.userXp < this.BACKGROUND_UNLOCK_COST) {
+            throw new Error(`Not enough XP. Need ${this.BACKGROUND_UNLOCK_COST} XP.`);
+        }
+
+        const randomIndex = Math.floor(Math.random() * lockedBgs.length);
+        const newBg = lockedBgs[randomIndex];
+
+        const newXp = this.userXp - this.BACKGROUND_UNLOCK_COST;
+
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ xp: newXp })
+            .eq('id', this.userId);
+
+        if (updateError) throw updateError;
+
+        const { error: unlockError } = await supabase
+            .from('background_unlocks')
+            .insert({
+                user_id: this.userId,
+                background_id: newBg.id
+            });
+
+        if (unlockError) throw unlockError;
+
+        await this.logTransaction(-this.BACKGROUND_UNLOCK_COST, 'background_unlock', null);
+
+        this.userXp = newXp;
+        this.unlockedBackgrounds.push(newBg.id);
+
+        return {
+            background: newBg,
+            remaining: lockedBgs.length - 1,
+            newXpBalance: newXp
+        };
+    },
+
+    async selectBackground(bgId) {
+        if (!this.unlockedBackgrounds.includes(bgId)) {
+            throw new Error('Background not unlocked');
+        }
+
+        const { error } = await supabase
+            .from('users')
+            .update({ selected_background: bgId })
+            .eq('id', this.userId);
+
+        if (error) throw error;
+
+        this.selectedBackground = bgId;
+        return true;
+    },
+
+    async clearBackground() {
+        const { error } = await supabase
+            .from('users')
+            .update({ selected_background: null })
+            .eq('id', this.userId);
+
+        if (error) throw error;
+
+        this.selectedBackground = null;
+        return true;
+    },
+
+    getBackgroundById(bgId) {
+        return this.ALL_BACKGROUNDS.find(bg => bg.id === bgId);
+    },
+
+    // ============================================
+    // BORDER METHODS
+    // ============================================
+
+    getAvailableBorders() {
+        return this.ALL_BORDERS.filter(b => this.unlockedBorders.includes(b.id));
+    },
+
+    getLockedBorders() {
+        return this.ALL_BORDERS.filter(b => !this.unlockedBorders.includes(b.id));
+    },
+
+    getAllBordersWithStatus() {
+        return this.ALL_BORDERS.map(b => ({
+            ...b,
+            unlocked: this.unlockedBorders.includes(b.id),
+            selected: this.selectedBorder === b.id
+        }));
+    },
+
+    getBorderProgress() {
+        return {
+            unlocked: this.unlockedBorders.length,
+            total: this.ALL_BORDERS.length,
+            percent: Math.round((this.unlockedBorders.length / this.ALL_BORDERS.length) * 100)
+        };
+    },
+
+    canUnlockBorder() {
+        const lockedBorders = this.getLockedBorders();
+        return this.userXp >= this.BORDER_UNLOCK_COST && lockedBorders.length > 0;
+    },
+
+    async unlockRandomBorder() {
+        const lockedBorders = this.getLockedBorders();
+
+        if (lockedBorders.length === 0) {
+            throw new Error('All borders already unlocked!');
+        }
+
+        if (this.userXp < this.BORDER_UNLOCK_COST) {
+            throw new Error(`Not enough XP. Need ${this.BORDER_UNLOCK_COST} XP.`);
+        }
+
+        const randomIndex = Math.floor(Math.random() * lockedBorders.length);
+        const newBorder = lockedBorders[randomIndex];
+
+        const newXp = this.userXp - this.BORDER_UNLOCK_COST;
+
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ xp: newXp })
+            .eq('id', this.userId);
+
+        if (updateError) throw updateError;
+
+        const { error: unlockError } = await supabase
+            .from('border_unlocks')
+            .insert({
+                user_id: this.userId,
+                border_id: newBorder.id
+            });
+
+        if (unlockError) throw unlockError;
+
+        await this.logTransaction(-this.BORDER_UNLOCK_COST, 'border_unlock', null);
+
+        this.userXp = newXp;
+        this.unlockedBorders.push(newBorder.id);
+
+        return {
+            border: newBorder,
+            remaining: lockedBorders.length - 1,
+            newXpBalance: newXp
+        };
+    },
+
+    async selectBorder(borderId) {
+        if (!this.unlockedBorders.includes(borderId)) {
+            throw new Error('Border not unlocked');
+        }
+
+        const { error } = await supabase
+            .from('users')
+            .update({ selected_border: borderId })
+            .eq('id', this.userId);
+
+        if (error) throw error;
+
+        this.selectedBorder = borderId;
+        return true;
+    },
+
+    async clearBorder() {
+        const { error } = await supabase
+            .from('users')
+            .update({ selected_border: null })
+            .eq('id', this.userId);
+
+        if (error) throw error;
+
+        this.selectedBorder = null;
+        return true;
+    },
+
+    getBorderById(borderId) {
+        return this.ALL_BORDERS.find(b => b.id === borderId);
+    },
+
+    // ============================================
     // XP EARNING METHODS
     // ============================================
 
@@ -582,7 +880,11 @@ const xpSystem = {
     getDisplayData() {
         const level = this.getLevel();
         const tag = this.selectedTag ? this.getTagById(this.selectedTag) : null;
-        const collection = this.getCollectionProgress();
+        const background = this.selectedBackground ? this.getBackgroundById(this.selectedBackground) : null;
+        const border = this.selectedBorder ? this.getBorderById(this.selectedBorder) : null;
+        const emojiCollection = this.getCollectionProgress();
+        const bgCollection = this.getBackgroundProgress();
+        const borderCollection = this.getBorderProgress();
 
         return {
             xp: this.userXp,
@@ -591,12 +893,22 @@ const xpSystem = {
             levelTitle: level.title,
             emoji: this.selectedEmoji,
             tag: tag ? { text: tag.text, emoji: tag.emoji } : null,
+            background: background,
+            border: border,
             progress: this.getLevelProgress(),
             xpToNext: this.getXpToNextLevel(),
             // Emoji collection info
-            emojiCollection: collection,
+            emojiCollection: emojiCollection,
             emojiUnlockCost: this.EMOJI_UNLOCK_COST,
-            canUnlockEmoji: this.canUnlockEmoji()
+            canUnlockEmoji: this.canUnlockEmoji(),
+            // Background collection info
+            backgroundCollection: bgCollection,
+            backgroundUnlockCost: this.BACKGROUND_UNLOCK_COST,
+            canUnlockBackground: this.canUnlockBackground(),
+            // Border collection info
+            borderCollection: borderCollection,
+            borderUnlockCost: this.BORDER_UNLOCK_COST,
+            canUnlockBorder: this.canUnlockBorder()
         };
     }
 };
