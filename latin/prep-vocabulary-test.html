@@ -271,6 +271,66 @@
             cursor: not-allowed;
         }
 
+        .test-options-row {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.95rem;
+            color: #1f2937;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #0066ff;
+        }
+
+        .limit-group {
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .limit-group label {
+            margin-bottom: 0;
+        }
+
+        .limit-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .limit-input-wrapper input[type="number"] {
+            width: 70px;
+            padding: 0.5rem;
+            border: 2px solid rgba(0, 102, 255, 0.2);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .limit-input-wrapper input[type="number"]:focus {
+            outline: none;
+            border-color: #0066ff;
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+        }
+
+        .limit-suffix {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
         /* Test Area */
         .test-area {
             display: none;
@@ -858,9 +918,22 @@
                         <button class="btn-primary" id="startTestBtn" onclick="startTest()" disabled>Start Test</button>
                     </div>
                     
-                    <!-- Print Options -->
+                    <!-- Test Options -->
                     <div class="print-section">
-                        <h4>Print Options</h4>
+                        <h4>Test Options</h4>
+                        <div class="test-options-row">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="randomizeOrder">
+                                <span>Randomize word order</span>
+                            </label>
+                            <div class="control-group limit-group">
+                                <label for="wordLimit">Limit to</label>
+                                <div class="limit-input-wrapper">
+                                    <input type="number" id="wordLimit" min="1" placeholder="All">
+                                    <span class="limit-suffix">words</span>
+                                </div>
+                            </div>
+                        </div>
                         <div class="control-group" style="margin-bottom: 1rem;">
                             <label for="studentName">Student Name (optional, for printed test)</label>
                             <input type="text" id="studentName" placeholder="Enter name...">
@@ -912,8 +985,9 @@
                     <h3>Test Information</h3>
                     <ul>
                         <li>📝 Select chapter and word range</li>
+                        <li>🔀 Randomize order for varied tests</li>
+                        <li>🎯 Limit to fewer words for quizzes</li>
                         <li>✍️ Type English translations</li>
-                        <li>✓ Mark to see results</li>
                         <li>🖨️ Print blank tests for class</li>
                     </ul>
                 </div>
@@ -970,6 +1044,48 @@
         let chapterWords = [];
         let isMarked = false;
         let testStartTime = null;
+
+        // Fisher-Yates shuffle algorithm
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // Apply randomize and limit options to words
+        function applyTestOptions(words) {
+            let result = [...words];
+
+            const shouldRandomize = document.getElementById('randomizeOrder').checked;
+            const limitValue = document.getElementById('wordLimit').value;
+            const wordLimit = limitValue ? parseInt(limitValue) : null;
+
+            // If limiting, first shuffle to get random selection, then optionally re-shuffle
+            if (wordLimit && wordLimit < result.length) {
+                // Shuffle first to get random selection
+                result = shuffleArray(result);
+                // Take only the limited number
+                result = result.slice(0, wordLimit);
+            }
+
+            // Apply randomize option (shuffle again if requested, or shuffle if limiting was applied)
+            if (shouldRandomize) {
+                result = shuffleArray(result);
+            } else if (wordLimit && wordLimit < words.length) {
+                // If we limited but don't want random order, sort back to original order
+                // by finding original indices
+                result.sort((a, b) => {
+                    const indexA = words.findIndex(w => w.latin === a.latin);
+                    const indexB = words.findIndex(w => w.latin === b.latin);
+                    return indexA - indexB;
+                });
+            }
+
+            return result;
+        }
 
         // Normalize Latin text (remove macrons)
         function normalizeLatin(text) {
@@ -1068,15 +1184,19 @@
                 return;
             }
 
-            // Get selected word range
-            testWords = chapterWords.slice(fromIndex, toIndex + 1);
+            // Get selected word range and apply options
+            const selectedWords = chapterWords.slice(fromIndex, toIndex + 1);
+            testWords = applyTestOptions(selectedWords);
 
             // Update test title
             const fromWord = chapterWords[fromIndex].latin;
             const toWord = chapterWords[toIndex].latin;
+            const totalSelected = selectedWords.length;
+            const testCount = testWords.length;
+            const countInfo = testCount < totalSelected ? `${testCount} of ${totalSelected} words` : `${testCount} words`;
             document.getElementById('testTitle').textContent =
                 `Chapter ${chapter}: ${fromWord} to ${toWord}`;
-            document.getElementById('testInfo').textContent = `${testWords.length} words`;
+            document.getElementById('testInfo').textContent = countInfo;
 
             // Create test table
             const tbody = document.getElementById('testTableBody');
@@ -1299,13 +1419,17 @@
                 return;
             }
             
-            // Get selected word range
-            testWords = chapterWords.slice(fromIndex, toIndex + 1);
-            
+            // Get selected word range and apply options
+            const selectedWords = chapterWords.slice(fromIndex, toIndex + 1);
+            testWords = applyTestOptions(selectedWords);
+
             // Get test details
             const testDate = new Date().toLocaleDateString('en-GB');
             const fromWord = chapterWords[fromIndex].latin;
             const toWord = chapterWords[toIndex].latin;
+            const totalSelected = selectedWords.length;
+            const testCount = testWords.length;
+            const countInfo = testCount < totalSelected ? `(${testCount} of ${totalSelected} words)` : '';
             
             // Create print version in new window
             const printWindow = window.open('', '_blank');
@@ -1395,7 +1519,7 @@
                     <div class="test-header">
                         <h2>Latin Vocabulary Test - Suburani Book 1</h2>
                         <div style="text-align: center; font-size: 14pt; margin-bottom: 10px;">
-                            Chapter ${chapter}: ${fromWord} to ${toWord}
+                            Chapter ${chapter}: ${fromWord} to ${toWord} ${countInfo}
                         </div>
                         <div class="student-info">
                             <div class="student-info-field">
