@@ -153,12 +153,22 @@
     const OFFICES = {
         none: { name: 'Private Citizen', minAge: 0, order: 0 },
         military: { name: 'Military Tribune', minAge: 17, order: 1 },
-        quaestor: { name: 'Quaestor', minAge: 30, order: 2, slots: 20 },
-        aedile: { name: 'Aedile', minAge: 36, order: 3, slots: 4 },
-        praetor: { name: 'Praetor', minAge: 39, order: 4, slots: 8 },
-        consul: { name: 'Consul', minAge: 42, order: 5, slots: 2 },
-        censor: { name: 'Censor', minAge: 44, order: 6, requiresConsul: true, slots: 2 }
+        quaestor: { name: 'Quaestor', minAge: 30, order: 2, slots: 20, requires: { dignitas: 30, auctoritas: 20 } },
+        aedile: { name: 'Aedile', minAge: 36, order: 3, slots: 4, requires: { dignitas: 45, auctoritas: 35, pecunia: 40 } },
+        praetor: { name: 'Praetor', minAge: 39, order: 4, slots: 8, requires: { dignitas: 55, auctoritas: 45, military: 40 } },
+        consul: { name: 'Consul', minAge: 42, order: 5, slots: 2, requires: { dignitas: 70, auctoritas: 60, military: 50 } },
+        censor: { name: 'Censor', minAge: 44, order: 6, requiresConsul: true, slots: 2, requires: { dignitas: 80, auctoritas: 70 } }
     };
+
+    const MAX_ACTIONS_PER_YEAR = 3;
+
+    // Your rival - competes with you through the cursus honorum
+    const RIVAL_NAMES = [
+        { name: 'Lucius Sergius Catilina', short: 'Catilina', desc: 'Ruthless and ambitious' },
+        { name: 'Gaius Verres', short: 'Verres', desc: 'Corrupt but well-connected' },
+        { name: 'Publius Clodius Pulcher', short: 'Clodius', desc: 'Popular demagogue' },
+        { name: 'Marcus Caelius Rufus', short: 'Caelius', desc: 'Charming troublemaker' }
+    ];
 
     const NPCS = {
         crassus: { name: 'Crassus', fullName: 'Marcus Licinius Crassus', desc: 'The richest man in Rome', trait: 'greedy' },
@@ -411,7 +421,18 @@
         relationships: { crassus: 50, pompey: 50, caesar: 50, cicero: 50, cato: 50 },
         enemies: [], phase: 'intro', militaryYears: 0, consulYears: [], actionsThisYear: 0,
         currentEvent: null, usedMilitaryEvents: [], usedPoliticalEvents: [], usedNpcEvents: {},
-        eventQueue: []
+        eventQueue: [],
+        // New: rival system
+        rival: null,
+        rivalOffice: 'none',
+        rivalMilitary: 0,
+        rivalRelation: 50, // 0 = mortal enemy, 100 = ally
+        // New: delayed consequences
+        pendingConsequences: [], // { year: X, type: 'revenge'|'favour'|'scandal', data: {} }
+        // New: track choices for callbacks
+        savedTribune: false,
+        betrayedAlly: false,
+        tookBribe: false
     };
 
     function updateDisplay() {
@@ -471,7 +492,52 @@
         if (office !== 'military' && game.militaryYears < 10) return false;
         const prevOffice = Object.entries(OFFICES).find(([k, v]) => v.order === o.order - 1);
         if (prevOffice && !game.officesHeld.includes(prevOffice[0]) && office !== 'military') return false;
+        // Check stat requirements
+        if (o.requires) {
+            for (let stat in o.requires) {
+                if (game.stats[stat] < o.requires[stat]) return false;
+            }
+        }
         return true;
+    }
+
+    function getNextOffice() {
+        const officeOrder = ['military', 'quaestor', 'aedile', 'praetor', 'consul'];
+        for (let office of officeOrder) {
+            if (!game.officesHeld.includes(office) || office === 'consul') {
+                return office;
+            }
+        }
+        return 'censor';
+    }
+
+    function getOfficeRequirementsHtml(office) {
+        const o = OFFICES[office];
+        if (!o || !o.requires) return '';
+        let reqs = [];
+        for (let stat in o.requires) {
+            const current = Math.round(game.stats[stat]);
+            const needed = o.requires[stat];
+            const met = current >= needed;
+            reqs.push(`<span style="color:${met ? 'var(--success)' : 'var(--danger)'}">${stat}: ${current}/${needed} ${met ? '✓' : '✗'}</span>`);
+        }
+        return reqs.join(' | ');
+    }
+
+    function advanceRival() {
+        if (!game.rival) return;
+        // Rival advances their military if still serving
+        if (game.rivalMilitary < 10) {
+            game.rivalMilitary++;
+            return;
+        }
+        // Rival tries to advance in politics
+        const officeOrder = ['quaestor', 'aedile', 'praetor', 'consul'];
+        const currentIdx = officeOrder.indexOf(game.rivalOffice);
+        const nextOffice = officeOrder[currentIdx + 1];
+        if (nextOffice && Math.random() < 0.4) {
+            game.rivalOffice = nextOffice;
+        }
     }
 
     function checkGameOver() {
@@ -523,28 +589,97 @@
         const nomina = { patrician: ['Cornelius', 'Aemilius', 'Claudius'], plebeian_noble: ['Tullius', 'Sempronius', 'Licinius'], equestrian: ['Atticus', 'Balbus', 'Oppius'], novus: ['Tullius', 'Didius', 'Fufius'] };
         const cognomina = ['Rufus', 'Niger', 'Longus', 'Pulcher', 'Brutus'];
         game.name = praenomina[Math.floor(Math.random()*praenomina.length)] + ' ' + nomina[game.family.id][Math.floor(Math.random()*nomina[game.family.id].length)] + ' ' + cognomina[Math.floor(Math.random()*cognomina.length)];
+        // Initialize rival
+        game.rival = RIVAL_NAMES[Math.floor(Math.random() * RIVAL_NAMES.length)];
+        game.rivalOffice = 'none';
+        game.rivalMilitary = 0;
+        game.rivalRelation = 40 + Math.floor(Math.random() * 20); // 40-60 starting
         document.getElementById('careerTrack').classList.remove('hidden');
         document.getElementById('statsRow').classList.remove('hidden');
         document.getElementById('relationships').classList.remove('hidden');
         updateDisplay();
-        showYearStart();
+        showRivalIntro();
+    }
+
+    function showRivalIntro() {
+        document.getElementById('contentArea').innerHTML = `
+            <div class="event-card" style="border-color:var(--danger);">
+                <div class="event-type">⚔️ Your Rival</div>
+                <div class="event-title">${game.rival.name}</div>
+                <div class="event-desc">
+                    <p>As you prepare to begin your military service, you notice another young man of your age also joining the legions.</p>
+                    <p><strong>${game.rival.short}</strong> — ${game.rival.desc}. You've heard of his family. He has the same ambitions as you: to climb the <em>cursus honorum</em> and become Consul.</p>
+                    <p>Throughout your career, you will compete with ${game.rival.short}. He will run against you in elections. He may help you or hinder you. The choice of how to deal with him is yours.</p>
+                </div>
+            </div>
+            <button class="btn-primary" onclick="showYearStart()">Begin Your Career</button>
+        `;
     }
 
     function showYearStart() {
         game.phase = 'year_start';
         game.actionsThisYear = 0;
+
+        // Check for delayed consequences
+        const consequence = game.pendingConsequences.find(c => c.year === game.year);
+        if (consequence) {
+            game.pendingConsequences = game.pendingConsequences.filter(c => c !== consequence);
+            showConsequence(consequence);
+            return;
+        }
+
         const historicalEvent = HISTORICAL_EVENTS.find(e => e.year === game.year);
         let historyHtml = historicalEvent ? `<div class="event-card" style="border-color:var(--wax-gold);"><div class="event-type">⚡ Historical Event</div><div class="event-title">${historicalEvent.title}</div><div class="event-desc">${historicalEvent.desc}</div></div>` : '';
+
+        // Show next goal
+        const nextOffice = getNextOffice();
+        const nextO = OFFICES[nextOffice];
+        let goalHtml = '';
+        if (game.militaryYears < 10) {
+            goalHtml = `<div class="event-card" style="border-color:var(--bronze);"><div class="event-type">🎯 Current Goal</div><div class="event-title">Complete Military Service</div><div class="event-desc">You need <strong>${10 - game.militaryYears} more years</strong> of service before you can enter politics.</div></div>`;
+        } else if (nextO && nextO.requires) {
+            const reqs = getOfficeRequirementsHtml(nextOffice);
+            const ageReq = nextO.minAge > game.age ? `<div style="color:var(--danger);">Age: ${game.age}/${nextO.minAge} (wait ${nextO.minAge - game.age} years)</div>` : `<div style="color:var(--success);">Age: ${game.age}/${nextO.minAge} ✓</div>`;
+            goalHtml = `<div class="event-card" style="border-color:var(--bronze);"><div class="event-type">🎯 Next Office: ${nextO.name}</div><div class="event-desc">${ageReq}<div style="margin-top:5px;">${reqs}</div></div></div>`;
+        }
+
+        // Rival status
+        let rivalHtml = '';
+        if (game.rival) {
+            const rivalStatus = game.rivalMilitary < 10 ? `Military (${game.rivalMilitary}/10)` : OFFICES[game.rivalOffice].name;
+            const relStatus = game.rivalRelation < 30 ? 'Enemy' : game.rivalRelation < 50 ? 'Cold' : game.rivalRelation < 70 ? 'Neutral' : 'Friendly';
+            rivalHtml = `<div class="summary-item"><span>Rival (${game.rival.short}):</span><span>${rivalStatus} — ${relStatus}</span></div>`;
+        }
+
         document.getElementById('contentArea').innerHTML = `
             <div class="section-title">Year ${game.year} BC — Age ${game.age}</div>
             ${historyHtml}
+            ${goalHtml}
             <div class="year-summary">
                 <h4>Your Situation</h4>
                 <div class="summary-item"><span>Position:</span><span>${OFFICES[game.currentOffice].name}</span></div>
                 <div class="summary-item"><span>Military Service:</span><span>${game.militaryYears}/10 years</span></div>
-                <div class="summary-item"><span>Enemies:</span><span>${game.enemies.length}</span></div>
+                ${rivalHtml}
+                <div class="summary-item"><span>Enemies:</span><span>${game.enemies.length}/5</span></div>
+                <div class="summary-item"><span>Actions this year:</span><span>0/${MAX_ACTIONS_PER_YEAR}</span></div>
             </div>
             <button class="btn-primary" onclick="processYear()">Continue</button>
+        `;
+    }
+
+    function showConsequence(consequence) {
+        let html = '';
+        if (consequence.type === 'revenge') {
+            html = `<div class="event-card" style="border-color:var(--danger);"><div class="event-type">⚠️ The Past Returns</div><div class="event-title">${consequence.data.title}</div><div class="event-desc">${consequence.data.desc}</div></div>`;
+            modifyStats(consequence.data.effects || {});
+        } else if (consequence.type === 'favour') {
+            html = `<div class="event-card" style="border-color:var(--success);"><div class="event-type">🌟 A Debt Repaid</div><div class="event-title">${consequence.data.title}</div><div class="event-desc">${consequence.data.desc}</div></div>`;
+            modifyStats(consequence.data.effects || {});
+        }
+        document.getElementById('contentArea').innerHTML = `
+            <div class="section-title">Year ${game.year} BC — Age ${game.age}</div>
+            ${html}
+            <button class="btn-primary" onclick="showYearStart()">Continue</button>
         `;
     }
 
@@ -575,26 +710,99 @@
             }
         }
 
-        let actionsHtml = '';
-        if (game.currentOffice === 'none' && game.militaryYears < 10) {
-            actionsHtml += `<div class="event-card"><div class="event-type">Military Service</div><div class="event-title">Serve in the Legions</div><div class="event-desc">You need <strong>${10 - game.militaryYears} more years</strong> of service before seeking office.</div><button class="btn-primary btn-success" onclick="doMilitaryService()">Serve This Year</button></div>`;
+        const actionsLeft = MAX_ACTIONS_PER_YEAR - game.actionsThisYear;
+        const outOfActions = actionsLeft <= 0;
+
+        // Action counter display
+        let actionCounterHtml = `<div style="text-align:center;margin-bottom:15px;padding:10px;background:${outOfActions ? '#f5e0e0' : '#e0f0e0'};border-radius:5px;">
+            <strong>Actions Remaining: ${actionsLeft}/${MAX_ACTIONS_PER_YEAR}</strong>
+            ${outOfActions ? '<div style="color:var(--danger);font-size:0.9rem;">You must end the year</div>' : ''}
+        </div>`;
+
+        let actionsHtml = actionCounterHtml;
+
+        if (game.militaryYears < 10) {
+            // During military service years, you can ONLY serve - no political options yet
+            actionsHtml += `<div class="event-card"><div class="event-type">Military Service</div><div class="event-title">Serve in the Legions</div><div class="event-desc">You need <strong>${10 - game.militaryYears} more years</strong> of service before seeking office.</div><button class="btn-primary btn-success" onclick="doMilitaryService()" ${outOfActions ? 'disabled' : ''}>Serve This Year (1 action)</button></div>`;
         } else {
             const availableOffices = Object.entries(OFFICES).filter(([id]) => canRunForOffice(id) && id !== 'none');
-            if (availableOffices.length > 0 && game.militaryYears >= 10) {
-                actionsHtml += `<div class="event-card"><div class="event-type">Elections</div><div class="event-title">Stand for Office</div><div class="choices">${availableOffices.map(([id, o]) => `<button class="choice-btn" onclick="startElection('${id}')"><strong>${o.name}</strong> (min age ${o.minAge})</button>`).join('')}</div></div>`;
+            if (availableOffices.length > 0) {
+                actionsHtml += `<div class="event-card"><div class="event-type">Elections (costs 2 actions)</div><div class="event-title">Stand for Office</div><div class="choices">${availableOffices.map(([id, o]) => {
+                    const reqs = getOfficeRequirementsHtml(id);
+                    return `<button class="choice-btn" onclick="startElection('${id}')" ${outOfActions || actionsLeft < 2 ? 'disabled' : ''}><strong>${o.name}</strong><span class="choice-effect">${reqs}</span></button>`;
+                }).join('')}</div></div>`;
             }
             if (game.currentOffice !== 'none' && game.currentOffice !== 'military') {
-                actionsHtml += `<div class="event-card"><div class="event-type">Official Duties</div><div class="event-title">Serve as ${OFFICES[game.currentOffice].name}</div><button class="btn-primary" onclick="performDuties()">Perform Duties</button></div>`;
+                actionsHtml += `<div class="event-card"><div class="event-type">Official Duties (1 action)</div><div class="event-title">Serve as ${OFFICES[game.currentOffice].name}</div><button class="btn-primary" onclick="performDuties()" ${outOfActions ? 'disabled' : ''}>Perform Duties</button></div>`;
             }
-            // Show a simpler action menu for political life, not the boring NPC list
-            actionsHtml += `<div class="event-card"><div class="event-type">Daily Life</div><div class="event-title">How do you spend your time?</div><div class="choices">
-                <button class="choice-btn" onclick="doPoliticalAction('forum')">Attend the Forum<span class="choice-effect">Chance of political encounters</span></button>
-                <button class="choice-btn" onclick="doPoliticalAction('business')">Manage Business Affairs<span class="choice-effect">Potential profit or loss</span></button>
-                <button class="choice-btn" onclick="doPoliticalAction('social')">Attend Social Events<span class="choice-effect">Build connections</span></button>
+            // Show a simpler action menu for political life
+            actionsHtml += `<div class="event-card"><div class="event-type">Daily Life (1 action each)</div><div class="event-title">How do you spend your time?</div><div class="choices">
+                <button class="choice-btn" onclick="doPoliticalAction('forum')" ${outOfActions ? 'disabled' : ''}>Attend the Forum<span class="choice-effect">+Influence, chance of encounters</span></button>
+                <button class="choice-btn" onclick="doPoliticalAction('business')" ${outOfActions ? 'disabled' : ''}>Manage Business<span class="choice-effect">+/-Wealth (risky but rewarding)</span></button>
+                <button class="choice-btn" onclick="doPoliticalAction('social')" ${outOfActions ? 'disabled' : ''}>Social Events<span class="choice-effect">+Relationships, +Dignitas</span></button>
+                <button class="choice-btn" onclick="doPoliticalAction('train')" ${outOfActions ? 'disabled' : ''}>Train & Study<span class="choice-effect">+Military or +Influence (your choice)</span></button>
             </div></div>`;
+
+            // Add rival interaction option
+            if (game.rival) {
+                actionsHtml += `<div class="event-card" style="border-color:var(--danger);"><div class="event-type">⚔️ Rival (1 action)</div><div class="event-title">Deal with ${game.rival.short}</div>
+                <div class="event-desc" style="font-size:0.85rem;">Relationship: ${game.rivalRelation}% — ${game.rivalRelation < 30 ? 'Hostile' : game.rivalRelation < 50 ? 'Cold' : game.rivalRelation < 70 ? 'Neutral' : 'Friendly'}</div>
+                <div class="choices">
+                    <button class="choice-btn" onclick="rivalAction('befriend')" ${outOfActions ? 'disabled' : ''}>Approach as friend<span class="choice-effect">Try to improve relations</span></button>
+                    <button class="choice-btn" onclick="rivalAction('undermine')" ${outOfActions ? 'disabled' : ''}>Undermine him<span class="choice-effect">Sabotage his career (risky)</span></button>
+                    <button class="choice-btn" onclick="rivalAction('challenge')" ${outOfActions ? 'disabled' : ''}>Public challenge<span class="choice-effect">Debate him for glory (very risky)</span></button>
+                </div></div>`;
+            }
         }
-        actionsHtml += `<button class="btn-primary btn-secondary" onclick="endYear()" style="margin-top:15px;">End Year</button>`;
+        actionsHtml += `<button class="btn-primary btn-secondary" onclick="endYear()" style="margin-top:15px;">${outOfActions ? 'End Year (no actions left)' : 'End Year Early'}</button>`;
         document.getElementById('contentArea').innerHTML = `<div class="section-title">Year ${game.year} BC — Actions</div>${actionsHtml}`;
+    }
+
+    function rivalAction(action) {
+        game.actionsThisYear++;
+        let resultHtml = '';
+
+        if (action === 'befriend') {
+            const success = Math.random() < (0.4 + (game.stats.auctoritas / 200));
+            if (success) {
+                game.rivalRelation = Math.min(100, game.rivalRelation + 15);
+                resultHtml = `<div class="event-card" style="border-color:var(--success);"><div class="event-type">Success</div><div class="event-title">A Warmer Reception</div><div class="event-desc">${game.rival.short} seems receptive to friendship. Perhaps you can work together... for now.</div><div style="color:var(--success);">Rival relation: +15</div></div>`;
+            } else {
+                game.rivalRelation = Math.max(0, game.rivalRelation - 5);
+                resultHtml = `<div class="event-card" style="border-color:var(--danger);"><div class="event-type">Rebuffed</div><div class="event-title">Cold Shoulder</div><div class="event-desc">"I know what you're doing," ${game.rival.short} says coldly. "We are not friends."</div><div style="color:var(--danger);">Rival relation: -5</div></div>`;
+            }
+        } else if (action === 'undermine') {
+            const success = Math.random() < 0.5;
+            if (success) {
+                game.rivalRelation = Math.max(0, game.rivalRelation - 20);
+                modifyStats({ auctoritas: 5 });
+                // Set back rival's progress
+                if (game.rivalMilitary > 0 && game.rivalMilitary < 10) game.rivalMilitary = Math.max(0, game.rivalMilitary - 1);
+                resultHtml = `<div class="event-card" style="border-color:var(--success);"><div class="event-type">Success</div><div class="event-title">Rumours Spread</div><div class="event-desc">Your whispers reach the right ears. ${game.rival.short}'s reputation suffers, and his career is set back.</div><div style="color:var(--success);">+5 Influence, Rival set back</div><div style="color:var(--danger);">Rival relation: -20</div></div>`;
+            } else {
+                game.rivalRelation = Math.max(0, game.rivalRelation - 15);
+                modifyStats({ dignitas: -10 });
+                resultHtml = `<div class="event-card" style="border-color:var(--danger);"><div class="event-type">Backfire!</div><div class="event-title">Caught Scheming</div><div class="event-desc">${game.rival.short} discovers your plot and exposes you. "This is who ${game.name} really is!" he declares in the Forum.</div><div style="color:var(--danger);">-10 Dignitas, Rival relation: -15</div></div>`;
+            }
+        } else if (action === 'challenge') {
+            const yourScore = game.stats.dignitas + game.stats.auctoritas + Math.random() * 40;
+            const rivalScore = 100 + Math.random() * 50;
+            if (yourScore > rivalScore) {
+                modifyStats({ dignitas: 15, popularis: 10 });
+                game.rivalRelation = Math.max(0, game.rivalRelation - 10);
+                resultHtml = `<div class="event-card" style="border-color:var(--success);"><div class="event-type">Victory!</div><div class="event-title">Triumph in Debate</div><div class="event-desc">In front of a crowd at the Forum, you demolish ${game.rival.short}'s arguments. The people cheer your name!</div><div style="color:var(--success);">+15 Dignitas, +10 Popularity</div></div>`;
+            } else {
+                modifyStats({ dignitas: -15, popularis: -5 });
+                game.rivalRelation = Math.max(0, game.rivalRelation - 5);
+                resultHtml = `<div class="event-card" style="border-color:var(--danger);"><div class="event-type">Defeat</div><div class="event-title">Humiliated</div><div class="event-desc">${game.rival.short} tears your arguments apart. The crowd laughs. You slink away, humiliated.</div><div style="color:var(--danger);">-15 Dignitas, -5 Popularity</div></div>`;
+            }
+        }
+
+        document.getElementById('contentArea').innerHTML = `
+            <div class="section-title">Rival Encounter</div>
+            ${resultHtml}
+            <button class="btn-primary" onclick="showYearActions()">Continue</button>
+        `;
     }
 
     function generateYearEvents() {
@@ -866,11 +1074,36 @@
                 desc = `You impress ${npc.name} with your wit and insight.`;
             }
             modifyRelationship(npcId, change);
+            modifyStats({ dignitas: 3 }); // Social events always give some dignitas
             document.getElementById('contentArea').innerHTML = `
-                <div class="event-card"><div class="event-type">Social Events</div><div class="event-title">Roman High Society</div><div class="event-desc">${desc}</div><div style="margin-top:10px;font-style:italic;">${npc.name}: ${change > 0 ? '+' : ''}${change}</div></div>
+                <div class="event-card"><div class="event-type">Social Events</div><div class="event-title">Roman High Society</div><div class="event-desc">${desc}</div><div style="margin-top:10px;font-style:italic;">${npc.name}: ${change > 0 ? '+' : ''}${change}, dignitas: +3</div></div>
                 <button class="btn-primary" onclick="showYearActions()">Continue</button>
             `;
+        } else if (actionType === 'train') {
+            // Let player choose what to train
+            document.getElementById('contentArea').innerHTML = `
+                <div class="event-card"><div class="event-type">Training & Study</div><div class="event-title">Self-Improvement</div>
+                <div class="event-desc">How do you spend your time improving yourself?</div>
+                <div class="choices">
+                    <button class="choice-btn" onclick="doTraining('military')">Military exercises<span class="choice-effect">+8 Military</span></button>
+                    <button class="choice-btn" onclick="doTraining('auctoritas')">Study rhetoric & law<span class="choice-effect">+8 Influence</span></button>
+                    <button class="choice-btn" onclick="doTraining('popularis')">Mingle with the people<span class="choice-effect">+8 Popularity</span></button>
+                </div></div>
+            `;
         }
+    }
+
+    function doTraining(stat) {
+        const changeText = modifyStats({ [stat]: 8 });
+        const descriptions = {
+            military: 'You train with weapons and study tactics. Your military knowledge grows.',
+            auctoritas: 'You study law, rhetoric, and the art of persuasion. Your influence grows.',
+            popularis: 'You walk the streets, talk to shopkeepers and workers. The common people begin to know your name.'
+        };
+        document.getElementById('contentArea').innerHTML = `
+            <div class="event-card"><div class="event-type">Training Complete</div><div class="event-title">Self-Improvement</div><div class="event-desc">${descriptions[stat]}</div><div style="margin-top:10px;font-style:italic;">${changeText}</div></div>
+            <button class="btn-primary" onclick="showYearActions()">Continue</button>
+        `;
     }
 
     function doMilitaryService() {
@@ -949,10 +1182,41 @@
 
     function startElection(officeId) {
         game.phase = 'election';
+        game.actionsThisYear += 2; // Elections cost 2 actions
         const office = OFFICES[officeId];
-        game.currentElection = { office: officeId, support: Math.floor(game.stats.dignitas/3 + game.stats.popularis/4 + game.stats.auctoritas/4), spent: 0, opponents: [] };
-        for (let i = 0; i < Math.min(office.slots || 2, 3); i++) {
-            game.currentElection.opponents.push({ name: generateName(), support: 30 + Math.floor(Math.random() * 40), desc: ['Senator', 'Tribune', 'Equestrian', 'General'][Math.floor(Math.random() * 4)] });
+        game.currentElection = {
+            office: officeId,
+            support: Math.floor(game.stats.dignitas/3 + game.stats.popularis/4 + game.stats.auctoritas/4),
+            spent: 0,
+            opponents: [],
+            campaignRounds: 0,
+            maxCampaignRounds: 3
+        };
+
+        // Add random opponents
+        for (let i = 0; i < Math.min(office.slots || 2, 2); i++) {
+            game.currentElection.opponents.push({
+                name: generateName(),
+                support: 25 + Math.floor(Math.random() * 35),
+                desc: ['Senator', 'Tribune', 'Equestrian', 'General'][Math.floor(Math.random() * 4)]
+            });
+        }
+
+        // Add rival if they're at the same career stage
+        if (game.rival && game.rivalMilitary >= 10) {
+            const rivalCanRun = (officeId === 'quaestor' && game.rivalOffice === 'none') ||
+                               (officeId === 'aedile' && game.rivalOffice === 'quaestor') ||
+                               (officeId === 'praetor' && game.rivalOffice === 'aedile') ||
+                               (officeId === 'consul' && game.rivalOffice === 'praetor');
+            if (rivalCanRun && Math.random() < 0.7) {
+                const rivalBonus = game.rivalRelation < 30 ? 10 : game.rivalRelation > 70 ? -10 : 0;
+                game.currentElection.opponents.push({
+                    name: game.rival.name,
+                    support: 40 + Math.floor(Math.random() * 25) + rivalBonus,
+                    desc: 'Your Rival',
+                    isRival: true
+                });
+            }
         }
         showElectionUI();
     }
@@ -967,29 +1231,68 @@
     function showElectionUI() {
         const el = game.currentElection, office = OFFICES[el.office];
         const all = [{ name: game.name, support: el.support, isPlayer: true }, ...el.opponents].sort((a, b) => b.support - a.support);
+        const roundsLeft = el.maxCampaignRounds - el.campaignRounds;
+        const canCampaign = roundsLeft > 0;
+
         document.getElementById('contentArea').innerHTML = `
             <div class="election-container">
                 <div class="section-title">⚖️ Election for ${office.name}</div>
-                <p style="text-align:center;margin-bottom:15px;">Campaign to win! Spend money and influence.</p>
-                <div class="candidates">${all.map(c => `<div class="candidate ${c.isPlayer ? 'player' : ''}"><div class="candidate-name">${c.name}</div><div class="candidate-support">${c.isPlayer ? 'YOU' : c.desc}</div><div class="vote-bar"><div class="vote-fill" style="width:${c.support}%"></div></div><div style="font-size:0.85rem;margin-top:5px;">${Math.round(c.support)}%</div></div>`).join('')}</div>
+                <p style="text-align:center;margin-bottom:10px;">Campaign to win! You have <strong>${roundsLeft}</strong> campaign actions remaining.</p>
+                <div class="candidates">${all.map(c => `<div class="candidate ${c.isPlayer ? 'player' : ''} ${c.isRival ? 'rival' : ''}" style="${c.isRival ? 'border-color:var(--danger);' : ''}"><div class="candidate-name">${c.name}</div><div class="candidate-support">${c.isPlayer ? 'YOU' : c.desc}</div><div class="vote-bar"><div class="vote-fill" style="width:${Math.min(100, c.support)}%"></div></div><div style="font-size:0.85rem;margin-top:5px;">${Math.round(c.support)}%</div></div>`).join('')}</div>
+                ${canCampaign ? `
                 <div class="campaign-actions">
                     <button class="campaign-btn" onclick="campaignAction('bribe')" ${game.stats.pecunia < 20 ? 'disabled' : ''}>💰 Bribe Voters<span class="cost">-20 Wealth, +15 Support</span></button>
-                    <button class="campaign-btn" onclick="campaignAction('speech')" ${game.stats.popularis < 30 ? 'disabled' : ''}>📣 Public Speech<span class="cost">Needs 30 Pop, +10 Support</span></button>
-                    <button class="campaign-btn" onclick="campaignAction('favours')" ${game.stats.auctoritas < 30 ? 'disabled' : ''}>🤝 Call Favours<span class="cost">-10 Influence, +12 Support</span></button>
+                    <button class="campaign-btn" onclick="campaignAction('speech')">📣 Public Speech<span class="cost">Risky: +12 or -5 Support</span></button>
+                    <button class="campaign-btn" onclick="campaignAction('favours')" ${game.stats.auctoritas < 25 ? 'disabled' : ''}>🤝 Call Favours<span class="cost">-10 Influence, +12 Support</span></button>
                     <button class="campaign-btn" onclick="campaignAction('games')" ${game.stats.pecunia < 40 ? 'disabled' : ''}>🏟️ Fund Games<span class="cost">-40 Wealth, +20 Support</span></button>
-                </div>
-                <button class="btn-primary" onclick="resolveElection()" style="margin-top:15px;">Hold the Election</button>
+                    <button class="campaign-btn" onclick="campaignAction('attack')">⚔️ Attack Opponent<span class="cost">Risky: hurt leader or backfire</span></button>
+                </div>` : '<p style="text-align:center;color:var(--danger);">No more campaign actions! You must hold the election.</p>'}
+                <button class="btn-primary" onclick="resolveElection()" style="margin-top:15px;">${canCampaign ? 'Hold Election Now' : 'Hold the Election'}</button>
             </div>
         `;
     }
 
     function campaignAction(action) {
         const el = game.currentElection;
-        if (action === 'bribe') { game.stats.pecunia -= 20; el.support += 15; }
-        else if (action === 'speech') { el.support += 10 + (Math.random() < 0.2 ? -8 : 0); }
-        else if (action === 'favours') { game.stats.auctoritas -= 10; el.support += 12; }
-        else if (action === 'games') { game.stats.pecunia -= 40; el.support += 20; game.stats.popularis += 10; }
-        el.opponents.forEach(o => o.support += Math.floor(Math.random() * 8));
+        el.campaignRounds++;
+
+        if (action === 'bribe') {
+            game.stats.pecunia -= 20;
+            el.support += 15;
+            game.tookBribe = true; // Track for potential consequences
+        } else if (action === 'speech') {
+            // Risky - depends on your stats
+            const success = Math.random() < (0.6 + game.stats.popularis / 200);
+            if (success) {
+                el.support += 12;
+            } else {
+                el.support -= 5;
+            }
+        } else if (action === 'favours') {
+            game.stats.auctoritas -= 10;
+            el.support += 12;
+        } else if (action === 'games') {
+            game.stats.pecunia -= 40;
+            el.support += 20;
+            game.stats.popularis += 8;
+        } else if (action === 'attack') {
+            // Attack the current leader
+            const leader = el.opponents.sort((a, b) => b.support - a.support)[0];
+            const success = Math.random() < 0.5;
+            if (success) {
+                leader.support -= 15;
+                if (leader.isRival) game.rivalRelation = Math.max(0, game.rivalRelation - 15);
+            } else {
+                el.support -= 10; // Backfires
+                modifyStats({ dignitas: -5 });
+            }
+        }
+
+        // Opponents also campaign
+        el.opponents.forEach(o => {
+            o.support += 3 + Math.floor(Math.random() * 6);
+        });
+
         updateDisplay();
         showElectionUI();
     }
@@ -1001,6 +1304,8 @@
         const all = [{ name: game.name, support: finalSupport, isPlayer: true }, ...el.opponents].sort((a, b) => b.support - a.support);
         const winners = all.slice(0, office.slots || 1);
         const won = winners.some(w => w.isPlayer);
+        const rivalWon = winners.some(w => w.isRival);
+
         if (won) {
             game.currentOffice = el.office;
             if (!game.officesHeld.includes(el.office)) game.officesHeld.push(el.office);
@@ -1009,11 +1314,24 @@
         } else {
             modifyStats({ dignitas: -10 });
         }
+
+        // If rival won, advance their career
+        if (rivalWon) {
+            game.rivalOffice = el.office;
+        }
+
+        let resultMsg = won ? `You have been elected <strong>${office.name}</strong>!` : `You lost the election for ${office.name}.`;
+        if (rivalWon && !won) {
+            resultMsg += ` <strong>${game.rival.short}</strong> has won the position instead!`;
+        } else if (rivalWon && won) {
+            resultMsg += ` You share the office with your rival <strong>${game.rival.short}</strong>.`;
+        }
+
         document.getElementById('contentArea').innerHTML = `
             <div class="election-container">
                 <div class="section-title" style="color:${won ? 'var(--success)' : 'var(--danger)'};">${won ? '🏆 VICTORY!' : '❌ DEFEAT'}</div>
-                <p style="text-align:center;">${won ? `You have been elected <strong>${office.name}</strong>!` : `You lost the election for ${office.name}.`}</p>
-                <div class="candidates">${all.map((c,i) => `<div class="candidate ${c.isPlayer ? 'player' : ''} ${i < (office.slots||1) ? 'winner' : ''}"><div class="candidate-name">${c.name}</div><div class="vote-bar"><div class="vote-fill" style="width:${c.support}%"></div></div><div style="font-size:0.85rem;margin-top:5px;">${Math.round(c.support)}%</div></div>`).join('')}</div>
+                <p style="text-align:center;">${resultMsg}</p>
+                <div class="candidates">${all.map((c,i) => `<div class="candidate ${c.isPlayer ? 'player' : ''} ${c.isRival ? 'rival' : ''} ${i < (office.slots||1) ? 'winner' : ''}" style="${c.isRival ? 'border-color:var(--danger);' : ''}"><div class="candidate-name">${c.name}</div><div class="vote-bar"><div class="vote-fill" style="width:${Math.min(100, c.support)}%"></div></div><div style="font-size:0.85rem;margin-top:5px;">${Math.round(c.support)}%</div></div>`).join('')}</div>
                 <button class="btn-primary" onclick="${won ? 'endYear()' : 'showYearActions()'}">Continue</button>
             </div>
         `;
@@ -1043,6 +1361,23 @@
         Object.entries(game.relationships).forEach(([id, val]) => {
             if (val <= 20 && Math.random() < 0.3 && !game.enemies.includes(NPCS[id].name)) game.enemies.push(NPCS[id].name);
         });
+
+        // Advance rival
+        advanceRival();
+
+        // Check if rival sabotages you when hostile
+        if (game.rival && game.rivalRelation < 25 && Math.random() < 0.3) {
+            game.pendingConsequences.push({
+                year: game.year - 1, // Next year
+                type: 'revenge',
+                data: {
+                    title: `${game.rival.short}'s Revenge`,
+                    desc: `${game.rival.short} has been spreading rumours about you. Your reputation suffers.`,
+                    effects: { dignitas: -10, auctoritas: -5 }
+                }
+            });
+        }
+
         game.year--;
         game.age++;
         game.actionsThisYear = 0;  // Reset for new year
@@ -1089,7 +1424,17 @@
             relationships: { crassus: 50, pompey: 50, caesar: 50, cicero: 50, cato: 50 },
             enemies: [], phase: 'intro', militaryYears: 0, consulYears: [], actionsThisYear: 0,
             currentEvent: null, usedMilitaryEvents: [], usedPoliticalEvents: [], usedNpcEvents: {},
-            eventQueue: []
+            eventQueue: [],
+            // Reset rival system
+            rival: null,
+            rivalOffice: 'none',
+            rivalMilitary: 0,
+            rivalRelation: 50,
+            // Reset consequences
+            pendingConsequences: [],
+            savedTribune: false,
+            betrayedAlly: false,
+            tookBribe: false
         };
         document.getElementById('careerTrack').classList.add('hidden');
         document.getElementById('statsRow').classList.add('hidden');
