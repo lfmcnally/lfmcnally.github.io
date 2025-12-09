@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X Dies — Tribune of the Plebs</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --parchment: #f4e4bc; --parchment-dark: #e8d4a8; --parchment-light: #faf6eb;
+            --ink: #2c1810; --ink-light: #4a3728; --wax-red: #8b2323; --wax-gold: #c9a227;
+            --bronze: #cd7f32; --success: #2d5016; --danger: #6b1c1c; --senate: #1a365d;
+        }
+        body { font-family: 'Crimson Text', Georgia, serif; background: linear-gradient(135deg, #3d2914, #2c1810, #1a0f0a); min-height: 100vh; color: var(--ink); }
+        .tablet-container { max-width: 950px; margin: 20px auto; padding: 15px; }
+        .wax-tablet {
+            background: var(--parchment); border: 12px solid #5c4033;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5), inset 0 0 60px rgba(139,69,19,0.1);
+            padding: 25px; position: relative;
+        }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--ink-light); padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { font-family: 'Cinzel', serif; font-size: 2rem; font-weight: 700; letter-spacing: 0.1em; }
+        .header .subtitle { font-style: italic; color: var(--ink-light); }
+        .day-display { font-family: 'Cinzel', serif; font-size: 1.5rem; color: var(--wax-red); }
+        .phase-display { font-size: 0.9rem; color: var(--ink-light); font-style: italic; }
+        
+        .top-bar { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stats-panel { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
+        .stat-seal {
+            text-align: center; padding: 8px 12px; background: radial-gradient(circle, var(--parchment-dark), var(--parchment));
+            border: 2px solid var(--bronze); border-radius: 8px; min-width: 70px; position: relative; transition: all 0.3s;
+        }
+        .stat-seal.danger { border-color: var(--danger); background: linear-gradient(to bottom, #f5d5d5, var(--parchment)); }
+        .stat-seal.warning { border-color: var(--wax-gold); }
+        .stat-seal.good { border-color: var(--success); background: linear-gradient(to bottom, #d5e8d0, var(--parchment)); }
+        .stat-name { font-family: 'Cinzel', serif; font-size: 0.6rem; font-weight: 600; text-transform: uppercase; color: var(--ink-light); }
+        .stat-value { font-family: 'Cinzel', serif; font-size: 1.3rem; font-weight: 700; }
+        .stat-change { position: absolute; top: -8px; right: -8px; font-size: 0.75rem; font-weight: bold; padding: 2px 5px; border-radius: 8px; animation: popIn 0.3s; }
+        .stat-change.positive { background: var(--success); color: white; }
+        .stat-change.negative { background: var(--danger); color: white; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+
+        .inventory-toggle {
+            background: linear-gradient(to bottom, var(--parchment-dark), #d4c4a0); border: 2px solid var(--ink-light);
+            padding: 8px 15px; font-family: 'Cinzel', serif; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 8px;
+        }
+        .inventory-toggle:hover { background: linear-gradient(to bottom, #e8d8b4, var(--parchment-dark)); border-color: var(--bronze); }
+        .inventory-toggle .count { background: var(--wax-red); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; }
+
+        .faction-tracker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; padding: 12px; background: var(--parchment-dark); border: 1px solid var(--ink-light); }
+        .faction { text-align: center; }
+        .faction-name { font-family: 'Cinzel', serif; font-size: 0.7rem; font-weight: 600; margin-bottom: 4px; }
+        .faction-meter { height: 8px; background: #ddd; border-radius: 4px; overflow: hidden; }
+        .faction-fill { height: 100%; transition: width 0.5s, background 0.3s; border-radius: 4px; }
+        .faction-fill.hostile { background: linear-gradient(to right, var(--danger), #a33); }
+        .faction-fill.neutral { background: linear-gradient(to right, #888, #aaa); }
+        .faction-fill.friendly { background: linear-gradient(to right, var(--success), #4a7c23); }
+        .faction-status { font-size: 0.65rem; margin-top: 2px; font-style: italic; }
+
+        .location-map { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px; }
+        .location-card {
+            background: linear-gradient(135deg, var(--parchment-light), var(--parchment-dark)); border: 2px solid var(--ink-light);
+            padding: 18px; cursor: pointer; transition: all 0.3s; position: relative;
+        }
+        .location-card:hover { transform: translateY(-3px); box-shadow: 0 5px 20px rgba(0,0,0,0.2); border-color: var(--bronze); }
+        .location-icon { font-size: 1.8rem; margin-bottom: 8px; }
+        .location-name { font-family: 'Cinzel', serif; font-size: 1.1rem; font-weight: 600; margin-bottom: 5px; }
+        .location-desc { font-size: 0.9rem; color: var(--ink-light); font-style: italic; }
+        .location-hint { font-size: 0.8rem; color: var(--wax-red); margin-top: 8px; }
+
+        .event-card { background: linear-gradient(to bottom, #fffef5, var(--parchment)); border: 3px double var(--ink-light); padding: 25px; margin-bottom: 20px; position: relative; }
+        .event-card::before { content: attr(data-icon); position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 1.5rem; background: var(--parchment); padding: 0 10px; }
+        .event-location { font-family: 'Cinzel', serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--bronze); margin-bottom: 5px; }
+        .event-category { font-family: 'Cinzel', serif; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--wax-red); margin-bottom: 10px; }
+        .event-title { font-family: 'Cinzel', serif; font-size: 1.3rem; font-weight: 600; margin-bottom: 15px; }
+        .event-description { font-size: 1.05rem; line-height: 1.7; margin-bottom: 20px; }
+        .highlight { color: var(--wax-red); font-weight: 600; }
+
+        .timer-container { margin-bottom: 15px; display: none; }
+        .timer-container.active { display: block; }
+        .timer-label { font-family: 'Cinzel', serif; font-size: 0.9rem; color: var(--danger); margin-bottom: 5px; display: flex; justify-content: space-between; }
+        .timer-bar { height: 10px; background: var(--parchment-dark); border: 1px solid var(--ink-light); border-radius: 5px; overflow: hidden; }
+        .timer-fill { height: 100%; background: linear-gradient(to right, var(--danger), var(--wax-red)); transition: width 0.1s linear; }
+
+        .choices { display: flex; flex-direction: column; gap: 10px; }
+        .choice-btn {
+            background: linear-gradient(to bottom, var(--parchment-dark), #d4c4a0); border: 2px solid var(--ink-light);
+            padding: 14px 18px; font-family: 'Crimson Text', serif; font-size: 1rem; color: var(--ink);
+            cursor: pointer; text-align: left; transition: all 0.2s;
+        }
+        .choice-btn:hover:not(:disabled) { background: linear-gradient(to bottom, #e8d8b4, var(--parchment-dark)); border-color: var(--bronze); transform: translateX(5px); }
+        .choice-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .choice-btn .choice-hint { display: block; font-size: 0.85rem; color: var(--ink-light); font-style: italic; margin-top: 4px; }
+        .choice-btn .choice-cost { display: inline-block; background: var(--wax-red); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; margin-left: 8px; }
+        .choice-btn .choice-requires { display: inline-block; background: var(--senate); color: white; font-size: 0.7rem; padding: 2px 6px; border-radius: 8px; margin-left: 8px; }
+
+        .inventory-panel {
+            position: fixed; top: 0; right: -350px; width: 340px; height: 100vh; background: var(--parchment);
+            border-left: 5px solid #5c4033; box-shadow: -5px 0 30px rgba(0,0,0,0.3); padding: 25px;
+            overflow-y: auto; transition: right 0.3s; z-index: 1000;
+        }
+        .inventory-panel.open { right: 0; }
+        .inventory-panel h2 { font-family: 'Cinzel', serif; font-size: 1.4rem; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--ink-light); }
+        .inventory-close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--ink-light); }
+        .inventory-section { margin-bottom: 20px; }
+        .inventory-section h3 { font-family: 'Cinzel', serif; font-size: 0.95rem; color: var(--wax-red); margin-bottom: 8px; }
+        .inventory-item { background: var(--parchment-dark); border: 1px solid var(--ink-light); padding: 10px; margin-bottom: 6px; }
+        .inventory-item .item-name { font-weight: 600; font-size: 0.9rem; }
+        .inventory-item .item-desc { font-size: 0.8rem; color: var(--ink-light); font-style: italic; }
+        .empty-inventory { color: var(--ink-light); font-style: italic; text-align: center; padding: 15px; font-size: 0.9rem; }
+
+        .minigame-container { background: var(--parchment-light); border: 3px solid var(--bronze); padding: 25px; margin-bottom: 20px; }
+        .minigame-title { font-family: 'Cinzel', serif; font-size: 1.2rem; text-align: center; margin-bottom: 15px; color: var(--wax-red); }
+        .minigame-instructions { text-align: center; margin-bottom: 20px; font-style: italic; }
+        
+        .timeline-slots { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        .timeline-slot { background: var(--parchment-dark); border: 2px dashed var(--ink-light); padding: 12px; min-height: 45px; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 0.9rem; cursor: pointer; }
+        .timeline-slot.filled { border-style: solid; border-color: var(--bronze); }
+        .timeline-slot.correct { border-color: var(--success); background: #d5e8d0; }
+        .timeline-slot.incorrect { border-color: var(--danger); background: #f5d5d5; }
+        .timeline-options { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+        .timeline-option { background: linear-gradient(to bottom, var(--parchment), var(--parchment-dark)); border: 2px solid var(--ink-light); padding: 8px 12px; cursor: pointer; font-family: 'Cinzel', serif; font-size: 0.85rem; transition: all 0.2s; }
+        .timeline-option:hover:not(.used) { border-color: var(--bronze); transform: translateY(-2px); }
+        .timeline-option.used { opacity: 0.4; cursor: not-allowed; }
+        .timeline-option.selected { border-color: var(--wax-red); background: var(--parchment-light); }
+
+        .cursus-ladder { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 20px; }
+        .cursus-rung { width: 80%; padding: 12px; text-align: center; background: var(--parchment-dark); border: 2px solid var(--ink-light); font-family: 'Cinzel', serif; cursor: pointer; transition: all 0.2s; }
+        .cursus-rung:hover:not(.locked):not(.completed) { background: var(--parchment-light); border-color: var(--bronze); }
+        .cursus-rung.completed { background: #d5e8d0; border-color: var(--success); }
+        .cursus-rung.wrong { background: #f5d5d5; border-color: var(--danger); animation: shake 0.3s; }
+        .cursus-rung.locked { opacity: 0.5; cursor: not-allowed; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+
+        .match-container { display: grid; grid-template-columns: 1fr 30px 1fr; gap: 15px; align-items: start; }
+        .match-column { display: flex; flex-direction: column; gap: 8px; }
+        .match-item { background: var(--parchment-dark); border: 2px solid var(--ink-light); padding: 10px; cursor: pointer; text-align: center; transition: all 0.2s; font-size: 0.9rem; }
+        .match-item:hover:not(.matched) { border-color: var(--bronze); background: var(--parchment-light); }
+        .match-item.selected { border-color: var(--wax-red); background: var(--parchment-light); }
+        .match-item.matched { border-color: var(--success); background: #d5e8d0; cursor: default; }
+        .match-item.wrong { animation: shake 0.3s; border-color: var(--danger); }
+
+        .continue-btn {
+            display: block; width: 100%; background: linear-gradient(to bottom, var(--wax-red), #6b1818);
+            color: var(--parchment); border: none; padding: 14px; font-family: 'Cinzel', serif;
+            font-size: 1.1rem; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s; margin-top: 15px;
+        }
+        .continue-btn:hover { background: linear-gradient(to bottom, #a02c2c, var(--wax-red)); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .continue-btn.secondary { background: linear-gradient(to bottom, var(--ink-light), var(--ink)); }
+
+        .journal-entry { background: #fffef8; border-left: 4px solid var(--wax-red); padding: 20px; margin: 20px 0; }
+        .journal-date { font-family: 'Cinzel', serif; font-weight: 600; color: var(--wax-red); margin-bottom: 10px; }
+        .journal-text { font-style: italic; line-height: 1.7; margin-bottom: 15px; }
+        .journal-gains { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 15px; border-top: 1px dashed var(--ink-light); font-size: 0.9rem; }
+        .stat-up { color: var(--success); } .stat-down { color: var(--danger); }
+
+        .game-end { text-align: center; padding: 30px; }
+        .game-end h2 { font-family: 'Cinzel', serif; font-size: 1.8rem; margin-bottom: 20px; }
+        .game-end.victory h2 { color: var(--success); } .game-end.defeat h2 { color: var(--danger); }
+        .game-end p { font-size: 1.05rem; line-height: 1.8; margin-bottom: 15px; }
+        .historical-parallel { background: var(--parchment-dark); border: 1px solid var(--ink-light); padding: 20px; margin: 20px 0; text-align: left; }
+        .historical-parallel h4 { font-family: 'Cinzel', serif; color: var(--wax-red); margin-bottom: 10px; }
+        .final-stats { text-align: left; background: var(--parchment-light); padding: 20px; margin: 20px 0; border: 1px solid var(--ink-light); }
+        .final-stats h4 { font-family: 'Cinzel', serif; margin-bottom: 15px; }
+        .restart-btn { background: var(--ink); color: var(--parchment); border: none; padding: 15px 40px; font-family: 'Cinzel', serif; font-size: 1.1rem; cursor: pointer; margin-top: 20px; }
+        .restart-btn:hover { background: var(--ink-light); }
+
+        .intro-screen { padding: 30px; }
+        .intro-screen h2 { font-family: 'Cinzel', serif; font-size: 1.7rem; margin-bottom: 20px; text-align: center; }
+        .intro-screen p { font-size: 1.05rem; line-height: 1.8; margin-bottom: 15px; }
+        .intro-features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 25px 0; }
+        .intro-feature { background: var(--parchment-dark); padding: 15px; border: 1px solid var(--ink-light); }
+        .intro-feature h4 { font-family: 'Cinzel', serif; font-size: 0.85rem; margin-bottom: 5px; color: var(--wax-red); }
+        .intro-feature p { font-size: 0.9rem; margin: 0; }
+        .start-btn { display: block; width: 100%; background: linear-gradient(to bottom, var(--success), #1e3a0f); color: var(--parchment); border: none; padding: 18px; font-family: 'Cinzel', serif; font-size: 1.2rem; letter-spacing: 0.1em; cursor: pointer; margin-top: 25px; transition: all 0.2s; }
+        .start-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+
+        .hidden { display: none !important; }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; text-align: center; gap: 10px; }
+            .stats-panel { justify-content: center; }
+            .location-map { grid-template-columns: 1fr; }
+            .faction-tracker { grid-template-columns: repeat(2, 1fr); }
+            .intro-features { grid-template-columns: 1fr; }
+            .inventory-panel { width: 100%; right: -100%; }
+            .match-container { grid-template-columns: 1fr; gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="tablet-container">
+        <div class="wax-tablet">
+            <div class="header">
+                <div class="header-left"><h1>X DIES</h1><div class="subtitle">Tribunus Plebis</div></div>
+                <div class="header-right"><div class="day-display" id="dayDisplay">Dies I</div><div class="phase-display" id="phaseDisplay">Dawn — Choose Your Path</div></div>
+            </div>
+            <div class="top-bar hidden" id="topBar">
+                <div class="stats-panel" id="statsPanel">
+                    <div class="stat-seal" id="dignitasSeal"><span class="stat-name">Dignitas</span><span class="stat-value" id="dignitas">50</span></div>
+                    <div class="stat-seal" id="favorSeal"><span class="stat-name">Favor</span><span class="stat-value" id="favor">50</span></div>
+                    <div class="stat-seal" id="gratiaSeal"><span class="stat-name">Gratia</span><span class="stat-value" id="gratia">50</span></div>
+                    <div class="stat-seal" id="pecuniaSeal"><span class="stat-name">Pecunia</span><span class="stat-value" id="pecunia">50</span></div>
+                    <div class="stat-seal" id="inimiciSeal"><span class="stat-name">Inimici</span><span class="stat-value" id="inimici">0</span></div>
+                </div>
+                <button class="inventory-toggle" onclick="toggleInventory()">📜 Assets <span class="count" id="inventoryCount">0</span></button>
+            </div>
+            <div class="faction-tracker hidden" id="factionTracker">
+                <div class="faction"><div class="faction-name">Optimates</div><div class="faction-meter"><div class="faction-fill neutral" id="optimatesFill" style="width:50%"></div></div><div class="faction-status" id="optimatesStatus">Neutral</div></div>
+                <div class="faction"><div class="faction-name">Populares</div><div class="faction-meter"><div class="faction-fill neutral" id="popularesFill" style="width:50%"></div></div><div class="faction-status" id="popularesStatus">Neutral</div></div>
+                <div class="faction"><div class="faction-name">Equites</div><div class="faction-meter"><div class="faction-fill neutral" id="equitesFill" style="width:50%"></div></div><div class="faction-status" id="equitesStatus">Neutral</div></div>
+                <div class="faction"><div class="faction-name">Military</div><div class="faction-meter"><div class="faction-fill neutral" id="militaryFill" style="width:50%"></div></div><div class="faction-status" id="militaryStatus">Neutral</div></div>
+            </div>
+            <div id="gameContent">
+                <div class="intro-screen" id="introScreen">
+                    <h2>The Year is 70 BC</h2>
+                    <p>You are <strong>Marcus Tullius</strong>, a <span class="highlight">novus homo</span> from a modest equestrian family. Against all odds, you have just been elected <strong>Tribune of the Plebs</strong>.</p>
+                    <p>The Republic is in turmoil. Sulla's reforms strengthened the Senate but angered the people. Pompey and Crassus circle like wolves. Veterans demand land. The grain supply falters.</p>
+                    <p>You have <strong>10 days</strong> until the next magistrates take office. Can you survive and build your reputation?</p>
+                    <div class="intro-features">
+                        <div class="intro-feature"><h4>🗺️ Choose Your Path</h4><p>Each day, decide where in Rome to spend your time. Different locations offer different opportunities.</p></div>
+                        <div class="intro-feature"><h4>📜 Build Your Assets</h4><p>Collect clients, evidence, and alliances. Spend them to unlock powerful options.</p></div>
+                        <div class="intro-feature"><h4>⚖️ Balance Factions</h4><p>The Optimates, Populares, Equites, and Military all watch your moves.</p></div>
+                        <div class="intro-feature"><h4>⏱️ Face Crises</h4><p>Some decisions can't wait. When crisis strikes, you'll need quick thinking.</p></div>
+                    </div>
+                    <p><em>If any stat reaches zero, your career is over. Gain too many enemies, and you may meet an unfortunate end...</em></p>
+                    <button class="start-btn" onclick="startGame()">BEGIN YOUR TRIBUNATE</button>
+                </div>
+                <div id="locationArea" class="hidden"></div>
+                <div id="eventArea" class="hidden"></div>
+                <div id="minigameArea" class="hidden"></div>
+                <div id="journalArea" class="hidden"></div>
+                <div id="endArea" class="hidden"></div>
+            </div>
+        </div>
+    </div>
+    <div class="inventory-panel" id="inventoryPanel">
+        <button class="inventory-close" onclick="toggleInventory()">✕</button>
+        <h2>📜 Your Assets</h2>
+        <div class="inventory-section"><h3>👥 Clients</h3><div id="clientsList"><div class="empty-inventory">No clients yet</div></div></div>
+        <div class="inventory-section"><h3>📋 Evidence</h3><div id="evidenceList"><div class="empty-inventory">No evidence collected</div></div></div>
+        <div class="inventory-section"><h3>🤝 Alliances</h3><div id="alliancesList"><div class="empty-inventory">No alliances formed</div></div></div>
+    </div>
+    <script>
+        // GAME STATE
+        let gameState = {
+            day: 1, maxDays: 10, phase: 'location',
+            stats: { dignitas: 50, favor: 50, gratia: 50, pecunia: 50, inimici: 0 },
+            factions: { optimates: 50, populares: 50, equites: 50, military: 50 },
+            inventory: { clients: [], evidence: [], alliances: [] },
+            enemies: [], currentLocation: null, currentEvent: null, usedEvents: [], timerInterval: null
+        };
+
+        const locations = [
+            { id: 'forum', name: 'The Forum', icon: '🏛️', description: 'Heart of Roman politics — speeches, trials, and Senate intrigue', hint: 'Political events, public speeches, senatorial encounters' },
+            { id: 'subura', name: 'The Subura', icon: '🏚️', description: 'The crowded slums — where the real Rome lives and whispers', hint: 'Meet plebs, gather rumours, cheaper options' },
+            { id: 'palatine', name: 'The Palatine', icon: '🏰', description: 'Mansions of the elite — wealth, power, and dangerous alliances', hint: 'Wealthy patrons, marriage offers, expensive dealings' },
+            { id: 'campus', name: 'Campus Martius', icon: '⚔️', description: 'Training grounds — soldiers and veterans gather here', hint: 'Military contacts, veteran issues' }
+        ];
+
+        const events = [
+            { id: 'first_day', location: 'forum', category: 'Your First Day', title: 'The Weight of the Toga', icon: '🏛️', forceDay: 1,
+              description: 'You stand in the Forum for the first time as Tribune. A crowd gathers, curious about the new tribune. What kind of leader will you be?',
+              choices: [
+                { text: 'Give a rousing speech about reform and the rights of the people', hint: 'Bold — the people will love it, the Senate less so', effects: { favor: 15, gratia: -10, dignitas: 10 }, factionEffects: { populares: 15, optimates: -10 }, journal: 'My first words were for the people. The Forum erupted in cheers.', reward: { type: 'client', item: { name: 'Forum Supporters', desc: 'Common people who heard your speech' } } },
+                { text: 'Pay respects at Saturn\'s temple, then meet quietly with senators', hint: 'Cautious and traditional', effects: { gratia: 15, dignitas: 5, favor: -5 }, factionEffects: { optimates: 10, populares: -5 }, journal: 'I began with prayers and private meetings. The senators seemed pleased.' },
+                { text: 'Walk through the crowd, listening to ordinary citizens\' complaints', hint: 'Humble but time-consuming', effects: { favor: 10, dignitas: 5 }, factionEffects: { populares: 10 }, journal: 'I spent my first day listening to the people\'s grievances.', reward: { type: 'evidence', item: { name: 'List of Grievances', desc: 'Complaints from ordinary citizens' } } }
+              ]
+            },
+            { id: 'tribune_veto', location: 'forum', category: 'Tribunician Crisis', title: 'The Sacred Veto', icon: '⚖️', timed: true, timeLimit: 20,
+              description: 'Your fellow tribune <span class="highlight">Scribonius</span> will veto your grain bill. Rumour says wealthy landowners paid him. Remember — Tiberius Gracchus faced this same choice.',
+              choices: [
+                { text: 'Accept the veto — the tribunate\'s power must be respected', hint: 'Constitutional but seen as weak', effects: { dignitas: -15, gratia: 15, favor: -20 }, factionEffects: { optimates: 15, populares: -20 }, journal: 'I bowed to the veto. The people\'s eyes accused me of cowardice.' },
+                { text: 'Call for Scribonius to be deposed — he betrays his sacred office', hint: 'This is what Tiberius Gracchus did. He was murdered for it.', effects: { favor: 25, gratia: -30, dignitas: 15, inimici: 1 }, factionEffects: { populares: 25, optimates: -30 }, enemy: 'Scribonius & allies', journal: 'I called for the traitor\'s removal. I have crossed a line that cannot be uncrossed.', reward: { type: 'alliance', item: { name: 'Radical Populares', desc: 'Those who support bold action' } } },
+                { text: '[Spend 20 Pecunia] Bribe him to withdraw', hint: 'Effective but expensive', cost: { pecunia: 20 }, effects: { favor: 5 }, journal: 'Gold changed hands in shadows. My bill will pass.' }
+              ], minigameAfter: 'timeline'
+            },
+            { id: 'verres_witness', location: 'forum', category: 'Corruption', title: 'The Sicilian\'s Secret', icon: '📋',
+              description: 'A terrified Sicilian has <span class="highlight">evidence of massive corruption</span> by a former governor. "Cicero is building a case," he whispers. "Will you help?"',
+              choices: [
+                { text: 'Take the evidence and pledge to help prosecute', hint: 'Righteous, but makes powerful enemies', effects: { dignitas: 15, favor: 10, gratia: -10, inimici: 1 }, factionEffects: { populares: 10, equites: -15 }, enemy: 'Verres\' friends', journal: 'I hold evidence that could destroy a corrupt governor.', reward: { type: 'evidence', item: { name: 'Verres Dossier', desc: 'Proof of corruption in Sicily' } } },
+                { text: 'Decline — you have enough enemies already', hint: 'Safe but uninspiring', effects: { dignitas: -10 }, journal: 'I turned away a man seeking justice.' },
+                { text: '[Requires: Any Evidence] Trade information for his', hint: 'Build your collection', requires: { type: 'evidence', any: true }, effects: { dignitas: 5 }, journal: 'We exchanged secrets like merchants.', reward: { type: 'evidence', item: { name: 'Verres Dossier', desc: 'Proof of corruption' } } }
+              ]
+            },
+            { id: 'senate_summons', location: 'forum', category: 'Senatorial Politics', title: 'Called to Account', icon: '🏛️',
+              description: 'A <span class="highlight">princeps senatus</span> summons you to explain your "reckless populism." This is a test.',
+              choices: [
+                { text: 'Defend yourself with eloquent legal arguments', hint: 'Requires confidence', effects: { dignitas: 15, gratia: 5, favor: 5 }, journal: 'I spoke of law and precedent. Some senators nodded.' },
+                { text: 'Remind them tribunes are sacrosanct — you answer only to the people', hint: 'Confrontational', effects: { dignitas: 10, gratia: -20, favor: 15, inimici: 1 }, factionEffects: { optimates: -20, populares: 15 }, enemy: 'Conservative senators', journal: 'I reminded the Senate they cannot touch me.' },
+                { text: 'Apologise and promise to be more moderate', hint: 'Weak but safe', effects: { gratia: 15, dignitas: -15, favor: -15 }, factionEffects: { optimates: 15, populares: -15 }, journal: 'I bent my knee. The senators smiled. I felt sick.' },
+                { text: '[Use: Radical Populares] Have supporters shout them down', hint: 'Dramatic escalation', requires: { type: 'alliance', name: 'Radical Populares' }, effects: { favor: 20, gratia: -25, dignitas: 5 }, journal: 'My supporters drowned out the senators.' }
+              ]
+            },
+            { id: 'grain_riot', location: 'subura', category: 'Crisis', title: 'Bread and Fury', icon: '🔥', timed: true, timeLimit: 15,
+              description: 'A grain ship has sunk. Prices have tripled. A <span class="highlight">mob is forming</span>. They see your toga — "Tribune! Help us!"',
+              choices: [
+                { text: 'Promise to investigate price gouging', hint: 'Buys time but doesn\'t feed anyone', effects: { favor: 10, dignitas: 5 }, factionEffects: { populares: 10 }, journal: 'I made promises. The mob dispersed — for now.' },
+                { text: '[Spend 25 Pecunia] Buy grain and distribute it', hint: 'Expensive but immediate', cost: { pecunia: 25 }, effects: { favor: 25, dignitas: 20 }, factionEffects: { populares: 20 }, journal: 'I spent my family\'s money on grain. They blessed my name.', reward: { type: 'client', item: { name: 'Subura Poor', desc: 'Families you saved' } } },
+                { text: 'Lead the mob to the grain merchants\' warehouses', hint: 'Popular but borderline illegal', effects: { favor: 30, gratia: -20, dignitas: -5, inimici: 1 }, factionEffects: { populares: 25, optimates: -20, equites: -15 }, enemy: 'Grain merchants', journal: 'We found warehouses full while children starved.' }
+              ]
+            },
+            { id: 'rumour_mill', location: 'subura', category: 'Intelligence', title: 'Whispers in the Alley', icon: '👂',
+              description: 'A street vendor offers information. "For a few coins, I could tell you what <span class="highlight">Crassus said</span> about you..."',
+              choices: [
+                { text: '[Spend 10 Pecunia] Pay for the information', cost: { pecunia: 10 }, effects: { dignitas: -5 }, journal: 'Crassus called me "useful but controllable."', reward: { type: 'evidence', item: { name: 'Crassus\'s plans', desc: 'Rumours about his intentions' } } },
+                { text: 'Decline — a tribune shouldn\'t deal with informers', effects: { dignitas: 10 }, journal: 'I refused to pay for gossip.' },
+                { text: '[Spend 15 Pecunia] Make her your regular informant', cost: { pecunia: 15 }, effects: {}, journal: 'I have begun building an intelligence network.', reward: { type: 'client', item: { name: 'Street Informants', desc: 'Eyes and ears throughout Rome' } } }
+              ]
+            },
+            { id: 'client_plea', location: 'subura', category: 'Patronage', title: 'A Client\'s Desperation', icon: '🙏',
+              description: 'A freedman who served your father begs for help. His son has been arrested on false charges.',
+              choices: [
+                { text: 'Defend him personally in court', hint: 'Honourable but time-consuming', effects: { dignitas: 15, gratia: -5, pecunia: -5 }, journal: 'I stood in court for my client\'s son.', reward: { type: 'client', item: { name: 'Grateful Freedmen', desc: 'Fiercely loyal' } } },
+                { text: '[Spend 15 Pecunia] Hire a good advocate', cost: { pecunia: 15 }, effects: { dignitas: 5 }, journal: 'I paid for a lawyer. The boy was freed.' },
+                { text: '[Use: Verres Dossier] Threaten the accusers with exposure', requires: { type: 'evidence', name: 'Verres Dossier' }, effects: { dignitas: 10, gratia: -10 }, journal: 'I suggested certain evidence might surface. Charges dropped.' },
+                { text: 'Explain you can\'t get involved', hint: 'Abandoning a client is devastating', effects: { dignitas: -25, favor: -15 }, journal: 'I abandoned a man who trusted me.' }
+              ]
+            },
+            { id: 'crassus_dinner', location: 'palatine', category: 'Patronage', title: 'The Richest Man in Rome', icon: '💰',
+              description: '<span class="highlight">Marcus Crassus</span> invites you to dinner. "Politics is expensive," he says. "I like to invest in promising young men."',
+              choices: [
+                { text: 'Accept his patronage — money is power', hint: 'Wealthy patron, but Crassus expects repayment', effects: { pecunia: 30, dignitas: -10, gratia: 10, inimici: 1 }, factionEffects: { equites: 15 }, enemy: 'Pompey\'s faction', journal: 'I am now a client of Crassus.', reward: { type: 'alliance', item: { name: 'Crassus\'s backing', desc: 'Financial support' } } },
+                { text: 'Accept a modest loan but stay independent', effects: { pecunia: 15, dignitas: -5 }, journal: 'I took some gold, not too much.' },
+                { text: 'Politely decline', hint: 'Independent but potentially insulting', effects: { dignitas: 15, pecunia: -5 }, factionEffects: { populares: 5 }, journal: 'I refused Crassus\'s gold.' }
+              ]
+            },
+            { id: 'caesar_marriage', location: 'palatine', category: 'Alliance', title: 'The Julian Offer', icon: '💍',
+              description: '<span class="highlight">Gaius Julius Caesar</span> proposes a marriage alliance. "Friends of Caesar find doors open throughout Rome."',
+              choices: [
+                { text: 'Accept — Caesar\'s star is rising', effects: { dignitas: 15, pecunia: 10, inimici: 1 }, factionEffects: { populares: 10, optimates: -15 }, enemy: 'The Optimates', journal: 'I have joined my family to the Julii.', reward: { type: 'alliance', item: { name: 'Julian connection', desc: 'Marriage ties to Caesar' } } },
+                { text: 'Politely decline — you prefer independence', effects: { dignitas: 5, gratia: 5 }, journal: 'I declined Caesar\'s offer. His eyes were cold.' },
+                { text: 'Ask for time to consider', effects: { dignitas: -5 }, journal: 'I delayed my answer. Caesar remembers everything.' }
+              ], minigameAfter: 'cursus'
+            },
+            { id: 'cato_alliance', location: 'palatine', category: 'Alliance', title: 'The Stoic\'s Approval', icon: '⚖️',
+              description: '<span class="highlight">Cato the Younger</span> approaches you. "You seem honest. Rare in Rome." He offers alliance with the <span class="highlight">boni</span>.',
+              choices: [
+                { text: 'Accept — Cato\'s integrity is beyond question', effects: { dignitas: 20, gratia: 15, favor: -10, inimici: 1 }, factionEffects: { optimates: 20, populares: -15 }, enemy: 'The Populares', journal: 'I am now counted among Cato\'s allies.', reward: { type: 'alliance', item: { name: 'The Boni', desc: 'Alliance with Cato' } } },
+                { text: 'Decline — Cato\'s rigidity causes problems', effects: { gratia: -10, favor: 10 }, factionEffects: { optimates: -10, populares: 5 }, journal: 'I refused Cato\'s offer.' },
+                { text: 'Accept friendship but not faction membership', effects: { dignitas: 10, gratia: 5 }, journal: 'I accepted on my own terms.' }
+              ], minigameAfter: 'match'
+            },
+            { id: 'veterans_demand', location: 'campus', category: 'Military', title: 'Broken Promises', icon: '⚔️',
+              description: '<span class="highlight">Marian veterans</span> block your path. "Sulla gave land to HIS veterans. We got nothing."',
+              choices: [
+                { text: 'Champion their cause — propose a land bill', hint: 'Popular but threatens landowners', effects: { favor: 20, gratia: -25, dignitas: 15, inimici: 1 }, factionEffects: { populares: 20, military: 25, optimates: -20 }, enemy: 'Large landowners', journal: 'I have taken up the veterans\' cause.', reward: { type: 'client', item: { name: 'Marian Veterans', desc: 'Tough old soldiers' } } },
+                { text: 'Promise to work within the system', effects: { gratia: 10, favor: -10, dignitas: -5 }, factionEffects: { optimates: 10, military: -15 }, journal: 'I promised proper channels. They\'ve heard that before.' },
+                { text: '[Use: Crassus\'s backing] Promise Crassus will fund land purchases', requires: { type: 'alliance', name: 'Crassus\'s backing' }, effects: { favor: 15, dignitas: 10 }, factionEffects: { military: 20 }, journal: 'I offered Crassus\'s gold for their land.', reward: { type: 'client', item: { name: 'Marian Veterans', desc: 'Tough old soldiers' } } }
+              ], minigameAfter: 'timeline'
+            },
+            { id: 'pompey_agents', location: 'campus', category: 'Military', title: 'The General\'s Shadow', icon: '🦅',
+              description: 'Men from <span class="highlight">Pompey Magnus</span> approach. "The general wants to know where you stand on his pirate command."',
+              choices: [
+                { text: 'Support Pompey\'s command — Rome needs action', effects: { favor: 10, gratia: -15, dignitas: 5 }, factionEffects: { military: 20, optimates: -20 }, journal: 'I backed Pompey. Have I helped create a man too powerful?', reward: { type: 'alliance', item: { name: 'Pompey\'s gratitude', desc: 'The general owes you' } } },
+                { text: 'Oppose it — no one man should have such power', effects: { gratia: 15, dignitas: 15, favor: -5, inimici: 1 }, factionEffects: { optimates: 15, military: -15 }, enemy: 'Pompey Magnus', journal: 'I spoke against Pompey. I felt his cold gaze.' },
+                { text: 'Demand concessions — support for veteran land', effects: { dignitas: 10, favor: 5, gratia: -5 }, factionEffects: { military: 10 }, journal: 'I offered support for a price.' }
+              ]
+            },
+            { id: 'assassination_warning', location: 'campus', category: 'Danger', title: 'A Warning', icon: '🗡️', timed: true, timeLimit: 12,
+              description: 'A cloaked figure whispers: "Men are <span class="highlight">meeting tonight</span> to discuss your removal."',
+              choices: [
+                { text: '[Spend 20 Pecunia] Hire bodyguards immediately', cost: { pecunia: 20 }, effects: { dignitas: 5 }, journal: 'I now walk with armed men.', reward: { type: 'client', item: { name: 'Personal Guards', desc: 'Armed protection' } } },
+                { text: 'Announce the plot publicly — shame your enemies', effects: { dignitas: 10, favor: 15, gratia: -15, inimici: 1 }, enemy: 'The conspirators', journal: 'I denounced the plot. My enemies slink in shadows.' },
+                { text: '[Use: Street Informants] Have your network identify the plotters', requires: { type: 'client', name: 'Street Informants' }, effects: { dignitas: 5 }, journal: 'My informants brought names.', reward: { type: 'evidence', item: { name: 'Assassination list', desc: 'Names of plotters' } } },
+                { text: 'Do nothing — refuse to show fear', effects: { dignitas: 20 }, journal: 'I refuse to cower. Let them come.' }
+              ]
+            },
+            { id: 'final_day', location: 'forum', category: 'The End', title: 'Your Last Day', icon: '🌅', forceDay: 10,
+              description: 'Tomorrow, new magistrates take office. Your tribunate ends. What mark have you left on Rome?',
+              choices: [
+                { text: 'One last speech — thank the people', effects: { dignitas: 15, favor: 10 }, journal: 'I spoke one last time to those who chose me.' },
+                { text: 'Meet with allies to plan your next move', effects: { dignitas: 5, gratia: 5 }, journal: 'The tribunate ends. My ambitions do not.' },
+                { text: 'Make offerings at Saturn\'s temple', effects: { dignitas: 10 }, journal: 'I prayed for Rome. May those who follow do better.' }
+              ]
+            }
+        ];
+
+        const minigames = {
+            timeline: { title: '📜 Timeline Challenge', instructions: 'Place events in chronological order (earliest first)', items: [{ text: 'Tiberius Gracchus\'s land reform', year: 133 }, { text: 'Marius\'s military reforms', year: 107 }, { text: 'Sulla\'s march on Rome', year: 88 }, { text: 'Sulla\'s proscriptions', year: 82 }, { text: 'Trial of Verres', year: 70 }], reward: { dignitas: 10 } },
+            cursus: { title: '🏛️ Cursus Honorum', instructions: 'Click magistracies in order (lowest to highest)', items: [{ text: 'Quaestor', order: 1 }, { text: 'Aedile', order: 2 }, { text: 'Praetor', order: 3 }, { text: 'Consul', order: 4 }, { text: 'Censor', order: 5 }], reward: { dignitas: 10 } },
+            match: { title: '🎯 Match the Faction', instructions: 'Match each figure to their political alignment', pairs: [{ left: 'Cato the Younger', right: 'Optimates' }, { left: 'Tiberius Gracchus', right: 'Populares' }, { left: 'Crassus', right: 'Equites' }, { left: 'Marius', right: 'Military' }], reward: { dignitas: 10 } }
+        };
+
+        function toRoman(n) { return ['','I','II','III','IV','V','VI','VII','VIII','IX','X'][n] || n; }
+        
+        function updateDisplay() {
+            ['dignitas','favor','gratia','pecunia','inimici'].forEach(stat => {
+                const el = document.getElementById(stat), seal = document.getElementById(stat+'Seal');
+                if(el) { el.textContent = gameState.stats[stat]; seal.classList.remove('danger','warning','good');
+                    if(stat==='inimici') { if(gameState.stats[stat]>=5) seal.classList.add('danger'); else if(gameState.stats[stat]>=3) seal.classList.add('warning'); }
+                    else { if(gameState.stats[stat]<=20) seal.classList.add('danger'); else if(gameState.stats[stat]<=35) seal.classList.add('warning'); else if(gameState.stats[stat]>=70) seal.classList.add('good'); }
+                }
+            });
+            ['optimates','populares','equites','military'].forEach(f => {
+                const fill = document.getElementById(f+'Fill'), status = document.getElementById(f+'Status'), v = gameState.factions[f];
+                if(fill) { fill.style.width = v+'%'; fill.classList.remove('hostile','neutral','friendly');
+                    if(v<35) { fill.classList.add('hostile'); status.textContent='Hostile'; }
+                    else if(v>65) { fill.classList.add('friendly'); status.textContent='Friendly'; }
+                    else { fill.classList.add('neutral'); status.textContent='Neutral'; }
+                }
+            });
+            document.getElementById('dayDisplay').textContent = 'Dies '+toRoman(gameState.day);
+            document.getElementById('inventoryCount').textContent = gameState.inventory.clients.length + gameState.inventory.evidence.length + gameState.inventory.alliances.length;
+            updateInventoryPanel();
+        }
+
+        function updateInventoryPanel() {
+            ['clients','evidence','alliances'].forEach(s => {
+                const el = document.getElementById(s+'List'), items = gameState.inventory[s];
+                el.innerHTML = items.length ? items.map(i => '<div class="inventory-item"><div class="item-name">'+i.name+'</div><div class="item-desc">'+i.desc+'</div></div>').join('') : '<div class="empty-inventory">None yet</div>';
+            });
+        }
+
+        function showStatChange(stat, change) {
+            const seal = document.getElementById(stat+'Seal'), existing = seal.querySelector('.stat-change');
+            if(existing) existing.remove();
+            const el = document.createElement('span');
+            el.className = 'stat-change '+(change>0?'positive':'negative');
+            el.textContent = (change>0?'+':'')+change;
+            seal.appendChild(el);
+            setTimeout(() => el.remove(), 2000);
+        }
+
+        function applyEffects(effects, factionEffects, enemy) {
+            if(effects) for(let s in effects) if(gameState.stats.hasOwnProperty(s)) { gameState.stats[s] += effects[s]; if(s!=='inimici') gameState.stats[s] = Math.max(0,Math.min(100,gameState.stats[s])); showStatChange(s, effects[s]); }
+            if(factionEffects) for(let f in factionEffects) if(gameState.factions.hasOwnProperty(f)) { gameState.factions[f] += factionEffects[f]; gameState.factions[f] = Math.max(0,Math.min(100,gameState.factions[f])); }
+            if(enemy && !gameState.enemies.includes(enemy)) gameState.enemies.push(enemy);
+            updateDisplay();
+        }
+
+        function addToInventory(type, item) { if(!gameState.inventory[type].find(i => i.name===item.name)) { gameState.inventory[type].push(item); updateDisplay(); } }
+        function hasItem(type, name) { return name===true ? gameState.inventory[type].length>0 : gameState.inventory[type].some(i => i.name===name); }
+        function canAfford(cost) { if(!cost) return true; for(let s in cost) if(gameState.stats[s]<cost[s]) return false; return true; }
+        function meetsReqs(req) { return !req || hasItem(req.type, req.any||req.name); }
+        function checkGameOver() { for(let s of ['dignitas','favor','gratia','pecunia']) if(gameState.stats[s]<=0) return {over:true,reason:s}; if(gameState.stats.inimici>=5) return {over:true,reason:'inimici'}; if(gameState.day>gameState.maxDays) return {over:true,reason:'victory'}; return {over:false}; }
+        function toggleInventory() { document.getElementById('inventoryPanel').classList.toggle('open'); }
+
+        function startGame() {
+            document.getElementById('introScreen').classList.add('hidden');
+            document.getElementById('topBar').classList.remove('hidden');
+            document.getElementById('factionTracker').classList.remove('hidden');
+            updateDisplay(); showLocationChoice();
+        }
+
+        function showLocationChoice() {
+            gameState.phase = 'location';
+            document.getElementById('phaseDisplay').textContent = 'Dawn — Choose Your Path';
+            const area = document.getElementById('locationArea');
+            area.classList.remove('hidden');
+            ['eventArea','journalArea','minigameArea'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            const forced = events.find(e => e.forceDay===gameState.day);
+            if(forced) { gameState.currentLocation = forced.location; showEvent(forced); return; }
+            area.innerHTML = '<h3 style="font-family:Cinzel,serif;text-align:center;margin-bottom:20px;">Where will you go today?</h3><div class="location-map">'+locations.map(l => '<div class="location-card" onclick="selectLocation(\''+l.id+'\')"><div class="location-icon">'+l.icon+'</div><div class="location-name">'+l.name+'</div><div class="location-desc">'+l.description+'</div><div class="location-hint">'+l.hint+'</div></div>').join('')+'</div>';
+        }
+
+        function selectLocation(id) {
+            gameState.currentLocation = id;
+            let available = events.filter(e => e.location===id && !e.forceDay && !gameState.usedEvents.includes(e.id));
+            if(!available.length) { 
+                gameState.usedEvents = gameState.usedEvents.filter(eid => { 
+                    const ev = events.find(e=>e.id===eid); 
+                    return ev && ev.location!==id; 
+                }); 
+                available = events.filter(e => e.location===id && !e.forceDay && !gameState.usedEvents.includes(e.id)); 
+            }
+            if(!available.length) {
+                // Fallback: use any event from this location
+                available = events.filter(e => e.location===id && !e.forceDay);
+            }
+            if(available.length) {
+                showEvent(available[Math.floor(Math.random()*available.length)]);
+            } else {
+                // Ultimate fallback: skip to next day
+                showJournal('A quiet day in ' + id + '. Nothing of note occurred.', false);
+            }
+        }
+
+        function showEvent(event) {
+            if(!event) { showJournal('A quiet day. Nothing of note occurred.', false); return; }
+            gameState.phase = 'event'; gameState.currentEvent = event; gameState.usedEvents.push(event.id);
+            const loc = locations.find(l => l.id===event.location);
+            if(!loc) { showJournal('A quiet day. Nothing of note occurred.', false); return; }
+            document.getElementById('phaseDisplay').textContent = loc.icon+' '+loc.name;
+            document.getElementById('locationArea').classList.add('hidden');
+            const area = document.getElementById('eventArea');
+            area.classList.remove('hidden');
+            let html = '<div class="event-card" data-icon="'+(event.icon||'📜')+'"><div class="event-location">'+loc.name+'</div><div class="event-category">'+event.category+'</div><div class="event-title">'+event.title+'</div><div class="event-description">'+event.description+'</div>';
+            if(event.timed) html += '<div class="timer-container active" id="timerContainer"><div class="timer-label"><span>⚡ Crisis! Decide quickly!</span><span id="timerText">'+event.timeLimit+'s</span></div><div class="timer-bar"><div class="timer-fill" id="timerFill" style="width:100%"></div></div></div>';
+            html += '<div class="choices" id="choicesArea">'+event.choices.map((c,i) => {
+                const afford = canAfford(c.cost), meets = meetsReqs(c.requires), disabled = !afford || !meets;
+                let cost = '', req = '';
+                if(c.cost) for(let s in c.cost) cost += '<span class="choice-cost">-'+c.cost[s]+' '+s+'</span>';
+                if(c.requires) req = '<span class="choice-requires" style="'+(meets?'':'opacity:0.5')+'">'+(meets?'✓':'✗')+' Requires: '+(c.requires.name||'any '+c.requires.type)+'</span>';
+                return '<button class="choice-btn" onclick="makeChoice('+i+')" '+(disabled?'disabled':'')+'>'+c.text+' '+cost+' '+req+'<span class="choice-hint">'+c.hint+'</span></button>';
+            }).join('')+'</div></div>';
+            area.innerHTML = html;
+            if(event.timed) startTimer(event.timeLimit);
+        }
+
+        function startTimer(secs) {
+            let rem = secs;
+            const fill = document.getElementById('timerFill'), txt = document.getElementById('timerText');
+            gameState.timerInterval = setInterval(() => {
+                rem -= 0.1; fill.style.width = (rem/secs*100)+'%'; txt.textContent = Math.ceil(rem)+'s';
+                if(rem<=0) { clearInterval(gameState.timerInterval); makeChoice(0, true); }
+            }, 100);
+        }
+
+        function makeChoice(idx, forced=false) {
+            if(gameState.timerInterval) clearInterval(gameState.timerInterval);
+            const choice = gameState.currentEvent.choices[idx];
+            gameState.lastChoice = choice;
+            if(choice.cost) for(let s in choice.cost) { gameState.stats[s] -= choice.cost[s]; showStatChange(s, -choice.cost[s]); }
+            applyEffects(choice.effects, choice.factionEffects, choice.enemy);
+            if(choice.reward) addToInventory(choice.reward.type, choice.reward.item);
+            const status = checkGameOver();
+            if(status.over && status.reason!=='victory') { showGameEnd(status.reason); return; }
+            if(gameState.currentEvent.minigameAfter && Math.random()>0.5) showMinigame(gameState.currentEvent.minigameAfter);
+            else showJournal(choice.journal, forced);
+        }
+
+        function showMinigame(type) {
+            gameState.phase = 'minigame';
+            document.getElementById('phaseDisplay').textContent = '🎮 Challenge';
+            document.getElementById('eventArea').classList.add('hidden');
+            const area = document.getElementById('minigameArea');
+            area.classList.remove('hidden');
+            const game = minigames[type];
+            if(type==='timeline') showTimelineGame(game);
+            else if(type==='cursus') showCursusGame(game);
+            else if(type==='match') showMatchGame(game);
+        }
+
+        function showTimelineGame(game) {
+            const area = document.getElementById('minigameArea');
+            const shuffled = [...game.items].sort(() => Math.random()-0.5);
+            let slotsHtml = game.items.map((_,i) => '<div class="timeline-slot" data-slot="'+i+'" onclick="selectTimelineSlot('+i+')">'+(i+1)+'. Click to place</div>').join('');
+            let optsHtml = shuffled.map(item => '<div class="timeline-option" data-year="'+item.year+'" onclick="selectTimelineOption(this)">'+item.text+'</div>').join('');
+            area.innerHTML = '<div class="minigame-container"><div class="minigame-title">'+game.title+'</div><div class="minigame-instructions">'+game.instructions+'</div><div class="timeline-slots">'+slotsHtml+'</div><div class="timeline-options">'+optsHtml+'</div><button class="continue-btn secondary" onclick="checkTimeline()" id="checkTimelineBtn" disabled>Check Answers</button></div>';
+            gameState.minigameState = { selected: null, placed: [], correct: game.items.sort((a,b) => a.year-b.year) };
+        }
+
+        function selectTimelineOption(el) {
+            if(el.classList.contains('used')) return;
+            document.querySelectorAll('.timeline-option').forEach(o => o.classList.remove('selected'));
+            el.classList.add('selected');
+            gameState.minigameState.selected = el;
+        }
+
+        function selectTimelineSlot(idx) {
+            if(!gameState.minigameState.selected) return;
+            const slot = document.querySelectorAll('.timeline-slot')[idx];
+            const opt = gameState.minigameState.selected;
+            slot.textContent = (idx+1)+'. '+opt.textContent;
+            slot.dataset.year = opt.dataset.year;
+            slot.classList.add('filled');
+            opt.classList.add('used'); opt.classList.remove('selected');
+            gameState.minigameState.selected = null;
+            gameState.minigameState.placed[idx] = parseInt(opt.dataset.year);
+            if(gameState.minigameState.placed.filter(p => p).length === gameState.minigameState.correct.length) document.getElementById('checkTimelineBtn').disabled = false;
+        }
+
+        function checkTimeline() {
+            const slots = document.querySelectorAll('.timeline-slot');
+            let correct = 0;
+            slots.forEach((slot, i) => {
+                if(parseInt(slot.dataset.year) === gameState.minigameState.correct[i].year) { slot.classList.add('correct'); correct++; }
+                else slot.classList.add('incorrect');
+            });
+            const container = document.querySelector('.minigame-container');
+            let res = '<div style="text-align:center;margin-top:20px;">';
+            if(correct === gameState.minigameState.correct.length) { res += '<p style="color:var(--success);font-size:1.2rem;">✓ Perfect!</p>'; applyEffects(minigames.timeline.reward, null, null); }
+            else res += '<p style="color:var(--danger);">'+correct+'/'+gameState.minigameState.correct.length+' correct</p>';
+            res += '<button class="continue-btn" onclick="finishMinigame()">Continue</button></div>';
+            container.innerHTML += res;
+            document.getElementById('checkTimelineBtn').style.display = 'none';
+        }
+
+        function showCursusGame(game) {
+            const area = document.getElementById('minigameArea');
+            const shuffled = [...game.items].sort(() => Math.random()-0.5);
+            let rungs = shuffled.map(item => '<div class="cursus-rung" data-order="'+item.order+'" onclick="clickCursusRung(this)">'+item.text+'</div>').join('');
+            area.innerHTML = '<div class="minigame-container"><div class="minigame-title">'+game.title+'</div><div class="minigame-instructions">'+game.instructions+'</div><div class="cursus-ladder">'+rungs+'</div><div id="cursusResult"></div></div>';
+            gameState.minigameState = { nextExpected: 1, correct: 0, total: game.items.length };
+        }
+
+        function clickCursusRung(el) {
+            if(el.classList.contains('completed') || el.classList.contains('locked')) return;
+            if(parseInt(el.dataset.order) === gameState.minigameState.nextExpected) {
+                el.classList.add('completed');
+                gameState.minigameState.correct++;
+                gameState.minigameState.nextExpected++;
+                if(gameState.minigameState.nextExpected > gameState.minigameState.total) finishCursusGame(true);
+            } else {
+                el.classList.add('wrong');
+                setTimeout(() => el.classList.remove('wrong'), 500);
+                finishCursusGame(false);
+            }
+        }
+
+        function finishCursusGame(perfect) {
+            const res = document.getElementById('cursusResult');
+            if(perfect) { res.innerHTML = '<p style="color:var(--success);font-size:1.2rem;text-align:center;">✓ Perfect!</p>'; applyEffects(minigames.cursus.reward, null, null); }
+            else { res.innerHTML = '<p style="color:var(--danger);text-align:center;">Incorrect. Order: Quaestor → Aedile → Praetor → Consul → Censor</p>'; document.querySelectorAll('.cursus-rung:not(.completed)').forEach(r => r.classList.add('locked')); }
+            res.innerHTML += '<button class="continue-btn" onclick="finishMinigame()" style="margin-top:15px;">Continue</button>';
+        }
+
+        function showMatchGame(game) {
+            const area = document.getElementById('minigameArea');
+            const left = game.pairs.map(p => p.left).sort(() => Math.random()-0.5);
+            const right = game.pairs.map(p => p.right).sort(() => Math.random()-0.5);
+            let leftHtml = left.map(item => '<div class="match-item" data-value="'+item+'" onclick="selectMatchItem(this,\'left\')">'+item+'</div>').join('');
+            let rightHtml = right.map(item => '<div class="match-item" data-value="'+item+'" onclick="selectMatchItem(this,\'right\')">'+item+'</div>').join('');
+            area.innerHTML = '<div class="minigame-container"><div class="minigame-title">'+game.title+'</div><div class="minigame-instructions">'+game.instructions+'</div><div class="match-container"><div class="match-column" id="matchLeft">'+leftHtml+'</div><div style="width:30px"></div><div class="match-column" id="matchRight">'+rightHtml+'</div></div><div id="matchResult"></div></div>';
+            gameState.minigameState = { pairs: game.pairs, selectedLeft: null, selectedRight: null, matched: 0 };
+        }
+
+        function selectMatchItem(el, side) {
+            if(el.classList.contains('matched')) return;
+            const col = side==='left' ? 'matchLeft' : 'matchRight';
+            document.querySelectorAll('#'+col+' .match-item').forEach(item => item.classList.remove('selected'));
+            el.classList.add('selected');
+            if(side==='left') gameState.minigameState.selectedLeft = el.dataset.value;
+            else gameState.minigameState.selectedRight = el.dataset.value;
+            if(gameState.minigameState.selectedLeft && gameState.minigameState.selectedRight) checkMatch();
+        }
+
+        function checkMatch() {
+            const left = gameState.minigameState.selectedLeft, right = gameState.minigameState.selectedRight;
+            const isCorrect = gameState.minigameState.pairs.some(p => p.left===left && p.right===right);
+            const leftEl = document.querySelector('#matchLeft .match-item[data-value="'+left+'"]');
+            const rightEl = document.querySelector('#matchRight .match-item[data-value="'+right+'"]');
+            if(isCorrect) {
+                leftEl.classList.add('matched'); rightEl.classList.add('matched');
+                leftEl.classList.remove('selected'); rightEl.classList.remove('selected');
+                gameState.minigameState.matched++;
+                if(gameState.minigameState.matched === gameState.minigameState.pairs.length) finishMatchGame();
+            } else {
+                leftEl.classList.add('wrong'); rightEl.classList.add('wrong');
+                setTimeout(() => { leftEl.classList.remove('wrong','selected'); rightEl.classList.remove('wrong','selected'); }, 500);
+            }
+            gameState.minigameState.selectedLeft = null;
+            gameState.minigameState.selectedRight = null;
+        }
+
+        function finishMatchGame() {
+            document.getElementById('matchResult').innerHTML = '<p style="color:var(--success);font-size:1.2rem;text-align:center;margin-top:20px;">✓ All matched!</p><button class="continue-btn" onclick="finishMinigame()">Continue</button>';
+            applyEffects(minigames.match.reward, null, null);
+        }
+
+        function finishMinigame() { showJournal(gameState.lastChoice.journal, false); }
+
+        function showJournal(text, forced) {
+            gameState.phase = 'journal';
+            document.getElementById('phaseDisplay').textContent = 'Evening — Reflections';
+            document.getElementById('eventArea').classList.add('hidden');
+            document.getElementById('minigameArea').classList.add('hidden');
+            const area = document.getElementById('journalArea');
+            area.classList.remove('hidden');
+            let gains = '';
+            if(gameState.lastChoice.effects) for(let s in gameState.lastChoice.effects) { const v = gameState.lastChoice.effects[s]; gains += '<span class="'+(v>0?'stat-up':'stat-down')+'"><strong>'+s+':</strong> '+(v>0?'+':'')+v+'</span> '; }
+            if(gameState.lastChoice.reward) gains += '<span style="color:var(--bronze);"><strong>Gained:</strong> '+gameState.lastChoice.reward.item.name+'</span> ';
+            if(gameState.lastChoice.enemy) gains += '<span class="stat-down"><strong>New Enemy:</strong> '+gameState.lastChoice.enemy+'</span>';
+            const dates = ['','Kal. Dec.','a.d. IV Non.','a.d. III Non.','Prid. Non.','Non. Dec.','a.d. VIII Id.','a.d. VII Id.','a.d. VI Id.','a.d. V Id.','a.d. IV Id.'];
+            area.innerHTML = '<div class="journal-entry"><div class="journal-date">Dies '+toRoman(gameState.day)+' — '+(dates[gameState.day]||'')+'</div><p class="journal-text">'+(forced?'<em>[Time ran out]</em> ':'')+text+'</p><div class="journal-gains">'+gains+'</div></div><button class="continue-btn" onclick="nextDay()">'+(gameState.day>=gameState.maxDays?'SEE YOUR FATE':'CONTINUE TO NEXT DAY →')+'</button>';
+        }
+
+        function nextDay() {
+            gameState.day++;
+            const status = checkGameOver();
+            if(status.over) { showGameEnd(status.reason); return; }
+            updateDisplay(); showLocationChoice();
+        }
+
+        function showGameEnd(reason) {
+            ['eventArea','journalArea','minigameArea','locationArea'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            const area = document.getElementById('endArea');
+            area.classList.remove('hidden');
+            const endings = {
+                dignitas: { title: 'DISGRACE', text: 'Your reputation lies in ruins. Mocked and shunned, you slink away from Rome.', parallel: 'Many who lost their dignitas found themselves politically dead.' },
+                favor: { title: 'ABANDONED', text: 'The people who cheered you now curse your name. You flee Rome in the night.', parallel: 'The Gracchi learned that popular favour is fickle.' },
+                gratia: { title: 'ENEMY OF THE STATE', text: 'The Senate has declared you hostis. Armed men come before dawn.', parallel: 'Gaius Gracchus faced this same choice in 121 BC.' },
+                pecunia: { title: 'BANKRUPTCY', text: 'Your creditors have seized everything. You are ruined.', parallel: 'Debt destroyed many Roman careers.' },
+                inimici: { title: 'ASSASSINATION', text: 'You made too many enemies. They found you walking home from the Forum.', parallel: 'Tiberius Gracchus was beaten to death by senators in 133 BC.' },
+                victory: { title: 'SURVIVOR', text: 'Against all odds, you have survived your tribunate! Your name is known throughout Rome.', parallel: 'Few tribunes emerged unscathed. Perhaps you are destined for greater things.' }
+            };
+            const end = endings[reason], isVictory = reason==='victory';
+            let assessment = [];
+            if(gameState.factions.populares>65) assessment.push('Champion of the People');
+            if(gameState.factions.optimates>65) assessment.push('Friend of the Senate');
+            if(gameState.factions.military>65) assessment.push('Soldiers\' Advocate');
+            if(gameState.enemies.length===0) assessment.push('Made No Enemies');
+            if(gameState.enemies.length>=3) assessment.push('Many Enemies');
+            if(gameState.stats.dignitas>=70) assessment.push('Highly Respected');
+            if(!assessment.length) assessment.push('Unremarkable');
+            area.innerHTML = '<div class="game-end '+(isVictory?'victory':'defeat')+'"><h2>'+end.title+'</h2><p>'+end.text+'</p><div class="historical-parallel"><h4>📜 Historical Parallel</h4><p>'+end.parallel+'</p></div><div class="final-stats"><h4>Final Record</h4><p><strong>Days:</strong> '+Math.min(gameState.day,gameState.maxDays)+'/'+gameState.maxDays+' | <strong>Dignitas:</strong> '+gameState.stats.dignitas+' | <strong>Favor:</strong> '+gameState.stats.favor+' | <strong>Gratia:</strong> '+gameState.stats.gratia+' | <strong>Pecunia:</strong> '+gameState.stats.pecunia+'</p><p><strong>Enemies:</strong> '+(gameState.enemies.length?gameState.enemies.join(', '):'None')+'</p><p><strong>Assets:</strong> '+gameState.inventory.clients.length+' clients, '+gameState.inventory.evidence.length+' evidence, '+gameState.inventory.alliances.length+' alliances</p><p><strong>Legacy:</strong> '+assessment.join(', ')+'</p></div><button class="restart-btn" onclick="restartGame()">PLAY AGAIN</button></div>';
+        }
+
+        function restartGame() {
+            gameState = { day: 1, maxDays: 10, phase: 'location', stats: { dignitas: 50, favor: 50, gratia: 50, pecunia: 50, inimici: 0 }, factions: { optimates: 50, populares: 50, equites: 50, military: 50 }, inventory: { clients: [], evidence: [], alliances: [] }, enemies: [], currentLocation: null, currentEvent: null, usedEvents: [], timerInterval: null };
+            document.getElementById('endArea').classList.add('hidden');
+            updateDisplay(); showLocationChoice();
+        }
+    </script>
+</body>
+</html>
