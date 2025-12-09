@@ -175,46 +175,221 @@
         { id: 'novus', name: 'Novus Homo', desc: 'First in your family to seek office. Everything to prove.', bonuses: { dignitas: -20, popularis: 25, pecunia: 10 } }
     ];
 
+    // Military service events - these happen during the 10 years of service
+    const MILITARY_EVENTS = [
+        { title: 'Night Watch', desc: 'You\'re assigned night watch during a bitter winter campaign. Your tent-mate suggests you both sleep instead—the centurion never checks.',
+          choices: [
+            { text: 'Keep proper watch alone', effects: { military: 8, dignitas: 5 }, successText: 'Your diligence is noted when you spot enemy scouts.' },
+            { text: 'Agree to sleep in shifts', effects: { military: 3 }, risk: { chance: 0.3, penalty: { dignitas: -15, military: -10 }, desc: 'You\'re caught sleeping! Flogged before the legion.' } },
+            { text: 'Report your tent-mate', effects: { military: 5, dignitas: -5 }, successText: 'He\'s punished. Others now distrust you.' }
+          ]},
+        { title: 'The Wounded Tribune', desc: 'A military tribune lies injured after a skirmish. Carrying him will slow you down as the enemy regroups.',
+          choices: [
+            { text: 'Carry him to safety', effects: { military: 5, dignitas: 15 }, risk: { chance: 0.25, penalty: { military: -8 }, desc: 'You\'re wounded in the retreat.' }, successText: 'The tribune\'s family becomes your patron.' },
+            { text: 'Leave him with water and go for help', effects: { military: 3 }, risk: { chance: 0.4, penalty: { dignitas: -20 }, desc: 'He dies before help arrives. His family blames you.' } },
+            { text: 'He\'s slowing us down—leave him', effects: { military: 8, dignitas: -15 }, successText: 'You escape quickly, but the story follows you.' }
+          ]},
+        { title: 'Loot Distribution', desc: 'After sacking a town, your century finds a hidden cache of silver. The commander hasn\'t seen it.',
+          choices: [
+            { text: 'Report it to the commander', effects: { dignitas: 12, military: 5 }, successText: 'You receive an official commendation and a small share.' },
+            { text: 'Split it among the men', effects: { popularis: 10, pecunia: 15 }, risk: { chance: 0.2, penalty: { dignitas: -25, military: -15 }, desc: 'Someone talks. You\'re demoted.' } },
+            { text: 'Take the lion\'s share for yourself', effects: { pecunia: 30 }, risk: { chance: 0.35, penalty: { dignitas: -20, popularis: -15 }, desc: 'The men resent you. One tries to kill you in battle.' } }
+          ]},
+        { title: 'A Rival\'s Challenge', desc: 'Another young officer, seeking glory, challenges you to single combat practice. The men are watching.',
+          choices: [
+            { text: 'Accept and fight hard', effects: { military: 8 }, risk: { chance: 0.4, penalty: { dignitas: -10 }, desc: 'He defeats you soundly.' }, successText: 'You win! Your reputation grows.' },
+            { text: 'Accept but let him win gracefully', effects: { auctoritas: 8 }, successText: 'He becomes an ally, grateful for your discretion.' },
+            { text: 'Decline—you have duties', effects: { dignitas: -5 }, successText: 'Some call you coward, but senior officers approve.' }
+          ]},
+        { title: 'Native Guides', desc: 'Local tribesmen offer to guide your patrol through the mountains for a price. Your centurion is skeptical.',
+          choices: [
+            { text: 'Pay them from your own purse', effects: { pecunia: -10, military: 12 }, successText: 'The shortcut gives your unit a tactical advantage.' },
+            { text: 'Trust your centurion—refuse', effects: { military: 5 }, successText: 'A longer march, but safe.' },
+            { text: 'Take them but don\'t pay', effects: { }, risk: { chance: 0.5, penalty: { military: -15 }, desc: 'They lead you into an ambush!' }, successText: 'They guide you true, then flee.' }
+          ]},
+        { title: 'The General\'s Favor', desc: 'The commanding general notices your work and invites you to dine with his officers.',
+          choices: [
+            { text: 'Praise his strategies effusively', effects: { auctoritas: 8 }, risk: { chance: 0.3, penalty: { dignitas: -8 }, desc: 'Your flattery is too obvious. He\'s offended.' } },
+            { text: 'Offer a tactical suggestion', effects: { military: 5 }, risk: { chance: 0.4, penalty: { auctoritas: -10 }, desc: 'He doesn\'t appreciate being corrected.' }, successText: 'He\'s impressed by your insight.' },
+            { text: 'Listen respectfully, speak little', effects: { dignitas: 8, auctoritas: 5 }, successText: 'Your discretion marks you as officer material.' }
+          ]},
+        { title: 'Mutinous Talk', desc: 'You overhear soldiers planning to desert. They haven\'t noticed you.',
+          choices: [
+            { text: 'Report them immediately', effects: { military: 10, dignitas: 8 }, successText: 'They\'re executed. The legion respects your loyalty.' },
+            { text: 'Confront them privately', effects: { popularis: 10 }, risk: { chance: 0.3, penalty: { military: -10 }, desc: 'They attack you!' }, successText: 'You talk them out of it. They owe you their lives.' },
+            { text: 'Pretend you heard nothing', effects: { }, risk: { chance: 0.4, penalty: { dignitas: -15, military: -10 }, desc: 'When they desert, suspicion falls on you.' } }
+          ]},
+        { title: 'Supply Shortage', desc: 'Your unit is short on food. A nearby farm has grain, but they\'re Roman citizens.',
+          choices: [
+            { text: 'Requisition the grain officially', effects: { military: 5 }, successText: 'The farmers are compensated... eventually.' },
+            { text: 'Pay a fair price from unit funds', effects: { pecunia: -8, dignitas: 10, popularis: 8 }, successText: 'Word spreads of your fairness.' },
+            { text: 'Just take it—they\'re peasants', effects: { military: 8 }, risk: { chance: 0.3, penalty: { dignitas: -20, popularis: -15 }, desc: 'They complain to a senator. There are consequences.' } }
+          ]},
+        { title: 'Siege Volunteer', desc: 'The commander calls for volunteers to lead a dangerous assault on the walls.',
+          choices: [
+            { text: 'Volunteer immediately', effects: { military: 15, dignitas: 12 }, risk: { chance: 0.35, penalty: { military: -10 }, desc: 'Wounded in the assault!' }, successText: 'You plant the standard on the walls. Glory!' },
+            { text: 'Wait to see if others volunteer', effects: { military: 5 }, successText: 'Others go. You follow in the second wave.' },
+            { text: 'Hang back—let the fools die', effects: { dignitas: -10 }, successText: 'You survive. Some notice your absence.' }
+          ]},
+        { title: 'A Mentor Appears', desc: 'A grizzled centurion takes interest in you. "You\'ve got potential, boy. I can teach you."',
+          choices: [
+            { text: 'Accept his training eagerly', effects: { military: 12, dignitas: 5 }, successText: 'His brutal training makes you a real soldier.' },
+            { text: 'Politely decline—you know enough', effects: { dignitas: -5 }, successText: 'He shrugs. "Your funeral, boy."' },
+            { text: 'Ask what he wants in return', effects: { auctoritas: 5 }, successText: '"Just pass it on someday." He teaches you well.' }
+          ]}
+    ];
+
+    // Political events - these happen when you're in civilian life or office
+    const POLITICAL_EVENTS = [
+        { title: 'The Forum Orator', desc: 'A skilled speaker attacks your family\'s reputation in the Forum. A crowd gathers.',
+          choices: [
+            { text: 'Challenge him to a public debate', effects: { }, risk: { chance: 0.5, penalty: { dignitas: -20, popularis: -10 }, desc: 'He destroys you rhetorically.' }, successText: 'You hold your own! Your reputation rises.', successEffects: { dignitas: 15, popularis: 10 } },
+            { text: 'Hire men to "discourage" him', effects: { pecunia: -15 }, risk: { chance: 0.3, penalty: { dignitas: -25 }, desc: 'The thugs are traced back to you!' }, successText: 'He stops speaking. No one knows why.' },
+            { text: 'Ignore him—dignified silence', effects: { dignitas: 5 }, successText: 'Some admire your restraint. Others think you weak.' }
+          ], minOffice: 'none' },
+        { title: 'A Senator\'s Dinner', desc: 'You\'re invited to dine at a senator\'s home. Other ambitious men will be there.',
+          npc: 'random',
+          choices: [
+            { text: 'Bring an expensive gift', effects: { pecunia: -20 }, successText: 'The host is pleased. You make a good impression.', successEffects: { auctoritas: 12 }, npcEffect: 15 },
+            { text: 'Bring modest wine and charm', effects: { }, risk: { chance: 0.3, penalty: { dignitas: -5 }, desc: 'Your charm falls flat.' }, successText: 'Your wit makes you memorable.', successEffects: { auctoritas: 8, popularis: 5 }, npcEffect: 10 },
+            { text: 'Focus on making one key ally', effects: { }, successText: 'You leave with a new connection.', successEffects: { auctoritas: 10 }, npcEffect: 20 }
+          ], minOffice: 'none' },
+        { title: 'The Bribe', desc: 'A wealthy merchant offers you money to speak against a proposed tax in the Senate.',
+          choices: [
+            { text: 'Accept the bribe', effects: { pecunia: 30, dignitas: -10 }, risk: { chance: 0.25, penalty: { dignitas: -30, auctoritas: -20 }, desc: 'The bribe becomes public knowledge!' } },
+            { text: 'Refuse indignantly', effects: { dignitas: 15 }, successText: 'Your incorruptibility is noted.' },
+            { text: 'Take the money, vote your conscience', effects: { pecunia: 30 }, risk: { chance: 0.4, penalty: { pecunia: -40, auctoritas: -15 }, desc: 'He demands his money back!' } }
+          ], minOffice: 'quaestor' },
+        { title: 'Grain Crisis', desc: 'The grain supply is short. The people look to their leaders. Hungry crowds gather.',
+          choices: [
+            { text: 'Fund grain distribution yourself', effects: { pecunia: -35, popularis: 25, dignitas: 15 }, requires: { pecunia: 35 } },
+            { text: 'Blame the current magistrates', effects: { popularis: 10, auctoritas: -10 } },
+            { text: 'Argue for patience—ships are coming', effects: { }, risk: { chance: 0.4, penalty: { popularis: -20 }, desc: 'The ships don\'t come. Riots break out!' } }
+          ], minOffice: 'none' },
+        { title: 'Gladiatorial Games', desc: 'The people expect games. How lavish will yours be?',
+          choices: [
+            { text: 'Spectacular games (-50 wealth)', effects: { pecunia: -50, popularis: 30, dignitas: 20 }, requires: { pecunia: 50 } },
+            { text: 'Modest but dignified games (-20)', effects: { pecunia: -20, popularis: 12, dignitas: 5 }, requires: { pecunia: 20 } },
+            { text: 'Skip the games—too expensive', effects: { dignitas: -15, popularis: -15 } }
+          ], minOffice: 'aedile' },
+        { title: 'Prosecution Opportunity', desc: 'You have evidence of corruption against a magistrate. Prosecuting him could make your name—or enemies.',
+          npc: 'random',
+          choices: [
+            { text: 'Prosecute him publicly', effects: { dignitas: 20, popularis: 15 }, risk: { chance: 0.35, penalty: { auctoritas: -20 }, desc: 'He has powerful friends who now hate you!' }, npcEffect: -25 },
+            { text: 'Sell the evidence to his enemies', effects: { pecunia: 25, dignitas: -10 } },
+            { text: 'Approach him privately', effects: { }, successText: 'He owes you now.', successEffects: { auctoritas: 15, pecunia: 15 } }
+          ], minOffice: 'none' },
+        { title: 'Alliance Offer', desc: 'A powerful family proposes a marriage alliance—your child to theirs.',
+          npc: 'random',
+          choices: [
+            { text: 'Accept enthusiastically', effects: { auctoritas: 20, dignitas: 10 }, npcEffect: 25, successText: 'The alliance strengthens your position.' },
+            { text: 'Negotiate for better terms', effects: { }, risk: { chance: 0.3, penalty: { auctoritas: -10 }, desc: 'They\'re offended and withdraw!' }, successText: 'They agree to a larger dowry.', successEffects: { auctoritas: 15, pecunia: 20 }, npcEffect: 15 },
+            { text: 'Politely decline', effects: { dignitas: 5 }, npcEffect: -10 }
+          ], minOffice: 'none' },
+        { title: 'The Tribune\'s Veto', desc: 'A tribune threatens to veto legislation you support. He might be persuaded.',
+          choices: [
+            { text: 'Bribe him (-25 wealth)', effects: { pecunia: -25 }, successText: 'He withdraws the veto.', successEffects: { auctoritas: 10 }, risk: { chance: 0.2, penalty: { dignitas: -20 }, desc: 'The bribe is discovered!' } },
+            { text: 'Threaten his future career', effects: { }, risk: { chance: 0.4, penalty: { popularis: -15 }, desc: 'He vetoes it anyway and denounces you!' }, successText: 'He backs down.', successEffects: { auctoritas: 15 } },
+            { text: 'Accept the veto gracefully', effects: { dignitas: 8 }, successText: 'You\'re seen as reasonable.' }
+          ], minOffice: 'quaestor' },
+        { title: 'Provincial Command', desc: 'You\'re offered a provincial posting. It means leaving Rome, but there\'s money to be made.',
+          choices: [
+            { text: 'Accept—govern justly', effects: { military: 10, dignitas: 15, pecunia: 20 }, successText: 'You return with honor and modest wealth.' },
+            { text: 'Accept—extract maximum profit', effects: { pecunia: 50 }, risk: { chance: 0.4, penalty: { dignitas: -30 }, desc: 'Provincials complain to the Senate!' }, successText: 'You return very wealthy.' },
+            { text: 'Decline—stay in Rome', effects: { auctoritas: 5 }, successText: 'You remain close to power.' }
+          ], minOffice: 'praetor' },
+        { title: 'Triumph Request', desc: 'After military success, you petition the Senate for a triumph.',
+          choices: [
+            { text: 'Make your case forcefully', effects: { }, risk: { chance: 0.5, penalty: { dignitas: -15 }, desc: 'The Senate denies your request!' }, successText: 'Triumph granted!', successEffects: { dignitas: 30, popularis: 25 }, requires: { military: 50 } },
+            { text: 'Accept an ovation instead', effects: { dignitas: 15, popularis: 10 }, successText: 'A lesser honor, but guaranteed.' },
+            { text: 'Withdraw the request', effects: { dignitas: -10 }, successText: 'Some call you modest. Others, weak.' }
+          ], minOffice: 'consul', requires: { military: 40 } }
+    ];
+
+    // NPC encounter events - these introduce relationships naturally
+    const NPC_EVENTS = {
+        crassus: [
+            { title: 'The Money-Lender', desc: 'Marcus Crassus approaches you. "I hear you need funds for your campaign. I can help... for a reasonable return."',
+              choices: [
+                { text: 'Accept his loan (-interest)', effects: { pecunia: 40 }, npcEffect: 20, successText: 'You owe him now, but you have funds.' },
+                { text: 'Decline politely', effects: { dignitas: 5 }, npcEffect: -5, successText: '"Your loss," he shrugs.' },
+                { text: 'Counter-offer a business partnership', effects: { }, npcEffect: 10, risk: { chance: 0.3, penalty: { }, desc: 'He\'s not interested.' }, successText: 'He\'s intrigued. A profitable arrangement.', successEffects: { pecunia: 25, auctoritas: 10 } }
+              ]},
+            { title: 'Fire Sale', desc: 'Crassus\'s fire brigades have been busy. He offers you a share in a "recovered" property—cheap.',
+              choices: [
+                { text: 'Invest with him', effects: { pecunia: -15 }, npcEffect: 15, successText: 'Profitable, if morally dubious.', successEffects: { pecunia: 30 } },
+                { text: 'Refuse—it\'s distasteful', effects: { dignitas: 10 }, npcEffect: -15, successText: 'He remembers your squeamishness.' },
+                { text: 'Report his practices to the Senate', effects: { dignitas: 15, popularis: 10 }, npcEffect: -40, successText: 'Nothing happens, but Crassus is furious.' }
+              ]}
+        ],
+        pompey: [
+            { title: 'The Great General', desc: 'Pompey Magnus holds court in the Forum. He notices you watching. "You served in the legions. What do you think of the eastern campaign?"',
+              choices: [
+                { text: 'Praise his genius effusively', effects: { }, npcEffect: 10, risk: { chance: 0.3, penalty: { dignitas: -8 }, desc: 'Your flattery is too obvious.' }, successText: 'He preens. He likes you.' },
+                { text: 'Offer thoughtful military analysis', effects: { military: 5 }, npcEffect: 15, risk: { chance: 0.2, penalty: { npcChange: -10 }, desc: 'He doesn\'t like being analyzed.' }, successText: 'He respects your insight.' },
+                { text: 'Deflect—you\'re no expert', effects: { dignitas: -5 }, npcEffect: 0, successText: 'He loses interest in you.' }
+              ]},
+            { title: 'Veterans\' Cause', desc: 'Pompey seeks support for land grants to his veterans. It\'s controversial but he\'s powerful.',
+              choices: [
+                { text: 'Support him publicly', effects: { popularis: -10 }, npcEffect: 25, successText: 'The veterans will remember.' },
+                { text: 'Support privately, abstain publicly', effects: { }, npcEffect: 10, successText: 'A careful compromise.' },
+                { text: 'Oppose—it sets bad precedent', effects: { dignitas: 10 }, npcEffect: -20, successText: 'Traditionalists approve. Pompey does not.' }
+              ]}
+        ],
+        caesar: [
+            { title: 'The Ambitious Patrician', desc: 'Young Gaius Julius Caesar buttonholes you. "Rome needs men of vision, not fossils clinging to tradition. Are you a man of vision?"',
+              choices: [
+                { text: '"I share your frustrations"', effects: { popularis: 8 }, npcEffect: 20, successText: 'He grins. "Then we should talk more."' },
+                { text: '"Tradition has its place"', effects: { dignitas: 5 }, npcEffect: -10, successText: 'He shrugs and moves on.' },
+                { text: '"Vision without prudence is dangerous"', effects: { }, npcEffect: 5, successText: 'He laughs. "Prudent. But are you bold?"' }
+              ]},
+            { title: 'Debt Proposal', desc: 'Caesar proposes debt relief for struggling citizens. It would be popular but anger the wealthy.',
+              choices: [
+                { text: 'Support the proposal', effects: { popularis: 20, auctoritas: -10 }, npcEffect: 20, successText: 'The people love you. The Senate less so.' },
+                { text: 'Oppose it publicly', effects: { auctoritas: 10, popularis: -10 }, npcEffect: -20, successText: 'The optimates approve.' },
+                { text: 'Suggest a compromise', effects: { dignitas: 8 }, npcEffect: 5, successText: 'Both sides are unsatisfied. Politics.' }
+              ]}
+        ],
+        cicero: [
+            { title: 'The Orator\'s Invitation', desc: 'Marcus Tullius Cicero invites you to hear him speak. Afterward, he asks your opinion.',
+              choices: [
+                { text: 'Praise his rhetoric genuinely', effects: { dignitas: 5 }, npcEffect: 15, successText: 'He beams. A new friendship begins.' },
+                { text: 'Offer constructive criticism', effects: { }, npcEffect: 5, risk: { chance: 0.4, penalty: { npcChange: -15 }, desc: 'His ego is wounded.' }, successText: 'He appreciates your honesty.' },
+                { text: 'Ask him to teach you', effects: { }, npcEffect: 20, successText: '"I don\'t usually... but for you, perhaps." Your speaking improves.', successEffects: { auctoritas: 10 } }
+              ]},
+            { title: 'Defense Request', desc: 'Cicero asks you to support his defense of an accused man. The case is politically charged.',
+              choices: [
+                { text: 'Stand with Cicero publicly', effects: { dignitas: 10 }, npcEffect: 25, risk: { chance: 0.3, penalty: { auctoritas: -10 }, desc: 'The accused is convicted anyway.' }, successText: 'The man is acquitted. Cicero is grateful.' },
+                { text: 'Offer private support only', effects: { }, npcEffect: 10, successText: 'Cicero understands political realities.' },
+                { text: 'Decline—too risky', effects: { }, npcEffect: -15, successText: 'Cicero is disappointed.' }
+              ]}
+        ],
+        cato: [
+            { title: 'The Stubborn Traditionalist', desc: 'Cato the Younger blocks the Senate doorway, lecturing on corruption. He fixes you with a stare. "And you? Are you another thief in a toga?"',
+              choices: [
+                { text: '"I serve Rome honorably"', effects: { }, npcEffect: 10, successText: '"We shall see," he grunts. High praise from Cato.' },
+                { text: '"I do what I must to advance"', effects: { dignitas: -5 }, npcEffect: -20, successText: 'He spits. You\'ve made an enemy.' },
+                { text: 'Ignore him and push past', effects: { }, npcEffect: -10, successText: 'He shouts after you. Others watch.' }
+              ]},
+            { title: 'Anti-Corruption Bill', desc: 'Cato proposes strict anti-bribery laws. Supporting him would be unpopular with... everyone who bribes.',
+              choices: [
+                { text: 'Support the bill vocally', effects: { dignitas: 15, auctoritas: -10 }, npcEffect: 30, successText: 'Cato nods approvingly. Others glare.' },
+                { text: 'Water it down in committee', effects: { auctoritas: 10 }, npcEffect: -25, successText: 'Politics as usual. Cato is disgusted.' },
+                { text: 'Oppose it—too disruptive', effects: { auctoritas: 5, dignitas: -10 }, npcEffect: -30, successText: 'Cato adds you to his mental enemies list.' }
+              ]}
+        ]
+    };
+
+    // Simpler random events for variety
     const RANDOM_EVENTS = [
-        { type: 'good', title: 'Inheritance', desc: 'A distant relative leaves you money.', effects: { pecunia: 25 }, chance: 0.08 },
-        { type: 'good', title: 'Popular Speech', desc: 'Your speech in the Forum is well-received.', effects: { popularis: 12, dignitas: 5 }, chance: 0.1 },
-        { type: 'good', title: 'Senate Favour', desc: 'A senior senator speaks well of you.', effects: { auctoritas: 12, dignitas: 5 }, chance: 0.08 },
-        { type: 'good', title: 'Military Glory', desc: 'News of a victory by troops you commanded.', effects: { military: 10, dignitas: 12 }, chance: 0.06, requires: { military: 20 } },
-        { type: 'good', title: 'Good Investment', desc: 'Your business ventures pay off.', effects: { pecunia: 30 }, chance: 0.07 },
-        { type: 'bad', title: 'Scandal', desc: 'Rumours spread about your private life.', effects: { dignitas: -15, popularis: -10 }, chance: 0.1 },
-        { type: 'bad', title: 'Debt Called In', desc: 'A creditor demands immediate repayment.', effects: { pecunia: -25 }, chance: 0.08 },
-        { type: 'bad', title: 'Political Enemy', desc: 'Someone powerful takes against you.', effects: { auctoritas: -12 }, makeEnemy: true, chance: 0.07 },
-        { type: 'bad', title: 'Failed Venture', desc: 'A shipping investment lost to pirates.', effects: { pecunia: -20 }, chance: 0.08 },
-        { type: 'bad', title: 'Illness', desc: 'Fever keeps you bedridden for weeks.', effects: { dignitas: -10, military: -5 }, chance: 0.06 },
-        { type: 'bad', title: 'Family Disgrace', desc: 'A relative caught in scandal.', effects: { dignitas: -20, auctoritas: -10 }, chance: 0.05 },
-        { type: 'choice', title: 'Bribery Opportunity', desc: 'A magistrate offers to "lose" evidence against a friend... for a price.',
-          choices: [
-            { text: 'Pay the bribe (-15 wealth)', effects: { pecunia: -15, auctoritas: 8 }, risk: { chance: 0.25, penalty: { dignitas: -30 }, desc: 'The bribe becomes public!' } },
-            { text: 'Refuse on principle', effects: { dignitas: 10 } }
-          ], chance: 0.06 },
-        { type: 'choice', title: 'Grain Crisis', desc: 'The grain supply is short. The people look to their leaders.',
-          choices: [
-            { text: 'Fund grain distribution (-30 wealth)', effects: { pecunia: -30, popularis: 25, dignitas: 15 }, requires: { pecunia: 30 } },
-            { text: 'Blame current magistrates', effects: { popularis: 10, auctoritas: -10 } },
-            { text: 'Do nothing', effects: { popularis: -15 } }
-          ], chance: 0.05 },
-        { type: 'choice', title: 'Gladiatorial Games', desc: 'An opportunity to sponsor games.',
-          choices: [
-            { text: 'Lavish games (-50 wealth)', effects: { pecunia: -50, popularis: 30, dignitas: 20 }, requires: { pecunia: 50 } },
-            { text: 'Modest games (-20 wealth)', effects: { pecunia: -20, popularis: 15, dignitas: 5 }, requires: { pecunia: 20 } },
-            { text: 'Skip the games', effects: { dignitas: -10, popularis: -10 } }
-          ], chance: 0.05 },
-        { type: 'choice', title: 'Alliance Offer', desc: 'A powerful family offers marriage alliance.',
-          choices: [
-            { text: 'Accept the alliance', effects: { auctoritas: 20, dignitas: 10 } },
-            { text: 'Politely decline', effects: { dignitas: 5 } }
-          ], chance: 0.04 },
-        { type: 'choice', title: 'Prosecution', desc: 'You have evidence to prosecute a corrupt official.',
-          choices: [
-            { text: 'Prosecute publicly', effects: { dignitas: 20, popularis: 15 }, risk: { chance: 0.3, penalty: { auctoritas: -20, dignitas: -10 }, desc: 'He has powerful friends!' } },
-            { text: 'Sell evidence to enemies (+25 wealth)', effects: { pecunia: 25, dignitas: -15 } },
-            { text: 'Destroy the evidence', effects: { auctoritas: 10 } }
-          ], chance: 0.05 }
+        { type: 'good', title: 'Inheritance', desc: 'A distant relative leaves you money.', effects: { pecunia: 25 }, chance: 0.06 },
+        { type: 'good', title: 'Favorable Omen', desc: 'The augurs declare the signs favor you.', effects: { dignitas: 10, popularis: 5 }, chance: 0.05 },
+        { type: 'good', title: 'Investment Returns', desc: 'Your business ventures pay off handsomely.', effects: { pecunia: 30 }, chance: 0.05 },
+        { type: 'bad', title: 'Scandal', desc: 'Rumours spread about your private life.', effects: { dignitas: -15, popularis: -8 }, chance: 0.06 },
+        { type: 'bad', title: 'Debt Crisis', desc: 'A creditor demands immediate repayment.', effects: { pecunia: -25 }, chance: 0.06 },
+        { type: 'bad', title: 'Failed Venture', desc: 'A shipping investment lost to pirates.', effects: { pecunia: -20 }, chance: 0.05 },
+        { type: 'bad', title: 'Illness', desc: 'Fever keeps you bedridden. You miss opportunities.', effects: { dignitas: -10, auctoritas: -5 }, chance: 0.05 },
+        { type: 'bad', title: 'Family Disgrace', desc: 'A relative is caught in scandal. It reflects on you.', effects: { dignitas: -15, auctoritas: -8 }, chance: 0.04 }
     ];
 
     const HISTORICAL_EVENTS = [
@@ -234,7 +409,9 @@
         year: 134, age: 17, name: '', family: null, currentOffice: 'none', officesHeld: [],
         stats: { dignitas: 50, auctoritas: 20, pecunia: 50, military: 0, popularis: 50 },
         relationships: { crassus: 50, pompey: 50, caesar: 50, cicero: 50, cato: 50 },
-        enemies: [], phase: 'intro', militaryYears: 0, consulYears: [], actionsThisYear: 0, currentEvent: null
+        enemies: [], phase: 'intro', militaryYears: 0, consulYears: [], actionsThisYear: 0,
+        currentEvent: null, usedMilitaryEvents: [], usedPoliticalEvents: [], usedNpcEvents: {},
+        eventQueue: []
     };
 
     function updateDisplay() {
@@ -372,105 +549,400 @@
     }
 
     function processYear() {
-        const event = RANDOM_EVENTS.filter(e => {
-            if (e.requires) { for (let s in e.requires) if (game.stats[s] < e.requires[s]) return false; }
-            return Math.random() < e.chance;
-        })[0];
-        if (event) showRandomEvent(event);
-        else showYearActions();
-    }
-
-    function showRandomEvent(event) {
-        game.phase = 'random_event';
-        game.currentEvent = event;
-        const content = document.getElementById('contentArea');
-        if (event.type === 'good' || event.type === 'bad') {
-            const changeText = modifyStats(event.effects);
-            if (event.makeEnemy) {
-                const npcId = Object.keys(NPCS)[Math.floor(Math.random() * Object.keys(NPCS).length)];
-                modifyRelationship(npcId, -30);
-                if (!game.enemies.includes(NPCS[npcId].name)) game.enemies.push(NPCS[npcId].name);
-            }
-            content.innerHTML = `
-                <div class="event-card" style="border-color:${event.type === 'good' ? 'var(--success)' : 'var(--danger)'};">
-                    <div class="event-type">${event.type === 'good' ? '🌟 Fortune' : '⚡ Misfortune'}</div>
-                    <div class="event-title">${event.title}</div>
-                    <div class="event-desc">${event.desc}</div>
-                    <div style="margin-top:10px;font-style:italic;color:${event.type === 'good' ? 'var(--success)' : 'var(--danger)'};">${changeText}</div>
-                </div>
-                <button class="btn-primary" onclick="showYearActions()">Continue</button>
-            `;
-        } else if (event.type === 'choice') {
-            content.innerHTML = `
-                <div class="event-card">
-                    <div class="event-type">⚖️ Decision Required</div>
-                    <div class="event-title">${event.title}</div>
-                    <div class="event-desc">${event.desc}</div>
-                    <div class="choices">
-                        ${event.choices.map((c, i) => {
-                            let disabled = c.requires ? Object.entries(c.requires).some(([s,v]) => game.stats[s] < v) : false;
-                            return `<button class="choice-btn" onclick="resolveEventChoice(${i})" ${disabled ? 'disabled' : ''}>${c.text}<span class="choice-effect">${Object.entries(c.effects).map(([k,v]) => `${k}: ${v > 0 ? '+' : ''}${v}`).join(', ')}</span></button>`;
-                        }).join('')}
-                    </div>
-                </div>
-            `;
-        }
-    }
-
-    function resolveEventChoice(i) {
-        const choice = game.currentEvent.choices[i];
-        let resultText = modifyStats(choice.effects);
-        let riskText = '';
-        if (choice.risk && Math.random() < choice.risk.chance) {
-            modifyStats(choice.risk.penalty);
-            riskText = `<div style="color:var(--danger);margin-top:10px;">⚠️ ${choice.risk.desc}</div>`;
-        }
-        document.getElementById('contentArea').innerHTML = `
-            <div class="event-card">
-                <div class="event-type">Result</div>
-                <div class="event-title">${choice.text}</div>
-                <div style="font-style:italic;color:var(--ink-light);">${resultText}</div>
-                ${riskText}
-            </div>
-            <button class="btn-primary" onclick="showYearActions()">Continue</button>
-        `;
+        // This now just triggers the year actions with event generation
+        showYearActions();
     }
 
     function showYearActions() {
         game.phase = 'year_actions';
         const status = checkGameOver();
         if (status.over) { showGameEnd(status); return; }
+
+        // Check if we should trigger an event instead of showing the menu
+        if (game.eventQueue.length > 0) {
+            const nextEvent = game.eventQueue.shift();
+            showEventFromQueue(nextEvent);
+            return;
+        }
+
+        // Generate events for this year
+        if (game.actionsThisYear === 0) {
+            generateYearEvents();
+            if (game.eventQueue.length > 0) {
+                const nextEvent = game.eventQueue.shift();
+                showEventFromQueue(nextEvent);
+                return;
+            }
+        }
+
         let actionsHtml = '';
         if (game.currentOffice === 'none' && game.militaryYears < 10) {
             actionsHtml += `<div class="event-card"><div class="event-type">Military Service</div><div class="event-title">Serve in the Legions</div><div class="event-desc">You need <strong>${10 - game.militaryYears} more years</strong> of service before seeking office.</div><button class="btn-primary btn-success" onclick="doMilitaryService()">Serve This Year</button></div>`;
+        } else {
+            const availableOffices = Object.entries(OFFICES).filter(([id]) => canRunForOffice(id) && id !== 'none');
+            if (availableOffices.length > 0 && game.militaryYears >= 10) {
+                actionsHtml += `<div class="event-card"><div class="event-type">Elections</div><div class="event-title">Stand for Office</div><div class="choices">${availableOffices.map(([id, o]) => `<button class="choice-btn" onclick="startElection('${id}')"><strong>${o.name}</strong> (min age ${o.minAge})</button>`).join('')}</div></div>`;
+            }
+            if (game.currentOffice !== 'none' && game.currentOffice !== 'military') {
+                actionsHtml += `<div class="event-card"><div class="event-type">Official Duties</div><div class="event-title">Serve as ${OFFICES[game.currentOffice].name}</div><button class="btn-primary" onclick="performDuties()">Perform Duties</button></div>`;
+            }
+            // Show a simpler action menu for political life, not the boring NPC list
+            actionsHtml += `<div class="event-card"><div class="event-type">Daily Life</div><div class="event-title">How do you spend your time?</div><div class="choices">
+                <button class="choice-btn" onclick="doPoliticalAction('forum')">Attend the Forum<span class="choice-effect">Chance of political encounters</span></button>
+                <button class="choice-btn" onclick="doPoliticalAction('business')">Manage Business Affairs<span class="choice-effect">Potential profit or loss</span></button>
+                <button class="choice-btn" onclick="doPoliticalAction('social')">Attend Social Events<span class="choice-effect">Build connections</span></button>
+            </div></div>`;
         }
-        const availableOffices = Object.entries(OFFICES).filter(([id]) => canRunForOffice(id) && id !== 'none');
-        if (availableOffices.length > 0 && game.militaryYears >= 10) {
-            actionsHtml += `<div class="event-card"><div class="event-type">Elections</div><div class="event-title">Stand for Office</div><div class="choices">${availableOffices.map(([id, o]) => `<button class="choice-btn" onclick="startElection('${id}')"><strong>${o.name}</strong> (min age ${o.minAge})</button>`).join('')}</div></div>`;
-        }
-        if (game.currentOffice !== 'none' && game.currentOffice !== 'military') {
-            actionsHtml += `<div class="event-card"><div class="event-type">Official Duties</div><div class="event-title">Serve as ${OFFICES[game.currentOffice].name}</div><button class="btn-primary" onclick="performDuties()">Perform Duties</button></div>`;
-        }
-        actionsHtml += `<div class="event-card"><div class="event-type">Politics</div><div class="event-title">Build Relationships</div><div class="choices">${Object.entries(NPCS).map(([id, npc]) => `<button class="choice-btn" onclick="networkWith('${id}')">Meet <strong>${npc.name}</strong><span class="choice-effect">${npc.desc} (${game.relationships[id]}%)</span></button>`).join('')}</div></div>`;
         actionsHtml += `<button class="btn-primary btn-secondary" onclick="endYear()" style="margin-top:15px;">End Year</button>`;
         document.getElementById('contentArea').innerHTML = `<div class="section-title">Year ${game.year} BC — Actions</div>${actionsHtml}`;
+    }
+
+    function generateYearEvents() {
+        // Generate 1-3 events for this year
+        const numEvents = 1 + Math.floor(Math.random() * 2);
+
+        for (let i = 0; i < numEvents; i++) {
+            // Chance for NPC encounter
+            if (Math.random() < 0.4) {
+                const npcIds = Object.keys(NPC_EVENTS);
+                const npcId = npcIds[Math.floor(Math.random() * npcIds.length)];
+                const npcEventList = NPC_EVENTS[npcId];
+
+                // Get unused events for this NPC
+                if (!game.usedNpcEvents[npcId]) game.usedNpcEvents[npcId] = [];
+                const availableNpcEvents = npcEventList.filter((e, idx) => !game.usedNpcEvents[npcId].includes(idx));
+
+                if (availableNpcEvents.length > 0) {
+                    const eventIdx = npcEventList.indexOf(availableNpcEvents[Math.floor(Math.random() * availableNpcEvents.length)]);
+                    game.usedNpcEvents[npcId].push(eventIdx);
+                    game.eventQueue.push({ type: 'npc', npcId, event: npcEventList[eventIdx] });
+                }
+            }
+
+            // Chance for political event (if not in military)
+            if (game.militaryYears >= 10 && Math.random() < 0.5) {
+                const officeOrder = { none: 0, quaestor: 1, aedile: 2, praetor: 3, consul: 4, censor: 5 };
+                const currentOrder = officeOrder[game.currentOffice] || 0;
+
+                const availablePolitical = POLITICAL_EVENTS.filter((e, idx) => {
+                    if (game.usedPoliticalEvents.includes(idx)) return false;
+                    if (e.minOffice && officeOrder[e.minOffice] > currentOrder) return false;
+                    if (e.requires) {
+                        for (let s in e.requires) if (game.stats[s] < e.requires[s]) return false;
+                    }
+                    return true;
+                });
+
+                if (availablePolitical.length > 0) {
+                    const eventIdx = POLITICAL_EVENTS.indexOf(availablePolitical[Math.floor(Math.random() * availablePolitical.length)]);
+                    game.usedPoliticalEvents.push(eventIdx);
+                    game.eventQueue.push({ type: 'political', event: POLITICAL_EVENTS[eventIdx] });
+                }
+            }
+
+            // Simple random events
+            const randomEvent = RANDOM_EVENTS.find(e => Math.random() < e.chance);
+            if (randomEvent) {
+                game.eventQueue.push({ type: 'random', event: randomEvent });
+            }
+        }
+    }
+
+    function showEventFromQueue(queuedEvent) {
+        if (queuedEvent.type === 'npc') {
+            showNpcEvent(queuedEvent.npcId, queuedEvent.event);
+        } else if (queuedEvent.type === 'political') {
+            showPoliticalEvent(queuedEvent.event);
+        } else if (queuedEvent.type === 'random') {
+            showSimpleRandomEvent(queuedEvent.event);
+        }
+    }
+
+    function showNpcEvent(npcId, event) {
+        game.currentEvent = { ...event, type: 'npc', npcId };
+        const npc = NPCS[npcId];
+        const content = document.getElementById('contentArea');
+        content.innerHTML = `
+            <div class="event-card" style="border-color:var(--bronze);">
+                <div class="event-type">👤 Encounter: ${npc.fullName}</div>
+                <div class="event-title">${event.title}</div>
+                <div class="event-desc">${event.desc}</div>
+                <div style="font-size:0.85rem;color:var(--ink-light);margin:10px 0;">Your relationship: ${game.relationships[npcId]}%</div>
+                <div class="choices">
+                    ${event.choices.map((c, i) => {
+                        let disabled = c.requires ? Object.entries(c.requires).some(([s,v]) => game.stats[s] < v) : false;
+                        let effectPreview = Object.entries(c.effects || {}).map(([k,v]) => `${k}: ${v > 0 ? '+' : ''}${v}`).join(', ') || '';
+                        return `<button class="choice-btn" onclick="resolveNpcChoice(${i})" ${disabled ? 'disabled' : ''}>${c.text}<span class="choice-effect">${effectPreview}</span></button>`;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function resolveNpcChoice(i) {
+        const choice = game.currentEvent.choices[i];
+        const npcId = game.currentEvent.npcId;
+        const npc = NPCS[npcId];
+
+        let resultText = modifyStats(choice.effects || {});
+        let riskText = '';
+        let successText = '';
+
+        // Handle NPC relationship change
+        if (choice.npcEffect) {
+            modifyRelationship(npcId, choice.npcEffect);
+            resultText += (resultText ? ', ' : '') + `${npc.name}: ${choice.npcEffect > 0 ? '+' : ''}${choice.npcEffect}`;
+        }
+
+        if (choice.risk && Math.random() < choice.risk.chance) {
+            modifyStats(choice.risk.penalty || {});
+            if (choice.risk.npcChange) modifyRelationship(npcId, choice.risk.npcChange);
+            riskText = `<div style="color:var(--danger);margin-top:10px;font-weight:bold;">⚠️ ${choice.risk.desc}</div>`;
+        } else if (choice.successText) {
+            successText = `<div style="color:var(--success);margin-top:10px;">${choice.successText}</div>`;
+            if (choice.successEffects) {
+                const extraText = modifyStats(choice.successEffects);
+                resultText += (resultText ? ', ' : '') + extraText;
+            }
+        }
+
+        document.getElementById('contentArea').innerHTML = `
+            <div class="event-card">
+                <div class="event-type">Result</div>
+                <div class="event-title">${choice.text}</div>
+                ${resultText ? `<div style="font-style:italic;color:var(--ink-light);">${resultText}</div>` : ''}
+                ${riskText}${successText}
+            </div>
+            <button class="btn-primary" onclick="continueAfterEvent()">Continue</button>
+        `;
+    }
+
+    function showPoliticalEvent(event) {
+        game.currentEvent = { ...event, type: 'political' };
+        // If event involves a random NPC, pick one
+        if (event.npc === 'random') {
+            const npcIds = Object.keys(NPCS);
+            game.currentEvent.npcId = npcIds[Math.floor(Math.random() * npcIds.length)];
+        }
+
+        const content = document.getElementById('contentArea');
+        content.innerHTML = `
+            <div class="event-card" style="border-color:var(--senate);">
+                <div class="event-type">⚖️ Political Event</div>
+                <div class="event-title">${event.title}</div>
+                <div class="event-desc">${event.desc}</div>
+                <div class="choices">
+                    ${event.choices.map((c, i) => {
+                        let disabled = c.requires ? Object.entries(c.requires).some(([s,v]) => game.stats[s] < v) : false;
+                        let effectPreview = Object.entries(c.effects || {}).map(([k,v]) => `${k}: ${v > 0 ? '+' : ''}${v}`).join(', ') || '';
+                        return `<button class="choice-btn" onclick="resolvePoliticalChoice(${i})" ${disabled ? 'disabled' : ''}>${c.text}<span class="choice-effect">${effectPreview}</span></button>`;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function resolvePoliticalChoice(i) {
+        const choice = game.currentEvent.choices[i];
+        const npcId = game.currentEvent.npcId;
+
+        let resultText = modifyStats(choice.effects || {});
+        let riskText = '';
+        let successText = '';
+
+        // Handle NPC relationship change if applicable
+        if (choice.npcEffect && npcId) {
+            modifyRelationship(npcId, choice.npcEffect);
+            resultText += (resultText ? ', ' : '') + `${NPCS[npcId].name}: ${choice.npcEffect > 0 ? '+' : ''}${choice.npcEffect}`;
+        }
+
+        if (choice.risk && Math.random() < choice.risk.chance) {
+            modifyStats(choice.risk.penalty || {});
+            riskText = `<div style="color:var(--danger);margin-top:10px;font-weight:bold;">⚠️ ${choice.risk.desc}</div>`;
+        } else if (choice.successText) {
+            successText = `<div style="color:var(--success);margin-top:10px;">${choice.successText}</div>`;
+            if (choice.successEffects) {
+                const extraText = modifyStats(choice.successEffects);
+                resultText += (resultText ? ', ' : '') + extraText;
+            }
+        }
+
+        document.getElementById('contentArea').innerHTML = `
+            <div class="event-card">
+                <div class="event-type">Result</div>
+                <div class="event-title">${choice.text}</div>
+                ${resultText ? `<div style="font-style:italic;color:var(--ink-light);">${resultText}</div>` : ''}
+                ${riskText}${successText}
+            </div>
+            <button class="btn-primary" onclick="continueAfterEvent()">Continue</button>
+        `;
+    }
+
+    function showSimpleRandomEvent(event) {
+        const changeText = modifyStats(event.effects);
+        document.getElementById('contentArea').innerHTML = `
+            <div class="event-card" style="border-color:${event.type === 'good' ? 'var(--success)' : 'var(--danger)'};">
+                <div class="event-type">${event.type === 'good' ? '🌟 Fortune' : '⚡ Misfortune'}</div>
+                <div class="event-title">${event.title}</div>
+                <div class="event-desc">${event.desc}</div>
+                <div style="margin-top:10px;font-style:italic;color:${event.type === 'good' ? 'var(--success)' : 'var(--danger)'};">${changeText}</div>
+            </div>
+            <button class="btn-primary" onclick="continueAfterEvent()">Continue</button>
+        `;
+    }
+
+    function continueAfterEvent() {
+        game.actionsThisYear++;
+        if (game.eventQueue.length > 0) {
+            const nextEvent = game.eventQueue.shift();
+            showEventFromQueue(nextEvent);
+        } else {
+            showYearActions();
+        }
+    }
+
+    function doPoliticalAction(actionType) {
+        game.actionsThisYear++;
+
+        if (actionType === 'forum') {
+            // Chance for a political or NPC event
+            if (Math.random() < 0.6) {
+                const npcIds = Object.keys(NPC_EVENTS);
+                const npcId = npcIds[Math.floor(Math.random() * npcIds.length)];
+                const npcEventList = NPC_EVENTS[npcId];
+                if (!game.usedNpcEvents[npcId]) game.usedNpcEvents[npcId] = [];
+                const availableNpcEvents = npcEventList.filter((e, idx) => !game.usedNpcEvents[npcId].includes(idx));
+
+                if (availableNpcEvents.length > 0) {
+                    const eventIdx = npcEventList.indexOf(availableNpcEvents[Math.floor(Math.random() * availableNpcEvents.length)]);
+                    game.usedNpcEvents[npcId].push(eventIdx);
+                    showNpcEvent(npcId, npcEventList[eventIdx]);
+                    return;
+                }
+            }
+            // Fallback: simple forum visit
+            const outcomes = [
+                { desc: 'You listen to speeches and gauge the political mood.', effects: { auctoritas: 3 } },
+                { desc: 'A lively debate on provincial taxation. You make your views known.', effects: { dignitas: 5, popularis: -3 } },
+                { desc: 'You spot rivals plotting. Useful intelligence.', effects: { auctoritas: 5 } }
+            ];
+            const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
+            const changeText = modifyStats(outcome.effects);
+            document.getElementById('contentArea').innerHTML = `
+                <div class="event-card"><div class="event-type">The Forum</div><div class="event-title">A Day in Public Life</div><div class="event-desc">${outcome.desc}</div><div style="margin-top:10px;font-style:italic;">${changeText}</div></div>
+                <button class="btn-primary" onclick="showYearActions()">Continue</button>
+            `;
+        } else if (actionType === 'business') {
+            const roll = Math.random();
+            let outcome;
+            if (roll < 0.3) {
+                outcome = { desc: 'Your investments pay off handsomely.', effects: { pecunia: 20 } };
+            } else if (roll < 0.5) {
+                outcome = { desc: 'A shipping venture is lost to storms.', effects: { pecunia: -15 } };
+            } else {
+                outcome = { desc: 'Steady returns from your estates.', effects: { pecunia: 8 } };
+            }
+            const changeText = modifyStats(outcome.effects);
+            document.getElementById('contentArea').innerHTML = `
+                <div class="event-card"><div class="event-type">Business Affairs</div><div class="event-title">Managing Your Wealth</div><div class="event-desc">${outcome.desc}</div><div style="margin-top:10px;font-style:italic;">${changeText}</div></div>
+                <button class="btn-primary" onclick="showYearActions()">Continue</button>
+            `;
+        } else if (actionType === 'social') {
+            // Pick a random NPC to potentially interact with
+            const npcIds = Object.keys(NPCS);
+            const npcId = npcIds[Math.floor(Math.random() * npcIds.length)];
+            const npc = NPCS[npcId];
+
+            const roll = Math.random();
+            let change, desc;
+            if (roll < 0.5) {
+                change = 5 + Math.floor(Math.random() * 10);
+                desc = `You have a pleasant conversation with ${npc.name} at a dinner party.`;
+            } else if (roll < 0.8) {
+                change = -5;
+                desc = `${npc.name} snubs you at a social gathering.`;
+            } else {
+                change = 10 + Math.floor(Math.random() * 10);
+                desc = `You impress ${npc.name} with your wit and insight.`;
+            }
+            modifyRelationship(npcId, change);
+            document.getElementById('contentArea').innerHTML = `
+                <div class="event-card"><div class="event-type">Social Events</div><div class="event-title">Roman High Society</div><div class="event-desc">${desc}</div><div style="margin-top:10px;font-style:italic;">${npc.name}: ${change > 0 ? '+' : ''}${change}</div></div>
+                <button class="btn-primary" onclick="showYearActions()">Continue</button>
+            `;
+        }
     }
 
     function doMilitaryService() {
         game.militaryYears++;
         game.currentOffice = 'military';
         if (!game.officesHeld.includes('military')) game.officesHeld.push('military');
-        const outcomes = [
-            { desc: 'A quiet year on the frontier. You learn the legions\' ways.', effects: { military: 10, dignitas: 5 } },
-            { desc: 'Your unit sees action. You acquit yourself well.', effects: { military: 15, dignitas: 10 } },
-            { desc: 'A difficult campaign. Your commander is incompetent.', effects: { military: 8, dignitas: -5 } },
-            { desc: 'You lead a successful mission. The men respect you.', effects: { military: 12, dignitas: 8, popularis: 5 } },
-            { desc: 'Garrison duty. Boring but safe.', effects: { military: 8, pecunia: 5 } }
-        ];
-        const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
-        const changeText = modifyStats(outcome.effects);
+
+        // Pick a military event we haven't used yet
+        const availableEvents = MILITARY_EVENTS.filter((e, i) => !game.usedMilitaryEvents.includes(i));
+        if (availableEvents.length > 0 && Math.random() < 0.7) {
+            const eventIndex = MILITARY_EVENTS.indexOf(availableEvents[Math.floor(Math.random() * availableEvents.length)]);
+            game.usedMilitaryEvents.push(eventIndex);
+            showMilitaryEvent(MILITARY_EVENTS[eventIndex]);
+        } else {
+            // Fallback to simple outcome
+            const outcomes = [
+                { desc: 'A quiet year on the frontier. You learn the legions\' ways.', effects: { military: 8, dignitas: 3 } },
+                { desc: 'Your unit sees action. You acquit yourself adequately.', effects: { military: 10, dignitas: 5 } },
+                { desc: 'Garrison duty in a provincial town. Boring but safe.', effects: { military: 6, pecunia: 5 } },
+                { desc: 'A harsh winter campaign. Many die, but you survive.', effects: { military: 12, dignitas: 5 } }
+            ];
+            const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
+            const changeText = modifyStats(outcome.effects);
+            document.getElementById('contentArea').innerHTML = `
+                <div class="event-card"><div class="event-type">🗡️ Military Service — Year ${game.militaryYears}/10</div><div class="event-title">Life in the Legions</div><div class="event-desc">${outcome.desc}</div><div style="margin-top:10px;font-style:italic;">${changeText}</div></div>
+                <button class="btn-primary" onclick="endYear()">End Year</button>
+            `;
+        }
+    }
+
+    function showMilitaryEvent(event) {
+        game.currentEvent = { ...event, type: 'military' };
+        const content = document.getElementById('contentArea');
+        content.innerHTML = `
+            <div class="event-card">
+                <div class="event-type">🗡️ Military Service — Year ${game.militaryYears}/10</div>
+                <div class="event-title">${event.title}</div>
+                <div class="event-desc">${event.desc}</div>
+                <div class="choices">
+                    ${event.choices.map((c, i) => {
+                        let disabled = c.requires ? Object.entries(c.requires).some(([s,v]) => game.stats[s] < v) : false;
+                        let effectPreview = Object.entries(c.effects || {}).map(([k,v]) => `${k}: ${v > 0 ? '+' : ''}${v}`).join(', ') || 'Unknown outcome';
+                        return `<button class="choice-btn" onclick="resolveMilitaryChoice(${i})" ${disabled ? 'disabled' : ''}>${c.text}<span class="choice-effect">${effectPreview}</span></button>`;
+                    }).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function resolveMilitaryChoice(i) {
+        const choice = game.currentEvent.choices[i];
+        let resultText = modifyStats(choice.effects || {});
+        let riskText = '';
+        let successText = '';
+
+        if (choice.risk && Math.random() < choice.risk.chance) {
+            modifyStats(choice.risk.penalty || {});
+            riskText = `<div style="color:var(--danger);margin-top:10px;font-weight:bold;">⚠️ ${choice.risk.desc}</div>`;
+        } else if (choice.successText) {
+            successText = `<div style="color:var(--success);margin-top:10px;">${choice.successText}</div>`;
+            if (choice.successEffects) {
+                resultText += (resultText ? ', ' : '') + modifyStats(choice.successEffects);
+            }
+        }
+
         document.getElementById('contentArea').innerHTML = `
-            <div class="event-card"><div class="event-type">🗡️ Military Service — Year ${game.militaryYears}/10</div><div class="event-title">Life in the Legions</div><div class="event-desc">${outcome.desc}</div><div style="margin-top:10px;font-style:italic;">${changeText}</div></div>
+            <div class="event-card">
+                <div class="event-type">Result</div>
+                <div class="event-title">${choice.text}</div>
+                ${resultText ? `<div style="font-style:italic;color:var(--ink-light);">${resultText}</div>` : ''}
+                ${riskText}${successText}
+            </div>
             <button class="btn-primary" onclick="endYear()">End Year</button>
         `;
     }
@@ -560,26 +1032,6 @@
         document.getElementById('contentArea').innerHTML = `<div class="event-card"><div class="event-type">Official Duties</div><div class="event-title">Service as ${OFFICES[game.currentOffice].name}</div><div class="event-desc">${r.desc}</div><div style="margin-top:10px;font-style:italic;">${changeText}</div></div><button class="btn-primary" onclick="endYear()">End Year</button>`;
     }
 
-    function networkWith(npcId) {
-        const npc = NPCS[npcId];
-        let chance = 0.5;
-        if (npc.trait === 'greedy' && game.stats.pecunia > 60) chance += 0.2;
-        if (npc.trait === 'proud' && game.stats.dignitas > 60) chance += 0.2;
-        if (npc.trait === 'ambitious' && game.stats.auctoritas > 50) chance += 0.15;
-        if (npc.trait === 'principled' && game.stats.dignitas > 70) chance += 0.2;
-        if (npc.trait === 'stubborn') chance -= 0.15;
-        let result;
-        if (Math.random() < chance) {
-            const gain = 10 + Math.floor(Math.random() * 10);
-            modifyRelationship(npcId, gain);
-            result = `<span style="color:var(--success);">Success! ${npc.name} warms to you. (+${gain})</span>`;
-        } else {
-            modifyRelationship(npcId, -3);
-            result = `<span style="color:var(--danger);">Your overtures are rebuffed.</span>`;
-        }
-        document.getElementById('contentArea').innerHTML = `<div class="event-card"><div class="event-type">Political Networking</div><div class="event-title">Meeting ${npc.fullName}</div><div class="event-desc">${npc.desc}</div><div style="margin-top:15px;">${result}</div></div><button class="btn-primary" onclick="showYearActions()">Continue</button>`;
-    }
-
     function endYear() {
         game.stats.pecunia -= 5 + game.officesHeld.length * 2;
         if (game.currentOffice !== 'none' && game.currentOffice !== 'military') game.currentOffice = 'none';
@@ -593,6 +1045,8 @@
         });
         game.year--;
         game.age++;
+        game.actionsThisYear = 0;  // Reset for new year
+        game.eventQueue = [];      // Clear any remaining events
         updateDisplay();
         const status = checkGameOver();
         if (status.over) showGameEnd(status);
@@ -629,7 +1083,14 @@
     }
 
     function restartGame() {
-        game = { year: 134, age: 17, name: '', family: null, currentOffice: 'none', officesHeld: [], stats: { dignitas: 50, auctoritas: 20, pecunia: 50, military: 0, popularis: 50 }, relationships: { crassus: 50, pompey: 50, caesar: 50, cicero: 50, cato: 50 }, enemies: [], phase: 'intro', militaryYears: 0, consulYears: [], actionsThisYear: 0, currentEvent: null };
+        game = {
+            year: 134, age: 17, name: '', family: null, currentOffice: 'none', officesHeld: [],
+            stats: { dignitas: 50, auctoritas: 20, pecunia: 50, military: 0, popularis: 50 },
+            relationships: { crassus: 50, pompey: 50, caesar: 50, cicero: 50, cato: 50 },
+            enemies: [], phase: 'intro', militaryYears: 0, consulYears: [], actionsThisYear: 0,
+            currentEvent: null, usedMilitaryEvents: [], usedPoliticalEvents: [], usedNpcEvents: {},
+            eventQueue: []
+        };
         document.getElementById('careerTrack').classList.add('hidden');
         document.getElementById('statsRow').classList.add('hidden');
         document.getElementById('relationships').classList.add('hidden');
