@@ -881,10 +881,11 @@
             if(event.timed) html += '<div class="timer-container active" id="timerContainer"><div class="timer-label"><span>⚡ Crisis! Decide quickly!</span><span id="timerText">'+event.timeLimit+'s</span></div><div class="timer-bar"><div class="timer-fill" id="timerFill" style="width:100%"></div></div></div>';
             html += '<div class="choices" id="choicesArea">'+event.choices.map((c,i) => {
                 const afford = canAfford(c.cost), meets = meetsReqs(c.requires), disabled = !afford || !meets;
-                let cost = '', req = '';
+                let cost = '', req = '', hint = '';
                 if(c.cost) for(let s in c.cost) cost += '<span class="choice-cost">-'+c.cost[s]+' '+s+'</span>';
                 if(c.requires) req = '<span class="choice-requires" style="'+(meets?'':'opacity:0.5')+'">'+(meets?'✓':'✗')+' Requires: '+(c.requires.name||'any '+c.requires.type)+'</span>';
-                return '<button class="choice-btn" onclick="makeChoice('+i+')" '+(disabled?'disabled':'')+'>'+c.text+' '+cost+' '+req+'<span class="choice-hint">'+c.hint+'</span></button>';
+                if(c.hint) hint = '<span class="choice-hint">'+c.hint+'</span>';
+                return '<button class="choice-btn" onclick="makeChoice('+i+')" '+(disabled?'disabled':'')+'>'+c.text+' '+cost+' '+req+hint+'</button>';
             }).join('')+'</div></div>';
             area.innerHTML = html;
             if(event.timed) startTimer(event.timeLimit);
@@ -1251,7 +1252,10 @@
             area.innerHTML = '<div class="minigame-container"><div class="minigame-title">📜 Bill Withdrawn</div><div class="event-card" style="margin:20px 0;"><p>You withdraw the legislation before the vote. Prudent, perhaps, but some see it as weakness.</p></div><button class="continue-btn" onclick="finishMinigame()">Continue</button></div>';
         }
 
-        function finishMinigame() { showJournal(gameState.lastChoice.journal, false); }
+        function finishMinigame() {
+            const journalText = (gameState.lastChoice && gameState.lastChoice.journal) || 'The day passes.';
+            showJournal(journalText, false);
+        }
 
         function showJournal(text, forced) {
             gameState.phase = 'journal';
@@ -1261,9 +1265,10 @@
             const area = document.getElementById('journalArea');
             area.classList.remove('hidden');
             let gains = '';
-            if(gameState.lastChoice.effects) for(let s in gameState.lastChoice.effects) { const v = gameState.lastChoice.effects[s]; gains += '<span class="'+(v>0?'stat-up':'stat-down')+'"><strong>'+s+':</strong> '+(v>0?'+':'')+v+'</span> '; }
-            if(gameState.lastChoice.reward) gains += '<span style="color:var(--bronze);"><strong>Gained:</strong> '+gameState.lastChoice.reward.item.name+'</span> ';
-            if(gameState.lastChoice.enemy) gains += '<span class="stat-down"><strong>New Enemy:</strong> '+gameState.lastChoice.enemy+'</span>';
+            const choice = gameState.lastChoice || {};
+            if(choice.effects) for(let s in choice.effects) { const v = choice.effects[s]; gains += '<span class="'+(v>0?'stat-up':'stat-down')+'"><strong>'+s+':</strong> '+(v>0?'+':'')+v+'</span> '; }
+            if(choice.reward) gains += '<span style="color:var(--bronze);"><strong>Gained:</strong> '+choice.reward.item.name+'</span> ';
+            if(choice.enemy) gains += '<span class="stat-down"><strong>New Enemy:</strong> '+choice.enemy+'</span>';
             const dates = ['','Kal. Dec.','a.d. IV Non.','a.d. III Non.','Prid. Non.','Non. Dec.','a.d. VIII Id.','a.d. VII Id.','a.d. VI Id.','a.d. V Id.','a.d. IV Id.'];
             area.innerHTML = '<div class="journal-entry"><div class="journal-date">Dies '+toRoman(gameState.day)+' — '+(dates[gameState.day]||'')+'</div><p class="journal-text">'+(forced?'<em>[Time ran out]</em> ':'')+text+'</p><div class="journal-gains">'+gains+'</div></div><button class="continue-btn" onclick="nextDay()">'+(gameState.day>=gameState.maxDays?'SEE YOUR FATE':'CONTINUE TO NEXT DAY →')+'</button>';
         }
