@@ -109,6 +109,22 @@
         .historical-note { background: var(--senate); color: white; padding: 12px 15px; margin-top: 15px; font-size: 0.85rem; border-radius: 5px; }
         .historical-note strong { color: var(--wax-gold); }
         .hidden { display: none !important; }
+        /* Stat change animations */
+        @keyframes statUp {
+            0% { background-color: var(--success); transform: scale(1.1); }
+            100% { background-color: transparent; transform: scale(1); }
+        }
+        @keyframes statDown {
+            0% { background-color: var(--danger); transform: scale(1.1); }
+            100% { background-color: transparent; transform: scale(1); }
+        }
+        .stat-flash-up { animation: statUp 0.6s ease-out; }
+        .stat-flash-down { animation: statDown 0.6s ease-out; }
+        .stat-value.changing { transition: all 0.3s; }
+        /* Educational note styling */
+        .edu-note { background: linear-gradient(135deg, var(--senate), #2a4a7d); color: white; padding: 15px; margin: 15px 0; border-radius: 5px; border-left: 4px solid var(--wax-gold); }
+        .edu-note h5 { font-family: 'Cinzel', serif; color: var(--wax-gold); margin-bottom: 8px; font-size: 0.9rem; }
+        .edu-note p { font-size: 0.85rem; line-height: 1.5; margin: 0; }
         @media (max-width: 600px) {
             .header { flex-direction: column; text-align: center; }
             .career-track { flex-wrap: wrap; justify-content: center; }
@@ -403,16 +419,60 @@
     ];
 
     const HISTORICAL_EVENTS = [
-        { year: 133, title: 'Death of Tiberius Gracchus', desc: 'Tiberius Gracchus is beaten to death by senators. The Republic will never be the same.' },
-        { year: 121, title: 'Death of Gaius Gracchus', desc: 'Gaius Gracchus dies fleeing his enemies. Reform movements crushed.' },
-        { year: 107, title: 'Marius Elected Consul', desc: 'Gaius Marius becomes consul and opens the army to the landless poor.' },
-        { year: 88, title: 'Sulla Marches on Rome', desc: 'For the first time, a Roman general marches legions against the city.' },
-        { year: 82, title: 'Sulla\'s Proscriptions', desc: 'Sulla posts lists of enemies to be killed. Thousands die.' },
-        { year: 73, title: 'Spartacus Revolt', desc: 'A gladiator leads a massive slave revolt threatening Italy.' },
-        { year: 63, title: 'Catiline Conspiracy', desc: 'Cicero exposes Catiline\'s plot to overthrow the Republic.' },
-        { year: 60, title: 'First Triumvirate', desc: 'Caesar, Pompey, and Crassus form a secret alliance.' },
-        { year: 49, title: 'Caesar Crosses Rubicon', desc: '"The die is cast." Civil war begins.' },
-        { year: 44, title: 'Assassination of Caesar', desc: 'On the Ides of March, Caesar falls beneath the daggers.' }
+        { year: 133, title: 'Death of Tiberius Gracchus', desc: 'Tiberius Gracchus is beaten to death by senators. The Republic will never be the same.',
+          edu: 'Tiberius Gracchus proposed redistributing public land to poor citizens. When he tried to stand for a second tribunate (breaking tradition), senators clubbed him to death with chair legs. This was the first political murder in Rome in nearly 400 years.' },
+        { year: 121, title: 'Death of Gaius Gracchus', desc: 'Gaius Gracchus dies fleeing his enemies. Reform movements crushed.',
+          edu: 'Gaius continued his brother\'s reforms and proposed citizenship for Italian allies. The Senate passed the "senatus consultum ultimum" (final decree) for the first time, authorizing violence against citizens. 3,000 of his supporters were killed.' },
+        { year: 107, title: 'Marius Elected Consul', desc: 'Gaius Marius becomes consul and opens the army to the landless poor.',
+          edu: 'Marius reformed the Roman army, allowing landless citizens to enlist. Soldiers now looked to their generals (not the state) for rewards of land after service. This created personal armies loyal to commanders—a fatal weakness for the Republic.' },
+        { year: 88, title: 'Sulla Marches on Rome', desc: 'For the first time, a Roman general marches legions against the city.',
+          edu: 'When the tribune Sulpicius transferred Sulla\'s command to Marius, Sulla did the unthinkable: he marched his army on Rome itself. The taboo against using legions in Italy was broken forever. Sulla declared "Let the laws be silent in the face of arms."' },
+        { year: 82, title: 'Sulla\'s Proscriptions', desc: 'Sulla posts lists of enemies to be killed. Thousands die.',
+          edu: 'Sulla invented the proscription: public lists of enemies whose property was confiscated and who could be killed by anyone. Over 500 senators and equestrians were murdered. Young Julius Caesar barely escaped the lists.' },
+        { year: 73, title: 'Spartacus Revolt', desc: 'A gladiator leads a massive slave revolt threatening Italy.',
+          edu: 'Spartacus, a Thracian gladiator, escaped from a training school with 70 others. His army grew to 70,000 escaped slaves and defeated multiple Roman legions. Crassus finally crushed the revolt; 6,000 captured slaves were crucified along the Appian Way.' },
+        { year: 63, title: 'Catiline Conspiracy', desc: 'Cicero exposes Catiline\'s plot to overthrow the Republic.',
+          edu: 'Catiline, a failed politician deep in debt, planned to murder the consuls and seize power. Cicero, as consul, exposed the plot in famous speeches. The conspirators were executed without trial—a decision that would later haunt Cicero.' },
+        { year: 60, title: 'First Triumvirate', desc: 'Caesar, Pompey, and Crassus form a secret alliance.',
+          edu: 'This informal alliance united Rome\'s three most powerful men: Pompey (military glory), Crassus (wealth), and Caesar (popular support). Though not official, they controlled Roman politics. Caesar received Gaul; Pompey married Caesar\'s daughter Julia.' },
+        { year: 49, title: 'Caesar Crosses Rubicon', desc: '"The die is cast." Civil war begins.',
+          edu: 'The Rubicon river marked the boundary of Italy. Bringing an army across meant war against the state. When Caesar crossed with his legion, he reportedly said "alea iacta est" (the die is cast). Four years of civil war followed.' },
+        { year: 44, title: 'Assassination of Caesar', desc: 'On the Ides of March, Caesar falls beneath the daggers.',
+          edu: 'On March 15, 44 BC, a group of senators stabbed Caesar 23 times in the Theatre of Pompey. The conspirators, led by Brutus and Cassius, believed they were saving the Republic. Instead, they triggered another civil war that would end it forever.' }
+    ];
+
+    // Flavor events - random Roman life events
+    const FLAVOR_EVENTS = [
+        { title: 'Favorable Omens', desc: 'The augurs declare the sacred chickens ate greedily. The gods favor you!',
+          effects: { dignitas: 8, popularis: 5 }, type: 'good',
+          edu: 'Romans took omens very seriously. Before any public business, augurs would observe the behavior of sacred chickens. If they ate eagerly, it was a good sign. Ignoring bad omens was considered impious and dangerous.' },
+        { title: 'Unfavorable Omens', desc: 'Lightning strikes the temple of Jupiter. The priests say the gods are displeased.',
+          effects: { dignitas: -5, popularis: -8 }, type: 'bad',
+          edu: 'Lightning was considered a direct message from Jupiter. Temples struck by lightning had to be ritually purified. Public business on days of bad omens was often postponed.' },
+        { title: 'Vestal Virgin Scandal', desc: 'A Vestal Virgin is accused of breaking her vows. The city is in uproar.',
+          effects: { popularis: -5 }, type: 'news',
+          edu: 'Vestal Virgins tended Rome\'s sacred flame and took 30-year vows of chastity. If convicted of breaking their vows, they were buried alive. Such scandals were seen as threatening Rome\'s divine protection.' },
+        { title: 'Pirates!', desc: 'Pirates raid the coast. Trade is disrupted and grain prices rise.',
+          effects: { pecunia: -10 }, type: 'bad',
+          edu: 'Mediterranean piracy was endemic until Pompey cleared the seas in 67 BC. Pirates once kidnapped young Julius Caesar and held him for ransom. After his release, he returned with ships and crucified them all.' },
+        { title: 'Triumph Celebration', desc: 'A victorious general celebrates a triumph through Rome. The city celebrates!',
+          effects: { popularis: 5 }, type: 'good',
+          edu: 'A triumph was Rome\'s highest honor—a parade through the city with captured treasures, prisoners, and the victorious army. The general wore Jupiter\'s own purple robes. A slave whispered "Remember, you are mortal" in his ear.' },
+        { title: 'Gladiatorial Games', desc: 'A wealthy citizen sponsors spectacular games. The people are entertained.',
+          effects: { popularis: 8 }, type: 'good',
+          edu: 'Gladiatorial games originated as funeral rites. By the late Republic, ambitious politicians used them to win popular support. The games were expensive—Caesar went deeply into debt sponsoring them before his rise to power.' },
+        { title: 'Grain Shortage', desc: 'Ships from Egypt are delayed. Bread prices soar and the poor grow restless.',
+          effects: { popularis: -10 }, type: 'bad',
+          edu: 'Rome depended on grain imports, especially from Egypt and Sicily. Grain distributions (the "dole") fed perhaps 300,000 citizens. Any disruption could cause riots. Controlling the grain supply was immense political power.' },
+        { title: 'Building Project', desc: 'A new temple or basilica is dedicated. The city grows more magnificent.',
+          effects: { dignitas: 3, popularis: 3 }, type: 'good',
+          edu: 'Roman politicians built public works for glory and votes. The Forum was filled with basilicas, temples, and monuments bearing family names. These buildings advertised wealth, piety, and service to Rome.' },
+        { title: 'Earthquake', desc: 'The earth shakes. Some buildings collapse and people speak of divine anger.',
+          effects: { dignitas: -5 }, type: 'bad',
+          edu: 'Romans interpreted natural disasters as messages from the gods. After earthquakes or other prodigies, priests would consult the Sibylline Books for instructions on appeasing divine anger.' },
+        { title: 'Famous Orator Speaks', desc: 'A renowned speaker addresses the Forum. You attend and learn from his technique.',
+          effects: { auctoritas: 5 }, type: 'good',
+          edu: 'Oratory was essential for Roman political success. Young men studied rhetoric for years. Famous orators like Cicero, Hortensius, and later Caesar were celebrities. Their speeches were published and studied as literature.' }
     ];
 
     let game = {
@@ -468,8 +528,17 @@
         let changeText = [];
         for (let stat in changes) {
             if (game.stats.hasOwnProperty(stat)) {
+                const oldVal = game.stats[stat];
                 game.stats[stat] = Math.max(0, Math.min(100, game.stats[stat] + changes[stat]));
                 changeText.push(`${stat}: ${changes[stat] > 0 ? '+' : ''}${changes[stat]}`);
+
+                // Trigger animation
+                const box = document.getElementById(stat + 'Box');
+                if (box) {
+                    box.classList.remove('stat-flash-up', 'stat-flash-down');
+                    void box.offsetWidth; // Force reflow
+                    box.classList.add(changes[stat] > 0 ? 'stat-flash-up' : 'stat-flash-down');
+                }
             }
         }
         updateDisplay();
@@ -662,7 +731,13 @@
         }
 
         const historicalEvent = HISTORICAL_EVENTS.find(e => e.year === game.year);
-        let historyHtml = historicalEvent ? `<div class="event-card" style="border-color:var(--wax-gold);"><div class="event-type">⚡ Historical Event</div><div class="event-title">${historicalEvent.title}</div><div class="event-desc">${historicalEvent.desc}</div></div>` : '';
+        let historyHtml = '';
+        if (historicalEvent) {
+            historyHtml = `<div class="event-card" style="border-color:var(--wax-gold);"><div class="event-type">⚡ Historical Event</div><div class="event-title">${historicalEvent.title}</div><div class="event-desc">${historicalEvent.desc}</div></div>`;
+            if (historicalEvent.edu) {
+                historyHtml += `<div class="edu-note"><h5>📜 This Year in History</h5><p>${historicalEvent.edu}</p></div>`;
+            }
+        }
 
         // Show next goal
         const nextOffice = getNextOffice();
@@ -894,6 +969,12 @@
             if (randomEvent) {
                 game.eventQueue.push({ type: 'random', event: randomEvent });
             }
+
+            // Flavor events (Roman life color)
+            if (Math.random() < 0.25) {
+                const flavorEvent = FLAVOR_EVENTS[Math.floor(Math.random() * FLAVOR_EVENTS.length)];
+                game.eventQueue.push({ type: 'flavor', event: flavorEvent });
+            }
         }
     }
 
@@ -904,6 +985,8 @@
             showPoliticalEvent(queuedEvent.event);
         } else if (queuedEvent.type === 'random') {
             showSimpleRandomEvent(queuedEvent.event);
+        } else if (queuedEvent.type === 'flavor') {
+            showFlavorEvent(queuedEvent.event);
         }
     }
 
@@ -1036,6 +1119,24 @@
                 <div class="event-desc">${event.desc}</div>
                 <div style="margin-top:10px;font-style:italic;color:${event.type === 'good' ? 'var(--success)' : 'var(--danger)'};">${changeText}</div>
             </div>
+            <button class="btn-primary" onclick="continueAfterEvent()">Continue</button>
+        `;
+    }
+
+    function showFlavorEvent(event) {
+        const changeText = modifyStats(event.effects || {});
+        const icon = event.type === 'good' ? '🏛️' : event.type === 'bad' ? '⚡' : '📜';
+        const borderColor = event.type === 'good' ? 'var(--success)' : event.type === 'bad' ? 'var(--danger)' : 'var(--bronze)';
+        const textColor = event.type === 'good' ? 'var(--success)' : event.type === 'bad' ? 'var(--danger)' : 'var(--ink-light)';
+
+        document.getElementById('contentArea').innerHTML = `
+            <div class="event-card" style="border-color:${borderColor};">
+                <div class="event-type">${icon} Life in Rome</div>
+                <div class="event-title">${event.title}</div>
+                <div class="event-desc">${event.desc}</div>
+                ${changeText ? `<div style="margin-top:10px;font-style:italic;color:${textColor};">${changeText}</div>` : ''}
+            </div>
+            ${event.edu ? `<div class="edu-note"><h5>📜 Did You Know?</h5><p>${event.edu}</p></div>` : ''}
             <button class="btn-primary" onclick="continueAfterEvent()">Continue</button>
         `;
     }
