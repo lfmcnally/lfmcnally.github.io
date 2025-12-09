@@ -153,11 +153,11 @@
     const OFFICES = {
         none: { name: 'Private Citizen', minAge: 0, order: 0 },
         military: { name: 'Military Tribune', minAge: 17, order: 1 },
-        quaestor: { name: 'Quaestor', minAge: 30, order: 2, slots: 20, requires: { dignitas: 30, auctoritas: 20 } },
-        aedile: { name: 'Aedile', minAge: 36, order: 3, slots: 4, requires: { dignitas: 45, auctoritas: 35, pecunia: 40 } },
-        praetor: { name: 'Praetor', minAge: 39, order: 4, slots: 8, requires: { dignitas: 55, auctoritas: 45, military: 40 } },
-        consul: { name: 'Consul', minAge: 42, order: 5, slots: 2, requires: { dignitas: 70, auctoritas: 60, military: 50 } },
-        censor: { name: 'Censor', minAge: 44, order: 6, requiresConsul: true, slots: 2, requires: { dignitas: 80, auctoritas: 70 } }
+        quaestor: { name: 'Quaestor', minAge: 30, order: 2, slots: 20, requires: { dignitas: 30, auctoritas: 25 } },
+        aedile: { name: 'Aedile', minAge: 36, order: 3, slots: 4, requires: { dignitas: 40, auctoritas: 35, pecunia: 30 } },
+        praetor: { name: 'Praetor', minAge: 39, order: 4, slots: 8, requires: { dignitas: 50, auctoritas: 45, military: 35 } },
+        consul: { name: 'Consul', minAge: 42, order: 5, slots: 2, requires: { dignitas: 60, auctoritas: 55, military: 45 } },
+        censor: { name: 'Censor', minAge: 44, order: 6, requiresConsul: true, slots: 2, requires: { dignitas: 70, auctoritas: 60 } }
     };
 
     const MAX_ACTIONS_PER_YEAR = 3;
@@ -524,6 +524,39 @@
         return reqs.join(' | ');
     }
 
+    function getOfficeBlockers(office) {
+        const o = OFFICES[office];
+        if (!o) return 'Unknown office';
+        let blockers = [];
+
+        // Age check
+        if (game.age < o.minAge) {
+            blockers.push(`Too young: age ${game.age}/${o.minAge} (wait ${o.minAge - game.age} years)`);
+        }
+
+        // Previous office check
+        const prevOffice = Object.entries(OFFICES).find(([k, v]) => v.order === o.order - 1);
+        if (prevOffice && !game.officesHeld.includes(prevOffice[0]) && office !== 'military') {
+            blockers.push(`Must hold ${OFFICES[prevOffice[0]].name} first`);
+        }
+
+        // Consul requirement for Censor
+        if (o.requiresConsul && !game.officesHeld.includes('consul')) {
+            blockers.push('Must have been Consul first');
+        }
+
+        // Stat requirements
+        if (o.requires) {
+            for (let stat in o.requires) {
+                if (game.stats[stat] < o.requires[stat]) {
+                    blockers.push(`${stat}: ${Math.round(game.stats[stat])}/${o.requires[stat]}`);
+                }
+            }
+        }
+
+        return blockers.length > 0 ? blockers.join('<br>') : 'Requirements met!';
+    }
+
     function advanceRival() {
         if (!game.rival) return;
         // Rival advances their military if still serving
@@ -731,6 +764,14 @@
                     const reqs = getOfficeRequirementsHtml(id);
                     return `<button class="choice-btn" onclick="startElection('${id}')" ${outOfActions || actionsLeft < 2 ? 'disabled' : ''}><strong>${o.name}</strong><span class="choice-effect">${reqs}</span></button>`;
                 }).join('')}</div></div>`;
+            } else {
+                // Show why you can't run for the next office
+                const nextOffice = getNextOffice();
+                const nextO = OFFICES[nextOffice];
+                if (nextO && nextOffice !== 'military') {
+                    const blockers = getOfficeBlockers(nextOffice);
+                    actionsHtml += `<div class="event-card" style="border-color:var(--ink-light);opacity:0.8;"><div class="event-type">🚫 Cannot Stand for Election</div><div class="event-title">Next: ${nextO.name}</div><div class="event-desc" style="color:var(--danger);">${blockers}</div></div>`;
+                }
             }
             if (game.currentOffice !== 'none' && game.currentOffice !== 'military') {
                 actionsHtml += `<div class="event-card"><div class="event-type">Official Duties (1 action)</div><div class="event-title">Serve as ${OFFICES[game.currentOffice].name}</div><button class="btn-primary" onclick="performDuties()" ${outOfActions ? 'disabled' : ''}>Perform Duties</button></div>`;
