@@ -61,15 +61,20 @@ async function signUp(email, password, fullName, role) {
 // ============================================
 // Signs in with email and password
 async function signIn(email, password) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password
-    });
-    
-    if (error) {
-        return { success: false, error: error.message };
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) {
+            return { success: false, error: error.message };
+        }
+        return { success: true, data: data };
+    } catch (err) {
+        console.error('signIn error:', err);
+        return { success: false, error: 'Connection error. Please try again.' };
     }
-    return { success: true, data: data };
 }
 
 // ============================================

@@ -204,35 +204,43 @@
         // Handle the login form submission
         form.addEventListener('submit', async function(e) {
             e.preventDefault(); // Stop the form from refreshing the page
-            
+
             // Get the values from the form
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
+
             // Disable the button while we're logging in
             submitBtn.disabled = true;
             submitBtn.textContent = 'Logging in...';
-            
-            // Try to log in
-            const result = await signIn(email, password);
-            
-            if (result.success) {
-                showMessage('Login successful! Redirecting...', 'success');
-                
-                // Get user profile to check if teacher or student
-                const profile = await getUserProfile();
-                
-                // Wait a moment, then redirect to appropriate dashboard
-                setTimeout(function() {
-                    if (profile && profile.role === 'teacher') {
-                        window.location.href = '/dashboard/teacher.html';
-                    } else {
-                        window.location.href = '/dashboard/student-hub.html';
-                    }
-                }, 1000);
-            } else {
-                // Show the error message
-                showMessage(result.error, 'error');
+
+            try {
+                // Try to log in
+                const result = await signIn(email, password);
+
+                if (result.success) {
+                    showMessage('Login successful! Redirecting...', 'success');
+
+                    // Get user profile to check if teacher or student
+                    const profile = await getUserProfile();
+
+                    // Wait a moment, then redirect to appropriate dashboard
+                    setTimeout(function() {
+                        if (profile && profile.role === 'teacher') {
+                            window.location.href = '/dashboard/teacher.html';
+                        } else {
+                            window.location.href = '/dashboard/student-hub.html';
+                        }
+                    }, 1000);
+                } else {
+                    // Show the error message
+                    showMessage(result.error || 'Login failed. Please try again.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Log in';
+                }
+            } catch (err) {
+                // Handle any unexpected errors (network issues, Supabase SDK errors, etc.)
+                console.error('Login error:', err);
+                showMessage('Unable to connect. Please check your internet connection and try again.', 'error');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Log in';
             }
