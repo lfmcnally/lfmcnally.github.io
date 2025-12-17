@@ -7,10 +7,12 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Create Supabase client as a global variable
 var supabase = null;
 try {
-    if (window.supabase && window.supabase.createClient) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Check for different ways Supabase might be exposed
+    var sbLib = window.supabase || window.Supabase;
+    if (sbLib && sbLib.createClient) {
+        supabase = sbLib.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     } else {
-        console.error('Supabase library not loaded from CDN');
+        console.error('Supabase library not found. window.supabase:', typeof window.supabase);
     }
 } catch (e) {
     console.error('Failed to create Supabase client:', e);

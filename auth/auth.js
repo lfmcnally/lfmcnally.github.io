@@ -63,9 +63,9 @@ async function signUp(email, password, fullName, role) {
 async function signIn(email, password) {
     try {
         // Check if supabase client is available
-        if (typeof supabase === 'undefined' || !supabase.auth) {
-            console.error('Supabase client not initialized');
-            return { success: false, error: 'Authentication service unavailable. Please refresh the page.' };
+        if (!supabase || !supabase.auth) {
+            console.error('Supabase client not initialized. supabase =', supabase);
+            return { success: false, error: 'Authentication service unavailable. The page may not have loaded correctly - please refresh and try again.' };
         }
 
         const { data, error } = await supabase.auth.signInWithPassword({
