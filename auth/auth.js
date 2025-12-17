@@ -62,18 +62,27 @@ async function signUp(email, password, fullName, role) {
 // Signs in with email and password
 async function signIn(email, password) {
     try {
+        // Check if supabase client is available
+        if (typeof supabase === 'undefined' || !supabase.auth) {
+            console.error('Supabase client not initialized');
+            return { success: false, error: 'Authentication service unavailable. Please refresh the page.' };
+        }
+
         const { data, error } = await supabase.auth.signInWithPassword({
             email: email,
             password: password
         });
 
         if (error) {
+            console.error('Supabase auth error:', error);
             return { success: false, error: error.message };
         }
         return { success: true, data: data };
     } catch (err) {
-        console.error('signIn error:', err);
-        return { success: false, error: 'Connection error. Please try again.' };
+        console.error('signIn exception:', err.name, err.message, err);
+        // Show detailed error for debugging
+        const errorDetail = err.message || err.toString() || 'Unknown error';
+        return { success: false, error: 'Login failed: ' + errorDetail };
     }
 }
 
