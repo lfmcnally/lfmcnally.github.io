@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>28-Week Transformation Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../auth/config.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -896,14 +897,17 @@
 
             <div class="error-message" id="authError" style="display: none;"></div>
 
-            <!-- Simple Password Form -->
-            <form id="loginForm">
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="accessPassword" required placeholder="••••••••" autocomplete="off">
-                </div>
-                <button type="submit" class="btn btn-primary">Enter</button>
-            </form>
+            <!-- Loading state while checking auth -->
+            <div id="authLoading" style="text-align: center; padding: 2rem 0;">
+                <div class="spinner" style="margin: 0 auto 1rem;"></div>
+                <p style="color: var(--text-secondary);">Checking authentication...</p>
+            </div>
+
+            <!-- Unauthorized message (shown if wrong user) -->
+            <div id="authUnauthorized" style="display: none; text-align: center;">
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">This tracker is private. Please log in with an authorized account.</p>
+                <a href="../auth/login.html" class="btn btn-primary" style="display: inline-block; text-decoration: none;">Go to Login</a>
+            </div>
         </div>
     </div>
 
@@ -921,7 +925,8 @@
                     <button class="nav-btn" data-page="guide">Guide</button>
                 </nav>
                 <div class="header-user">
-                    <button class="logout-btn" id="logoutBtn">Lock</button>
+                    <span class="user-email" id="userEmail"></span>
+                    <button class="logout-btn" id="logoutBtn">Sign Out</button>
                 </div>
             </div>
         </header>
@@ -1374,16 +1379,9 @@
         // ============================================
         // CONFIGURATION
         // ============================================
-        // Replace with your Classicalia Supabase credentials
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-        
-        // Simple password protection (change this!)
-        const ACCESS_PASSWORD = 'transform2026';
-        
-        // Your unique user ID for data storage (just a fixed string since it's only you)
-        const USER_ID = 'lawrence-fitness-tracker';
-        
+        // Allowed user email (only this user can access the tracker)
+        const ALLOWED_EMAIL = 'lawrencefmcnally@gmail.com';
+
         // Starting weight for progress calculations
         const START_WEIGHT = 75;
 
@@ -1391,87 +1389,75 @@
         const PROGRAMME_START = new Date('2026-01-05'); // First Monday of January
         const PROGRAMME_END = new Date('2026-07-02');   // Target: Thursday 2nd July
 
-        // Initialize Supabase client
-        let supabase;
-        let isAuthenticated = false;
-
-        // Check if Supabase is configured
-        const isSupabaseConfigured = () => {
-            return SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY';
-        };
+        // Current authenticated user
+        let currentUser = null;
 
         // Initialize app
-        document.addEventListener('DOMContentLoaded', () => {
-            if (isSupabaseConfigured()) {
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            }
-            
-            // Check if already authenticated this session
-            if (sessionStorage.getItem('fitness_authenticated') === 'true') {
-                showApp();
-                loadUserData();
-            }
-
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check authentication status
+            await checkAuth();
             initEventListeners();
             updateDashboardStats();
         });
 
         // ============================================
-        // SIMPLE PASSWORD AUTH
+        // SUPABASE AUTHENTICATION
         // ============================================
-        function handleLogin() {
-            const password = document.getElementById('accessPassword').value;
-            
-            if (password === ACCESS_PASSWORD) {
-                sessionStorage.setItem('fitness_authenticated', 'true');
-                isAuthenticated = true;
+        async function checkAuth() {
+            try {
+                const { data: { user }, error } = await supabase.auth.getUser();
+
+                if (error || !user) {
+                    // Not logged in - redirect to login
+                    window.location.href = '../auth/login.html';
+                    return;
+                }
+
+                // Check if user email matches allowed email
+                if (user.email !== ALLOWED_EMAIL) {
+                    showUnauthorized();
+                    return;
+                }
+
+                // User is authorized
+                currentUser = user;
                 showApp();
                 loadUserData();
-                hideError();
-            } else {
-                showError('Incorrect password');
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                window.location.href = '../auth/login.html';
             }
+        }
+
+        function showUnauthorized() {
+            document.getElementById('authLoading').style.display = 'none';
+            document.getElementById('authUnauthorized').style.display = 'block';
         }
 
         function showApp() {
             document.getElementById('authContainer').classList.add('hidden');
             document.getElementById('appContainer').classList.add('active');
-            isAuthenticated = true;
+            // Display user email in header
+            if (currentUser) {
+                document.getElementById('userEmail').textContent = currentUser.email;
+            }
         }
 
-        function showAuth() {
-            document.getElementById('authContainer').classList.remove('hidden');
-            document.getElementById('appContainer').classList.remove('active');
-            isAuthenticated = false;
-        }
-
-        function logout() {
-            sessionStorage.removeItem('fitness_authenticated');
-            isAuthenticated = false;
-            showAuth();
-        }
-
-        function showError(message) {
-            const errorEl = document.getElementById('authError');
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-        }
-
-        function hideError() {
-            document.getElementById('authError').style.display = 'none';
+        async function logout() {
+            try {
+                await supabase.auth.signOut();
+                window.location.href = '../auth/login.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.href = '../auth/login.html';
+            }
         }
 
         // ============================================
         // EVENT LISTENERS
         // ============================================
         function initEventListeners() {
-            // Login form
-            document.getElementById('loginForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                handleLogin();
-            });
-
-            // Logout (lock)
+            // Logout
             document.getElementById('logoutBtn').addEventListener('click', logout);
 
             // Navigation
@@ -1532,14 +1518,14 @@
         // DATA MANAGEMENT
         // ============================================
         async function loadUserData() {
-            if (!supabase) return;
+            if (!currentUser) return;
 
             try {
                 // Load progress entries
                 const { data: progressData, error: progressError } = await supabase
                     .from('fitness_progress')
                     .select('*')
-                    .eq('user_id', USER_ID)
+                    .eq('user_id', currentUser.id)
                     .order('created_at', { ascending: false });
 
                 if (progressError) {
@@ -1553,7 +1539,7 @@
                 const { data: workoutData, error: workoutError } = await supabase
                     .from('fitness_workouts')
                     .select('*')
-                    .eq('user_id', USER_ID)
+                    .eq('user_id', currentUser.id)
                     .gte('created_at', getStartOfWeek().toISOString());
 
                 if (workoutError) {
@@ -1567,37 +1553,32 @@
         }
 
         async function logWorkout() {
+            if (!currentUser) return;
+
             const type = document.getElementById('workoutType').value;
             const duration = document.getElementById('workoutDuration').value;
             const notes = document.getElementById('workoutNotes').value;
 
             const workout = {
-                user_id: USER_ID,
+                user_id: currentUser.id,
                 type,
                 duration: parseInt(duration) || null,
                 notes,
                 created_at: new Date().toISOString()
             };
 
-            if (supabase) {
-                try {
-                    const { error } = await supabase
-                        .from('fitness_workouts')
-                        .insert(workout);
+            try {
+                const { error } = await supabase
+                    .from('fitness_workouts')
+                    .insert(workout);
 
-                    if (error) throw error;
-                    
-                    loadUserData();
-                    alert('Workout logged! 💪');
-                } catch (error) {
-                    console.error('Error logging workout:', error);
-                    alert('Error saving workout: ' + error.message);
-                }
-            } else {
-                // Demo mode
-                const count = parseInt(document.getElementById('weeklyWorkouts').textContent);
-                document.getElementById('weeklyWorkouts').textContent = count + 1;
-                alert('Workout logged! 💪 (Demo mode - configure Supabase to save data)');
+                if (error) throw error;
+
+                loadUserData();
+                alert('Workout logged! 💪');
+            } catch (error) {
+                console.error('Error logging workout:', error);
+                alert('Error saving workout: ' + error.message);
             }
 
             // Clear form
@@ -1631,30 +1612,24 @@
         }
 
         async function saveProgressEntry(entry) {
-            if (supabase) {
-                try {
-                    const { error } = await supabase
-                        .from('fitness_progress')
-                        .insert({
-                            ...entry,
-                            user_id: USER_ID,
-                            created_at: new Date().toISOString()
-                        });
+            if (!currentUser) return;
 
-                    if (error) throw error;
+            try {
+                const { error } = await supabase
+                    .from('fitness_progress')
+                    .insert({
+                        ...entry,
+                        user_id: currentUser.id,
+                        created_at: new Date().toISOString()
+                    });
 
-                    loadUserData();
-                    alert('Progress saved! 📊');
-                } catch (error) {
-                    console.error('Error saving progress:', error);
-                    alert('Error saving progress: ' + error.message);
-                }
-            } else {
-                // Demo mode
-                if (entry.weight) {
-                    document.getElementById('currentWeight').textContent = entry.weight.toFixed(1);
-                }
-                alert('Progress saved! 📊 (Demo mode - configure Supabase to save data)');
+                if (error) throw error;
+
+                loadUserData();
+                alert('Progress saved! 📊');
+            } catch (error) {
+                console.error('Error saving progress:', error);
+                alert('Error saving progress: ' + error.message);
             }
         }
 
