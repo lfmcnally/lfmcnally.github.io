@@ -900,6 +900,10 @@
     </div>
 
     <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/auth/config.js"></script>
+    <script src="/shared/xp-system.js"></script>
+    <script src="/shared/task-tracker.js"></script>
     <script src="plr-questions-data.js"></script>
     <script>
         // Quiz state
@@ -996,21 +1000,27 @@
         }
 
         // Start practice
-        function startPractice() {
+        async function startPractice() {
             const topicQuestions = getTopicQuestions(selectedTopic);
             currentQuestions = topicQuestions.slice(fromIndex, toIndex + 1);
             currentIndex = 0;
             score = 0;
             answered = 0;
             wrongQueue = [];
-            
+
+            // Start tracking for classical civilisation
+            if (typeof taskTracker !== 'undefined') {
+                taskTracker.setLanguage('classics');
+                await taskTracker.start();
+            }
+
             // Show quiz area, hide setup
             document.getElementById('setupPanel').style.display = 'none';
             document.getElementById('quizArea').classList.add('active');
-            
+
             // Update total questions
             document.getElementById('total-questions').textContent = currentQuestions.length;
-            
+
             // Show first question
             showQuestion();
         }
@@ -1042,14 +1052,19 @@
             const userAnswer = document.getElementById('answer-input').value.trim().toLowerCase();
             const correctAnswer = currentQuestions[currentIndex].answer.toLowerCase();
             const feedback = document.getElementById('feedback');
-            
+
+            // Record activity for time tracking
+            if (typeof taskTracker !== 'undefined') {
+                taskTracker.recordActivity();
+            }
+
             if (!userAnswer) {
                 feedback.textContent = 'Please enter an answer!';
                 feedback.className = 'feedback feedback-incorrect';
                 feedback.classList.remove('hidden');
                 return;
             }
-            
+
             answered++;
             
             // Check if answer is correct (flexible matching)
@@ -1158,10 +1173,10 @@
         }
 
         // Show completion message
-        function showCompletion() {
+        async function showCompletion() {
             const percentage = Math.round((score / answered) * 100);
             let message = '';
-            
+
             if (percentage >= 90) {
                 message = `Excellent! You scored ${score}/${answered} (${percentage}%). Outstanding knowledge!`;
             } else if (percentage >= 70) {
@@ -1171,11 +1186,16 @@
             } else {
                 message = `You scored ${score}/${answered} (${percentage}%). More revision needed - try again!`;
             }
-            
+
+            // Complete tracking session
+            if (typeof taskTracker !== 'undefined' && taskTracker.isTracking) {
+                await taskTracker.complete(percentage, answered, score);
+            }
+
             document.getElementById('final-message').textContent = message;
             document.getElementById('completion-message').classList.remove('hidden');
             document.getElementById('next-btn').classList.add('hidden');
-            
+
             // Update progress to 100%
             document.getElementById('progress-fill').style.width = '100%';
         }
