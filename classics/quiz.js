@@ -273,6 +273,12 @@ async function startQuiz(subtopicId) {
         await getAttemptNumber();
     }
 
+    // Start time tracking for classical civilisation
+    if (typeof taskTracker !== 'undefined') {
+        taskTracker.setLanguage('classics');
+        await taskTracker.start();
+    }
+
     // Initialize quiz
     questions = [...subtopicData.questions];
     shuffleArray(questions);
@@ -382,6 +388,11 @@ function selectOption(button, index) {
 function checkAnswer() {
     if (selectedAnswer === null) return;
 
+    // Record activity for time tracking
+    if (typeof taskTracker !== 'undefined') {
+        taskTracker.recordActivity();
+    }
+
     showingFeedback = true;
     answered++;
 
@@ -450,6 +461,11 @@ async function showCompletion() {
     completionScreen.style.display = 'block';
 
     const percentage = Math.round((score / questions.length) * 100);
+
+    // Complete time tracking session
+    if (typeof taskTracker !== 'undefined' && taskTracker.isTracking) {
+        await taskTracker.complete(percentage, questions.length, score);
+    }
 
     let icon, title, message;
     if (percentage >= 90) {
