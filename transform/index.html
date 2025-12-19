@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>28-Week Transformation Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-card-hover: #1a1a25;
+            --accent-primary: #22c55e;
+            --accent-secondary: #3b82f6;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #1e293b;
+            --gradient-green: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            --gradient-blue: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            --shadow-glow: 0 0 40px rgba(34, 197, 94, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Auth Screen */
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(34, 197, 94, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+                var(--bg-dark);
+        }
+
+        .auth-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-logo h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: var(--gradient-green);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-logo p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--gradient-green);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            margin-top: 1rem;
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        .auth-toggle {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .auth-toggle a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-toggle a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--accent-danger);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        /* Main App */
+        .app-container {
+            display: none;
+            min-height: 100vh;
+        }
+
+        .app-container.active {
+            display: block;
+        }
+
+        .auth-container.hidden {
+            display: none;
+        }
+
+        /* Header */
+        .app-header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-brand h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: var(--gradient-green);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-btn {
+            padding: 0.6rem 1.2rem;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        .nav-btn.active {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .header-user {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-email {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--accent-danger);
+            color: var(--accent-danger);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Dashboard */
+        .dashboard-header {
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-header h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-header p {
+            color: var(--text-secondary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-value.green { color: var(--accent-primary); }
+        .stat-value.blue { color: var(--accent-secondary); }
+        .stat-value.orange { color: var(--accent-warning); }
+
+        .stat-change {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .stat-change.positive { color: var(--accent-primary); }
+        .stat-change.negative { color: var(--accent-danger); }
+
+        /* Progress Ring */
+        .progress-section {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .progress-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .progress-ring-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .progress-ring {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 1.5rem;
+            position: relative;
+        }
+
+        .progress-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-bg {
+            fill: none;
+            stroke: var(--border-color);
+            stroke-width: 12;
+        }
+
+        .progress-ring-fill {
+            fill: none;
+            stroke: url(#progressGradient);
+            stroke-width: 12;
+            stroke-linecap: round;
+            stroke-dasharray: 565.48;
+            stroke-dashoffset: 565.48;
+            transition: stroke-dashoffset 1s ease;
+        }
+
+        .progress-ring-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .progress-percentage {
+            font-size: 2.5rem;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-primary);
+        }
+
+        .progress-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .timeline-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .timeline-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .phase-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .phase-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-dark);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .phase-item.current {
+            border-color: var(--accent-primary);
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        .phase-item.completed {
+            opacity: 0.6;
+        }
+
+        .phase-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .phase-item.current .phase-number {
+            background: var(--gradient-green);
+        }
+
+        .phase-item.completed .phase-number {
+            background: var(--accent-primary);
+        }
+
+        .phase-info {
+            flex: 1;
+        }
+
+        .phase-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .phase-dates {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Workouts Page */
+        .workout-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .workout-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .workout-header {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .workout-header h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .workout-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .exercise-list {
+            padding: 1rem;
+        }
+
+        .exercise-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem;
+            border-radius: 10px;
+            transition: all 0.2s;
+        }
+
+        .exercise-item:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .exercise-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .exercise-check {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .exercise-check.checked {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .exercise-check.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .exercise-name {
+            font-weight: 500;
+        }
+
+        .exercise-sets {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* Log Workout Section */
+        .log-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .log-section h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .log-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .log-form .form-group {
+            margin-bottom: 0;
+        }
+
+        .log-form select {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .log-form select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .log-form .btn {
+            align-self: end;
+        }
+
+        /* Progress Page */
+        .progress-form {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .progress-form h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .history-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .history-section h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .history-table th,
+        .history-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .history-table th {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .history-table td {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .history-table tr:hover td {
+            background: var(--bg-card-hover);
+        }
+
+        /* Guide Page */
+        .guide-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .guide-nav-btn {
+            padding: 0.75rem 1.25rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .guide-nav-btn:hover, .guide-nav-btn.active {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .guide-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 2rem;
+        }
+
+        .guide-section {
+            display: none;
+        }
+
+        .guide-section.active {
+            display: block;
+        }
+
+        .guide-section h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--accent-primary);
+        }
+
+        .guide-section h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .guide-section p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        .guide-section ul, .guide-section ol {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        .guide-section li {
+            margin-bottom: 0.5rem;
+            line-height: 1.7;
+        }
+
+        .guide-section strong {
+            color: var(--text-primary);
+        }
+
+        .highlight-box {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .highlight-box.blue {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        /* Nutrition table */
+        .nutrition-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        .nutrition-table th,
+        .nutrition-table td {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            text-align: left;
+        }
+
+        .nutrition-table th {
+            background: var(--bg-dark);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .nutrition-table td {
+            color: var(--text-secondary);
+        }
+
+        /* Config notice */
+        .config-notice {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .config-notice h4 {
+            color: var(--accent-warning);
+            margin-bottom: 0.5rem;
+        }
+
+        .config-notice code {
+            background: var(--bg-dark);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+            .header-nav {
+                order: 3;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .workout-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Container -->
+    <div class="auth-container" id="authContainer">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <h1>28-Week Transformation</h1>
+                <p>Track your journey to a fitter you</p>
+            </div>
+
+            <div class="error-message" id="authError" style="display: none;"></div>
+
+            <!-- Simple Password Form -->
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="accessPassword" required placeholder="••••••••" autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-primary">Enter</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="app-container" id="appContainer">
+        <header class="app-header">
+            <div class="header-content">
+                <div class="header-brand">
+                    <h1>28-Week Transformation</h1>
+                </div>
+                <nav class="header-nav">
+                    <button class="nav-btn active" data-page="dashboard">Dashboard</button>
+                    <button class="nav-btn" data-page="workouts">Workouts</button>
+                    <button class="nav-btn" data-page="progress">Progress</button>
+                    <button class="nav-btn" data-page="guide">Guide</button>
+                </nav>
+                <div class="header-user">
+                    <button class="logout-btn" id="logoutBtn">Lock</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div class="page active" id="dashboardPage">
+                <div class="dashboard-header">
+                    <h2>Welcome back! 💪</h2>
+                    <p>Here's your transformation progress</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Current Week</div>
+                        <div class="stat-value green" id="currentWeek">1</div>
+                        <div class="stat-change">of 28 weeks</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Current Weight</div>
+                        <div class="stat-value blue" id="currentWeight">75.0</div>
+                        <div class="stat-change" id="weightChange">kg</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Workouts This Week</div>
+                        <div class="stat-value orange" id="weeklyWorkouts">0</div>
+                        <div class="stat-change">Target: 3-4</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Days Until Goal</div>
+                        <div class="stat-value green" id="daysRemaining">196</div>
+                        <div class="stat-change">2nd July 2026</div>
+                    </div>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-ring-card">
+                        <div class="progress-ring">
+                            <svg width="200" height="200">
+                                <defs>
+                                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" style="stop-color:#22c55e"/>
+                                        <stop offset="100%" style="stop-color:#3b82f6"/>
+                                    </linearGradient>
+                                </defs>
+                                <circle class="progress-ring-bg" cx="100" cy="100" r="90"/>
+                                <circle class="progress-ring-fill" id="progressRing" cx="100" cy="100" r="90"/>
+                            </svg>
+                            <div class="progress-ring-text">
+                                <div class="progress-percentage" id="progressPercent">0%</div>
+                                <div class="progress-label">Complete</div>
+                            </div>
+                        </div>
+                        <p style="color: var(--text-secondary);">Overall Journey Progress</p>
+                    </div>
+
+                    <div class="timeline-card">
+                        <h3>Training Phases</h3>
+                        <div class="phase-list">
+                            <div class="phase-item" id="phase1">
+                                <div class="phase-number">1</div>
+                                <div class="phase-info">
+                                    <div class="phase-name">Foundation</div>
+                                    <div class="phase-dates">Weeks 1–8 • Jan–Feb</div>
+                                </div>
+                            </div>
+                            <div class="phase-item" id="phase2">
+                                <div class="phase-number">2</div>
+                                <div class="phase-info">
+                                    <div class="phase-name">Building Momentum</div>
+                                    <div class="phase-dates">Weeks 9–16 • Mar–Apr</div>
+                                </div>
+                            </div>
+                            <div class="phase-item" id="phase3">
+                                <div class="phase-number">3</div>
+                                <div class="phase-info">
+                                    <div class="phase-name">Transformation</div>
+                                    <div class="phase-dates">Weeks 17–24 • May–Jun</div>
+                                </div>
+                            </div>
+                            <div class="phase-item" id="phase4">
+                                <div class="phase-number">4</div>
+                                <div class="phase-info">
+                                    <div class="phase-name">Final Push</div>
+                                    <div class="phase-dates">Weeks 25–28 • Jun–Jul</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workouts Page -->
+            <div class="page" id="workoutsPage">
+                <div class="dashboard-header">
+                    <h2>Training Programme</h2>
+                    <p>Alternate between Workout A and B on non-consecutive days</p>
+                </div>
+
+                <div class="workout-grid">
+                    <div class="workout-card">
+                        <div class="workout-header">
+                            <h3>Workout A — Push Focus</h3>
+                            <p>Monday / Friday</p>
+                        </div>
+                        <div class="exercise-list">
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <div class="exercise-check" data-exercise="goblet-squat"></div>
+                                    <div class="exercise-name">Goblet Squat</div>
+                                </div>
+                                <div class="exercise-sets">3 × 10–12</div>
+                            </div>
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <div class="exercise-check" data-exercise="db-bench"></div>
+                                    <div class="exercise-name">Dumbbell Bench Press</div>
+                                </div>
+                                <div class="exercise-sets">3 × 8–12</div>
+                            </div>
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <div class="exercise-check" data-exercise="rdl"></div>
+                                    <div class="exercise-name">Dumbbell Romanian Deadlift</div>
+                                </div>
+                                <div class="exercise-sets">3 × 10–12</div>
+                            </div>
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <div class="exercise-check" data-exercise="ohp"></div>
+                                    <div class="exercise-name">Overhead Press</div>
+                                </div>
+                                <div class="exercise-sets">3 × 8–10</div>
+                            </div>
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <div class="exercise-check" data-exercise="db-row"></div>
+                                    <div class="exercise-name">Dumbbell Row (single-arm)</div>
+                                </div>
+                                <div class="exercise-sets">3 × 10–12 each</div>
+                            </div>
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <div class="exercise-check" data-exercise="plank"></div>
+                                    <div class="exercise-name">Plank</div>
+                                </div>
+                                <div class="exercise-sets">3 × 30–60s</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="workout-card">
+                        <div class="workout-header">
+                            <h3>Workout B — Pull Focus</h3>
+                            <p>Wednesday</p>
+                        </div>
+                        <div class="exercise-list">
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <div class="exercise-check" data-exercise="lunge"></div>
+                                    <div class="exercise-name">Dumbbell Lunge</div>
+                                </div>
+                                <div class="exercise-sets">3 × 10 each</div>
+                            </div>
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <div class="exercise-check" data-exercise="pullup"></div>
+                                    <div class="exercise-name">Pull-ups / Assisted</div>
+                                </div>
+                                <div class="exercise-sets">3 × max</div>
+                            </div>
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <div class="exercise-check" data-exercise="hip-thrust"></div>
+                                    <div class="exercise-name">Dumbbell Hip Thrust</div>
+                                </div>
+                                <div class="exercise-sets">3 × 12–15</div>
+                            </div>
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <div class="exercise-check" data-exercise="incline-press"></div>
+                                    <div class="exercise-name">Incline Dumbbell Press</div>
+                                </div>
+                                <div class="exercise-sets">3 × 10–12</div>
+                            </div>
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <div class="exercise-check" data-exercise="face-pull"></div>
+                                    <div class="exercise-name">Face Pulls (band)</div>
+                                </div>
+                                <div class="exercise-sets">3 × 15–20</div>
+                            </div>
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <div class="exercise-check" data-exercise="dead-bug"></div>
+                                    <div class="exercise-name">Dead Bug</div>
+                                </div>
+                                <div class="exercise-sets">3 × 10 each</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="log-section">
+                    <h3>Log Today's Workout</h3>
+                    <div class="log-form">
+                        <div class="form-group">
+                            <label>Workout Type</label>
+                            <select id="workoutType">
+                                <option value="A">Workout A — Push</option>
+                                <option value="B">Workout B — Pull</option>
+                                <option value="C">Day 4 — Conditioning</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Duration (mins)</label>
+                            <input type="number" id="workoutDuration" placeholder="45">
+                        </div>
+                        <div class="form-group">
+                            <label>Notes (optional)</label>
+                            <input type="text" id="workoutNotes" placeholder="How did it feel?">
+                        </div>
+                        <button class="btn btn-primary" id="logWorkoutBtn">Log Workout</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Page -->
+            <div class="page" id="progressPage">
+                <div class="dashboard-header">
+                    <h2>Track Your Progress</h2>
+                    <p>Log your metrics weekly for best results</p>
+                </div>
+
+                <div class="progress-form">
+                    <h3>Log Today's Metrics</h3>
+                    <div class="metrics-grid">
+                        <div class="form-group">
+                            <label>Weight (kg)</label>
+                            <input type="number" id="logWeight" step="0.1" placeholder="74.5">
+                        </div>
+                        <div class="form-group">
+                            <label>Waist (cm)</label>
+                            <input type="number" id="logWaist" step="0.1" placeholder="88">
+                        </div>
+                        <div class="form-group">
+                            <label>Protein (g)</label>
+                            <input type="number" id="logProtein" placeholder="140">
+                        </div>
+                        <div class="form-group">
+                            <label>Calories</label>
+                            <input type="number" id="logCalories" placeholder="1900">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <input type="text" id="logProgressNotes" placeholder="How are you feeling? Energy levels?">
+                    </div>
+                    <button class="btn btn-primary" id="logProgressBtn" style="max-width: 200px;">Save Progress</button>
+                </div>
+
+                <div class="history-section">
+                    <h3>Progress History</h3>
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Weight</th>
+                                <th>Waist</th>
+                                <th>Protein</th>
+                                <th>Calories</th>
+                            </tr>
+                        </thead>
+                        <tbody id="progressHistory">
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted);">No progress logged yet</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Guide Page -->
+            <div class="page" id="guidePage">
+                <div class="dashboard-header">
+                    <h2>Training Guide</h2>
+                    <p>Everything you need to know for your 28-week transformation</p>
+                </div>
+
+                <div class="guide-nav">
+                    <button class="guide-nav-btn active" data-section="principles">Core Principles</button>
+                    <button class="guide-nav-btn" data-section="nutrition">Nutrition</button>
+                    <button class="guide-nav-btn" data-section="equipment">Equipment</button>
+                    <button class="guide-nav-btn" data-section="progression">Progression</button>
+                    <button class="guide-nav-btn" data-section="faq">FAQ</button>
+                </div>
+
+                <div class="guide-content">
+                    <!-- Core Principles -->
+                    <div class="guide-section active" id="principlesSection">
+                        <h3>The Four Non-Negotiables</h3>
+                        <p>Everything else is detail. These four things will determine 90% of your results:</p>
+                        
+                        <div class="highlight-box">
+                            <ol>
+                                <li><strong>Resistance training 3–4 times per week.</strong> This builds muscle, raises your metabolism, improves insulin sensitivity, and creates the physique you're after. Cardio alone won't get you there.</li>
+                                <li><strong>High protein intake: 120–150g daily.</strong> Protein supports muscle growth and is highly satiating. Most people eat far less than they think.</li>
+                                <li><strong>Moderate caloric deficit: 300–500 calories below maintenance.</strong> Aggressive deficits cause muscle loss and are unsustainable. Your maintenance is roughly 2,200–2,400 calories; aim for 1,800–2,000 to start.</li>
+                                <li><strong>Sleep 7–8 hours consistently.</strong> This is when muscle repair and fat metabolism happen. Poor sleep sabotages everything else.</li>
+                            </ol>
+                        </div>
+
+                        <h4>Your Starting Point</h4>
+                        <p>At 5'9" and 75kg, you're not overweight by BMI standards, but carrying excess body fat around your midsection and face with relatively low muscle mass. This is sometimes called being "skinny fat" and it's actually one of the most responsive body types to proper training and nutrition.</p>
+                        
+                        <h4>What to Expect</h4>
+                        <p>Over 28 weeks, with consistent effort, you can realistically expect to lose 6–10kg of fat while gaining 3–5kg of muscle. This "body recomposition" will dramatically change how you look and feel — your face will lean out, your stomach will flatten, and you'll develop visible muscle definition.</p>
+                    </div>
+
+                    <!-- Nutrition -->
+                    <div class="guide-section" id="nutritionSection">
+                        <h3>Nutrition Targets</h3>
+                        <p>Training provides the stimulus for muscle growth. Nutrition provides the raw materials and determines whether you lose fat or gain it.</p>
+
+                        <table class="nutrition-table">
+                            <tr>
+                                <th>Metric</th>
+                                <th>Daily Target</th>
+                            </tr>
+                            <tr>
+                                <td>Calories</td>
+                                <td>1,800–2,000 kcal</td>
+                            </tr>
+                            <tr>
+                                <td>Protein</td>
+                                <td>120–150g (prioritise this)</td>
+                            </tr>
+                            <tr>
+                                <td>Carbohydrates</td>
+                                <td>150–200g</td>
+                            </tr>
+                            <tr>
+                                <td>Fat</td>
+                                <td>50–70g</td>
+                            </tr>
+                        </table>
+
+                        <div class="highlight-box blue">
+                            <strong>Adjustment Rule:</strong> If you're not losing weight after 2–3 weeks, reduce calories by 100–150. If you're losing more than 0.5–0.75kg per week, you may be losing muscle; eat slightly more.
+                        </div>
+
+                        <h4>High-Protein Foods to Prioritise</h4>
+                        <ul>
+                            <li><strong>Chicken breast:</strong> 31g protein per 100g</li>
+                            <li><strong>Greek yoghurt (0% fat):</strong> 10g protein per 100g</li>
+                            <li><strong>Eggs:</strong> 6g protein each</li>
+                            <li><strong>Cottage cheese:</strong> 11g protein per 100g</li>
+                            <li><strong>Lean beef mince (5% fat):</strong> 21g protein per 100g</li>
+                            <li><strong>Tinned tuna:</strong> 25g protein per 100g</li>
+                            <li><strong>Whey protein powder:</strong> 25–30g per serving</li>
+                            <li><strong>Salmon and white fish:</strong> 20–25g protein per 100g</li>
+                        </ul>
+
+                        <h4>Sample Day (~1,900 kcal, ~140g protein)</h4>
+                        <ul>
+                            <li><strong>Breakfast:</strong> 3 scrambled eggs on 1 slice wholemeal toast</li>
+                            <li><strong>Mid-morning:</strong> 200g Greek yoghurt with berries and 20g almonds</li>
+                            <li><strong>Lunch:</strong> Chicken salad with 150g chicken breast, mixed leaves, small pitta</li>
+                            <li><strong>Afternoon:</strong> Protein shake with 1 banana</li>
+                            <li><strong>Dinner:</strong> 150g salmon with 150g sweet potato and broccoli</li>
+                        </ul>
+                    </div>
+
+                    <!-- Equipment -->
+                    <div class="guide-section" id="equipmentSection">
+                        <h3>Home Gym Equipment</h3>
+                        
+                        <h4>Priority Additions (Budget-Friendly)</h4>
+                        <p>In order of importance for your goals:</p>
+                        <ol>
+                            <li><strong>Adjustable dumbbells (5–25kg range).</strong> Essential. Bowflex SelectTech, PowerBlock, or budget alternatives. £150–300.</li>
+                            <li><strong>Pull-up bar (door-mounted).</strong> £15–30. Unlocks one of the best upper body exercises.</li>
+                            <li><strong>Adjustable bench (flat/incline).</strong> £80–150. Dramatically expands exercise options.</li>
+                            <li><strong>Resistance bands (varying tensions).</strong> £20–40. Excellent for warm-ups and face pulls.</li>
+                            <li><strong>Kettlebell (16kg or 20kg).</strong> £40–60. Brilliant for swings and conditioning.</li>
+                        </ol>
+
+                        <h4>Nice to Have Later</h4>
+                        <ul>
+                            <li>Olympic barbell and weight plates with squat rack</li>
+                            <li>Dip station or dip bars</li>
+                            <li>Ab wheel (cheap and effective)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Progression -->
+                    <div class="guide-section" id="progressionSection">
+                        <h3>Progressive Overload</h3>
+                        <p>Your muscles adapt to the demands you place on them. To keep growing, you need to progressively increase those demands. This is the single most important training principle.</p>
+
+                        <div class="highlight-box">
+                            <strong>The Simple Rule:</strong> When you can complete all prescribed sets at the top of the rep range with good form, increase the weight by 1–2.5kg and work back up.
+                        </div>
+
+                        <h4>Example Progression</h4>
+                        <p>Dumbbell bench press calls for 3 × 8–12 reps:</p>
+                        <ul>
+                            <li>Week 1: 12kg × 8, 8, 7 reps → stay at this weight</li>
+                            <li>Week 2: 12kg × 10, 9, 8 reps → stay at this weight</li>
+                            <li>Week 3: 12kg × 12, 11, 10 reps → stay at this weight</li>
+                            <li>Week 4: 12kg × 12, 12, 12 reps → <strong>increase to 14kg</strong></li>
+                            <li>Week 5: 14kg × 9, 8, 7 reps → work back up</li>
+                        </ul>
+
+                        <h4>Keep a Training Log</h4>
+                        <p>Write down every workout: exercises, weights, sets, and reps. This is essential for tracking progress and knowing when to increase weight. Use this app, a notebook, or apps like Strong or Hevy.</p>
+                    </div>
+
+                    <!-- FAQ -->
+                    <div class="guide-section" id="faqSection">
+                        <h3>Frequently Asked Questions</h3>
+
+                        <h4>"What if I can't do a pull-up?"</h4>
+                        <p>Start with negatives: jump to the top position and lower yourself as slowly as possible. Or use a resistance band looped over the bar for assistance. Most people achieve their first proper pull-up within 4–8 weeks.</p>
+
+                        <h4>"Should I do cardio?"</h4>
+                        <p>Some, but don't overdo it. The treadmill is useful for warming up and occasional 20–30 minute sessions. However, excessive cardio interferes with recovery and muscle building. Prioritise resistance training.</p>
+
+                        <h4>"What about alcohol?"</h4>
+                        <p>Alcohol impairs recovery, disrupts sleep, and provides empty calories. A few pints can easily add 600+ calories. Limit to weekends and factor it into your calorie count.</p>
+
+                        <h4>"How quickly will I see results?"</h4>
+                        <p>You'll feel different within 2 weeks. You'll see changes around weeks 4–6. Others notice around weeks 8–12. The face is often one of the first places people notice change.</p>
+
+                        <h4>"What supplements should I take?"</h4>
+                        <p>Most are unnecessary. Worth considering: (1) Whey protein for convenience, (2) Creatine monohydrate — 5g daily, (3) Vitamin D during British winters. Everything else is largely marketing.</p>
+
+                        <h4>"What if I miss a workout?"</h4>
+                        <p>Just continue with your next scheduled workout — don't double up. Missing one session is fine; missing three weeks is a problem. Build habits that survive bad weeks.</p>
+
+                        <h4>"How do I stay motivated over 28 weeks?"</h4>
+                        <p>Don't rely on motivation — build systems. Schedule workouts in your calendar. Track progress weekly. Find accountability. Remember: discipline beats motivation.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
+        // Replace with your Classicalia Supabase credentials
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        
+        // Simple password protection (change this!)
+        const ACCESS_PASSWORD = 'transform2026';
+        
+        // Your unique user ID for data storage (just a fixed string since it's only you)
+        const USER_ID = 'lawrence-fitness-tracker';
+        
+        // Starting weight for progress calculations
+        const START_WEIGHT = 75;
+
+        // Programme start and end dates
+        const PROGRAMME_START = new Date('2026-01-05'); // First Monday of January
+        const PROGRAMME_END = new Date('2026-07-02');   // Target: Thursday 2nd July
+
+        // Initialize Supabase client
+        let supabase;
+        let isAuthenticated = false;
+
+        // Check if Supabase is configured
+        const isSupabaseConfigured = () => {
+            return SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY';
+        };
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            if (isSupabaseConfigured()) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+            
+            // Check if already authenticated this session
+            if (sessionStorage.getItem('fitness_authenticated') === 'true') {
+                showApp();
+                loadUserData();
+            }
+
+            initEventListeners();
+            updateDashboardStats();
+        });
+
+        // ============================================
+        // SIMPLE PASSWORD AUTH
+        // ============================================
+        function handleLogin() {
+            const password = document.getElementById('accessPassword').value;
+            
+            if (password === ACCESS_PASSWORD) {
+                sessionStorage.setItem('fitness_authenticated', 'true');
+                isAuthenticated = true;
+                showApp();
+                loadUserData();
+                hideError();
+            } else {
+                showError('Incorrect password');
+            }
+        }
+
+        function showApp() {
+            document.getElementById('authContainer').classList.add('hidden');
+            document.getElementById('appContainer').classList.add('active');
+            isAuthenticated = true;
+        }
+
+        function showAuth() {
+            document.getElementById('authContainer').classList.remove('hidden');
+            document.getElementById('appContainer').classList.remove('active');
+            isAuthenticated = false;
+        }
+
+        function logout() {
+            sessionStorage.removeItem('fitness_authenticated');
+            isAuthenticated = false;
+            showAuth();
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('authError');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('authError').style.display = 'none';
+        }
+
+        // ============================================
+        // EVENT LISTENERS
+        // ============================================
+        function initEventListeners() {
+            // Login form
+            document.getElementById('loginForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                handleLogin();
+            });
+
+            // Logout (lock)
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+
+            // Navigation
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    navigateToPage(btn.dataset.page);
+                });
+            });
+
+            // Guide navigation
+            document.querySelectorAll('.guide-nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    navigateToGuideSection(btn.dataset.section);
+                });
+            });
+
+            // Exercise checkboxes
+            document.querySelectorAll('.exercise-check').forEach(check => {
+                check.addEventListener('click', () => {
+                    check.classList.toggle('checked');
+                });
+            });
+
+            // Log workout
+            document.getElementById('logWorkoutBtn').addEventListener('click', logWorkout);
+
+            // Log progress
+            document.getElementById('logProgressBtn').addEventListener('click', logProgress);
+        }
+        // ============================================
+        // NAVIGATION
+        // ============================================
+        function navigateToPage(pageId) {
+            // Update nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.page === pageId);
+            });
+
+            // Update pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.toggle('active', page.id === pageId + 'Page');
+            });
+        }
+
+        function navigateToGuideSection(sectionId) {
+            // Update nav buttons
+            document.querySelectorAll('.guide-nav-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.section === sectionId);
+            });
+
+            // Update sections
+            document.querySelectorAll('.guide-section').forEach(section => {
+                section.classList.toggle('active', section.id === sectionId + 'Section');
+            });
+        }
+
+        // ============================================
+        // DATA MANAGEMENT
+        // ============================================
+        async function loadUserData() {
+            if (!supabase) return;
+
+            try {
+                // Load progress entries
+                const { data: progressData, error: progressError } = await supabase
+                    .from('fitness_progress')
+                    .select('*')
+                    .eq('user_id', USER_ID)
+                    .order('created_at', { ascending: false });
+
+                if (progressError) {
+                    console.error('Error loading progress:', progressError);
+                } else if (progressData) {
+                    updateProgressHistory(progressData);
+                    updateDashboardFromData(progressData);
+                }
+
+                // Load workouts this week
+                const { data: workoutData, error: workoutError } = await supabase
+                    .from('fitness_workouts')
+                    .select('*')
+                    .eq('user_id', USER_ID)
+                    .gte('created_at', getStartOfWeek().toISOString());
+
+                if (workoutError) {
+                    console.error('Error loading workouts:', workoutError);
+                } else if (workoutData) {
+                    document.getElementById('weeklyWorkouts').textContent = workoutData.length;
+                }
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        async function logWorkout() {
+            const type = document.getElementById('workoutType').value;
+            const duration = document.getElementById('workoutDuration').value;
+            const notes = document.getElementById('workoutNotes').value;
+
+            const workout = {
+                user_id: USER_ID,
+                type,
+                duration: parseInt(duration) || null,
+                notes,
+                created_at: new Date().toISOString()
+            };
+
+            if (supabase) {
+                try {
+                    const { error } = await supabase
+                        .from('fitness_workouts')
+                        .insert(workout);
+
+                    if (error) throw error;
+                    
+                    loadUserData();
+                    alert('Workout logged! 💪');
+                } catch (error) {
+                    console.error('Error logging workout:', error);
+                    alert('Error saving workout: ' + error.message);
+                }
+            } else {
+                // Demo mode
+                const count = parseInt(document.getElementById('weeklyWorkouts').textContent);
+                document.getElementById('weeklyWorkouts').textContent = count + 1;
+                alert('Workout logged! 💪 (Demo mode - configure Supabase to save data)');
+            }
+
+            // Clear form
+            document.getElementById('workoutDuration').value = '';
+            document.getElementById('workoutNotes').value = '';
+        }
+
+        async function logProgress() {
+            const weight = document.getElementById('logWeight').value;
+            const waist = document.getElementById('logWaist').value;
+            const protein = document.getElementById('logProtein').value;
+            const calories = document.getElementById('logCalories').value;
+            const notes = document.getElementById('logProgressNotes').value;
+
+            const entry = {
+                weight: parseFloat(weight) || null,
+                waist: parseFloat(waist) || null,
+                protein: parseInt(protein) || null,
+                calories: parseInt(calories) || null,
+                notes
+            };
+
+            await saveProgressEntry(entry);
+
+            // Clear form
+            document.getElementById('logWeight').value = '';
+            document.getElementById('logWaist').value = '';
+            document.getElementById('logProtein').value = '';
+            document.getElementById('logCalories').value = '';
+            document.getElementById('logProgressNotes').value = '';
+        }
+
+        async function saveProgressEntry(entry) {
+            if (supabase) {
+                try {
+                    const { error } = await supabase
+                        .from('fitness_progress')
+                        .insert({
+                            ...entry,
+                            user_id: USER_ID,
+                            created_at: new Date().toISOString()
+                        });
+
+                    if (error) throw error;
+
+                    loadUserData();
+                    alert('Progress saved! 📊');
+                } catch (error) {
+                    console.error('Error saving progress:', error);
+                    alert('Error saving progress: ' + error.message);
+                }
+            } else {
+                // Demo mode
+                if (entry.weight) {
+                    document.getElementById('currentWeight').textContent = entry.weight.toFixed(1);
+                }
+                alert('Progress saved! 📊 (Demo mode - configure Supabase to save data)');
+            }
+        }
+
+        // ============================================
+        // UI UPDATES
+        // ============================================
+        function updateDashboardStats() {
+            const now = new Date();
+            const totalDays = Math.ceil((PROGRAMME_END - PROGRAMME_START) / (1000 * 60 * 60 * 24));
+            const daysElapsed = Math.max(0, Math.ceil((now - PROGRAMME_START) / (1000 * 60 * 60 * 24)));
+            const daysRemaining = Math.max(0, Math.ceil((PROGRAMME_END - now) / (1000 * 60 * 60 * 24)));
+            
+            const currentWeek = Math.min(28, Math.max(1, Math.ceil(daysElapsed / 7)));
+            const progressPercent = Math.min(100, Math.round((daysElapsed / totalDays) * 100));
+
+            document.getElementById('currentWeek').textContent = currentWeek;
+            document.getElementById('daysRemaining').textContent = daysRemaining;
+            document.getElementById('progressPercent').textContent = progressPercent + '%';
+
+            // Update progress ring
+            const circumference = 2 * Math.PI * 90;
+            const offset = circumference - (progressPercent / 100) * circumference;
+            document.getElementById('progressRing').style.strokeDashoffset = offset;
+
+            // Update phase indicators
+            updatePhaseIndicators(currentWeek);
+        }
+
+        function updatePhaseIndicators(week) {
+            const phases = [
+                { id: 'phase1', start: 1, end: 8 },
+                { id: 'phase2', start: 9, end: 16 },
+                { id: 'phase3', start: 17, end: 24 },
+                { id: 'phase4', start: 25, end: 28 }
+            ];
+
+            phases.forEach(phase => {
+                const el = document.getElementById(phase.id);
+                el.classList.remove('current', 'completed');
+
+                if (week >= phase.start && week <= phase.end) {
+                    el.classList.add('current');
+                } else if (week > phase.end) {
+                    el.classList.add('completed');
+                }
+            });
+        }
+
+        function updateProgressHistory(data) {
+            const tbody = document.getElementById('progressHistory');
+            
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No progress logged yet</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.slice(0, 10).map(entry => `
+                <tr>
+                    <td>${new Date(entry.created_at).toLocaleDateString('en-GB')}</td>
+                    <td>${entry.weight ? entry.weight.toFixed(1) + ' kg' : '—'}</td>
+                    <td>${entry.waist ? entry.waist + ' cm' : '—'}</td>
+                    <td>${entry.protein ? entry.protein + 'g' : '—'}</td>
+                    <td>${entry.calories || '—'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function updateDashboardFromData(data) {
+            if (!data || data.length === 0) return;
+
+            const latest = data[0];
+            if (latest.weight) {
+                document.getElementById('currentWeight').textContent = latest.weight.toFixed(1);
+
+                // Calculate change from start
+                const change = latest.weight - START_WEIGHT;
+                const changeEl = document.getElementById('weightChange');
+                
+                if (change !== 0) {
+                    changeEl.textContent = `${change > 0 ? '+' : ''}${change.toFixed(1)} kg from start`;
+                    changeEl.className = 'stat-change ' + (change < 0 ? 'positive' : 'negative');
+                } else {
+                    changeEl.textContent = 'kg';
+                    changeEl.className = 'stat-change';
+                }
+            }
+        }
+
+        function getStartOfWeek() {
+            const now = new Date();
+            const day = now.getDay();
+            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(now.setDate(diff));
+        }
+    </script>
+</body>
+</html>
