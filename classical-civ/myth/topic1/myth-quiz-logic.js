@@ -24,9 +24,9 @@ function selectSubtopic(subtopic) {
 }
 
 // Start quiz function
-function startQuiz(mode) {
+async function startQuiz(mode) {
     currentMode = mode;
-    
+
     // Filter questions by selected subtopics if any are selected
     let questionsToUse = [...questionBank[currentMode]];
     if (selectedSubtopics.length > 0) {
@@ -34,20 +34,26 @@ function startQuiz(mode) {
             return selectedSubtopics.some(st => q.topic.includes(st));
         });
     }
-    
+
     if (questionsToUse.length === 0) {
         alert('No questions found for selected subtopics. Please select at least one subtopic or choose "All Topics".');
         return;
     }
-    
+
     currentQuestions = questionsToUse.sort(() => Math.random() - 0.5);
     currentQuestionIndex = 0;
     userAnswers = [];
     quizStartTime = Date.now();
-    
+
+    // Start tracking for classical civilisation
+    if (typeof taskTracker !== 'undefined') {
+        taskTracker.setLanguage('classics');
+        await taskTracker.start();
+    }
+
     document.getElementById('mode-selection-screen').style.display = 'none';
     document.getElementById('question-screen').style.display = 'block';
-    
+
     loadQuestion();
 }
 
@@ -268,10 +274,15 @@ function handleDrop(e) {
 }
 
 // Check answer functionality
-function checkAnswer() {
+async function checkAnswer() {
     const question = currentQuestions[currentQuestionIndex];
     let userAnswer = null;
     let result = 'incorrect';
+
+    // Record activity for time tracking
+    if (typeof taskTracker !== 'undefined') {
+        taskTracker.recordActivity();
+    }
     
     switch(question.type) {
         case 'text-flexible':
@@ -417,33 +428,40 @@ function previousQuestion() {
 }
 
 // Results functionality
-function showResults() {
+async function showResults() {
     const quizEndTime = Date.now();
     const completionTime = Math.round((quizEndTime - quizStartTime) / (1000 * 60));
-    
+
     document.getElementById('question-screen').style.display = 'none';
     document.getElementById('results-screen').style.display = 'block';
-    
+
     // Calculate scores
     let correct = 0;
     let incorrect = 0;
     let partial = 0;
-    
+
     userAnswers.forEach(answer => {
         if (answer.result === 'correct') correct++;
         else if (answer.result === 'partial') partial++;
         else incorrect++;
     });
-    
+
     const totalScore = Math.round((correct + partial * 0.5) / userAnswers.length * 100);
-    
+
+    // Complete tracking session
+    if (typeof taskTracker !== 'undefined' && taskTracker.isTracking) {
+        const totalQuestions = userAnswers.length;
+        const correctAnswers = correct + Math.round(partial * 0.5);
+        await taskTracker.complete(totalScore, totalQuestions, correctAnswers);
+    }
+
     // Update display
     document.getElementById('final-score').textContent = `${totalScore}%`;
     document.getElementById('correct-count').textContent = correct;
     document.getElementById('incorrect-count').textContent = incorrect;
     document.getElementById('partial-count').textContent = partial;
     document.getElementById('completion-time').textContent = completionTime;
-    
+
     // Results message based on performance
     const resultsMessage = document.getElementById('results-message');
     if (totalScore >= 85) {

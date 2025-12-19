@@ -839,6 +839,10 @@
     </div>
 
     <!-- Load Question Bank -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/auth/config.js"></script>
+    <script src="/shared/xp-system.js"></script>
+    <script src="/shared/task-tracker.js"></script>
     <script src="topic2-questions.js"></script>
 
     <script>
@@ -870,7 +874,7 @@
         }
 
         // Start quiz function
-        function startQuiz(mode) {
+        async function startQuiz(mode) {
             currentMode = mode;
 
             // Filter questions by selected subtopics if any are selected
@@ -890,6 +894,12 @@
             currentQuestionIndex = 0;
             userAnswers = [];
             quizStartTime = Date.now();
+
+            // Start tracking for classical civilisation
+            if (typeof taskTracker !== 'undefined') {
+                taskTracker.setLanguage('classics');
+                await taskTracker.start();
+            }
 
             document.getElementById('mode-selection-screen').style.display = 'none';
             document.getElementById('question-screen').style.display = 'block';
@@ -1117,6 +1127,11 @@
             let userAnswer = null;
             let result = 'incorrect';
 
+            // Record activity for time tracking
+            if (typeof taskTracker !== 'undefined') {
+                taskTracker.recordActivity();
+            }
+
             switch(question.type) {
                 case 'text-flexible':
                     userAnswer = document.getElementById('text-answer').value;
@@ -1261,7 +1276,7 @@
         }
 
         // Results functionality
-        function showResults() {
+        async function showResults() {
             const quizEndTime = Date.now();
             const completionTime = Math.round((quizEndTime - quizStartTime) / (1000 * 60));
 
@@ -1280,6 +1295,13 @@
             });
 
             const totalScore = Math.round((correct + partial * 0.5) / userAnswers.length * 100);
+
+            // Complete tracking session
+            if (typeof taskTracker !== 'undefined' && taskTracker.isTracking) {
+                const totalQuestions = userAnswers.length;
+                const correctAnswers = correct + Math.round(partial * 0.5);
+                await taskTracker.complete(totalScore, totalQuestions, correctAnswers);
+            }
 
             // Update display
             document.getElementById('final-score').textContent = `${totalScore}%`;
