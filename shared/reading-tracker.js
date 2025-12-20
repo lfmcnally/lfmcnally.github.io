@@ -12,10 +12,12 @@ const readingTracker = {
     startTime: null,
     lastActivityTime: null,
     activeTimeSeconds: 0,
+    todayTotalSeconds: 0, // Total time on Iliad today
     userId: null,
     lessonTitle: null,
     lessonPath: null,
     saveInterval: null,
+    uiUpdateInterval: null,
 
     // Config
     IDLE_THRESHOLD: 120, // 2 minutes - if no activity, pause counting
@@ -29,16 +31,278 @@ const readingTracker = {
     lastClickTime: null,
     lastKeyTime: null,
 
+    // UI Elements
+    indicatorEl: null,
+
     // Set lesson info for this page
     setLesson(title, path) {
         this.lessonTitle = title || document.title;
         this.lessonPath = path || window.location.pathname;
     },
 
+    // Create the tracking indicator UI
+    createIndicator() {
+        // Create container
+        const indicator = document.createElement('div');
+        indicator.id = 'reading-tracker-indicator';
+        indicator.innerHTML = `
+            <div class="rt-status">
+                <span class="rt-dot"></span>
+                <span class="rt-text">Checking...</span>
+            </div>
+            <div class="rt-times">
+                <div class="rt-session">
+                    <span class="rt-label">This session</span>
+                    <span class="rt-value" id="rt-session-time">0:00</span>
+                </div>
+                <div class="rt-today">
+                    <span class="rt-label">Iliad today</span>
+                    <span class="rt-value" id="rt-today-time">0:00</span>
+                </div>
+            </div>
+        `;
+
+        // Add styles
+        const styles = document.createElement('style');
+        styles.textContent = `
+            #reading-tracker-indicator {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+                padding: 12px 16px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                font-size: 13px;
+                z-index: 9999;
+                min-width: 180px;
+                border: 1px solid #e5e7eb;
+                transition: all 0.3s ease;
+            }
+
+            #reading-tracker-indicator:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+            }
+
+            #reading-tracker-indicator .rt-status {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 10px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid #f3f4f6;
+            }
+
+            #reading-tracker-indicator .rt-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: #9ca3af;
+                transition: background 0.3s;
+            }
+
+            #reading-tracker-indicator.tracking .rt-dot {
+                background: #22c55e;
+                animation: pulse 2s infinite;
+            }
+
+            #reading-tracker-indicator.paused .rt-dot {
+                background: #f59e0b;
+            }
+
+            #reading-tracker-indicator.not-tracking .rt-dot {
+                background: #9ca3af;
+            }
+
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+
+            #reading-tracker-indicator .rt-text {
+                color: #4b5563;
+                font-weight: 500;
+            }
+
+            #reading-tracker-indicator .rt-times {
+                display: flex;
+                gap: 16px;
+            }
+
+            #reading-tracker-indicator .rt-session,
+            #reading-tracker-indicator .rt-today {
+                display: flex;
+                flex-direction: column;
+                gap: 2px;
+            }
+
+            #reading-tracker-indicator .rt-label {
+                font-size: 11px;
+                color: #9ca3af;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            #reading-tracker-indicator .rt-value {
+                font-size: 18px;
+                font-weight: 700;
+                color: #1f2937;
+                font-variant-numeric: tabular-nums;
+            }
+
+            #reading-tracker-indicator .rt-today .rt-value {
+                color: #0066ff;
+            }
+
+            /* Not logged in state */
+            #reading-tracker-indicator.not-logged-in .rt-times {
+                display: none;
+            }
+
+            #reading-tracker-indicator.not-logged-in .rt-status {
+                border-bottom: none;
+                margin-bottom: 0;
+                padding-bottom: 0;
+            }
+
+            #reading-tracker-indicator .rt-login-link {
+                color: #0066ff;
+                text-decoration: none;
+                font-weight: 500;
+            }
+
+            #reading-tracker-indicator .rt-login-link:hover {
+                text-decoration: underline;
+            }
+
+            /* Mobile styles */
+            @media (max-width: 768px) {
+                #reading-tracker-indicator {
+                    bottom: 10px;
+                    right: 10px;
+                    left: 10px;
+                    min-width: auto;
+                }
+
+                #reading-tracker-indicator .rt-times {
+                    justify-content: space-between;
+                }
+            }
+        `;
+
+        document.head.appendChild(styles);
+        document.body.appendChild(indicator);
+        this.indicatorEl = indicator;
+    },
+
+    // Update the indicator UI
+    updateIndicator(status, message) {
+        if (!this.indicatorEl) return;
+
+        const statusText = this.indicatorEl.querySelector('.rt-text');
+
+        // Remove all status classes
+        this.indicatorEl.classList.remove('tracking', 'paused', 'not-tracking', 'not-logged-in');
+
+        switch (status) {
+            case 'tracking':
+                this.indicatorEl.classList.add('tracking');
+                statusText.textContent = message || 'Tracking your reading';
+                break;
+            case 'paused':
+                this.indicatorEl.classList.add('paused');
+                statusText.textContent = message || 'Paused (idle)';
+                break;
+            case 'not-logged-in':
+                this.indicatorEl.classList.add('not-logged-in');
+                statusText.innerHTML = message || '<a href="/auth/login.html" class="rt-login-link">Log in</a> to track progress';
+                break;
+            case 'not-tracking':
+            default:
+                this.indicatorEl.classList.add('not-tracking');
+                statusText.textContent = message || 'Not tracking';
+                break;
+        }
+    },
+
+    // Update timer display
+    updateTimerDisplay() {
+        if (!this.indicatorEl) return;
+
+        const sessionEl = document.getElementById('rt-session-time');
+        const todayEl = document.getElementById('rt-today-time');
+
+        if (sessionEl) {
+            sessionEl.textContent = this.formatTime(this.activeTimeSeconds);
+        }
+
+        if (todayEl) {
+            // Today total = previous today total + current session
+            const totalToday = this.todayTotalSeconds + this.activeTimeSeconds;
+            todayEl.textContent = this.formatTime(totalToday);
+        }
+
+        // Update status based on activity
+        if (this.isTracking) {
+            if (this.isActive) {
+                this.updateIndicator('tracking');
+            } else {
+                this.updateIndicator('paused');
+            }
+        }
+    },
+
+    // Format seconds to mm:ss or h:mm:ss
+    formatTime(totalSeconds) {
+        const seconds = Math.round(totalSeconds);
+        const hrs = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+
+        if (hrs > 0) {
+            return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    },
+
+    // Fetch today's total time on Iliad lessons
+    async fetchTodayTotal() {
+        if (!this.userId) return 0;
+
+        try {
+            const today = new Date().toISOString().split('T')[0];
+
+            const { data, error } = await supabase
+                .from('task_attempts')
+                .select('time_spent_seconds')
+                .eq('student_id', this.userId)
+                .gte('started_at', today + 'T00:00:00')
+                .lt('started_at', today + 'T23:59:59');
+
+            if (error) {
+                console.error('Error fetching today total:', error);
+                return 0;
+            }
+
+            // Sum up all time spent today (excluding current session which we'll add live)
+            const total = (data || []).reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
+            return total;
+        } catch (err) {
+            console.error('Error in fetchTodayTotal:', err);
+            return 0;
+        }
+    },
+
     // Initialize - check if user is logged in
     async init() {
+        // Create indicator first
+        this.createIndicator();
+
         if (typeof supabase === 'undefined') {
             console.log('Supabase not available - reading tracking disabled');
+            this.updateIndicator('not-tracking', 'Tracking unavailable');
             return false;
         }
 
@@ -46,6 +310,7 @@ const readingTracker = {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 console.log('User not logged in - reading tracking disabled');
+                this.updateIndicator('not-logged-in');
                 return false;
             }
 
@@ -55,10 +320,14 @@ const readingTracker = {
             const urlParams = new URLSearchParams(window.location.search);
             this.taskId = urlParams.get('task_id') || null;
 
-            console.log('Reading tracker initialized', { userId: this.userId, taskId: this.taskId });
+            // Fetch today's total
+            this.todayTotalSeconds = await this.fetchTodayTotal();
+
+            console.log('Reading tracker initialized', { userId: this.userId, taskId: this.taskId, todayTotal: this.todayTotalSeconds });
             return true;
         } catch (err) {
             console.error('Error initializing reading tracker:', err);
+            this.updateIndicator('not-tracking', 'Error loading');
             return false;
         }
     },
@@ -97,6 +366,7 @@ const readingTracker = {
 
         if (error) {
             console.error('Error creating reading attempt:', error);
+            this.updateIndicator('not-tracking', 'Error starting');
             return false;
         }
 
@@ -104,11 +374,18 @@ const readingTracker = {
         this.isTracking = true;
         console.log('Reading tracking started', { attemptId: this.attemptId, lesson: this.lessonTitle });
 
+        // Update UI
+        this.updateIndicator('tracking');
+        this.updateTimerDisplay();
+
         // Set up activity listeners
         this.setupActivityListeners();
 
         // Start activity timer
         this.startActivityTimer();
+
+        // Start UI update timer (every second)
+        this.uiUpdateInterval = setInterval(() => this.updateTimerDisplay(), 1000);
 
         // Set up auto-save
         this.saveInterval = setInterval(() => this.saveProgress(), this.SAVE_INTERVAL);
@@ -125,7 +402,10 @@ const readingTracker = {
     setupActivityListeners() {
         const recordActivity = () => {
             this.lastActivityTime = new Date();
-            this.isActive = true;
+            if (!this.isActive) {
+                this.isActive = true;
+                this.updateIndicator('tracking');
+            }
         };
 
         // Track various user activities
@@ -175,7 +455,10 @@ const readingTracker = {
 
             // If user has been idle too long, stop counting
             if (timeSinceActivity > this.IDLE_THRESHOLD) {
-                this.isActive = false;
+                if (this.isActive) {
+                    this.isActive = false;
+                    this.updateIndicator('paused');
+                }
             }
 
             // Only count time if user is active
@@ -190,10 +473,13 @@ const readingTracker = {
         if (document.hidden) {
             // Tab is hidden - stop counting
             this.isActive = false;
+            this.updateIndicator('paused', 'Paused (tab hidden)');
             this.saveProgress();
         } else {
             // Tab is visible again - resume if there's activity
             this.lastActivityTime = new Date();
+            this.isActive = true;
+            this.updateIndicator('tracking');
         }
     },
 
@@ -249,15 +535,18 @@ const readingTracker = {
             this.saveInterval = null;
         }
 
+        if (this.uiUpdateInterval) {
+            clearInterval(this.uiUpdateInterval);
+            this.uiUpdateInterval = null;
+        }
+
         this.isTracking = false;
+        this.updateIndicator('not-tracking', 'Stopped');
     },
 
-    // Get formatted time string
+    // Get formatted time string (legacy)
     getFormattedTime() {
-        const seconds = Math.round(this.activeTimeSeconds);
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
+        return this.formatTime(this.activeTimeSeconds);
     }
 };
 
