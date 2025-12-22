@@ -1738,17 +1738,14 @@
             ];
 
             try {
-                // Get all Iliad reading sessions
+                // Get total reading sessions (for day/week/total time)
                 const { data: readingSessions } = await supabase
                     .from('task_attempts')
-                    .select('content_path, time_spent_seconds, started_at')
+                    .select('time_spent_seconds, started_at')
                     .eq('student_id', currentUser.id)
-                    .eq('total_questions', 0)
-                    .not('content_path', 'is', null)
-                    .like('content_path', '%iliad%');
+                    .eq('total_questions', 0); // Reading sessions have 0 questions
 
-                // Build time map by lesson id
-                const timeByLesson = {};
+                // Calculate total time metrics from database
                 let totalIliadTime = 0;
                 const today = new Date().toISOString().split('T')[0];
                 const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -1756,19 +1753,25 @@
                 let weekTime = 0;
 
                 (readingSessions || []).forEach(s => {
-                    const path = s.content_path || '';
                     const time = s.time_spent_seconds || 0;
                     const date = (s.started_at || '').split('T')[0];
-
-                    const match = path.match(/\/(\d+-\d+)\.html/);
-                    if (match) {
-                        timeByLesson[match[1]] = (timeByLesson[match[1]] || 0) + time;
-                    }
 
                     totalIliadTime += time;
                     if (date === today) todayTime += time;
                     if (date >= weekAgo) weekTime += time;
                 });
+
+                // Get per-lesson times from localStorage (tracked per browser)
+                const lessonTimesData = JSON.parse(localStorage.getItem('iliad_lesson_times') || '{}');
+                const timeByLesson = {};
+
+                // Parse localStorage paths to lesson IDs
+                for (const [path, time] of Object.entries(lessonTimesData)) {
+                    const match = path.match(/\/(\d+-\d+)\.html/);
+                    if (match) {
+                        timeByLesson[match[1]] = (timeByLesson[match[1]] || 0) + time;
+                    }
+                }
 
                 const formatTime = (secs) => {
                     if (secs < 60) return secs > 0 ? `${secs}s` : '—';

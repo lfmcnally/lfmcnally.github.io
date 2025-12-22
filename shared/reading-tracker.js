@@ -351,6 +351,11 @@ const readingTracker = {
         }
 
         // Create attempt record for reading session
+        // Note: We use the page URL (window.location.pathname) to identify which lesson
+        // was read. The lessonPath is stored in localStorage for the dashboard to query.
+        const lessonKey = `iliad_lesson_${this.userId}_${this.lessonPath}`;
+        const existingTime = parseInt(localStorage.getItem(lessonKey) || '0', 10);
+
         const { data, error } = await supabase
             .from('task_attempts')
             .insert({
@@ -359,8 +364,7 @@ const readingTracker = {
                 started_at: this.startTime.toISOString(),
                 // Store lesson info in a way that can be identified
                 total_questions: 0, // 0 indicates reading session
-                correct_answers: 0,
-                content_path: this.lessonPath // Store the lesson path for tracking progress
+                correct_answers: 0
             })
             .select()
             .single();
@@ -518,6 +522,14 @@ const readingTracker = {
                     activeTime: Math.round(this.activeTimeSeconds),
                     isLeaving
                 });
+
+                // Also save per-lesson time to localStorage for dashboard tracking
+                if (this.lessonPath && this.userId) {
+                    const lessonKey = `iliad_lesson_${this.lessonPath}`;
+                    const existingData = JSON.parse(localStorage.getItem('iliad_lesson_times') || '{}');
+                    existingData[this.lessonPath] = (existingData[this.lessonPath] || 0) + Math.round(this.activeTimeSeconds);
+                    localStorage.setItem('iliad_lesson_times', JSON.stringify(existingData));
+                }
             }
         } catch (err) {
             console.error('Error in saveProgress:', err);
