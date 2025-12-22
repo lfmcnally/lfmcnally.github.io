@@ -771,7 +771,7 @@
 
                 <!-- Iliad Reading Stats (Classics) -->
                 <div class="card iliad-reading-card" id="iliadReadingCard">
-                    <div class="card-header">📖 Iliad Reading Time</div>
+                    <div class="card-header">📖 Iliad Reading Progress</div>
                     <div class="card-body">
                         <div class="iliad-stats-grid">
                             <div class="iliad-stat">
@@ -787,14 +787,8 @@
                                 <div class="iliad-stat-label">All Time</div>
                             </div>
                         </div>
-                        <div class="iliad-progress">
-                            <div class="iliad-progress-label">
-                                <span>Reading Sessions</span>
-                                <span id="iliadSessionCount">0 sessions</span>
-                            </div>
-                            <div class="iliad-progress-bar">
-                                <div class="iliad-progress-fill" id="iliadProgressFill" style="width: 0%"></div>
-                            </div>
+                        <div id="iliadTopicProgress" style="margin-top: 1rem;">
+                            <!-- Topic progress will be rendered here -->
                         </div>
                     </div>
                 </div>
@@ -1030,11 +1024,22 @@
             }
         }
 
+        // Iliad topics structure
+        const iliadTopics = [
+            { id: 'topic1', name: 'Topic 1: Introduction', lessons: ['1-1', '1-2', '1-3', '1-4', '1-5'] },
+            { id: 'topic2', name: 'Topic 2: Books 1 & 3', lessons: ['2-1', '2-2', '2-3', '2-4', '2-5'] },
+            { id: 'topic3', name: 'Topic 3: Books 4 & 6', lessons: ['3-1', '3-2', '3-3', '3-4', '3-5', '3-6'] },
+            { id: 'topic4', name: 'Topic 4: Books 9 & 10', lessons: ['4-1', '4-2', '4-3', '4-4', '4-5'] },
+            { id: 'topic5', name: 'Topic 5: Books 16 & 17', lessons: ['5-1', '5-2', '5-3', '5-4', '5-5'] },
+            { id: 'topic6', name: 'Topic 6: Books 18 & 19', lessons: ['6-1', '6-2', '6-3', '6-4', '6-5'] },
+            { id: 'topic7', name: 'Topic 7: Books 22-24', lessons: ['7-1', '7-2', '7-3', '7-4', '7-5'] }
+        ];
+
         async function loadIliadReadingStats() {
             // Reading sessions have total_questions = 0
             const { data, error } = await supabaseClient
                 .from('task_attempts')
-                .select('time_spent_seconds, started_at')
+                .select('time_spent_seconds, started_at, content_path')
                 .eq('student_id', studentId)
                 .eq('total_questions', 0);
 
@@ -1051,12 +1056,14 @@
                 today: 0,
                 week: 0,
                 total: 0,
-                sessions: data.length
+                sessions: data.length,
+                byLesson: {} // Track time per lesson
             };
 
             data.forEach(session => {
-                const sessionDate = session.started_at.split('T')[0];
+                const sessionDate = (session.started_at || '').split('T')[0];
                 const seconds = session.time_spent_seconds || 0;
+                const path = session.content_path || '';
 
                 iliadReadingStats.total += seconds;
 
@@ -1067,11 +1074,21 @@
                 if (sessionDate >= weekAgo) {
                     iliadReadingStats.week += seconds;
                 }
+
+                // Track per-lesson time if it's an Iliad lesson
+                if (path.includes('iliad')) {
+                    const match = path.match(/topic(\d+)\/(\d+-\d+)/);
+                    if (match) {
+                        const key = `topic${match[1]}/${match[2]}`;
+                        iliadReadingStats.byLesson[key] = (iliadReadingStats.byLesson[key] || 0) + seconds;
+                    }
+                }
             });
         }
 
         function renderIliadReadingStats() {
             const formatTime = (seconds) => {
+                if (seconds < 60) return `${seconds}s`;
                 const mins = Math.floor(seconds / 60);
                 const hrs = Math.floor(mins / 60);
                 if (hrs > 0) {
@@ -1083,12 +1100,37 @@
             document.getElementById('iliadToday').textContent = formatTime(iliadReadingStats.today);
             document.getElementById('iliadWeek').textContent = formatTime(iliadReadingStats.week);
             document.getElementById('iliadTotal').textContent = formatTime(iliadReadingStats.total);
-            document.getElementById('iliadSessionCount').textContent = `${iliadReadingStats.sessions} sessions`;
 
-            // Progress bar - estimate based on reasonable weekly goal (e.g., 60 mins/week)
-            const weeklyGoal = 60 * 60; // 60 minutes
-            const progress = Math.min(100, Math.round((iliadReadingStats.week / weeklyGoal) * 100));
-            document.getElementById('iliadProgressFill').style.width = `${progress}%`;
+            // Build topic progress HTML
+            let topicHtml = '';
+            for (const topic of iliadTopics) {
+                let topicTime = 0;
+                let lessonsRead = 0;
+
+                for (const lesson of topic.lessons) {
+                    const key = `${topic.id}/${lesson}`;
+                    const time = iliadReadingStats.byLesson[key] || 0;
+                    if (time > 0) {
+                        topicTime += time;
+                        lessonsRead++;
+                    }
+                }
+
+                const bgColor = lessonsRead === topic.lessons.length ? '#dcfce7' : lessonsRead > 0 ? '#fef3c7' : '#f3f4f6';
+                const statusColor = lessonsRead === topic.lessons.length ? '#16a34a' : lessonsRead > 0 ? '#d97706' : '#9ca3af';
+
+                topicHtml += `
+                    <div style="background: ${bgColor}; border-radius: 6px; padding: 0.5rem 0.75rem; margin-bottom: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 500; color: #1f2937; font-size: 0.8rem;">${topic.name}</span>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span style="font-size: 0.7rem; color: #6b7280;">${formatTime(topicTime)}</span>
+                            <span style="font-size: 0.65rem; color: ${statusColor}; background: white; padding: 0.1rem 0.3rem; border-radius: 4px; font-weight: 500;">${lessonsRead}/${topic.lessons.length}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('iliadTopicProgress').innerHTML = topicHtml;
         }
 
         async function loadClassicsQuizProgress() {
