@@ -1068,7 +1068,7 @@
             // Reading sessions have total_questions = 0
             const { data, error } = await supabaseClient
                 .from('task_attempts')
-                .select('time_spent_seconds, started_at, content_path')
+                .select('time_spent_seconds, started_at')
                 .eq('student_id', studentId)
                 .eq('total_questions', 0);
 
@@ -1086,13 +1086,12 @@
                 week: 0,
                 total: 0,
                 sessions: data.length,
-                byLesson: {}
+                byLesson: {} // Per-lesson tracking not available in teacher view
             };
 
             data.forEach(session => {
                 const sessionDate = (session.started_at || '').split('T')[0];
                 const seconds = session.time_spent_seconds || 0;
-                const path = session.content_path || '';
 
                 iliadReadingStats.total += seconds;
 
@@ -1102,14 +1101,6 @@
 
                 if (sessionDate >= weekAgo) {
                     iliadReadingStats.week += seconds;
-                }
-
-                // Track per-lesson time by lesson id (e.g., "1-1")
-                if (path.includes('iliad')) {
-                    const match = path.match(/\/(\d+-\d+)\.html/);
-                    if (match) {
-                        iliadReadingStats.byLesson[match[1]] = (iliadReadingStats.byLesson[match[1]] || 0) + seconds;
-                    }
                 }
             });
         }
@@ -1129,21 +1120,14 @@
             document.getElementById('iliadWeek').textContent = formatTime(iliadReadingStats.week);
             document.getElementById('iliadTotal').textContent = formatTime(iliadReadingStats.total);
 
-            // Build individual lesson HTML with clickable links
+            // Build individual lesson HTML with clickable links (no per-lesson times in teacher view)
             let lessonHtml = '<div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">';
 
             for (const lesson of iliadLessons) {
-                const time = iliadReadingStats.byLesson[lesson.id] || 0;
-                const hasTime = time > 0;
-                const bgColor = hasTime ? '#dcfce7' : '#f3f4f6';
-                const textColor = hasTime ? '#065f46' : '#6b7280';
-                const timeColor = hasTime ? '#16a34a' : '#9ca3af';
-
                 lessonHtml += `
                     <a href="${lesson.path}" style="text-decoration: none; flex: 0 0 calc(50% - 0.125rem);">
-                        <div style="background: ${bgColor}; border-radius: 5px; padding: 0.3rem 0.5rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; transition: border-color 0.15s;" onmouseover="this.style.borderColor='#0066ff'" onmouseout="this.style.borderColor='transparent'">
-                            <span style="font-size: 0.65rem; color: ${textColor}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${lesson.id}: ${lesson.title}</span>
-                            <span style="font-size: 0.55rem; color: ${timeColor}; font-weight: 500; margin-left: 0.2rem; flex-shrink: 0;">${formatTime(time)}</span>
+                        <div style="background: #f3f4f6; border-radius: 5px; padding: 0.3rem 0.5rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; transition: border-color 0.15s;" onmouseover="this.style.borderColor='#0066ff'" onmouseout="this.style.borderColor='transparent'">
+                            <span style="font-size: 0.65rem; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${lesson.id}: ${lesson.title}</span>
                         </div>
                     </a>
                 `;
