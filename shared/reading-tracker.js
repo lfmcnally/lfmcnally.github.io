@@ -359,7 +359,8 @@ const readingTracker = {
                 started_at: this.startTime.toISOString(),
                 // Store lesson info in a way that can be identified
                 total_questions: 0, // 0 indicates reading session
-                correct_answers: 0
+                correct_answers: 0,
+                content_path: this.lessonPath // Store the lesson path for tracking progress
             })
             .select()
             .single();
