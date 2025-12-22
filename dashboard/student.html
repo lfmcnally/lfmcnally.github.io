@@ -1738,40 +1738,38 @@
             ];
 
             try {
-                // Get total reading sessions (for day/week/total time)
+                // Get all reading sessions with content_path
                 const { data: readingSessions } = await supabase
                     .from('task_attempts')
-                    .select('time_spent_seconds, started_at')
+                    .select('time_spent_seconds, started_at, content_path')
                     .eq('student_id', currentUser.id)
                     .eq('total_questions', 0); // Reading sessions have 0 questions
 
-                // Calculate total time metrics from database
+                // Calculate total time metrics and per-lesson times from database
                 let totalIliadTime = 0;
                 const today = new Date().toISOString().split('T')[0];
                 const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
                 let todayTime = 0;
                 let weekTime = 0;
+                const timeByLesson = {};
 
                 (readingSessions || []).forEach(s => {
                     const time = s.time_spent_seconds || 0;
                     const date = (s.started_at || '').split('T')[0];
+                    const path = s.content_path || '';
 
                     totalIliadTime += time;
                     if (date === today) todayTime += time;
                     if (date >= weekAgo) weekTime += time;
-                });
 
-                // Get per-lesson times from localStorage (tracked per browser)
-                const lessonTimesData = JSON.parse(localStorage.getItem('iliad_lesson_times') || '{}');
-                const timeByLesson = {};
-
-                // Parse localStorage paths to lesson IDs
-                for (const [path, time] of Object.entries(lessonTimesData)) {
-                    const match = path.match(/\/(\d+-\d+)\.html/);
-                    if (match) {
-                        timeByLesson[match[1]] = (timeByLesson[match[1]] || 0) + time;
+                    // Track per-lesson time by lesson id (e.g., "1-1")
+                    if (path.includes('iliad')) {
+                        const match = path.match(/\/(\d+-\d+)\.html/);
+                        if (match) {
+                            timeByLesson[match[1]] = (timeByLesson[match[1]] || 0) + time;
+                        }
                     }
-                }
+                });
 
                 const formatTime = (secs) => {
                     if (secs < 60) return secs > 0 ? `${secs}s` : '—';
