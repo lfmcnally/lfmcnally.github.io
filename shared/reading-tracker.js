@@ -12,12 +12,13 @@ const readingTracker = {
     startTime: null,
     lastActivityTime: null,
     activeTimeSeconds: 0,
-    todayTotalSeconds: 0, // Total time on Iliad today
+    todayTotalSeconds: 0, // Total time on current course today
     userId: null,
     lessonTitle: null,
     lessonPath: null,
     saveInterval: null,
     uiUpdateInterval: null,
+    courseName: null, // 'Iliad', 'Aeneid', etc.
 
     // Config
     IDLE_THRESHOLD: 120, // 2 minutes - if no activity, pause counting
@@ -40,6 +41,29 @@ const readingTracker = {
         this.lessonPath = path || window.location.pathname;
     },
 
+    // Detect which course based on URL path
+    detectCourse() {
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('/aeneid/')) {
+            this.courseName = 'Aeneid';
+        } else if (path.includes('/iliad/')) {
+            this.courseName = 'Iliad';
+        } else if (path.includes('/odyssey/')) {
+            this.courseName = 'Odyssey';
+        } else {
+            this.courseName = 'Reading';
+        }
+        return this.courseName;
+    },
+
+    // Update course label in UI
+    updateCourseLabel() {
+        const labelEl = document.getElementById('rt-course-label');
+        if (labelEl && this.courseName) {
+            labelEl.textContent = `${this.courseName} today`;
+        }
+    },
+
     // Create the tracking indicator UI
     createIndicator() {
         // Create container
@@ -56,7 +80,7 @@ const readingTracker = {
                     <span class="rt-value" id="rt-session-time">0:00</span>
                 </div>
                 <div class="rt-today">
-                    <span class="rt-label">Iliad today</span>
+                    <span class="rt-label" id="rt-course-label">Today</span>
                     <span class="rt-value" id="rt-today-time">0:00</span>
                 </div>
             </div>
@@ -267,16 +291,17 @@ const readingTracker = {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     },
 
-    // Fetch today's total time on Iliad lessons
+    // Fetch today's total time on current course lessons
     async fetchTodayTotal() {
         if (!this.userId) return 0;
 
         try {
             const today = new Date().toISOString().split('T')[0];
+            const courseFilter = this.courseName ? this.courseName.toLowerCase() : '';
 
             const { data, error } = await supabase
                 .from('task_attempts')
-                .select('time_spent_seconds')
+                .select('time_spent_seconds, content_path')
                 .eq('student_id', this.userId)
                 .gte('started_at', today + 'T00:00:00')
                 .lt('started_at', today + 'T23:59:59');
@@ -286,8 +311,16 @@ const readingTracker = {
                 return 0;
             }
 
-            // Sum up all time spent today (excluding current session which we'll add live)
-            const total = (data || []).reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
+            // Sum up all time spent today on this course (excluding current session which we'll add live)
+            const total = (data || []).reduce((sum, a) => {
+                // Filter by course if content_path contains the course name
+                if (courseFilter && a.content_path && a.content_path.toLowerCase().includes(courseFilter)) {
+                    return sum + (a.time_spent_seconds || 0);
+                } else if (!courseFilter) {
+                    return sum + (a.time_spent_seconds || 0);
+                }
+                return sum;
+            }, 0);
             return total;
         } catch (err) {
             console.error('Error in fetchTodayTotal:', err);
@@ -299,6 +332,10 @@ const readingTracker = {
     async init() {
         // Create indicator first
         this.createIndicator();
+
+        // Detect which course we're on and update UI
+        this.detectCourse();
+        this.updateCourseLabel();
 
         if (typeof supabase === 'undefined') {
             console.log('Supabase not available - reading tracking disabled');
@@ -353,7 +390,8 @@ const readingTracker = {
         // Create attempt record for reading session
         // Note: We use the page URL (window.location.pathname) to identify which lesson
         // was read. The lessonPath is stored in localStorage for the dashboard to query.
-        const lessonKey = `iliad_lesson_${this.userId}_${this.lessonPath}`;
+        const courseKey = this.courseName ? this.courseName.toLowerCase() : 'reading';
+        const lessonKey = `${courseKey}_lesson_${this.userId}_${this.lessonPath}`;
         const existingTime = parseInt(localStorage.getItem(lessonKey) || '0', 10);
 
         const { data, error } = await supabase
@@ -526,10 +564,11 @@ const readingTracker = {
 
                 // Also save per-lesson time to localStorage for dashboard tracking
                 if (this.lessonPath && this.userId) {
-                    const lessonKey = `iliad_lesson_${this.lessonPath}`;
-                    const existingData = JSON.parse(localStorage.getItem('iliad_lesson_times') || '{}');
+                    const courseKey = this.courseName ? this.courseName.toLowerCase() : 'reading';
+                    const storageKey = `${courseKey}_lesson_times`;
+                    const existingData = JSON.parse(localStorage.getItem(storageKey) || '{}');
                     existingData[this.lessonPath] = (existingData[this.lessonPath] || 0) + Math.round(this.activeTimeSeconds);
-                    localStorage.setItem('iliad_lesson_times', JSON.stringify(existingData));
+                    localStorage.setItem(storageKey, JSON.stringify(existingData));
                 }
             }
         } catch (err) {
