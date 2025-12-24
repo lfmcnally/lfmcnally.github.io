@@ -721,26 +721,26 @@ const connectionsDecember2025 = [
         year: 2025,
         categories: [
             {
-                name: "LATIN WINTER WORDS",
-                words: ["hiems", "nix", "frigus", "glacies"],
+                name: "MOON GODDESSES",
+                words: ["Luna", "Selene", "Diana", "Artemis"],
                 difficulty: 1,
                 color: "#22c55e"
             },
             {
-                name: "GIFTS IN MYTHOLOGY",
-                words: ["fire", "box", "apple", "horse"],
-                difficulty: 3,
-                color: "#3b82f6" // Prometheus, Pandora, Paris, Trojan
-            },
-            {
-                name: "CHRISTMAS ITEMS",
-                words: ["tree", "star", "wreath", "candle"],
+                name: "PUZZLES OR PROBLEMS FROM GREEK MYTH",
+                words: ["Minotaur", "Labyrinth", "Sphinx", "Gordian"],
                 difficulty: 2,
                 color: "#eab308"
             },
             {
-                name: "THINGS FOUND IN NATIVITY",
-                words: ["manger", "shepherds", "angels", "kings"],
+                name: "NAMES ENDING IN AN 'EE' SOUND",
+                words: ["Maisie", "Daisy", "Aphrodite", "Persephone"],
+                difficulty: 3,
+                color: "#3b82f6"
+            },
+            {
+                name: "PLANETS (NOT JUST ROMAN GODS)",
+                words: ["Neptune", "Pluto", "Mercury", "Jupiter"],
                 difficulty: 4,
                 color: "#8b5cf6"
             }
