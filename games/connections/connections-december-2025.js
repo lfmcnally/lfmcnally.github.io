@@ -724,25 +724,25 @@ const connectionsDecember2025 = [
                 name: "LUNAR DEITIES",
                 words: ["Diana", "Selene", "Luna", "Phoebe"],
                 difficulty: 1,
-                color: "#22c55e" // All moon goddesses in Greco-Roman mythology
+                color: "#22c55e" // Moon goddesses in Greco-Roman mythology
             },
             {
-                name: "CLASSICAL PUZZLES TO SOLVE",
-                words: ["Sphinx", "Labyrinth", "Gordian", "Sibyl"],
+                name: "TYPES OF PUZZLES",
+                words: ["maze", "riddle", "enigma", "mystery"],
                 difficulty: 2,
-                color: "#eab308" // Riddle, maze, knot, cryptic prophecies
+                color: "#eab308" // All puzzle types
             },
             {
-                name: "ASSOCIATED WITH ARTEMIS",
-                words: ["Callisto", "Atalanta", "Orion", "Hippolytus"],
+                name: "GREEK MONSTERS",
+                words: ["Sphinx", "Minotaur", "Cyclops", "Hydra"],
                 difficulty: 3,
-                color: "#3b82f6" // Hunters and devotees of the moon goddess
+                color: "#3b82f6" // Famous creatures everyone knows
             },
             {
-                name: "_____ CYCLE",
-                words: ["lunar", "epic", "Trojan", "Theban"],
+                name: "NEW _____",
+                words: ["moon", "year", "wave", "age"],
                 difficulty: 4,
-                color: "#8b5cf6" // Moon cycle + Greek literary cycles!
+                color: "#8b5cf6" // New moon, New Year, New Wave, New Age!
             }
         ]
     },
