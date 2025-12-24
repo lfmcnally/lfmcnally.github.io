@@ -721,28 +721,28 @@ const connectionsDecember2025 = [
         year: 2025,
         categories: [
             {
-                name: "LATIN WINTER WORDS",
-                words: ["hiems", "nix", "frigus", "glacies"],
+                name: "LUNAR DEITIES",
+                words: ["Diana", "Selene", "Luna", "Phoebe"],
                 difficulty: 1,
-                color: "#22c55e"
+                color: "#22c55e" // All moon goddesses in Greco-Roman mythology
             },
             {
-                name: "GIFTS IN MYTHOLOGY",
-                words: ["fire", "box", "apple", "horse"],
-                difficulty: 3,
-                color: "#3b82f6" // Prometheus, Pandora, Paris, Trojan
-            },
-            {
-                name: "CHRISTMAS ITEMS",
-                words: ["tree", "star", "wreath", "candle"],
+                name: "CLASSICAL PUZZLES TO SOLVE",
+                words: ["Sphinx", "Labyrinth", "Gordian", "Sibyl"],
                 difficulty: 2,
-                color: "#eab308"
+                color: "#eab308" // Riddle, maze, knot, cryptic prophecies
             },
             {
-                name: "THINGS FOUND IN NATIVITY",
-                words: ["manger", "shepherds", "angels", "kings"],
+                name: "ASSOCIATED WITH ARTEMIS",
+                words: ["Callisto", "Atalanta", "Orion", "Hippolytus"],
+                difficulty: 3,
+                color: "#3b82f6" // Hunters and devotees of the moon goddess
+            },
+            {
+                name: "_____ CYCLE",
+                words: ["lunar", "epic", "Trojan", "Theban"],
                 difficulty: 4,
-                color: "#8b5cf6"
+                color: "#8b5cf6" // Moon cycle + Greek literary cycles!
             }
         ]
     },
