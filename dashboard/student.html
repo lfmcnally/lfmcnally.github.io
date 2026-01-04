@@ -1420,10 +1420,14 @@
                 // Load set text progress for Latin GCSE
                 additionalContent = await buildSetTextOverview();
             } else if (type === 'classics') {
-                // Load Iliad reading progress and topic overview for Classical Civ
-                const iliadProgress = await buildIliadReadingProgress();
-                const topicOverview = await buildClassicsTopicOverview();
-                additionalContent = iliadProgress + topicOverview;
+                // Load reading progress for all Classical Civ courses and topic overview
+                const [iliadProgress, aeneidProgress, greekArtProgress, topicOverview] = await Promise.all([
+                    buildIliadReadingProgress(),
+                    buildAeneidReadingProgress(),
+                    buildGreekArtReadingProgress(),
+                    buildClassicsTopicOverview()
+                ]);
+                additionalContent = iliadProgress + aeneidProgress + greekArtProgress + topicOverview;
             }
 
             let html = `
@@ -1825,6 +1829,260 @@
                 return html;
             } catch (err) {
                 console.error('Error building Iliad reading progress:', err);
+                return '';
+            }
+        }
+
+        // Build Aeneid reading progress section showing individual lessons with links
+        async function buildAeneidReadingProgress() {
+            // All Aeneid lessons with titles and paths
+            const aeneidLessons = [
+                { id: '1-1', title: 'The Whole Narrative', path: '../classical-civ/aeneid/topic1/1-1.html' },
+                { id: '1-2', title: 'Book 1 - Aeneas in Carthage', path: '../classical-civ/aeneid/topic1/1-2.html' },
+                { id: '1-3', title: 'Book 2 - The Fall of Troy', path: '../classical-civ/aeneid/topic1/1-3.html' },
+                { id: '1-4', title: "Book 4 - Dido's Tragedy", path: '../classical-civ/aeneid/topic1/1-4.html' },
+                { id: '1-5', title: 'Book 6 - The Underworld', path: '../classical-civ/aeneid/topic1/1-5.html' },
+                { id: '2-1', title: 'Book 1 in Detail', path: '../classical-civ/aeneid/topic2/2-1.html' },
+                { id: '2-2', title: 'Book 2 in Detail', path: '../classical-civ/aeneid/topic2/2-2.html' },
+                { id: '2-3', title: 'Key Themes: Pietas, Fate, Destiny', path: '../classical-civ/aeneid/topic2/2-3.html' },
+                { id: '2-4', title: 'Characters: Aeneas, Dido, Juno', path: '../classical-civ/aeneid/topic2/2-4.html' },
+                { id: '2-5', title: 'Literary Techniques in Books 1 & 2', path: '../classical-civ/aeneid/topic2/2-5.html' },
+                { id: '3-1', title: 'Book 4 in Detail', path: '../classical-civ/aeneid/topic3/3-1.html' },
+                { id: '3-2', title: 'Dido - Queen and Tragic Lover', path: '../classical-civ/aeneid/topic3/3-2.html' },
+                { id: '3-3', title: 'Love vs Duty: Pietas vs Furor', path: '../classical-civ/aeneid/topic3/3-3.html' },
+                { id: '3-4', title: 'Relationships Between Men and Women', path: '../classical-civ/aeneid/topic3/3-4.html' },
+                { id: '3-5', title: 'Literary Techniques in Book 4', path: '../classical-civ/aeneid/topic3/3-5.html' },
+                { id: '4-1', title: 'Book 6 in Detail', path: '../classical-civ/aeneid/topic4/4-1.html' },
+                { id: '4-2', title: "The Parade of Heroes and Rome's Destiny", path: '../classical-civ/aeneid/topic4/4-2.html' },
+                { id: '4-3', title: 'Role of Fate and Destiny', path: '../classical-civ/aeneid/topic4/4-3.html' },
+                { id: '4-4', title: 'The Immortals and Mortal-Immortal Relationships', path: '../classical-civ/aeneid/topic4/4-4.html' },
+                { id: '4-5', title: 'Memory and the Past', path: '../classical-civ/aeneid/topic4/4-5.html' },
+                { id: '5-1', title: 'Book 7 in Detail', path: '../classical-civ/aeneid/topic5/5-1.html' },
+                { id: '5-2', title: 'Book 8 in Detail', path: '../classical-civ/aeneid/topic5/5-2.html' },
+                { id: '5-3', title: 'Portrayal of Different Nations', path: '../classical-civ/aeneid/topic5/5-3.html' },
+                { id: '5-4', title: 'The Shield of Aeneas and Roman Destiny', path: '../classical-civ/aeneid/topic5/5-4.html' },
+                { id: '5-5', title: 'Literary Techniques in Books 7 & 8', path: '../classical-civ/aeneid/topic5/5-5.html' },
+                { id: '6-1', title: 'Book 9: Nisus and Euryalus', path: '../classical-civ/aeneid/topic6/6-1.html' },
+                { id: '6-2', title: 'Book 10: Pallas, Lausus, Mezentius', path: '../classical-civ/aeneid/topic6/6-2.html' },
+                { id: '6-3', title: 'Portrayal of War', path: '../classical-civ/aeneid/topic6/6-3.html' },
+                { id: '6-4', title: 'Family and Friendship', path: '../classical-civ/aeneid/topic6/6-4.html' },
+                { id: '6-5', title: 'Literary Techniques in Books 9 & 10', path: '../classical-civ/aeneid/topic6/6-5.html' },
+                { id: '7-1', title: 'Book 11 in Detail', path: '../classical-civ/aeneid/topic7/7-1.html' },
+                { id: '7-2', title: 'Book 12 in Detail', path: '../classical-civ/aeneid/topic7/7-2.html' },
+                { id: '7-3', title: 'Aeneas vs Turnus: Concepts of a Hero', path: '../classical-civ/aeneid/topic7/7-3.html' },
+                { id: '7-4', title: "Pietas vs Furor: The Epic's Conclusion", path: '../classical-civ/aeneid/topic7/7-4.html' },
+                { id: '7-5', title: 'Women in the Aeneid: Camilla, Lavinia, Amata', path: '../classical-civ/aeneid/topic7/7-5.html' },
+                { id: '8-1', title: 'Augustus and the Augustan Age', path: '../classical-civ/aeneid/topic8/8-1.html' },
+                { id: '8-2', title: "Virgil's Relationship to Augustus", path: '../classical-civ/aeneid/topic8/8-2.html' },
+                { id: '8-3', title: 'Propaganda and Ambivalence', path: '../classical-civ/aeneid/topic8/8-3.html' },
+                { id: '8-4', title: 'Key Augustan Themes in the Aeneid', path: '../classical-civ/aeneid/topic8/8-4.html' },
+                { id: '8-5', title: 'Reception and Legacy', path: '../classical-civ/aeneid/topic8/8-5.html' }
+            ];
+
+            try {
+                // Get all reading sessions with content_path
+                const { data: readingSessions } = await supabase
+                    .from('task_attempts')
+                    .select('time_spent_seconds, started_at, content_path')
+                    .eq('student_id', currentUser.id)
+                    .eq('total_questions', 0); // Reading sessions have 0 questions
+
+                // Calculate total time metrics and per-lesson times from database
+                let totalAeneidTime = 0;
+                const today = new Date().toISOString().split('T')[0];
+                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                let todayTime = 0;
+                let weekTime = 0;
+                const timeByLesson = {};
+
+                (readingSessions || []).forEach(s => {
+                    const time = s.time_spent_seconds || 0;
+                    const date = (s.started_at || '').split('T')[0];
+                    const path = s.content_path || '';
+
+                    // Only count Aeneid lessons
+                    if (path.includes('aeneid')) {
+                        totalAeneidTime += time;
+                        if (date === today) todayTime += time;
+                        if (date >= weekAgo) weekTime += time;
+
+                        // Track per-lesson time by lesson id (e.g., "1-1")
+                        const match = path.match(/\/(\d+-\d+)\.html/);
+                        if (match) {
+                            timeByLesson[match[1]] = (timeByLesson[match[1]] || 0) + time;
+                        }
+                    }
+                });
+
+                const formatTime = (secs) => {
+                    if (secs < 60) return secs > 0 ? `${secs}s` : '—';
+                    const mins = Math.floor(secs / 60);
+                    if (mins < 60) return `${mins}m`;
+                    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+                };
+
+                let html = `
+                    <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;">
+                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.75rem; font-size: 0.95rem;">📖 Aeneid Reading Progress</div>
+
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                            <div style="background: #fef3c7; padding: 0.6rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #d97706;">${formatTime(todayTime)}</div>
+                                <div style="font-size: 0.7rem; color: #6b7280;">Today</div>
+                            </div>
+                            <div style="background: #fef3c7; padding: 0.6rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #d97706;">${formatTime(weekTime)}</div>
+                                <div style="font-size: 0.7rem; color: #6b7280;">This Week</div>
+                            </div>
+                            <div style="background: #fef3c7; padding: 0.6rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #d97706;">${formatTime(totalAeneidTime)}</div>
+                                <div style="font-size: 0.7rem; color: #6b7280;">All Time</div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.3rem;">
+                `;
+
+                for (const lesson of aeneidLessons) {
+                    const time = timeByLesson[lesson.id] || 0;
+                    const hasTime = time > 0;
+                    const bgColor = hasTime ? '#fef3c7' : '#f3f4f6';
+                    const textColor = hasTime ? '#92400e' : '#6b7280';
+                    const timeColor = hasTime ? '#d97706' : '#9ca3af';
+
+                    html += `
+                        <a href="${lesson.path}" style="text-decoration: none; flex: 0 0 calc(50% - 0.15rem);">
+                            <div style="background: ${bgColor}; border-radius: 6px; padding: 0.35rem 0.5rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; transition: border-color 0.15s;" onmouseover="this.style.borderColor='#d97706'" onmouseout="this.style.borderColor='transparent'">
+                                <span style="font-size: 0.7rem; color: ${textColor}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${lesson.id}: ${lesson.title}</span>
+                                <span style="font-size: 0.6rem; color: ${timeColor}; font-weight: 500; margin-left: 0.25rem; flex-shrink: 0;">${formatTime(time)}</span>
+                            </div>
+                        </a>
+                    `;
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+
+                return html;
+            } catch (err) {
+                console.error('Error building Aeneid reading progress:', err);
+                return '';
+            }
+        }
+
+        // Build Greek Art reading progress section showing individual lessons with links
+        async function buildGreekArtReadingProgress() {
+            // All Greek Art lessons with titles and paths
+            const greekArtLessons = [
+                { id: '1-1', title: 'Greek Art in Context', path: '../classical-civ/greek-art/topic1/1-1.html' },
+                { id: '2-1', title: 'Archaic Kouroi and Korai', path: '../classical-civ/greek-art/topic2/2-1.html' },
+                { id: '2-2', title: 'Early Classical - The Severe Style', path: '../classical-civ/greek-art/topic2/2-2.html' },
+                { id: '2-3', title: 'High Classical - Polykleitos and Myron', path: '../classical-civ/greek-art/topic2/2-3.html' },
+                { id: '2-4', title: 'Late Classical - Praxiteles', path: '../classical-civ/greek-art/topic2/2-4.html' },
+                { id: '2-5', title: 'Late Classical to Hellenistic', path: '../classical-civ/greek-art/topic2/2-5.html' },
+                { id: '3-1', title: 'Temple Architecture and Sculptural Decoration', path: '../classical-civ/greek-art/topic3/3-1.html' },
+                { id: '3-2', title: 'The Parthenon Pediments', path: '../classical-civ/greek-art/topic3/3-2.html' },
+                { id: '3-3', title: 'Metopes', path: '../classical-civ/greek-art/topic3/3-3.html' },
+                { id: '3-4', title: 'The Ionic Friezes', path: '../classical-civ/greek-art/topic3/3-4.html' },
+                { id: '3-5', title: 'Pediments - Corcyra, Aigina, Olympia', path: '../classical-civ/greek-art/topic3/3-5.html' },
+                { id: '4-1', title: 'Introduction to Vase Painting', path: '../classical-civ/greek-art/topic4/4-1.html' },
+                { id: '4-2', title: 'Early Black-Figure and Exekias', path: '../classical-civ/greek-art/topic4/4-2.html' },
+                { id: '4-3', title: 'Red-Figure Pioneers - Euphronios', path: '../classical-civ/greek-art/topic4/4-3.html' },
+                { id: '4-4', title: 'Classical Vase Painting - Kleophrades and Berlin Painters', path: '../classical-civ/greek-art/topic4/4-4.html' },
+                { id: '4-5', title: 'The Pan Painter and Amasis Painter', path: '../classical-civ/greek-art/topic4/4-5.html' }
+            ];
+
+            try {
+                // Get all reading sessions with content_path
+                const { data: readingSessions } = await supabase
+                    .from('task_attempts')
+                    .select('time_spent_seconds, started_at, content_path')
+                    .eq('student_id', currentUser.id)
+                    .eq('total_questions', 0); // Reading sessions have 0 questions
+
+                // Calculate total time metrics and per-lesson times from database
+                let totalGreekArtTime = 0;
+                const today = new Date().toISOString().split('T')[0];
+                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                let todayTime = 0;
+                let weekTime = 0;
+                const timeByLesson = {};
+
+                (readingSessions || []).forEach(s => {
+                    const time = s.time_spent_seconds || 0;
+                    const date = (s.started_at || '').split('T')[0];
+                    const path = s.content_path || '';
+
+                    // Only count Greek Art lessons
+                    if (path.includes('greek-art')) {
+                        totalGreekArtTime += time;
+                        if (date === today) todayTime += time;
+                        if (date >= weekAgo) weekTime += time;
+
+                        // Track per-lesson time by lesson id (e.g., "1-1")
+                        const match = path.match(/\/(\d+-\d+)\.html/);
+                        if (match) {
+                            timeByLesson[match[1]] = (timeByLesson[match[1]] || 0) + time;
+                        }
+                    }
+                });
+
+                const formatTime = (secs) => {
+                    if (secs < 60) return secs > 0 ? `${secs}s` : '—';
+                    const mins = Math.floor(secs / 60);
+                    if (mins < 60) return `${mins}m`;
+                    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+                };
+
+                let html = `
+                    <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;">
+                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.75rem; font-size: 0.95rem;">🏛️ Greek Art Reading Progress</div>
+
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                            <div style="background: #ede9fe; padding: 0.6rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #7c3aed;">${formatTime(todayTime)}</div>
+                                <div style="font-size: 0.7rem; color: #6b7280;">Today</div>
+                            </div>
+                            <div style="background: #ede9fe; padding: 0.6rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #7c3aed;">${formatTime(weekTime)}</div>
+                                <div style="font-size: 0.7rem; color: #6b7280;">This Week</div>
+                            </div>
+                            <div style="background: #ede9fe; padding: 0.6rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #7c3aed;">${formatTime(totalGreekArtTime)}</div>
+                                <div style="font-size: 0.7rem; color: #6b7280;">All Time</div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.3rem;">
+                `;
+
+                for (const lesson of greekArtLessons) {
+                    const time = timeByLesson[lesson.id] || 0;
+                    const hasTime = time > 0;
+                    const bgColor = hasTime ? '#ede9fe' : '#f3f4f6';
+                    const textColor = hasTime ? '#5b21b6' : '#6b7280';
+                    const timeColor = hasTime ? '#7c3aed' : '#9ca3af';
+
+                    html += `
+                        <a href="${lesson.path}" style="text-decoration: none; flex: 0 0 calc(50% - 0.15rem);">
+                            <div style="background: ${bgColor}; border-radius: 6px; padding: 0.35rem 0.5rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; transition: border-color 0.15s;" onmouseover="this.style.borderColor='#7c3aed'" onmouseout="this.style.borderColor='transparent'">
+                                <span style="font-size: 0.7rem; color: ${textColor}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${lesson.id}: ${lesson.title}</span>
+                                <span style="font-size: 0.6rem; color: ${timeColor}; font-weight: 500; margin-left: 0.25rem; flex-shrink: 0;">${formatTime(time)}</span>
+                            </div>
+                        </a>
+                    `;
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+
+                return html;
+            } catch (err) {
+                console.error('Error building Greek Art reading progress:', err);
                 return '';
             }
         }
