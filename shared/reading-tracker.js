@@ -50,6 +50,8 @@ const readingTracker = {
             this.courseName = 'Iliad';
         } else if (path.includes('/odyssey/')) {
             this.courseName = 'Odyssey';
+        } else if (path.includes('/greek-art/')) {
+            this.courseName = 'Greek Art';
         } else {
             this.courseName = 'Reading';
         }
