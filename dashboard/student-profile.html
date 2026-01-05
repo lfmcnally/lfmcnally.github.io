@@ -638,6 +638,40 @@
             color: #64748b;
             margin-top: 0.5rem;
         }
+
+        /* Classics Total Progress Summary */
+        .classics-total-card {
+            display: none;
+            margin-bottom: 1.5rem;
+        }
+        .classics-total-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+        .classics-total-stat {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            background: linear-gradient(135deg, #f0f9ff 0%, #ede9fe 100%);
+            border-radius: 12px;
+            border: 1px solid #c4b5fd;
+        }
+        .classics-total-stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4338ca;
+            line-height: 1;
+        }
+        .classics-total-stat-label {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+        @media (max-width: 700px) {
+            .classics-total-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
         .iliad-progress {
             margin-top: 1rem;
         }
@@ -773,6 +807,31 @@
                 </div>
             </div>
 
+            <!-- Classics Total Progress Summary -->
+            <div class="card classics-total-card" id="classicsTotalCard">
+                <div class="card-header">📊 Total Progress (All Courses)</div>
+                <div class="card-body">
+                    <div class="classics-total-grid">
+                        <div class="classics-total-stat">
+                            <div class="classics-total-stat-value" id="classicsTotalReading">0m</div>
+                            <div class="classics-total-stat-label">Total Reading Time</div>
+                        </div>
+                        <div class="classics-total-stat">
+                            <div class="classics-total-stat-value" id="classicsTotalQuizTime">0m</div>
+                            <div class="classics-total-stat-label">Total Quiz Time</div>
+                        </div>
+                        <div class="classics-total-stat">
+                            <div class="classics-total-stat-value" id="classicsTotalQuizzes">0</div>
+                            <div class="classics-total-stat-label">Quizzes Completed</div>
+                        </div>
+                        <div class="classics-total-stat">
+                            <div class="classics-total-stat-value" id="classicsTotalAvgScore">0%</div>
+                            <div class="classics-total-stat-label">Average Quiz Score</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Main Grid -->
             <div class="grid">
                 <!-- Activity Chart -->
@@ -816,7 +875,7 @@
                 </div>
 
                 <!-- Iliad Reading Stats (Classics) -->
-                <div class="card iliad-reading-card" id="iliadReadingCard">
+                <div class="card iliad-reading-card grid-full" id="iliadReadingCard">
                     <div class="card-header">📖 Iliad Reading Progress</div>
                     <div class="card-body">
                         <div class="iliad-stats-grid">
@@ -840,7 +899,7 @@
                 </div>
 
                 <!-- Aeneid Reading Stats (Classics) -->
-                <div class="card aeneid-reading-card" id="aeneidReadingCard">
+                <div class="card aeneid-reading-card grid-full" id="aeneidReadingCard">
                     <div class="card-header">📖 Aeneid Reading Progress</div>
                     <div class="card-body">
                         <div class="iliad-stats-grid">
@@ -864,7 +923,7 @@
                 </div>
 
                 <!-- Greek Art Reading Stats (Classics) -->
-                <div class="card greekart-reading-card" id="greekartReadingCard">
+                <div class="card greekart-reading-card grid-full" id="greekartReadingCard">
                     <div class="card-header">🏛️ Greek Art Reading Progress</div>
                     <div class="card-body">
                         <div class="iliad-stats-grid">
@@ -1073,6 +1132,7 @@
                     renderAeneidReadingStats();
                     renderGreekArtReadingStats();
                     renderClassicsQuizProgress();
+                    renderClassicsTotalProgress();
                 } else {
                     renderMasteryChart();
                     renderStrugglingWords();
@@ -1090,14 +1150,15 @@
 
         function updateUIForClassType() {
             if (classType === 'classics') {
-                // Show Iliad/Classics sections, hide vocab sections
+                // Show Total Progress and course sections, hide vocab sections
+                document.getElementById('classicsTotalCard').style.display = 'block';
                 document.getElementById('wordMasteryCard').style.display = 'none';
                 document.getElementById('strugglingWordsCard').style.display = 'none';
                 document.getElementById('setTextCard').style.display = 'none';
                 document.getElementById('iliadReadingCard').style.display = 'block';
                 document.getElementById('aeneidReadingCard').style.display = 'block';
                 document.getElementById('greekartReadingCard').style.display = 'block';
-                document.getElementById('quizProgressCard').style.display = 'block';
+                document.getElementById('quizProgressCard').style.display = 'none'; // Hide individual quiz card, we have totals now
                 document.getElementById('wordsLeaderboardTab').style.display = 'none';
 
                 // Hide noisy charts/sections to focus on time and progress
@@ -1110,7 +1171,8 @@
                 document.getElementById('statTimeLabel').textContent = 'Reading Time';
                 document.getElementById('statWordsLabel').textContent = 'Quizzes Done';
             } else {
-                // Show vocab sections, hide Iliad/Classics sections
+                // Show vocab sections, hide Classics sections
+                document.getElementById('classicsTotalCard').style.display = 'none';
                 document.getElementById('wordMasteryCard').style.display = 'block';
                 document.getElementById('strugglingWordsCard').style.display = 'block';
                 document.getElementById('setTextCard').style.display = 'block';
@@ -1511,6 +1573,33 @@
                     </li>
                 `;
             }).join('');
+        }
+
+        function renderClassicsTotalProgress() {
+            // Calculate total reading time across all courses
+            const totalReadingSeconds =
+                (iliadReadingStats.total || 0) +
+                (aeneidReadingStats.total || 0) +
+                (greekArtReadingStats.total || 0);
+
+            // Calculate quiz statistics
+            let totalQuizTime = 0;
+            let totalQuizzes = 0;
+            let totalScore = 0;
+
+            classicsQuizProgress.forEach(quiz => {
+                totalQuizTime += (quiz.time_spent_seconds || 0);
+                totalQuizzes++;
+                totalScore += (quiz.score_percentage || 0);
+            });
+
+            const avgScore = totalQuizzes > 0 ? Math.round(totalScore / totalQuizzes) : 0;
+
+            // Update the display
+            document.getElementById('classicsTotalReading').textContent = formatTime(totalReadingSeconds);
+            document.getElementById('classicsTotalQuizTime').textContent = formatTime(totalQuizTime);
+            document.getElementById('classicsTotalQuizzes').textContent = totalQuizzes;
+            document.getElementById('classicsTotalAvgScore').textContent = avgScore + '%';
         }
 
         async function loadStudentInfo() {
