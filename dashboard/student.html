@@ -1090,7 +1090,9 @@
     </div>
 
     <script src="../auth/config.js"></script>
-    
+    <script src="../shared/student-tracking.js"></script>
+    <script src="../shared/content-tester.js"></script>
+
     <!-- Word List Modal -->
     <div class="modal-overlay" id="wordListModal">
         <div class="modal">
@@ -1115,6 +1117,8 @@
         let attempts = [];
         let currentClassId = null;
         let currentClass = null;
+        let trackingSystem = null;
+        let contentTester = null;
 
         // Initialize
         async function init() {
@@ -1162,6 +1166,13 @@
             }
 
             currentClass = classData;
+
+            // Initialize tracking systems
+            trackingSystem = new StudentTracking(supabase);
+            await trackingSystem.init(currentClassId, currentClass.type);
+
+            contentTester = new ContentTesterSystem();
+            await contentTester.init(supabase, currentClassId);
 
             // Update header with class info
             document.getElementById('userName').textContent = '';
@@ -1416,9 +1427,13 @@
             // Build additional progress sections based on type
             let additionalContent = '';
 
+            // Always try to load content tester progress (for all class types)
+            const contentTesterProgress = await buildContentTesterOverview();
+
             if (type === 'latin') {
                 // Load set text progress for Latin GCSE
-                additionalContent = await buildSetTextOverview();
+                const setTextOverview = await buildSetTextOverview();
+                additionalContent = contentTesterProgress + setTextOverview;
             } else if (type === 'classics') {
                 // Load reading progress for all Classical Civ courses and topic overview
                 const [iliadProgress, aeneidProgress, greekArtProgress, topicOverview] = await Promise.all([
@@ -1427,7 +1442,10 @@
                     buildGreekArtReadingProgress(),
                     buildClassicsTopicOverview()
                 ]);
-                additionalContent = iliadProgress + aeneidProgress + greekArtProgress + topicOverview;
+                additionalContent = contentTesterProgress + iliadProgress + aeneidProgress + greekArtProgress + topicOverview;
+            } else {
+                // For Greek and Prep-Latin, just show content tester
+                additionalContent = contentTesterProgress;
             }
 
             let html = `
@@ -1563,6 +1581,57 @@
                 return html;
             } catch (err) {
                 console.error('Error building set text overview:', err);
+                return '';
+            }
+        }
+
+        // Build content tester overview (for all class types)
+        async function buildContentTesterOverview() {
+            if (!contentTester) return '';
+
+            try {
+                const progress = await contentTester.getStudentProgress();
+
+                if (!progress || progress.length === 0) {
+                    // No content tests available for this class
+                    return '';
+                }
+
+                const stats = await contentTester.getSummaryStats();
+
+                let html = `
+                    <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-weight: 600; color: #1f2937; font-size: 0.95rem;">🎯 Content Tests</span>
+                            <span style="font-size: 0.75rem; color: #6b7280;">${stats.mastered + stats.proficient} / ${stats.total} proficient</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <div style="background: #dcfce7; border: 1px solid #16a34a; border-radius: 8px; padding: 0.5rem; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #15803d;">${stats.mastered}</div>
+                                <div style="font-size: 0.65rem; color: #15803d;">Mastered</div>
+                            </div>
+                            <div style="background: #dbeafe; border: 1px solid #2563eb; border-radius: 8px; padding: 0.5rem; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #1e40af;">${stats.proficient}</div>
+                                <div style="font-size: 0.65rem; color: #1e40af;">Proficient</div>
+                            </div>
+                            <div style="background: #ffedd5; border: 1px solid #ea580c; border-radius: 8px; padding: 0.5rem; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #9a3412;">${stats.needsWork}</div>
+                                <div style="font-size: 0.65rem; color: #9a3412;">Needs Work</div>
+                            </div>
+                            <div style="background: #f3f4f6; border: 1px solid #9ca3af; border-radius: 8px; padding: 0.5rem; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #4b5563;">${stats.notStarted}</div>
+                                <div style="font-size: 0.65rem; color: #4b5563;">Not Started</div>
+                            </div>
+                        </div>
+                        <div style="max-height: 200px; overflow-y: auto;">
+                            ${contentTester.renderTopicList(progress)}
+                        </div>
+                    </div>
+                `;
+
+                return html;
+            } catch (err) {
+                console.error('Error building content tester overview:', err);
                 return '';
             }
         }
@@ -3579,7 +3648,7 @@
         async function loadPendingTasks() {
             const container = document.getElementById('pendingTasks');
 
-            if (!currentClassId) {
+            if (!currentClassId || !trackingSystem) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">🎒</div>
@@ -3589,14 +3658,8 @@
                 return;
             }
 
-            // Get tasks for current class that haven't passed their due date
-            const now = new Date();
-            const { data: tasks } = await supabase
-                .from('tasks')
-                .select('*')
-                .eq('class_id', currentClassId)
-                .gte('due_date', now.toISOString())
-                .order('due_date', { ascending: true });
+            // Get tasks using the improved tracking system
+            const tasks = await trackingSystem.getUpcomingTasks(10);
 
             if (!tasks || tasks.length === 0) {
                 container.innerHTML = `
@@ -3608,43 +3671,14 @@
                 return;
             }
 
-            // Check which tasks have been completed (for visual indicator)
-            const completedTaskIds = new Set(attempts.filter(a => a.completed_at).map(a => a.task_id));
+            // Render with improved task display including summary header
+            const summaryHtml = trackingSystem.renderTaskSummaryHeader(tasks);
+            const tasksHtml = trackingSystem.renderTasksSection(tasks, {
+                groupByCategory: false, // Set to true to group by type
+                showCompleted: true
+            });
 
-            container.innerHTML = tasks.slice(0, 5).map(task => {
-                const due = new Date(task.due_date);
-                const daysUntil = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
-                const isCompleted = completedTaskIds.has(task.id);
-                
-                let dueClass = '';
-                let dueText = '';
-                
-                if (daysUntil === 0) {
-                    dueClass = 'soon';
-                    dueText = 'Due today!';
-                } else if (daysUntil === 1) {
-                    dueClass = 'soon';
-                    dueText = 'Due tomorrow';
-                } else if (daysUntil <= 3) {
-                    dueClass = 'soon';
-                    dueText = `Due in ${daysUntil} days`;
-                } else {
-                    dueText = `Due ${due.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
-                }
-
-                return `
-                    <div class="task-item">
-                        <div class="task-top">
-                            <div class="task-icon">${isCompleted ? '✅' : '📝'}</div>
-                            <div class="task-info">
-                                <div class="task-title">${task.title}${isCompleted ? ' <span style="color: #10b981; font-size: 0.75rem;">(done)</span>' : ''}</div>
-                                <div class="task-due ${dueClass}">${dueText}</div>
-                            </div>
-                        </div>
-                        <a href="${task.content_path}${task.content_path.includes('?') ? '&' : '?'}task_id=${task.id}" class="task-btn">${isCompleted ? 'Practise Again' : 'Practise Now'}</a>
-                    </div>
-                `;
-            }).join('');
+            container.innerHTML = summaryHtml + tasksHtml;
         }
 
         // Helper: time ago
