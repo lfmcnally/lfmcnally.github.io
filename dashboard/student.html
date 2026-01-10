@@ -1047,6 +1047,14 @@
 
             <!-- Right Column -->
             <div class="right-column">
+                <!-- Recommended Next Steps -->
+                <div class="card" id="recommendationsCard" style="margin-bottom: 1rem; display: none;">
+                    <div class="card-header">💡 Recommended Next Steps</div>
+                    <div class="card-body" id="recommendationsContainer">
+                        <div class="loading">Analyzing your progress...</div>
+                    </div>
+                </div>
+
                 <!-- Pending Tasks -->
                 <div class="card" style="margin-bottom: 1rem;">
                     <div class="card-header">📝 Upcoming Tasks</div>
@@ -1092,6 +1100,7 @@
     <script src="../auth/config.js"></script>
     <script src="../shared/student-tracking.js"></script>
     <script src="../shared/content-tester.js"></script>
+    <script src="../shared/analytics-engine.js"></script>
 
     <!-- Word List Modal -->
     <div class="modal-overlay" id="wordListModal">
@@ -1119,6 +1128,7 @@
         let currentClass = null;
         let trackingSystem = null;
         let contentTester = null;
+        let analyticsEngine = null;
 
         // Initialize
         async function init() {
@@ -1174,6 +1184,8 @@
             contentTester = new ContentTesterSystem();
             await contentTester.init(supabase, currentClassId);
 
+            analyticsEngine = new AnalyticsEngine(supabase);
+
             // Update header with class info
             document.getElementById('userName').textContent = '';
             document.getElementById('headerTitle').textContent = currentClass.name;
@@ -1187,6 +1199,7 @@
             renderRecentActivity();
             loadPendingTasks();
             renderQuickActions();
+            loadRecommendations();
 
             // Show/hide sections based on class type
             updateSectionsForClassType();
@@ -2576,6 +2589,131 @@
             }
 
             container.innerHTML = html;
+        }
+
+        // Load Recommendations
+        async function loadRecommendations() {
+            const card = document.getElementById('recommendationsCard');
+            const container = document.getElementById('recommendationsContainer');
+
+            if (!analyticsEngine || !currentUser || !currentClassId || !currentClass) {
+                card.style.display = 'none';
+                return;
+            }
+
+            try {
+                // Analyze student performance
+                const analysis = await analyticsEngine.analyzeStudentPerformance(
+                    currentUser.id,
+                    currentClassId,
+                    currentClass.type
+                );
+
+                if (!analysis.recommendations || analysis.recommendations.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 1.5rem; color: #10b981;">
+                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
+                            <div style="font-weight: 600; color: #065f46;">Great work!</div>
+                            <div style="font-size: 0.85rem; color: #6b7280; margin-top: 0.3rem;">You're on track with everything</div>
+                        </div>
+                    `;
+                    card.style.display = 'block';
+                    return;
+                }
+
+                // Build recommendations HTML
+                const priorityConfig = {
+                    urgent: { color: '#dc2626', icon: '🚨', label: 'Urgent' },
+                    high: { color: '#ea580c', icon: '⚠️', label: 'Important' },
+                    medium: { color: '#f59e0b', icon: '💡', label: 'Recommended' },
+                    low: { color: '#0066ff', icon: '✨', label: 'Suggested' }
+                };
+
+                const categoryConfig = {
+                    'prep-tasks': { icon: '📝', url: '#pendingTasks' },
+                    'vocabulary': {
+                        icon: '📖',
+                        url: currentClass.type === 'latin' ? '../latin/vocabulary-practice.html?mode=review&language=latin' :
+                             currentClass.type === 'greek' ? '../greek/vocabulary-practice.html?mode=review&language=greek' :
+                             '../latin/prep-vocabulary-practice.html?mode=review&language=prep-latin'
+                    },
+                    'set-texts': { icon: '📜', url: '../latin/literature/set-text-quiz.html' },
+                    'reading': { icon: '📚', url: '../classical-civ/hub.html' },
+                    'content-tests': { icon: '🎯', url: null },
+                    'activity': { icon: '⏱️', url: null }
+                };
+
+                let html = '';
+
+                analysis.recommendations.slice(0, 3).forEach((rec, index) => {
+                    const priority = priorityConfig[rec.priority] || priorityConfig.medium;
+                    const category = categoryConfig[rec.category] || { icon: '📌', url: null };
+                    const actionUrl = rec.actionUrl || category.url;
+
+                    html += `
+                        <div style="
+                            padding: 0.875rem;
+                            margin-bottom: ${index < 2 ? '0.75rem' : '0'};
+                            background: ${priority.color}05;
+                            border-left: 3px solid ${priority.color};
+                            border-radius: 8px;
+                            transition: all 0.2s;
+                        " onmouseover="this.style.transform='translateX(4px)'" onmouseout="this.style.transform='translateX(0)'">
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                                <span style="font-size: 1.25rem; flex-shrink: 0;">${category.icon}</span>
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem;">
+                                        <span style="font-weight: 600; font-size: 0.9rem; color: #1f2937;">${rec.title}</span>
+                                        <span style="
+                                            background: ${priority.color};
+                                            color: white;
+                                            font-size: 0.65rem;
+                                            font-weight: 600;
+                                            padding: 0.15rem 0.4rem;
+                                            border-radius: 4px;
+                                        ">${priority.label}</span>
+                                    </div>
+                                    <p style="font-size: 0.8rem; color: #6b7280; margin-bottom: ${actionUrl ? '0.5rem' : '0'};">${rec.description}</p>
+                                    ${actionUrl ? `
+                                        <a href="${actionUrl}" style="
+                                            display: inline-block;
+                                            font-size: 0.75rem;
+                                            font-weight: 600;
+                                            color: ${priority.color};
+                                            text-decoration: none;
+                                            transition: transform 0.2s;
+                                        " onmouseover="this.style.transform='translateX(3px)'" onmouseout="this.style.transform='translateX(0)'">
+                                            ${rec.action} →
+                                        </a>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Add "View All" link if more than 3 recommendations
+                if (analysis.recommendations.length > 3) {
+                    html += `
+                        <div style="text-align: center; margin-top: 0.75rem;">
+                            <a href="#" onclick="event.preventDefault(); alert('Full recommendations view coming soon!')" style="
+                                font-size: 0.75rem;
+                                color: #0066ff;
+                                text-decoration: none;
+                                font-weight: 500;
+                            ">
+                                +${analysis.recommendations.length - 3} more recommendations
+                            </a>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = html;
+                card.style.display = 'block';
+            } catch (err) {
+                console.error('Error loading recommendations:', err);
+                card.style.display = 'none';
+            }
         }
 
         // Announcements
