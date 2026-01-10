@@ -897,6 +897,133 @@
             padding: 2rem;
         }
 
+        /* Student Progress Table */
+        .progress-table-wrapper {
+            overflow-x: auto;
+        }
+        .progress-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .progress-table th,
+        .progress-table td {
+            padding: 0.875rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .progress-table thead th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            position: relative;
+        }
+        .progress-table thead th:hover {
+            background: #f3f4f6;
+        }
+        .progress-table thead th.sortable::after {
+            content: '⇅';
+            margin-left: 0.5rem;
+            opacity: 0.3;
+        }
+        .progress-table thead th.sorted-asc::after {
+            content: '↑';
+            opacity: 1;
+        }
+        .progress-table thead th.sorted-desc::after {
+            content: '↓';
+            opacity: 1;
+        }
+        .progress-table tbody tr {
+            transition: background 0.2s;
+        }
+        .progress-table tbody tr:hover {
+            background: #f9fafb;
+        }
+        .progress-table tbody tr.status-excellent {
+            border-left: 3px solid #10b981;
+        }
+        .progress-table tbody tr.status-good {
+            border-left: 3px solid #84cc16;
+        }
+        .progress-table tbody tr.status-needs-attention {
+            border-left: 3px solid #f59e0b;
+        }
+        .progress-table tbody tr.status-struggling {
+            border-left: 3px solid #ef4444;
+        }
+        .progress-stat {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .progress-badge {
+            display: inline-block;
+            padding: 0.25rem 0.625rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .progress-badge.excellent {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .progress-badge.good {
+            background: #d9f99d;
+            color: #365314;
+        }
+        .progress-badge.average {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .progress-badge.poor {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .progress-badge.none {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        .engagement-score {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        .engagement-score.high {
+            color: #10b981;
+        }
+        .engagement-score.medium {
+            color: #f59e0b;
+        }
+        .engagement-score.low {
+            color: #ef4444;
+        }
+        .progress-table-filters {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover {
+            background: #f9fafb;
+        }
+        .filter-btn.active {
+            background: #0066ff;
+            color: white;
+            border-color: #0066ff;
+        }
+
         /* Announcements & Resources */
         .announcement-item {
             background: #f9fafb;
@@ -1261,6 +1388,27 @@
             </div>
             <div class="card-body" id="coTeachersContainer">
                 <div class="loading">Loading co-teachers...</div>
+            </div>
+        </div>
+
+        <!-- Student Progress Overview Table -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <span class="card-title">📈 Student Progress Overview</span>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span style="font-size: 0.85rem; color: #6b7280;">Click column headers to sort</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="progress-table-filters">
+                    <button class="filter-btn active" onclick="filterProgressTable('all')">All Students</button>
+                    <button class="filter-btn" onclick="filterProgressTable('excellent')">Excellent (80%+)</button>
+                    <button class="filter-btn" onclick="filterProgressTable('needs-attention')">Needs Attention</button>
+                    <button class="filter-btn" onclick="filterProgressTable('struggling')">Struggling</button>
+                </div>
+                <div id="studentProgressContainer">
+                    <div class="loading">Loading student progress...</div>
+                </div>
             </div>
         </div>
 
@@ -2240,7 +2388,284 @@
             html += '</ul>';
             container.innerHTML = html;
         }
-        
+
+        // Student Progress Overview
+        let studentProgressData = [];
+        let currentProgressSort = { column: 'engagement', direction: 'desc' };
+        let currentProgressFilter = 'all';
+
+        async function loadStudentProgress() {
+            const container = document.getElementById('studentProgressContainer');
+
+            if (classStudents.length === 0) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">👥</div><p>No students yet.</p></div>';
+                return;
+            }
+
+            container.innerHTML = '<div class="loading">Loading progress data...</div>';
+
+            // Gather all progress data for each student
+            const progressPromises = classStudents.map(async student => {
+                const studentId = student.id;
+
+                // Fetch vocabulary mastery (for Latin/Greek classes)
+                let vocabMastered = 0;
+                let vocabTotal = 0;
+                if (currentClass.type === 'latin' || currentClass.type === 'greek' || currentClass.type === 'prep-latin') {
+                    const { data: vocabData } = await supabase
+                        .from('word_mastery')
+                        .select('mastery_level')
+                        .eq('student_id', studentId);
+
+                    if (vocabData) {
+                        vocabTotal = vocabData.length;
+                        vocabMastered = vocabData.filter(w => w.mastery_level >= 3).length;
+                    }
+                }
+
+                // Fetch set text average (for Latin classes)
+                let setTextAvg = null;
+                if (currentClass.type === 'latin' || currentClass.type === 'prep-latin') {
+                    const { data: setTextData } = await supabase
+                        .from('set_text_answers')
+                        .select('score')
+                        .eq('user_id', studentId)
+                        .not('score', 'is', null);
+
+                    if (setTextData && setTextData.length > 0) {
+                        const totalScore = setTextData.reduce((sum, a) => sum + a.score, 0);
+                        setTextAvg = Math.round(totalScore / setTextData.length);
+                    }
+                }
+
+                // Fetch content test performance
+                let contentTestAvg = null;
+                const { data: contentTestData } = await supabase
+                    .from('content_test_attempts')
+                    .select('score_percentage')
+                    .eq('student_id', studentId);
+
+                if (contentTestData && contentTestData.length > 0) {
+                    const totalScore = contentTestData.reduce((sum, a) => sum + a.score_percentage, 0);
+                    contentTestAvg = Math.round(totalScore / contentTestData.length);
+                }
+
+                // Fetch reading time this week
+                let readingMinutes = 0;
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+
+                const { data: readingData } = await supabase
+                    .from('task_attempts')
+                    .select('time_spent_seconds')
+                    .eq('student_id', studentId)
+                    .gte('started_at', weekAgo.toISOString());
+
+                if (readingData) {
+                    const totalSeconds = readingData.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
+                    readingMinutes = Math.round(totalSeconds / 60);
+                }
+
+                // Calculate engagement score (0-100)
+                let engagementScore = 0;
+                let factors = 0;
+
+                if (vocabTotal > 0) {
+                    engagementScore += (vocabMastered / vocabTotal) * 100;
+                    factors++;
+                }
+                if (setTextAvg !== null) {
+                    engagementScore += setTextAvg;
+                    factors++;
+                }
+                if (contentTestAvg !== null) {
+                    engagementScore += contentTestAvg;
+                    factors++;
+                }
+                if (readingMinutes > 0) {
+                    engagementScore += Math.min(readingMinutes / 2, 100);
+                    factors++;
+                }
+
+                const finalEngagement = factors > 0 ? Math.round(engagementScore / factors) : 0;
+
+                return {
+                    id: studentId,
+                    name: student.full_name || student.email.split('@')[0],
+                    vocabMastered,
+                    vocabTotal,
+                    setTextAvg,
+                    contentTestAvg,
+                    readingMinutes,
+                    engagementScore: finalEngagement
+                };
+            });
+
+            studentProgressData = await Promise.all(progressPromises);
+            renderProgressTable();
+        }
+
+        function renderProgressTable() {
+            const container = document.getElementById('studentProgressContainer');
+
+            // Apply filter
+            let filteredData = [...studentProgressData];
+            if (currentProgressFilter === 'excellent') {
+                filteredData = filteredData.filter(s => s.engagementScore >= 80);
+            } else if (currentProgressFilter === 'needs-attention') {
+                filteredData = filteredData.filter(s => s.engagementScore >= 50 && s.engagementScore < 70);
+            } else if (currentProgressFilter === 'struggling') {
+                filteredData = filteredData.filter(s => s.engagementScore < 50);
+            }
+
+            // Apply sort
+            filteredData.sort((a, b) => {
+                let aVal = a[currentProgressSort.column];
+                let bVal = b[currentProgressSort.column];
+
+                // Handle nulls
+                if (aVal === null) aVal = -1;
+                if (bVal === null) bVal = -1;
+
+                // String comparison for name
+                if (currentProgressSort.column === 'name') {
+                    return currentProgressSort.direction === 'asc'
+                        ? aVal.localeCompare(bVal)
+                        : bVal.localeCompare(aVal);
+                }
+
+                // Numeric comparison
+                return currentProgressSort.direction === 'asc'
+                    ? aVal - bVal
+                    : bVal - aVal;
+            });
+
+            if (filteredData.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No students match this filter.</p></div>';
+                return;
+            }
+
+            // Build table
+            let html = '<div class="progress-table-wrapper"><table class="progress-table"><thead><tr>';
+
+            // Headers
+            const columns = [
+                { key: 'name', label: 'Student', sortable: true },
+                { key: 'vocabMastered', label: 'Vocabulary', sortable: true },
+                { key: 'setTextAvg', label: 'Set Text Avg', sortable: true },
+                { key: 'contentTestAvg', label: 'Content Tests', sortable: true },
+                { key: 'readingMinutes', label: 'Reading (Week)', sortable: true },
+                { key: 'engagementScore', label: 'Engagement', sortable: true }
+            ];
+
+            for (const col of columns) {
+                const sortClass = col.sortable ? 'sortable' : '';
+                const sortedClass = currentProgressSort.column === col.key
+                    ? (currentProgressSort.direction === 'asc' ? 'sorted-asc' : 'sorted-desc')
+                    : '';
+                const onclick = col.sortable ? `onclick="sortProgressTable('${col.key}')"` : '';
+                html += `<th class="${sortClass} ${sortedClass}" ${onclick}>${col.label}</th>`;
+            }
+
+            html += '</tr></thead><tbody>';
+
+            // Rows
+            for (const student of filteredData) {
+                // Determine status class
+                let statusClass = 'status-good';
+                if (student.engagementScore >= 85) statusClass = 'status-excellent';
+                else if (student.engagementScore >= 70) statusClass = 'status-good';
+                else if (student.engagementScore >= 50) statusClass = 'status-needs-attention';
+                else statusClass = 'status-struggling';
+
+                html += `<tr class="${statusClass}">`;
+
+                // Name
+                html += `<td><a href="student-profile.html?student_id=${student.id}&class_id=${currentClass.id}" style="color: #1f2937; font-weight: 600; text-decoration: none;">${student.name}</a></td>`;
+
+                // Vocabulary
+                if (student.vocabTotal > 0) {
+                    const percentage = Math.round((student.vocabMastered / student.vocabTotal) * 100);
+                    let badge = 'none';
+                    if (percentage >= 80) badge = 'excellent';
+                    else if (percentage >= 60) badge = 'good';
+                    else if (percentage >= 40) badge = 'average';
+                    else if (percentage > 0) badge = 'poor';
+
+                    html += `<td><span class="progress-badge ${badge}">${student.vocabMastered} / ${student.vocabTotal} (${percentage}%)</span></td>`;
+                } else {
+                    html += `<td><span class="progress-badge none">N/A</span></td>`;
+                }
+
+                // Set Text Average
+                if (student.setTextAvg !== null) {
+                    let badge = 'none';
+                    if (student.setTextAvg >= 80) badge = 'excellent';
+                    else if (student.setTextAvg >= 70) badge = 'good';
+                    else if (student.setTextAvg >= 60) badge = 'average';
+                    else badge = 'poor';
+
+                    html += `<td><span class="progress-badge ${badge}">${student.setTextAvg}%</span></td>`;
+                } else {
+                    html += `<td><span class="progress-badge none">No data</span></td>`;
+                }
+
+                // Content Test Average
+                if (student.contentTestAvg !== null) {
+                    let badge = 'none';
+                    if (student.contentTestAvg >= 80) badge = 'excellent';
+                    else if (student.contentTestAvg >= 70) badge = 'good';
+                    else if (student.contentTestAvg >= 60) badge = 'average';
+                    else badge = 'poor';
+
+                    html += `<td><span class="progress-badge ${badge}">${student.contentTestAvg}%</span></td>`;
+                } else {
+                    html += `<td><span class="progress-badge none">No data</span></td>`;
+                }
+
+                // Reading Minutes
+                if (student.readingMinutes > 0) {
+                    html += `<td>${student.readingMinutes} min</td>`;
+                } else {
+                    html += `<td><span style="color: #9ca3af;">0 min</span></td>`;
+                }
+
+                // Engagement Score
+                let scoreClass = 'low';
+                if (student.engagementScore >= 70) scoreClass = 'high';
+                else if (student.engagementScore >= 50) scoreClass = 'medium';
+
+                html += `<td><span class="engagement-score ${scoreClass}">${student.engagementScore}</span></td>`;
+
+                html += '</tr>';
+            }
+
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        function sortProgressTable(column) {
+            if (currentProgressSort.column === column) {
+                currentProgressSort.direction = currentProgressSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentProgressSort.column = column;
+                currentProgressSort.direction = 'desc';
+            }
+            renderProgressTable();
+        }
+
+        function filterProgressTable(filter) {
+            currentProgressFilter = filter;
+
+            // Update button states
+            document.querySelectorAll('.progress-table-filters .filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            renderProgressTable();
+        }
+
         // View student word mastery
         let currentStudentMastery = { all: [], mastered: [], learning: [], struggling: [] };
         let currentStudentHistory = [];
@@ -3358,6 +3783,7 @@
             
             await loadClassDetails();
             await loadStudents();
+            await loadStudentProgress();
             await loadTasks();
             await loadCompletionGrid();
 
