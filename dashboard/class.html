@@ -1195,6 +1195,81 @@
                 padding: 0.5rem 0.25rem;
             }
         }
+
+        /* Activity Heatmap Styles */
+        .heatmap-container {
+            overflow-x: auto;
+            padding: 0.5rem 0;
+        }
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: 150px repeat(auto-fill, 18px);
+            gap: 2px 2px;
+            align-items: center;
+            font-size: 0.75rem;
+        }
+        .heatmap-student-name {
+            padding: 0.25rem 0.5rem;
+            font-weight: 500;
+            color: #374151;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .heatmap-cell {
+            width: 18px;
+            height: 18px;
+            border-radius: 3px;
+            background: #f3f4f6;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .heatmap-cell:hover {
+            transform: scale(1.3);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        .heatmap-cell.level-1 { background: #dcfce7; }
+        .heatmap-cell.level-2 { background: #86efac; }
+        .heatmap-cell.level-3 { background: #4ade80; }
+        .heatmap-cell.level-4 { background: #22c55e; }
+        .heatmap-cell.level-5 { background: #16a34a; }
+        .heatmap-header-dates {
+            display: grid;
+            grid-template-columns: 150px repeat(auto-fill, 18px);
+            gap: 2px;
+            margin-bottom: 0.5rem;
+            font-size: 0.65rem;
+            color: #6b7280;
+        }
+        .heatmap-date {
+            text-align: center;
+            transform: rotate(-45deg);
+            transform-origin: center;
+            white-space: nowrap;
+        }
+        .heatmap-legend {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+            font-size: 0.75rem;
+            color: #6b7280;
+            justify-content: center;
+        }
+        .heatmap-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .heatmap-legend-box {
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
+        }
     </style>
 </head>
 <body>
@@ -1388,6 +1463,25 @@
             </div>
             <div class="card-body" id="coTeachersContainer">
                 <div class="loading">Loading co-teachers...</div>
+            </div>
+        </div>
+
+        <!-- Activity Heatmap -->
+        <div class="card" id="activityHeatmapCard" style="margin-bottom: 1.5rem; display: none;">
+            <div class="card-header">
+                <span class="card-title">🔥 Class Activity Heatmap</span>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <select id="heatmapDays" onchange="loadActivityHeatmap()" style="padding: 0.4rem 0.6rem; font-size: 0.85rem; border: 1px solid #e5e7eb; border-radius: 6px; background: white;">
+                        <option value="14">Last 14 days</option>
+                        <option value="30" selected>Last 30 days</option>
+                        <option value="60">Last 60 days</option>
+                    </select>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="activityHeatmapContainer">
+                    <div class="loading">Loading activity data...</div>
+                </div>
             </div>
         </div>
 
@@ -1901,6 +1995,7 @@
     <script src="../shared/vocabulary-data.js"></script>
     <script src="../shared/greek-vocabulary-data.js"></script>
     <script src="../latin/data/suburani-vocab.js"></script>
+    <script src="../shared/analytics-engine.js"></script>
 
     <script>
         let currentUser = null;
@@ -1908,6 +2003,7 @@
         let classStudents = [];
         let classCoTeachers = [];
         let isClassOwner = false;
+        let analyticsEngine = null;
         
         // Get vocab data based on class type
         function getVocabData() {
@@ -2666,11 +2762,128 @@
             renderProgressTable();
         }
 
+        // Load Activity Heatmap
+        async function loadActivityHeatmap() {
+            const card = document.getElementById('activityHeatmapCard');
+            const container = document.getElementById('activityHeatmapContainer');
+
+            if (!analyticsEngine || !currentClass || classStudents.length === 0) {
+                card.style.display = 'none';
+                return;
+            }
+
+            try {
+                const days = parseInt(document.getElementById('heatmapDays').value) || 30;
+                const heatmapData = await analyticsEngine.generateClassActivityHeatmap(currentClass.id, days);
+
+                if (!heatmapData || !heatmapData.students || heatmapData.students.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>No activity data available</p></div>';
+                    card.style.display = 'block';
+                    return;
+                }
+
+                // Build heatmap HTML
+                let html = '<div class="heatmap-container">';
+
+                // Summary stats
+                html += `
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; padding: 0.75rem; background: #f9fafb; border-radius: 8px; font-size: 0.85rem;">
+                        <div><span style="font-weight: 600; color: #0066ff;">${heatmapData.summary.activeStudents}</span> / ${heatmapData.summary.totalStudents} students active</div>
+                        <div><span style="font-weight: 600; color: #0066ff;">${heatmapData.summary.totalSessions}</span> total sessions</div>
+                        <div><span style="font-weight: 600; color: #0066ff;">${Math.round(heatmapData.summary.totalTime / 60)}</span> minutes of practice</div>
+                    </div>
+                `;
+
+                // Date headers
+                html += '<div class="heatmap-header-dates"><div></div>';
+                heatmapData.dates.forEach((date, index) => {
+                    // Show every 3rd date to reduce clutter
+                    if (index % 3 === 0) {
+                        const d = new Date(date);
+                        const formatted = `${d.getDate()}/${d.getMonth() + 1}`;
+                        html += `<div class="heatmap-date">${formatted}</div>`;
+                    } else {
+                        html += '<div></div>';
+                    }
+                });
+                html += '</div>';
+
+                // Student rows
+                html += '<div class="heatmap-grid">';
+
+                heatmapData.students.forEach(student => {
+                    // Student name cell
+                    html += `<div class="heatmap-student-name" title="${student.studentName}">${student.studentName}</div>`;
+
+                    // Activity cells for each date
+                    heatmapData.dates.forEach(date => {
+                        const activity = student.activity[date];
+                        const sessions = activity.sessions;
+
+                        let level = 0;
+                        if (sessions >= 5) level = 5;
+                        else if (sessions >= 4) level = 4;
+                        else if (sessions >= 3) level = 3;
+                        else if (sessions >= 2) level = 2;
+                        else if (sessions >= 1) level = 1;
+
+                        const timeMinutes = Math.round(activity.timeSpent / 60);
+                        const avgScore = activity.avgScore > 0 ? Math.round(activity.avgScore) : '';
+
+                        const tooltip = `${student.studentName} - ${date}\n${sessions} session${sessions !== 1 ? 's' : ''}\n${timeMinutes} min${timeMinutes !== 1 ? 's' : ''}${avgScore ? `\nAvg score: ${avgScore}%` : ''}`;
+
+                        html += `<div class="heatmap-cell ${level > 0 ? 'level-' + level : ''}" title="${tooltip}"></div>`;
+                    });
+                });
+
+                html += '</div>'; // End grid
+
+                // Legend
+                html += `
+                    <div class="heatmap-legend">
+                        <span>Activity level:</span>
+                        <div class="heatmap-legend-item">
+                            <div class="heatmap-legend-box" style="background: #f3f4f6;"></div>
+                            <span>None</span>
+                        </div>
+                        <div class="heatmap-legend-item">
+                            <div class="heatmap-legend-box level-1" style="background: #dcfce7;"></div>
+                            <span>1</span>
+                        </div>
+                        <div class="heatmap-legend-item">
+                            <div class="heatmap-legend-box level-2" style="background: #86efac;"></div>
+                            <span>2</span>
+                        </div>
+                        <div class="heatmap-legend-item">
+                            <div class="heatmap-legend-box level-3" style="background: #4ade80;"></div>
+                            <span>3</span>
+                        </div>
+                        <div class="heatmap-legend-item">
+                            <div class="heatmap-legend-box level-4" style="background: #22c55e;"></div>
+                            <span>4</span>
+                        </div>
+                        <div class="heatmap-legend-item">
+                            <div class="heatmap-legend-box level-5" style="background: #16a34a;"></div>
+                            <span>5+ sessions</span>
+                        </div>
+                    </div>
+                `;
+
+                html += '</div>'; // End container
+
+                container.innerHTML = html;
+                card.style.display = 'block';
+            } catch (err) {
+                console.error('Error loading activity heatmap:', err);
+                card.style.display = 'none';
+            }
+        }
+
         // View student word mastery
         let currentStudentMastery = { all: [], mastered: [], learning: [], struggling: [] };
         let currentStudentHistory = [];
         let currentStudentId = null;
-        
+
         async function viewStudentMastery(studentId, studentName) {
             currentStudentId = studentId;
             document.getElementById('studentMasteryName').textContent = studentName;
@@ -3783,7 +3996,12 @@
             
             await loadClassDetails();
             await loadStudents();
+
+            // Initialize analytics engine
+            analyticsEngine = new AnalyticsEngine(supabase);
+
             await loadStudentProgress();
+            await loadActivityHeatmap();
             await loadTasks();
             await loadCompletionGrid();
 
