@@ -1374,11 +1374,21 @@
                     .in('student_id', studentIds);
 
                 const totalStudents = classStudents.length;
+
+                // Count both completed and in-progress
                 const completedStudents = new Set(
                     (attempts || [])
                         .filter(a => a.completed_at)
                         .map(a => a.student_id)
                 ).size;
+
+                const inProgressStudents = new Set(
+                    (attempts || [])
+                        .filter(a => !a.completed_at)
+                        .map(a => a.student_id)
+                ).size;
+
+                const studentsAttempted = completedStudents + inProgressStudents;
 
                 const avgAttempts = attempts && attempts.length > 0
                     ? Math.round(attempts.reduce((sum, a) => sum + (a.num_attempts || 1), 0) / attempts.length)
@@ -1395,6 +1405,8 @@
                 return {
                     ...task,
                     completedStudents,
+                    inProgressStudents,
+                    studentsAttempted,
                     totalStudents,
                     avgAttempts,
                     avgTime,
@@ -1429,6 +1441,8 @@
                 }
 
                 const completionRate = Math.round((task.completedStudents / task.totalStudents) * 100) || 0;
+                const attemptedRate = Math.round((task.studentsAttempted / task.totalStudents) * 100) || 0;
+
                 let completionClass = 'low';
                 if (completionRate >= 80) completionClass = 'high';
                 else if (completionRate >= 50) completionClass = 'medium';
@@ -1450,8 +1464,8 @@
                                 <div class="task-stat-label">Completed</div>
                             </div>
                             <div class="task-stat">
-                                <div class="task-stat-value">${task.avgAttempts || '—'}</div>
-                                <div class="task-stat-label">Avg Attempts</div>
+                                <div class="task-stat-value">${task.inProgressStudents > 0 ? task.inProgressStudents : '—'}</div>
+                                <div class="task-stat-label">In Progress</div>
                             </div>
                             <div class="task-stat">
                                 <div class="task-stat-value">${task.avgTime || '—'}m</div>
