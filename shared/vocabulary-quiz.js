@@ -38,19 +38,20 @@ function levenshteinDistance(str1, str2) {
     return dp[m][n];
 }
 
-// Normalize text for comparison (remove dashes, extra spaces, parenthetical content)
+// Normalize text for comparison (remove dashes, ellipsis, extra spaces, parenthetical content)
 function normalizeText(text) {
     return text
         .toLowerCase()
-        .replace(/[-–—]/g, ' ')      // Replace dashes with spaces
+        .replace(/\.{2,}/g, ' ')      // Replace ellipsis (...) with space
+        .replace(/[-–—]/g, ' ')       // Replace dashes with spaces
         .replace(/\s+/g, ' ')         // Collapse multiple spaces
         .replace(/['']/g, "'")        // Normalize apostrophes
         .trim();
 }
 
-// Remove all spaces and dashes for very lenient comparison
+// Remove all spaces, dashes, and dots for very lenient comparison
 function removeSpacesAndDashes(text) {
-    return text.toLowerCase().replace(/[-–—\s]/g, '');
+    return text.toLowerCase().replace(/[-–—\s.]/g, '');
 }
 
 // Remove common prefixes that students might omit
