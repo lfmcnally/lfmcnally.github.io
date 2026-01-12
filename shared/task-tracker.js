@@ -70,6 +70,7 @@ const taskTracker = {
             .insert({
                 task_id: this.taskId, // null for free practice
                 student_id: this.userId,
+                content_path: window.location.pathname, // Track what page they're practicing
                 started_at: this.startTime.toISOString()
             })
             .select()
