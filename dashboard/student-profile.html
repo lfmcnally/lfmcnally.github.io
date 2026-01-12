@@ -524,6 +524,14 @@
             <div class="loading">Loading student data...</div>
         </div>
 
+        <!-- Recent Attempts -->
+        <div class="section-header" style="margin-top: 3rem;">
+            <span class="section-title">Recent Attempts (All Subjects)</span>
+        </div>
+        <div id="recentAttemptsContainer">
+            <div class="loading">Loading recent attempts...</div>
+        </div>
+
         <!-- Teacher Notes (always visible) -->
         <div class="section-header" style="margin-top: 3rem;">
             <span class="section-title">Teacher Notes</span>
@@ -599,6 +607,7 @@
             }
 
             await loadSubjectContent();
+            await loadRecentAttempts();
         }
 
         // Load student details
@@ -723,6 +732,108 @@
                 html = renderPrepLatinContent(analysis);
             }
 
+            container.innerHTML = html;
+        }
+
+        // Load and render recent attempts (all activity for this student)
+        async function loadRecentAttempts() {
+            const container = document.getElementById('recentAttemptsContainer');
+
+            // Get ALL task_attempts for this student (last 30 days)
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const { data: attempts, error } = await supabase
+                .from('task_attempts')
+                .select(`
+                    *,
+                    tasks (
+                        id,
+                        title,
+                        class_id,
+                        classes (
+                            name,
+                            type
+                        )
+                    )
+                `)
+                .eq('student_id', currentStudent.id)
+                .gte('started_at', thirtyDaysAgo.toISOString())
+                .order('started_at', { ascending: false })
+                .limit(50);
+
+            if (error) {
+                console.error('Error loading attempts:', error);
+                container.innerHTML = '<div class="empty-state"><p>Error loading attempts</p></div>';
+                return;
+            }
+
+            if (!attempts || attempts.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No recent activity in the last 30 days</p></div>';
+                return;
+            }
+
+            // Render attempts
+            let html = '<div class="activity-list">';
+
+            attempts.forEach(attempt => {
+                const startDate = new Date(attempt.started_at);
+                const completedDate = attempt.completed_at ? new Date(attempt.completed_at) : null;
+                const timeSpent = Math.round((attempt.time_spent_seconds || 0) / 60);
+                const score = attempt.score || 0;
+
+                // Determine activity type
+                let activityType = 'Practice';
+                let className = 'Unknown Class';
+
+                if (attempt.tasks && attempt.tasks.title) {
+                    activityType = attempt.tasks.title;
+                    className = attempt.tasks.classes?.name || 'Unknown Class';
+                } else if (attempt.content_path) {
+                    // Parse content_path for practice activities
+                    if (attempt.content_path.includes('vocabulary')) activityType = 'Vocabulary Practice';
+                    else if (attempt.content_path.includes('set-text')) activityType = 'Set Text Practice';
+                    else if (attempt.content_path.includes('reading')) activityType = 'Reading';
+                    else if (attempt.content_path.includes('suburani')) activityType = 'Suburani Vocab Practice';
+                    else activityType = 'Practice';
+                }
+
+                // Status
+                let statusBadge = '';
+                if (completedDate) {
+                    statusBadge = `<span class="status-badge completed">Completed</span>`;
+                } else {
+                    statusBadge = `<span class="status-badge in-progress">In Progress</span>`;
+                }
+
+                // Score badge
+                let scoreBadge = '';
+                if (score > 0) {
+                    let scoreClass = 'low';
+                    if (score >= 80) scoreClass = 'success';
+                    else if (score >= 60) scoreClass = 'partial';
+                    scoreBadge = `<div class="activity-icon ${scoreClass}">${score}%</div>`;
+                } else {
+                    scoreBadge = `<div class="activity-icon">—</div>`;
+                }
+
+                html += `
+                    <div class="activity-item">
+                        ${scoreBadge}
+                        <div class="activity-info">
+                            <div class="activity-title">${activityType}</div>
+                            <div class="activity-details">
+                                ${className} • ${timeSpent}m • ${getTimeAgo(startDate)} • ${statusBadge}
+                            </div>
+                        </div>
+                        <div class="activity-score">
+                            ${attempt.num_attempts || 1} attempt${attempt.num_attempts !== 1 ? 's' : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
             container.innerHTML = html;
         }
 
