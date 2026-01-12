@@ -1364,12 +1364,14 @@
                 return;
             }
 
-            // For each task, get completion stats
+            // For each task, get completion stats (only for students in this class)
+            const studentIds = classStudents.map(s => s.id);
             const tasksWithStats = await Promise.all(tasks.map(async (task) => {
                 const { data: attempts } = await supabase
                     .from('task_attempts')
                     .select('student_id, completed_at, score, time_spent_seconds, num_attempts')
-                    .eq('task_id', task.id);
+                    .eq('task_id', task.id)
+                    .in('student_id', studentIds);
 
                 const totalStudents = classStudents.length;
                 const completedStudents = new Set(
@@ -1498,12 +1500,34 @@
                 .eq('task_id', taskId)
                 .in('student_id', studentIds);
 
-            // Build completion map
+            // Build completion map - keep best attempt per student
             const completionMap = {};
             (attempts || []).forEach(attempt => {
-                if (!completionMap[attempt.student_id] ||
-                    new Date(attempt.completed_at) > new Date(completionMap[attempt.student_id].completed_at)) {
+                const existingAttempt = completionMap[attempt.student_id];
+
+                if (!existingAttempt) {
+                    // First attempt for this student
                     completionMap[attempt.student_id] = attempt;
+                } else {
+                    // Already have an attempt, decide which to keep
+                    const hasCompleted = attempt.completed_at !== null;
+                    const existingHasCompleted = existingAttempt.completed_at !== null;
+
+                    if (hasCompleted && !existingHasCompleted) {
+                        // New attempt is completed, existing isn't - prefer completed
+                        completionMap[attempt.student_id] = attempt;
+                    } else if (hasCompleted && existingHasCompleted) {
+                        // Both completed - keep most recent
+                        if (new Date(attempt.completed_at) > new Date(existingAttempt.completed_at)) {
+                            completionMap[attempt.student_id] = attempt;
+                        }
+                    } else if (!hasCompleted && !existingHasCompleted) {
+                        // Both in progress - keep most recent started
+                        if (new Date(attempt.started_at) > new Date(existingAttempt.started_at)) {
+                            completionMap[attempt.student_id] = attempt;
+                        }
+                    }
+                    // If existing is completed and new isn't, keep existing (do nothing)
                 }
             });
 
