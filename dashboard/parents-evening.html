@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parents' Evening - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: rgba(0,0,0,0.2);
+        }
+        .class-info {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+        .nav-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        .student-counter {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            min-width: 80px;
+            text-align: center;
+        }
+        .nav-btn {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 0.5rem 1.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        .nav-btn:hover:not(:disabled) {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.4);
+        }
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .exit-btn {
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+        .exit-btn:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        /* Student Card */
+        .student-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 3rem 4rem;
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+        }
+        .student-name {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+        .last-active {
+            font-size: 1rem;
+            opacity: 0.6;
+            margin-bottom: 2.5rem;
+        }
+        .last-active.recent {
+            color: #4ade80;
+            opacity: 1;
+        }
+        .last-active.inactive {
+            color: #f59e0b;
+            opacity: 1;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        .stat-box {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #60a5fa;
+            margin-bottom: 0.25rem;
+        }
+        .stat-value.good { color: #4ade80; }
+        .stat-value.okay { color: #fbbf24; }
+        .stat-value.needs-work { color: #f87171; }
+        .stat-label {
+            font-size: 0.85rem;
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Highlights */
+        .highlights {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .highlight-badge {
+            background: rgba(74, 222, 128, 0.15);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            color: #4ade80;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        .highlight-badge.improvement {
+            background: rgba(251, 191, 36, 0.15);
+            border-color: rgba(251, 191, 36, 0.3);
+            color: #fbbf24;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            opacity: 0.6;
+        }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: #60a5fa;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty/Error States */
+        .error-message {
+            text-align: center;
+            padding: 4rem;
+            color: #f87171;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .student-name {
+                font-size: 2rem;
+            }
+            .stat-value {
+                font-size: 1.75rem;
+            }
+            .student-card {
+                padding: 2rem;
+            }
+        }
+
+        /* Keyboard hints */
+        .keyboard-hints {
+            position: fixed;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 2rem;
+            font-size: 0.8rem;
+            opacity: 0.4;
+        }
+        .key {
+            background: rgba(255,255,255,0.1);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="class-info" id="classInfo">Loading...</div>
+        <div class="nav-controls">
+            <button class="nav-btn" id="prevBtn" disabled>&larr; Previous</button>
+            <span class="student-counter" id="studentCounter">-/-</span>
+            <button class="nav-btn" id="nextBtn" disabled>Next &rarr;</button>
+            <button class="nav-btn exit-btn" onclick="exitView()">Exit</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div id="content">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading student data...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="keyboard-hints">
+        <span><span class="key">&larr;</span> Previous</span>
+        <span><span class="key">&rarr;</span> Next</span>
+        <span><span class="key">Esc</span> Exit</span>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://ykzyngqhdjypjxwlafgv.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrenlnZ3FoZGp5cGp4d2xhZmd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjkwMDQ4NTMsImV4cCI6MjA0NDU4MDg1M30.ahnHjMp9d04KRJXmCfXwQGlgfIyw6HqM88xPWAV9JU0';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let students = [];
+        let currentIndex = 0;
+        let classData = null;
+
+        async function init() {
+            const params = new URLSearchParams(window.location.search);
+            const classId = params.get('class');
+
+            if (!classId) {
+                showError('No class specified. Please access this page from a class view.');
+                return;
+            }
+
+            try {
+                // Load class info
+                const { data: cls, error: classError } = await supabase
+                    .from('classes')
+                    .select('*')
+                    .eq('id', classId)
+                    .single();
+
+                if (classError) throw classError;
+                classData = cls;
+                document.getElementById('classInfo').textContent = cls.name;
+
+                // Load students
+                const { data: members, error: membersError } = await supabase
+                    .from('class_members')
+                    .select(`
+                        user_id,
+                        users (id, full_name, email, last_sign_in_at)
+                    `)
+                    .eq('class_id', classId);
+
+                if (membersError) throw membersError;
+
+                students = members
+                    .map(m => m.users)
+                    .filter(u => u)
+                    .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+
+                if (students.length === 0) {
+                    showError('No students in this class.');
+                    return;
+                }
+
+                // Check for specific student param
+                const studentId = params.get('student');
+                if (studentId) {
+                    const idx = students.findIndex(s => s.id === studentId);
+                    if (idx >= 0) currentIndex = idx;
+                }
+
+                updateNavigation();
+                await loadStudentData(students[currentIndex]);
+
+            } catch (err) {
+                console.error(err);
+                showError('Failed to load class data: ' + err.message);
+            }
+        }
+
+        async function loadStudentData(student) {
+            document.getElementById('content').innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading ${student.full_name}'s data...</p>
+                </div>
+            `;
+
+            try {
+                // Fetch task attempts for this student
+                const { data: attempts, error: attemptsError } = await supabase
+                    .from('task_attempts')
+                    .select('*, tasks(title, class_id)')
+                    .eq('user_id', student.id);
+
+                if (attemptsError) throw attemptsError;
+
+                // Filter to this class's tasks
+                const classAttempts = attempts.filter(a => a.tasks?.class_id === classData.id);
+
+                // Calculate stats
+                const completedAttempts = classAttempts.filter(a => a.completed);
+                const totalTime = classAttempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
+
+                // Calculate average score
+                const scoredAttempts = classAttempts.filter(a => a.score !== null && a.max_score);
+                let avgAccuracy = null;
+                if (scoredAttempts.length > 0) {
+                    const totalPercent = scoredAttempts.reduce((sum, a) => sum + (a.score / a.max_score * 100), 0);
+                    avgAccuracy = Math.round(totalPercent / scoredAttempts.length);
+                }
+
+                // Get word mastery data
+                const { data: mastery } = await supabase
+                    .from('word_mastery')
+                    .select('*')
+                    .eq('user_id', student.id);
+
+                const masteredWords = mastery?.filter(w => {
+                    const total = w.correct_count + w.incorrect_count;
+                    const accuracy = total > 0 ? (w.correct_count / total) * 100 : 0;
+                    return w.correct_count >= 3 && accuracy >= 70;
+                }).length || 0;
+
+                // Format last active
+                const lastActive = student.last_sign_in_at ? getRelativeTime(new Date(student.last_sign_in_at)) : 'Never';
+                const isRecent = student.last_sign_in_at && (Date.now() - new Date(student.last_sign_in_at)) < 7 * 24 * 60 * 60 * 1000;
+                const isInactive = student.last_sign_in_at && (Date.now() - new Date(student.last_sign_in_at)) > 14 * 24 * 60 * 60 * 1000;
+
+                // Determine accuracy class
+                let accuracyClass = '';
+                if (avgAccuracy !== null) {
+                    accuracyClass = avgAccuracy >= 70 ? 'good' : avgAccuracy >= 50 ? 'okay' : 'needs-work';
+                }
+
+                // Generate highlights
+                const highlights = [];
+                if (avgAccuracy >= 80) highlights.push({ text: 'Strong accuracy', type: 'good' });
+                if (masteredWords >= 50) highlights.push({ text: `${masteredWords} words mastered`, type: 'good' });
+                if (completedAttempts.length >= 10) highlights.push({ text: 'Highly engaged', type: 'good' });
+                if (avgAccuracy !== null && avgAccuracy < 50) highlights.push({ text: 'May need support', type: 'improvement' });
+                if (!student.last_sign_in_at || isInactive) highlights.push({ text: 'Low engagement', type: 'improvement' });
+
+                document.getElementById('content').innerHTML = `
+                    <div class="student-card">
+                        <div class="student-name">${student.full_name || 'Unknown'}</div>
+                        <div class="last-active ${isRecent ? 'recent' : isInactive ? 'inactive' : ''}">
+                            Last active: ${lastActive}
+                        </div>
+
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <div class="stat-value">${formatTime(totalTime)}</div>
+                                <div class="stat-label">Time Spent</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value">${completedAttempts.length}</div>
+                                <div class="stat-label">Activities Done</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value ${accuracyClass}">${avgAccuracy !== null ? avgAccuracy + '%' : '-'}</div>
+                                <div class="stat-label">Avg Accuracy</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value">${masteredWords}</div>
+                                <div class="stat-label">Words Mastered</div>
+                            </div>
+                        </div>
+
+                        ${highlights.length > 0 ? `
+                            <div class="highlights">
+                                ${highlights.map(h => `<span class="highlight-badge ${h.type === 'improvement' ? 'improvement' : ''}">${h.text}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('content').innerHTML = `
+                    <div class="student-card">
+                        <div class="student-name">${student.full_name || 'Unknown'}</div>
+                        <p style="opacity: 0.6; margin-top: 1rem;">Error loading data</p>
+                    </div>
+                `;
+            }
+        }
+
+        function formatTime(seconds) {
+            if (!seconds || seconds === 0) return '0m';
+            const hours = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            if (hours > 0) {
+                return `${hours}h ${mins}m`;
+            }
+            return `${mins}m`;
+        }
+
+        function getRelativeTime(date) {
+            const now = new Date();
+            const diff = now - date;
+            const mins = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+
+            if (mins < 1) return 'Just now';
+            if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`;
+            if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+            if (days === 1) return 'Yesterday';
+            if (days < 7) return `${days} days ago`;
+            if (days < 30) return `${Math.floor(days / 7)} week${Math.floor(days / 7) === 1 ? '' : 's'} ago`;
+            return date.toLocaleDateString();
+        }
+
+        function updateNavigation() {
+            document.getElementById('prevBtn').disabled = currentIndex === 0;
+            document.getElementById('nextBtn').disabled = currentIndex === students.length - 1;
+            document.getElementById('studentCounter').textContent = `${currentIndex + 1} / ${students.length}`;
+        }
+
+        function showError(message) {
+            document.getElementById('content').innerHTML = `
+                <div class="error-message">
+                    <p>${message}</p>
+                    <button class="nav-btn" onclick="exitView()" style="margin-top: 1rem;">Go Back</button>
+                </div>
+            `;
+        }
+
+        function goNext() {
+            if (currentIndex < students.length - 1) {
+                currentIndex++;
+                updateNavigation();
+                loadStudentData(students[currentIndex]);
+            }
+        }
+
+        function goPrev() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateNavigation();
+                loadStudentData(students[currentIndex]);
+            }
+        }
+
+        function exitView() {
+            const params = new URLSearchParams(window.location.search);
+            const classId = params.get('class');
+            if (classId) {
+                window.location.href = `class.html?id=${classId}`;
+            } else {
+                window.location.href = 'teacher.html';
+            }
+        }
+
+        // Event listeners
+        document.getElementById('nextBtn').addEventListener('click', goNext);
+        document.getElementById('prevBtn').addEventListener('click', goPrev);
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') goNext();
+            if (e.key === 'ArrowLeft') goPrev();
+            if (e.key === 'Escape') exitView();
+        });
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>
