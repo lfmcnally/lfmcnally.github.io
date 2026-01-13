@@ -1833,6 +1833,31 @@
         </div>
     </div>
 
+    <!-- Edit Vocab Test Modal -->
+    <div class="modal-overlay" id="editTestModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Edit Vocab Test</h3>
+                <button class="modal-close" onclick="closeModal('editTestModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editTestId">
+                <div class="form-group">
+                    <label>Test Name</label>
+                    <input type="text" class="form-input" id="editTestName" placeholder="e.g. Week 3 Vocab Test">
+                </div>
+                <div class="form-group">
+                    <label>Maximum Score</label>
+                    <input type="number" class="form-input" id="editTestMaxScore" placeholder="e.g. 20" min="1" max="100">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editTestModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmEditTest()">Save</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../auth/config.js"></script>
     <script src="../shared/vocabulary-data.js"></script>
     <script src="../shared/greek-vocabulary-data.js"></script>
@@ -4192,7 +4217,8 @@
                             </div>
                         </div>
                         <div style="display: flex; gap: 0.5rem;">
-                            <button class="btn btn-secondary btn-sm" onclick="openEditScoresModal('${test.id}', '${escapeHtml(test.title).replace(/'/g, "\\'")}', ${maxScore})">Edit Scores</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openEditTestModal('${test.id}', '${escapeHtml(test.title).replace(/'/g, "\\'")}', ${maxScore})">Edit</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openEditScoresModal('${test.id}', '${escapeHtml(test.title).replace(/'/g, "\\'")}', ${maxScore})">Scores</button>
                             <button class="btn btn-danger btn-sm" onclick="showDeleteTest('${test.id}', '${escapeHtml(test.title).replace(/'/g, "\\'")}')" style="padding: 0.25rem 0.5rem;">🗑️</button>
                         </div>
                     </div>
@@ -4307,6 +4333,35 @@
             const { error } = await supabase.from('tasks').delete().eq('id', testId);
             if (error) { alert('Error deleting test: ' + error.message); return; }
             closeModal('deleteTestModal');
+            await loadVocabTests();
+        }
+
+        function openEditTestModal(testId, testName, maxScore) {
+            document.getElementById('editTestId').value = testId;
+            document.getElementById('editTestName').value = testName;
+            document.getElementById('editTestMaxScore').value = maxScore;
+            openModal('editTestModal');
+        }
+
+        async function confirmEditTest() {
+            const testId = document.getElementById('editTestId').value;
+            const newName = document.getElementById('editTestName').value.trim();
+            const newMaxScore = document.getElementById('editTestMaxScore').value;
+
+            if (!newName) { alert('Please enter a test name'); return; }
+            if (!newMaxScore || newMaxScore < 1) { alert('Please enter a valid maximum score'); return; }
+
+            const { error } = await supabase
+                .from('tasks')
+                .update({
+                    title: newName,
+                    due_date: newMaxScore.toString()
+                })
+                .eq('id', testId);
+
+            if (error) { alert('Error updating test: ' + error.message); return; }
+
+            closeModal('editTestModal');
             await loadVocabTests();
         }
 
