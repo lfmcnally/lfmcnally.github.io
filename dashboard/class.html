@@ -4171,7 +4171,7 @@
                 .from('tasks')
                 .select('*')
                 .eq('class_id', currentClass.id)
-                .eq('content_path', 'manual_test')
+                .like('content_path', 'manual_test%')
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -4205,7 +4205,7 @@
                 const avgScore = scores.length > 0
                     ? Math.round(scores.reduce((sum, s) => sum + (s.score || 0), 0) / scores.length)
                     : null;
-                const maxScore = test.due_date ? parseInt(test.due_date) : 20;
+                const maxScore = test.content_path && test.content_path.includes(':') ? parseInt(test.content_path.split(':')[1]) : 20;
 
                 html += `
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">
@@ -4246,8 +4246,7 @@
                 .insert({
                     class_id: currentClass.id,
                     title: name,
-                    content_path: 'manual_test',
-                    due_date: maxScore.toString(),
+                    content_path: 'manual_test:' + maxScore,
                     created_by: currentUser.id
                 });
 
@@ -4288,7 +4287,7 @@
         async function saveTestScores() {
             const testId = document.getElementById('editScoresTestId').value;
             const test = vocabTests.find(t => t.id === testId);
-            const maxScore = test ? parseInt(test.due_date) : 20;
+            const maxScore = test && test.content_path && test.content_path.includes(':') ? parseInt(test.content_path.split(':')[1]) : 20;
 
             const inputs = document.querySelectorAll('#scoresTableBody .score-input');
             const scoresToSave = [];
@@ -4355,7 +4354,7 @@
                 .from('tasks')
                 .update({
                     title: newName,
-                    due_date: newMaxScore.toString()
+                    content_path: 'manual_test:' + newMaxScore
                 })
                 .eq('id', testId);
 
