@@ -1265,6 +1265,17 @@
             </div>
         </div>
 
+        <!-- Vocab Tests Card -->
+        <div class="card" id="vocabTestsCard" style="margin-bottom: 1.5rem;">
+            <div class="card-header">
+                <span class="card-title">📊 Vocab Test Scores</span>
+                <button class="btn btn-primary btn-sm" onclick="openCreateTestModal()">+ New Test</button>
+            </div>
+            <div class="card-body" id="vocabTestsContainer">
+                <div class="loading">Loading tests...</div>
+            </div>
+        </div>
+
         <!-- Main Grid -->
         <div class="dashboard-grid">
             <!-- Students Card -->
@@ -1746,6 +1757,78 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('removeCoTeacherModal')">Cancel</button>
                 <button class="btn btn-danger" onclick="confirmRemoveCoTeacher()">Remove</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Vocab Test Modal -->
+    <div class="modal-overlay" id="createTestModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Create Vocab Test</h3>
+                <button class="modal-close" onclick="closeModal('createTestModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Test Name</label>
+                    <input type="text" class="form-input" id="newTestName" placeholder="e.g. Week 3 Vocab Test">
+                </div>
+                <div class="form-group">
+                    <label>Maximum Score</label>
+                    <input type="number" class="form-input" id="newTestMaxScore" placeholder="e.g. 20" min="1" max="100">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('createTestModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="createVocabTest()">Create Test</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Test Scores Modal -->
+    <div class="modal-overlay" id="editScoresModal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 id="editScoresTitle">Edit Scores</h3>
+                <button class="modal-close" onclick="closeModal('editScoresModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
+                <input type="hidden" id="editScoresTestId">
+                <div id="scoresTableContainer">
+                    <table class="scores-table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left; padding: 0.5rem; border-bottom: 2px solid #e5e7eb;">Student</th>
+                                <th style="text-align: right; padding: 0.5rem; border-bottom: 2px solid #e5e7eb; width: 100px;">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scoresTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editScoresModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveTestScores()">Save Scores</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Test Modal -->
+    <div class="modal-overlay" id="deleteTestModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Delete Test</h3>
+                <button class="modal-close" onclick="closeModal('deleteTestModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="deleteTestName"></strong>?</p>
+                <p class="warning-text">All scores for this test will be permanently deleted.</p>
+                <input type="hidden" id="deleteTestId">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('deleteTestModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmDeleteTest()">Delete</button>
             </div>
         </div>
     </div>
@@ -3379,6 +3462,7 @@
             // Load announcements and resources (may fail if tables don't exist yet)
             await loadAnnouncements();
             await loadResources();
+            await loadVocabTests();
 
             document.getElementById('taskChapter').addEventListener('change', handleChapterChange);
             document.getElementById('taskFromWord').addEventListener('change', handleFromWordChange);
@@ -4047,6 +4131,180 @@
                        .replace(/>/g, '&gt;')
                        .replace(/"/g, '&quot;')
                        .replace(/'/g, '&#039;');
+        }
+
+        // ========== VOCAB TESTS ==========
+        let vocabTests = [];
+
+        async function loadVocabTests() {
+            const container = document.getElementById('vocabTestsContainer');
+
+            const { data: tests, error } = await supabase
+                .from('tasks')
+                .select('*')
+                .eq('class_id', currentClass.id)
+                .eq('content_path', 'manual_test')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                container.innerHTML = '<p style="color: #dc2626;">Error loading tests</p>';
+                return;
+            }
+
+            vocabTests = tests || [];
+
+            if (vocabTests.length === 0) {
+                container.innerHTML = '<p style="color: #6b7280; text-align: center; padding: 1rem;">No vocab tests yet. Click "+ New Test" to create one.</p>';
+                return;
+            }
+
+            const testIds = vocabTests.map(t => t.id);
+            const { data: allScores } = await supabase
+                .from('task_attempts')
+                .select('*')
+                .in('task_id', testIds);
+
+            const scoresByTest = {};
+            (allScores || []).forEach(s => {
+                if (!scoresByTest[s.task_id]) scoresByTest[s.task_id] = [];
+                scoresByTest[s.task_id].push(s);
+            });
+
+            let html = '<div class="vocab-tests-list">';
+            for (const test of vocabTests) {
+                const scores = scoresByTest[test.id] || [];
+                const enteredCount = scores.length;
+                const avgScore = scores.length > 0
+                    ? Math.round(scores.reduce((sum, s) => sum + (s.score || 0), 0) / scores.length)
+                    : null;
+                const maxScore = test.due_date ? parseInt(test.due_date) : 20;
+
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">
+                        <div>
+                            <div style="font-weight: 600;">${escapeHtml(test.title)}</div>
+                            <div style="font-size: 0.8rem; color: #6b7280;">
+                                Max: ${maxScore} · ${enteredCount}/${classStudents.length} entered
+                                ${avgScore !== null ? ` · Avg: ${avgScore}/${maxScore}` : ''}
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-secondary btn-sm" onclick="openEditScoresModal('${test.id}', '${escapeHtml(test.title).replace(/'/g, "\\'")}', ${maxScore})">Edit Scores</button>
+                            <button class="btn btn-danger btn-sm" onclick="showDeleteTest('${test.id}', '${escapeHtml(test.title).replace(/'/g, "\\'")}')" style="padding: 0.25rem 0.5rem;">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function openCreateTestModal() {
+            document.getElementById('newTestName').value = '';
+            document.getElementById('newTestMaxScore').value = '20';
+            openModal('createTestModal');
+        }
+
+        async function createVocabTest() {
+            const name = document.getElementById('newTestName').value.trim();
+            const maxScore = document.getElementById('newTestMaxScore').value;
+
+            if (!name) { alert('Please enter a test name'); return; }
+            if (!maxScore || maxScore < 1) { alert('Please enter a valid maximum score'); return; }
+
+            const { error } = await supabase
+                .from('tasks')
+                .insert({
+                    class_id: currentClass.id,
+                    title: name,
+                    content_path: 'manual_test',
+                    due_date: maxScore.toString(),
+                    created_by: currentUser.id
+                });
+
+            if (error) { alert('Error creating test: ' + error.message); return; }
+
+            closeModal('createTestModal');
+            await loadVocabTests();
+        }
+
+        async function openEditScoresModal(testId, testName, maxScore) {
+            document.getElementById('editScoresTestId').value = testId;
+            document.getElementById('editScoresTitle').textContent = testName + ' (/' + maxScore + ')';
+
+            const { data: scores } = await supabase
+                .from('task_attempts')
+                .select('*')
+                .eq('task_id', testId);
+
+            const scoreMap = {};
+            (scores || []).forEach(s => { scoreMap[s.student_id] = s.score; });
+
+            const tbody = document.getElementById('scoresTableBody');
+            tbody.innerHTML = classStudents.map(student => {
+                const currentScore = scoreMap[student.id] !== undefined ? scoreMap[student.id] : '';
+                return `
+                    <tr>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #f3f4f6;">${escapeHtml(student.full_name || 'Unknown')}</td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #f3f4f6; text-align: right;">
+                            <input type="number" class="form-input score-input" data-student-id="${student.id}" value="${currentScore}" min="0" max="${maxScore}" style="width: 70px; text-align: center; padding: 0.25rem;">
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            openModal('editScoresModal');
+        }
+
+        async function saveTestScores() {
+            const testId = document.getElementById('editScoresTestId').value;
+            const test = vocabTests.find(t => t.id === testId);
+            const maxScore = test ? parseInt(test.due_date) : 20;
+
+            const inputs = document.querySelectorAll('#scoresTableBody .score-input');
+            const scoresToSave = [];
+
+            inputs.forEach(input => {
+                const studentId = input.dataset.studentId;
+                const value = input.value.trim();
+                if (value !== '') {
+                    scoresToSave.push({ student_id: studentId, score: parseInt(value), max_score: maxScore });
+                }
+            });
+
+            await supabase.from('task_attempts').delete().eq('task_id', testId);
+
+            if (scoresToSave.length > 0) {
+                const { error } = await supabase
+                    .from('task_attempts')
+                    .insert(scoresToSave.map(s => ({
+                        task_id: testId,
+                        student_id: s.student_id,
+                        score: s.score,
+                        max_score: s.max_score,
+                        started_at: new Date().toISOString(),
+                        completed_at: new Date().toISOString()
+                    })));
+                if (error) { alert('Error saving scores: ' + error.message); return; }
+            }
+
+            closeModal('editScoresModal');
+            await loadVocabTests();
+        }
+
+        function showDeleteTest(testId, testName) {
+            document.getElementById('deleteTestId').value = testId;
+            document.getElementById('deleteTestName').textContent = testName;
+            openModal('deleteTestModal');
+        }
+
+        async function confirmDeleteTest() {
+            const testId = document.getElementById('deleteTestId').value;
+            await supabase.from('task_attempts').delete().eq('task_id', testId);
+            const { error } = await supabase.from('tasks').delete().eq('id', testId);
+            if (error) { alert('Error deleting test: ' + error.message); return; }
+            closeModal('deleteTestModal');
+            await loadVocabTests();
         }
 
         document.addEventListener('DOMContentLoaded', init);

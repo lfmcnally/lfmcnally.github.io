@@ -532,6 +532,38 @@
                     }
                 });
 
+                // Load vocab test scores (manual tests)
+                const { data: manualTests } = await supabase
+                    .from('tasks')
+                    .select('*')
+                    .eq('class_id', classData.id)
+                    .eq('content_path', 'manual_test')
+                    .order('created_at', { ascending: false });
+
+                const testScores = [];
+                if (manualTests && manualTests.length > 0) {
+                    const testIds = manualTests.map(t => t.id);
+                    const { data: studentTestScores } = await supabase
+                        .from('task_attempts')
+                        .select('*')
+                        .eq('student_id', student.id)
+                        .in('task_id', testIds);
+
+                    const scoreMap = {};
+                    (studentTestScores || []).forEach(s => { scoreMap[s.task_id] = s; });
+
+                    manualTests.forEach(test => {
+                        const score = scoreMap[test.id];
+                        const maxScore = parseInt(test.due_date) || 20;
+                        testScores.push({
+                            name: test.title,
+                            score: score ? score.score : null,
+                            maxScore: maxScore,
+                            percentage: score ? Math.round((score.score / maxScore) * 100) : null
+                        });
+                    });
+                }
+
                 // Activity data for chart (last 30 days)
                 const activityByDate = {};
                 const now = new Date();
@@ -640,6 +672,29 @@
                                 </ul>
                             ` : '<div class="no-data">No sessions yet</div>'}
                         </div>
+
+                        ${testScores.length > 0 ? `
+                        <div class="card full-width">
+                            <div class="card-title">Vocab Test Scores</div>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0.75rem;">
+                                ${testScores.map(t => {
+                                    const pClass = t.percentage >= 70 ? 'good' : t.percentage >= 50 ? 'okay' : 'poor';
+                                    return `
+                                        <div style="background: rgba(255,255,255,0.03); border-radius: 10px; padding: 1rem; text-align: center;">
+                                            <div style="font-size: 0.75rem; opacity: 0.6; margin-bottom: 0.5rem;">${t.name}</div>
+                                            ${t.score !== null ? `
+                                                <div class="big-stat-value ${pClass}" style="font-size: 1.5rem;">${t.score}/${t.maxScore}</div>
+                                                <div style="font-size: 0.7rem; opacity: 0.5;">${t.percentage}%</div>
+                                            ` : `
+                                                <div style="font-size: 1.25rem; opacity: 0.3;">—</div>
+                                                <div style="font-size: 0.7rem; opacity: 0.4;">Not taken</div>
+                                            `}
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
                 `;
 
