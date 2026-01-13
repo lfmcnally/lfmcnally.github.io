@@ -4201,9 +4201,11 @@
             let html = '<div class="vocab-tests-list">';
             for (const test of vocabTests) {
                 const scores = scoresByTest[test.id] || [];
+                const presentScores = scores.filter(s => s.score !== -1);
+                const notPresentCount = scores.filter(s => s.score === -1).length;
                 const enteredCount = scores.length;
-                const avgScore = scores.length > 0
-                    ? Math.round(scores.reduce((sum, s) => sum + (s.score || 0), 0) / scores.length)
+                const avgScore = presentScores.length > 0
+                    ? Math.round(presentScores.reduce((sum, s) => sum + (s.score || 0), 0) / presentScores.length)
                     : null;
                 const maxScore = test.content_path && test.content_path.includes(':') ? parseInt(test.content_path.split(':')[1]) : 20;
 
@@ -4212,7 +4214,7 @@
                         <div>
                             <div style="font-weight: 600;">${escapeHtml(test.title)}</div>
                             <div style="font-size: 0.8rem; color: #6b7280;">
-                                Max: ${maxScore} · ${enteredCount}/${classStudents.length} entered
+                                Max: ${maxScore} · ${enteredCount}/${classStudents.length} entered${notPresentCount > 0 ? ` (${notPresentCount} NP)` : ''}
                                 ${avgScore !== null ? ` · Avg: ${avgScore}/${maxScore}` : ''}
                             </div>
                         </div>
@@ -4270,18 +4272,35 @@
 
             const tbody = document.getElementById('scoresTableBody');
             tbody.innerHTML = classStudents.map(student => {
-                const currentScore = scoreMap[student.id] !== undefined ? scoreMap[student.id] : '';
+                const currentScore = scoreMap[student.id];
+                const isNotPresent = currentScore === -1;
+                const displayScore = currentScore !== undefined && currentScore !== -1 ? currentScore : '';
                 return `
                     <tr>
                         <td style="padding: 0.5rem; border-bottom: 1px solid #f3f4f6;">${escapeHtml(student.full_name || 'Unknown')}</td>
-                        <td style="padding: 0.5rem; border-bottom: 1px solid #f3f4f6; text-align: right;">
-                            <input type="number" class="form-input score-input" data-student-id="${student.id}" value="${currentScore}" min="0" max="${maxScore}" style="width: 70px; text-align: center; padding: 0.25rem;">
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #f3f4f6; text-align: right; display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem;">
+                            <label style="font-size: 0.75rem; color: #6b7280; display: flex; align-items: center; gap: 0.25rem;">
+                                <input type="checkbox" class="not-present-checkbox" data-student-id="${student.id}" ${isNotPresent ? 'checked' : ''} onchange="toggleNotPresent(this)">
+                                NP
+                            </label>
+                            <input type="number" class="form-input score-input" data-student-id="${student.id}" value="${displayScore}" min="0" max="${maxScore}" style="width: 70px; text-align: center; padding: 0.25rem;" ${isNotPresent ? 'disabled' : ''}>
                         </td>
                     </tr>
                 `;
             }).join('');
 
             openModal('editScoresModal');
+        }
+
+        function toggleNotPresent(checkbox) {
+            const studentId = checkbox.dataset.studentId;
+            const scoreInput = document.querySelector(`.score-input[data-student-id="${studentId}"]`);
+            if (checkbox.checked) {
+                scoreInput.disabled = true;
+                scoreInput.value = '';
+            } else {
+                scoreInput.disabled = false;
+            }
         }
 
         async function saveTestScores() {
@@ -4294,9 +4313,14 @@
 
             inputs.forEach(input => {
                 const studentId = input.dataset.studentId;
+                const notPresentCheckbox = document.querySelector(`.not-present-checkbox[data-student-id="${studentId}"]`);
+                const isNotPresent = notPresentCheckbox && notPresentCheckbox.checked;
                 const value = input.value.trim();
-                if (value !== '') {
-                    scoresToSave.push({ student_id: studentId, score: parseInt(value), max_score: maxScore });
+
+                if (isNotPresent) {
+                    scoresToSave.push({ student_id: studentId, score: -1 });
+                } else if (value !== '') {
+                    scoresToSave.push({ student_id: studentId, score: parseInt(value) });
                 }
             });
 
@@ -4309,7 +4333,6 @@
                         task_id: testId,
                         student_id: s.student_id,
                         score: s.score,
-                        max_score: s.max_score,
                         started_at: new Date().toISOString(),
                         completed_at: new Date().toISOString()
                     })));
