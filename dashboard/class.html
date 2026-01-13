@@ -1777,6 +1777,10 @@
                     <label>Maximum Score</label>
                     <input type="number" class="form-input" id="newTestMaxScore" placeholder="e.g. 20" min="1" max="100">
                 </div>
+                <div class="form-group">
+                    <label>Test Date</label>
+                    <input type="date" class="form-input" id="newTestDate">
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('createTestModal')">Cancel</button>
@@ -1849,6 +1853,10 @@
                 <div class="form-group">
                     <label>Maximum Score</label>
                     <input type="number" class="form-input" id="editTestMaxScore" placeholder="e.g. 20" min="1" max="100">
+                </div>
+                <div class="form-group">
+                    <label>Test Date</label>
+                    <input type="date" class="form-input" id="editTestDate">
                 </div>
             </div>
             <div class="modal-footer">
@@ -4209,18 +4217,20 @@
                     ? Math.round(presentScores.reduce((sum, s) => sum + (s.score || 0), 0) / presentScores.length)
                     : null;
                 const maxScore = test.content_path && test.content_path.includes(':') ? parseInt(test.content_path.split(':')[1]) : 20;
+                const testDate = test.due_date ? test.due_date.split('T')[0] : '';
+                const testDateDisplay = testDate ? new Date(testDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
                 html += `
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid #e5e7eb;">
                         <div>
                             <div style="font-weight: 600;">${escapeHtml(test.title)}</div>
                             <div style="font-size: 0.8rem; color: #6b7280;">
-                                Max: ${maxScore} · ${enteredCount}/${classStudents.length} entered${notPresentCount > 0 ? ` (${notPresentCount} NP)` : ''}
+                                ${testDateDisplay ? testDateDisplay + ' · ' : ''}Max: ${maxScore} · ${enteredCount}/${classStudents.length} entered${notPresentCount > 0 ? ` (${notPresentCount} NP)` : ''}
                                 ${avgScore !== null ? ` · Avg: ${avgScore}/${maxScore}` : ''}
                             </div>
                         </div>
                         <div style="display: flex; gap: 0.5rem;">
-                            <button class="btn btn-secondary btn-sm" onclick="openEditTestModal('${test.id}', '${escapeHtml(test.title).replace(/'/g, "\\'")}', ${maxScore})">Edit</button>
+                            <button class="btn btn-secondary btn-sm" onclick="openEditTestModal('${test.id}', '${escapeHtml(test.title).replace(/'/g, "\\'")}', ${maxScore}, '${testDate}')">Edit</button>
                             <button class="btn btn-secondary btn-sm" onclick="openEditScoresModal('${test.id}', '${escapeHtml(test.title).replace(/'/g, "\\'")}', ${maxScore})">Scores</button>
                             <button class="btn btn-danger btn-sm" onclick="showDeleteTest('${test.id}', '${escapeHtml(test.title).replace(/'/g, "\\'")}')" style="padding: 0.25rem 0.5rem;">🗑️</button>
                         </div>
@@ -4234,12 +4244,14 @@
         function openCreateTestModal() {
             document.getElementById('newTestName').value = '';
             document.getElementById('newTestMaxScore').value = '20';
+            document.getElementById('newTestDate').value = new Date().toISOString().split('T')[0];
             openModal('createTestModal');
         }
 
         async function createVocabTest() {
             const name = document.getElementById('newTestName').value.trim();
             const maxScore = document.getElementById('newTestMaxScore').value;
+            const testDate = document.getElementById('newTestDate').value;
 
             if (!name) { alert('Please enter a test name'); return; }
             if (!maxScore || maxScore < 1) { alert('Please enter a valid maximum score'); return; }
@@ -4250,6 +4262,7 @@
                     class_id: currentClass.id,
                     title: name,
                     content_path: 'manual_test:' + maxScore,
+                    due_date: testDate ? testDate + 'T00:00:00' : null,
                     created_by: currentUser.id
                 });
 
@@ -4359,10 +4372,11 @@
             await loadVocabTests();
         }
 
-        function openEditTestModal(testId, testName, maxScore) {
+        function openEditTestModal(testId, testName, maxScore, testDate) {
             document.getElementById('editTestId').value = testId;
             document.getElementById('editTestName').value = testName;
             document.getElementById('editTestMaxScore').value = maxScore;
+            document.getElementById('editTestDate').value = testDate || '';
             openModal('editTestModal');
         }
 
@@ -4370,6 +4384,7 @@
             const testId = document.getElementById('editTestId').value;
             const newName = document.getElementById('editTestName').value.trim();
             const newMaxScore = document.getElementById('editTestMaxScore').value;
+            const newDate = document.getElementById('editTestDate').value;
 
             if (!newName) { alert('Please enter a test name'); return; }
             if (!newMaxScore || newMaxScore < 1) { alert('Please enter a valid maximum score'); return; }
@@ -4378,7 +4393,8 @@
                 .from('tasks')
                 .update({
                     title: newName,
-                    content_path: 'manual_test:' + newMaxScore
+                    content_path: 'manual_test:' + newMaxScore,
+                    due_date: newDate ? newDate + 'T00:00:00' : null
                 })
                 .eq('id', testId);
 
