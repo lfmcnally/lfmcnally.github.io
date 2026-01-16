@@ -828,9 +828,10 @@
                     
                     <div class="setup-controls">
                         <div class="control-group">
-                            <label for="chapterSelect">Chapter</label>
-                            <select id="chapterSelect">
-                                <option value="">Select Chapter</option>
+                            <label for="fromChapter">From Chapter</label>
+                            <select id="fromChapter">
+                                <option value="">Select start chapter</option>
+                                <option value="all">All Chapters</option>
                                 <option value="1">Chapter 1</option>
                                 <option value="2">Chapter 2</option>
                                 <option value="3">Chapter 3</option>
@@ -845,16 +846,16 @@
                         </div>
 
                         <div class="control-group">
-                            <label for="fromWord">From Word</label>
-                            <select id="fromWord" disabled>
-                                <option value="">Select start word</option>
+                            <label for="toChapter">To Chapter</label>
+                            <select id="toChapter" disabled>
+                                <option value="">Select end chapter</option>
                             </select>
                         </div>
 
                         <div class="control-group">
-                            <label for="toWord">To Word</label>
-                            <select id="toWord" disabled>
-                                <option value="">Select end word</option>
+                            <label for="wordCount">Words</label>
+                            <select id="wordCount" disabled>
+                                <option value="">--</option>
                             </select>
                         </div>
 
@@ -1046,13 +1047,18 @@
                 // Hide tracking indicator (redundant with banner)
                 document.getElementById('trackingIndicator').style.display = 'none';
                 
-                // Update description with word range if available
-                const chapter = urlParams.get('chapter');
-                const from = urlParams.get('from');
-                const to = urlParams.get('to');
-                if (chapter) {
+                // Update description with chapter range if available
+                const fromChapter = urlParams.get('fromChapter') || urlParams.get('chapter');
+                const toChapter = urlParams.get('toChapter') || urlParams.get('chapter');
+                if (fromChapter) {
                     const desc = document.getElementById('taskModeDescription');
-                    desc.textContent = `Chapter ${chapter} vocabulary — complete all words to finish`;
+                    if (fromChapter === 'all') {
+                        desc.textContent = `All chapters vocabulary — complete all words to finish`;
+                    } else if (fromChapter === toChapter) {
+                        desc.textContent = `Chapter ${fromChapter} vocabulary — complete all words to finish`;
+                    } else {
+                        desc.textContent = `Chapters ${fromChapter}-${toChapter} vocabulary — complete all words to finish`;
+                    }
                 }
             }
         }
@@ -1100,88 +1106,115 @@
             }
         }
 
-        async function handleChapterSelect() {
+        // Chapter range variables
+        let selectedFromChapter = null;
+        let selectedToChapter = null;
+        let practiceWordsCache = [];
+
+        async function handleFromChapterSelect() {
             await waitForVocabularyData();
-            
-            const chapter = document.getElementById('chapterSelect').value;
-            const fromSelect = document.getElementById('fromWord');
-            const toSelect = document.getElementById('toWord');
-            
-            if (!chapter) {
-                fromSelect.disabled = true;
-                toSelect.disabled = true;
+
+            const fromChapter = document.getElementById('fromChapter').value;
+            const toChapterSelect = document.getElementById('toChapter');
+            const wordCountSelect = document.getElementById('wordCount');
+
+            if (!fromChapter) {
+                toChapterSelect.disabled = true;
+                toChapterSelect.innerHTML = '<option value="">Select end chapter</option>';
+                wordCountSelect.disabled = true;
+                wordCountSelect.innerHTML = '<option value="">--</option>';
                 document.getElementById('startPracticeBtn').disabled = true;
                 return;
             }
 
-            selectedChapter = chapter;
-            const chapterWords = vocabularyData.filter(word => word.chapter == chapter);
-            
-            fromSelect.innerHTML = '<option value="">Select start word</option>';
-            chapterWords.forEach((word, index) => {
+            selectedFromChapter = fromChapter;
+
+            // If "All Chapters" selected, skip to chapter selection and enable start
+            if (fromChapter === 'all') {
+                toChapterSelect.disabled = true;
+                toChapterSelect.innerHTML = '<option value="">All chapters selected</option>';
+                selectedToChapter = 'all';
+                updateWordCount();
+                return;
+            }
+
+            // Populate "To Chapter" with chapters >= fromChapter
+            const fromNum = parseInt(fromChapter);
+            toChapterSelect.innerHTML = '<option value="">Select end chapter</option>';
+            for (let i = fromNum; i <= 10; i++) {
                 const option = document.createElement('option');
-                option.value = index;
-                option.textContent = word.latin;
-                fromSelect.appendChild(option);
-            });
-            fromSelect.disabled = false;
-            
-            toSelect.innerHTML = '<option value="">Select end word</option>';
-            toSelect.disabled = true;
+                option.value = i;
+                option.textContent = `Chapter ${i}`;
+                toChapterSelect.appendChild(option);
+            }
+            toChapterSelect.disabled = false;
+
+            wordCountSelect.disabled = true;
+            wordCountSelect.innerHTML = '<option value="">--</option>';
             document.getElementById('startPracticeBtn').disabled = true;
         }
 
-        async function handleFromWordSelect() {
+        async function handleToChapterSelect() {
             await waitForVocabularyData();
-            
-            const fromValue = document.getElementById('fromWord').value;
-            const toSelect = document.getElementById('toWord');
-            
-            if (!fromValue) {
-                toSelect.disabled = true;
+
+            const toChapter = document.getElementById('toChapter').value;
+
+            if (!toChapter) {
+                document.getElementById('wordCount').disabled = true;
+                document.getElementById('wordCount').innerHTML = '<option value="">--</option>';
                 document.getElementById('startPracticeBtn').disabled = true;
                 return;
             }
 
-            fromIndex = parseInt(fromValue);
-            const chapterWords = vocabularyData.filter(word => word.chapter == selectedChapter);
-            
-            toSelect.innerHTML = '<option value="">Select end word</option>';
-            for (let i = fromIndex; i < chapterWords.length; i++) {
-                const word = chapterWords[i];
-                const option = document.createElement('option');
-                option.value = i;
-                option.textContent = word.latin;
-                toSelect.appendChild(option);
-            }
-            toSelect.disabled = false;
+            selectedToChapter = toChapter;
+            updateWordCount();
         }
 
-        function handleToWordSelect() {
-            const toValue = document.getElementById('toWord').value;
-            
-            if (toValue) {
-                toIndex = parseInt(toValue);
-                document.getElementById('startPracticeBtn').disabled = false;
+        async function updateWordCount() {
+            await waitForVocabularyData();
+
+            const wordCountSelect = document.getElementById('wordCount');
+
+            // Get words in the selected chapter range
+            let words;
+            if (selectedFromChapter === 'all') {
+                words = vocabularyData.slice();
             } else {
-                document.getElementById('startPracticeBtn').disabled = true;
+                const fromNum = parseInt(selectedFromChapter);
+                const toNum = parseInt(selectedToChapter);
+                words = vocabularyData.filter(word => word.chapter >= fromNum && word.chapter <= toNum);
             }
+
+            practiceWordsCache = words;
+
+            wordCountSelect.innerHTML = `<option value="all">${words.length} words (all)</option>`;
+            wordCountSelect.disabled = false;
+            document.getElementById('startPracticeBtn').disabled = false;
         }
 
         async function startPractice() {
             await waitForVocabularyData();
-            
+
             // Start tracking (works for both assigned tasks and free practice)
             if (typeof taskTracker !== 'undefined') {
                 taskTracker.setLanguage('latin');
                 await taskTracker.start();
             }
-            
-            const chapterWords = vocabularyData.filter(word => word.chapter == selectedChapter);
-            const practiceWords = chapterWords.slice(fromIndex, toIndex + 1);
-            
-            initializePractice(practiceWords, selectedChapter, fromIndex, toIndex);
-            
+
+            const practiceWords = practiceWordsCache;
+
+            // Build chapter label for display
+            let chapterLabel;
+            if (selectedFromChapter === 'all') {
+                chapterLabel = 'All Chapters';
+            } else if (selectedFromChapter === selectedToChapter) {
+                chapterLabel = `Chapter ${selectedFromChapter}`;
+            } else {
+                chapterLabel = `Chapters ${selectedFromChapter}-${selectedToChapter}`;
+            }
+
+            initializePractice(practiceWords, chapterLabel, 0, practiceWords.length - 1);
+
             document.getElementById('setupPanel').style.display = 'none';
             document.getElementById('quizArea').classList.add('active');
         }
@@ -1300,45 +1333,47 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize task mode first
             initTaskMode();
-            
+
             // Check tracking status
             checkTrackingStatus();
-            
-            document.getElementById('chapterSelect').addEventListener('change', handleChapterSelect);
-            document.getElementById('fromWord').addEventListener('change', handleFromWordSelect);
-            document.getElementById('toWord').addEventListener('change', handleToWordSelect);
+
+            document.getElementById('fromChapter').addEventListener('change', handleFromChapterSelect);
+            document.getElementById('toChapter').addEventListener('change', handleToChapterSelect);
             document.getElementById('startPracticeBtn').addEventListener('click', startPractice);
-            
+
             const urlParams = new URLSearchParams(window.location.search);
-            
+
             // Check for review mode
             if (urlParams.get('mode') === 'review') {
                 startReviewMode();
                 return;
             }
-            
-            const urlChapter = urlParams.get('chapter');
-            const urlFrom = urlParams.get('from');
-            const urlTo = urlParams.get('to');
 
-            if (urlChapter && urlFrom !== null && urlTo !== null) {
-                document.getElementById('chapterSelect').value = urlChapter;
-                handleChapterSelect().then(() => {
-                    document.getElementById('fromWord').value = urlFrom;
-                    handleFromWordSelect().then(() => {
-                        document.getElementById('toWord').value = urlTo;
-                        handleToWordSelect();
-                        
-                        // Auto-start if in task mode
-                        if (isTaskMode) {
-                            setTimeout(() => {
-                                startPractice();
-                            }, 300);
-                        }
-                    });
+            // Support both old single chapter URL params and new range params
+            const urlFromChapter = urlParams.get('fromChapter') || urlParams.get('chapter');
+            const urlToChapter = urlParams.get('toChapter') || urlParams.get('chapter');
+
+            if (urlFromChapter) {
+                document.getElementById('fromChapter').value = urlFromChapter;
+                handleFromChapterSelect().then(() => {
+                    if (urlToChapter && urlFromChapter !== 'all') {
+                        document.getElementById('toChapter').value = urlToChapter;
+                        handleToChapterSelect().then(() => {
+                            // Auto-start if in task mode
+                            if (isTaskMode) {
+                                setTimeout(() => {
+                                    startPractice();
+                                }, 300);
+                            }
+                        });
+                    } else if (urlFromChapter === 'all' && isTaskMode) {
+                        setTimeout(() => {
+                            startPractice();
+                        }, 300);
+                    }
                 });
             }
-            
+
             document.getElementById('infoModal').style.display = 'none';
         });
     </script>
