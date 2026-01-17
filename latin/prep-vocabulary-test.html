@@ -174,15 +174,17 @@
         }
 
         .setup-controls {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr auto;
             gap: 1rem;
-            flex-wrap: wrap;
+            align-items: end;
             margin-bottom: 1.5rem;
         }
 
         .control-group {
-            flex: 1;
-            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
         .control-group label {
@@ -839,6 +841,16 @@
         }
 
         /* Responsive */
+        @media (max-width: 1200px) {
+            .setup-controls {
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+            }
+
+            .setup-controls .btn-primary {
+                grid-column: span 4;
+            }
+        }
+
         @media (max-width: 1024px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
@@ -857,7 +869,11 @@
             }
 
             .setup-controls {
-                flex-direction: column;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .setup-controls .btn-primary {
+                grid-column: span 2;
             }
 
             .control-group {
@@ -899,9 +915,10 @@
                     <h2>Test Setup</h2>
                     <div class="setup-controls">
                         <div class="control-group">
-                            <label for="chapterSelect">Chapter</label>
-                            <select id="chapterSelect" onchange="loadChapterWords()">
-                                <option value="">Select Chapter</option>
+                            <label for="fromChapter">From Chapter</label>
+                            <select id="fromChapter" onchange="handleFromChapterSelect()">
+                                <option value="">Select start chapter</option>
+                                <option value="all">All Chapters</option>
                                 <option value="1">Chapter 1</option>
                                 <option value="2">Chapter 2</option>
                                 <option value="3">Chapter 3</option>
@@ -922,16 +939,23 @@
                         </div>
 
                         <div class="control-group">
+                            <label for="toChapter">To Chapter</label>
+                            <select id="toChapter" onchange="handleToChapterSelect()" disabled>
+                                <option value="">Select end chapter</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
                             <label for="fromWord">From Word</label>
-                            <select id="fromWord" onchange="updateToWordOptions()" disabled>
-                                <option value="">Select chapter first</option>
+                            <select id="fromWord" onchange="handleFromWordSelect()" disabled>
+                                <option value="">Select start word</option>
                             </select>
                         </div>
 
                         <div class="control-group">
                             <label for="toWord">To Word</label>
-                            <select id="toWord" disabled>
-                                <option value="">Select start word first</option>
+                            <select id="toWord" onchange="handleToWordSelect()" disabled>
+                                <option value="">Select end word</option>
                             </select>
                         </div>
 
@@ -1067,9 +1091,15 @@
     <script>
         // Test state
         let testWords = [];
-        let chapterWords = [];
         let isMarked = false;
         let testStartTime = null;
+
+        // Chapter range variables
+        let selectedFromChapter = null;
+        let selectedToChapter = null;
+        let chapterWordsCache = [];
+        let fromIndex = null;
+        let toIndex = null;
 
         // Fisher-Yates shuffle algorithm
         function shuffleArray(array) {
@@ -1118,110 +1148,173 @@
             return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
         }
 
-        // Load words for selected chapter
-        function loadChapterWords() {
-            const chapter = document.getElementById('chapterSelect').value;
-            const fromSelect = document.getElementById('fromWord');
-            const toSelect = document.getElementById('toWord');
-            const startBtn = document.getElementById('startTestBtn');
-            const printBtn = document.getElementById('printBlankBtn');
-            
-            if (!chapter) {
-                fromSelect.disabled = true;
-                toSelect.disabled = true;
-                startBtn.disabled = true;
-                printBtn.disabled = true;
-                fromSelect.innerHTML = '<option value="">Select chapter first</option>';
-                toSelect.innerHTML = '<option value="">Select start word first</option>';
+        // Handle From Chapter selection
+        function handleFromChapterSelect() {
+            const fromChapter = document.getElementById('fromChapter').value;
+            const toChapterSelect = document.getElementById('toChapter');
+            const fromWordSelect = document.getElementById('fromWord');
+            const toWordSelect = document.getElementById('toWord');
+
+            // Reset downstream selects
+            fromWordSelect.disabled = true;
+            fromWordSelect.innerHTML = '<option value="">Select start word</option>';
+            toWordSelect.disabled = true;
+            toWordSelect.innerHTML = '<option value="">Select end word</option>';
+            document.getElementById('startTestBtn').disabled = true;
+            document.getElementById('printBlankBtn').disabled = true;
+
+            if (!fromChapter) {
+                toChapterSelect.disabled = true;
+                toChapterSelect.innerHTML = '<option value="">Select end chapter</option>';
                 return;
             }
-            
-            // Get words for this chapter
-            chapterWords = suburaniVocabularyData.filter(w => w.chapter == chapter);
-            
+
+            selectedFromChapter = fromChapter;
+
+            // If "All Chapters" selected, skip to chapter selection and populate words
+            if (fromChapter === 'all') {
+                toChapterSelect.disabled = true;
+                toChapterSelect.innerHTML = '<option value="">All chapters selected</option>';
+                selectedToChapter = 'all';
+                populateWordSelects();
+                return;
+            }
+
+            // Populate "To Chapter" with chapters >= fromChapter
+            const fromNum = parseInt(fromChapter);
+            toChapterSelect.innerHTML = '<option value="">Select end chapter</option>';
+            for (let i = fromNum; i <= 16; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Chapter ${i}`;
+                toChapterSelect.appendChild(option);
+            }
+            toChapterSelect.disabled = false;
+        }
+
+        // Handle To Chapter selection
+        function handleToChapterSelect() {
+            const toChapter = document.getElementById('toChapter').value;
+            const fromWordSelect = document.getElementById('fromWord');
+            const toWordSelect = document.getElementById('toWord');
+
+            // Reset word selects
+            fromWordSelect.disabled = true;
+            fromWordSelect.innerHTML = '<option value="">Select start word</option>';
+            toWordSelect.disabled = true;
+            toWordSelect.innerHTML = '<option value="">Select end word</option>';
+            document.getElementById('startTestBtn').disabled = true;
+            document.getElementById('printBlankBtn').disabled = true;
+
+            if (!toChapter) {
+                return;
+            }
+
+            selectedToChapter = toChapter;
+            populateWordSelects();
+        }
+
+        // Populate word selects based on chapter range
+        function populateWordSelects() {
+            const fromWordSelect = document.getElementById('fromWord');
+
+            // Get words in the selected chapter range
+            let words;
+            if (selectedFromChapter === 'all') {
+                words = suburaniVocabularyData.slice();
+            } else {
+                const fromNum = parseInt(selectedFromChapter);
+                const toNum = parseInt(selectedToChapter);
+                words = suburaniVocabularyData.filter(word => word.chapter >= fromNum && word.chapter <= toNum);
+            }
+
             // Sort alphabetically by Latin word
-            chapterWords.sort((a, b) => a.latin.localeCompare(b.latin));
-            
-            // Populate 'from' dropdown
-            fromSelect.disabled = false;
-            fromSelect.innerHTML = '<option value="">Select starting word...</option>';
-            chapterWords.forEach((word, index) => {
+            words.sort((a, b) => a.latin.localeCompare(b.latin));
+
+            chapterWordsCache = words;
+
+            // Populate From Word dropdown
+            fromWordSelect.innerHTML = '<option value="">Select start word</option>';
+            words.forEach((word, index) => {
                 const option = document.createElement('option');
                 option.value = index;
                 option.textContent = `${word.latin} - ${word.english}`;
-                fromSelect.appendChild(option);
+                fromWordSelect.appendChild(option);
             });
-            
-            // Reset 'to' dropdown
-            toSelect.disabled = true;
-            toSelect.innerHTML = '<option value="">Select start word first</option>';
-            startBtn.disabled = true;
-            printBtn.disabled = true;
+            fromWordSelect.disabled = false;
         }
 
-        // Update 'to' word options
-        function updateToWordOptions() {
-            const fromIndex = parseInt(document.getElementById('fromWord').value);
-            const toSelect = document.getElementById('toWord');
-            const startBtn = document.getElementById('startTestBtn');
-            const printBtn = document.getElementById('printBlankBtn');
-            
-            if (isNaN(fromIndex)) {
-                toSelect.disabled = true;
-                toSelect.innerHTML = '<option value="">Select start word first</option>';
-                startBtn.disabled = true;
-                printBtn.disabled = true;
+        // Handle From Word selection
+        function handleFromWordSelect() {
+            const fromValue = document.getElementById('fromWord').value;
+            const toWordSelect = document.getElementById('toWord');
+
+            toWordSelect.disabled = true;
+            toWordSelect.innerHTML = '<option value="">Select end word</option>';
+            document.getElementById('startTestBtn').disabled = true;
+            document.getElementById('printBlankBtn').disabled = true;
+
+            if (!fromValue) {
                 return;
             }
-            
-            // Enable and populate 'to' dropdown
-            toSelect.disabled = false;
-            toSelect.innerHTML = '<option value="">Select ending word...</option>';
-            
-            // Only show words after the 'from' word
-            for (let i = fromIndex; i < chapterWords.length; i++) {
-                const word = chapterWords[i];
+
+            fromIndex = parseInt(fromValue);
+
+            // Populate To Word dropdown with words from fromIndex onwards
+            for (let i = fromIndex; i < chapterWordsCache.length; i++) {
+                const word = chapterWordsCache[i];
                 const option = document.createElement('option');
                 option.value = i;
                 option.textContent = `${word.latin} - ${word.english}`;
-                if (i === chapterWords.length - 1) {
-                    option.textContent += ' (end of chapter)';
+                if (i === chapterWordsCache.length - 1) {
+                    option.textContent += ' (end)';
                 }
-                toSelect.appendChild(option);
+                toWordSelect.appendChild(option);
             }
-            
-            // Enable buttons when both words are selected
-            toSelect.addEventListener('change', function() {
-                if (toSelect.value) {
-                    startBtn.disabled = false;
-                    printBtn.disabled = false;
-                }
-            });
+            toWordSelect.disabled = false;
+        }
+
+        // Handle To Word selection
+        function handleToWordSelect() {
+            const toValue = document.getElementById('toWord').value;
+            if (toValue) {
+                toIndex = parseInt(toValue);
+                document.getElementById('startTestBtn').disabled = false;
+                document.getElementById('printBlankBtn').disabled = false;
+            } else {
+                document.getElementById('startTestBtn').disabled = true;
+                document.getElementById('printBlankBtn').disabled = true;
+            }
         }
 
         // Start test
         async function startTest() {
-            const chapter = document.getElementById('chapterSelect').value;
-            const fromIndex = parseInt(document.getElementById('fromWord').value);
-            const toIndex = parseInt(document.getElementById('toWord').value);
-
-            if (!chapter || isNaN(fromIndex) || isNaN(toIndex)) {
+            if (fromIndex === null || toIndex === null) {
                 alert('Please select chapter and word range!');
                 return;
             }
 
             // Get selected word range and apply options
-            const selectedWords = chapterWords.slice(fromIndex, toIndex + 1);
+            const selectedWords = chapterWordsCache.slice(fromIndex, toIndex + 1);
             testWords = applyTestOptions(selectedWords);
 
+            // Build chapter label
+            let chapterLabel;
+            if (selectedFromChapter === 'all') {
+                chapterLabel = 'All Chapters';
+            } else if (selectedFromChapter === selectedToChapter) {
+                chapterLabel = `Chapter ${selectedFromChapter}`;
+            } else {
+                chapterLabel = `Chapters ${selectedFromChapter}-${selectedToChapter}`;
+            }
+
             // Update test title
-            const fromWord = chapterWords[fromIndex].latin;
-            const toWord = chapterWords[toIndex].latin;
+            const fromWord = chapterWordsCache[fromIndex].latin;
+            const toWord = chapterWordsCache[toIndex].latin;
             const totalSelected = selectedWords.length;
             const testCount = testWords.length;
             const countInfo = testCount < totalSelected ? `${testCount} of ${totalSelected} words` : `${testCount} words`;
-            document.getElementById('testTitle').textContent =
-                `Chapter ${chapter}: ${fromWord} to ${toWord}`;
+            document.getElementById('testTitle').textContent = `${chapterLabel}: ${fromWord} to ${toWord}`;
             document.getElementById('testInfo').textContent = countInfo;
 
             // Create test table
@@ -1435,27 +1528,34 @@
 
         // Print blank test
         function printBlankTest() {
-            const chapter = document.getElementById('chapterSelect').value;
-            const fromIndex = parseInt(document.getElementById('fromWord').value);
-            const toIndex = parseInt(document.getElementById('toWord').value);
-            const studentName = document.getElementById('studentName').value || '________________________';
-            
-            if (!chapter || isNaN(fromIndex) || isNaN(toIndex)) {
+            if (fromIndex === null || toIndex === null) {
                 alert('Please select chapter and word range!');
                 return;
             }
-            
+
+            const studentName = document.getElementById('studentName').value || '________________________';
+
             // Get selected word range and apply options
-            const selectedWords = chapterWords.slice(fromIndex, toIndex + 1);
+            const selectedWords = chapterWordsCache.slice(fromIndex, toIndex + 1);
             testWords = applyTestOptions(selectedWords);
+
+            // Build chapter label
+            let chapterLabel;
+            if (selectedFromChapter === 'all') {
+                chapterLabel = 'All Chapters';
+            } else if (selectedFromChapter === selectedToChapter) {
+                chapterLabel = `Chapter ${selectedFromChapter}`;
+            } else {
+                chapterLabel = `Chapters ${selectedFromChapter}-${selectedToChapter}`;
+            }
 
             // Get test details
             const customDate = document.getElementById('testDate').value;
             const testDate = customDate
                 ? new Date(customDate).toLocaleDateString('en-GB')
                 : new Date().toLocaleDateString('en-GB');
-            const fromWord = chapterWords[fromIndex].latin;
-            const toWord = chapterWords[toIndex].latin;
+            const fromWord = chapterWordsCache[fromIndex].latin;
+            const toWord = chapterWordsCache[toIndex].latin;
             const totalSelected = selectedWords.length;
             const testCount = testWords.length;
             const countInfo = testCount < totalSelected ? `(${testCount} of ${totalSelected} words)` : '';
@@ -1548,7 +1648,7 @@
                     <div class="test-header">
                         <h2>Latin Vocabulary Test - Suburani Book 1</h2>
                         <div style="text-align: center; font-size: 14pt; margin-bottom: 10px;">
-                            Chapter ${chapter}: ${fromWord} to ${toWord} ${countInfo}
+                            ${chapterLabel}: ${fromWord} to ${toWord} ${countInfo}
                         </div>
                         <div class="student-info">
                             <div class="student-info-field">
