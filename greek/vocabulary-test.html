@@ -222,7 +222,7 @@
 
         .setup-controls {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr auto;
+            grid-template-columns: 1fr 1fr 1fr 1fr auto;
             gap: 1rem;
             align-items: end;
             margin-bottom: 2rem;
@@ -754,7 +754,11 @@
             }
 
             .setup-controls {
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+            }
+
+            .setup-controls .start-test-btn {
+                grid-column: span 4;
             }
 
             .right-sidebar {
@@ -774,7 +778,11 @@
             }
 
             .setup-controls {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .setup-controls .start-test-btn {
+                grid-column: span 2;
             }
 
             .test-content {
@@ -916,9 +924,10 @@
                     <h2>Test Setup</h2>
                     <div class="setup-controls">
                         <div class="control-group">
-                            <label for="chapterSelect">Chapter</label>
-                            <select id="chapterSelect">
-                                <option value="">Select Chapter</option>
+                            <label for="fromChapter">From Chapter</label>
+                            <select id="fromChapter">
+                                <option value="">Select start chapter</option>
+                                <option value="all">All Chapters</option>
                                 <option value="1">Chapter 1</option>
                                 <option value="2">Chapter 2</option>
                                 <option value="3">Chapter 3</option>
@@ -929,6 +938,13 @@
                                 <option value="8">Chapter 8</option>
                                 <option value="9">Chapter 9</option>
                                 <option value="10">Chapter 10</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="toChapter">To Chapter</label>
+                            <select id="toChapter" disabled>
+                                <option value="">Select end chapter</option>
                             </select>
                         </div>
 
@@ -1081,13 +1097,18 @@
         // Test state
         let testWords = [];
         let isMarked = false;
-        let selectedChapter = null;
-        let fromIndex = null;
-        let toIndex = null;
         let testStartTime = null;
 
+        // Chapter range variables
+        let selectedFromChapter = null;
+        let selectedToChapter = null;
+        let chapterWordsCache = [];
+        let fromIndex = null;
+        let toIndex = null;
+
         // Setup event listeners
-        document.getElementById('chapterSelect').addEventListener('change', handleChapterSelect);
+        document.getElementById('fromChapter').addEventListener('change', handleFromChapterSelect);
+        document.getElementById('toChapter').addEventListener('change', handleToChapterSelect);
         document.getElementById('fromWord').addEventListener('change', handleFromWordSelect);
         document.getElementById('toWord').addEventListener('change', handleToWordSelect);
         document.getElementById('startTestBtn').addEventListener('click', startTest);
@@ -1095,63 +1116,120 @@
         document.getElementById('resetBtn').addEventListener('click', resetTest);
         document.getElementById('printBlankBtn').addEventListener('click', printBlankTest);
 
-        function handleChapterSelect() {
-            const chapter = document.getElementById('chapterSelect').value;
-            const fromSelect = document.getElementById('fromWord');
-            const toSelect = document.getElementById('toWord');
-            
-            if (!chapter) {
-                fromSelect.disabled = true;
-                toSelect.disabled = true;
-                document.getElementById('startTestBtn').disabled = true;
-                document.getElementById('printBlankBtn').disabled = true;
+        function handleFromChapterSelect() {
+            const fromChapter = document.getElementById('fromChapter').value;
+            const toChapterSelect = document.getElementById('toChapter');
+            const fromWordSelect = document.getElementById('fromWord');
+            const toWordSelect = document.getElementById('toWord');
+
+            // Reset downstream selects
+            fromWordSelect.disabled = true;
+            fromWordSelect.innerHTML = '<option value="">Select start word</option>';
+            toWordSelect.disabled = true;
+            toWordSelect.innerHTML = '<option value="">Select end word</option>';
+            document.getElementById('startTestBtn').disabled = true;
+            document.getElementById('printBlankBtn').disabled = true;
+
+            if (!fromChapter) {
+                toChapterSelect.disabled = true;
+                toChapterSelect.innerHTML = '<option value="">Select end chapter</option>';
                 return;
             }
 
-            selectedChapter = chapter;
-            const chapterWords = greekVocabularyData.filter(word => word.chapter == chapter);
-            
-            // Populate from word dropdown
-            fromSelect.innerHTML = '<option value="">Select start word</option>';
-            chapterWords.forEach((word, index) => {
+            selectedFromChapter = fromChapter;
+
+            // If "All Chapters" selected, skip to chapter selection and populate words
+            if (fromChapter === 'all') {
+                toChapterSelect.disabled = true;
+                toChapterSelect.innerHTML = '<option value="">All chapters selected</option>';
+                selectedToChapter = 'all';
+                populateWordSelects();
+                return;
+            }
+
+            // Populate "To Chapter" with chapters >= fromChapter
+            const fromNum = parseInt(fromChapter);
+            toChapterSelect.innerHTML = '<option value="">Select end chapter</option>';
+            for (let i = fromNum; i <= 10; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Chapter ${i}`;
+                toChapterSelect.appendChild(option);
+            }
+            toChapterSelect.disabled = false;
+        }
+
+        function handleToChapterSelect() {
+            const toChapter = document.getElementById('toChapter').value;
+            const fromWordSelect = document.getElementById('fromWord');
+            const toWordSelect = document.getElementById('toWord');
+
+            // Reset word selects
+            fromWordSelect.disabled = true;
+            fromWordSelect.innerHTML = '<option value="">Select start word</option>';
+            toWordSelect.disabled = true;
+            toWordSelect.innerHTML = '<option value="">Select end word</option>';
+            document.getElementById('startTestBtn').disabled = true;
+            document.getElementById('printBlankBtn').disabled = true;
+
+            if (!toChapter) {
+                return;
+            }
+
+            selectedToChapter = toChapter;
+            populateWordSelects();
+        }
+
+        function populateWordSelects() {
+            const fromWordSelect = document.getElementById('fromWord');
+
+            // Get words in the selected chapter range
+            let words;
+            if (selectedFromChapter === 'all') {
+                words = greekVocabularyData.slice();
+            } else {
+                const fromNum = parseInt(selectedFromChapter);
+                const toNum = parseInt(selectedToChapter);
+                words = greekVocabularyData.filter(word => word.chapter >= fromNum && word.chapter <= toNum);
+            }
+
+            chapterWordsCache = words;
+
+            // Populate From Word dropdown
+            fromWordSelect.innerHTML = '<option value="">Select start word</option>';
+            words.forEach((word, index) => {
                 const option = document.createElement('option');
                 option.value = index;
                 option.textContent = word.greek;
-                fromSelect.appendChild(option);
+                fromWordSelect.appendChild(option);
             });
-            fromSelect.disabled = false;
-            
-            // Reset to word dropdown
-            toSelect.innerHTML = '<option value="">Select end word</option>';
-            toSelect.disabled = true;
-            document.getElementById('startTestBtn').disabled = true;
-            document.getElementById('printBlankBtn').disabled = true;
+            fromWordSelect.disabled = false;
         }
 
         function handleFromWordSelect() {
             const fromValue = document.getElementById('fromWord').value;
-            const toSelect = document.getElementById('toWord');
-            
+            const toWordSelect = document.getElementById('toWord');
+
+            toWordSelect.disabled = true;
+            toWordSelect.innerHTML = '<option value="">Select end word</option>';
+            document.getElementById('startTestBtn').disabled = true;
+            document.getElementById('printBlankBtn').disabled = true;
+
             if (!fromValue) {
-                toSelect.disabled = true;
-                document.getElementById('startTestBtn').disabled = true;
-                document.getElementById('printBlankBtn').disabled = true;
                 return;
             }
 
             fromIndex = parseInt(fromValue);
-            const chapterWords = greekVocabularyData.filter(word => word.chapter == selectedChapter);
-            
-            // Populate to word dropdown (only words after the from word)
-            toSelect.innerHTML = '<option value="">Select end word</option>';
-            for (let i = fromIndex; i < chapterWords.length; i++) {
-                const word = chapterWords[i];
+
+            // Populate To Word dropdown with words from fromIndex onwards
+            for (let i = fromIndex; i < chapterWordsCache.length; i++) {
+                const word = chapterWordsCache[i];
                 const option = document.createElement('option');
                 option.value = i;
                 option.textContent = word.greek;
-                toSelect.appendChild(option);
+                toWordSelect.appendChild(option);
             }
-            toSelect.disabled = false;
+            toWordSelect.disabled = false;
         }
 
         function handleToWordSelect() {
@@ -1167,14 +1245,23 @@
         }
 
         function printBlankTest() {
-            const chapterWords = greekVocabularyData.filter(word => word.chapter == selectedChapter);
-            testWords = chapterWords.slice(fromIndex, toIndex + 1);
-            
+            testWords = chapterWordsCache.slice(fromIndex, toIndex + 1);
+
+            // Build chapter label
+            let chapterLabel;
+            if (selectedFromChapter === 'all') {
+                chapterLabel = 'All Chapters';
+            } else if (selectedFromChapter === selectedToChapter) {
+                chapterLabel = `Chapter ${selectedFromChapter}`;
+            } else {
+                chapterLabel = `Chapters ${selectedFromChapter}-${selectedToChapter}`;
+            }
+
             // Get student name and date
             const studentName = document.getElementById('studentName').value || '________________________';
             const testDate = new Date().toLocaleDateString('en-GB');
-            const fromWord = chapterWords[fromIndex].greek;
-            const toWord = chapterWords[toIndex].greek;
+            const fromWord = chapterWordsCache[fromIndex].greek;
+            const toWord = chapterWordsCache[toIndex].greek;
             
             // Create print version
             const printWindow = window.open('', '_blank');
@@ -1264,7 +1351,7 @@
                     <div class="test-header">
                         <h2>Greek Vocabulary Test</h2>
                         <div style="text-align: center; font-size: 14pt; margin-bottom: 10px;">
-                            Chapter ${selectedChapter}: ${fromWord} to ${toWord}
+                            ${chapterLabel}: ${fromWord} to ${toWord}
                         </div>
                         <div class="student-info">
                             <div class="student-info-field">
@@ -1316,13 +1403,22 @@
         }
 
         async function startTest() {
-            const chapterWords = greekVocabularyData.filter(word => word.chapter == selectedChapter);
-            testWords = chapterWords.slice(fromIndex, toIndex + 1);
+            testWords = chapterWordsCache.slice(fromIndex, toIndex + 1);
+
+            // Build chapter label
+            let chapterLabel;
+            if (selectedFromChapter === 'all') {
+                chapterLabel = 'All Chapters';
+            } else if (selectedFromChapter === selectedToChapter) {
+                chapterLabel = `Chapter ${selectedFromChapter}`;
+            } else {
+                chapterLabel = `Chapters ${selectedFromChapter}-${selectedToChapter}`;
+            }
 
             // Update test header
-            const fromWord = chapterWords[fromIndex].greek;
-            const toWord = chapterWords[toIndex].greek;
-            document.getElementById('testTitle').textContent = `Chapter ${selectedChapter}: ${fromWord} to ${toWord}`;
+            const fromWord = chapterWordsCache[fromIndex].greek;
+            const toWord = chapterWordsCache[toIndex].greek;
+            document.getElementById('testTitle').textContent = `${chapterLabel}: ${fromWord} to ${toWord}`;
             document.getElementById('testInfo').textContent = `${testWords.length} words`;
 
             // Build test table
@@ -1482,13 +1578,20 @@
             document.getElementById('resetBtn').style.display = 'none';
             
             // Reset form
-            document.getElementById('chapterSelect').value = '';
+            document.getElementById('fromChapter').value = '';
+            document.getElementById('toChapter').innerHTML = '<option value="">Select end chapter</option>';
+            document.getElementById('toChapter').disabled = true;
             document.getElementById('fromWord').innerHTML = '<option value="">Select start word</option>';
             document.getElementById('fromWord').disabled = true;
             document.getElementById('toWord').innerHTML = '<option value="">Select end word</option>';
             document.getElementById('toWord').disabled = true;
             document.getElementById('startTestBtn').disabled = true;
             document.getElementById('printBlankBtn').disabled = true;
+            selectedFromChapter = null;
+            selectedToChapter = null;
+            chapterWordsCache = [];
+            fromIndex = null;
+            toIndex = null;
         }
 
         // Modal functions
