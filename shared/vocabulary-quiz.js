@@ -234,7 +234,10 @@ function loadQuestion() {
     document.getElementById('check-btn').style.display = 'inline-block';
     document.getElementById('next-btn').style.display = 'none';
     document.getElementById('reveal-btn').style.display = 'inline-block';
-    
+
+    // Reset hint/derivation display for new word
+    resetHintDisplay();
+
     updateDisplay();
     document.getElementById('answer-input').focus();
 
@@ -422,6 +425,82 @@ function revealAnswer() {
     // === TRACKING: Record as incorrect when revealed ===
     if (typeof window.onWordAnswered === 'function') {
         window.onWordAnswered(word, false);
+    }
+}
+
+// Show hint for current word
+function showHint() {
+    const word = getCurrentWord();
+    if (!word) return;
+
+    const hintDisplay = document.getElementById('hint-display');
+    const hintBtn = document.getElementById('hint-btn');
+
+    if (!hintDisplay) return;
+
+    // Check if word has a hint
+    const hint = word.hint;
+
+    if (hint) {
+        hintDisplay.innerHTML = `<div class="hint-label">Hint:</div><div class="hint-text">${hint}</div>`;
+    } else {
+        hintDisplay.innerHTML = `<div class="hint-label">Hint:</div><div class="hint-text">No hint available for this word</div>`;
+    }
+
+    hintDisplay.className = 'hint-display hint-content';
+    hintDisplay.style.display = 'block';
+
+    // Disable hint button after use
+    if (hintBtn) {
+        hintBtn.disabled = true;
+    }
+}
+
+// Show derivation for current word
+function showDerivation() {
+    const word = getCurrentWord();
+    if (!word) return;
+
+    const hintDisplay = document.getElementById('hint-display');
+    const derivationBtn = document.getElementById('derivation-btn');
+
+    if (!hintDisplay) return;
+
+    // Check if word has derivatives
+    const derivatives = word.derivatives;
+
+    if (derivatives) {
+        hintDisplay.innerHTML = `<div class="hint-label">English Derivatives:</div><div class="hint-text">${derivatives}</div>`;
+    } else {
+        hintDisplay.innerHTML = `<div class="hint-label">English Derivatives:</div><div class="hint-text">No derivatives available for this word</div>`;
+    }
+
+    hintDisplay.className = 'hint-display derivation-content';
+    hintDisplay.style.display = 'block';
+
+    // Disable derivation button after use
+    if (derivationBtn) {
+        derivationBtn.disabled = true;
+    }
+}
+
+// Reset hint/derivation display for new word
+function resetHintDisplay() {
+    const hintDisplay = document.getElementById('hint-display');
+    const hintBtn = document.getElementById('hint-btn');
+    const derivationBtn = document.getElementById('derivation-btn');
+
+    if (hintDisplay) {
+        hintDisplay.style.display = 'none';
+        hintDisplay.innerHTML = '';
+    }
+
+    if (hintBtn) {
+        hintBtn.disabled = false;
+    }
+
+    if (derivationBtn) {
+        derivationBtn.disabled = false;
     }
 }
 
