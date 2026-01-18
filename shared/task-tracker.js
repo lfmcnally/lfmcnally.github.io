@@ -214,7 +214,20 @@ const taskTracker = {
                 // Set mastered_at timestamp if this is first time mastering
                 if (shouldAwardMasteryBonus) {
                     updateData.mastered_at = new Date().toISOString();
-                    // Schedule first spaced repetition review (1 day from now)
+                }
+
+                // Schedule spaced repetition for ALL words (not just mastered)
+                const currentInterval = existing.review_interval_days || 1;
+                if (isCorrect) {
+                    // Correct: advance to next interval
+                    const intervals = [1, 3, 7, 14, 30, 60, 120];
+                    const currentIdx = intervals.indexOf(currentInterval);
+                    const nextIdx = currentIdx === -1 ? 0 : Math.min(currentIdx + 1, intervals.length - 1);
+                    const nextInterval = intervals[nextIdx];
+                    updateData.next_review_at = new Date(Date.now() + nextInterval * 24 * 60 * 60 * 1000).toISOString();
+                    updateData.review_interval_days = nextInterval;
+                } else {
+                    // Incorrect: reset to 1 day
                     updateData.next_review_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
                     updateData.review_interval_days = 1;
                 }
@@ -238,6 +251,7 @@ const taskTracker = {
 
             } else {
                 // Insert new record with language
+                // Schedule first review in 1 day (all new words enter the SR system)
                 const { error: insertError } = await supabase
                     .from('word_mastery')
                     .insert({
@@ -248,7 +262,9 @@ const taskTracker = {
                         language: this.language,
                         correct_count: isCorrect ? 1 : 0,
                         incorrect_count: isCorrect ? 0 : 1,
-                        last_seen_at: new Date().toISOString()
+                        last_seen_at: new Date().toISOString(),
+                        next_review_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                        review_interval_days: 1
                     });
 
                 if (insertError) {
