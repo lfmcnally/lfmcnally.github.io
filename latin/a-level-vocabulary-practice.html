@@ -1031,11 +1031,17 @@
         let availableLetters = [];
 
         function waitForVocabularyData() {
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 50; // 5 seconds max wait
                 const checkData = () => {
                     if (typeof aLevelVocabularyData !== 'undefined' && aLevelVocabularyData.length > 0) {
                         resolve();
+                    } else if (attempts >= maxAttempts) {
+                        console.error('Vocabulary data failed to load');
+                        reject(new Error('Vocabulary data not available'));
                     } else {
+                        attempts++;
                         setTimeout(checkData, 100);
                     }
                 };
@@ -1106,23 +1112,29 @@
 
             if (typeof supabase === 'undefined') {
                 indicator.classList.add('not-tracking');
-                text.textContent = 'Progress tracking unavailable';
+                text.innerHTML = 'Log in to track progress - <a href="/auth/login.html" style="color: #7c3aed;">Sign in</a>';
                 return;
             }
 
-            const { data: { user } } = await supabase.auth.getUser();
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
 
-            if (user) {
-                indicator.classList.remove('not-tracking');
-                const urlParams = new URLSearchParams(window.location.search);
-                const taskId = urlParams.get('task_id');
+                if (user) {
+                    indicator.classList.remove('not-tracking');
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const taskId = urlParams.get('task_id');
 
-                if (taskId) {
-                    text.textContent = 'Assigned task - progress will be recorded';
+                    if (taskId) {
+                        text.textContent = 'Assigned task - progress will be recorded';
+                    } else {
+                        text.textContent = 'Logged in - your practice will be tracked';
+                    }
                 } else {
-                    text.textContent = 'Logged in - your practice will be tracked';
+                    indicator.classList.add('not-tracking');
+                    text.innerHTML = 'Log in to track progress - <a href="/auth/login.html" style="color: #7c3aed;">Sign in</a>';
                 }
-            } else {
+            } catch (error) {
+                console.error('Error checking tracking status:', error);
                 indicator.classList.add('not-tracking');
                 text.innerHTML = 'Log in to track progress - <a href="/auth/login.html" style="color: #7c3aed;">Sign in</a>';
             }
@@ -1318,7 +1330,14 @@
         document.addEventListener('DOMContentLoaded', async function() {
             initTaskMode();
             checkTrackingStatus();
-            await initializeLetterDropdown();
+
+            try {
+                await initializeLetterDropdown();
+            } catch (error) {
+                console.error('Failed to initialize:', error);
+                alert('Failed to load vocabulary data. Please refresh the page.');
+                return;
+            }
 
             document.getElementById('fromLetter').addEventListener('change', handleFromLetterSelect);
             document.getElementById('toLetter').addEventListener('change', handleToLetterSelect);
