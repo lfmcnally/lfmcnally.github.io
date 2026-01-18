@@ -743,15 +743,27 @@
             await loadAllData();
         }
 
+        // Get vocabulary data by config key (const variables aren't on window)
+        function getVocabData() {
+            const key = `${new URLSearchParams(window.location.search).get('language') || 'latin'}-${new URLSearchParams(window.location.search).get('vocab_set') || 'gcse'}`;
+            switch(key) {
+                case 'latin-gcse': return typeof vocabularyData !== 'undefined' ? vocabularyData : null;
+                case 'latin-a-level': return typeof aLevelVocabularyData !== 'undefined' ? aLevelVocabularyData : null;
+                case 'latin-prep': return typeof suburaniVocabularyData !== 'undefined' ? suburaniVocabularyData : null;
+                case 'greek-gcse': return typeof greekVocabularyData !== 'undefined' ? greekVocabularyData : null;
+                default: return null;
+            }
+        }
+
         // Wait for vocabulary data script to load
         function waitForVocabularyData() {
             return new Promise((resolve) => {
                 const checkData = () => {
-                    const data = window[currentConfig.dataVar];
-                    if (typeof data !== 'undefined' && Array.isArray(data) && data.length > 0) {
+                    const data = getVocabData();
+                    if (data && Array.isArray(data) && data.length > 0) {
                         resolve();
                     } else {
-                        console.log('Waiting for vocab data...', currentConfig.dataVar);
+                        console.log('Waiting for vocab data...');
                         setTimeout(checkData, 100);
                     }
                 };
@@ -762,7 +774,7 @@
         async function loadAllData() {
             try {
                 // Get vocabulary list
-                const vocabList = window[currentConfig.dataVar];
+                const vocabList = getVocabData();
                 if (!vocabList || !Array.isArray(vocabList)) {
                     showError('Vocabulary data not found');
                     return;
