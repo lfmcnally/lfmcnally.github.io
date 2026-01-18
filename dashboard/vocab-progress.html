@@ -637,8 +637,8 @@
                 backUrl: '../latin/vocabulary-hub.html'
             },
             'latin-prep': {
-                script: '../shared/prep-vocabulary-data.js',
-                dataVar: 'prepVocabularyData',
+                script: '../latin/data/suburani-vocab.js',
+                dataVar: 'suburaniVocabularyData',
                 language: 'prep-latin',
                 wordField: 'latin',
                 displayName: 'Prep Latin Vocabulary',
@@ -728,7 +728,16 @@
             }
 
             // Load vocabulary data script
-            await loadVocabDataScript();
+            try {
+                console.log('Loading vocab script:', currentConfig.script);
+                await loadVocabDataScript();
+                console.log('Vocab script loaded, checking data var:', currentConfig.dataVar);
+                console.log('Data available:', !!window[currentConfig.dataVar]);
+            } catch (err) {
+                console.error('Failed to load vocab script:', err);
+                showError('Failed to load vocabulary data. Please try refreshing the page.');
+                return;
+            }
 
             // Setup event listeners
             setupEventListeners();
@@ -743,10 +752,11 @@
                 script.src = currentConfig.script;
                 script.onload = () => {
                     vocabDataLoaded = true;
+                    console.log('Script onload fired');
                     resolve();
                 };
-                script.onerror = () => {
-                    console.error('Failed to load vocab data script');
+                script.onerror = (e) => {
+                    console.error('Failed to load vocab data script:', currentConfig.script, e);
                     reject(new Error('Failed to load vocabulary data'));
                 };
                 document.head.appendChild(script);
