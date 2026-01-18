@@ -770,6 +770,38 @@
                                     </a>
                                 </div>
                             </div>
+
+                            <!-- Smart Review Card -->
+                            <div class="vocab-set-card smart-review-card" onclick="window.location.href='smart-review.html'" style="border-color: #059669; background: linear-gradient(135deg, rgba(5, 150, 105, 0.02) 0%, rgba(16, 185, 129, 0.05) 100%);">
+                                <span class="badge" style="background: #059669;">Revision</span>
+                                <div class="vocab-icon">🧠</div>
+                                <h2 class="vocab-set-name">Smart Review</h2>
+                                <div class="vocab-set-level" style="color: #059669;">Spaced Repetition</div>
+                                <p class="vocab-set-description">Review words that are due for reinforcement and words you've marked as tricky. Uses spaced repetition for optimal learning.</p>
+
+                                <div class="vocab-stats">
+                                    <div class="stat-item">
+                                        <div class="stat-value" id="dueCount">-</div>
+                                        <div class="stat-label">Due for Review</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-value" id="trickyCount">-</div>
+                                        <div class="stat-label">Tricky Words</div>
+                                    </div>
+                                </div>
+
+                                <div class="vocab-tools">
+                                    <a href="smart-review.html" class="tool-link" onclick="event.stopPropagation()" style="border-color: #059669;">
+                                        <span class="tool-icon">🎯</span> Smart Review
+                                    </a>
+                                    <a href="smart-review.html?mode=tricky" class="tool-link" onclick="event.stopPropagation()">
+                                        <span class="tool-icon">⭐</span> Review Tricky Only
+                                    </a>
+                                    <a href="smart-review.html?mode=due" class="tool-link" onclick="event.stopPropagation()">
+                                        <span class="tool-icon">🕐</span> Due Words Only
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -906,6 +938,41 @@
                 console.log('Last used set:', lastSet);
             }
         });
+    </script>
+
+    <!-- Supabase for review counts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../shared/supabase-config.js"></script>
+    <script src="../shared/spaced-repetition.js"></script>
+    <script>
+        // Load review counts for Smart Review card
+        async function loadReviewCounts() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    document.getElementById('dueCount').textContent = '-';
+                    document.getElementById('trickyCount').textContent = '-';
+                    return;
+                }
+
+                const [dueCount, trickyCount] = await Promise.all([
+                    spacedRepetition.getDueWordCount(user.id, 'latin'),
+                    spacedRepetition.getTrickyWordCount(user.id, 'latin')
+                ]);
+
+                document.getElementById('dueCount').textContent = dueCount || 0;
+                document.getElementById('trickyCount').textContent = trickyCount || 0;
+            } catch (err) {
+                console.log('Could not load review counts:', err);
+                document.getElementById('dueCount').textContent = '-';
+                document.getElementById('trickyCount').textContent = '-';
+            }
+        }
+
+        // Load counts when page loads
+        if (typeof supabase !== 'undefined') {
+            loadReviewCounts();
+        }
     </script>
 </body>
 </html>
