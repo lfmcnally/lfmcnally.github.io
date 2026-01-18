@@ -212,6 +212,39 @@
             padding: 1.25rem;
         }
 
+        /* Academic Level Selector */
+        .level-btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 1.25rem;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        .level-btn:hover {
+            border-color: #8b5cf6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+        }
+        .level-btn.selected {
+            border-color: #8b5cf6;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(124, 58, 237, 0.1) 100%);
+        }
+        .level-btn strong {
+            color: #1f2937;
+            font-size: 1rem;
+        }
+        .level-btn small {
+            color: #6b7280;
+            font-size: 0.8rem;
+        }
+
         /* Emoji Collection Header */
         .emoji-collection-header {
             display: flex;
@@ -673,6 +706,35 @@
                 </div>
             </div>
 
+            <!-- Academic Level -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">🎓 Academic Level</h2>
+                </div>
+                <div class="section-body">
+                    <p style="color: #6b7280; margin-bottom: 1rem; font-size: 0.9rem;">
+                        Select your current level to see relevant vocabulary lists and track progress appropriately.
+                    </p>
+                    <div class="level-selector" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <button class="level-btn" data-level="prep" onclick="selectAcademicLevel('prep')">
+                            <span style="font-size: 1.5rem;">🌟</span>
+                            <strong>Prep School</strong>
+                            <small>Suburani Book 1 (300+ words)</small>
+                        </button>
+                        <button class="level-btn" data-level="gcse" onclick="selectAcademicLevel('gcse')">
+                            <span style="font-size: 1.5rem;">📚</span>
+                            <strong>GCSE</strong>
+                            <small>OCR Specification (450+ words)</small>
+                        </button>
+                        <button class="level-btn" data-level="a-level" onclick="selectAcademicLevel('a-level')">
+                            <span style="font-size: 1.5rem;">🎓</span>
+                            <strong>A-Level</strong>
+                            <small>Full OCR List (1,126 words)</small>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Emoji Collection -->
             <div class="section">
                 <div class="section-header">
@@ -828,6 +890,7 @@
                 renderBackgrounds();
                 renderBorders();
                 updateHeaderDisplay();
+                loadAcademicLevel();
 
                 // Set up category filter
                 document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -1211,6 +1274,63 @@
             } catch (err) {
                 showToast(err.message, 'error');
             }
+        }
+
+        // Academic Level Functions
+        async function loadAcademicLevel() {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('academic_level')
+                    .eq('id', user.id)
+                    .single();
+
+                if (!error && data && data.academic_level) {
+                    updateLevelButtons(data.academic_level);
+                }
+            } catch (err) {
+                console.log('Could not load academic level:', err);
+            }
+        }
+
+        async function selectAcademicLevel(level) {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                    showToast('Please log in to set your level', 'error');
+                    return;
+                }
+
+                const { error } = await supabase
+                    .from('users')
+                    .update({ academic_level: level })
+                    .eq('id', user.id);
+
+                if (error) {
+                    console.error('Error updating level:', error);
+                    showToast('Failed to update level', 'error');
+                    return;
+                }
+
+                updateLevelButtons(level);
+                showToast('Academic level updated!', 'success');
+            } catch (err) {
+                console.error('Error:', err);
+                showToast('Failed to update level', 'error');
+            }
+        }
+
+        function updateLevelButtons(selectedLevel) {
+            document.querySelectorAll('.level-btn').forEach(btn => {
+                if (btn.dataset.level === selectedLevel) {
+                    btn.classList.add('selected');
+                } else {
+                    btn.classList.remove('selected');
+                }
+            });
         }
 
         function showToast(message, type = '') {

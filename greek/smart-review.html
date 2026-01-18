@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Review - Greek Vocabulary - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        header {
+            background: transparent;
+            border-bottom: none;
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 2rem 1rem 2rem;
+            position: relative;
+        }
+
+        .header-content {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            border-radius: 24px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 8px 24px rgba(5, 150, 105, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-content::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #059669;
+            font-weight: 700;
+            font-size: 2rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .logo-icon:hover {
+            transform: scale(1.05);
+        }
+
+        .header-text {
+            text-align: center;
+            z-index: 1;
+        }
+
+        .header-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.35rem;
+        }
+
+        .header-subtitle {
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 400;
+        }
+
+        .main-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Loading State */
+        .loading-state {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #059669;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            padding: 3rem;
+            text-align: center;
+            display: none;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .empty-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-description {
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+            box-shadow: none;
+        }
+
+        /* Quiz Area */
+        .quiz-area {
+            display: none;
+        }
+
+        .quiz-area.active {
+            display: block;
+        }
+
+        .stats-bar {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-group {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-transform: uppercase;
+        }
+
+        .progress-bar {
+            flex: 1;
+            max-width: 200px;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0 1.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #059669, #10b981);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .quiz-card {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            padding: 2.5rem;
+            text-align: center;
+        }
+
+        .review-reason {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .review-reason.due {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .review-reason.tricky {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .review-reason.struggling {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .greek-word {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .word-info {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .answer-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-color: #059669;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .feedback {
+            padding: 1rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .feedback.show {
+            display: block;
+        }
+
+        .feedback-correct {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .feedback-incorrect {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .tricky-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tricky-btn:hover {
+            background: #f3f4f6;
+        }
+
+        .tricky-btn.tricky-active {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #d97706;
+        }
+
+        .quiz-card {
+            position: relative;
+        }
+
+        /* Completion */
+        .completion-message {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e5e7eb;
+            padding: 3rem;
+            text-align: center;
+            display: none;
+        }
+
+        .completion-message.show {
+            display: block;
+        }
+
+        .completion-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .completion-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .completion-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .completion-stat {
+            text-align: center;
+        }
+
+        .completion-stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #059669;
+        }
+
+        .completion-stat-label {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        @media (max-width: 768px) {
+            .stat-group {
+                gap: 1rem;
+            }
+
+            .progress-bar {
+                display: none;
+            }
+
+            .greek-word {
+                font-size: 2rem;
+            }
+
+            .button-row {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="header-content">
+                <a href="../greek/vocabulary-hub.html" class="logo-icon">C</a>
+                <div class="header-text">
+                    <h1 class="header-title">Smart Review</h1>
+                    <p class="header-subtitle">Greek Vocabulary - Spaced Repetition</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading your review words...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state">
+            <div class="empty-icon" id="emptyIcon"></div>
+            <h2 class="empty-title" id="emptyTitle">All Caught Up!</h2>
+            <p class="empty-description" id="emptyDescription">You don't have any words due for review right now. Keep practising to build your vocabulary!</p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="../greek/vocabulary-practice.html" class="btn">Practice Vocabulary</a>
+                <a href="../greek/vocabulary-hub.html" class="btn btn-secondary">Back to Hub</a>
+            </div>
+        </div>
+
+        <!-- Quiz Area -->
+        <div id="quizArea" class="quiz-area">
+            <div class="stats-bar">
+                <div class="stat-group">
+                    <div class="stat">
+                        <div class="stat-value" id="currentNum">1</div>
+                        <div class="stat-label">Current</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="totalNum">0</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="stat-group">
+                    <div class="stat">
+                        <div class="stat-value" id="correctNum">0</div>
+                        <div class="stat-label">Correct</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value" id="percentageNum">0%</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quiz-card">
+                <button id="trickyBtn" class="tricky-btn" onclick="toggleTricky()">Mark as Tricky</button>
+                <div class="review-reason" id="reviewReason">Due for Review</div>
+                <div class="greek-word" id="greekWord">-</div>
+                <div class="word-info" id="wordInfo">Loading...</div>
+
+                <input type="text" id="answerInput" class="answer-input" placeholder="Type the English meaning..." autocomplete="off">
+
+                <div class="button-row">
+                    <button id="checkBtn" class="btn" onclick="checkAnswer()">Check Answer</button>
+                    <button id="nextBtn" class="btn" onclick="nextWord()" style="display: none;">Next Word</button>
+                    <button id="revealBtn" class="btn btn-secondary" onclick="revealAnswer()">Show Answer</button>
+                </div>
+
+                <div id="feedback" class="feedback"></div>
+            </div>
+        </div>
+
+        <!-- Completion Message -->
+        <div id="completionMessage" class="completion-message">
+            <div class="completion-icon" id="completionIcon"></div>
+            <h2 class="completion-title" id="completionTitle">Review Complete!</h2>
+            <p id="completionText">Great work reinforcing your vocabulary.</p>
+
+            <div class="completion-stats">
+                <div class="completion-stat">
+                    <div class="completion-stat-value" id="finalCorrect">0</div>
+                    <div class="completion-stat-label">Correct</div>
+                </div>
+                <div class="completion-stat">
+                    <div class="completion-stat-value" id="finalTotal">0</div>
+                    <div class="completion-stat-label">Reviewed</div>
+                </div>
+                <div class="completion-stat">
+                    <div class="completion-stat-value" id="finalAccuracy">0%</div>
+                    <div class="completion-stat-label">Accuracy</div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <button class="btn" onclick="startReview()">Review Again</button>
+                <a href="vocabulary-hub.html" class="btn btn-secondary">Back to Hub</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../shared/supabase-config.js"></script>
+    <script src="../shared/spaced-repetition.js"></script>
+    <script src="../shared/vocab-review-engine.js"></script>
+    <script src="../shared/task-tracker.js"></script>
+
+    <script>
+        // Review state
+        let reviewWords = [];
+        let currentIndex = 0;
+        let correctCount = 0;
+        let currentWord = null;
+        let currentWordTrickyStatus = false;
+
+        // Get review mode from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const reviewMode = urlParams.get('mode') || 'smart'; // smart, tricky, due
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Set up enter key
+            document.getElementById('answerInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const checkBtn = document.getElementById('checkBtn');
+                    const nextBtn = document.getElementById('nextBtn');
+                    if (checkBtn.style.display !== 'none') {
+                        checkAnswer();
+                    } else if (nextBtn.style.display !== 'none') {
+                        nextWord();
+                    }
+                }
+            });
+
+            await startReview();
+        });
+
+        async function startReview() {
+            // Show loading
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('quizArea').classList.remove('active');
+            document.getElementById('completionMessage').classList.remove('show');
+
+            // Initialize review engine
+            await vocabReviewEngine.init('greek');
+            taskTracker.setLanguage('greek');
+
+            // Load words based on mode
+            if (reviewMode === 'tricky') {
+                reviewWords = await vocabReviewEngine.loadTrickyOnlyWords(30);
+            } else if (reviewMode === 'due') {
+                reviewWords = await vocabReviewEngine.loadDueWords(30);
+            } else {
+                reviewWords = await vocabReviewEngine.loadSmartReviewWords(30);
+            }
+
+            // Hide loading
+            document.getElementById('loadingState').style.display = 'none';
+
+            if (reviewWords.length === 0) {
+                showEmptyState();
+                return;
+            }
+
+            // Reset state
+            currentIndex = 0;
+            correctCount = 0;
+
+            // Show quiz
+            document.getElementById('quizArea').classList.add('active');
+            document.getElementById('totalNum').textContent = reviewWords.length;
+
+            loadWord();
+        }
+
+        function showEmptyState() {
+            const emptyState = document.getElementById('emptyState');
+            emptyState.style.display = 'block';
+
+            if (reviewMode === 'tricky') {
+                document.getElementById('emptyIcon').textContent = '?';
+                document.getElementById('emptyTitle').textContent = 'No Tricky Words';
+                document.getElementById('emptyDescription').textContent = "You haven't marked any words as tricky yet. During practice, use the star button to mark words you find difficult.";
+            } else if (reviewMode === 'due') {
+                document.getElementById('emptyIcon').textContent = '?';
+                document.getElementById('emptyTitle').textContent = 'No Reviews Due';
+                document.getElementById('emptyDescription').textContent = "Great job! You don't have any words scheduled for review right now. Check back later.";
+            } else {
+                document.getElementById('emptyIcon').textContent = '?';
+                document.getElementById('emptyTitle').textContent = 'All Caught Up!';
+                document.getElementById('emptyDescription').textContent = "You don't have any words to review. Keep practising to master more vocabulary!";
+            }
+        }
+
+        function loadWord() {
+            if (currentIndex >= reviewWords.length) {
+                showCompletion();
+                return;
+            }
+
+            const wordData = reviewWords[currentIndex];
+            currentWord = vocabReviewEngine.toQuizWord(wordData);
+
+            // Update display
+            document.getElementById('greekWord').textContent = currentWord.greek || currentWord.greek;
+            document.getElementById('wordInfo').textContent = currentWord.info || 'Review word';
+
+            // Show review reason
+            const reasonEl = document.getElementById('reviewReason');
+            const reason = wordData.reviewReason || 'review';
+            reasonEl.className = 'review-reason ' + reason;
+            if (reason === 'due') {
+                reasonEl.textContent = 'Due for Review';
+            } else if (reason === 'tricky') {
+                reasonEl.textContent = 'Marked as Tricky';
+            } else if (reason === 'struggling') {
+                reasonEl.textContent = 'Needs Practice';
+            } else {
+                reasonEl.textContent = 'Review';
+            }
+
+            // Reset input and feedback
+            document.getElementById('answerInput').value = '';
+            document.getElementById('feedback').className = 'feedback';
+            document.getElementById('feedback').innerHTML = '';
+
+            // Show/hide buttons
+            document.getElementById('checkBtn').style.display = 'inline-block';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.getElementById('revealBtn').style.display = 'inline-block';
+
+            // Update stats
+            document.getElementById('currentNum').textContent = currentIndex + 1;
+            const progress = ((currentIndex) / reviewWords.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            updateAccuracy();
+
+            // Check tricky status
+            currentWordTrickyStatus = wordData.is_tricky || false;
+            updateTrickyButton();
+
+            // Focus input
+            document.getElementById('answerInput').focus();
+        }
+
+        function updateAccuracy() {
+            const answered = currentIndex;
+            const percentage = answered > 0 ? Math.round((correctCount / answered) * 100) : 0;
+            document.getElementById('correctNum').textContent = correctCount;
+            document.getElementById('percentageNum').textContent = percentage + '%';
+        }
+
+        async function checkAnswer() {
+            const userAnswer = document.getElementById('answerInput').value.trim();
+            if (!userAnswer) {
+                alert('Please enter an answer first!');
+                return;
+            }
+
+            const isCorrect = isAnswerCorrect(userAnswer.toLowerCase(), currentWord.english.toLowerCase());
+
+            // Record answer
+            if (isCorrect) correctCount++;
+
+            // Update spaced repetition
+            const wordData = reviewWords[currentIndex];
+            if (wordData.id && typeof spacedRepetition !== 'undefined') {
+                await spacedRepetition.recordReviewResult(
+                    wordData.id,
+                    isCorrect,
+                    wordData.review_interval_days || 1
+                );
+            }
+
+            // Show feedback
+            const feedback = document.getElementById('feedback');
+            if (isCorrect) {
+                feedback.innerHTML = `<strong>Correct!</strong> "${currentWord.greek || currentWord.greek}" = "${currentWord.english}"`;
+                feedback.className = 'feedback feedback-correct show';
+            } else {
+                feedback.innerHTML = `<strong>Incorrect</strong><br>You wrote: "${userAnswer}"<br>Correct: "<strong>${currentWord.english}</strong>"`;
+                feedback.className = 'feedback feedback-incorrect show';
+            }
+
+            // Update buttons
+            document.getElementById('checkBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'inline-block';
+            document.getElementById('revealBtn').style.display = 'none';
+
+            updateAccuracy();
+        }
+
+        function revealAnswer() {
+            const feedback = document.getElementById('feedback');
+            feedback.innerHTML = `<strong>Answer:</strong> "${currentWord.english}"`;
+            feedback.className = 'feedback feedback-incorrect show';
+
+            // Record as incorrect
+            const wordData = reviewWords[currentIndex];
+            if (wordData.id && typeof spacedRepetition !== 'undefined') {
+                spacedRepetition.recordReviewResult(
+                    wordData.id,
+                    false,
+                    wordData.review_interval_days || 1
+                );
+            }
+
+            document.getElementById('checkBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'inline-block';
+            document.getElementById('revealBtn').style.display = 'none';
+        }
+
+        function nextWord() {
+            currentIndex++;
+            loadWord();
+        }
+
+        function showCompletion() {
+            document.getElementById('quizArea').classList.remove('active');
+
+            const total = reviewWords.length;
+            const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+
+            document.getElementById('finalCorrect').textContent = correctCount;
+            document.getElementById('finalTotal').textContent = total;
+            document.getElementById('finalAccuracy').textContent = accuracy + '%';
+
+            if (accuracy >= 90) {
+                document.getElementById('completionIcon').textContent = '?';
+                document.getElementById('completionTitle').textContent = 'Outstanding!';
+            } else if (accuracy >= 70) {
+                document.getElementById('completionIcon').textContent = '?';
+                document.getElementById('completionTitle').textContent = 'Great Work!';
+            } else {
+                document.getElementById('completionIcon').textContent = '?';
+                document.getElementById('completionTitle').textContent = 'Keep Practising!';
+            }
+
+            document.getElementById('completionMessage').classList.add('show');
+        }
+
+        // Tricky word toggle
+        async function toggleTricky() {
+            if (!currentWord) return;
+
+            const wordData = reviewWords[currentIndex];
+            const trickyBtn = document.getElementById('trickyBtn');
+            trickyBtn.disabled = true;
+
+            try {
+                if (wordData.id && typeof spacedRepetition !== 'undefined') {
+                    const result = await spacedRepetition.toggleTricky(wordData.id, currentWordTrickyStatus);
+                    if (result.success) {
+                        currentWordTrickyStatus = result.isTricky;
+                        wordData.is_tricky = result.isTricky;
+                        updateTrickyButton();
+                    }
+                }
+            } catch (err) {
+                console.error('Error toggling tricky:', err);
+            }
+
+            trickyBtn.disabled = false;
+        }
+
+        function updateTrickyButton() {
+            const trickyBtn = document.getElementById('trickyBtn');
+            if (currentWordTrickyStatus) {
+                trickyBtn.innerHTML = '? Marked Tricky';
+                trickyBtn.classList.add('tricky-active');
+            } else {
+                trickyBtn.innerHTML = '? Mark as Tricky';
+                trickyBtn.classList.remove('tricky-active');
+            }
+        }
+
+        // Lenient answer checking (simplified version)
+        function isAnswerCorrect(userAnswer, correctAnswer) {
+            const userNorm = userAnswer.toLowerCase().trim();
+            const correctNorm = correctAnswer.toLowerCase().trim();
+
+            // Exact match
+            if (userNorm === correctNorm) return true;
+
+            // Check each acceptable answer (split by comma, semicolon, slash)
+            const acceptables = correctNorm.split(/[,;\/]/).map(a => a.trim());
+            for (const acceptable of acceptables) {
+                if (userNorm === acceptable) return true;
+
+                // Remove parenthetical content
+                const withoutParens = acceptable.replace(/\([^)]*\)/g, '').trim();
+                if (userNorm === withoutParens) return true;
+
+                // Remove common prefixes
+                const prefixes = ['to ', 'a ', 'an ', 'the ', 'he/she/it ', 'he ', 'she ', 'it '];
+                let stripped = acceptable;
+                for (const p of prefixes) {
+                    if (stripped.startsWith(p)) {
+                        stripped = stripped.slice(p.length);
+                        break;
+                    }
+                }
+                if (userNorm === stripped) return true;
+
+                // Allow 1 typo for words 4+ chars
+                if (acceptable.length >= 4 && levenshtein(userNorm, acceptable) <= 1) return true;
+            }
+
+            return false;
+        }
+
+        function levenshtein(a, b) {
+            const dp = Array(a.length + 1).fill(null).map(() => Array(b.length + 1).fill(0));
+            for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+            for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+            for (let i = 1; i <= a.length; i++) {
+                for (let j = 1; j <= b.length; j++) {
+                    dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+                }
+            }
+            return dp[a.length][b.length];
+        }
+    </script>
+</body>
+</html>

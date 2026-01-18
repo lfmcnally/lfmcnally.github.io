@@ -233,6 +233,39 @@
             opacity: 0.6;
         }
 
+        .exclude-mastered-option {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            color: #166534;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #10b981;
+        }
+
+        .mastered-count {
+            font-size: 0.85rem;
+            color: #059669;
+            font-weight: 500;
+        }
+
         .quiz-area {
             background: white;
             border-radius: 16px;
@@ -876,6 +909,15 @@
 
                         <button class="start-practice-btn" id="startPracticeBtn" disabled>Start Practice</button>
                     </div>
+
+                    <!-- Exclude Mastered Option -->
+                    <div class="exclude-mastered-option" id="excludeMasteredOption" style="display: none;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="excludeMastered">
+                            <span class="checkbox-text">Exclude already-mastered words</span>
+                        </label>
+                        <span class="mastered-count" id="masteredCountDisplay"></span>
+                    </div>
                 </div>
 
                 <div class="quiz-area" id="quizArea">
@@ -1091,20 +1133,53 @@
         }
 
         // Check if user is logged in and update tracking indicator
+        // Store mastered words for filtering
+        let masteredWords = [];
+
+        async function loadMasteredWords() {
+            if (typeof supabase === 'undefined') return;
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            try {
+                const { data, error } = await supabase
+                    .from('word_mastery')
+                    .select('word_latin')
+                    .eq('student_id', user.id)
+                    .eq('language', 'latin')
+                    .not('mastered_at', 'is', null);
+
+                if (!error && data) {
+                    masteredWords = data.map(w => w.word_latin.toLowerCase());
+
+                    // Show the option
+                    document.getElementById('excludeMasteredOption').style.display = 'flex';
+                    document.getElementById('masteredCountDisplay').textContent =
+                        `(${masteredWords.length} mastered)`;
+                }
+            } catch (err) {
+                console.log('Could not load mastered words:', err);
+            }
+        }
+
         async function checkTrackingStatus() {
             const indicator = document.getElementById('trackingIndicator');
             const text = document.getElementById('trackingText');
-            
+
             if (typeof supabase === 'undefined') {
                 indicator.classList.add('not-tracking');
                 text.textContent = 'Progress tracking unavailable';
                 return;
             }
-            
+
             const { data: { user } } = await supabase.auth.getUser();
-            
+
             if (user) {
                 indicator.classList.remove('not-tracking');
+
+                // Load mastered words for filtering option
+                loadMasteredWords();
                 
                 // Check if this is an assigned task
                 const urlParams = new URLSearchParams(window.location.search);
@@ -1267,7 +1342,23 @@
                 await taskTracker.start();
             }
 
-            const practiceWords = chapterWordsCache.slice(fromIndex, toIndex + 1);
+            let practiceWords = chapterWordsCache.slice(fromIndex, toIndex + 1);
+
+            // Filter out mastered words if checkbox is checked
+            const excludeMastered = document.getElementById('excludeMastered').checked;
+            if (excludeMastered && masteredWords.length > 0) {
+                const originalCount = practiceWords.length;
+                practiceWords = practiceWords.filter(word =>
+                    !masteredWords.includes(word.latin.toLowerCase())
+                );
+
+                if (practiceWords.length === 0) {
+                    alert('All words in this range are already mastered! Try a different range or uncheck "Exclude mastered words".');
+                    return;
+                }
+
+                console.log(`Excluded ${originalCount - practiceWords.length} mastered words`);
+            }
 
             // Build chapter label for display
             let chapterLabel;

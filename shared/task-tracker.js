@@ -214,6 +214,9 @@ const taskTracker = {
                 // Set mastered_at timestamp if this is first time mastering
                 if (shouldAwardMasteryBonus) {
                     updateData.mastered_at = new Date().toISOString();
+                    // Schedule first spaced repetition review (1 day from now)
+                    updateData.next_review_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+                    updateData.review_interval_days = 1;
                 }
 
                 // Update existing record
@@ -489,25 +492,91 @@ const taskTracker = {
             const ready = await this.init();
             if (!ready) return [];
         }
-        
+
         const { data, error } = await supabase
             .from('word_mastery')
             .select('*')
             .eq('student_id', this.userId)
             .order('incorrect_count', { ascending: false })
             .limit(limit);
-        
+
         if (error) {
             console.error('Error fetching struggling words:', error);
             return [];
         }
-        
+
         // Filter to words where incorrect > correct or accuracy < 60%
         return data.filter(word => {
             const total = word.correct_count + word.incorrect_count;
             const accuracy = total > 0 ? (word.correct_count / total) * 100 : 0;
             return accuracy < 60 || word.incorrect_count > word.correct_count;
         });
+    },
+
+    // Toggle tricky status for a word by its Latin text
+    async toggleTricky(wordLatin) {
+        if (!this.userId) {
+            const ready = await this.init();
+            if (!ready) return { success: false, error: 'Not logged in' };
+        }
+
+        // Use the spaced repetition system if available
+        if (typeof spacedRepetition !== 'undefined') {
+            return spacedRepetition.toggleTrickyByWord(this.userId, wordLatin, this.language);
+        }
+
+        // Fallback: do it directly
+        const { data: existing, error: fetchError } = await supabase
+            .from('word_mastery')
+            .select('id, is_tricky')
+            .eq('student_id', this.userId)
+            .eq('word_latin', wordLatin)
+            .eq('language', this.language)
+            .maybeSingle();
+
+        if (fetchError) {
+            console.error('Error finding word:', fetchError);
+            return { success: false, error: fetchError };
+        }
+
+        if (!existing) {
+            return { success: false, error: 'Word not found' };
+        }
+
+        const newTrickyStatus = !existing.is_tricky;
+        const { error: updateError } = await supabase
+            .from('word_mastery')
+            .update({ is_tricky: newTrickyStatus })
+            .eq('id', existing.id);
+
+        if (updateError) {
+            console.error('Error toggling tricky:', updateError);
+            return { success: false, error: updateError };
+        }
+
+        return { success: true, isTricky: newTrickyStatus };
+    },
+
+    // Get tricky word status for a specific word
+    async getTrickyStatus(wordLatin) {
+        if (!this.userId) {
+            const ready = await this.init();
+            if (!ready) return null;
+        }
+
+        const { data, error } = await supabase
+            .from('word_mastery')
+            .select('is_tricky')
+            .eq('student_id', this.userId)
+            .eq('word_latin', wordLatin)
+            .eq('language', this.language)
+            .maybeSingle();
+
+        if (error || !data) {
+            return false;
+        }
+
+        return data.is_tricky || false;
     }
 };
 

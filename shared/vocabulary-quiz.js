@@ -15,6 +15,9 @@ let wordMastery = {}; // Track correct count per word: { "latin_word": correctCo
 let masteredCount = 0; // How many words have been fully mastered
 let totalWordsToMaster = 0; // Total words that need mastering
 
+// Tricky word tracking
+let currentWordTrickyStatus = false; // Track if current word is marked as tricky
+
 // ========== LENIENT ANSWER CHECKING ==========
 
 // Calculate Levenshtein distance (edit distance) between two strings
@@ -234,11 +237,14 @@ function loadQuestion() {
     
     updateDisplay();
     document.getElementById('answer-input').focus();
-    
+
     // === TRACKING: Notify that a new word is displayed ===
     if (typeof window.onWordDisplayed === 'function') {
         window.onWordDisplayed(word);
     }
+
+    // Check if this word is marked as tricky
+    checkTrickyStatus(word.latin);
 }
 
 function getCurrentWord() {
@@ -396,27 +402,96 @@ function resetPractice() {
 function revealAnswer() {
     const word = getCurrentWord();
     const feedback = document.getElementById('feedback');
-    
+
     // Reset mastery count since they needed help
     const previousMastery = wordMastery[word.latin];
     wordMastery[word.latin] = 0;
-    
+
     let resetMessage = '';
     if (previousMastery > 0) {
         resetMessage = '<br><em>Progress reset - try to remember it next time!</em>';
     }
-    
+
     feedback.innerHTML = `<strong>Answer:</strong> "${word.english}"${resetMessage}`;
     feedback.className = 'feedback feedback-revealed';
-    
+
     document.getElementById('check-btn').style.display = 'none';
     document.getElementById('next-btn').style.display = 'inline-block';
     document.getElementById('reveal-btn').style.display = 'none';
-    
+
     // === TRACKING: Record as incorrect when revealed ===
     if (typeof window.onWordAnswered === 'function') {
         window.onWordAnswered(word, false);
     }
+}
+
+// Toggle tricky status for current word
+async function toggleTricky() {
+    const word = getCurrentWord();
+    if (!word) return;
+
+    const trickyBtn = document.getElementById('tricky-btn');
+    if (trickyBtn) {
+        trickyBtn.disabled = true;
+        trickyBtn.textContent = '...';
+    }
+
+    try {
+        let result;
+        if (typeof taskTracker !== 'undefined' && taskTracker.userId) {
+            result = await taskTracker.toggleTricky(word.latin);
+        } else if (typeof spacedRepetition !== 'undefined') {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const language = (typeof taskTracker !== 'undefined') ? taskTracker.language : 'latin';
+                result = await spacedRepetition.toggleTrickyByWord(user.id, word.latin, language);
+            }
+        }
+
+        if (result && result.success) {
+            currentWordTrickyStatus = result.isTricky;
+            updateTrickyButton();
+            console.log(`Word "${word.latin}" marked as ${result.isTricky ? 'tricky' : 'not tricky'}`);
+        } else {
+            console.error('Failed to toggle tricky status:', result?.error);
+        }
+    } catch (err) {
+        console.error('Error toggling tricky:', err);
+    }
+
+    if (trickyBtn) {
+        trickyBtn.disabled = false;
+        updateTrickyButton();
+    }
+}
+
+// Update the tricky button appearance
+function updateTrickyButton() {
+    const trickyBtn = document.getElementById('tricky-btn');
+    if (!trickyBtn) return;
+
+    if (currentWordTrickyStatus) {
+        trickyBtn.innerHTML = '⭐ Marked Tricky';
+        trickyBtn.classList.add('tricky-active');
+    } else {
+        trickyBtn.innerHTML = '☆ Mark as Tricky';
+        trickyBtn.classList.remove('tricky-active');
+    }
+}
+
+// Check tricky status for current word
+async function checkTrickyStatus(wordLatin) {
+    currentWordTrickyStatus = false;
+
+    try {
+        if (typeof taskTracker !== 'undefined' && taskTracker.userId) {
+            currentWordTrickyStatus = await taskTracker.getTrickyStatus(wordLatin);
+        }
+    } catch (err) {
+        console.error('Error checking tricky status:', err);
+    }
+
+    updateTrickyButton();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
