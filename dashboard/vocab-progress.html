@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocabulary Progress - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../auth/config.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f7;
+            min-height: 100vh;
+            padding: 2rem;
+            color: #1d1d1f;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 1.25rem;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        .back-btn {
+            background: #f5f5f7;
+            color: #1d1d1f;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 980px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s ease;
+        }
+        .back-btn:hover {
+            background: #e8e8ed;
+        }
+        .header-info h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: #1d1d1f;
+        }
+        .header-subtitle {
+            color: #86868b;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .student-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Cards */
+        .card {
+            background: #ffffff;
+            border-radius: 20px;
+            border: none;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+            margin-bottom: 1.25rem;
+        }
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* Summary Stats */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+        .summary-stat {
+            text-align: center;
+            padding: 1rem 0.75rem;
+            border-radius: 14px;
+            background: #f5f5f7;
+        }
+        .summary-stat.total { background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); }
+        .summary-stat.total .summary-value { color: #1976d2; }
+        .summary-stat.mastered { background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); }
+        .summary-stat.mastered .summary-value { color: #2e7d32; }
+        .summary-stat.learning { background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%); }
+        .summary-stat.learning .summary-value { color: #f57c00; }
+        .summary-stat.struggling { background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%); }
+        .summary-stat.struggling .summary-value { color: #c62828; }
+        .summary-stat.not-started { background: #f5f5f7; }
+        .summary-stat.not-started .summary-value { color: #86868b; }
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        .summary-label {
+            font-size: 0.65rem;
+            color: #86868b;
+            margin-top: 0.25rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 10px;
+            background: #e8e8ed;
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+        }
+        .progress-segment {
+            height: 100%;
+            transition: width 0.4s ease;
+        }
+        .progress-segment.mastered { background: #2e7d32; }
+        .progress-segment.learning { background: #f57c00; }
+        .progress-segment.struggling { background: #c62828; }
+        .progress-text {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #1d1d1f;
+            min-width: 100px;
+            text-align: right;
+        }
+
+        /* Controls */
+        .controls-card .card-body {
+            padding: 1rem 1.5rem;
+        }
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .controls-row + .controls-row {
+            margin-top: 0.75rem;
+        }
+
+        /* Search Box */
+        .search-box {
+            position: relative;
+            flex: 1;
+            max-width: 300px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 0.6rem 1rem 0.6rem 2.25rem;
+            border: 1px solid #e8e8ed;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+        .search-box input:focus {
+            border-color: #0071e3;
+            box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.1);
+        }
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #86868b;
+            font-size: 0.875rem;
+        }
+
+        /* Filter Tabs */
+        .filter-tabs {
+            display: flex;
+            gap: 0.25rem;
+            background: #f5f5f7;
+            padding: 0.25rem;
+            border-radius: 10px;
+        }
+        .filter-tab {
+            padding: 0.5rem 0.875rem;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #86868b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .filter-tab:hover { color: #1d1d1f; }
+        .filter-tab.active {
+            background: #ffffff;
+            color: #1d1d1f;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        /* Sort Control */
+        .sort-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .sort-control label {
+            font-size: 0.8rem;
+            color: #86868b;
+            font-weight: 500;
+        }
+        .sort-control select {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #e8e8ed;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            outline: none;
+            cursor: pointer;
+            background: white;
+        }
+
+        /* Results Count */
+        .results-count {
+            font-size: 0.8rem;
+            color: #86868b;
+            margin-left: auto;
+        }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+        }
+        .vocab-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        .vocab-table th,
+        .vocab-table td {
+            padding: 0.875rem 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .vocab-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #4b5563;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        .vocab-table th.sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+        .vocab-table th.sortable:hover {
+            background: #f0f0f0;
+        }
+        .vocab-table tbody tr:hover {
+            background: #f9fafb;
+        }
+        .col-status { width: 50px; text-align: center; }
+        .col-word { min-width: 150px; }
+        .col-translation { min-width: 200px; }
+        .col-attempts { width: 80px; text-align: center; }
+        .col-accuracy { width: 130px; }
+        .col-due { width: 100px; }
+        .col-actions { width: 60px; text-align: center; }
+
+        /* Status Dot */
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .status-dot.mastered { background: #2e7d32; }
+        .status-dot.learning { background: #f57c00; }
+        .status-dot.struggling { background: #c62828; }
+        .status-dot.not-started { background: #d1d5db; }
+
+        /* Word Cell */
+        .word-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .word-text {
+            font-weight: 600;
+            color: #1d1d1f;
+        }
+        .tricky-badge {
+            font-size: 0.6rem;
+            background: #ede9fe;
+            color: #7c3aed;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        /* Accuracy Cell */
+        .accuracy-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .accuracy-value {
+            min-width: 38px;
+            font-weight: 600;
+        }
+        .accuracy-value.good { color: #2e7d32; }
+        .accuracy-value.medium { color: #f57c00; }
+        .accuracy-value.bad { color: #c62828; }
+        .mini-bar {
+            width: 50px;
+            height: 6px;
+            background: #e8e8ed;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .mini-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        /* Due Cell */
+        .due-cell {
+            color: #86868b;
+            font-size: 0.8rem;
+        }
+        .due-cell.overdue {
+            color: #c62828;
+            font-weight: 600;
+        }
+        .due-cell.today {
+            color: #f57c00;
+            font-weight: 600;
+        }
+
+        /* Action Buttons */
+        .action-btn {
+            background: none;
+            border: none;
+            padding: 0.4rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-size: 1rem;
+        }
+        .action-btn:hover {
+            background: #f5f5f7;
+        }
+        .action-btn.tricky-toggle {
+            color: #86868b;
+        }
+        .action-btn.tricky-toggle.active {
+            color: #7c3aed;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #86868b;
+        }
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .empty-text {
+            font-size: 0.95rem;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #86868b;
+            font-weight: 500;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1d1d1f;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .summary-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .summary-grid .summary-stat:nth-child(4),
+            .summary-grid .summary-stat:nth-child(5) {
+                grid-column: span 1;
+            }
+        }
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .filter-tabs {
+                flex-wrap: wrap;
+            }
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .search-box {
+                max-width: none;
+            }
+            .results-count {
+                margin-left: 0;
+            }
+            .col-due, .col-actions {
+                display: none;
+            }
+            .header-top {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+        }
+        @media (max-width: 480px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .col-attempts {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-top">
+                <div class="header-left">
+                    <a href="#" class="back-btn" id="backBtn">← Back</a>
+                    <div class="header-info">
+                        <h1 id="pageTitle">Vocabulary Progress</h1>
+                        <p class="header-subtitle" id="headerSubtitle">Loading...</p>
+                    </div>
+                </div>
+                <span class="student-badge" id="studentBadge" style="display: none;">Viewing Student</span>
+            </div>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="card">
+            <div class="card-body">
+                <div class="summary-grid">
+                    <div class="summary-stat total">
+                        <div class="summary-value" id="totalWords">-</div>
+                        <div class="summary-label">Total Words</div>
+                    </div>
+                    <div class="summary-stat mastered">
+                        <div class="summary-value" id="masteredWords">-</div>
+                        <div class="summary-label">Mastered</div>
+                    </div>
+                    <div class="summary-stat learning">
+                        <div class="summary-value" id="learningWords">-</div>
+                        <div class="summary-label">Learning</div>
+                    </div>
+                    <div class="summary-stat struggling">
+                        <div class="summary-value" id="strugglingWords">-</div>
+                        <div class="summary-label">Struggling</div>
+                    </div>
+                    <div class="summary-stat not-started">
+                        <div class="summary-value" id="notStartedWords">-</div>
+                        <div class="summary-label">Not Started</div>
+                    </div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-segment mastered" id="progressMastered" style="width: 0%;"></div>
+                        <div class="progress-segment learning" id="progressLearning" style="width: 0%;"></div>
+                        <div class="progress-segment struggling" id="progressStruggling" style="width: 0%;"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">0% mastered</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Card -->
+        <div class="card controls-card">
+            <div class="card-body">
+                <div class="controls-row">
+                    <div class="search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="searchInput" placeholder="Search words...">
+                    </div>
+                    <div class="filter-tabs" id="statusFilter">
+                        <button class="filter-tab active" data-filter="all">All</button>
+                        <button class="filter-tab" data-filter="mastered">Mastered</button>
+                        <button class="filter-tab" data-filter="learning">Learning</button>
+                        <button class="filter-tab" data-filter="struggling">Struggling</button>
+                        <button class="filter-tab" data-filter="tricky">Tricky</button>
+                        <button class="filter-tab" data-filter="not-started">Not Started</button>
+                    </div>
+                </div>
+                <div class="controls-row">
+                    <div class="sort-control">
+                        <label for="sortSelect">Sort:</label>
+                        <select id="sortSelect">
+                            <option value="alpha">Alphabetical (A-Z)</option>
+                            <option value="alpha-desc">Alphabetical (Z-A)</option>
+                            <option value="accuracy-asc">Accuracy (Low-High)</option>
+                            <option value="accuracy-desc">Accuracy (High-Low)</option>
+                            <option value="attempts-desc">Most Attempted</option>
+                            <option value="attempts-asc">Least Attempted</option>
+                            <option value="due-soonest">Due Soonest</option>
+                        </select>
+                    </div>
+                    <div class="results-count" id="resultsCount">Showing 0 words</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="card">
+            <div class="card-body" style="padding: 0;">
+                <div class="table-wrapper">
+                    <table class="vocab-table" id="vocabTable">
+                        <thead>
+                            <tr>
+                                <th class="col-status">Status</th>
+                                <th class="col-word">Word</th>
+                                <th class="col-translation">Translation</th>
+                                <th class="col-attempts">Attempts</th>
+                                <th class="col-accuracy">Accuracy</th>
+                                <th class="col-due">Due</th>
+                                <th class="col-actions">Tricky</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vocabTableBody">
+                            <tr><td colspan="7" class="loading">Loading vocabulary data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="empty-state" id="emptyState" style="display: none;">
+                    <div class="empty-icon">📚</div>
+                    <div class="empty-text">No words match your filters</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ==========================================
+        // VOCAB PROGRESS PAGE
+        // ==========================================
+
+        // State
+        let allWords = [];
+        let filteredWords = [];
+        let studentId = null;
+        let isTeacherView = false;
+        let currentConfig = null;
+        let currentFilter = 'all';
+        let currentSort = 'alpha';
+        let searchTerm = '';
+        let vocabDataLoaded = false;
+
+        // Vocabulary configurations
+        const VOCAB_CONFIGS = {
+            'latin-gcse': {
+                script: '../shared/vocabulary-data.js',
+                dataVar: 'vocabularyData',
+                language: 'latin',
+                wordField: 'latin',
+                displayName: 'GCSE Latin Vocabulary',
+                backUrl: '../latin/vocabulary-hub.html'
+            },
+            'latin-a-level': {
+                script: '../shared/a-level-vocabulary-data.js',
+                dataVar: 'aLevelVocabularyData',
+                language: 'latin',
+                wordField: 'latin',
+                displayName: 'A-Level Latin Vocabulary',
+                backUrl: '../latin/vocabulary-hub.html'
+            },
+            'latin-prep': {
+                script: '../shared/prep-vocabulary-data.js',
+                dataVar: 'prepVocabularyData',
+                language: 'prep-latin',
+                wordField: 'latin',
+                displayName: 'Prep Latin Vocabulary',
+                backUrl: '../latin/vocabulary-hub.html'
+            },
+            'greek-gcse': {
+                script: '../shared/greek-vocabulary-data.js',
+                dataVar: 'greekVocabularyData',
+                language: 'greek',
+                wordField: 'greek',
+                displayName: 'GCSE Greek Vocabulary',
+                backUrl: '../greek/vocabulary-hub.html'
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
+
+        async function init() {
+            // Parse URL parameters
+            const params = new URLSearchParams(window.location.search);
+            const language = params.get('language') || 'latin';
+            const vocabSet = params.get('vocab_set') || 'gcse';
+            const targetStudentId = params.get('student_id');
+
+            // Get config
+            const configKey = `${language}-${vocabSet}`;
+            currentConfig = VOCAB_CONFIGS[configKey];
+
+            if (!currentConfig) {
+                showError('Invalid vocabulary set');
+                return;
+            }
+
+            // Update page title
+            document.getElementById('pageTitle').textContent = currentConfig.displayName;
+            document.getElementById('headerSubtitle').textContent = 'Track your progress on every word';
+            document.getElementById('backBtn').href = currentConfig.backUrl;
+
+            // Check authentication
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            // Determine viewing mode
+            if (targetStudentId && targetStudentId !== user.id) {
+                // Teacher viewing a student
+                const { data: profile } = await supabase
+                    .from('users')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+
+                if (!profile || profile.role !== 'teacher') {
+                    alert('Access denied');
+                    window.location.href = 'student.html';
+                    return;
+                }
+
+                studentId = targetStudentId;
+                isTeacherView = true;
+
+                // Get student name
+                const { data: studentData } = await supabase
+                    .from('users')
+                    .select('full_name')
+                    .eq('id', targetStudentId)
+                    .single();
+
+                if (studentData) {
+                    document.getElementById('headerSubtitle').textContent = studentData.full_name;
+                    document.getElementById('studentBadge').style.display = 'inline-block';
+                }
+
+                // Update back button for teacher
+                const classId = params.get('class_id');
+                if (classId) {
+                    document.getElementById('backBtn').href = `class.html?id=${classId}`;
+                } else {
+                    document.getElementById('backBtn').href = 'teacher.html';
+                }
+            } else {
+                studentId = user.id;
+                isTeacherView = false;
+            }
+
+            // Load vocabulary data script
+            await loadVocabDataScript();
+
+            // Setup event listeners
+            setupEventListeners();
+
+            // Load data
+            await loadAllData();
+        }
+
+        function loadVocabDataScript() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = currentConfig.script;
+                script.onload = () => {
+                    vocabDataLoaded = true;
+                    resolve();
+                };
+                script.onerror = () => {
+                    console.error('Failed to load vocab data script');
+                    reject(new Error('Failed to load vocabulary data'));
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+        async function loadAllData() {
+            try {
+                // Get vocabulary list
+                const vocabList = window[currentConfig.dataVar];
+                if (!vocabList || !Array.isArray(vocabList)) {
+                    showError('Vocabulary data not found');
+                    return;
+                }
+
+                // Load word mastery from database
+                const { data: masteryData, error } = await supabase
+                    .from('word_mastery')
+                    .select('*')
+                    .eq('student_id', studentId)
+                    .eq('language', currentConfig.language);
+
+                if (error) {
+                    console.error('Error loading mastery data:', error);
+                }
+
+                // Merge vocab list with mastery data
+                allWords = mergeVocabWithMastery(vocabList, masteryData || []);
+
+                // Update display
+                updateSummary();
+                applyFilters();
+
+            } catch (err) {
+                console.error('Error loading data:', err);
+                showError('Error loading data');
+            }
+        }
+
+        function mergeVocabWithMastery(vocabList, masteryRecords) {
+            // Create lookup map by word
+            const masteryMap = new Map();
+            masteryRecords.forEach(record => {
+                masteryMap.set(record.word_latin.toLowerCase().trim(), record);
+            });
+
+            // Build merged list
+            return vocabList.map(vocab => {
+                const word = vocab[currentConfig.wordField];
+                const wordKey = word.toLowerCase().trim();
+                const mastery = masteryMap.get(wordKey);
+
+                // Calculate stats
+                const attempts = mastery
+                    ? mastery.correct_count + mastery.incorrect_count
+                    : 0;
+                const accuracy = attempts > 0
+                    ? Math.round((mastery.correct_count / attempts) * 100)
+                    : null;
+
+                return {
+                    word: word,
+                    translation: vocab.english,
+                    chapter: vocab.chapter || vocab.letter || null,
+                    info: vocab.info || '',
+                    masteryId: mastery?.id || null,
+                    correctCount: mastery?.correct_count || 0,
+                    incorrectCount: mastery?.incorrect_count || 0,
+                    attempts: attempts,
+                    accuracy: accuracy,
+                    isTricky: mastery?.is_tricky || false,
+                    masteredAt: mastery?.mastered_at || null,
+                    nextReviewAt: mastery?.next_review_at || null,
+                    reviewInterval: mastery?.review_interval_days || null,
+                    lastSeenAt: mastery?.last_seen_at || null,
+                    status: calculateStatus(mastery, attempts, accuracy)
+                };
+            });
+        }
+
+        function calculateStatus(mastery, attempts, accuracy) {
+            if (!mastery || attempts === 0) {
+                return 'not-started';
+            }
+            // Mastered: 3+ correct AND >=70% accuracy
+            if (mastery.correct_count >= 3 && accuracy >= 70) {
+                return 'mastered';
+            }
+            // Struggling: <50% accuracy AND 2+ incorrect
+            if (accuracy < 50 && mastery.incorrect_count >= 2) {
+                return 'struggling';
+            }
+            // Learning
+            return 'learning';
+        }
+
+        function setupEventListeners() {
+            // Search
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                searchTerm = e.target.value;
+                applyFilters();
+            });
+
+            // Filter tabs
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    currentFilter = tab.dataset.filter;
+                    applyFilters();
+                });
+            });
+
+            // Sort
+            document.getElementById('sortSelect').addEventListener('change', (e) => {
+                currentSort = e.target.value;
+                applyFilters();
+            });
+        }
+
+        function applyFilters() {
+            let result = [...allWords];
+
+            // Status filter
+            if (currentFilter !== 'all') {
+                if (currentFilter === 'tricky') {
+                    result = result.filter(w => w.isTricky);
+                } else {
+                    result = result.filter(w => w.status === currentFilter);
+                }
+            }
+
+            // Search
+            if (searchTerm) {
+                const term = searchTerm.toLowerCase();
+                result = result.filter(w =>
+                    w.word.toLowerCase().includes(term) ||
+                    w.translation.toLowerCase().includes(term)
+                );
+            }
+
+            // Sort
+            result.sort((a, b) => {
+                switch (currentSort) {
+                    case 'alpha':
+                        return a.word.localeCompare(b.word);
+                    case 'alpha-desc':
+                        return b.word.localeCompare(a.word);
+                    case 'accuracy-asc':
+                        return (a.accuracy ?? -1) - (b.accuracy ?? -1);
+                    case 'accuracy-desc':
+                        return (b.accuracy ?? -1) - (a.accuracy ?? -1);
+                    case 'attempts-desc':
+                        return b.attempts - a.attempts;
+                    case 'attempts-asc':
+                        return a.attempts - b.attempts;
+                    case 'due-soonest':
+                        const aDue = a.nextReviewAt ? new Date(a.nextReviewAt) : new Date('2099-12-31');
+                        const bDue = b.nextReviewAt ? new Date(b.nextReviewAt) : new Date('2099-12-31');
+                        return aDue - bDue;
+                    default:
+                        return 0;
+                }
+            });
+
+            filteredWords = result;
+            renderTable();
+            updateResultsCount();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('vocabTableBody');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filteredWords.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            tbody.innerHTML = filteredWords.map(word => {
+                const accuracyClass = getAccuracyClass(word.accuracy);
+                const accuracyBarColor = getAccuracyBarColor(word.accuracy);
+                const dueText = formatDueDate(word.nextReviewAt);
+                const dueClass = getDueClass(word.nextReviewAt);
+
+                return `
+                    <tr data-word="${escapeHtml(word.word)}">
+                        <td class="col-status">
+                            <span class="status-dot ${word.status}" title="${capitalizeFirst(word.status.replace('-', ' '))}"></span>
+                        </td>
+                        <td class="col-word">
+                            <div class="word-cell">
+                                <span class="word-text">${escapeHtml(word.word)}</span>
+                                ${word.isTricky ? '<span class="tricky-badge">Tricky</span>' : ''}
+                            </div>
+                        </td>
+                        <td class="col-translation">${escapeHtml(word.translation)}</td>
+                        <td class="col-attempts">${word.attempts > 0 ? word.attempts : '-'}</td>
+                        <td class="col-accuracy">
+                            ${word.accuracy !== null ? `
+                                <div class="accuracy-cell">
+                                    <span class="accuracy-value ${accuracyClass}">${word.accuracy}%</span>
+                                    <div class="mini-bar">
+                                        <div class="mini-bar-fill" style="width: ${word.accuracy}%; background: ${accuracyBarColor};"></div>
+                                    </div>
+                                </div>
+                            ` : '<span style="color: #86868b;">-</span>'}
+                        </td>
+                        <td class="col-due ${dueClass}">${dueText}</td>
+                        <td class="col-actions">
+                            ${word.masteryId && !isTeacherView ? `
+                                <button class="action-btn tricky-toggle ${word.isTricky ? 'active' : ''}"
+                                        onclick="toggleTricky('${word.masteryId}', '${escapeHtml(word.word)}')"
+                                        title="${word.isTricky ? 'Remove from tricky' : 'Mark as tricky'}">
+                                    ⚡
+                                </button>
+                            ` : (word.isTricky ? '⚡' : '-')}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateSummary() {
+            const stats = {
+                total: allWords.length,
+                mastered: allWords.filter(w => w.status === 'mastered').length,
+                learning: allWords.filter(w => w.status === 'learning').length,
+                struggling: allWords.filter(w => w.status === 'struggling').length,
+                notStarted: allWords.filter(w => w.status === 'not-started').length
+            };
+
+            document.getElementById('totalWords').textContent = stats.total;
+            document.getElementById('masteredWords').textContent = stats.mastered;
+            document.getElementById('learningWords').textContent = stats.learning;
+            document.getElementById('strugglingWords').textContent = stats.struggling;
+            document.getElementById('notStartedWords').textContent = stats.notStarted;
+
+            // Progress bar
+            const masteredPct = (stats.mastered / stats.total) * 100;
+            const learningPct = (stats.learning / stats.total) * 100;
+            const strugglingPct = (stats.struggling / stats.total) * 100;
+
+            document.getElementById('progressMastered').style.width = `${masteredPct}%`;
+            document.getElementById('progressLearning').style.width = `${learningPct}%`;
+            document.getElementById('progressStruggling').style.width = `${strugglingPct}%`;
+            document.getElementById('progressText').textContent = `${Math.round(masteredPct)}% mastered`;
+        }
+
+        function updateResultsCount() {
+            document.getElementById('resultsCount').textContent =
+                `Showing ${filteredWords.length} of ${allWords.length} words`;
+        }
+
+        // Utility functions
+        function getAccuracyClass(accuracy) {
+            if (accuracy === null) return '';
+            if (accuracy >= 70) return 'good';
+            if (accuracy >= 50) return 'medium';
+            return 'bad';
+        }
+
+        function getAccuracyBarColor(accuracy) {
+            if (accuracy === null) return '#e8e8ed';
+            if (accuracy >= 70) return '#2e7d32';
+            if (accuracy >= 50) return '#f57c00';
+            return '#c62828';
+        }
+
+        function formatDueDate(nextReviewAt) {
+            if (!nextReviewAt) return '-';
+
+            const due = new Date(nextReviewAt);
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+
+            const diffDays = Math.floor((dueDay - today) / (1000 * 60 * 60 * 24));
+
+            if (diffDays < 0) return `${Math.abs(diffDays)}d overdue`;
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Tomorrow';
+            if (diffDays < 7) return `In ${diffDays} days`;
+            return due.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        }
+
+        function getDueClass(nextReviewAt) {
+            if (!nextReviewAt) return '';
+            const due = new Date(nextReviewAt);
+            const now = new Date();
+            if (due < now) return 'overdue';
+            const diffHours = (due - now) / (1000 * 60 * 60);
+            if (diffHours < 24) return 'today';
+            return '';
+        }
+
+        function capitalizeFirst(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Toggle tricky
+        async function toggleTricky(masteryId, wordText) {
+            if (!masteryId || isTeacherView) return;
+
+            try {
+                const { data, error } = await supabase
+                    .from('word_mastery')
+                    .select('is_tricky')
+                    .eq('id', masteryId)
+                    .single();
+
+                if (error) throw error;
+
+                const newTrickyStatus = !data.is_tricky;
+
+                const { error: updateError } = await supabase
+                    .from('word_mastery')
+                    .update({ is_tricky: newTrickyStatus })
+                    .eq('id', masteryId);
+
+                if (updateError) throw updateError;
+
+                // Update local state
+                const word = allWords.find(w => w.masteryId === masteryId);
+                if (word) {
+                    word.isTricky = newTrickyStatus;
+                }
+
+                // Re-render
+                applyFilters();
+
+                // Show toast
+                showToast(newTrickyStatus
+                    ? `"${wordText}" marked as tricky`
+                    : `"${wordText}" removed from tricky`);
+
+            } catch (err) {
+                console.error('Error toggling tricky:', err);
+                showToast('Error updating word');
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        function showError(message) {
+            document.getElementById('vocabTableBody').innerHTML = `
+                <tr><td colspan="7" class="empty-state">
+                    <div class="empty-icon">⚠️</div>
+                    <div class="empty-text">${message}</div>
+                </td></tr>
+            `;
+        }
+    </script>
+</body>
+</html>
