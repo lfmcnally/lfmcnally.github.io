@@ -16,7 +16,9 @@ const aLevelVocabularyData = [
         info: "accidere, accidi - verb",
         letter: "A",
         topic: "Miscellaneous",
-        set: 1
+        set: 1,
+        hint: "Think of 'accident'",
+        derivatives: "accident, accidental, incident"
     },
     {
         latin: "accipio",
@@ -24,7 +26,9 @@ const aLevelVocabularyData = [
         info: "accipere, accepi - verb",
         letter: "A",
         topic: "Verbs of Giving/Taking",
-        set: 1
+        set: 1,
+        hint: "Think of 'reception'",
+        derivatives: "accept, reception, receptive"
     },
     {
         latin: "accuso",
@@ -32,7 +36,9 @@ const aLevelVocabularyData = [
         info: "accusare - verb",
         letter: "A",
         topic: "Verbs of Speaking",
-        set: 1
+        set: 1,
+        hint: "Think of 'accusation'",
+        derivatives: "accuse, accusation, excuse"
     },
     {
         latin: "acer",
@@ -40,7 +46,9 @@ const aLevelVocabularyData = [
         info: "acris, acre - adjective",
         letter: "A",
         topic: "Quality & Character",
-        set: 1
+        set: 1,
+        hint: "Think of 'acrid'",
+        derivatives: "acrid, acerbic, exacerbate"
     },
     {
         latin: "acriter",
@@ -56,7 +64,9 @@ const aLevelVocabularyData = [
         info: "aciei - noun",
         letter: "A",
         topic: "Military & War",
-        set: 1
+        set: 1,
+        hint: "Think of 'acuity'",
+        derivatives: "acuity, acute"
     },
     {
         latin: "ad",
@@ -64,7 +74,9 @@ const aLevelVocabularyData = [
         info: "+ acc, or as - preposition",
         letter: "A",
         topic: "Prepositions",
-        set: 1
+        set: 1,
+        hint: "Think of 'addition'",
+        derivatives: "addition, address, adjacent"
     },
     {
         latin: "addo",
@@ -72,7 +84,8 @@ const aLevelVocabularyData = [
         info: "addere, addidi - verb",
         letter: "A",
         topic: "Miscellaneous",
-        set: 1
+        set: 1,
+        derivatives: "add, addition, addendum"
     },
     {
         latin: "adeo (1)",
@@ -80,7 +93,9 @@ const aLevelVocabularyData = [
         info: "adire, adii - verb",
         letter: "A",
         topic: "Verbs of Motion",
-        set: 1
+        set: 1,
+        hint: "Think of 'exit'",
+        derivatives: "exit, transit (via eo/ire)"
     },
     {
         latin: "adeo (2)",
@@ -88,7 +103,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "A",
         topic: "Adverbs",
-        set: 1
+        set: 1,
+        hint: "Think of 'exit'",
+        derivatives: "exit, transit (via eo/ire)"
     },
     {
         latin: "adhuc",
@@ -112,7 +129,9 @@ const aLevelVocabularyData = [
         info: "adipisci, adeptus - verb",
         letter: "A",
         topic: "Verbs of Giving/Taking",
-        set: 1
+        set: 1,
+        hint: "Think of 'adipose'",
+        derivatives: "adipose"
     },
     {
         latin: "adiuvo",
@@ -120,7 +139,9 @@ const aLevelVocabularyData = [
         info: "adiuvare, adiuvi - verb",
         letter: "A",
         topic: "Miscellaneous",
-        set: 1
+        set: 1,
+        hint: "Think of 'adjutant'",
+        derivatives: "adjutant, aid, coadjutor"
     },
     {
         latin: "admitto",
@@ -128,7 +149,9 @@ const aLevelVocabularyData = [
         info: "admittere - verb",
         letter: "A",
         topic: "Verbs of Ruling",
-        set: 1
+        set: 1,
+        hint: "Think of 'admit'",
+        derivatives: "admit, admission, admissible"
     },
     {
         latin: "adsum",
@@ -136,7 +159,9 @@ const aLevelVocabularyData = [
         info: "adesse, adfui - verb",
         letter: "A",
         topic: "Verbs of Being",
-        set: 1
+        set: 1,
+        hint: "Think of 'absent (opposite)'",
+        derivatives: "absent (opposite), present"
     },
     {
         latin: "adulescens",
@@ -144,7 +169,9 @@ const aLevelVocabularyData = [
         info: "adulescentis - noun",
         letter: "A",
         topic: "Family & People",
-        set: 1
+        set: 1,
+        hint: "Think of 'adolescent'",
+        derivatives: "adolescent, adolescence"
     },
     {
         latin: "advenio",
@@ -152,7 +179,9 @@ const aLevelVocabularyData = [
         info: "advenire, adveni - verb",
         letter: "A",
         topic: "Verbs of Motion",
-        set: 1
+        set: 1,
+        hint: "Think of 'advent'",
+        derivatives: "advent, adventure, avenue"
     },
     {
         latin: "adventus",
@@ -160,7 +189,9 @@ const aLevelVocabularyData = [
         info: "adventus - noun",
         letter: "A",
         topic: "Miscellaneous",
-        set: 1
+        set: 1,
+        hint: "Think of 'advent'",
+        derivatives: "advent, adventure, adventitious"
     },
     {
         latin: "adversus (1)",
@@ -168,7 +199,9 @@ const aLevelVocabularyData = [
         info: "adversa - adjective",
         letter: "A",
         topic: "Miscellaneous",
-        set: 1
+        set: 1,
+        hint: "Think of 'adverse'",
+        derivatives: "adverse, adversity, adversary"
     },
     {
         latin: "adversus (2)",
@@ -176,7 +209,9 @@ const aLevelVocabularyData = [
         info: "+ acc, or as - adverb",
         letter: "A",
         topic: "Miscellaneous",
-        set: 1
+        set: 1,
+        hint: "Think of 'adverse'",
+        derivatives: "adverse, adversity, adversary"
     },
     {
         latin: "aedificium",
@@ -184,7 +219,9 @@ const aLevelVocabularyData = [
         info: "aedificii - noun",
         letter: "A",
         topic: "Buildings & Places",
-        set: 1
+        set: 1,
+        hint: "Think of 'edifice'",
+        derivatives: "edifice, edify"
     },
     {
         latin: "aedifico",
@@ -192,7 +229,9 @@ const aLevelVocabularyData = [
         info: "aedificare - verb",
         letter: "A",
         topic: "Verbs of Making/Doing",
-        set: 1
+        set: 1,
+        hint: "Think of 'edifice'",
+        derivatives: "edifice, edify, edification"
     },
     {
         latin: "aeger",
@@ -200,7 +239,9 @@ const aLevelVocabularyData = [
         info: "aegra, aegrum - adjective",
         letter: "A",
         topic: "Quality & Character",
-        set: 1
+        set: 1,
+        hint: "Think of 'aegis (protection)'",
+        derivatives: "aegis (protection)"
     },
     {
         latin: "aequus",
@@ -208,7 +249,9 @@ const aLevelVocabularyData = [
         info: "aequa, aequum - adjective",
         letter: "A",
         topic: "Miscellaneous",
-        set: 1
+        set: 1,
+        hint: "Think of 'equity'",
+        derivatives: "equal, equity, equate, adequate, equation"
     },
     {
         latin: "aestas",
@@ -216,7 +259,9 @@ const aLevelVocabularyData = [
         info: "aestatis - noun",
         letter: "A",
         topic: "Time & Seasons",
-        set: 1
+        set: 1,
+        hint: "Think of 'estival'",
+        derivatives: "estival, estivate"
     },
     {
         latin: "aetas",
@@ -224,7 +269,8 @@ const aLevelVocabularyData = [
         info: "aetatis - noun",
         letter: "A",
         topic: "Time & Seasons",
-        set: 1
+        set: 1,
+        derivatives: "age (via Old French)"
     },
     {
         latin: "ager",
@@ -232,7 +278,9 @@ const aLevelVocabularyData = [
         info: "agri - noun",
         letter: "A",
         topic: "Nature & Landscape",
-        set: 1
+        set: 1,
+        hint: "Think of 'agriculture'",
+        derivatives: "agriculture, agrarian, acre"
     },
     {
         latin: "aggredior",
@@ -240,7 +288,9 @@ const aLevelVocabularyData = [
         info: "aggredi - verb",
         letter: "A",
         topic: "Verbs of Motion",
-        set: 1
+        set: 1,
+        hint: "Think of 'aggression'",
+        derivatives: "aggression, aggressive"
     },
     {
         latin: "agmen",
@@ -248,7 +298,9 @@ const aLevelVocabularyData = [
         info: "agminis - noun",
         letter: "A",
         topic: "Military & War",
-        set: 1
+        set: 1,
+        hint: "Think of 'agent (via agere)'",
+        derivatives: "agent (via agere)"
     },
     {
         latin: "agnosco",
@@ -256,7 +308,9 @@ const aLevelVocabularyData = [
         info: "agnoscere - verb",
         letter: "A",
         topic: "Verbs of Perception",
-        set: 1
+        set: 1,
+        hint: "Think of 'recognize'",
+        derivatives: "recognize, cognition"
     },
     {
         latin: "ago",
@@ -264,7 +318,9 @@ const aLevelVocabularyData = [
         info: "agere, egi, actum - verb",
         letter: "A",
         topic: "Verbs of Making/Doing",
-        set: 1
+        set: 1,
+        hint: "Think of 'agent'",
+        derivatives: "agent, agile, agitate, act, active"
     },
     {
         latin: "agricola",
@@ -272,7 +328,9 @@ const aLevelVocabularyData = [
         info: "agricolae - noun",
         letter: "A",
         topic: "Miscellaneous",
-        set: 1
+        set: 1,
+        hint: "Think of 'agriculture'",
+        derivatives: "agriculture, agricultural"
     },
     {
         latin: "ala",
@@ -280,7 +338,9 @@ const aLevelVocabularyData = [
         info: "alae - noun",
         letter: "A",
         topic: "Nature & Landscape",
-        set: 1
+        set: 1,
+        hint: "Think of 'aileron'",
+        derivatives: "aileron, aisle"
     },
     {
         latin: "alienus",
@@ -288,7 +348,9 @@ const aLevelVocabularyData = [
         info: "aliena, alienum - adjective",
         letter: "A",
         topic: "Miscellaneous",
-        set: 1
+        set: 1,
+        hint: "Think of 'alien'",
+        derivatives: "alien, alienate, inalienable"
     },
     {
         latin: "aliquis",
@@ -296,7 +358,9 @@ const aLevelVocabularyData = [
         info: "neuter aliquid - pronoun",
         letter: "A",
         topic: "Pronouns",
-        set: 1
+        set: 1,
+        hint: "Think of 'alias'",
+        derivatives: "alias, alibi"
     },
     {
         latin: "aliter",
@@ -312,7 +376,9 @@ const aLevelVocabularyData = [
         info: "alia, aliud adj/ - pronoun",
         letter: "A",
         topic: "Pronouns",
-        set: 1
+        set: 1,
+        hint: "Think of 'alias'",
+        derivatives: "alias, alibi, alien, alter"
     },
     {
         latin: "alter",
@@ -320,7 +386,8 @@ const aLevelVocabularyData = [
         info: "altera, alterum adj/ - pronoun",
         letter: "A",
         topic: "Pronouns",
-        set: 1
+        set: 1,
+        derivatives: "alter, alternate, alternative, alteration"
     },
     {
         latin: "altus",
@@ -328,7 +395,9 @@ const aLevelVocabularyData = [
         info: "alta, altum - adjective",
         letter: "A",
         topic: "Miscellaneous",
-        set: 1
+        set: 1,
+        hint: "Think of 'altitude'",
+        derivatives: "altitude, alto, exalt, enhance"
     },
     {
         latin: "ambulo",
@@ -336,7 +405,9 @@ const aLevelVocabularyData = [
         info: "ambulare - verb",
         letter: "A",
         topic: "Verbs of Motion",
-        set: 1
+        set: 1,
+        hint: "Think of 'amble'",
+        derivatives: "amble, ambulance, ambulatory, perambulate"
     },
     {
         latin: "amica",
@@ -344,7 +415,9 @@ const aLevelVocabularyData = [
         info: "amicae - noun",
         letter: "A",
         topic: "Family & People",
-        set: 1
+        set: 1,
+        hint: "Think of 'amicable'",
+        derivatives: "amicable, amiable"
     },
     {
         latin: "amicitia",
@@ -352,7 +425,9 @@ const aLevelVocabularyData = [
         info: "amicitiae - noun",
         letter: "A",
         topic: "Miscellaneous",
-        set: 1
+        set: 1,
+        hint: "Think of 'amity'",
+        derivatives: "amity, amicable"
     },
     {
         latin: "amicus",
@@ -360,7 +435,9 @@ const aLevelVocabularyData = [
         info: "amici - noun",
         letter: "A",
         topic: "Family & People",
-        set: 1
+        set: 1,
+        hint: "Think of 'amicable'",
+        derivatives: "amicable, amiable, amity, inimical"
     },
     {
         latin: "amitto",
@@ -368,7 +445,9 @@ const aLevelVocabularyData = [
         info: "amittere, amisi - verb",
         letter: "A",
         topic: "Verbs of Giving/Taking",
-        set: 1
+        set: 1,
+        hint: "Think of 'emit'",
+        derivatives: "emit, omit, mission"
     },
     {
         latin: "amo",
@@ -388,7 +467,7 @@ const aLevelVocabularyData = [
         topic: "Emotions & Mind",
         set: 1,
         hint: "Think of 'amorous'",
-        derivatives: "amorous, amour, enamored"
+        derivatives: "amorous, amour, enamored, paramour"
     },
     {
         latin: "amphitheatrum",
@@ -412,7 +491,9 @@ const aLevelVocabularyData = [
         info: "ancillae - noun",
         letter: "A",
         topic: "Family & People",
-        set: 2
+        set: 2,
+        hint: "Think of 'ancillary'",
+        derivatives: "ancillary"
     },
     {
         latin: "angustus",
@@ -420,7 +501,9 @@ const aLevelVocabularyData = [
         info: "angusta - adjective",
         letter: "A",
         topic: "Size & Quantity",
-        set: 2
+        set: 2,
+        hint: "Think of 'anguish'",
+        derivatives: "anguish, anxiety, angst"
     },
     {
         latin: "animadverto",
@@ -446,7 +529,7 @@ const aLevelVocabularyData = [
         topic: "Emotions & Mind",
         set: 2,
         hint: "Think of 'animate'",
-        derivatives: "animate, animal, animosity, unanimous"
+        derivatives: "animate, animal, animosity, unanimous, magnanimous"
     },
     {
         latin: "annus",
@@ -456,7 +539,7 @@ const aLevelVocabularyData = [
         topic: "Time & Seasons",
         set: 2,
         hint: "Think of 'annual'",
-        derivatives: "annual, anniversary, perennial, annuity"
+        derivatives: "annual, anniversary, perennial, annuity, biannual"
     },
     {
         latin: "ante",
@@ -464,7 +547,9 @@ const aLevelVocabularyData = [
         info: "+ acc - preposition",
         letter: "A",
         topic: "Prepositions",
-        set: 2
+        set: 2,
+        hint: "Think of 'ante'",
+        derivatives: "ante, anterior, antecedent, anticipate"
     },
     {
         latin: "antea",
@@ -488,7 +573,9 @@ const aLevelVocabularyData = [
         info: "aperire, aperui - verb",
         letter: "A",
         topic: "Miscellaneous",
-        set: 2
+        set: 2,
+        hint: "Think of 'aperture'",
+        derivatives: "aperture, overt, overture"
     },
     {
         latin: "appareo",
@@ -504,7 +591,9 @@ const aLevelVocabularyData = [
         info: "appropinquare - verb",
         letter: "A",
         topic: "Verbs of Motion",
-        set: 2
+        set: 2,
+        hint: "Think of 'approximate'",
+        derivatives: "approximate, proximity"
     },
     {
         latin: "aptus",
@@ -520,7 +609,8 @@ const aLevelVocabularyData = [
         info: "+ acc - preposition",
         letter: "A",
         topic: "Prepositions",
-        set: 2
+        set: 2,
+        derivatives: "proximity (related)"
     },
     {
         latin: "aqua",
@@ -554,7 +644,9 @@ const aLevelVocabularyData = [
         info: "arboris - noun",
         letter: "A",
         topic: "Nature & Landscape",
-        set: 2
+        set: 2,
+        hint: "Think of 'arbor'",
+        derivatives: "arbor, arboreal, arboretum"
     },
     {
         latin: "arcesso",
@@ -562,7 +654,9 @@ const aLevelVocabularyData = [
         info: "arcessere - verb",
         letter: "A",
         topic: "Verbs of Giving/Taking",
-        set: 2
+        set: 2,
+        hint: "Think of 'access (related)'",
+        derivatives: "access (related)"
     },
     {
         latin: "ardeo",
@@ -570,7 +664,9 @@ const aLevelVocabularyData = [
         info: "ardere, arsi - verb",
         letter: "A",
         topic: "Miscellaneous",
-        set: 2
+        set: 2,
+        hint: "Think of 'ardent'",
+        derivatives: "ardent, ardor, arson"
     },
     {
         latin: "argentum",
@@ -578,7 +674,9 @@ const aLevelVocabularyData = [
         info: "argenti - noun",
         letter: "A",
         topic: "Wealth & Trade",
-        set: 2
+        set: 2,
+        hint: "Think of 'argent'",
+        derivatives: "argent, Argentina"
     },
     {
         latin: "arma",
@@ -586,7 +684,9 @@ const aLevelVocabularyData = [
         info: "armorum - noun",
         letter: "A",
         topic: "Military & War",
-        set: 2
+        set: 2,
+        hint: "Think of 'army'",
+        derivatives: "arm, army, armor, armament, disarm"
     },
     {
         latin: "armatus",
@@ -611,7 +711,7 @@ const aLevelVocabularyData = [
         letter: "A",
         topic: "Miscellaneous",
         set: 2,
-        derivatives: "art, artist, artificial, artisan"
+        derivatives: "art, artist, artificial, artisan, artifact"
     },
     {
         latin: "arx",
@@ -627,7 +727,9 @@ const aLevelVocabularyData = [
         info: "ascendere verb 3rd climb, go up ascendi, ascensum *at - conjunction",
         letter: "A",
         topic: "Conjunctions",
-        set: 2
+        set: 2,
+        hint: "Think of 'ascend'",
+        derivatives: "ascend, ascent, ascendant"
     },
     {
         latin: "atque",
@@ -635,7 +737,9 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "A",
         topic: "Conjunctions",
-        set: 2
+        set: 2,
+        hint: "Think of 'attic (related)'",
+        derivatives: "attic (related)"
     },
     {
         latin: "atrium",
@@ -667,7 +771,9 @@ const aLevelVocabularyData = [
         info: "gen audacis - adjective",
         letter: "A",
         topic: "Quality & Character",
-        set: 2
+        set: 2,
+        hint: "Think of 'audacious'",
+        derivatives: "audacious, audacity"
     },
     {
         latin: "audeo",
@@ -675,7 +781,9 @@ const aLevelVocabularyData = [
         info: "audere, ausus - verb",
         letter: "A",
         topic: "Miscellaneous",
-        set: 2
+        set: 2,
+        hint: "Think of 'audacious'",
+        derivatives: "audacious, audacity"
     },
     {
         latin: "audio",
@@ -685,7 +793,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Perception",
         set: 2,
         hint: "Think of 'audio'",
-        derivatives: "audio, audible, audience, auditorium"
+        derivatives: "audio, audible, audience, auditorium, audit"
     },
     {
         latin: "aufero",
@@ -693,7 +801,9 @@ const aLevelVocabularyData = [
         info: "auferre, abstuli - verb",
         letter: "A",
         topic: "Verbs of Giving/Taking",
-        set: 2
+        set: 2,
+        hint: "Think of 'ablate'",
+        derivatives: "ablate, ablation"
     },
     {
         latin: "augeo",
@@ -703,7 +813,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 2,
         hint: "Think of 'augment'",
-        derivatives: "augment, auction, author, authority"
+        derivatives: "augment, auction, author, authority, august"
     },
     {
         latin: "aurum",
@@ -711,7 +821,9 @@ const aLevelVocabularyData = [
         info: "auri - noun",
         letter: "A",
         topic: "Wealth & Trade",
-        set: 2
+        set: 2,
+        hint: "Think of 'aureate'",
+        derivatives: "aureate, aurora, auriferous"
     },
     {
         latin: "aut",
@@ -719,7 +831,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "A",
         topic: "Conjunctions",
-        set: 2
+        set: 2,
+        derivatives: "or (conjunction)"
     },
     {
         latin: "autem",
@@ -727,7 +840,9 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "A",
         topic: "Conjunctions",
-        set: 2
+        set: 2,
+        hint: "Think of 'automatic (unrelated)'",
+        derivatives: "automatic (unrelated)"
     },
     {
         latin: "auxilium",
@@ -735,7 +850,9 @@ const aLevelVocabularyData = [
         info: "auxilii - noun",
         letter: "A",
         topic: "Military & War",
-        set: 2
+        set: 2,
+        hint: "Think of 'auxiliaries'",
+        derivatives: "auxiliary, auxiliaries"
     },
     {
         latin: "avidus",
@@ -771,7 +888,7 @@ const aLevelVocabularyData = [
         topic: "Adverbs",
         set: 2,
         hint: "Think of 'benefit'",
-        derivatives: "benefit, benevolent, benediction, benign"
+        derivatives: "benefit, benevolent, benediction, benign, bonus"
     },
     {
         latin: "beneficium",
@@ -787,7 +904,9 @@ const aLevelVocabularyData = [
         info: "benigna - adjective",
         letter: "B",
         topic: "Quality & Character",
-        set: 2
+        set: 2,
+        hint: "Think of 'benign'",
+        derivatives: "benign, benignant"
     },
     {
         latin: "bibo",
@@ -795,7 +914,9 @@ const aLevelVocabularyData = [
         info: "bibere, bibi - verb",
         letter: "B",
         topic: "Miscellaneous",
-        set: 2
+        set: 2,
+        hint: "Think of 'imbibe'",
+        derivatives: "imbibe, beverage, bibulous"
     },
     {
         latin: "bis",
@@ -821,7 +942,7 @@ const aLevelVocabularyData = [
         topic: "Quality & Character",
         set: 2,
         hint: "Think of 'bonus'",
-        derivatives: "bonus, bonanza, bountiful"
+        derivatives: "bonus, bonanza, bountiful, bounty"
     },
     {
         latin: "brevis",
@@ -831,7 +952,7 @@ const aLevelVocabularyData = [
         topic: "Size & Quantity",
         set: 3,
         hint: "Think of 'brevity'",
-        derivatives: "brief, brevity, abbreviate"
+        derivatives: "brief, brevity, abbreviate, abridge"
     },
     {
         latin: "cado",
@@ -841,7 +962,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Motion",
         set: 3,
         hint: "Think of 'cadence'",
-        derivatives: "cadence, cascade, accident, occasion, decay"
+        derivatives: "cadence, cascade, accident, occasion, decay, case"
     },
     {
         latin: "caedes",
@@ -849,7 +970,9 @@ const aLevelVocabularyData = [
         info: "caedis - noun",
         letter: "C",
         topic: "Miscellaneous",
-        set: 3
+        set: 3,
+        hint: "Think of 'homicide'",
+        derivatives: "homicide, suicide, regicide"
     },
     {
         latin: "caedo",
@@ -859,7 +982,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Fighting",
         set: 3,
         hint: "Think of 'incision'",
-        derivatives: "incision, decide, precise, suicide, homicide"
+        derivatives: "incision, decide, precise, suicide, homicide, scissors"
     },
     {
         latin: "caelum",
@@ -877,7 +1000,9 @@ const aLevelVocabularyData = [
         info: "campi - noun",
         letter: "C",
         topic: "Nature & Landscape",
-        set: 3
+        set: 3,
+        hint: "Think of 'camp'",
+        derivatives: "camp, campus, campaign, champion"
     },
     {
         latin: "canis",
@@ -885,7 +1010,9 @@ const aLevelVocabularyData = [
         info: "canis - noun",
         letter: "C",
         topic: "Nature & Landscape",
-        set: 3
+        set: 3,
+        hint: "Think of 'canine'",
+        derivatives: "canine, canary"
     },
     {
         latin: "cano",
@@ -893,7 +1020,9 @@ const aLevelVocabularyData = [
         info: "canere, cecini - verb",
         letter: "C",
         topic: "Verbs of Speaking",
-        set: 3
+        set: 3,
+        hint: "Think of 'chant'",
+        derivatives: "chant, canticle, incantation, accent"
     },
     {
         latin: "capio",
@@ -921,7 +1050,7 @@ const aLevelVocabularyData = [
         topic: "The Body",
         set: 3,
         hint: "Think of 'captain'",
-        derivatives: "capital, captain, chapter, decapitate"
+        derivatives: "capital, captain, chapter, decapitate, cap"
     },
     {
         latin: "carmen",
@@ -929,7 +1058,9 @@ const aLevelVocabularyData = [
         info: "carminis - noun",
         letter: "C",
         topic: "Miscellaneous",
-        set: 3
+        set: 3,
+        hint: "Think of 'charm'",
+        derivatives: "charm, charming"
     },
     {
         latin: "carus",
@@ -937,7 +1068,9 @@ const aLevelVocabularyData = [
         info: "cara, carum - adjective",
         letter: "C",
         topic: "Quality & Character",
-        set: 3
+        set: 3,
+        hint: "Think of 'charity'",
+        derivatives: "charity, cherish, caress"
     },
     {
         latin: "castra",
@@ -945,7 +1078,9 @@ const aLevelVocabularyData = [
         info: "castrorum - noun",
         letter: "C",
         topic: "Military & War",
-        set: 3
+        set: 3,
+        hint: "Think of 'castle'",
+        derivatives: "castle, castrate, caste"
     },
     {
         latin: "causa",
@@ -954,7 +1089,7 @@ const aLevelVocabularyData = [
         letter: "C",
         topic: "Abstract Concepts",
         set: 3,
-        derivatives: "cause, because, accuse, excuse"
+        derivatives: "cause, because, accuse, excuse, accusation"
     },
     {
         latin: "caveo",
@@ -962,7 +1097,9 @@ const aLevelVocabularyData = [
         info: "cavere, cavi - verb",
         letter: "C",
         topic: "Verbs of Giving/Taking",
-        set: 3
+        set: 3,
+        hint: "Think of 'caution'",
+        derivatives: "caution, cautious, precaution"
     },
     {
         latin: "cedo",
@@ -972,7 +1109,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Giving/Taking",
         set: 3,
         hint: "Think of 'cede'",
-        derivatives: "cede, precede, proceed, succeed, recede, access"
+        derivatives: "cede, precede, proceed, succeed, recede, access, exceed"
     },
     {
         latin: "celer",
@@ -990,7 +1127,9 @@ const aLevelVocabularyData = [
         info: "celare, celavi - verb",
         letter: "C",
         topic: "Miscellaneous",
-        set: 3
+        set: 3,
+        hint: "Think of 'ceiling'",
+        derivatives: "conceal, ceiling"
     },
     {
         latin: "cena",
@@ -998,7 +1137,9 @@ const aLevelVocabularyData = [
         info: "cenae - noun",
         letter: "C",
         topic: "Miscellaneous",
-        set: 3
+        set: 3,
+        hint: "Think of 'cenacle (dining room)'",
+        derivatives: "cenacle (dining room)"
     },
     {
         latin: "ceno",
@@ -1016,7 +1157,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 3,
         hint: "Think of 'century'",
-        derivatives: "century, cent, percent, centennial"
+        derivatives: "century, cent, percent, centennial, centipede"
     },
     {
         latin: "centurio",
@@ -1034,7 +1175,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Perception",
         set: 3,
         hint: "Think of 'discern'",
-        derivatives: "discern, concern, certain, decree"
+        derivatives: "discern, concern, certain, decree, secrete"
     },
     {
         latin: "certamen",
@@ -1050,7 +1191,9 @@ const aLevelVocabularyData = [
         info: "certa, certum - adjective",
         letter: "C",
         topic: "Miscellaneous",
-        set: 3
+        set: 3,
+        hint: "Think of 'certify'",
+        derivatives: "certain, certify, certificate, ascertain"
     },
     {
         latin: "ceteri",
@@ -1058,7 +1201,9 @@ const aLevelVocabularyData = [
         info: "ceterae, cetera pron / - adjective",
         letter: "C",
         topic: "Size & Quantity",
-        set: 3
+        set: 3,
+        hint: "Think of 'et cetera'",
+        derivatives: "et cetera"
     },
     {
         latin: "cibus",
@@ -1066,7 +1211,8 @@ const aLevelVocabularyData = [
         info: "cibi - noun",
         letter: "C",
         topic: "Miscellaneous",
-        set: 3
+        set: 3,
+        derivatives: "ciborium (food container)"
     },
     {
         latin: "cingo",
@@ -1100,7 +1246,7 @@ const aLevelVocabularyData = [
         topic: "Government & Politics",
         set: 3,
         hint: "Think of 'civil'",
-        derivatives: "civil, citizen, civic, civilize"
+        derivatives: "civil, citizen, civic, civilize, civilization"
     },
     {
         latin: "civitas",
@@ -1116,7 +1262,9 @@ const aLevelVocabularyData = [
         info: "cladis - noun",
         letter: "C",
         topic: "Military & War",
-        set: 3
+        set: 3,
+        hint: "Think of 'clade (biology)'",
+        derivatives: "clade (biology)"
     },
     {
         latin: "clam",
@@ -1124,7 +1272,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "C",
         topic: "Miscellaneous",
-        set: 3
+        set: 3,
+        hint: "Think of 'clandestine'",
+        derivatives: "clandestine"
     },
     {
         latin: "clamo",
@@ -1133,7 +1283,7 @@ const aLevelVocabularyData = [
         letter: "C",
         topic: "Verbs of Speaking",
         set: 3,
-        derivatives: "claim, exclaim, proclaim, clamor"
+        derivatives: "claim, exclaim, proclaim, clamor, acclaim, declaim"
     },
     {
         latin: "clamor",
@@ -1141,7 +1291,9 @@ const aLevelVocabularyData = [
         info: "clamoris - noun",
         letter: "C",
         topic: "Abstract Concepts",
-        set: 3
+        set: 3,
+        hint: "Think of 'clandestine'",
+        derivatives: "clandestine"
     },
     {
         latin: "clarus",
@@ -1167,7 +1319,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 3,
         hint: "Think of 'conclude'",
-        derivatives: "close, conclude, exclude, include, clause"
+        derivatives: "close, conclude, exclude, include, clause, closet"
     },
     {
         latin: "cogito",
@@ -1175,7 +1327,9 @@ const aLevelVocabularyData = [
         info: "cogitare - verb",
         letter: "C",
         topic: "Verbs of Thinking",
-        set: 3
+        set: 3,
+        hint: "Think of 'cogitate'",
+        derivatives: "cogitate, cogitation"
     },
     {
         latin: "cognosco",
@@ -1183,7 +1337,9 @@ const aLevelVocabularyData = [
         info: "cognoscere - verb",
         letter: "C",
         topic: "Verbs of Perception",
-        set: 3
+        set: 3,
+        hint: "Think of 'cognition'",
+        derivatives: "cognition, recognize, cognizant, incognito"
     },
     {
         latin: "cogo",
@@ -1209,7 +1365,8 @@ const aLevelVocabularyData = [
         info: "colligere, collegi - verb",
         letter: "C",
         topic: "Miscellaneous",
-        set: 3
+        set: 3,
+        derivatives: "collect, collection, recollect"
     },
     {
         latin: "collis",
@@ -1225,7 +1382,9 @@ const aLevelVocabularyData = [
         info: "colere, colui - verb",
         letter: "C",
         topic: "Miscellaneous",
-        set: 3
+        set: 3,
+        hint: "Think of 'colony'",
+        derivatives: "colony, cultivate, culture, agriculture"
     },
     {
         latin: "comes",
@@ -1233,7 +1392,9 @@ const aLevelVocabularyData = [
         info: "comitis - noun",
         letter: "C",
         topic: "Family & People",
-        set: 3
+        set: 3,
+        hint: "Think of 'count'",
+        derivatives: "count, county, accompany"
     },
     {
         latin: "committo",
@@ -1241,7 +1402,9 @@ const aLevelVocabularyData = [
         info: "committere - verb",
         letter: "C",
         topic: "Verbs of Making/Doing",
-        set: 3
+        set: 3,
+        hint: "Think of 'commission'",
+        derivatives: "commit, commission, committee"
     },
     {
         latin: "commodus",
@@ -1257,7 +1420,9 @@ const aLevelVocabularyData = [
         info: "comparare - verb",
         letter: "C",
         topic: "Verbs of Making/Doing",
-        set: 4
+        set: 4,
+        hint: "Think of 'comparison'",
+        derivatives: "compare, comparison"
     },
     {
         latin: "compleo",
@@ -1265,7 +1430,9 @@ const aLevelVocabularyData = [
         info: "complere - verb",
         letter: "C",
         topic: "Miscellaneous",
-        set: 4
+        set: 4,
+        hint: "Think of 'complete'",
+        derivatives: "complete, complement, comply"
     },
     {
         latin: "condemno",
@@ -1281,7 +1448,9 @@ const aLevelVocabularyData = [
         info: "condere, condidi - verb",
         letter: "C",
         topic: "Verbs of Making/Doing",
-        set: 4
+        set: 4,
+        hint: "Think of 'condition'",
+        derivatives: "condition, abscond, recondite"
     },
     {
         latin: "confero",
@@ -1297,7 +1466,9 @@ const aLevelVocabularyData = [
         info: "conficere - verb",
         letter: "C",
         topic: "Verbs of Making/Doing",
-        set: 4
+        set: 4,
+        hint: "Think of 'confection'",
+        derivatives: "confection, confetti"
     },
     {
         latin: "confido",
@@ -1313,7 +1484,9 @@ const aLevelVocabularyData = [
         info: "coniugis - noun",
         letter: "C",
         topic: "Family & People",
-        set: 4
+        set: 4,
+        hint: "Think of 'conjugal'",
+        derivatives: "conjugal, conjunction"
     },
     {
         latin: "coniuratio",
@@ -1329,7 +1502,9 @@ const aLevelVocabularyData = [
         info: "conari, conatus - verb",
         letter: "C",
         topic: "Miscellaneous",
-        set: 4
+        set: 4,
+        hint: "Think of 'conation (psychology)'",
+        derivatives: "conation (psychology)"
     },
     {
         latin: "consilium",
@@ -1337,7 +1512,9 @@ const aLevelVocabularyData = [
         info: "consilii - noun",
         letter: "C",
         topic: "Abstract Concepts",
-        set: 4
+        set: 4,
+        hint: "Think of 'counsel'",
+        derivatives: "counsel, council, consultant"
     },
     {
         latin: "consisto",
@@ -1353,7 +1530,9 @@ const aLevelVocabularyData = [
         info: "conspicere - verb",
         letter: "C",
         topic: "Verbs of Perception",
-        set: 4
+        set: 4,
+        hint: "Think of 'conspicuous'",
+        derivatives: "conspicuous, perspective"
     },
     {
         latin: "constat",
@@ -1369,7 +1548,9 @@ const aLevelVocabularyData = [
         info: "constituere - verb",
         letter: "C",
         topic: "Verbs of Thinking",
-        set: 4
+        set: 4,
+        hint: "Think of 'constitute'",
+        derivatives: "constitute, constitution, constituent"
     },
     {
         latin: "consul",
@@ -1377,7 +1558,8 @@ const aLevelVocabularyData = [
         info: "consulis - noun",
         letter: "C",
         topic: "Government & Politics",
-        set: 4
+        set: 4,
+        derivatives: "consul, consulate, consult"
     },
     {
         latin: "consulo",
@@ -1385,7 +1567,9 @@ const aLevelVocabularyData = [
         info: "consulere - verb",
         letter: "C",
         topic: "Verbs of Thinking",
-        set: 4
+        set: 4,
+        hint: "Think of 'consulate'",
+        derivatives: "consul, consulate, consult"
     },
     {
         latin: "consumo",
@@ -1401,7 +1585,9 @@ const aLevelVocabularyData = [
         info: "contendere - verb",
         letter: "C",
         topic: "Verbs of Motion",
-        set: 4
+        set: 4,
+        hint: "Think of 'content'",
+        derivatives: "contend, content, contest"
     },
     {
         latin: "contentus",
@@ -1417,7 +1603,9 @@ const aLevelVocabularyData = [
         info: "+ acc - preposition",
         letter: "C",
         topic: "Prepositions",
-        set: 4
+        set: 4,
+        hint: "Think of 'contrary'",
+        derivatives: "contrary, contrast, contradict, control"
     },
     {
         latin: "convenio",
@@ -1425,7 +1613,9 @@ const aLevelVocabularyData = [
         info: "convenire - verb",
         letter: "C",
         topic: "Verbs of Motion",
-        set: 4
+        set: 4,
+        hint: "Think of 'convene'",
+        derivatives: "convene, convention, convenient, convent"
     },
     {
         latin: "convoco",
@@ -1459,7 +1649,7 @@ const aLevelVocabularyData = [
         topic: "The Body",
         set: 4,
         hint: "Think of 'corpse'",
-        derivatives: "corpse, corporation, corporal, incorporate"
+        derivatives: "corpse, corporation, corporal, incorporate, corps"
     },
     {
         latin: "corripio",
@@ -1467,7 +1657,9 @@ const aLevelVocabularyData = [
         info: "corripere - verb",
         letter: "C",
         topic: "Verbs of Giving/Taking",
-        set: 4
+        set: 4,
+        hint: "Think of 'corrupt (related)'",
+        derivatives: "corrupt (related)"
     },
     {
         latin: "corrumpo",
@@ -1483,7 +1675,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "C",
         topic: "Time & Seasons",
-        set: 4
+        set: 4,
+        hint: "Think of 'quotidian'",
+        derivatives: "quotidian"
     },
     {
         latin: "cras",
@@ -1491,7 +1685,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "C",
         topic: "Time & Seasons",
-        set: 4
+        set: 4,
+        hint: "Think of 'procrastinate'",
+        derivatives: "procrastinate"
     },
     {
         latin: "credo",
@@ -1501,7 +1697,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Thinking",
         set: 4,
         hint: "Think of 'credit'",
-        derivatives: "credit, credible, creed, incredible"
+        derivatives: "credit, credible, creed, incredible, credence"
     },
     {
         latin: "crimen",
@@ -1509,7 +1705,9 @@ const aLevelVocabularyData = [
         info: "criminis - noun",
         letter: "C",
         topic: "Abstract Concepts",
-        set: 4
+        set: 4,
+        hint: "Think of 'criminal'",
+        derivatives: "crime, criminal, incriminate"
     },
     {
         latin: "crudelis",
@@ -1517,7 +1715,8 @@ const aLevelVocabularyData = [
         info: "crudele - adjective",
         letter: "C",
         topic: "Quality & Character",
-        set: 4
+        set: 4,
+        derivatives: "cruel, cruelty"
     },
     {
         latin: "crudelitas",
@@ -1559,7 +1758,9 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "C",
         topic: "Conjunctions",
-        set: 4
+        set: 4,
+        hint: "Think of 'combine'",
+        derivatives: "combine, companion, company"
     },
     {
         latin: "cum (2)",
@@ -1567,7 +1768,9 @@ const aLevelVocabularyData = [
         info: "+ abl - preposition",
         letter: "C",
         topic: "Prepositions",
-        set: 4
+        set: 4,
+        hint: "Think of 'combine'",
+        derivatives: "combine, companion, company"
     },
     {
         latin: "cunctus",
@@ -1591,7 +1794,9 @@ const aLevelVocabularyData = [
         info: "cupere, cupivi - verb",
         letter: "C",
         topic: "Miscellaneous",
-        set: 4
+        set: 4,
+        hint: "Think of 'cupid'",
+        derivatives: "cupid, cupidity, covet, concupiscence"
     },
     {
         latin: "cur",
@@ -1643,7 +1848,9 @@ const aLevelVocabularyData = [
         info: "cursus - noun",
         letter: "C",
         topic: "Miscellaneous",
-        set: 4
+        set: 4,
+        hint: "Think of 'cursor'",
+        derivatives: "course, cursor, cursory, curriculum"
     },
     {
         latin: "custodio",
@@ -1651,7 +1858,9 @@ const aLevelVocabularyData = [
         info: "custodire - verb",
         letter: "C",
         topic: "Miscellaneous",
-        set: 4
+        set: 4,
+        hint: "Think of 'custody'",
+        derivatives: "custody, custodian"
     },
     {
         latin: "custos",
@@ -1659,7 +1868,9 @@ const aLevelVocabularyData = [
         info: "custodis - noun",
         letter: "C",
         topic: "Miscellaneous",
-        set: 4
+        set: 4,
+        hint: "Think of 'custody'",
+        derivatives: "custody, custodian"
     },
     {
         latin: "de",
@@ -1667,7 +1878,9 @@ const aLevelVocabularyData = [
         info: "+ abl, or as - preposition",
         letter: "D",
         topic: "Prepositions",
-        set: 5
+        set: 5,
+        hint: "Think of 'descend'",
+        derivatives: "descend, depart, decline"
     },
     {
         latin: "dea",
@@ -1683,7 +1896,9 @@ const aLevelVocabularyData = [
         info: "debere, debui - verb",
         letter: "D",
         topic: "Miscellaneous",
-        set: 5
+        set: 5,
+        hint: "Think of 'debit'",
+        derivatives: "debit, debt, due, duty"
     },
     {
         latin: "decem",
@@ -1739,7 +1954,9 @@ const aLevelVocabularyData = [
         info: "defendere - verb",
         letter: "D",
         topic: "Verbs of Fighting",
-        set: 5
+        set: 5,
+        hint: "Think of 'defense'",
+        derivatives: "defend, defense, defensive, fence"
     },
     {
         latin: "defessus",
@@ -1771,7 +1988,9 @@ const aLevelVocabularyData = [
         info: "delere, delevi - verb",
         letter: "D",
         topic: "Verbs of Making/Doing",
-        set: 5
+        set: 5,
+        hint: "Think of 'delete'",
+        derivatives: "delete, deletion, indelible"
     },
     {
         latin: "deligo",
@@ -1779,7 +1998,9 @@ const aLevelVocabularyData = [
         info: "deligere, delegi - verb",
         letter: "D",
         topic: "Miscellaneous",
-        set: 5
+        set: 5,
+        hint: "Think of 'delegate'",
+        derivatives: "delegate, diligent"
     },
     {
         latin: "denique",
@@ -1811,7 +2032,9 @@ const aLevelVocabularyData = [
         info: "descendere - verb",
         letter: "D",
         topic: "Verbs of Motion",
-        set: 5
+        set: 5,
+        hint: "Think of 'descent'",
+        derivatives: "descend, descent, descendant"
     },
     {
         latin: "desino",
@@ -1835,7 +2058,9 @@ const aLevelVocabularyData = [
         info: "desperare - verb",
         letter: "D",
         topic: "Miscellaneous",
-        set: 5
+        set: 5,
+        hint: "Think of 'desperate'",
+        derivatives: "despair, desperate, desperation"
     },
     {
         latin: "deus",
@@ -1845,7 +2070,7 @@ const aLevelVocabularyData = [
         topic: "Religion & Ritual",
         set: 5,
         hint: "Think of 'divine'",
-        derivatives: "deity, divine, deify"
+        derivatives: "deity, divine, deify, deism"
     },
     {
         latin: "dexter",
@@ -1853,7 +2078,9 @@ const aLevelVocabularyData = [
         info: "dextra, dextrum - adjective",
         letter: "D",
         topic: "Miscellaneous",
-        set: 5
+        set: 5,
+        hint: "Think of 'dexterity'",
+        derivatives: "dexterity, dexterous, ambidextrous"
     },
     {
         latin: "dextra",
@@ -1871,7 +2098,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Speaking",
         set: 5,
         hint: "Think of 'dictate'",
-        derivatives: "dictate, predict, contradict, verdict, dictionary"
+        derivatives: "dictate, predict, contradict, verdict, dictionary, diction"
     },
     {
         latin: "dies",
@@ -1881,7 +2108,7 @@ const aLevelVocabularyData = [
         topic: "Time & Seasons",
         set: 5,
         hint: "Think of 'diary'",
-        derivatives: "diary, dial, diurnal, quotidian"
+        derivatives: "diary, dial, diurnal, quotidian, meridian"
     },
     {
         latin: "difficilis",
@@ -1889,7 +2116,8 @@ const aLevelVocabularyData = [
         info: "difficile - adjective",
         letter: "D",
         topic: "Quality & Character",
-        set: 5
+        set: 5,
+        derivatives: "difficult, difficulty"
     },
     {
         latin: "dignitas",
@@ -1907,7 +2135,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 5,
         hint: "Think of 'dignity'",
-        derivatives: "dignity, dignify, indignant, condign"
+        derivatives: "dignity, dignify, indignant, condign, dignitary"
     },
     {
         latin: "diligens",
@@ -1931,7 +2159,9 @@ const aLevelVocabularyData = [
         info: "dimittere, dimisi - verb",
         letter: "D",
         topic: "Miscellaneous",
-        set: 5
+        set: 5,
+        hint: "Think of 'demit'",
+        derivatives: "dismiss, demit"
     },
     {
         latin: "dirus",
@@ -1947,7 +2177,9 @@ const aLevelVocabularyData = [
         info: "discedere - verb",
         letter: "D",
         topic: "Verbs of Motion",
-        set: 5
+        set: 5,
+        hint: "Think of 'secede'",
+        derivatives: "secede, secession"
     },
     {
         latin: "disco",
@@ -1955,7 +2187,9 @@ const aLevelVocabularyData = [
         info: "discere, didici - verb",
         letter: "D",
         topic: "Verbs of Perception",
-        set: 5
+        set: 5,
+        hint: "Think of 'disciple'",
+        derivatives: "disciple, discipline, discotheque"
     },
     {
         latin: "dissimilis",
@@ -1971,7 +2205,8 @@ const aLevelVocabularyData = [
         info: "comp diutius - adverb",
         letter: "D",
         topic: "Time & Seasons",
-        set: 5
+        set: 5,
+        derivatives: "duration (related)"
     },
     {
         latin: "dives",
@@ -1987,7 +2222,9 @@ const aLevelVocabularyData = [
         info: "dividere, divisi - verb",
         letter: "D",
         topic: "Miscellaneous",
-        set: 5
+        set: 5,
+        hint: "Think of 'division'",
+        derivatives: "divide, division, dividend"
     },
     {
         latin: "divitiae",
@@ -2013,7 +2250,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Giving/Taking",
         set: 5,
         hint: "Think of 'data'",
-        derivatives: "data, date, donate, edition"
+        derivatives: "data, date, donate, edition, add, tradition"
     },
     {
         latin: "doceo",
@@ -2023,7 +2260,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 5,
         hint: "Think of 'doctor'",
-        derivatives: "doctor, doctrine, document, docile"
+        derivatives: "doctor, doctrine, document, docile, indoctrinate"
     },
     {
         latin: "doctus",
@@ -2041,7 +2278,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Being",
         set: 5,
         hint: "Think of 'doleful'",
-        derivatives: "doleful, condolence, indolent"
+        derivatives: "doleful, condolence, indolent, dolor"
     },
     {
         latin: "dolor",
@@ -2065,7 +2302,9 @@ const aLevelVocabularyData = [
         info: "dominae - noun",
         letter: "D",
         topic: "Miscellaneous",
-        set: 5
+        set: 5,
+        hint: "Think of 'dame'",
+        derivatives: "dame, madam, dominatrix"
     },
     {
         latin: "dominus",
@@ -2075,7 +2314,7 @@ const aLevelVocabularyData = [
         topic: "Family & People",
         set: 5,
         hint: "Think of 'dominate'",
-        derivatives: "dominate, domain, dominant, dominion"
+        derivatives: "dominate, domain, dominant, dominion, lord"
     },
     {
         latin: "domus",
@@ -2085,7 +2324,7 @@ const aLevelVocabularyData = [
         topic: "Buildings & Places",
         set: 6,
         hint: "Think of 'domestic'",
-        derivatives: "domestic, domicile, dome"
+        derivatives: "domestic, domicile, dome, domain"
     },
     {
         latin: "donec",
@@ -2103,7 +2342,7 @@ const aLevelVocabularyData = [
         topic: "Wealth & Trade",
         set: 6,
         hint: "Think of 'donate'",
-        derivatives: "donate, donor, pardon, condone"
+        derivatives: "donate, donor, pardon, condone, donation"
     },
     {
         latin: "dormio",
@@ -2111,7 +2350,9 @@ const aLevelVocabularyData = [
         info: "dormire - verb",
         letter: "D",
         topic: "Miscellaneous",
-        set: 6
+        set: 6,
+        hint: "Think of 'dormant'",
+        derivatives: "dormant, dormitory"
     },
     {
         latin: "dubito",
@@ -2119,7 +2360,9 @@ const aLevelVocabularyData = [
         info: "dubitare - verb",
         letter: "D",
         topic: "Verbs of Thinking",
-        set: 6
+        set: 6,
+        hint: "Think of 'dubious'",
+        derivatives: "doubt, dubious, indubitable"
     },
     {
         latin: "dubius",
@@ -2145,7 +2388,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Thinking",
         set: 6,
         hint: "Think of 'conduct'",
-        derivatives: "conduct, produce, reduce, educate, duke"
+        derivatives: "conduct, produce, reduce, educate, duke, duct"
     },
     {
         latin: "dulcis",
@@ -2153,7 +2396,9 @@ const aLevelVocabularyData = [
         info: "dulce - adjective",
         letter: "D",
         topic: "Quality & Character",
-        set: 6
+        set: 6,
+        hint: "Think of 'dulcet'",
+        derivatives: "dulcet, dulcify"
     },
     {
         latin: "dum",
@@ -2161,7 +2406,9 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "D",
         topic: "Conjunctions",
-        set: 6
+        set: 6,
+        hint: "Think of 'during (related)'",
+        derivatives: "during (related)"
     },
     {
         latin: "dummodo",
@@ -2177,7 +2424,9 @@ const aLevelVocabularyData = [
         info: "duae, duo - numeral",
         letter: "D",
         topic: "Miscellaneous",
-        set: 6
+        set: 6,
+        hint: "Think of 'dual'",
+        derivatives: "dual, duet, duplicate, duo"
     },
     {
         latin: "duodecim",
@@ -2203,7 +2452,7 @@ const aLevelVocabularyData = [
         topic: "Quality & Character",
         set: 6,
         hint: "Think of 'durable'",
-        derivatives: "durable, duration, endure, obdurate"
+        derivatives: "durable, duration, endure, obdurate, during"
     },
     {
         latin: "dux",
@@ -2211,7 +2460,9 @@ const aLevelVocabularyData = [
         info: "ducis - noun",
         letter: "D",
         topic: "Military & War",
-        set: 6
+        set: 6,
+        hint: "Think of 'duke'",
+        derivatives: "duke, duchess, conduct, duct"
     },
     {
         latin: "e/ex",
@@ -2235,7 +2486,9 @@ const aLevelVocabularyData = [
         info: "(1: short e) esse, edi, esum - verb",
         letter: "E",
         topic: "Miscellaneous",
-        set: 6
+        set: 6,
+        hint: "Think of 'edible'",
+        derivatives: "edible, eat"
     },
     {
         latin: "edo",
@@ -2243,7 +2496,9 @@ const aLevelVocabularyData = [
         info: "(2: long e) edere, edidi - verb",
         letter: "E",
         topic: "Verbs of Giving/Taking",
-        set: 6
+        set: 6,
+        hint: "Think of 'edible'",
+        derivatives: "edible, eat"
     },
     {
         latin: "efficio",
@@ -2251,7 +2506,9 @@ const aLevelVocabularyData = [
         info: "efficere, effeci - verb",
         letter: "E",
         topic: "Verbs of Giving/Taking",
-        set: 6
+        set: 6,
+        hint: "Think of 'effect'",
+        derivatives: "effect, efficient, efficacy"
     },
     {
         latin: "effugio",
@@ -2275,7 +2532,9 @@ const aLevelVocabularyData = [
         info: "gen mei - pronoun",
         letter: "E",
         topic: "Pronouns",
-        set: 6
+        set: 6,
+        hint: "Think of 'ego'",
+        derivatives: "ego, egotist, egocentric"
     },
     {
         latin: "egredior",
@@ -2299,7 +2558,9 @@ const aLevelVocabularyData = [
         info: "emere, emi - verb",
         letter: "E",
         topic: "Miscellaneous",
-        set: 6
+        set: 6,
+        hint: "Think of 'exempt'",
+        derivatives: "exempt, redeem, premium"
     },
     {
         latin: "enim",
@@ -2317,7 +2578,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Fighting",
         set: 6,
         hint: "Think of 'exit'",
-        derivatives: "exit, transit, initial, ambient"
+        derivatives: "exit, transit, initial, ambient, itinerary"
     },
     {
         latin: "eo (2)",
@@ -2327,7 +2588,7 @@ const aLevelVocabularyData = [
         topic: "Adverbs",
         set: 6,
         hint: "Think of 'exit'",
-        derivatives: "exit, transit, initial, ambient"
+        derivatives: "exit, transit, initial, ambient, itinerary"
     },
     {
         latin: "epistula",
@@ -2335,7 +2596,9 @@ const aLevelVocabularyData = [
         info: "epistulae - noun",
         letter: "E",
         topic: "Abstract Concepts",
-        set: 6
+        set: 6,
+        hint: "Think of 'epistle'",
+        derivatives: "epistle, epistolary"
     },
     {
         latin: "eques",
@@ -2343,7 +2606,9 @@ const aLevelVocabularyData = [
         info: "equitis - noun",
         letter: "E",
         topic: "Military & War",
-        set: 6
+        set: 6,
+        hint: "Think of 'equine'",
+        derivatives: "equestrian, equine"
     },
     {
         latin: "equus",
@@ -2353,7 +2618,7 @@ const aLevelVocabularyData = [
         topic: "Nature & Landscape",
         set: 6,
         hint: "Think of 'equine'",
-        derivatives: "equine, equestrian, equation"
+        derivatives: "equine, equestrian, equitation"
     },
     {
         latin: "erga",
@@ -2369,7 +2634,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "E",
         topic: "Adverbs",
-        set: 6
+        set: 6,
+        derivatives: "ergo (therefore)"
     },
     {
         latin: "erro",
@@ -2379,7 +2645,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Making/Doing",
         set: 6,
         hint: "Think of 'error'",
-        derivatives: "error, errant, erratic, aberration"
+        derivatives: "error, errant, erratic, aberration, err"
     },
     {
         latin: "erumpo",
@@ -2403,7 +2669,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "E",
         topic: "Adverbs",
-        set: 6
+        set: 6,
+        hint: "Think of 'et cetera'",
+        derivatives: "et cetera"
     },
     {
         latin: "etsi",
@@ -2435,7 +2703,9 @@ const aLevelVocabularyData = [
         info: "excipere, excepi - verb",
         letter: "E",
         topic: "Verbs of Giving/Taking",
-        set: 6
+        set: 6,
+        hint: "Think of 'except'",
+        derivatives: "except, exception"
     },
     {
         latin: "excito",
@@ -2451,7 +2721,9 @@ const aLevelVocabularyData = [
         info: "exempli - noun",
         letter: "E",
         topic: "Abstract Concepts",
-        set: 6
+        set: 6,
+        hint: "Think of 'exemplary'",
+        derivatives: "example, exemplary, exemplify"
     },
     {
         latin: "exeo",
@@ -2467,7 +2739,9 @@ const aLevelVocabularyData = [
         info: "exercitus - noun",
         letter: "E",
         topic: "Military & War",
-        set: 6
+        set: 6,
+        hint: "Think of 'exercise'",
+        derivatives: "exercise, army"
     },
     {
         latin: "exilium",
@@ -2491,7 +2765,9 @@ const aLevelVocabularyData = [
         info: "expellere, expuli - verb",
         letter: "E",
         topic: "Miscellaneous",
-        set: 6
+        set: 6,
+        hint: "Think of 'expel'",
+        derivatives: "expel, expulsion"
     },
     {
         latin: "exspecto",
@@ -2499,7 +2775,8 @@ const aLevelVocabularyData = [
         info: "exspectare - verb",
         letter: "E",
         topic: "Verbs of Thinking",
-        set: 7
+        set: 7,
+        derivatives: "expect, expectation"
     },
     {
         latin: "extra",
@@ -2515,7 +2792,9 @@ const aLevelVocabularyData = [
         info: "fabulae - noun",
         letter: "F",
         topic: "Abstract Concepts",
-        set: 7
+        set: 7,
+        hint: "Think of 'fable'",
+        derivatives: "fable, fabulous, confabulate"
     },
     {
         latin: "facilis",
@@ -2523,7 +2802,9 @@ const aLevelVocabularyData = [
         info: "facile - adjective",
         letter: "F",
         topic: "Quality & Character",
-        set: 7
+        set: 7,
+        hint: "Think of 'facile'",
+        derivatives: "facile, facility, facilitate, difficult"
     },
     {
         latin: "facinus",
@@ -2541,7 +2822,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Making/Doing",
         set: 7,
         hint: "Think of 'fact'",
-        derivatives: "fact, factory, manufacture, affect, effect"
+        derivatives: "fact, factory, manufacture, affect, effect, perfect"
     },
     {
         latin: "factum",
@@ -2557,7 +2838,9 @@ const aLevelVocabularyData = [
         info: "fallere, fefelli - verb",
         letter: "F",
         topic: "Verbs of Motion",
-        set: 7
+        set: 7,
+        hint: "Think of 'false'",
+        derivatives: "false, fallacy, fallible, fail, fault"
     },
     {
         latin: "falsus",
@@ -2575,7 +2858,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 7,
         hint: "Think of 'famous'",
-        derivatives: "fame, famous, infamous, defame"
+        derivatives: "fame, famous, infamous, defame, fable"
     },
     {
         latin: "familia",
@@ -2583,7 +2866,9 @@ const aLevelVocabularyData = [
         info: "familiae - noun",
         letter: "F",
         topic: "Family & People",
-        set: 7
+        set: 7,
+        hint: "Think of 'familiar'",
+        derivatives: "family, familiar, familiarize"
     },
     {
         latin: "faveo",
@@ -2591,7 +2876,9 @@ const aLevelVocabularyData = [
         info: "favere, favi - verb",
         letter: "F",
         topic: "Miscellaneous",
-        set: 7
+        set: 7,
+        hint: "Think of 'favor'",
+        derivatives: "favor, favorable, favorite"
     },
     {
         latin: "felix",
@@ -2601,7 +2888,7 @@ const aLevelVocabularyData = [
         topic: "Quality & Character",
         set: 7,
         hint: "Think of 'felicity'",
-        derivatives: "felicity, felicitous, infelicitous"
+        derivatives: "felicity, felicitous, infelicitous, felicitate"
     },
     {
         latin: "femina",
@@ -2611,7 +2898,7 @@ const aLevelVocabularyData = [
         topic: "Family & People",
         set: 7,
         hint: "Think of 'feminine'",
-        derivatives: "feminine, female, feminist"
+        derivatives: "feminine, female, feminist, effeminate"
     },
     {
         latin: "fere",
@@ -2629,7 +2916,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Giving/Taking",
         set: 7,
         hint: "Think of 'transfer'",
-        derivatives: "transfer, refer, confer, differ, offer, prefer"
+        derivatives: "transfer, refer, confer, differ, offer, prefer, fertile"
     },
     {
         latin: "ferox",
@@ -2645,7 +2932,9 @@ const aLevelVocabularyData = [
         info: "ferri - noun",
         letter: "F",
         topic: "Military & War",
-        set: 7
+        set: 7,
+        hint: "Think of 'ferrous'",
+        derivatives: "ferrous, iron, ferric"
     },
     {
         latin: "fessus",
@@ -2653,7 +2942,9 @@ const aLevelVocabularyData = [
         info: "fessa, fessum - adjective",
         letter: "F",
         topic: "Miscellaneous",
-        set: 7
+        set: 7,
+        hint: "Think of 'confess'",
+        derivatives: "confess, professor"
     },
     {
         latin: "festino",
@@ -2661,7 +2952,8 @@ const aLevelVocabularyData = [
         info: "festinare - verb",
         letter: "F",
         topic: "Verbs of Motion",
-        set: 7
+        set: 7,
+        derivatives: "festinate (archaic for hurry)"
     },
     {
         latin: "fetus",
@@ -2677,7 +2969,9 @@ const aLevelVocabularyData = [
         info: "fidele - adjective",
         letter: "F",
         topic: "Quality & Character",
-        set: 7
+        set: 7,
+        hint: "Think of 'fidelity'",
+        derivatives: "fidelity, fidel, infidel"
     },
     {
         latin: "fides",
@@ -2687,7 +2981,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 7,
         hint: "Think of 'fidelity'",
-        derivatives: "fidelity, confide, confident, faith, infidel"
+        derivatives: "fidelity, confide, confident, faith, infidel, federal"
     },
     {
         latin: "fido",
@@ -2695,7 +2989,9 @@ const aLevelVocabularyData = [
         info: "fidere, fisus sum - verb",
         letter: "F",
         topic: "Verbs of Emotion",
-        set: 7
+        set: 7,
+        hint: "Think of 'sum'",
+        derivatives: "sum, summation, essence"
     },
     {
         latin: "filia",
@@ -2715,7 +3011,7 @@ const aLevelVocabularyData = [
         topic: "Family & People",
         set: 7,
         hint: "Think of 'filial'",
-        derivatives: "filial, affiliate"
+        derivatives: "filial, affiliate, filiation"
     },
     {
         latin: "fingo",
@@ -2723,7 +3019,9 @@ const aLevelVocabularyData = [
         info: "fingere, finxi - verb",
         letter: "F",
         topic: "Verbs of Thinking",
-        set: 7
+        set: 7,
+        hint: "Think of 'fiction'",
+        derivatives: "fiction, feign, figure, figment"
     },
     {
         latin: "finis",
@@ -2733,7 +3031,7 @@ const aLevelVocabularyData = [
         topic: "Buildings & Places",
         set: 7,
         hint: "Think of 'finish'",
-        derivatives: "finish, final, finite, infinite, define"
+        derivatives: "finish, final, finite, infinite, define, confine"
     },
     {
         latin: "fio",
@@ -2741,7 +3039,9 @@ const aLevelVocabularyData = [
         info: "fieri, factus sum - verb",
         letter: "F",
         topic: "Verbs of Being",
-        set: 7
+        set: 7,
+        hint: "Think of 'sum'",
+        derivatives: "sum, summation, essence"
     },
     {
         latin: "flamma",
@@ -2758,7 +3058,9 @@ const aLevelVocabularyData = [
         info: "flectere, flexi - verb",
         letter: "F",
         topic: "Miscellaneous",
-        set: 7
+        set: 7,
+        hint: "Think of 'flexible'",
+        derivatives: "flex, flexible, reflect, deflect"
     },
     {
         latin: "flos",
@@ -2766,7 +3068,9 @@ const aLevelVocabularyData = [
         info: "floris - noun",
         letter: "F",
         topic: "Nature & Landscape",
-        set: 7
+        set: 7,
+        hint: "Think of 'flora'",
+        derivatives: "flower, flora, floral, florist"
     },
     {
         latin: "flumen",
@@ -2774,7 +3078,9 @@ const aLevelVocabularyData = [
         info: "fluminis - noun",
         letter: "F",
         topic: "Nature & Landscape",
-        set: 7
+        set: 7,
+        hint: "Think of 'flume'",
+        derivatives: "flume, fluid"
     },
     {
         latin: "fodio",
@@ -2782,7 +3088,9 @@ const aLevelVocabularyData = [
         info: "fodere, fodi - verb",
         letter: "F",
         topic: "Miscellaneous",
-        set: 7
+        set: 7,
+        hint: "Think of 'fossil (via fossa)'",
+        derivatives: "fossil (via fossa)"
     },
     {
         latin: "foedus",
@@ -2790,7 +3098,9 @@ const aLevelVocabularyData = [
         info: "foederis - noun",
         letter: "F",
         topic: "Miscellaneous",
-        set: 7
+        set: 7,
+        hint: "Think of 'federal'",
+        derivatives: "federal, federate, confederate"
     },
     {
         latin: "fons",
@@ -2798,7 +3108,9 @@ const aLevelVocabularyData = [
         info: "fontis - noun",
         letter: "F",
         topic: "Nature & Landscape",
-        set: 7
+        set: 7,
+        hint: "Think of 'font'",
+        derivatives: "font, fountain, fount"
     },
     {
         latin: "fortasse",
@@ -2814,7 +3126,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "F",
         topic: "Miscellaneous",
-        set: 7
+        set: 7,
+        hint: "Think of 'fort'",
+        derivatives: "fort, forte"
     },
     {
         latin: "fortis",
@@ -2824,7 +3138,7 @@ const aLevelVocabularyData = [
         topic: "Quality & Character",
         set: 7,
         hint: "Think of 'fort'",
-        derivatives: "fort, fortress, fortify, comfort, effort"
+        derivatives: "fort, fortress, fortify, comfort, effort, force"
     },
     {
         latin: "fortuna",
@@ -2834,7 +3148,7 @@ const aLevelVocabularyData = [
         topic: "Religion & Ritual",
         set: 7,
         hint: "Think of 'fortunate'",
-        derivatives: "fortune, fortunate, unfortunate"
+        derivatives: "fortune, fortunate, unfortunate, misfortune"
     },
     {
         latin: "forum",
@@ -2842,7 +3156,9 @@ const aLevelVocabularyData = [
         info: "fori - noun",
         letter: "F",
         topic: "Buildings & Places",
-        set: 7
+        set: 7,
+        hint: "Think of 'forensic'",
+        derivatives: "forum, forensic"
     },
     {
         latin: "fossa",
@@ -2860,7 +3176,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Making/Doing",
         set: 7,
         hint: "Think of 'fragment'",
-        derivatives: "fragment, fraction, fracture, fragile, refract"
+        derivatives: "fragment, fraction, fracture, fragile, refract, infringe"
     },
     {
         latin: "frater",
@@ -2870,7 +3186,7 @@ const aLevelVocabularyData = [
         topic: "Family & People",
         set: 7,
         hint: "Think of 'fraternal'",
-        derivatives: "fraternal, fraternity, fraternize"
+        derivatives: "fraternal, fraternity, fraternize, friar"
     },
     {
         latin: "frequens",
@@ -2878,7 +3194,9 @@ const aLevelVocabularyData = [
         info: "gen frequentis - adjective",
         letter: "F",
         topic: "Miscellaneous",
-        set: 7
+        set: 7,
+        hint: "Think of 'frequency'",
+        derivatives: "frequent, frequency, infrequent"
     },
     {
         latin: "frigus",
@@ -2886,7 +3204,9 @@ const aLevelVocabularyData = [
         info: "frigoris - noun",
         letter: "F",
         topic: "Miscellaneous",
-        set: 7
+        set: 7,
+        hint: "Think of 'frigid'",
+        derivatives: "frigid, refrigerate"
     },
     {
         latin: "frumentum",
@@ -2902,7 +3222,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "F",
         topic: "Miscellaneous",
-        set: 7
+        set: 7,
+        hint: "Think of 'frustrate'",
+        derivatives: "frustrate, frustration"
     },
     {
         latin: "fuga",
@@ -2910,7 +3232,9 @@ const aLevelVocabularyData = [
         info: "fugae - noun",
         letter: "F",
         topic: "Miscellaneous",
-        set: 7
+        set: 7,
+        hint: "Think of 'fugue'",
+        derivatives: "fugue, fugitive, refuge"
     },
     {
         latin: "fugio",
@@ -2920,7 +3244,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Motion",
         set: 7,
         hint: "Think of 'fugitive'",
-        derivatives: "fugitive, refuge, fugue, centrifugal"
+        derivatives: "fugitive, refuge, fugue, centrifugal, subterfuge"
     },
     {
         latin: "fugo",
@@ -2938,7 +3262,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 8,
         hint: "Think of 'found'",
-        derivatives: "found, foundation, fund, profound, confound"
+        derivatives: "found, foundation, fund, profound, confound, fuse"
     },
     {
         latin: "fundus",
@@ -2962,7 +3286,9 @@ const aLevelVocabularyData = [
         info: "furoris - noun",
         letter: "F",
         topic: "Emotions & Mind",
-        set: 8
+        set: 8,
+        hint: "Think of 'furious'",
+        derivatives: "fury, furious, infuriate"
     },
     {
         latin: "gaudeo",
@@ -2970,7 +3296,9 @@ const aLevelVocabularyData = [
         info: "gaudere, gavisus - verb",
         letter: "G",
         topic: "Verbs of Emotion",
-        set: 8
+        set: 8,
+        hint: "Think of 'joy (via Old French)'",
+        derivatives: "joy (via Old French)"
     },
     {
         latin: "gaudium",
@@ -2978,7 +3306,9 @@ const aLevelVocabularyData = [
         info: "gaudii - noun",
         letter: "G",
         topic: "Emotions & Mind",
-        set: 8
+        set: 8,
+        hint: "Think of 'gaudy'",
+        derivatives: "joy, gaudy"
     },
     {
         latin: "gemitus",
@@ -2994,7 +3324,9 @@ const aLevelVocabularyData = [
         info: "gentis - noun",
         letter: "G",
         topic: "Government & Politics",
-        set: 8
+        set: 8,
+        hint: "Think of 'gentle'",
+        derivatives: "gentle, gentry, gentile, generate, genus"
     },
     {
         latin: "genu",
@@ -3003,8 +3335,8 @@ const aLevelVocabularyData = [
         letter: "G",
         topic: "The Body",
         set: 8,
-        hint: "Think of 'genus'",
-        derivatives: "genus, gender, generate, general, generic"
+        hint: "Think of 'genuflect'",
+        derivatives: "genuflect, knee"
     },
     {
         latin: "genus",
@@ -3014,7 +3346,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 8,
         hint: "Think of 'genus'",
-        derivatives: "genus, gender, generate, general, generic"
+        derivatives: "genus, gender, generate, general, generic, genre"
     },
     {
         latin: "gero",
@@ -3024,7 +3356,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Ruling",
         set: 8,
         hint: "Think of 'gesture'",
-        derivatives: "gesture, digest, suggest, register"
+        derivatives: "gesture, digest, suggest, register, gestation"
     },
     {
         latin: "gladius",
@@ -3032,7 +3364,9 @@ const aLevelVocabularyData = [
         info: "gladii - noun",
         letter: "G",
         topic: "Military & War",
-        set: 8
+        set: 8,
+        hint: "Think of 'gladiator'",
+        derivatives: "gladiator, gladiolus"
     },
     {
         latin: "Graecia",
@@ -3066,7 +3400,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 8,
         hint: "Think of 'grace'",
-        derivatives: "grace, grateful, gratitude, gratify, gratis"
+        derivatives: "grace, grateful, gratitude, gratify, gratis, ingratiate"
     },
     {
         latin: "gravis",
@@ -3076,7 +3410,7 @@ const aLevelVocabularyData = [
         topic: "Size & Quantity",
         set: 8,
         hint: "Think of 'grave'",
-        derivatives: "grave, gravity, aggravate, grievous"
+        derivatives: "grave, gravity, aggravate, grievous, grief"
     },
     {
         latin: "habeo",
@@ -3086,7 +3420,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Thinking",
         set: 8,
         hint: "Think of 'habit'",
-        derivatives: "habit, habitual, inhabit, exhibit, prohibit"
+        derivatives: "habit, habitual, inhabit, exhibit, prohibit, able"
     },
     {
         latin: "habito",
@@ -3094,7 +3428,9 @@ const aLevelVocabularyData = [
         info: "habitare - verb",
         letter: "H",
         topic: "Verbs of Being",
-        set: 8
+        set: 8,
+        hint: "Think of 'habitat'",
+        derivatives: "habit, habitat, habitation, inhabit"
     },
     {
         latin: "haereo",
@@ -3102,7 +3438,9 @@ const aLevelVocabularyData = [
         info: "haerere, haesi - verb",
         letter: "H",
         topic: "Miscellaneous",
-        set: 8
+        set: 8,
+        hint: "Think of 'adhere'",
+        derivatives: "adhere, cohere, inherent, hesitate"
     },
     {
         latin: "hasta",
@@ -3118,7 +3456,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "H",
         topic: "Miscellaneous",
-        set: 8
+        set: 8,
+        derivatives: "not (no English derivative)"
     },
     {
         latin: "heri",
@@ -3126,7 +3465,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "H",
         topic: "Time & Seasons",
-        set: 8
+        set: 8,
+        derivatives: "yesterday (hestern - archaic)"
     },
     {
         latin: "hiberna",
@@ -3142,7 +3482,8 @@ const aLevelVocabularyData = [
         info: "(1: short i) haec, hoc pron / - adjective",
         letter: "H",
         topic: "Miscellaneous",
-        set: 8
+        set: 8,
+        derivatives: "here (no direct derivative)"
     },
     {
         latin: "hic",
@@ -3150,7 +3491,8 @@ const aLevelVocabularyData = [
         info: "(2: long i) - adverb",
         letter: "H",
         topic: "Adverbs",
-        set: 8
+        set: 8,
+        derivatives: "here (no direct derivative)"
     },
     {
         latin: "hiems",
@@ -3158,7 +3500,9 @@ const aLevelVocabularyData = [
         info: "hiemis - noun",
         letter: "H",
         topic: "Time & Seasons",
-        set: 8
+        set: 8,
+        hint: "Think of 'hibernate'",
+        derivatives: "hibernate, hibernal"
     },
     {
         latin: "hinc",
@@ -3166,7 +3510,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "H",
         topic: "Adverbs",
-        set: 8
+        set: 8,
+        derivatives: "hence (related)"
     },
     {
         latin: "hodie",
@@ -3174,7 +3519,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "H",
         topic: "Time & Seasons",
-        set: 8
+        set: 8,
+        derivatives: "today (no direct derivative)"
     },
     {
         latin: "homo",
@@ -3183,7 +3529,7 @@ const aLevelVocabularyData = [
         letter: "H",
         topic: "Family & People",
         set: 8,
-        derivatives: "human, humane, homicide, homage"
+        derivatives: "human, humane, homicide, homage, hominid"
     },
     {
         latin: "honor",
@@ -3193,7 +3539,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 8,
         hint: "Think of 'honor'",
-        derivatives: "honor, honorary, honest, dishonor"
+        derivatives: "honor, honorary, honest, dishonor, honorable"
     },
     {
         latin: "hora",
@@ -3203,7 +3549,7 @@ const aLevelVocabularyData = [
         topic: "Time & Seasons",
         set: 8,
         hint: "Think of 'horoscope'",
-        derivatives: "hour, horoscope, horology"
+        derivatives: "hour, horoscope, horology, horary"
     },
     {
         latin: "hortor",
@@ -3211,7 +3557,9 @@ const aLevelVocabularyData = [
         info: "hortari, hortatus - verb",
         letter: "H",
         topic: "Miscellaneous",
-        set: 8
+        set: 8,
+        hint: "Think of 'exhort'",
+        derivatives: "exhort, hortatory"
     },
     {
         latin: "hortus",
@@ -3219,7 +3567,9 @@ const aLevelVocabularyData = [
         info: "horti - noun",
         letter: "H",
         topic: "Miscellaneous",
-        set: 8
+        set: 8,
+        hint: "Think of 'horticulture'",
+        derivatives: "horticulture, garden"
     },
     {
         latin: "hospes",
@@ -3227,7 +3577,9 @@ const aLevelVocabularyData = [
         info: "hospitis - noun",
         letter: "H",
         topic: "Family & People",
-        set: 8
+        set: 8,
+        hint: "Think of 'hospice'",
+        derivatives: "host, hospice, hospital, hospitality"
     },
     {
         latin: "hostis",
@@ -3237,7 +3589,7 @@ const aLevelVocabularyData = [
         topic: "Military & War",
         set: 8,
         hint: "Think of 'hostile'",
-        derivatives: "hostile, hostility, host"
+        derivatives: "hostile, hostility, host, hostage"
     },
     {
         latin: "huc",
@@ -3261,7 +3613,9 @@ const aLevelVocabularyData = [
         info: "humi (humi = on - noun",
         letter: "H",
         topic: "Nature & Landscape",
-        set: 8
+        set: 8,
+        hint: "Think of 'humble'",
+        derivatives: "humble, exhume, humus, humility"
     },
     {
         latin: "iaceo",
@@ -3270,8 +3624,8 @@ const aLevelVocabularyData = [
         letter: "I",
         topic: "Verbs of Being",
         set: 8,
-        hint: "Think of 'project'",
-        derivatives: "project, reject, inject, adjacent, jet"
+        hint: "Think of 'adjacent'",
+        derivatives: "adjacent, subjacent"
     },
     {
         latin: "iacio",
@@ -3281,7 +3635,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Fighting",
         set: 8,
         hint: "Think of 'project'",
-        derivatives: "project, reject, inject, subject, object, eject"
+        derivatives: "project, reject, inject, subject, object, eject, trajectory"
     },
     {
         latin: "iam",
@@ -3289,7 +3643,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "I",
         topic: "Adverbs",
-        set: 8
+        set: 8,
+        hint: "Think of 'jam (archaic)'",
+        derivatives: "already, jam (archaic)"
     },
     {
         latin: "non",
@@ -3297,7 +3653,8 @@ const aLevelVocabularyData = [
         info: "iam - adverb",
         letter: "N",
         topic: "Miscellaneous",
-        set: 8
+        set: 8,
+        derivatives: "non-, not"
     },
     {
         latin: "ianua",
@@ -3313,7 +3670,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "I",
         topic: "Adverbs",
-        set: 8
+        set: 8,
+        derivatives: "there (no direct derivative)"
     },
     {
         latin: "idem",
@@ -3321,7 +3679,9 @@ const aLevelVocabularyData = [
         info: "eadem, idem pron / - adjective",
         letter: "I",
         topic: "Size & Quantity",
-        set: 8
+        set: 8,
+        hint: "Think of 'identical'",
+        derivatives: "identical, identity, identify"
     },
     {
         latin: "idoneus",
@@ -3329,7 +3689,8 @@ const aLevelVocabularyData = [
         info: "idonea, idoneum - adjective",
         letter: "I",
         topic: "Miscellaneous",
-        set: 8
+        set: 8,
+        derivatives: "idoneous (suitable)"
     },
     {
         latin: "Idus",
@@ -3379,7 +3740,9 @@ const aLevelVocabularyData = [
         info: "ignorare - verb",
         letter: "I",
         topic: "Verbs of Perception",
-        set: 9
+        set: 9,
+        hint: "Think of 'ignore'",
+        derivatives: "ignore, ignorant, ignorance"
     },
     {
         latin: "ignotus",
@@ -3395,7 +3758,9 @@ const aLevelVocabularyData = [
         info: "illa, illud pron / - adjective",
         letter: "I",
         topic: "Miscellaneous",
-        set: 9
+        set: 9,
+        hint: "Think of 'illusion (unrelated)'",
+        derivatives: "illusion (unrelated)"
     },
     {
         latin: "illic",
@@ -3435,7 +3800,9 @@ const aLevelVocabularyData = [
         info: "impedire - verb",
         letter: "I",
         topic: "Miscellaneous",
-        set: 9
+        set: 9,
+        hint: "Think of 'impede'",
+        derivatives: "impede, impediment"
     },
     {
         latin: "imperator",
@@ -3443,7 +3810,9 @@ const aLevelVocabularyData = [
         info: "imperatoris - noun",
         letter: "I",
         topic: "Military & War",
-        set: 9
+        set: 9,
+        hint: "Think of 'imperial'",
+        derivatives: "emperor, imperial"
     },
     {
         latin: "imperium",
@@ -3451,7 +3820,9 @@ const aLevelVocabularyData = [
         info: "imperii - noun",
         letter: "I",
         topic: "Government & Politics",
-        set: 9
+        set: 9,
+        hint: "Think of 'imperial'",
+        derivatives: "empire, imperial, imperious"
     },
     {
         latin: "impero",
@@ -3461,7 +3832,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Speaking",
         set: 9,
         hint: "Think of 'imperial'",
-        derivatives: "imperial, empire, emperor, imperative"
+        derivatives: "imperial, empire, emperor, imperative, command"
     },
     {
         latin: "impetus",
@@ -3469,7 +3840,9 @@ const aLevelVocabularyData = [
         info: "impetus - noun",
         letter: "I",
         topic: "Miscellaneous",
-        set: 9
+        set: 9,
+        hint: "Think of 'impetus'",
+        derivatives: "impetus, impetuous"
     },
     {
         latin: "imus",
@@ -3509,7 +3882,9 @@ const aLevelVocabularyData = [
         info: "incendere - verb",
         letter: "I",
         topic: "Miscellaneous",
-        set: 9
+        set: 9,
+        hint: "Think of 'incense'",
+        derivatives: "incense, incendiary"
     },
     {
         latin: "incipio",
@@ -3517,7 +3892,9 @@ const aLevelVocabularyData = [
         info: "incipere, incepi - verb",
         letter: "I",
         topic: "Verbs of Making/Doing",
-        set: 9
+        set: 9,
+        hint: "Think of 'incipient'",
+        derivatives: "incipient, inception"
     },
     {
         latin: "inceptum",
@@ -3533,7 +3910,9 @@ const aLevelVocabularyData = [
         info: "incitare, incitavi - verb",
         letter: "I",
         topic: "Miscellaneous",
-        set: 9
+        set: 9,
+        hint: "Think of 'incite'",
+        derivatives: "incite, excite"
     },
     {
         latin: "incola",
@@ -3549,7 +3928,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "I",
         topic: "Adverbs",
-        set: 9
+        set: 9,
+        hint: "Think of 'thence'",
+        derivatives: "thence, index"
     },
     {
         latin: "ineo",
@@ -3565,7 +3946,9 @@ const aLevelVocabularyData = [
         info: "gen infelicis - adjective",
         letter: "I",
         topic: "Quality & Character",
-        set: 9
+        set: 9,
+        hint: "Think of 'infelicity'",
+        derivatives: "infelicity"
     },
     {
         latin: "infero",
@@ -3599,7 +3982,9 @@ const aLevelVocabularyData = [
         info: "gen ingentis - adjective",
         letter: "I",
         topic: "Miscellaneous",
-        set: 9
+        set: 9,
+        hint: "Think of 'ingenuous (unrelated)'",
+        derivatives: "ingenuous (unrelated)"
     },
     {
         latin: "ingredior",
@@ -3615,7 +4000,9 @@ const aLevelVocabularyData = [
         info: "inicere, inieci - verb",
         letter: "I",
         topic: "Verbs of Fighting",
-        set: 9
+        set: 9,
+        hint: "Think of 'ejection'",
+        derivatives: "inject, ejection"
     },
     {
         latin: "inimicus",
@@ -3623,7 +4010,9 @@ const aLevelVocabularyData = [
         info: "inimici - noun",
         letter: "I",
         topic: "Military & War",
-        set: 9
+        set: 9,
+        hint: "Think of 'inimical'",
+        derivatives: "enemy, inimical"
     },
     {
         latin: "iniquus",
@@ -3631,7 +4020,9 @@ const aLevelVocabularyData = [
         info: "iniqua, iniquum - adjective",
         letter: "I",
         topic: "Quality & Character",
-        set: 9
+        set: 9,
+        hint: "Think of 'iniquity'",
+        derivatives: "iniquity, inequity"
     },
     {
         latin: "initium",
@@ -3639,7 +4030,9 @@ const aLevelVocabularyData = [
         info: "initii - noun",
         letter: "I",
         topic: "Abstract Concepts",
-        set: 9
+        set: 9,
+        hint: "Think of 'initial'",
+        derivatives: "initial, initiate, initiation"
     },
     {
         latin: "iniuria",
@@ -3647,7 +4040,9 @@ const aLevelVocabularyData = [
         info: "iniuriae - noun",
         letter: "I",
         topic: "Abstract Concepts",
-        set: 9
+        set: 9,
+        hint: "Think of 'injure'",
+        derivatives: "injury, injure, injurious"
     },
     {
         latin: "inopia",
@@ -3655,7 +4050,9 @@ const aLevelVocabularyData = [
         info: "inopiae - noun",
         letter: "I",
         topic: "Miscellaneous",
-        set: 9
+        set: 9,
+        hint: "Think of 'inopportune (related)'",
+        derivatives: "inopportune (related)"
     },
     {
         latin: "inquam",
@@ -3663,7 +4060,9 @@ const aLevelVocabularyData = [
         info: "3 sg inquit, pl - verb",
         letter: "I",
         topic: "Verbs of Speaking",
-        set: 9
+        set: 9,
+        hint: "Think of 'inquire (unrelated)'",
+        derivatives: "inquire (unrelated)"
     },
     {
         latin: "insidiae",
@@ -3671,7 +4070,9 @@ const aLevelVocabularyData = [
         info: "insidiarum - noun",
         letter: "I",
         topic: "Miscellaneous",
-        set: 9
+        set: 9,
+        hint: "Think of 'insidious'",
+        derivatives: "insidious"
     },
     {
         latin: "insignis",
@@ -3695,7 +4096,9 @@ const aLevelVocabularyData = [
         info: "instruere - verb",
         letter: "I",
         topic: "Verbs of Making/Doing",
-        set: 9
+        set: 9,
+        hint: "Think of 'instruct'",
+        derivatives: "instruct, instruction, instrument"
     },
     {
         latin: "insula",
@@ -3705,7 +4108,7 @@ const aLevelVocabularyData = [
         topic: "Nature & Landscape",
         set: 9,
         hint: "Think of 'insular'",
-        derivatives: "insular, insulate, island, peninsula"
+        derivatives: "insular, insulate, island, peninsula, isolate"
     },
     {
         latin: "intellego",
@@ -3713,7 +4116,9 @@ const aLevelVocabularyData = [
         info: "intellegere - verb",
         letter: "I",
         topic: "Verbs of Perception",
-        set: 9
+        set: 9,
+        hint: "Think of 'intelligent'",
+        derivatives: "intelligent, intellect, intellectual"
     },
     {
         latin: "intentus",
@@ -3729,7 +4134,9 @@ const aLevelVocabularyData = [
         info: "+ acc - preposition",
         letter: "I",
         topic: "Prepositions",
-        set: 9
+        set: 9,
+        hint: "Think of 'inter'",
+        derivatives: "inter, internal, international, interim"
     },
     {
         latin: "interea",
@@ -3745,7 +4152,9 @@ const aLevelVocabularyData = [
         info: "interficere - verb",
         letter: "I",
         topic: "Verbs of Fighting",
-        set: 9
+        set: 9,
+        hint: "Think of 'interfere (unrelated)'",
+        derivatives: "interfere (unrelated)"
     },
     {
         latin: "interim",
@@ -3753,7 +4162,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "I",
         topic: "Adverbs",
-        set: 9
+        set: 9,
+        derivatives: "interim, intermediate"
     },
     {
         latin: "intra",
@@ -3769,7 +4179,9 @@ const aLevelVocabularyData = [
         info: "intrare, intravi - verb",
         letter: "I",
         topic: "Verbs of Motion",
-        set: 10
+        set: 10,
+        hint: "Think of 'intro'",
+        derivatives: "enter, intro, introduce, intrude"
     },
     {
         latin: "intus",
@@ -3793,7 +4205,9 @@ const aLevelVocabularyData = [
         info: "invenire, inveni - verb",
         letter: "I",
         topic: "Verbs of Perception",
-        set: 10
+        set: 10,
+        hint: "Think of 'invent'",
+        derivatives: "invent, invention, inventory"
     },
     {
         latin: "invidia",
@@ -3809,7 +4223,9 @@ const aLevelVocabularyData = [
         info: "invitare, invitavi - verb",
         letter: "I",
         topic: "Miscellaneous",
-        set: 10
+        set: 10,
+        hint: "Think of 'invitation'",
+        derivatives: "invite, invitation"
     },
     {
         latin: "invitus",
@@ -3825,7 +4241,9 @@ const aLevelVocabularyData = [
         info: "ipsa, ipsum - pronoun",
         letter: "I",
         topic: "Pronouns",
-        set: 10
+        set: 10,
+        hint: "Think of 'self (no direct derivative)'",
+        derivatives: "self (no direct derivative)"
     },
     {
         latin: "ira",
@@ -3835,7 +4253,7 @@ const aLevelVocabularyData = [
         topic: "Emotions & Mind",
         set: 10,
         hint: "Think of 'ire'",
-        derivatives: "ire, irate, irascible"
+        derivatives: "ire, irate, irascible, irritate"
     },
     {
         latin: "iratus",
@@ -3843,7 +4261,9 @@ const aLevelVocabularyData = [
         info: "irata, iratum - adjective",
         letter: "I",
         topic: "Miscellaneous",
-        set: 10
+        set: 10,
+        hint: "Think of 'irate'",
+        derivatives: "irate"
     },
     {
         latin: "irrumpo",
@@ -3859,7 +4279,8 @@ const aLevelVocabularyData = [
         info: "ea, id pron / - adjective",
         letter: "I",
         topic: "Miscellaneous",
-        set: 10
+        set: 10,
+        derivatives: "identity (related)"
     },
     {
         latin: "iste",
@@ -3867,7 +4288,8 @@ const aLevelVocabularyData = [
         info: "ista, istud pron / - adjective",
         letter: "I",
         topic: "Miscellaneous",
-        set: 10
+        set: 10,
+        derivatives: "this/that (no direct derivative)"
     },
     {
         latin: "ita",
@@ -3875,7 +4297,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "I",
         topic: "Adverbs",
-        set: 10
+        set: 10,
+        hint: "Think of 'iterate'",
+        derivatives: "thus, iterate"
     },
     {
         latin: "ita",
@@ -3883,7 +4307,9 @@ const aLevelVocabularyData = [
         info: "vero - adverb",
         letter: "I",
         topic: "Miscellaneous",
-        set: 10
+        set: 10,
+        hint: "Think of 'thus'",
+        derivatives: "thus, iterate"
     },
     {
         latin: "Italia",
@@ -3899,7 +4325,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "I",
         topic: "Adverbs",
-        set: 10
+        set: 10,
+        hint: "Think of 'itinerant (unrelated)'",
+        derivatives: "itinerant (unrelated)"
     },
     {
         latin: "iter",
@@ -3909,7 +4337,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 10,
         hint: "Think of 'itinerary'",
-        derivatives: "itinerary, iterate, reiterate"
+        derivatives: "itinerary, iterate, reiterate, transit"
     },
     {
         latin: "iterum",
@@ -3917,7 +4345,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "I",
         topic: "Miscellaneous",
-        set: 10
+        set: 10,
+        hint: "Think of 'iterate'",
+        derivatives: "iterate, reiterate"
     },
     {
         latin: "iubeo",
@@ -3925,7 +4355,9 @@ const aLevelVocabularyData = [
         info: "iubere, iussi - verb",
         letter: "I",
         topic: "Verbs of Speaking",
-        set: 10
+        set: 10,
+        hint: "Think of 'jussive (grammar term)'",
+        derivatives: "jussive (grammar term)"
     },
     {
         latin: "iudex",
@@ -3935,7 +4367,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 10,
         hint: "Think of 'judicial'",
-        derivatives: "judge, judicial, judiciary, prejudice"
+        derivatives: "judge, judicial, judiciary, prejudice, adjudicate"
     },
     {
         latin: "iungo",
@@ -3945,7 +4377,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 10,
         hint: "Think of 'junction'",
-        derivatives: "join, junction, conjugal, conjunction"
+        derivatives: "join, junction, conjugal, conjunction, juncture"
     },
     {
         latin: "Iuppiter",
@@ -3961,7 +4393,9 @@ const aLevelVocabularyData = [
         info: "iurare, iuravi - verb",
         letter: "I",
         topic: "Miscellaneous",
-        set: 10
+        set: 10,
+        hint: "Think of 'jury'",
+        derivatives: "jury, perjury, abjure, conjure"
     },
     {
         latin: "ius",
@@ -3971,7 +4405,7 @@ const aLevelVocabularyData = [
         topic: "Government & Politics",
         set: 10,
         hint: "Think of 'justice'",
-        derivatives: "justice, just, justify, jury, injure"
+        derivatives: "justice, just, justify, jury, injure, jurisdiction"
     },
     {
         latin: "iustus",
@@ -3979,7 +4413,8 @@ const aLevelVocabularyData = [
         info: "iusta, iustum - adjective",
         letter: "I",
         topic: "Quality & Character",
-        set: 10
+        set: 10,
+        derivatives: "just, justice, justify, adjust"
     },
     {
         latin: "iuvenis",
@@ -3989,7 +4424,7 @@ const aLevelVocabularyData = [
         topic: "Family & People",
         set: 10,
         hint: "Think of 'juvenile'",
-        derivatives: "juvenile, rejuvenate, junior"
+        derivatives: "juvenile, rejuvenate, junior, juvenility"
     },
     {
         latin: "iuvo",
@@ -3999,7 +4434,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Emotion",
         set: 10,
         hint: "Think of 'aid'",
-        derivatives: "aid, adjutant"
+        derivatives: "aid, adjutant, coadjutor"
     },
     {
         latin: "Kalendae",
@@ -4017,7 +4452,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 10,
         hint: "Think of 'labor'",
-        derivatives: "labor, laboratory, elaborate, collaborate"
+        derivatives: "labor, laboratory, elaborate, collaborate, laborious"
     },
     {
         latin: "labor",
@@ -4027,7 +4462,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Motion",
         set: 10,
         hint: "Think of 'labor'",
-        derivatives: "labor, laboratory, elaborate, collaborate"
+        derivatives: "labor, laboratory, elaborate, collaborate, laborious"
     },
     {
         latin: "laboro",
@@ -4036,8 +4471,8 @@ const aLevelVocabularyData = [
         letter: "L",
         topic: "Verbs of Being",
         set: 10,
-        hint: "Think of 'laboratory'",
-        derivatives: "labor, laboratory, elaborate, collaborate"
+        hint: "Think of 'laborious'",
+        derivatives: "labor, laborious"
     },
     {
         latin: "lacrima",
@@ -4045,7 +4480,9 @@ const aLevelVocabularyData = [
         info: "lacrimae - noun",
         letter: "L",
         topic: "Miscellaneous",
-        set: 10
+        set: 10,
+        hint: "Think of 'lachrymose'",
+        derivatives: "lachrymose, tear"
     },
     {
         latin: "lacrimo",
@@ -4061,7 +4498,9 @@ const aLevelVocabularyData = [
         info: "laedere, laesi - verb",
         letter: "L",
         topic: "Miscellaneous",
-        set: 10
+        set: 10,
+        hint: "Think of 'collide'",
+        derivatives: "collide, lesion, elide"
     },
     {
         latin: "laetus",
@@ -4069,7 +4508,9 @@ const aLevelVocabularyData = [
         info: "laeta, laetum - adjective",
         letter: "L",
         topic: "Quality & Character",
-        set: 10
+        set: 10,
+        hint: "Think of 'lethal (unrelated)'",
+        derivatives: "lethal (unrelated), glad"
     },
     {
         latin: "lateo",
@@ -4077,7 +4518,9 @@ const aLevelVocabularyData = [
         info: "latere, latui - verb",
         letter: "L",
         topic: "Verbs of Motion",
-        set: 10
+        set: 10,
+        hint: "Think of 'latent'",
+        derivatives: "latent, latency"
     },
     {
         latin: "latro",
@@ -4093,7 +4536,9 @@ const aLevelVocabularyData = [
         info: "(1: short a) lateris - noun",
         letter: "L",
         topic: "Nature & Landscape",
-        set: 10
+        set: 10,
+        hint: "Think of 'lateral'",
+        derivatives: "lateral, collateral, latitude"
     },
     {
         latin: "latus",
@@ -4101,7 +4546,9 @@ const aLevelVocabularyData = [
         info: "(2: long a) lata, latum - adjective",
         letter: "L",
         topic: "Size & Quantity",
-        set: 10
+        set: 10,
+        hint: "Think of 'lateral'",
+        derivatives: "lateral, collateral, latitude"
     },
     {
         latin: "laudo",
@@ -4111,7 +4558,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Speaking",
         set: 10,
         hint: "Think of 'laud'",
-        derivatives: "laud, laudable, applaud"
+        derivatives: "laud, laudable, applaud, laudatory"
     },
     {
         latin: "laus",
@@ -4137,7 +4584,9 @@ const aLevelVocabularyData = [
         info: "legati - noun",
         letter: "L",
         topic: "Military & War",
-        set: 10
+        set: 10,
+        hint: "Think of 'legate'",
+        derivatives: "legate, delegate, legacy"
     },
     {
         latin: "legio",
@@ -4145,7 +4594,8 @@ const aLevelVocabularyData = [
         info: "legionis - noun",
         letter: "L",
         topic: "Military & War",
-        set: 10
+        set: 10,
+        derivatives: "legion, legionary"
     },
     {
         latin: "lego",
@@ -4155,7 +4605,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 10,
         hint: "Think of 'lecture'",
-        derivatives: "lecture, legend, legible, collect, select, elect"
+        derivatives: "lecture, legend, legible, collect, select, elect, lesson"
     },
     {
         latin: "lentus",
@@ -4187,7 +4637,9 @@ const aLevelVocabularyData = [
         info: "leve - adjective",
         letter: "L",
         topic: "Size & Quantity",
-        set: 11
+        set: 11,
+        hint: "Think of 'levity'",
+        derivatives: "levity, alleviate, elevate, lever"
     },
     {
         latin: "lex",
@@ -4197,7 +4649,7 @@ const aLevelVocabularyData = [
         topic: "Government & Politics",
         set: 11,
         hint: "Think of 'legal'",
-        derivatives: "legal, legitimate, legislate, loyal"
+        derivatives: "legal, legitimate, legislate, loyal, privilege"
     },
     {
         latin: "libens",
@@ -4223,7 +4675,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 11,
         hint: "Think of 'liberty'",
-        derivatives: "liberty, liberal, liberate, library"
+        derivatives: "liberty, liberal, liberate, library, deliver"
     },
     {
         latin: "liber",
@@ -4233,7 +4685,7 @@ const aLevelVocabularyData = [
         topic: "Quality & Character",
         set: 11,
         hint: "Think of 'liberty'",
-        derivatives: "liberty, liberal, liberate, library"
+        derivatives: "liberty, liberal, liberate, library, deliver"
     },
     {
         latin: "liberi",
@@ -4241,7 +4693,8 @@ const aLevelVocabularyData = [
         info: "liberorum - noun",
         letter: "L",
         topic: "Miscellaneous",
-        set: 11
+        set: 11,
+        derivatives: "liberal (children = free citizens)"
     },
     {
         latin: "libero",
@@ -4250,8 +4703,8 @@ const aLevelVocabularyData = [
         letter: "L",
         topic: "Miscellaneous",
         set: 11,
-        hint: "Think of 'liberty'",
-        derivatives: "liberty, liberal, liberate, library"
+        hint: "Think of 'liberate'",
+        derivatives: "liberate, liberty, deliver"
     },
     {
         latin: "libertas",
@@ -4275,7 +4728,9 @@ const aLevelVocabularyData = [
         info: "licere, licuit - verb",
         letter: "L",
         topic: "Miscellaneous",
-        set: 11
+        set: 11,
+        hint: "Think of 'license'",
+        derivatives: "license, illicit, licit"
     },
     {
         latin: "lingua",
@@ -4283,7 +4738,9 @@ const aLevelVocabularyData = [
         info: "linguae - noun",
         letter: "L",
         topic: "The Body",
-        set: 11
+        set: 11,
+        hint: "Think of 'lingual'",
+        derivatives: "language, lingual, linguist, bilingual"
     },
     {
         latin: "littera",
@@ -4291,7 +4748,9 @@ const aLevelVocabularyData = [
         info: "litterae - noun",
         letter: "L",
         topic: "Abstract Concepts",
-        set: 11
+        set: 11,
+        hint: "Think of 'literal'",
+        derivatives: "letter, literal, literary, literature, literate"
     },
     {
         latin: "litus",
@@ -4299,7 +4758,9 @@ const aLevelVocabularyData = [
         info: "litoris - noun",
         letter: "L",
         topic: "Nature & Landscape",
-        set: 11
+        set: 11,
+        hint: "Think of 'littoral'",
+        derivatives: "littoral, coast"
     },
     {
         latin: "locus",
@@ -4309,7 +4770,7 @@ const aLevelVocabularyData = [
         topic: "Buildings & Places",
         set: 11,
         hint: "Think of 'local'",
-        derivatives: "local, locate, locomotive, allocate, dislocate"
+        derivatives: "local, locate, locomotive, allocate, dislocate, lieu"
     },
     {
         latin: "longus",
@@ -4317,7 +4778,8 @@ const aLevelVocabularyData = [
         info: "longa, longum - adjective",
         letter: "L",
         topic: "Size & Quantity",
-        set: 11
+        set: 11,
+        derivatives: "long, longitude, elongate, prolong"
     },
     {
         latin: "loquor",
@@ -4327,7 +4789,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Speaking",
         set: 11,
         hint: "Think of 'eloquent'",
-        derivatives: "eloquent, loquacious, colloquial, soliloquy"
+        derivatives: "eloquent, loquacious, colloquial, soliloquy, elocution"
     },
     {
         latin: "ludo",
@@ -4337,7 +4799,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 11,
         hint: "Think of 'ludicrous'",
-        derivatives: "ludicrous, elude, illusion, prelude, interlude"
+        derivatives: "ludicrous, elude, illusion, prelude, interlude, allude"
     },
     {
         latin: "ludus",
@@ -4345,7 +4807,9 @@ const aLevelVocabularyData = [
         info: "ludi - noun",
         letter: "L",
         topic: "Miscellaneous",
-        set: 11
+        set: 11,
+        hint: "Think of 'ludicrous'",
+        derivatives: "ludicrous, elude, collusion"
     },
     {
         latin: "luna",
@@ -4381,7 +4845,9 @@ const aLevelVocabularyData = [
         info: "magistri - noun",
         letter: "M",
         topic: "Family & People",
-        set: 11
+        set: 11,
+        hint: "Think of 'magistrate'",
+        derivatives: "master, magistrate, magistracy"
     },
     {
         latin: "magistratus",
@@ -4407,7 +4873,7 @@ const aLevelVocabularyData = [
         topic: "Size & Quantity",
         set: 11,
         hint: "Think of 'magnitude'",
-        derivatives: "magnitude, magnify, magnificent, magnate"
+        derivatives: "magnitude, magnify, magnificent, magnate, major, maximum"
     },
     {
         latin: "maior",
@@ -4415,7 +4881,9 @@ const aLevelVocabularyData = [
         info: "maius comp - adjective",
         letter: "M",
         topic: "Miscellaneous",
-        set: 11
+        set: 11,
+        hint: "Think of 'major'",
+        derivatives: "major, majority, mayor"
     },
     {
         latin: "malo",
@@ -4423,7 +4891,9 @@ const aLevelVocabularyData = [
         info: "malle, malui - verb",
         letter: "M",
         topic: "Miscellaneous",
-        set: 11
+        set: 11,
+        hint: "Think of 'malice'",
+        derivatives: "malice, malevolent"
     },
     {
         latin: "malus",
@@ -4433,7 +4903,7 @@ const aLevelVocabularyData = [
         topic: "Quality & Character",
         set: 11,
         hint: "Think of 'malice'",
-        derivatives: "malice, malevolent, malignant, malady"
+        derivatives: "malice, malevolent, malignant, malady, malicious"
     },
     {
         latin: "mando",
@@ -4441,7 +4911,9 @@ const aLevelVocabularyData = [
         info: "mandare - verb",
         letter: "M",
         topic: "Verbs of Speaking",
-        set: 11
+        set: 11,
+        hint: "Think of 'mandate'",
+        derivatives: "mandate, command, demand, recommend"
     },
     {
         latin: "mane",
@@ -4457,7 +4929,9 @@ const aLevelVocabularyData = [
         info: "manere, mansi - verb",
         letter: "M",
         topic: "Verbs of Being",
-        set: 11
+        set: 11,
+        hint: "Think of 'permanent'",
+        derivatives: "remain, permanent, mansion, manor"
     },
     {
         latin: "manus",
@@ -4467,7 +4941,7 @@ const aLevelVocabularyData = [
         topic: "Government & Politics",
         set: 11,
         hint: "Think of 'manual'",
-        derivatives: "manual, manufacture, manuscript, manage, manipulate"
+        derivatives: "manual, manufacture, manuscript, manage, manipulate, manner"
     },
     {
         latin: "mare",
@@ -4477,7 +4951,7 @@ const aLevelVocabularyData = [
         topic: "Nature & Landscape",
         set: 11,
         hint: "Think of 'marine'",
-        derivatives: "marine, maritime, submarine, mariner"
+        derivatives: "marine, maritime, submarine, mariner, mermaid"
     },
     {
         latin: "maritus",
@@ -4485,7 +4959,9 @@ const aLevelVocabularyData = [
         info: "mariti - noun",
         letter: "M",
         topic: "Family & People",
-        set: 11
+        set: 11,
+        hint: "Think of 'marry'",
+        derivatives: "marry, marriage, marital"
     },
     {
         latin: "mater",
@@ -4495,7 +4971,7 @@ const aLevelVocabularyData = [
         topic: "Family & People",
         set: 11,
         hint: "Think of 'maternal'",
-        derivatives: "maternal, maternity, matrix, matriculate"
+        derivatives: "maternal, maternity, matrix, matriculate, matter"
     },
     {
         latin: "matrimonium",
@@ -4519,7 +4995,9 @@ const aLevelVocabularyData = [
         info: "maxima, sup - adjective",
         letter: "M",
         topic: "Size & Quantity",
-        set: 11
+        set: 11,
+        hint: "Think of 'maximal'",
+        derivatives: "maximum, maximal, maximize"
     },
     {
         latin: "medius",
@@ -4529,7 +5007,7 @@ const aLevelVocabularyData = [
         topic: "Size & Quantity",
         set: 11,
         hint: "Think of 'medium'",
-        derivatives: "medium, median, mediate, medieval, immediate"
+        derivatives: "medium, median, mediate, medieval, immediate, mean"
     },
     {
         latin: "melior",
@@ -4537,7 +5015,9 @@ const aLevelVocabularyData = [
         info: "melius comp - adjective",
         letter: "M",
         topic: "Miscellaneous",
-        set: 11
+        set: 11,
+        hint: "Think of 'ameliorate'",
+        derivatives: "ameliorate, meliorate"
     },
     {
         latin: "memini",
@@ -4545,7 +5025,9 @@ const aLevelVocabularyData = [
         info: "meminisse - verb",
         letter: "M",
         topic: "Verbs of Thinking",
-        set: 11
+        set: 11,
+        hint: "Think of 'memory'",
+        derivatives: "memory, reminisce"
     },
     {
         latin: "mens",
@@ -4555,7 +5037,7 @@ const aLevelVocabularyData = [
         topic: "Emotions & Mind",
         set: 11,
         hint: "Think of 'mental'",
-        derivatives: "mental, mentality, mention, demented"
+        derivatives: "mental, mentality, mention, demented, dementia"
     },
     {
         latin: "mensa",
@@ -4563,7 +5045,8 @@ const aLevelVocabularyData = [
         info: "mensae - noun",
         letter: "M",
         topic: "Buildings & Places",
-        set: 11
+        set: 11,
+        derivatives: "mensal (relating to tables)"
     },
     {
         latin: "mensis",
@@ -4571,7 +5054,9 @@ const aLevelVocabularyData = [
         info: "mensis - noun",
         letter: "M",
         topic: "Time & Seasons",
-        set: 11
+        set: 11,
+        hint: "Think of 'menstrual'",
+        derivatives: "menstrual, semester"
     },
     {
         latin: "mercator",
@@ -4587,7 +5072,9 @@ const aLevelVocabularyData = [
         info: "metuere, metui - verb",
         letter: "M",
         topic: "Verbs of Thinking",
-        set: 11
+        set: 11,
+        hint: "Think of 'meticulous (unrelated)'",
+        derivatives: "meticulous (unrelated)"
     },
     {
         latin: "metus",
@@ -4595,7 +5082,9 @@ const aLevelVocabularyData = [
         info: "metus - noun",
         letter: "M",
         topic: "Emotions & Mind",
-        set: 11
+        set: 11,
+        hint: "Think of 'meticulous (unrelated)'",
+        derivatives: "meticulous (unrelated)"
     },
     {
         latin: "meus",
@@ -4603,7 +5092,8 @@ const aLevelVocabularyData = [
         info: "mea, meum - adjective",
         letter: "M",
         topic: "Miscellaneous",
-        set: 11
+        set: 11,
+        derivatives: "my (no direct derivative)"
     },
     {
         latin: "miles",
@@ -4613,7 +5103,7 @@ const aLevelVocabularyData = [
         topic: "Military & War",
         set: 11,
         hint: "Think of 'military'",
-        derivatives: "military, militia, militant, mile"
+        derivatives: "military, militia, militant, mile, militate"
     },
     {
         latin: "militia",
@@ -4629,7 +5119,9 @@ const aLevelVocabularyData = [
         info: "pl milia - numeral",
         letter: "M",
         topic: "Miscellaneous",
-        set: 12
+        set: 12,
+        hint: "Think of 'mile'",
+        derivatives: "mile, millennium, million, millimeter"
     },
     {
         latin: "minimus",
@@ -4637,7 +5129,9 @@ const aLevelVocabularyData = [
         info: "minima, sup - adjective",
         letter: "M",
         topic: "Size & Quantity",
-        set: 12
+        set: 12,
+        hint: "Think of 'minimize'",
+        derivatives: "minimum, minimize, minimal"
     },
     {
         latin: "minime",
@@ -4653,7 +5147,9 @@ const aLevelVocabularyData = [
         info: "minari, minatus - verb",
         letter: "M",
         topic: "Miscellaneous",
-        set: 12
+        set: 12,
+        hint: "Think of 'minor'",
+        derivatives: "minor, minority, minus, diminish"
     },
     {
         latin: "minor (2)",
@@ -4661,7 +5157,9 @@ const aLevelVocabularyData = [
         info: "minus comp - adjective",
         letter: "M",
         topic: "Miscellaneous",
-        set: 12
+        set: 12,
+        hint: "Think of 'minor'",
+        derivatives: "minor, minority, minus, diminish"
     },
     {
         latin: "mirabilis",
@@ -4677,7 +5175,9 @@ const aLevelVocabularyData = [
         info: "mirari, miratus - verb",
         letter: "M",
         topic: "Verbs of Thinking",
-        set: 12
+        set: 12,
+        hint: "Think of 'miracle'",
+        derivatives: "miracle, mirror, admire, marvel"
     },
     {
         latin: "misceo",
@@ -4685,7 +5185,9 @@ const aLevelVocabularyData = [
         info: "miscere, miscui - verb",
         letter: "M",
         topic: "Miscellaneous",
-        set: 12
+        set: 12,
+        hint: "Think of 'miscellaneous'",
+        derivatives: "mix, miscellaneous, miscible"
     },
     {
         latin: "miser",
@@ -4693,7 +5195,9 @@ const aLevelVocabularyData = [
         info: "misera, miserum - adjective",
         letter: "M",
         topic: "Quality & Character",
-        set: 12
+        set: 12,
+        hint: "Think of 'misery'",
+        derivatives: "miser, misery, miserable, commiserate"
     },
     {
         latin: "mitto",
@@ -4703,7 +5207,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Fighting",
         set: 12,
         hint: "Think of 'mission'",
-        derivatives: "mission, transmit, permit, commit, omit, emit, submit"
+        derivatives: "mission, transmit, permit, commit, omit, emit, submit, remit"
     },
     {
         latin: "modo",
@@ -4711,7 +5215,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "M",
         topic: "Adverbs",
-        set: 12
+        set: 12,
+        hint: "Think of 'mode'",
+        derivatives: "mode, modern, moderate"
     },
     {
         latin: "modus",
@@ -4721,7 +5227,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 12,
         hint: "Think of 'mode'",
-        derivatives: "mode, model, moderate, modify, modern"
+        derivatives: "mode, model, moderate, modify, modern, modest"
     },
     {
         latin: "moenia",
@@ -4729,7 +5235,9 @@ const aLevelVocabularyData = [
         info: "moenium - noun",
         letter: "M",
         topic: "Buildings & Places",
-        set: 12
+        set: 12,
+        hint: "Think of 'munition'",
+        derivatives: "munition, ammunition"
     },
     {
         latin: "mollis",
@@ -4755,7 +5263,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Speaking",
         set: 12,
         hint: "Think of 'monitor'",
-        derivatives: "monitor, admonish, monument, premonition"
+        derivatives: "monitor, admonish, monument, premonition, monition"
     },
     {
         latin: "mons",
@@ -4764,7 +5272,7 @@ const aLevelVocabularyData = [
         letter: "M",
         topic: "Nature & Landscape",
         set: 12,
-        derivatives: "mount, mountain, amount, surmount, paramount"
+        derivatives: "mount, mountain, amount, surmount, paramount, promontory"
     },
     {
         latin: "monstro",
@@ -4772,7 +5280,9 @@ const aLevelVocabularyData = [
         info: "monstrare, -avi, - - verb",
         letter: "M",
         topic: "Miscellaneous",
-        set: 12
+        set: 12,
+        hint: "Think of 'demonstrate'",
+        derivatives: "demonstrate, monster, monstrous"
     },
     {
         latin: "mora",
@@ -4780,7 +5290,9 @@ const aLevelVocabularyData = [
         info: "morae - noun",
         letter: "M",
         topic: "Miscellaneous",
-        set: 12
+        set: 12,
+        hint: "Think of 'moratorium'",
+        derivatives: "moratorium, demur"
     },
     {
         latin: "morbus",
@@ -4788,7 +5300,9 @@ const aLevelVocabularyData = [
         info: "morbi - noun",
         letter: "M",
         topic: "The Body",
-        set: 12
+        set: 12,
+        hint: "Think of 'morbid'",
+        derivatives: "morbid, morbidity"
     },
     {
         latin: "morior",
@@ -4796,7 +5310,9 @@ const aLevelVocabularyData = [
         info: "mori, mortuus - verb",
         letter: "M",
         topic: "Miscellaneous",
-        set: 12
+        set: 12,
+        hint: "Think of 'moribund'",
+        derivatives: "moribund, mortal"
     },
     {
         latin: "moror",
@@ -4814,7 +5330,7 @@ const aLevelVocabularyData = [
         topic: "The Body",
         set: 12,
         hint: "Think of 'mortal'",
-        derivatives: "mortal, mortify, mortgage, immortal"
+        derivatives: "mortal, mortify, mortgage, immortal, mortality, mortuary"
     },
     {
         latin: "mortuus",
@@ -4830,7 +5346,9 @@ const aLevelVocabularyData = [
         info: "moris - noun",
         letter: "M",
         topic: "Abstract Concepts",
-        set: 12
+        set: 12,
+        hint: "Think of 'morality'",
+        derivatives: "moral, morality, mores, morose"
     },
     {
         latin: "moveo",
@@ -4840,7 +5358,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Motion",
         set: 12,
         hint: "Think of 'motion'",
-        derivatives: "move, motion, motor, motive, emotion, promote"
+        derivatives: "move, motion, motor, motive, emotion, promote, remote"
     },
     {
         latin: "mox",
@@ -4848,7 +5366,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "M",
         topic: "Time & Seasons",
-        set: 12
+        set: 12,
+        derivatives: "soon (no direct derivative)"
     },
     {
         latin: "mulier",
@@ -4856,7 +5375,8 @@ const aLevelVocabularyData = [
         info: "mulieris - noun",
         letter: "M",
         topic: "Family & People",
-        set: 12
+        set: 12,
+        derivatives: "muliebrity (womanliness)"
     },
     {
         latin: "multitudo",
@@ -4873,7 +5393,7 @@ const aLevelVocabularyData = [
         letter: "M",
         topic: "Size & Quantity",
         set: 12,
-        derivatives: "multiple, multiply, multitude"
+        derivatives: "multiple, multiply, multitude, much"
     },
     {
         latin: "multo",
@@ -4889,7 +5409,9 @@ const aLevelVocabularyData = [
         info: "munire, munivi - verb",
         letter: "M",
         topic: "Verbs of Fighting",
-        set: 12
+        set: 12,
+        hint: "Think of 'munition'",
+        derivatives: "munition, ammunition, immune"
     },
     {
         latin: "munus",
@@ -4897,7 +5419,9 @@ const aLevelVocabularyData = [
         info: "muneris - noun",
         letter: "M",
         topic: "Abstract Concepts",
-        set: 12
+        set: 12,
+        hint: "Think of 'municipal'",
+        derivatives: "municipal, remunerate, immune"
     },
     {
         latin: "murus",
@@ -4917,7 +5441,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Making/Doing",
         set: 12,
         hint: "Think of 'mutate'",
-        derivatives: "mutate, mutation, mutual, commute, permute"
+        derivatives: "mutate, mutation, mutual, commute, permute, mutable"
     },
     {
         latin: "nam",
@@ -4925,7 +5449,9 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "N",
         topic: "Conjunctions",
-        set: 12
+        set: 12,
+        hint: "Think of 'namely (unrelated)'",
+        derivatives: "namely (unrelated)"
     },
     {
         latin: "narro",
@@ -4933,7 +5459,9 @@ const aLevelVocabularyData = [
         info: "narrare, narravi - verb",
         letter: "N",
         topic: "Verbs of Speaking",
-        set: 12
+        set: 12,
+        hint: "Think of 'narrate'",
+        derivatives: "narrate, narrative, narrator"
     },
     {
         latin: "nascor",
@@ -4943,7 +5471,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Being",
         set: 12,
         hint: "Think of 'nascent'",
-        derivatives: "nascent, native, nation, nature, natal"
+        derivatives: "nascent, native, nation, nature, natal, innate"
     },
     {
         latin: "natura",
@@ -4953,7 +5481,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 12,
         hint: "Think of 'natural'",
-        derivatives: "nature, natural, supernatural"
+        derivatives: "nature, natural, supernatural, preternatural"
     },
     {
         latin: "natus",
@@ -4961,7 +5489,9 @@ const aLevelVocabularyData = [
         info: "nata, natum - adjective",
         letter: "N",
         topic: "Quality & Character",
-        set: 12
+        set: 12,
+        hint: "Think of 'natal'",
+        derivatives: "natal, native, prenatal, innate"
     },
     {
         latin: "nata",
@@ -4969,7 +5499,9 @@ const aLevelVocabularyData = [
         info: "natae - noun",
         letter: "N",
         topic: "Family & People",
-        set: 12
+        set: 12,
+        hint: "Think of 'natal'",
+        derivatives: "natal, native"
     },
     {
         latin: "natus",
@@ -4977,7 +5509,9 @@ const aLevelVocabularyData = [
         info: "nati - noun",
         letter: "N",
         topic: "Family & People",
-        set: 12
+        set: 12,
+        hint: "Think of 'natal'",
+        derivatives: "natal, native, prenatal, innate"
     },
     {
         latin: "nauta",
@@ -4985,7 +5519,9 @@ const aLevelVocabularyData = [
         info: "nautae - noun",
         letter: "N",
         topic: "Miscellaneous",
-        set: 12
+        set: 12,
+        hint: "Think of 'nautical'",
+        derivatives: "nautical, nautilus, astronaut"
     },
     {
         latin: "navigo",
@@ -4993,7 +5529,9 @@ const aLevelVocabularyData = [
         info: "navigare - verb",
         letter: "N",
         topic: "Miscellaneous",
-        set: 12
+        set: 12,
+        hint: "Think of 'navigate'",
+        derivatives: "navigate, navigation"
     },
     {
         latin: "navis",
@@ -5003,7 +5541,7 @@ const aLevelVocabularyData = [
         topic: "Military & War",
         set: 12,
         hint: "Think of 'navy'",
-        derivatives: "navy, naval, navigate, nave"
+        derivatives: "navy, naval, navigate, nave, nausea"
     },
     {
         latin: "-ne",
@@ -5019,7 +5557,9 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "N",
         topic: "Conjunctions",
-        set: 12
+        set: 12,
+        hint: "Think of 'neither'",
+        derivatives: "neither, nor (particles)"
     },
     {
         latin: "ne",
@@ -5027,7 +5567,9 @@ const aLevelVocabularyData = [
         info: "quidem - adverb",
         letter: "N",
         topic: "Adverbs",
-        set: 12
+        set: 12,
+        hint: "Think of 'neither'",
+        derivatives: "neither, nor (particles)"
     },
     {
         latin: "nec",
@@ -5035,7 +5577,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "N",
         topic: "Conjunctions",
-        set: 12
+        set: 12,
+        derivatives: "neither, nor"
     },
     {
         latin: "necesse",
@@ -5043,7 +5586,9 @@ const aLevelVocabularyData = [
         info: "indecl - adjective",
         letter: "N",
         topic: "Miscellaneous",
-        set: 13
+        set: 13,
+        hint: "Think of 'necessity'",
+        derivatives: "necessary, necessity"
     },
     {
         latin: "neco",
@@ -5053,7 +5598,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Fighting",
         set: 13,
         hint: "Think of 'internecine'",
-        derivatives: "internecine, pernicious"
+        derivatives: "internecine, pernicious, necropolis"
     },
     {
         latin: "neglego",
@@ -5061,7 +5606,9 @@ const aLevelVocabularyData = [
         info: "neglegere - verb",
         letter: "N",
         topic: "Miscellaneous",
-        set: 13
+        set: 13,
+        hint: "Think of 'negligent'",
+        derivatives: "neglect, negligent, negligence"
     },
     {
         latin: "nego",
@@ -5071,7 +5618,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Speaking",
         set: 13,
         hint: "Think of 'negate'",
-        derivatives: "negate, negative, deny, renegade"
+        derivatives: "negate, negative, deny, renegade, abnegate"
     },
     {
         latin: "negotium",
@@ -5079,7 +5626,9 @@ const aLevelVocabularyData = [
         info: "negotii - noun",
         letter: "N",
         topic: "Miscellaneous",
-        set: 13
+        set: 13,
+        hint: "Think of 'negotiate'",
+        derivatives: "negotiate, negotiation, business"
     },
     {
         latin: "nemo",
@@ -5087,7 +5636,9 @@ const aLevelVocabularyData = [
         info: "nullius - pronoun",
         letter: "N",
         topic: "Pronouns",
-        set: 13
+        set: 13,
+        hint: "Think of 'none (no direct derivative)'",
+        derivatives: "none (no direct derivative)"
     },
     {
         latin: "nepos",
@@ -5103,7 +5654,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "N",
         topic: "Conjunctions",
-        set: 13
+        set: 13,
+        derivatives: "neither, nor"
     },
     {
         latin: "nescio",
@@ -5111,7 +5663,9 @@ const aLevelVocabularyData = [
         info: "nescire, nescivi - verb",
         letter: "N",
         topic: "Verbs of Perception",
-        set: 13
+        set: 13,
+        hint: "Think of 'nescient (unaware)'",
+        derivatives: "nescient (unaware)"
     },
     {
         latin: "nescius",
@@ -5135,7 +5689,8 @@ const aLevelVocabularyData = [
         info: "indecl - pronoun",
         letter: "N",
         topic: "Pronouns",
-        set: 13
+        set: 13,
+        derivatives: "nihilism, annihilate, nil"
     },
     {
         latin: "nimis/nimium",
@@ -5143,7 +5698,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "N",
         topic: "Adverbs",
-        set: 13
+        set: 13,
+        hint: "Think of 'nimiety (excess)'",
+        derivatives: "nimiety (excess)"
     },
     {
         latin: "nisi",
@@ -5151,7 +5708,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "N",
         topic: "Conjunctions",
-        set: 13
+        set: 13,
+        derivatives: "unless (no direct derivative)"
     },
     {
         latin: "nobilis",
@@ -5159,7 +5717,9 @@ const aLevelVocabularyData = [
         info: "nobile - adjective",
         letter: "N",
         topic: "Quality & Character",
-        set: 13
+        set: 13,
+        hint: "Think of 'nobility'",
+        derivatives: "noble, nobility, ennoble"
     },
     {
         latin: "noceo",
@@ -5167,7 +5727,9 @@ const aLevelVocabularyData = [
         info: "nocere, nocui - verb",
         letter: "N",
         topic: "Miscellaneous",
-        set: 13
+        set: 13,
+        hint: "Think of 'noxious'",
+        derivatives: "noxious, innocent, nocuous, innocuous"
     },
     {
         latin: "noctu",
@@ -5183,7 +5745,9 @@ const aLevelVocabularyData = [
         info: "nolle, nolui - verb",
         letter: "N",
         topic: "Verbs of Being",
-        set: 13
+        set: 13,
+        hint: "Think of 'nolens volens (willy-nilly)'",
+        derivatives: "nolens volens (willy-nilly)"
     },
     {
         latin: "nomen",
@@ -5193,7 +5757,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 13,
         hint: "Think of 'nominal'",
-        derivatives: "name, nominal, nominate, noun, pronoun, renown"
+        derivatives: "name, nominal, nominate, noun, pronoun, renown, nomenclature"
     },
     {
         latin: "non",
@@ -5201,7 +5765,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "N",
         topic: "Miscellaneous",
-        set: 13
+        set: 13,
+        derivatives: "non-, not"
     },
     {
         latin: "Nonae",
@@ -5225,7 +5790,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "N",
         topic: "Adverbs",
-        set: 13
+        set: 13,
+        derivatives: "not yet (no direct derivative)"
     },
     {
         latin: "nongenti",
@@ -5265,7 +5831,9 @@ const aLevelVocabularyData = [
         info: "nostrum or nostri - pronoun",
         letter: "N",
         topic: "Pronouns",
-        set: 13
+        set: 13,
+        hint: "Think of 'our (no direct derivative)'",
+        derivatives: "us, our (no direct derivative)"
     },
     {
         latin: "nosco",
@@ -5273,7 +5841,9 @@ const aLevelVocabularyData = [
         info: "noscere, novi - verb",
         letter: "N",
         topic: "Verbs of Motion",
-        set: 13
+        set: 13,
+        hint: "Think of 'notice'",
+        derivatives: "know, notice, cognition"
     },
     {
         latin: "noster",
@@ -5281,7 +5851,9 @@ const aLevelVocabularyData = [
         info: "nostra, nostrum - adjective",
         letter: "N",
         topic: "Miscellaneous",
-        set: 13
+        set: 13,
+        hint: "Think of 'nostrum'",
+        derivatives: "nostrum, our"
     },
     {
         latin: "notus",
@@ -5289,7 +5861,9 @@ const aLevelVocabularyData = [
         info: "nota, notum - adjective",
         letter: "N",
         topic: "Miscellaneous",
-        set: 13
+        set: 13,
+        hint: "Think of 'note'",
+        derivatives: "note, notice, notorious"
     },
     {
         latin: "novem",
@@ -5315,7 +5889,7 @@ const aLevelVocabularyData = [
         topic: "Quality & Character",
         set: 13,
         hint: "Think of 'novel'",
-        derivatives: "novel, novelty, innovate, novice, renovate"
+        derivatives: "novel, novelty, innovate, novice, renovate, nova"
     },
     {
         latin: "nox",
@@ -5351,7 +5925,8 @@ const aLevelVocabularyData = [
         info: "… (?) - particle",
         letter: "N",
         topic: "Miscellaneous",
-        set: 13
+        set: 13,
+        derivatives: "whether (no direct derivative)"
     },
     {
         latin: "numerus",
@@ -5361,7 +5936,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 13,
         hint: "Think of 'numeral'",
-        derivatives: "number, numeral, enumerate, numerous"
+        derivatives: "number, numeral, enumerate, numerous, innumerable"
     },
     {
         latin: "numquam",
@@ -5369,7 +5944,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "N",
         topic: "Time & Seasons",
-        set: 13
+        set: 13,
+        derivatives: "never (no direct derivative)"
     },
     {
         latin: "nunc",
@@ -5377,7 +5953,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "N",
         topic: "Time & Seasons",
-        set: 13
+        set: 13,
+        derivatives: "now (no direct derivative)"
     },
     {
         latin: "nuntio",
@@ -5385,7 +5962,9 @@ const aLevelVocabularyData = [
         info: "nuntiare - verb",
         letter: "N",
         topic: "Verbs of Speaking",
-        set: 13
+        set: 13,
+        hint: "Think of 'denounce'",
+        derivatives: "announce, denounce, pronounce, renounce"
     },
     {
         latin: "nuntius",
@@ -5393,7 +5972,9 @@ const aLevelVocabularyData = [
         info: "nuntii - noun",
         letter: "N",
         topic: "Miscellaneous",
-        set: 13
+        set: 13,
+        hint: "Think of 'announce'",
+        derivatives: "announce, nuncio"
     },
     {
         latin: "nuper",
@@ -5401,7 +5982,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "N",
         topic: "Miscellaneous",
-        set: 13
+        set: 13,
+        derivatives: "recently (no direct derivative)"
     },
     {
         latin: "nusquam",
@@ -5417,7 +5999,9 @@ const aLevelVocabularyData = [
         info: "+ acc - preposition",
         letter: "O",
         topic: "Prepositions",
-        set: 13
+        set: 13,
+        hint: "Think of 'obvious'",
+        derivatives: "obvious, object, obstacle"
     },
     {
         latin: "obliviscor",
@@ -5425,7 +6009,9 @@ const aLevelVocabularyData = [
         info: "oblivisci, oblitus - verb",
         letter: "O",
         topic: "Verbs of Thinking",
-        set: 13
+        set: 13,
+        hint: "Think of 'oblivion'",
+        derivatives: "oblivion, oblivious"
     },
     {
         latin: "obses",
@@ -5441,7 +6027,9 @@ const aLevelVocabularyData = [
         info: "obsidere, obsedi - verb",
         letter: "O",
         topic: "Miscellaneous",
-        set: 13
+        set: 13,
+        hint: "Think of 'obsess'",
+        derivatives: "obsess, obsession, besiege"
     },
     {
         latin: "occasio",
@@ -5457,7 +6045,9 @@ const aLevelVocabularyData = [
         info: "occidere, occidi - verb",
         letter: "O",
         topic: "Verbs of Fighting",
-        set: 14
+        set: 14,
+        hint: "Think of 'occident (where sun falls)'",
+        derivatives: "occident (where sun falls), occidental"
     },
     {
         latin: "occupo",
@@ -5465,7 +6055,9 @@ const aLevelVocabularyData = [
         info: "occupare - verb",
         letter: "O",
         topic: "Verbs of Giving/Taking",
-        set: 14
+        set: 14,
+        hint: "Think of 'occupation'",
+        derivatives: "occupy, occupation, preoccupy"
     },
     {
         latin: "octavus",
@@ -5507,7 +6099,7 @@ const aLevelVocabularyData = [
         topic: "The Body",
         set: 14,
         hint: "Think of 'ocular'",
-        derivatives: "ocular, oculist, binoculars"
+        derivatives: "ocular, oculist, binoculars, inoculate"
     },
     {
         latin: "odium",
@@ -5515,7 +6107,9 @@ const aLevelVocabularyData = [
         info: "odii - noun",
         letter: "O",
         topic: "Miscellaneous",
-        set: 14
+        set: 14,
+        hint: "Think of 'odium'",
+        derivatives: "odious, odium"
     },
     {
         latin: "offero",
@@ -5531,7 +6125,9 @@ const aLevelVocabularyData = [
         info: "officii - noun",
         letter: "O",
         topic: "Abstract Concepts",
-        set: 14
+        set: 14,
+        hint: "Think of 'office'",
+        derivatives: "office, official, officer, officious"
     },
     {
         latin: "olim",
@@ -5539,7 +6135,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "O",
         topic: "Time & Seasons",
-        set: 14
+        set: 14,
+        derivatives: "once (no direct derivative)"
     },
     {
         latin: "omitto",
@@ -5547,7 +6144,9 @@ const aLevelVocabularyData = [
         info: "omittere, omisi - verb",
         letter: "O",
         topic: "Verbs of Making/Doing",
-        set: 14
+        set: 14,
+        hint: "Think of 'omit'",
+        derivatives: "omit, omission"
     },
     {
         latin: "omnino",
@@ -5565,7 +6164,7 @@ const aLevelVocabularyData = [
         topic: "Size & Quantity",
         set: 14,
         hint: "Think of 'omnibus'",
-        derivatives: "omnibus, omnipotent, omniscient, omnivore"
+        derivatives: "omnibus, omnipotent, omniscient, omnivore, omnipresent"
     },
     {
         latin: "onus",
@@ -5591,7 +6190,9 @@ const aLevelVocabularyData = [
         info: "oportere, oportuit - verb",
         letter: "O",
         topic: "Miscellaneous",
-        set: 14
+        set: 14,
+        hint: "Think of 'opportune'",
+        derivatives: "opportune, opportunity"
     },
     {
         latin: "oppidum",
@@ -5615,7 +6216,8 @@ const aLevelVocabularyData = [
         info: "opprimere - verb",
         letter: "O",
         topic: "Miscellaneous",
-        set: 14
+        set: 14,
+        derivatives: "oppress, oppression"
     },
     {
         latin: "oppugno",
@@ -5641,7 +6243,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 14,
         hint: "Think of 'opera'",
-        derivatives: "opera, operate, opus, cooperation"
+        derivatives: "opera, operate, opus, cooperation, magnum opus"
     },
     {
         latin: "ora",
@@ -5657,7 +6259,9 @@ const aLevelVocabularyData = [
         info: "orationis - noun",
         letter: "O",
         topic: "Abstract Concepts",
-        set: 14
+        set: 14,
+        hint: "Think of 'oration'",
+        derivatives: "oration, oratory"
     },
     {
         latin: "ordo",
@@ -5667,7 +6271,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 14,
         hint: "Think of 'ordinary'",
-        derivatives: "order, ordinary, ordinal, coordinate, subordinate"
+        derivatives: "order, ordinary, ordinal, coordinate, subordinate, ordain"
     },
     {
         latin: "orior",
@@ -5675,7 +6279,9 @@ const aLevelVocabularyData = [
         info: "oriri, ortus sum - verb",
         letter: "O",
         topic: "Verbs of Making/Doing",
-        set: 14
+        set: 14,
+        hint: "Think of 'orient'",
+        derivatives: "orient, origin, rise"
     },
     {
         latin: "orno",
@@ -5683,7 +6289,9 @@ const aLevelVocabularyData = [
         info: "ornare, ornavi - verb",
         letter: "O",
         topic: "Miscellaneous",
-        set: 14
+        set: 14,
+        hint: "Think of 'ornament'",
+        derivatives: "ornament, adorn, ornate"
     },
     {
         latin: "oro",
@@ -5693,7 +6301,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Speaking",
         set: 14,
         hint: "Think of 'oral'",
-        derivatives: "oral, oration, orator, oracle"
+        derivatives: "oral, oration, orator, oracle, adore"
     },
     {
         latin: "os",
@@ -5701,7 +6309,9 @@ const aLevelVocabularyData = [
         info: "oris - noun",
         letter: "O",
         topic: "The Body",
-        set: 14
+        set: 14,
+        hint: "Think of 'oral'",
+        derivatives: "oral, orifice, oscillate"
     },
     {
         latin: "ostendo",
@@ -5709,7 +6319,9 @@ const aLevelVocabularyData = [
         info: "ostendere - verb",
         letter: "O",
         topic: "Miscellaneous",
-        set: 14
+        set: 14,
+        hint: "Think of 'ostensible'",
+        derivatives: "ostensible, ostentatious"
     },
     {
         latin: "otium",
@@ -5717,7 +6329,9 @@ const aLevelVocabularyData = [
         info: "otii - noun",
         letter: "O",
         topic: "Emotions & Mind",
-        set: 14
+        set: 14,
+        hint: "Think of 'otiose'",
+        derivatives: "otiose, negotiate"
     },
     {
         latin: "paene",
@@ -5725,7 +6339,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "P",
         topic: "Adverbs",
-        set: 14
+        set: 14,
+        hint: "Think of 'peninsula'",
+        derivatives: "peninsula, penultimate"
     },
     {
         latin: "palam",
@@ -5749,7 +6365,9 @@ const aLevelVocabularyData = [
         info: "gen paris - adjective",
         letter: "P",
         topic: "Miscellaneous",
-        set: 14
+        set: 14,
+        hint: "Think of 'pair'",
+        derivatives: "pair, peer, compare, parity, disparate"
     },
     {
         latin: "parco",
@@ -5757,7 +6375,9 @@ const aLevelVocabularyData = [
         info: "parcere, peperci - verb",
         letter: "P",
         topic: "Miscellaneous",
-        set: 14
+        set: 14,
+        hint: "Think of 'parsimonious'",
+        derivatives: "parsimonious, spare"
     },
     {
         latin: "parens",
@@ -5773,7 +6393,9 @@ const aLevelVocabularyData = [
         info: "parere, parui - verb",
         letter: "P",
         topic: "Verbs of Ruling",
-        set: 14
+        set: 14,
+        hint: "Think of 'apparent'",
+        derivatives: "apparent, appear, apparition"
     },
     {
         latin: "pario",
@@ -5781,7 +6403,9 @@ const aLevelVocabularyData = [
         info: "parere, peperi - verb",
         letter: "P",
         topic: "Verbs of Giving/Taking",
-        set: 14
+        set: 14,
+        hint: "Think of 'parent'",
+        derivatives: "parent, parturition, viviparous"
     },
     {
         latin: "paro",
@@ -5789,7 +6413,9 @@ const aLevelVocabularyData = [
         info: "parare, paravi - verb",
         letter: "P",
         topic: "Verbs of Making/Doing",
-        set: 14
+        set: 14,
+        hint: "Think of 'repair'",
+        derivatives: "prepare, repair, separate, apparatus, compare"
     },
     {
         latin: "pars",
@@ -5798,7 +6424,7 @@ const aLevelVocabularyData = [
         letter: "P",
         topic: "Abstract Concepts",
         set: 14,
-        derivatives: "part, partial, participate, particle, partition"
+        derivatives: "part, partial, participate, particle, partition, party"
     },
     {
         latin: "parvus",
@@ -5806,7 +6432,8 @@ const aLevelVocabularyData = [
         info: "parva, parvum - adjective",
         letter: "P",
         topic: "Size & Quantity",
-        set: 14
+        set: 14,
+        derivatives: "parvo (small)"
     },
     {
         latin: "passim",
@@ -5822,7 +6449,9 @@ const aLevelVocabularyData = [
         info: "passus - noun",
         letter: "P",
         topic: "Miscellaneous",
-        set: 14
+        set: 14,
+        hint: "Think of 'pass'",
+        derivatives: "pace, pass, passage, compass"
     },
     {
         latin: "pastor",
@@ -5848,7 +6477,7 @@ const aLevelVocabularyData = [
         topic: "Family & People",
         set: 14,
         hint: "Think of 'paternal'",
-        derivatives: "paternal, paternity, patriarch, patron, pattern"
+        derivatives: "paternal, paternity, patriarch, patron, pattern, patriate"
     },
     {
         latin: "patior",
@@ -5858,7 +6487,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Ruling",
         set: 14,
         hint: "Think of 'patient'",
-        derivatives: "patient, passion, passive, compassion"
+        derivatives: "patient, passion, passive, compassion, compatible"
     },
     {
         latin: "patria",
@@ -5866,7 +6495,9 @@ const aLevelVocabularyData = [
         info: "patriae - noun",
         letter: "P",
         topic: "Government & Politics",
-        set: 14
+        set: 14,
+        hint: "Think of 'patriot'",
+        derivatives: "patriot, expatriate, repatriate"
     },
     {
         latin: "patrius",
@@ -5874,7 +6505,8 @@ const aLevelVocabularyData = [
         info: "patria, patrium - adjective",
         letter: "P",
         topic: "Miscellaneous",
-        set: 15
+        set: 15,
+        derivatives: "patriot, expatriate, repatriate"
     },
     {
         latin: "patronus",
@@ -5890,7 +6522,8 @@ const aLevelVocabularyData = [
         info: "paucae, pauca - adjective",
         letter: "P",
         topic: "Size & Quantity",
-        set: 15
+        set: 15,
+        derivatives: "paucity, few"
     },
     {
         latin: "paulatim",
@@ -5922,7 +6555,8 @@ const aLevelVocabularyData = [
         info: "gen pauperis adj 3 poor, as - noun",
         letter: "P",
         topic: "Family & People",
-        set: 15
+        set: 15,
+        derivatives: "pauper, poor, poverty, impoverish"
     },
     {
         latin: "pavor",
@@ -5940,7 +6574,7 @@ const aLevelVocabularyData = [
         topic: "Emotions & Mind",
         set: 15,
         hint: "Think of 'pacific'",
-        derivatives: "peace, pacific, pacify, appease"
+        derivatives: "peace, pacific, pacify, appease, pact"
     },
     {
         latin: "pectus",
@@ -5948,7 +6582,9 @@ const aLevelVocabularyData = [
         info: "pectoris - noun",
         letter: "P",
         topic: "The Body",
-        set: 15
+        set: 15,
+        hint: "Think of 'pectoral'",
+        derivatives: "pectoral, expect"
     },
     {
         latin: "pecunia",
@@ -5984,7 +6620,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 15,
         hint: "Think of 'compel'",
-        derivatives: "compel, expel, impel, propel, repel, pulse"
+        derivatives: "compel, expel, impel, propel, repel, pulse, appeal"
     },
     {
         latin: "per",
@@ -5992,7 +6628,9 @@ const aLevelVocabularyData = [
         info: "+ acc, or as - preposition",
         letter: "P",
         topic: "Prepositions",
-        set: 15
+        set: 15,
+        hint: "Think of 'per'",
+        derivatives: "per, perfect, perform, permit, persist"
     },
     {
         latin: "perdo",
@@ -6008,7 +6646,8 @@ const aLevelVocabularyData = [
         info: "perire, perii - verb",
         letter: "P",
         topic: "Verbs of Being",
-        set: 15
+        set: 15,
+        derivatives: "perish (related)"
     },
     {
         latin: "perficio",
@@ -6016,7 +6655,8 @@ const aLevelVocabularyData = [
         info: "perficere - verb",
         letter: "P",
         topic: "Verbs of Making/Doing",
-        set: 15
+        set: 15,
+        derivatives: "perfect, perfection"
     },
     {
         latin: "perfidia",
@@ -6040,7 +6680,9 @@ const aLevelVocabularyData = [
         info: "periculi - noun",
         letter: "P",
         topic: "Abstract Concepts",
-        set: 15
+        set: 15,
+        hint: "Think of 'peril'",
+        derivatives: "peril, perilous, imperil"
     },
     {
         latin: "peritus",
@@ -6056,7 +6698,9 @@ const aLevelVocabularyData = [
         info: "permittere - verb",
         letter: "P",
         topic: "Verbs of Ruling",
-        set: 15
+        set: 15,
+        hint: "Think of 'permission'",
+        derivatives: "permit, permission"
     },
     {
         latin: "persuadeo",
@@ -6064,7 +6708,8 @@ const aLevelVocabularyData = [
         info: "persuadere - verb",
         letter: "P",
         topic: "Verbs of Speaking",
-        set: 15
+        set: 15,
+        derivatives: "persuade, persuasion, persuasive"
     },
     {
         latin: "perterritus",
@@ -6080,7 +6725,9 @@ const aLevelVocabularyData = [
         info: "pervenire - verb",
         letter: "P",
         topic: "Verbs of Motion",
-        set: 15
+        set: 15,
+        hint: "Think of 'pervade (unrelated)'",
+        derivatives: "pervade (unrelated)"
     },
     {
         latin: "pes",
@@ -6090,7 +6737,7 @@ const aLevelVocabularyData = [
         topic: "The Body",
         set: 15,
         hint: "Think of 'pedal'",
-        derivatives: "pedal, pedestrian, pedestal, impede, expedite"
+        derivatives: "pedal, pedestrian, pedestal, impede, expedite, biped"
     },
     {
         latin: "pessimus",
@@ -6098,7 +6745,9 @@ const aLevelVocabularyData = [
         info: "pessima, sup - adjective",
         letter: "P",
         topic: "Quality & Character",
-        set: 15
+        set: 15,
+        hint: "Think of 'pessimist'",
+        derivatives: "pessimist, pessimism"
     },
     {
         latin: "peto",
@@ -6108,7 +6757,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Fighting",
         set: 15,
         hint: "Think of 'petition'",
-        derivatives: "petition, compete, repeat, appetite, impetus"
+        derivatives: "petition, compete, repeat, appetite, impetus, perpetuate"
     },
     {
         latin: "pietas",
@@ -6116,7 +6765,9 @@ const aLevelVocabularyData = [
         info: "pietatis - noun",
         letter: "P",
         topic: "Miscellaneous",
-        set: 15
+        set: 15,
+        hint: "Think of 'pious'",
+        derivatives: "piety, pious"
     },
     {
         latin: "pilum",
@@ -6132,7 +6783,9 @@ const aLevelVocabularyData = [
         info: "pia, pium - adjective",
         letter: "P",
         topic: "Miscellaneous",
-        set: 15
+        set: 15,
+        hint: "Think of 'piety'",
+        derivatives: "pious, piety, impious"
     },
     {
         latin: "placet",
@@ -6148,7 +6801,9 @@ const aLevelVocabularyData = [
         info: "plebis - noun",
         letter: "P",
         topic: "Government & Politics",
-        set: 15
+        set: 15,
+        hint: "Think of 'plebeian'",
+        derivatives: "plebeian, plebe"
     },
     {
         latin: "plenus",
@@ -6158,7 +6813,7 @@ const aLevelVocabularyData = [
         topic: "Size & Quantity",
         set: 15,
         hint: "Think of 'plenty'",
-        derivatives: "plenty, plenary, replenish, complete"
+        derivatives: "plenty, plenary, replenish, complete, plethora"
     },
     {
         latin: "plerique",
@@ -6174,7 +6829,8 @@ const aLevelVocabularyData = [
         info: "plurima, sup - adjective",
         letter: "P",
         topic: "Size & Quantity",
-        set: 15
+        set: 15,
+        derivatives: "plural, plurality"
     },
     {
         latin: "plus",
@@ -6182,7 +6838,8 @@ const aLevelVocabularyData = [
         info: "(sg, n - noun",
         letter: "P",
         topic: "Miscellaneous",
-        set: 15
+        set: 15,
+        derivatives: "plus, plural, surplus"
     },
     {
         latin: "poculum",
@@ -6198,7 +6855,9 @@ const aLevelVocabularyData = [
         info: "poenae - noun",
         letter: "P",
         topic: "Abstract Concepts",
-        set: 15
+        set: 15,
+        hint: "Think of 'pain'",
+        derivatives: "pain, penal, penalty, punish, impunity"
     },
     {
         latin: "poeta",
@@ -6232,7 +6891,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 15,
         hint: "Think of 'position'",
-        derivatives: "position, deposit, compose, expose, propose, oppose"
+        derivatives: "position, deposit, compose, expose, propose, oppose, post"
     },
     {
         latin: "pons",
@@ -6240,7 +6899,9 @@ const aLevelVocabularyData = [
         info: "pontis - noun",
         letter: "P",
         topic: "Buildings & Places",
-        set: 15
+        set: 15,
+        hint: "Think of 'pont'",
+        derivatives: "pont, pontiff, pontificate"
     },
     {
         latin: "populus",
@@ -6250,7 +6911,7 @@ const aLevelVocabularyData = [
         topic: "Government & Politics",
         set: 15,
         hint: "Think of 'popular'",
-        derivatives: "popular, population, public, publish"
+        derivatives: "popular, population, public, publish, people"
     },
     {
         latin: "porro",
@@ -6266,7 +6927,9 @@ const aLevelVocabularyData = [
         info: "portae - noun",
         letter: "P",
         topic: "Buildings & Places",
-        set: 15
+        set: 15,
+        hint: "Think of 'port'",
+        derivatives: "port, portal, porthole"
     },
     {
         latin: "porto",
@@ -6276,7 +6939,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Giving/Taking",
         set: 15,
         hint: "Think of 'port'",
-        derivatives: "port, portal, transport, export, import, report"
+        derivatives: "port, portal, transport, export, import, report, portable"
     },
     {
         latin: "portus",
@@ -6292,7 +6955,9 @@ const aLevelVocabularyData = [
         info: "poscere, poposci - verb",
         letter: "P",
         topic: "Verbs of Speaking",
-        set: 16
+        set: 16,
+        hint: "Think of 'postulate'",
+        derivatives: "postulate, expostulate"
     },
     {
         latin: "possideo",
@@ -6300,7 +6965,8 @@ const aLevelVocabularyData = [
         info: "possidere - verb",
         letter: "P",
         topic: "Verbs of Ruling",
-        set: 16
+        set: 16,
+        derivatives: "possess, possession"
     },
     {
         latin: "possum",
@@ -6310,7 +6976,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Being",
         set: 16,
         hint: "Think of 'possible'",
-        derivatives: "possible, potent, power, posse"
+        derivatives: "possible, potent, power, posse, potency"
     },
     {
         latin: "post",
@@ -6318,7 +6984,9 @@ const aLevelVocabularyData = [
         info: "+ acc - preposition",
         letter: "P",
         topic: "Prepositions",
-        set: 16
+        set: 16,
+        hint: "Think of 'post'",
+        derivatives: "post, posterior, posthumous, postpone"
     },
     {
         latin: "postea",
@@ -6334,7 +7002,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "P",
         topic: "Conjunctions",
-        set: 16
+        set: 16,
+        derivatives: "after (no direct derivative)"
     },
     {
         latin: "postremus",
@@ -6358,7 +7027,9 @@ const aLevelVocabularyData = [
         info: "postulare - verb",
         letter: "P",
         topic: "Verbs of Speaking",
-        set: 16
+        set: 16,
+        hint: "Think of 'postulate'",
+        derivatives: "postulate, expostulate"
     },
     {
         latin: "potens",
@@ -6368,7 +7039,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 16,
         hint: "Think of 'potent'",
-        derivatives: "potent, potential, omnipotent, impotent"
+        derivatives: "potent, potential, omnipotent, impotent, potency"
     },
     {
         latin: "potestas",
@@ -6376,7 +7047,9 @@ const aLevelVocabularyData = [
         info: "potestatis - noun",
         letter: "P",
         topic: "Government & Politics",
-        set: 16
+        set: 16,
+        hint: "Think of 'potent'",
+        derivatives: "power, potent"
     },
     {
         latin: "potior",
@@ -6384,7 +7057,9 @@ const aLevelVocabularyData = [
         info: "potiri, potitus - verb",
         letter: "P",
         topic: "Verbs of Giving/Taking",
-        set: 16
+        set: 16,
+        hint: "Think of 'possess (related)'",
+        derivatives: "possess (related)"
     },
     {
         latin: "potius",
@@ -6400,7 +7075,9 @@ const aLevelVocabularyData = [
         info: "+ abl - preposition",
         letter: "P",
         topic: "Prepositions",
-        set: 16
+        set: 16,
+        hint: "Think of 'pre-'",
+        derivatives: "pre-, precede, prefer, prescribe"
     },
     {
         latin: "praebeo",
@@ -6408,7 +7085,8 @@ const aLevelVocabularyData = [
         info: "praebere - verb",
         letter: "P",
         topic: "Verbs of Giving/Taking",
-        set: 16
+        set: 16,
+        derivatives: "provide (related)"
     },
     {
         latin: "praeceps",
@@ -6416,7 +7094,9 @@ const aLevelVocabularyData = [
         info: "gen praecipitis - adjective",
         letter: "P",
         topic: "Miscellaneous",
-        set: 16
+        set: 16,
+        hint: "Think of 'precipice'",
+        derivatives: "precipice, precipitate"
     },
     {
         latin: "praeda",
@@ -6424,7 +7104,9 @@ const aLevelVocabularyData = [
         info: "praedae - noun",
         letter: "P",
         topic: "Miscellaneous",
-        set: 16
+        set: 16,
+        hint: "Think of 'predator'",
+        derivatives: "predator, prey, depredation"
     },
     {
         latin: "praeficio",
@@ -6440,7 +7122,9 @@ const aLevelVocabularyData = [
         info: "praemii - noun",
         letter: "P",
         topic: "Wealth & Trade",
-        set: 16
+        set: 16,
+        hint: "Think of 'premium'",
+        derivatives: "premium, prize"
     },
     {
         latin: "praesidium",
@@ -6464,7 +7148,9 @@ const aLevelVocabularyData = [
         info: "+ acc - preposition",
         letter: "P",
         topic: "Prepositions",
-        set: 16
+        set: 16,
+        hint: "Think of 'preterite'",
+        derivatives: "preterite, preternatural"
     },
     {
         latin: "praeterea",
@@ -6488,7 +7174,8 @@ const aLevelVocabularyData = [
         info: "precari, precatus - verb",
         letter: "P",
         topic: "Verbs of Speaking",
-        set: 16
+        set: 16,
+        derivatives: "pray, prayer, deprecate, imprecation"
     },
     {
         latin: "pretium",
@@ -6498,7 +7185,7 @@ const aLevelVocabularyData = [
         topic: "Wealth & Trade",
         set: 16,
         hint: "Think of 'precious'",
-        derivatives: "price, precious, appreciate, depreciate"
+        derivatives: "price, precious, appreciate, depreciate, appraise"
     },
     {
         latin: "primo/primum",
@@ -6516,7 +7203,7 @@ const aLevelVocabularyData = [
         topic: "Size & Quantity",
         set: 16,
         hint: "Think of 'prime'",
-        derivatives: "prime, primary, primitive, premier, prince"
+        derivatives: "prime, primary, primitive, premier, prince, primate"
     },
     {
         latin: "princeps",
@@ -6524,7 +7211,9 @@ const aLevelVocabularyData = [
         info: "principis - noun",
         letter: "P",
         topic: "Government & Politics",
-        set: 16
+        set: 16,
+        hint: "Think of 'prince'",
+        derivatives: "prince, principal, principle"
     },
     {
         latin: "prior",
@@ -6532,7 +7221,9 @@ const aLevelVocabularyData = [
         info: "gen prioris - adjective",
         letter: "P",
         topic: "Miscellaneous",
-        set: 16
+        set: 16,
+        hint: "Think of 'prior'",
+        derivatives: "prior, priority, priory"
     },
     {
         latin: "prius",
@@ -6540,7 +7231,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "P",
         topic: "Miscellaneous",
-        set: 16
+        set: 16,
+        hint: "Think of 'prior'",
+        derivatives: "prior, priority"
     },
     {
         latin: "priusquam",
@@ -6556,7 +7249,9 @@ const aLevelVocabularyData = [
         info: "privata, privatum - adjective",
         letter: "P",
         topic: "Miscellaneous",
-        set: 16
+        set: 16,
+        hint: "Think of 'privacy'",
+        derivatives: "private, privacy, deprive"
     },
     {
         latin: "pro",
@@ -6564,7 +7259,9 @@ const aLevelVocabularyData = [
         info: "+ abl, or as - preposition",
         letter: "P",
         topic: "Prepositions",
-        set: 16
+        set: 16,
+        hint: "Think of 'pro-'",
+        derivatives: "pro-, proceed, produce, promote, propel"
     },
     {
         latin: "probo",
@@ -6574,7 +7271,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 16,
         hint: "Think of 'probable'",
-        derivatives: "prove, probable, probe, approve, probation"
+        derivatives: "prove, probable, probe, approve, probation, proof"
     },
     {
         latin: "procedo",
@@ -6582,7 +7279,9 @@ const aLevelVocabularyData = [
         info: "procedere - verb",
         letter: "P",
         topic: "Verbs of Motion",
-        set: 16
+        set: 16,
+        hint: "Think of 'process'",
+        derivatives: "proceed, process, procedure"
     },
     {
         latin: "procido",
@@ -6598,7 +7297,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "P",
         topic: "Miscellaneous",
-        set: 16
+        set: 16,
+        hint: "Think of 'proclaim (unrelated)'",
+        derivatives: "proclaim (unrelated)"
     },
     {
         latin: "prodo",
@@ -6622,7 +7323,9 @@ const aLevelVocabularyData = [
         info: "proficisci - verb",
         letter: "P",
         topic: "Verbs of Motion",
-        set: 16
+        set: 16,
+        hint: "Think of 'proficient (unrelated)'",
+        derivatives: "proficient (unrelated)"
     },
     {
         latin: "progredior",
@@ -6638,7 +7341,9 @@ const aLevelVocabularyData = [
         info: "prohibere - verb",
         letter: "P",
         topic: "Miscellaneous",
-        set: 16
+        set: 16,
+        hint: "Think of 'prohibit'",
+        derivatives: "prohibit, prohibition"
     },
     {
         latin: "promitto",
@@ -6646,7 +7351,9 @@ const aLevelVocabularyData = [
         info: "promittere - verb",
         letter: "P",
         topic: "Verbs of Speaking",
-        set: 16
+        set: 16,
+        hint: "Think of 'promissory'",
+        derivatives: "promise, promissory"
     },
     {
         latin: "prope",
@@ -6662,7 +7369,9 @@ const aLevelVocabularyData = [
         info: "+ acc - preposition",
         letter: "P",
         topic: "Prepositions",
-        set: 16
+        set: 16,
+        hint: "Think of 'proper (unrelated)'",
+        derivatives: "proper (unrelated)"
     },
     {
         latin: "provincia",
@@ -6678,7 +7387,9 @@ const aLevelVocabularyData = [
         info: "proxima - adjective",
         letter: "P",
         topic: "Size & Quantity",
-        set: 16
+        set: 16,
+        hint: "Think of 'proximate'",
+        derivatives: "proximate, proximity, approximate"
     },
     {
         latin: "prudens",
@@ -6694,7 +7405,9 @@ const aLevelVocabularyData = [
         info: "publica - adjective",
         letter: "P",
         topic: "Miscellaneous",
-        set: 16
+        set: 16,
+        hint: "Think of 'publish'",
+        derivatives: "public, publish, publication"
     },
     {
         latin: "pudor",
@@ -6702,7 +7415,9 @@ const aLevelVocabularyData = [
         info: "pudoris - noun",
         letter: "P",
         topic: "Abstract Concepts",
-        set: 17
+        set: 17,
+        hint: "Think of 'impudent'",
+        derivatives: "impudent, pudency"
     },
     {
         latin: "puella",
@@ -6710,7 +7425,9 @@ const aLevelVocabularyData = [
         info: "puellae - noun",
         letter: "P",
         topic: "Family & People",
-        set: 17
+        set: 17,
+        hint: "Think of 'puerile (via puer)'",
+        derivatives: "puerile (via puer)"
     },
     {
         latin: "puer",
@@ -6718,7 +7435,9 @@ const aLevelVocabularyData = [
         info: "pueri - noun",
         letter: "P",
         topic: "Family & People",
-        set: 17
+        set: 17,
+        hint: "Think of 'puerile'",
+        derivatives: "puerile, puerilty"
     },
     {
         latin: "pugna",
@@ -6726,7 +7445,9 @@ const aLevelVocabularyData = [
         info: "pugnae - noun",
         letter: "P",
         topic: "Military & War",
-        set: 17
+        set: 17,
+        hint: "Think of 'pugnacious'",
+        derivatives: "pugnacious, repugnant, impugn"
     },
     {
         latin: "pugno",
@@ -6736,7 +7457,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Fighting",
         set: 17,
         hint: "Think of 'pugnacious'",
-        derivatives: "pugnacious, repugnant, impugn"
+        derivatives: "pugnacious, repugnant, impugn, pugilist"
     },
     {
         latin: "pulcher",
@@ -6744,7 +7465,9 @@ const aLevelVocabularyData = [
         info: "pulchra - adjective",
         letter: "P",
         topic: "Quality & Character",
-        set: 17
+        set: 17,
+        hint: "Think of 'pulchritude'",
+        derivatives: "pulchritude"
     },
     {
         latin: "punio",
@@ -6752,7 +7475,8 @@ const aLevelVocabularyData = [
         info: "punire, punivi - verb",
         letter: "P",
         topic: "Miscellaneous",
-        set: 17
+        set: 17,
+        derivatives: "punish, punishment, punitive"
     },
     {
         latin: "puto",
@@ -6762,7 +7486,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Thinking",
         set: 17,
         hint: "Think of 'compute'",
-        derivatives: "compute, dispute, reputation, impute, deputy"
+        derivatives: "compute, dispute, reputation, impute, deputy, putative"
     },
     {
         latin: "quadraginta",
@@ -6788,7 +7512,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Perception",
         set: 17,
         hint: "Think of 'query'",
-        derivatives: "query, quest, question, require, acquire, inquire"
+        derivatives: "query, quest, question, require, acquire, inquire, inquest"
     },
     {
         latin: "qualis",
@@ -6796,7 +7520,9 @@ const aLevelVocabularyData = [
         info: "? quale? - adjective",
         letter: "Q",
         topic: "Miscellaneous",
-        set: 17
+        set: 17,
+        hint: "Think of 'quality'",
+        derivatives: "quality, qualify, qualification"
     },
     {
         latin: "quam",
@@ -6804,7 +7530,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "Q",
         topic: "Adverbs",
-        set: 17
+        set: 17,
+        hint: "Think of 'quantity (unrelated)'",
+        derivatives: "quantity (unrelated)"
     },
     {
         latin: "quamquam",
@@ -6812,7 +7540,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "Q",
         topic: "Conjunctions",
-        set: 17
+        set: 17,
+        derivatives: "although (no direct derivative)"
     },
     {
         latin: "quamvis",
@@ -6828,7 +7557,9 @@ const aLevelVocabularyData = [
         info: "? - adverb",
         letter: "Q",
         topic: "Adverbs",
-        set: 17
+        set: 17,
+        hint: "Think of 'when (no direct derivative)'",
+        derivatives: "when (no direct derivative)"
     },
     {
         latin: "quantus",
@@ -6836,7 +7567,9 @@ const aLevelVocabularyData = [
         info: "? quanta? - adjective",
         letter: "Q",
         topic: "Size & Quantity",
-        set: 17
+        set: 17,
+        hint: "Think of 'quantity'",
+        derivatives: "quantity, quantum"
     },
     {
         latin: "quare",
@@ -6860,7 +7593,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "Q",
         topic: "Adverbs",
-        set: 17
+        set: 17,
+        derivatives: "quasi, quash"
     },
     {
         latin: "quattuor",
@@ -6868,7 +7602,9 @@ const aLevelVocabularyData = [
         info: "- numeral",
         letter: "Q",
         topic: "Miscellaneous",
-        set: 17
+        set: 17,
+        hint: "Think of 'quarter'",
+        derivatives: "quarter, quartet, quadrant"
     },
     {
         latin: "quattuordecim",
@@ -6892,7 +7628,9 @@ const aLevelVocabularyData = [
         info: "queri, questus - verb",
         letter: "Q",
         topic: "Miscellaneous",
-        set: 17
+        set: 17,
+        hint: "Think of 'quarrel'",
+        derivatives: "quarrel, querulous"
     },
     {
         latin: "qui",
@@ -6900,7 +7638,8 @@ const aLevelVocabularyData = [
         info: "quae, quod - pronoun",
         letter: "Q",
         topic: "Pronouns",
-        set: 17
+        set: 17,
+        derivatives: "who, which (no direct derivative)"
     },
     {
         latin: "quia",
@@ -6908,7 +7647,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "Q",
         topic: "Conjunctions",
-        set: 17
+        set: 17,
+        derivatives: "because (no direct derivative)"
     },
     {
         latin: "quicumque",
@@ -6924,7 +7664,9 @@ const aLevelVocabularyData = [
         info: "quaedam pron / - adjective",
         letter: "Q",
         topic: "Size & Quantity",
-        set: 17
+        set: 17,
+        hint: "Think of 'quiddity (essence)'",
+        derivatives: "quiddity (essence)"
     },
     {
         latin: "quidem",
@@ -6932,7 +7674,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "Q",
         topic: "Miscellaneous",
-        set: 17
+        set: 17,
+        derivatives: "indeed (no direct derivative)"
     },
     {
         latin: "quies",
@@ -6940,7 +7683,9 @@ const aLevelVocabularyData = [
         info: "quietis - noun",
         letter: "Q",
         topic: "Abstract Concepts",
-        set: 17
+        set: 17,
+        hint: "Think of 'quiescent'",
+        derivatives: "quiet, quiescent, acquiesce, requiem"
     },
     {
         latin: "quin",
@@ -6948,7 +7693,9 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "Q",
         topic: "Conjunctions",
-        set: 17
+        set: 17,
+        hint: "Think of 'indeed (no direct derivative)'",
+        derivatives: "indeed (no direct derivative)"
     },
     {
         latin: "quindecim",
@@ -6980,7 +7727,9 @@ const aLevelVocabularyData = [
         info: "- numeral",
         letter: "Q",
         topic: "Miscellaneous",
-        set: 17
+        set: 17,
+        hint: "Think of 'quintet'",
+        derivatives: "quintet, quintuplet"
     },
     {
         latin: "quintus",
@@ -6996,7 +7745,9 @@ const aLevelVocabularyData = [
         info: "(?) quid? - pronoun",
         letter: "Q",
         topic: "Pronouns",
-        set: 17
+        set: 17,
+        hint: "Think of 'who (no direct derivative)'",
+        derivatives: "who (no direct derivative)"
     },
     {
         latin: "quisquam",
@@ -7004,7 +7755,8 @@ const aLevelVocabularyData = [
         info: "quicquam - pronoun",
         letter: "Q",
         topic: "Pronouns",
-        set: 17
+        set: 17,
+        derivatives: "anyone (no direct derivative)"
     },
     {
         latin: "quisque",
@@ -7012,7 +7764,8 @@ const aLevelVocabularyData = [
         info: "quaeque - pronoun",
         letter: "Q",
         topic: "Pronouns",
-        set: 17
+        set: 17,
+        derivatives: "each (no direct derivative)"
     },
     {
         latin: "quisquis",
@@ -7028,7 +7781,9 @@ const aLevelVocabularyData = [
         info: "(?) - adverb",
         letter: "Q",
         topic: "Adverbs",
-        set: 17
+        set: 17,
+        hint: "Think of 'whither (no direct derivative)'",
+        derivatives: "where, whither (no direct derivative)"
     },
     {
         latin: "quoad",
@@ -7044,7 +7799,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "Q",
         topic: "Conjunctions",
-        set: 17
+        set: 17,
+        derivatives: "that, because (no direct derivative)"
     },
     {
         latin: "quominus",
@@ -7060,7 +7816,9 @@ const aLevelVocabularyData = [
         info: "? - adverb",
         letter: "Q",
         topic: "Adverbs",
-        set: 17
+        set: 17,
+        hint: "Think of 'how (no direct derivative)'",
+        derivatives: "how (no direct derivative)"
     },
     {
         latin: "quondam",
@@ -7068,7 +7826,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "Q",
         topic: "Time & Seasons",
-        set: 17
+        set: 17,
+        hint: "Think of 'quondam (former)'",
+        derivatives: "quondam (former)"
     },
     {
         latin: "quoniam",
@@ -7076,7 +7836,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "Q",
         topic: "Miscellaneous",
-        set: 17
+        set: 17,
+        derivatives: "since (no direct derivative)"
     },
     {
         latin: "quoque",
@@ -7084,7 +7845,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "Q",
         topic: "Miscellaneous",
-        set: 17
+        set: 17,
+        derivatives: "also (no direct derivative)"
     },
     {
         latin: "quot",
@@ -7092,7 +7854,9 @@ const aLevelVocabularyData = [
         info: "? indecl - adjective",
         letter: "Q",
         topic: "Size & Quantity",
-        set: 17
+        set: 17,
+        hint: "Think of 'quota'",
+        derivatives: "quota, quotient"
     },
     {
         latin: "quotiens",
@@ -7110,7 +7874,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Giving/Taking",
         set: 18,
         hint: "Think of 'rapid'",
-        derivatives: "rapid, rapture, rapt, rape, ravish"
+        derivatives: "rapid, rapture, rapt, rape, ravish, rapacious"
     },
     {
         latin: "rarus",
@@ -7126,7 +7890,9 @@ const aLevelVocabularyData = [
         info: "rationis - noun",
         letter: "R",
         topic: "Abstract Concepts",
-        set: 18
+        set: 18,
+        hint: "Think of 'ratio'",
+        derivatives: "ratio, rational, reason, ration"
     },
     {
         latin: "re-",
@@ -7150,7 +7916,9 @@ const aLevelVocabularyData = [
         info: "recipere, recepi - verb",
         letter: "R",
         topic: "Verbs of Giving/Taking",
-        set: 18
+        set: 18,
+        hint: "Think of 'reception'",
+        derivatives: "receive, reception, recipe, recipient"
     },
     {
         latin: "recito",
@@ -7174,7 +7942,9 @@ const aLevelVocabularyData = [
         info: "recusare - verb",
         letter: "R",
         topic: "Miscellaneous",
-        set: 18
+        set: 18,
+        hint: "Think of 'recuse'",
+        derivatives: "recuse, refuse"
     },
     {
         latin: "reddo",
@@ -7182,7 +7952,9 @@ const aLevelVocabularyData = [
         info: "reddere, reddidi - verb",
         letter: "R",
         topic: "Verbs of Giving/Taking",
-        set: 18
+        set: 18,
+        hint: "Think of 'rendition'",
+        derivatives: "render, rendition"
     },
     {
         latin: "redeo",
@@ -7190,7 +7962,8 @@ const aLevelVocabularyData = [
         info: "redire, redii - verb",
         letter: "R",
         topic: "Verbs of Motion",
-        set: 18
+        set: 18,
+        derivatives: "return (via Old French)"
     },
     {
         latin: "reduco",
@@ -7206,7 +7979,8 @@ const aLevelVocabularyData = [
         info: "referre, rettuli - verb",
         letter: "R",
         topic: "Verbs of Speaking",
-        set: 18
+        set: 18,
+        derivatives: "refer, reference, referee"
     },
     {
         latin: "reficio",
@@ -7222,7 +7996,9 @@ const aLevelVocabularyData = [
         info: "reginae - noun",
         letter: "R",
         topic: "Government & Politics",
-        set: 18
+        set: 18,
+        hint: "Think of 'regal'",
+        derivatives: "queen, regal, regicide"
     },
     {
         latin: "regio",
@@ -7230,7 +8006,8 @@ const aLevelVocabularyData = [
         info: "regionis - noun",
         letter: "R",
         topic: "Buildings & Places",
-        set: 18
+        set: 18,
+        derivatives: "region, regional"
     },
     {
         latin: "regius",
@@ -7258,7 +8035,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Ruling",
         set: 18,
         hint: "Think of 'regal'",
-        derivatives: "regal, regent, regulate, reign, region, correct, direct"
+        derivatives: "regal, regent, regulate, reign, region, correct, direct, rule"
     },
     {
         latin: "regredior",
@@ -7274,7 +8051,9 @@ const aLevelVocabularyData = [
         info: "relinquere - verb",
         letter: "R",
         topic: "Verbs of Motion",
-        set: 18
+        set: 18,
+        hint: "Think of 'relinquish'",
+        derivatives: "relinquish, relic, delinquent, relict"
     },
     {
         latin: "reliquus",
@@ -7282,7 +8061,9 @@ const aLevelVocabularyData = [
         info: "reliqua, reliquum - adjective",
         letter: "R",
         topic: "Size & Quantity",
-        set: 18
+        set: 18,
+        hint: "Think of 'relic'",
+        derivatives: "relic, relict"
     },
     {
         latin: "reor",
@@ -7290,7 +8071,9 @@ const aLevelVocabularyData = [
         info: "reri, ratus sum - verb",
         letter: "R",
         topic: "Verbs of Thinking",
-        set: 18
+        set: 18,
+        hint: "Think of 'sum'",
+        derivatives: "sum, summation, essence"
     },
     {
         latin: "repello",
@@ -7298,7 +8081,9 @@ const aLevelVocabularyData = [
         info: "repellere - verb",
         letter: "R",
         topic: "Miscellaneous",
-        set: 18
+        set: 18,
+        hint: "Think of 'repel'",
+        derivatives: "repel, repellent, repulse"
     },
     {
         latin: "repente",
@@ -7314,7 +8099,9 @@ const aLevelVocabularyData = [
         info: "repetere - verb",
         letter: "R",
         topic: "Verbs of Fighting",
-        set: 18
+        set: 18,
+        hint: "Think of 'repeat'",
+        derivatives: "repeat, repetition"
     },
     {
         latin: "res",
@@ -7324,7 +8111,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 18,
         hint: "Think of 'real'",
-        derivatives: "real, reality, republic, rebus"
+        derivatives: "real, reality, republic, rebus, reify"
     },
     {
         latin: "resisto",
@@ -7332,7 +8119,8 @@ const aLevelVocabularyData = [
         info: "resistere, restiti - verb",
         letter: "R",
         topic: "Verbs of Fighting",
-        set: 18
+        set: 18,
+        derivatives: "resist, resistance, resistor"
     },
     {
         latin: "respicio",
@@ -7348,7 +8136,9 @@ const aLevelVocabularyData = [
         info: "respondere - verb",
         letter: "R",
         topic: "Verbs of Speaking",
-        set: 18
+        set: 18,
+        hint: "Think of 'response'",
+        derivatives: "respond, response, responsible"
     },
     {
         latin: "responsum",
@@ -7372,7 +8162,9 @@ const aLevelVocabularyData = [
         info: "retinere, retinui - verb",
         letter: "R",
         topic: "Miscellaneous",
-        set: 18
+        set: 18,
+        hint: "Think of 'retain'",
+        derivatives: "retain, retention, retentive"
     },
     {
         latin: "rex",
@@ -7382,7 +8174,7 @@ const aLevelVocabularyData = [
         topic: "Government & Politics",
         set: 18,
         hint: "Think of 'regal'",
-        derivatives: "regal, regent, regicide, royal, reign"
+        derivatives: "regal, regent, regicide, royal, reign, realm"
     },
     {
         latin: "rideo",
@@ -7400,7 +8192,9 @@ const aLevelVocabularyData = [
         info: "ripae - noun",
         letter: "R",
         topic: "Miscellaneous",
-        set: 18
+        set: 18,
+        hint: "Think of 'riparian'",
+        derivatives: "river (via Old French), riparian"
     },
     {
         latin: "rogo",
@@ -7410,7 +8204,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Speaking",
         set: 18,
         hint: "Think of 'interrogate'",
-        derivatives: "interrogate, arrogant, derogate, prerogative"
+        derivatives: "interrogate, arrogant, derogate, prerogative, abrogate"
     },
     {
         latin: "Roma",
@@ -7442,7 +8236,9 @@ const aLevelVocabularyData = [
         info: "rotae - noun",
         letter: "R",
         topic: "Miscellaneous",
-        set: 18
+        set: 18,
+        hint: "Think of 'rotate'",
+        derivatives: "rotate, rotation, rotary"
     },
     {
         latin: "ruina",
@@ -7460,7 +8256,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Making/Doing",
         set: 18,
         hint: "Think of 'rupt'",
-        derivatives: "rupt, rupture, corrupt, disrupt, erupt, interrupt"
+        derivatives: "rupt, rupture, corrupt, disrupt, erupt, interrupt, rout"
     },
     {
         latin: "ruo",
@@ -7484,7 +8280,9 @@ const aLevelVocabularyData = [
         info: "ruris (ruri = in - noun",
         letter: "R",
         topic: "Government & Politics",
-        set: 18
+        set: 18,
+        hint: "Think of 'in'",
+        derivatives: "in, into, internal, intrinsic"
     },
     {
         latin: "sacer",
@@ -7494,7 +8292,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 18,
         hint: "Think of 'sacrifice'",
-        derivatives: "sacred, sacrifice, sacrilege, consecrate"
+        derivatives: "sacred, sacrifice, sacrilege, consecrate, sacrament"
     },
     {
         latin: "sacerdos",
@@ -7502,7 +8300,8 @@ const aLevelVocabularyData = [
         info: "sacerdotis - noun",
         letter: "S",
         topic: "Religion & Ritual",
-        set: 18
+        set: 18,
+        derivatives: "sacerdotal (priestly)"
     },
     {
         latin: "sacrificium",
@@ -7518,7 +8317,8 @@ const aLevelVocabularyData = [
         info: "comp saepius - adverb",
         letter: "S",
         topic: "Time & Seasons",
-        set: 18
+        set: 18,
+        derivatives: "often (no direct derivative)"
     },
     {
         latin: "saevus",
@@ -7526,7 +8326,9 @@ const aLevelVocabularyData = [
         info: "saeva, saevum - adjective",
         letter: "S",
         topic: "Quality & Character",
-        set: 19
+        set: 19,
+        hint: "Think of 'severe (related)'",
+        derivatives: "savage, severe (related)"
     },
     {
         latin: "sagitta",
@@ -7544,7 +8346,7 @@ const aLevelVocabularyData = [
         topic: "The Body",
         set: 19,
         hint: "Think of 'save'",
-        derivatives: "safe, save, salvation, salute, salubrious"
+        derivatives: "safe, save, salvation, salute, salubrious, salvage"
     },
     {
         latin: "saluto",
@@ -7562,7 +8364,7 @@ const aLevelVocabularyData = [
         topic: "The Body",
         set: 19,
         hint: "Think of 'sanguine'",
-        derivatives: "sanguine, sanguinary, consanguinity"
+        derivatives: "sanguine, sanguinary, consanguinity, sangria"
     },
     {
         latin: "sanus",
@@ -7570,7 +8372,9 @@ const aLevelVocabularyData = [
         info: "sana, sanum - adjective",
         letter: "S",
         topic: "Quality & Character",
-        set: 19
+        set: 19,
+        hint: "Think of 'sanity'",
+        derivatives: "sane, sanity, insane, sanitary"
     },
     {
         latin: "sapiens",
@@ -7586,7 +8390,9 @@ const aLevelVocabularyData = [
         info: "sapientiae - noun",
         letter: "S",
         topic: "Emotions & Mind",
-        set: 19
+        set: 19,
+        hint: "Think of 'sapient'",
+        derivatives: "sapient, Homo sapiens"
     },
     {
         latin: "satis",
@@ -7594,7 +8400,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "S",
         topic: "Miscellaneous",
-        set: 19
+        set: 19,
+        hint: "Think of 'satisfy'",
+        derivatives: "satisfy, satiate, saturate, asset"
     },
     {
         latin: "saxum",
@@ -7618,7 +8426,9 @@ const aLevelVocabularyData = [
         info: "sceleris - noun",
         letter: "S",
         topic: "Abstract Concepts",
-        set: 19
+        set: 19,
+        hint: "Think of 'scelerate (wicked)'",
+        derivatives: "scelerate (wicked)"
     },
     {
         latin: "scio",
@@ -7628,7 +8438,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Perception",
         set: 19,
         hint: "Think of 'science'",
-        derivatives: "science, scientific, conscience, conscious, omniscient"
+        derivatives: "science, scientific, conscience, conscious, omniscient, prescient"
     },
     {
         latin: "scribo",
@@ -7638,7 +8448,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Making/Doing",
         set: 19,
         hint: "Think of 'scribe'",
-        derivatives: "scribe, script, scripture, describe, inscribe, prescribe"
+        derivatives: "scribe, script, scripture, describe, inscribe, prescribe, scribble"
     },
     {
         latin: "scutum",
@@ -7654,7 +8464,9 @@ const aLevelVocabularyData = [
         info: "sui refl - pronoun",
         letter: "S",
         topic: "Miscellaneous",
-        set: 19
+        set: 19,
+        hint: "Think of 'secede'",
+        derivatives: "self, secede, seduce, separate"
     },
     {
         latin: "secundus",
@@ -7662,7 +8474,8 @@ const aLevelVocabularyData = [
         info: "secunda - adjective",
         letter: "S",
         topic: "Size & Quantity",
-        set: 19
+        set: 19,
+        derivatives: "second, secondary"
     },
     {
         latin: "sed",
@@ -7670,7 +8483,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "S",
         topic: "Conjunctions",
-        set: 19
+        set: 19,
+        derivatives: "but (no direct derivative)"
     },
     {
         latin: "sedecim",
@@ -7688,7 +8502,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 19,
         hint: "Think of 'sedentary'",
-        derivatives: "sedentary, session, sedan, sedate, reside, preside"
+        derivatives: "sedentary, session, sedan, sedate, reside, preside, siege"
     },
     {
         latin: "sedes",
@@ -7696,7 +8510,9 @@ const aLevelVocabularyData = [
         info: "sedis - noun",
         letter: "S",
         topic: "Buildings & Places",
-        set: 19
+        set: 19,
+        hint: "Think of 'sedentary'",
+        derivatives: "sedentary, see (religious), supersede"
     },
     {
         latin: "semel",
@@ -7704,7 +8520,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "S",
         topic: "Miscellaneous",
-        set: 19
+        set: 19,
+        hint: "Think of 'simultaneous (related)'",
+        derivatives: "simultaneous (related)"
     },
     {
         latin: "semper",
@@ -7712,7 +8530,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "S",
         topic: "Time & Seasons",
-        set: 19
+        set: 19,
+        hint: "Think of 'sempiternal'",
+        derivatives: "always, sempiternal"
     },
     {
         latin: "senator",
@@ -7728,7 +8548,9 @@ const aLevelVocabularyData = [
         info: "senatus - noun",
         letter: "S",
         topic: "Government & Politics",
-        set: 19
+        set: 19,
+        hint: "Think of 'senator'",
+        derivatives: "senate, senator"
     },
     {
         latin: "senex",
@@ -7736,7 +8558,9 @@ const aLevelVocabularyData = [
         info: "senis - noun",
         letter: "S",
         topic: "Family & People",
-        set: 19
+        set: 19,
+        hint: "Think of 'senile'",
+        derivatives: "senile, senior, senate, sire"
     },
     {
         latin: "sententia",
@@ -7744,7 +8568,9 @@ const aLevelVocabularyData = [
         info: "sententiae - noun",
         letter: "S",
         topic: "Miscellaneous",
-        set: 19
+        set: 19,
+        hint: "Think of 'sentiment'",
+        derivatives: "sentence, sentiment, sententious"
     },
     {
         latin: "sentio",
@@ -7754,7 +8580,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Perception",
         set: 19,
         hint: "Think of 'sense'",
-        derivatives: "sense, sensible, sentiment, consent, resent"
+        derivatives: "sense, sensible, sentiment, consent, resent, sentient"
     },
     {
         latin: "sepelio",
@@ -7770,7 +8596,9 @@ const aLevelVocabularyData = [
         info: "- numeral",
         letter: "S",
         topic: "Miscellaneous",
-        set: 19
+        set: 19,
+        hint: "Think of 'September'",
+        derivatives: "September, septet, septuple"
     },
     {
         latin: "septendecim",
@@ -7812,7 +8640,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Motion",
         set: 19,
         hint: "Think of 'sequence'",
-        derivatives: "sequence, sequel, consequence, subsequent, pursue"
+        derivatives: "sequence, sequel, consequence, subsequent, pursue, execute"
     },
     {
         latin: "servio",
@@ -7820,7 +8648,9 @@ const aLevelVocabularyData = [
         info: "servire, servi(v)i - verb",
         letter: "S",
         topic: "Verbs of Being",
-        set: 19
+        set: 19,
+        hint: "Think of 'serve'",
+        derivatives: "serve, service, servant"
     },
     {
         latin: "servo",
@@ -7830,7 +8660,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Perception",
         set: 19,
         hint: "Think of 'serve'",
-        derivatives: "serve, servant, service, conserve, preserve, reserve"
+        derivatives: "serve, servant, service, conserve, preserve, reserve, observe"
     },
     {
         latin: "servus",
@@ -7838,7 +8668,9 @@ const aLevelVocabularyData = [
         info: "servi - noun",
         letter: "S",
         topic: "Family & People",
-        set: 19
+        set: 19,
+        hint: "Think of 'serve'",
+        derivatives: "serve, servant, serf, servile"
     },
     {
         latin: "sescenti",
@@ -7862,7 +8694,9 @@ const aLevelVocabularyData = [
         info: "severa, severum - adjective",
         letter: "S",
         topic: "Miscellaneous",
-        set: 19
+        set: 19,
+        hint: "Think of 'severity'",
+        derivatives: "severe, severity, persevere"
     },
     {
         latin: "sex",
@@ -7870,7 +8704,9 @@ const aLevelVocabularyData = [
         info: "- numeral",
         letter: "S",
         topic: "Miscellaneous",
-        set: 19
+        set: 19,
+        hint: "Think of 'sextuple'",
+        derivatives: "six, sextuple, sextet"
     },
     {
         latin: "sexaginta",
@@ -7894,7 +8730,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "S",
         topic: "Conjunctions",
-        set: 19
+        set: 19,
+        derivatives: "if (no direct derivative)"
     },
     {
         latin: "sic",
@@ -7902,7 +8739,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "S",
         topic: "Adverbs",
-        set: 19
+        set: 19,
+        hint: "Think of 'so'",
+        derivatives: "so, thus, sic (Latin abbreviation)"
     },
     {
         latin: "sicut",
@@ -7910,7 +8749,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "S",
         topic: "Verbs of Emotion",
-        set: 19
+        set: 19,
+        derivatives: "just as (no direct derivative)"
     },
     {
         latin: "signum",
@@ -7919,7 +8759,7 @@ const aLevelVocabularyData = [
         letter: "S",
         topic: "Military & War",
         set: 19,
-        derivatives: "sign, signal, signature, significant, design, resign"
+        derivatives: "sign, signal, signature, significant, design, resign, insignia"
     },
     {
         latin: "silentium",
@@ -7935,7 +8775,9 @@ const aLevelVocabularyData = [
         info: "silvae - noun",
         letter: "S",
         topic: "Nature & Landscape",
-        set: 19
+        set: 19,
+        hint: "Think of 'sylvan'",
+        derivatives: "sylvan, Transylvania, silviculture"
     },
     {
         latin: "similis",
@@ -7945,7 +8787,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 20,
         hint: "Think of 'simile'",
-        derivatives: "similar, simile, simulate, assimilate, resemble"
+        derivatives: "similar, simile, simulate, assimilate, resemble, facsimile"
     },
     {
         latin: "simul",
@@ -7953,7 +8795,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "S",
         topic: "Time & Seasons",
-        set: 20
+        set: 20,
+        hint: "Think of 'simultaneous'",
+        derivatives: "simultaneous, simulate, assemble"
     },
     {
         latin: "simulac/simulatque",
@@ -7969,7 +8813,9 @@ const aLevelVocabularyData = [
         info: "+ abl - preposition",
         letter: "S",
         topic: "Prepositions",
-        set: 20
+        set: 20,
+        hint: "Think of 'sinecure'",
+        derivatives: "without (no direct derivative), sinecure"
     },
     {
         latin: "sinister",
@@ -7977,7 +8823,9 @@ const aLevelVocabularyData = [
         info: "sinistra - adjective",
         letter: "S",
         topic: "Miscellaneous",
-        set: 20
+        set: 20,
+        hint: "Think of 'sinister'",
+        derivatives: "sinister, sinistral"
     },
     {
         latin: "sinistra",
@@ -7993,7 +8841,9 @@ const aLevelVocabularyData = [
         info: "sinere, sivi - verb",
         letter: "S",
         topic: "Verbs of Ruling",
-        set: 20
+        set: 20,
+        hint: "Think of 'position (via ponere)'",
+        derivatives: "position (via ponere)"
     },
     {
         latin: "sitis",
@@ -8019,7 +8869,7 @@ const aLevelVocabularyData = [
         topic: "Family & People",
         set: 20,
         hint: "Think of 'social'",
-        derivatives: "social, society, associate, sociable"
+        derivatives: "social, society, associate, sociable, sociology"
     },
     {
         latin: "sol",
@@ -8029,7 +8879,7 @@ const aLevelVocabularyData = [
         topic: "Nature & Landscape",
         set: 20,
         hint: "Think of 'solar'",
-        derivatives: "solar, solstice, parasol, solarium"
+        derivatives: "solar, solstice, parasol, solarium, insolation"
     },
     {
         latin: "soleo",
@@ -8037,7 +8887,9 @@ const aLevelVocabularyData = [
         info: "solere, solitus - verb",
         letter: "S",
         topic: "Verbs of Being",
-        set: 20
+        set: 20,
+        hint: "Think of 'insolent (originally unusual)'",
+        derivatives: "insolent (originally unusual)"
     },
     {
         latin: "solum",
@@ -8045,7 +8897,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "S",
         topic: "Adverbs",
-        set: 20
+        set: 20,
+        hint: "Think of 'soil'",
+        derivatives: "soil, sole (only)"
     },
     {
         latin: "solus",
@@ -8055,7 +8909,7 @@ const aLevelVocabularyData = [
         topic: "Size & Quantity",
         set: 20,
         hint: "Think of 'sole'",
-        derivatives: "sole, solitary, solo, solitude, desolate"
+        derivatives: "sole, solitary, solo, solitude, desolate, isolate"
     },
     {
         latin: "solvo",
@@ -8065,7 +8919,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 20,
         hint: "Think of 'solve'",
-        derivatives: "solve, solution, dissolve, resolve, absolve"
+        derivatives: "solve, solution, dissolve, resolve, absolve, solvent"
     },
     {
         latin: "somnium",
@@ -8083,7 +8937,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 20,
         hint: "Think of 'somnolent'",
-        derivatives: "somnolent, insomnia, somnambulism"
+        derivatives: "somnolent, insomnia, somnambulism, somnambulist"
     },
     {
         latin: "sonitus",
@@ -8099,7 +8953,9 @@ const aLevelVocabularyData = [
         info: "sonare, sonui - verb",
         letter: "S",
         topic: "Verbs of Making/Doing",
-        set: 20
+        set: 20,
+        hint: "Think of 'sonic'",
+        derivatives: "sound, sonic, sonorous, consonant, dissonant, resonate"
     },
     {
         latin: "sonus",
@@ -8107,7 +8963,9 @@ const aLevelVocabularyData = [
         info: "soni - noun",
         letter: "S",
         topic: "Abstract Concepts",
-        set: 20
+        set: 20,
+        hint: "Think of 'sonic'",
+        derivatives: "sound, sonic, sonata, unison"
     },
     {
         latin: "soror",
@@ -8115,7 +8973,9 @@ const aLevelVocabularyData = [
         info: "sororis - noun",
         letter: "S",
         topic: "Family & People",
-        set: 20
+        set: 20,
+        hint: "Think of 'sorority'",
+        derivatives: "sorority, sororal"
     },
     {
         latin: "spatium",
@@ -8123,7 +8983,9 @@ const aLevelVocabularyData = [
         info: "spatii - noun",
         letter: "S",
         topic: "Miscellaneous",
-        set: 20
+        set: 20,
+        hint: "Think of 'spatial'",
+        derivatives: "space, spatial, spacious"
     },
     {
         latin: "specto",
@@ -8133,7 +8995,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Perception",
         set: 20,
         hint: "Think of 'spectacle'",
-        derivatives: "spectacle, spectator, inspect, respect, suspect, aspect"
+        derivatives: "spectacle, spectator, inspect, respect, suspect, aspect, spectrum"
     },
     {
         latin: "sperno",
@@ -8151,7 +9013,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Thinking",
         set: 20,
         hint: "Think of 'despair'",
-        derivatives: "despair, desperate, prosper, esperance"
+        derivatives: "despair, desperate, prosper, esperance, hope"
     },
     {
         latin: "spes",
@@ -8159,7 +9021,9 @@ const aLevelVocabularyData = [
         info: "spei - noun",
         letter: "S",
         topic: "Emotions & Mind",
-        set: 20
+        set: 20,
+        hint: "Think of 'despair'",
+        derivatives: "despair, esperance"
     },
     {
         latin: "spolium",
@@ -8175,7 +9039,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "S",
         topic: "Adverbs",
-        set: 20
+        set: 20,
+        derivatives: "immediately (no direct derivative)"
     },
     {
         latin: "statio",
@@ -8191,7 +9056,9 @@ const aLevelVocabularyData = [
         info: "statuere, statui - verb",
         letter: "S",
         topic: "Verbs of Thinking",
-        set: 20
+        set: 20,
+        hint: "Think of 'statue'",
+        derivatives: "statue, statute, statute, institute, constitute, prostitute"
     },
     {
         latin: "sto",
@@ -8201,7 +9068,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 20,
         hint: "Think of 'state'",
-        derivatives: "stand, state, station, statue, stable, constant, instant"
+        derivatives: "stand, state, station, statue, stable, constant, instant, static"
     },
     {
         latin: "strepitus",
@@ -8217,7 +9084,9 @@ const aLevelVocabularyData = [
         info: "studii - noun",
         letter: "S",
         topic: "Miscellaneous",
-        set: 20
+        set: 20,
+        hint: "Think of 'studio'",
+        derivatives: "study, studio"
     },
     {
         latin: "stultus",
@@ -8225,7 +9094,9 @@ const aLevelVocabularyData = [
         info: "stulta, stultum - adjective",
         letter: "S",
         topic: "Quality & Character",
-        set: 20
+        set: 20,
+        hint: "Think of 'stultify'",
+        derivatives: "stultify"
     },
     {
         latin: "suavis",
@@ -8241,7 +9112,9 @@ const aLevelVocabularyData = [
         info: "+ acc - preposition",
         letter: "S",
         topic: "Prepositions",
-        set: 20
+        set: 20,
+        hint: "Think of 'sub-'",
+        derivatives: "sub-, submarine, submit, subsequent"
     },
     {
         latin: "subito",
@@ -8249,7 +9122,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "S",
         topic: "Adverbs",
-        set: 20
+        set: 20,
+        derivatives: "sudden, suddenly"
     },
     {
         latin: "sum",
@@ -8257,7 +9131,9 @@ const aLevelVocabularyData = [
         info: "esse, fui - verb",
         letter: "S",
         topic: "Verbs of Being",
-        set: 20
+        set: 20,
+        hint: "Think of 'sum'",
+        derivatives: "sum, summation, essence"
     },
     {
         latin: "summus",
@@ -8265,7 +9141,9 @@ const aLevelVocabularyData = [
         info: "summa - adjective",
         letter: "S",
         topic: "Miscellaneous",
-        set: 20
+        set: 20,
+        hint: "Think of 'summit'",
+        derivatives: "sum, summit, summation, consummate"
     },
     {
         latin: "sumo",
@@ -8275,7 +9153,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Giving/Taking",
         set: 20,
         hint: "Think of 'assume'",
-        derivatives: "assume, consume, presume, resume, summon"
+        derivatives: "assume, consume, presume, resume, summon, sumptuous"
     },
     {
         latin: "super",
@@ -8283,7 +9161,9 @@ const aLevelVocabularyData = [
         info: "+ acc - preposition",
         letter: "S",
         topic: "Prepositions",
-        set: 20
+        set: 20,
+        hint: "Think of 'super'",
+        derivatives: "super, superior, supreme, superb"
     },
     {
         latin: "superbus",
@@ -8307,7 +9187,9 @@ const aLevelVocabularyData = [
         info: "superare - verb",
         letter: "S",
         topic: "Verbs of Fighting",
-        set: 20
+        set: 20,
+        hint: "Think of 'superior'",
+        derivatives: "superior, insuperable"
     },
     {
         latin: "supersum",
@@ -8323,7 +9205,9 @@ const aLevelVocabularyData = [
         info: "supera, superum - adjective",
         letter: "S",
         topic: "Miscellaneous",
-        set: 20
+        set: 20,
+        hint: "Think of 'superior'",
+        derivatives: "superior, supremacy"
     },
     {
         latin: "supremus",
@@ -8339,7 +9223,9 @@ const aLevelVocabularyData = [
         info: "surgere, surrexi - verb",
         letter: "S",
         topic: "Verbs of Giving/Taking",
-        set: 20
+        set: 20,
+        hint: "Think of 'surge'",
+        derivatives: "surge, resurgent, insurgent, resurrection"
     },
     {
         latin: "suscipio",
@@ -8347,7 +9233,9 @@ const aLevelVocabularyData = [
         info: "suscipere - verb",
         letter: "S",
         topic: "Verbs of Making/Doing",
-        set: 20
+        set: 20,
+        hint: "Think of 'susceptible'",
+        derivatives: "susceptible, suspect"
     },
     {
         latin: "suspicor",
@@ -8363,7 +9251,9 @@ const aLevelVocabularyData = [
         info: "sua, suum - adjective",
         letter: "S",
         topic: "Miscellaneous",
-        set: 21
+        set: 21,
+        hint: "Think of 'suicide'",
+        derivatives: "suicide, sui generis"
     },
     {
         latin: "taberna",
@@ -8397,7 +9287,8 @@ const aLevelVocabularyData = [
         info: "tale - adjective",
         letter: "T",
         topic: "Size & Quantity",
-        set: 21
+        set: 21,
+        derivatives: "such, tale, tally"
     },
     {
         latin: "tam",
@@ -8405,7 +9296,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "T",
         topic: "Adverbs",
-        set: 21
+        set: 21,
+        derivatives: "so (no direct derivative)"
     },
     {
         latin: "tamen",
@@ -8413,7 +9305,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "T",
         topic: "Adverbs",
-        set: 21
+        set: 21,
+        derivatives: "however (no direct derivative)"
     },
     {
         latin: "tamquam",
@@ -8421,7 +9314,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "T",
         topic: "Verbs of Emotion",
-        set: 21
+        set: 21,
+        derivatives: "as if (no direct derivative)"
     },
     {
         latin: "tandem",
@@ -8429,7 +9323,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "T",
         topic: "Adverbs",
-        set: 21
+        set: 21,
+        hint: "Think of 'tandem'",
+        derivatives: "tandem, finally"
     },
     {
         latin: "tango",
@@ -8439,7 +9335,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 21,
         hint: "Think of 'tangent'",
-        derivatives: "tangent, tangible, contact, contagious, intact"
+        derivatives: "tangent, tangible, contact, contagious, intact, contingent"
     },
     {
         latin: "tantum",
@@ -8447,7 +9343,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "T",
         topic: "Adverbs",
-        set: 21
+        set: 21,
+        hint: "Think of 'tantamount'",
+        derivatives: "tantamount"
     },
     {
         latin: "tantus",
@@ -8455,7 +9353,8 @@ const aLevelVocabularyData = [
         info: "tanta, tantum - adjective",
         letter: "T",
         topic: "Size & Quantity",
-        set: 21
+        set: 21,
+        derivatives: "tantamount"
     },
     {
         latin: "tectum",
@@ -8473,7 +9372,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 21,
         hint: "Think of 'detect'",
-        derivatives: "protect, detect, tegument"
+        derivatives: "protect, detect, tegument, integument"
     },
     {
         latin: "telum",
@@ -8481,7 +9380,9 @@ const aLevelVocabularyData = [
         info: "teli - noun",
         letter: "T",
         topic: "Military & War",
-        set: 21
+        set: 21,
+        hint: "Think of 'tele- (far'",
+        derivatives: "tele- (far, related to throwing)"
     },
     {
         latin: "tempestas",
@@ -8489,7 +9390,9 @@ const aLevelVocabularyData = [
         info: "tempestatis - noun",
         letter: "T",
         topic: "Nature & Landscape",
-        set: 21
+        set: 21,
+        hint: "Think of 'tempest'",
+        derivatives: "tempest, tempestuous"
     },
     {
         latin: "templum",
@@ -8497,7 +9400,9 @@ const aLevelVocabularyData = [
         info: "templi - noun",
         letter: "T",
         topic: "Religion & Ritual",
-        set: 21
+        set: 21,
+        hint: "Think of 'contemplate'",
+        derivatives: "temple, contemplate"
     },
     {
         latin: "tempto",
@@ -8505,7 +9410,8 @@ const aLevelVocabularyData = [
         info: "temptare - verb",
         letter: "T",
         topic: "Miscellaneous",
-        set: 21
+        set: 21,
+        derivatives: "tempt, attempt, tentative, temptation"
     },
     {
         latin: "tempus",
@@ -8515,7 +9421,7 @@ const aLevelVocabularyData = [
         topic: "Time & Seasons",
         set: 21,
         hint: "Think of 'temporal'",
-        derivatives: "temporal, temporary, contemporary, tempo, tense"
+        derivatives: "temporal, temporary, contemporary, tempo, tense, tempest"
     },
     {
         latin: "teneo",
@@ -8525,7 +9431,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 21,
         hint: "Think of 'tenant'",
-        derivatives: "tenant, tenure, tenacious, contain, obtain, retain"
+        derivatives: "tenant, tenure, tenacious, contain, obtain, retain, maintain"
     },
     {
         latin: "tergum",
@@ -8543,7 +9449,7 @@ const aLevelVocabularyData = [
         topic: "Nature & Landscape",
         set: 21,
         hint: "Think of 'terrain'",
-        derivatives: "terrain, territory, terrestrial, terrace, inter"
+        derivatives: "terrain, territory, terrestrial, terrace, inter, Mediterranean"
     },
     {
         latin: "terreo",
@@ -8553,7 +9459,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 21,
         hint: "Think of 'terror'",
-        derivatives: "terror, terrible, terrify, deter"
+        derivatives: "terror, terrible, terrify, deter, deterrent"
     },
     {
         latin: "terror",
@@ -8577,7 +9483,9 @@ const aLevelVocabularyData = [
         info: "testis - noun",
         letter: "T",
         topic: "Miscellaneous",
-        set: 21
+        set: 21,
+        hint: "Think of 'testify'",
+        derivatives: "testify, testimony, test, attest, contest, protest"
     },
     {
         latin: "theatrum",
@@ -8611,7 +9519,9 @@ const aLevelVocabularyData = [
         info: "timoris - noun",
         letter: "T",
         topic: "Emotions & Mind",
-        set: 21
+        set: 21,
+        hint: "Think of 'timid'",
+        derivatives: "timid, timorous"
     },
     {
         latin: "tollo",
@@ -8621,7 +9531,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Making/Doing",
         set: 21,
         hint: "Think of 'extol'",
-        derivatives: "extol, tolerate"
+        derivatives: "extol, tolerate, toll (levy)"
     },
     {
         latin: "toga",
@@ -8637,7 +9547,9 @@ const aLevelVocabularyData = [
         info: "indecl - adjective",
         letter: "T",
         topic: "Size & Quantity",
-        set: 21
+        set: 21,
+        hint: "Think of 'total'",
+        derivatives: "total, toto"
     },
     {
         latin: "totiens",
@@ -8653,7 +9565,9 @@ const aLevelVocabularyData = [
         info: "tota, totum - adjective",
         letter: "T",
         topic: "Size & Quantity",
-        set: 21
+        set: 21,
+        hint: "Think of 'total'",
+        derivatives: "total, toto, totality"
     },
     {
         latin: "trado",
@@ -8661,7 +9575,9 @@ const aLevelVocabularyData = [
         info: "tradere, tradidi - verb",
         letter: "T",
         topic: "Verbs of Giving/Taking",
-        set: 21
+        set: 21,
+        hint: "Think of 'tradition'",
+        derivatives: "tradition, traduce, traitor"
     },
     {
         latin: "traho",
@@ -8671,7 +9587,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 21,
         hint: "Think of 'tract'",
-        derivatives: "tract, tractor, attract, contract, extract, subtract"
+        derivatives: "tract, tractor, attract, contract, extract, subtract, trait"
     },
     {
         latin: "trans",
@@ -8679,7 +9595,9 @@ const aLevelVocabularyData = [
         info: "+ acc, or as - preposition",
         letter: "T",
         topic: "Prepositions",
-        set: 21
+        set: 21,
+        hint: "Think of 'trans-'",
+        derivatives: "trans-, transfer, transport, translate, transcend"
     },
     {
         latin: "trecenti",
@@ -8703,7 +9621,9 @@ const aLevelVocabularyData = [
         info: "tria - numeral",
         letter: "T",
         topic: "Miscellaneous",
-        set: 21
+        set: 21,
+        hint: "Think of 'trio'",
+        derivatives: "three, trio, triple, triad"
     },
     {
         latin: "triginta",
@@ -8719,7 +9639,8 @@ const aLevelVocabularyData = [
         info: "triste - adjective",
         letter: "T",
         topic: "Quality & Character",
-        set: 21
+        set: 21,
+        derivatives: "triste (sad)"
     },
     {
         latin: "tu",
@@ -8727,7 +9648,8 @@ const aLevelVocabularyData = [
         info: "tui - pronoun",
         letter: "T",
         topic: "Pronouns",
-        set: 21
+        set: 21,
+        derivatives: "thou (archaic you)"
     },
     {
         latin: "tum",
@@ -8735,7 +9657,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "T",
         topic: "Time & Seasons",
-        set: 21
+        set: 21,
+        derivatives: "then (no direct derivative)"
     },
     {
         latin: "tumultus",
@@ -8743,7 +9666,9 @@ const aLevelVocabularyData = [
         info: "tumultus - noun",
         letter: "T",
         topic: "Military & War",
-        set: 21
+        set: 21,
+        hint: "Think of 'tumult'",
+        derivatives: "tumult, tumultuous"
     },
     {
         latin: "tunc",
@@ -8759,7 +9684,9 @@ const aLevelVocabularyData = [
         info: "turbae - noun",
         letter: "T",
         topic: "Miscellaneous",
-        set: 21
+        set: 21,
+        hint: "Think of 'turmoil'",
+        derivatives: "turmoil, disturb, perturb, turbulent"
     },
     {
         latin: "turris",
@@ -8775,7 +9702,9 @@ const aLevelVocabularyData = [
         info: "tuta, tutum - adjective",
         letter: "T",
         topic: "Quality & Character",
-        set: 21
+        set: 21,
+        hint: "Think of 'tutor'",
+        derivatives: "tutor, tuition, tutelage"
     },
     {
         latin: "tuus",
@@ -8783,7 +9712,8 @@ const aLevelVocabularyData = [
         info: "tua, tuum - adjective",
         letter: "T",
         topic: "Miscellaneous",
-        set: 22
+        set: 22,
+        derivatives: "your (no direct derivative)"
     },
     {
         latin: "ubi",
@@ -8791,7 +9721,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "U",
         topic: "Adverbs",
-        set: 22
+        set: 22,
+        hint: "Think of 'ubiquitous'",
+        derivatives: "where, ubiquitous"
     },
     {
         latin: "ubique",
@@ -8807,7 +9739,9 @@ const aLevelVocabularyData = [
         info: "ulla, ullum - adjective",
         letter: "U",
         topic: "Size & Quantity",
-        set: 22
+        set: 22,
+        hint: "Think of 'null'",
+        derivatives: "any (no direct derivative), null"
     },
     {
         latin: "ultimus",
@@ -8815,7 +9749,9 @@ const aLevelVocabularyData = [
         info: "ultima, ultimum - adjective",
         letter: "U",
         topic: "Size & Quantity",
-        set: 22
+        set: 22,
+        hint: "Think of 'ultimate'",
+        derivatives: "ultimate, ultimatum, penultimate"
     },
     {
         latin: "umbra",
@@ -8823,7 +9759,9 @@ const aLevelVocabularyData = [
         info: "umbrae - noun",
         letter: "U",
         topic: "Miscellaneous",
-        set: 22
+        set: 22,
+        hint: "Think of 'umbrella'",
+        derivatives: "umbrella, umbrage, penumbra"
     },
     {
         latin: "umquam",
@@ -8831,7 +9769,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "U",
         topic: "Miscellaneous",
-        set: 22
+        set: 22,
+        derivatives: "ever (no direct derivative)"
     },
     {
         latin: "una",
@@ -8847,7 +9786,9 @@ const aLevelVocabularyData = [
         info: "undae - noun",
         letter: "U",
         topic: "Nature & Landscape",
-        set: 22
+        set: 22,
+        hint: "Think of 'undulate'",
+        derivatives: "undulate, inundate, abundant, redundant"
     },
     {
         latin: "unde",
@@ -8855,7 +9796,8 @@ const aLevelVocabularyData = [
         info: "(?) - adverb",
         letter: "U",
         topic: "Adverbs",
-        set: 22
+        set: 22,
+        derivatives: "whence (no direct derivative)"
     },
     {
         latin: "undecim",
@@ -8879,7 +9821,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "U",
         topic: "Miscellaneous",
-        set: 22
+        set: 22,
+        hint: "Think of 'everywhere (no direct derivative)'",
+        derivatives: "everywhere (no direct derivative)"
     },
     {
         latin: "unus",
@@ -8889,7 +9833,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 22,
         hint: "Think of 'unit'",
-        derivatives: "unit, unite, union, uniform, unique, universal"
+        derivatives: "unit, unite, union, uniform, unique, universal, unanimous"
     },
     {
         latin: "urbs",
@@ -8899,7 +9843,7 @@ const aLevelVocabularyData = [
         topic: "Buildings & Places",
         set: 22,
         hint: "Think of 'urban'",
-        derivatives: "urban, urbane, suburb, suburban"
+        derivatives: "urban, urbane, suburb, suburban, urbanity"
     },
     {
         latin: "usquam",
@@ -8915,7 +9859,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "U",
         topic: "Miscellaneous",
-        set: 22
+        set: 22,
+        derivatives: "always (no direct derivative)"
     },
     {
         latin: "usus",
@@ -8923,7 +9868,9 @@ const aLevelVocabularyData = [
         info: "usus - noun",
         letter: "U",
         topic: "Abstract Concepts",
-        set: 22
+        set: 22,
+        hint: "Think of 'usual'",
+        derivatives: "use, usual, usage, abuse, usury"
     },
     {
         latin: "ut",
@@ -8931,7 +9878,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "U",
         topic: "Conjunctions",
-        set: 22
+        set: 22,
+        derivatives: "as, so that (no direct derivative)"
     },
     {
         latin: "uter",
@@ -8939,7 +9887,9 @@ const aLevelVocabularyData = [
         info: "? utra? utrum? pron / - adjective",
         letter: "U",
         topic: "Miscellaneous",
-        set: 22
+        set: 22,
+        hint: "Think of 'uterus (unrelated)'",
+        derivatives: "uterus (unrelated)"
     },
     {
         latin: "uterque",
@@ -8947,7 +9897,8 @@ const aLevelVocabularyData = [
         info: "utraque pron / - adjective",
         letter: "U",
         topic: "Size & Quantity",
-        set: 22
+        set: 22,
+        derivatives: "both (no direct derivative)"
     },
     {
         latin: "utilis",
@@ -8955,7 +9906,9 @@ const aLevelVocabularyData = [
         info: "utile - adjective",
         letter: "U",
         topic: "Quality & Character",
-        set: 22
+        set: 22,
+        hint: "Think of 'utility'",
+        derivatives: "utility, utile, utilize"
     },
     {
         latin: "utinam",
@@ -8963,7 +9916,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "U",
         topic: "Adverbs",
-        set: 22
+        set: 22,
+        derivatives: "if only (no direct derivative)"
     },
     {
         latin: "utor",
@@ -8972,7 +9926,7 @@ const aLevelVocabularyData = [
         letter: "U",
         topic: "Miscellaneous",
         set: 22,
-        derivatives: "use, useful, utility, utensil, abuse"
+        derivatives: "use, useful, utility, utensil, abuse, usury"
     },
     {
         latin: "utrum",
@@ -8980,7 +9934,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "U",
         topic: "Miscellaneous",
-        set: 22
+        set: 22,
+        derivatives: "whether (no direct derivative)"
     },
     {
         latin: "uxor",
@@ -8988,7 +9943,8 @@ const aLevelVocabularyData = [
         info: "uxoris - noun",
         letter: "U",
         topic: "Family & People",
-        set: 22
+        set: 22,
+        derivatives: "uxorious (excessively devoted to wife)"
     },
     {
         latin: "valeo",
@@ -8998,7 +9954,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Being",
         set: 22,
         hint: "Think of 'valid'",
-        derivatives: "valid, value, valiant, prevail, equivalent"
+        derivatives: "valid, value, valiant, prevail, equivalent, valediction"
     },
     {
         latin: "validus",
@@ -9006,7 +9962,9 @@ const aLevelVocabularyData = [
         info: "valida, validum - adjective",
         letter: "V",
         topic: "Quality & Character",
-        set: 22
+        set: 22,
+        hint: "Think of 'valid'",
+        derivatives: "valid, invalid, validate"
     },
     {
         latin: "vallum",
@@ -9014,7 +9972,9 @@ const aLevelVocabularyData = [
         info: "valli - noun",
         letter: "V",
         topic: "Buildings & Places",
-        set: 22
+        set: 22,
+        hint: "Think of 'interval'",
+        derivatives: "wall, interval"
     },
     {
         latin: "-ve",
@@ -9038,7 +9998,9 @@ const aLevelVocabularyData = [
         info: "vehere, vexi - verb",
         letter: "V",
         topic: "Verbs of Giving/Taking",
-        set: 22
+        set: 22,
+        hint: "Think of 'vehicle'",
+        derivatives: "vehicle, convey, invective"
     },
     {
         latin: "vel",
@@ -9046,7 +10008,8 @@ const aLevelVocabularyData = [
         info: "- conjunction",
         letter: "V",
         topic: "Conjunctions",
-        set: 22
+        set: 22,
+        derivatives: "or (no direct derivative)"
     },
     {
         latin: "velut",
@@ -9054,7 +10017,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "V",
         topic: "Verbs of Emotion",
-        set: 22
+        set: 22,
+        derivatives: "as if (no direct derivative)"
     },
     {
         latin: "vendo",
@@ -9062,7 +10026,9 @@ const aLevelVocabularyData = [
         info: "vendere, vendidi - verb",
         letter: "V",
         topic: "Miscellaneous",
-        set: 22
+        set: 22,
+        hint: "Think of 'vend'",
+        derivatives: "vend, vendor, vendetta"
     },
     {
         latin: "venio",
@@ -9072,7 +10038,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Motion",
         set: 22,
         hint: "Think of 'venue'",
-        derivatives: "venue, advent, adventure, event, prevent, convention"
+        derivatives: "venue, advent, adventure, event, prevent, convention, intervene"
     },
     {
         latin: "ventus",
@@ -9080,7 +10046,9 @@ const aLevelVocabularyData = [
         info: "venti - noun",
         letter: "V",
         topic: "Nature & Landscape",
-        set: 22
+        set: 22,
+        hint: "Think of 'vent'",
+        derivatives: "vent, ventilate, ventilation"
     },
     {
         latin: "verbum",
@@ -9090,7 +10058,7 @@ const aLevelVocabularyData = [
         topic: "Abstract Concepts",
         set: 22,
         hint: "Think of 'verb'",
-        derivatives: "verb, verbal, verbose, proverb, adverb"
+        derivatives: "verb, verbal, verbose, proverb, adverb, verbatim"
     },
     {
         latin: "vereor",
@@ -9098,7 +10066,9 @@ const aLevelVocabularyData = [
         info: "vereri, veritus - verb",
         letter: "V",
         topic: "Verbs of Thinking",
-        set: 22
+        set: 22,
+        hint: "Think of 'revere'",
+        derivatives: "revere, reverence, reverend"
     },
     {
         latin: "vero",
@@ -9106,7 +10076,9 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "V",
         topic: "Miscellaneous",
-        set: 22
+        set: 22,
+        hint: "Think of 'verify (truly)'",
+        derivatives: "verify (truly)"
     },
     {
         latin: "verto",
@@ -9116,7 +10088,7 @@ const aLevelVocabularyData = [
         topic: "Miscellaneous",
         set: 22,
         hint: "Think of 'convert'",
-        derivatives: "convert, revert, invert, divert, adverse, verse"
+        derivatives: "convert, revert, invert, divert, adverse, verse, versatile"
     },
     {
         latin: "verus",
@@ -9126,7 +10098,7 @@ const aLevelVocabularyData = [
         topic: "Quality & Character",
         set: 22,
         hint: "Think of 'very'",
-        derivatives: "very, verify, verdict, verity, veracity"
+        derivatives: "very, verify, verdict, verity, veracity, verisimilitude"
     },
     {
         latin: "vesper",
@@ -9134,7 +10106,9 @@ const aLevelVocabularyData = [
         info: "vesperi or - noun",
         letter: "V",
         topic: "Time & Seasons",
-        set: 22
+        set: 22,
+        hint: "Think of 'vespers'",
+        derivatives: "vespers, evening"
     },
     {
         latin: "vester",
@@ -9142,7 +10116,8 @@ const aLevelVocabularyData = [
         info: "vestra, vestrum - adjective",
         letter: "V",
         topic: "Miscellaneous",
-        set: 22
+        set: 22,
+        derivatives: "your (no direct derivative)"
     },
     {
         latin: "vestigium",
@@ -9158,7 +10133,9 @@ const aLevelVocabularyData = [
         info: "vestis - noun",
         letter: "V",
         topic: "Miscellaneous",
-        set: 22
+        set: 22,
+        hint: "Think of 'vest'",
+        derivatives: "vest, vestment, invest, divest"
     },
     {
         latin: "veto",
@@ -9174,7 +10151,9 @@ const aLevelVocabularyData = [
         info: "gen veteris - adjective",
         letter: "V",
         topic: "Quality & Character",
-        set: 22
+        set: 22,
+        hint: "Think of 'veteran'",
+        derivatives: "veteran, inveterate"
     },
     {
         latin: "via",
@@ -9184,7 +10163,7 @@ const aLevelVocabularyData = [
         topic: "Buildings & Places",
         set: 22,
         hint: "Think of 'via'",
-        derivatives: "via, viaduct, deviate, obvious, previous, trivial"
+        derivatives: "via, viaduct, deviate, obvious, previous, trivial, voyage"
     },
     {
         latin: "victor",
@@ -9192,7 +10171,8 @@ const aLevelVocabularyData = [
         info: "victoris - noun",
         letter: "V",
         topic: "Miscellaneous",
-        set: 22
+        set: 22,
+        derivatives: "victor, victory, victorious"
     },
     {
         latin: "victoria",
@@ -9210,7 +10190,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Perception",
         set: 23,
         hint: "Think of 'video'",
-        derivatives: "video, vision, visible, visit, evident, provide"
+        derivatives: "video, vision, visible, visit, evident, provide, survey"
     },
     {
         latin: "videor",
@@ -9218,7 +10198,9 @@ const aLevelVocabularyData = [
         info: "videri, visus sum - verb",
         letter: "V",
         topic: "Verbs of Being",
-        set: 23
+        set: 23,
+        hint: "Think of 'sum'",
+        derivatives: "sum, summation, essence"
     },
     {
         latin: "viginti",
@@ -9234,7 +10216,8 @@ const aLevelVocabularyData = [
         info: "villae - noun",
         letter: "V",
         topic: "Government & Politics",
-        set: 23
+        set: 23,
+        derivatives: "villa, village, villain"
     },
     {
         latin: "vincio",
@@ -9242,7 +10225,9 @@ const aLevelVocabularyData = [
         info: "vincire, vinxi - verb",
         letter: "V",
         topic: "Miscellaneous",
-        set: 23
+        set: 23,
+        hint: "Think of 'vincible (conquerable)'",
+        derivatives: "vincible (conquerable)"
     },
     {
         latin: "vinco",
@@ -9252,7 +10237,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Fighting",
         set: 23,
         hint: "Think of 'victory'",
-        derivatives: "victory, victor, convince, evict, invincible"
+        derivatives: "victory, victor, convince, evict, invincible, vanquish"
     },
     {
         latin: "vinc",
@@ -9268,7 +10253,9 @@ const aLevelVocabularyData = [
         info: "vini - noun",
         letter: "V",
         topic: "Miscellaneous",
-        set: 23
+        set: 23,
+        hint: "Think of 'vine'",
+        derivatives: "wine, vine, vineyard, vintage, vinegar"
     },
     {
         latin: "vir",
@@ -9278,7 +10265,7 @@ const aLevelVocabularyData = [
         topic: "Family & People",
         set: 23,
         hint: "Think of 'virile'",
-        derivatives: "virile, virtue, virtuoso"
+        derivatives: "virile, virtue, virtuoso, virago"
     },
     {
         latin: "virtus",
@@ -9286,7 +10273,9 @@ const aLevelVocabularyData = [
         info: "virtutis - noun",
         letter: "V",
         topic: "Emotions & Mind",
-        set: 23
+        set: 23,
+        hint: "Think of 'virtuous'",
+        derivatives: "virtue, virtuous, virtual"
     },
     {
         latin: "vis",
@@ -9294,7 +10283,9 @@ const aLevelVocabularyData = [
         info: "acc vim, abl vi, - noun",
         letter: "V",
         topic: "Military & War",
-        set: 23
+        set: 23,
+        hint: "Think of 'violent'",
+        derivatives: "violent, violate"
     },
     {
         latin: "vita",
@@ -9304,7 +10295,7 @@ const aLevelVocabularyData = [
         topic: "The Body",
         set: 23,
         hint: "Think of 'vital'",
-        derivatives: "vital, vitamin, vitality, revive, survive"
+        derivatives: "vital, vitamin, vitality, revive, survive, vivid"
     },
     {
         latin: "vitium",
@@ -9312,7 +10303,9 @@ const aLevelVocabularyData = [
         info: "vitii - noun",
         letter: "V",
         topic: "Abstract Concepts",
-        set: 23
+        set: 23,
+        hint: "Think of 'vicious'",
+        derivatives: "vice, vicious, vitiate"
     },
     {
         latin: "vito",
@@ -9320,7 +10313,9 @@ const aLevelVocabularyData = [
         info: "vitare, vitavi - verb",
         letter: "V",
         topic: "Miscellaneous",
-        set: 23
+        set: 23,
+        hint: "Think of 'inevitable'",
+        derivatives: "avoid, inevitable"
     },
     {
         latin: "vivo",
@@ -9330,7 +10325,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Being",
         set: 23,
         hint: "Think of 'vivid'",
-        derivatives: "vivid, vivacious, revive, survive, convivial"
+        derivatives: "vivid, vivacious, revive, survive, convivial, vivify"
     },
     {
         latin: "vivus",
@@ -9338,7 +10333,9 @@ const aLevelVocabularyData = [
         info: "viva, vivum - adjective",
         letter: "V",
         topic: "Quality & Character",
-        set: 23
+        set: 23,
+        hint: "Think of 'vivid'",
+        derivatives: "vivid, vivisection"
     },
     {
         latin: "vix",
@@ -9346,7 +10343,8 @@ const aLevelVocabularyData = [
         info: "- adverb",
         letter: "V",
         topic: "Adverbs",
-        set: 23
+        set: 23,
+        derivatives: "scarcely (no direct derivative)"
     },
     {
         latin: "voco",
@@ -9356,7 +10354,7 @@ const aLevelVocabularyData = [
         topic: "Verbs of Speaking",
         set: 23,
         hint: "Think of 'vocal'",
-        derivatives: "vocal, voice, vocation, advocate, invoke, provoke"
+        derivatives: "vocal, voice, vocation, advocate, invoke, provoke, evoke"
     },
     {
         latin: "volo",
@@ -9382,7 +10380,8 @@ const aLevelVocabularyData = [
         info: "vestrum or vestri - pronoun",
         letter: "V",
         topic: "Pronouns",
-        set: 23
+        set: 23,
+        derivatives: "you (no direct derivative)"
     },
     {
         latin: "vox",
@@ -9392,7 +10391,7 @@ const aLevelVocabularyData = [
         topic: "The Body",
         set: 23,
         hint: "Think of 'vocal'",
-        derivatives: "voice, vocal, vowel, vociferous"
+        derivatives: "voice, vocal, vowel, vociferous, invoke"
     },
     {
         latin: "vulnero",
@@ -9418,6 +10417,8 @@ const aLevelVocabularyData = [
         info: "vultus - noun",
         letter: "V",
         topic: "The Body",
-        set: 23
+        set: 23,
+        hint: "Think of 'visage (related)'",
+        derivatives: "visage (related)"
     }
 ];
