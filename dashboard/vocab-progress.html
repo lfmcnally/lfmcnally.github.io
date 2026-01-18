@@ -732,14 +732,31 @@
                 isTeacherView = false;
             }
 
-            // Vocabulary data is pre-loaded via script tags in head
-            console.log('Checking vocab data:', currentConfig.dataVar, '=', !!window[currentConfig.dataVar]);
+            // Wait for vocabulary data to be available
+            await waitForVocabularyData();
+            console.log('Vocab data ready:', currentConfig.dataVar);
 
             // Setup event listeners
             setupEventListeners();
 
             // Load data
             await loadAllData();
+        }
+
+        // Wait for vocabulary data script to load
+        function waitForVocabularyData() {
+            return new Promise((resolve) => {
+                const checkData = () => {
+                    const data = window[currentConfig.dataVar];
+                    if (typeof data !== 'undefined' && Array.isArray(data) && data.length > 0) {
+                        resolve();
+                    } else {
+                        console.log('Waiting for vocab data...', currentConfig.dataVar);
+                        setTimeout(checkData, 100);
+                    }
+                };
+                checkData();
+            });
         }
 
         async function loadAllData() {
