@@ -2780,19 +2780,53 @@
         
         async function loadTaskProgress(taskId) {
             const tbody = document.getElementById(`progress-${taskId}`);
-            
+
             const { data: attempts, error } = await supabase
                 .from('task_attempts')
                 .select('*')
                 .eq('task_id', taskId);
-            
+
             if (error) {
                 tbody.innerHTML = '<tr><td colspan="6">Error loading progress</td></tr>';
                 return;
             }
-            
+
+            // Fetch "other vocab time" for all students - time spent on vocab practice NOT on this task
+            // This includes free practice (no task_id) and other vocab tasks
+            const studentIds = classStudents.map(s => s.id);
+            const otherVocabStats = {};
+
+            if (studentIds.length > 0) {
+                // Get all vocab-related practice attempts not linked to this task
+                const { data: otherAttempts } = await supabase
+                    .from('task_attempts')
+                    .select('student_id, time_spent_seconds, started_at, content_path')
+                    .in('student_id', studentIds)
+                    .or(`task_id.is.null,task_id.neq.${taskId}`)
+                    .like('content_path', '%vocabulary-practice%');
+
+                if (otherAttempts) {
+                    for (const attempt of otherAttempts) {
+                        if (!otherVocabStats[attempt.student_id]) {
+                            otherVocabStats[attempt.student_id] = {
+                                totalTime: 0,
+                                sessions: 0,
+                                lastPractice: null
+                            };
+                        }
+                        const stats = otherVocabStats[attempt.student_id];
+                        stats.totalTime += (attempt.time_spent_seconds || 0);
+                        stats.sessions++;
+                        const startedAt = new Date(attempt.started_at);
+                        if (!stats.lastPractice || startedAt > stats.lastPractice) {
+                            stats.lastPractice = startedAt;
+                        }
+                    }
+                }
+            }
+
             const studentStats = {};
-            
+
             for (const attempt of attempts) {
                 if (!studentStats[attempt.student_id]) {
                     studentStats[attempt.student_id] = {
@@ -2803,25 +2837,25 @@
                         lastAttempt: null
                     };
                 }
-                
+
                 const stats = studentStats[attempt.student_id];
                 stats.attempts++;
-                
+
                 if (attempt.completed_at && attempt.score !== null) {
                     if (stats.bestScore === null || attempt.score > stats.bestScore) {
                         stats.bestScore = attempt.score;
                     }
                 }
-                
+
                 if (attempt.time_spent_seconds) {
                     stats.totalTime += attempt.time_spent_seconds;
                 }
-                
+
                 const startedAt = new Date(attempt.started_at);
                 if (stats.firstAttempt === null || startedAt < stats.firstAttempt) {
                     stats.firstAttempt = startedAt;
                 }
-                
+
                 if (attempt.completed_at) {
                     const completedAt = new Date(attempt.completed_at);
                     if (stats.lastAttempt === null || completedAt > stats.lastAttempt) {
@@ -2829,16 +2863,25 @@
                     }
                 }
             }
-            
+
             let html = '';
-            
+
             for (const student of classStudents) {
                 const stats = studentStats[student.id];
-                
+                const otherVocab = otherVocabStats[student.id];
+
                 if (!stats) {
+                    // Student hasn't started this task - show other vocab time if available
+                    let otherVocabDisplay = '';
+                    if (otherVocab && otherVocab.totalTime > 0) {
+                        const mins = Math.round(otherVocab.totalTime / 60);
+                        const lastPracticeStr = otherVocab.lastPractice ?
+                            otherVocab.lastPractice.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : '';
+                        otherVocabDisplay = `<div style="font-size: 0.75rem; color: #7c3aed; margin-top: 0.25rem;" title="${otherVocab.sessions} sessions, last: ${lastPracticeStr}">Other vocab: ${mins} min</div>`;
+                    }
                     html += `
                         <tr>
-                            <td>${student.full_name || student.email}</td>
+                            <td>${student.full_name || student.email}${otherVocabDisplay}</td>
                             <td class="status-not-started">0</td>
                             <td class="status-not-started">—</td>
                             <td class="status-not-started">—</td>
@@ -2847,39 +2890,46 @@
                         </tr>
                     `;
                 } else {
-                    const bestScoreDisplay = stats.bestScore !== null ? 
-                        `<span class="${stats.bestScore >= 70 ? 'status-complete' : 'status-started'}">${stats.bestScore}%</span>` : 
+                    const bestScoreDisplay = stats.bestScore !== null ?
+                        `<span class="${stats.bestScore >= 70 ? 'status-complete' : 'status-started'}">${stats.bestScore}%</span>` :
                         '<span class="status-started">In progress</span>';
-                    
-                    const totalTimeDisplay = stats.totalTime > 0 ? 
-                        `${Math.round(stats.totalTime / 60)} min` : 
+
+                    const totalTimeDisplay = stats.totalTime > 0 ?
+                        `${Math.round(stats.totalTime / 60)} min` :
                         '< 1 min';
-                    
-                    const firstAttemptDisplay = stats.firstAttempt ? 
-                        stats.firstAttempt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 
+
+                    const firstAttemptDisplay = stats.firstAttempt ?
+                        stats.firstAttempt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) :
                         '—';
-                    
-                    const lastAttemptDisplay = stats.lastAttempt ? 
-                        stats.lastAttempt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 
+
+                    const lastAttemptDisplay = stats.lastAttempt ?
+                        stats.lastAttempt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) :
                         '—';
-                    
+
+                    // Show other vocab time indicator if they've also practiced elsewhere
+                    let otherVocabDisplay = '';
+                    if (otherVocab && otherVocab.totalTime > 0) {
+                        const mins = Math.round(otherVocab.totalTime / 60);
+                        otherVocabDisplay = `<span style="font-size: 0.7rem; color: #7c3aed; margin-left: 0.5rem;" title="${otherVocab.sessions} other vocab sessions">+${mins}m other</span>`;
+                    }
+
                     html += `
                         <tr>
                             <td>${student.full_name || student.email}</td>
                             <td>${stats.attempts}</td>
                             <td>${bestScoreDisplay}</td>
-                            <td>${totalTimeDisplay}</td>
+                            <td>${totalTimeDisplay}${otherVocabDisplay}</td>
                             <td>${firstAttemptDisplay}</td>
                             <td>${lastAttemptDisplay}</td>
                         </tr>
                     `;
                 }
             }
-            
+
             if (html === '') {
                 html = '<tr><td colspan="6" class="empty-state">No students in class</td></tr>';
             }
-            
+
             tbody.innerHTML = html;
         }
         
