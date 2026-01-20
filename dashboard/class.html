@@ -2781,6 +2781,15 @@
         async function loadTaskProgress(taskId) {
             const tbody = document.getElementById(`progress-${taskId}`);
 
+            // Get the task's created_at date to filter other vocab time
+            const { data: taskData } = await supabase
+                .from('tasks')
+                .select('created_at')
+                .eq('id', taskId)
+                .single();
+
+            const taskCreatedAt = taskData?.created_at;
+
             const { data: attempts, error } = await supabase
                 .from('task_attempts')
                 .select('*')
@@ -2792,18 +2801,21 @@
             }
 
             // Fetch "other vocab time" for all students - time spent on vocab practice NOT on this task
-            // This includes free practice (no task_id) and other vocab tasks
+            // Only includes practice SINCE this task was created
             const studentIds = classStudents.map(s => s.id);
             const otherVocabStats = {};
 
-            if (studentIds.length > 0) {
-                // Get all vocab-related practice attempts not linked to this task
-                const { data: otherAttempts } = await supabase
+            if (studentIds.length > 0 && taskCreatedAt) {
+                // Get all vocab-related practice attempts not linked to this task, since task was created
+                let query = supabase
                     .from('task_attempts')
                     .select('student_id, time_spent_seconds, started_at, content_path')
                     .in('student_id', studentIds)
                     .or(`task_id.is.null,task_id.neq.${taskId}`)
-                    .like('content_path', '%vocabulary-practice%');
+                    .like('content_path', '%vocabulary-practice%')
+                    .gte('started_at', taskCreatedAt);
+
+                const { data: otherAttempts } = await query;
 
                 if (otherAttempts) {
                     for (const attempt of otherAttempts) {
