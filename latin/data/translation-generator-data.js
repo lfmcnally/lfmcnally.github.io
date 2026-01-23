@@ -1473,7 +1473,15 @@ const storyTemplates = [
     }
 ];
 
-// Export for use in other files
+// Export for browser (make available globally)
+if (typeof window !== 'undefined') {
+    window.chapterGrammar = chapterGrammar;
+    window.grammarSpotlights = grammarSpotlights;
+    window.sentenceBank = sentenceBank;
+    window.storyTemplates = storyTemplates;
+}
+
+// Export for Node.js (testing)
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { chapterGrammar, grammarSpotlights, sentenceBank, storyTemplates };
 }
