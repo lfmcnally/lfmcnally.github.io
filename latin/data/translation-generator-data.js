@@ -84,6 +84,69 @@ const grammarSpotlights = {
 const narrativePassages = [
     // ========== BEGINNER STORIES (Chapters 1-4) ==========
     {
+        id: "beginner_villa",
+        title: "Life in a Roman Villa",
+        theme: "daily_life",
+        maxChapter: 1,
+        introduction: "A simple day in a Roman household.",
+        sentences: [
+            {
+                latin: "dominus in villa habitat.",
+                translations: [
+                    "the master lives in the villa.",
+                    "the master is living in the house.",
+                    "a master lives in the villa."
+                ],
+                grammar: ["present_active"],
+                keyPhrases: ["master", "lives", "living", "villa", "house"],
+                hints: { "dominus": "master", "villa": "villa/house", "habitat": "habito - present" }
+            },
+            {
+                latin: "servi in villa laborant.",
+                translations: [
+                    "the slaves work in the villa.",
+                    "the slaves are working in the house.",
+                    "slaves work in the villa."
+                ],
+                grammar: ["present_active"],
+                keyPhrases: ["slaves", "work", "working", "villa", "house"],
+                hints: { "servi": "slaves (nominative plural)", "laborant": "laboro - present plural" }
+            },
+            {
+                latin: "ancilla cibum parat.",
+                translations: [
+                    "the slave-girl prepares food.",
+                    "the maid is preparing food.",
+                    "a slave-girl prepares food."
+                ],
+                grammar: ["present_active"],
+                keyPhrases: ["slave-girl", "maid", "prepares", "preparing", "food"],
+                hints: { "ancilla": "slave-girl/maid", "cibum": "food (accusative)", "parat": "paro - present" }
+            },
+            {
+                latin: "dominus cibum consumit.",
+                translations: [
+                    "the master eats the food.",
+                    "the master is eating the food."
+                ],
+                grammar: ["present_active"],
+                keyPhrases: ["master", "eats", "eating", "food"],
+                hints: { "consumit": "consumo - present (eats)" }
+            },
+            {
+                latin: "dominus laetus est.",
+                translations: [
+                    "the master is happy.",
+                    "the master is pleased."
+                ],
+                grammar: ["present_active"],
+                keyPhrases: ["master", "happy", "pleased"],
+                hints: { "laetus": "happy", "est": "sum - present" }
+            }
+        ]
+    },
+
+    {
         id: "beginner_slave",
         title: "The Lazy Slave",
         theme: "daily_life",
