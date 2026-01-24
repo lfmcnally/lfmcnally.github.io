@@ -82,6 +82,271 @@ const grammarSpotlights = {
 // Complete stories with connected sentences, GCSE exam style
 
 const narrativePassages = [
+    // ========== BEGINNER STORIES (Chapters 1-4) ==========
+    {
+        id: "beginner_slave",
+        title: "The Lazy Slave",
+        theme: "daily_life",
+        maxChapter: 3,
+        introduction: "A master discovers his slave is not working.",
+        sentences: [
+            {
+                latin: "Gaius erat dominus Romanus.",
+                translations: [
+                    "Gaius was a Roman master.",
+                    "Gaius was a Roman lord."
+                ],
+                grammar: ["imperfect"],
+                keyPhrases: ["Gaius", "Roman", "master", "lord"],
+                hints: { "erat": "sum - imperfect", "dominus": "master/lord" }
+            },
+            {
+                latin: "servus in horto laborare debebat.",
+                translations: [
+                    "the slave had to work in the garden.",
+                    "the slave was supposed to work in the garden.",
+                    "a slave ought to work in the garden."
+                ],
+                grammar: ["imperfect", "infinitive"],
+                keyPhrases: ["slave", "had to", "supposed to", "work", "garden"],
+                hints: { "debebat": "debeo - imperfect (had to/ought)", "laborare": "infinitive" }
+            },
+            {
+                latin: "sed servus in horto dormiebat!",
+                translations: [
+                    "but the slave was sleeping in the garden!",
+                    "but the slave was asleep in the garden!"
+                ],
+                grammar: ["imperfect"],
+                keyPhrases: ["but", "slave", "sleeping", "asleep", "garden"],
+                hints: { "dormiebat": "dormio - imperfect" }
+            },
+            {
+                latin: "dominus iratus clamavit: 'cur non laboras, serve?'",
+                translations: [
+                    "the angry master shouted: 'why are you not working, slave?'",
+                    "the angry master cried: 'why aren't you working, slave?'"
+                ],
+                grammar: ["perfect", "direct_questions", "vocative", "imperatives"],
+                keyPhrases: ["angry", "master", "shouted", "cried", "why", "not", "working", "slave"],
+                hints: { "iratus": "angry", "clamavit": "clamo - perfect", "serve": "vocative" }
+            },
+            {
+                latin: "servus perterritus statim surrexit.",
+                translations: [
+                    "the terrified slave immediately got up.",
+                    "the very frightened slave got up at once."
+                ],
+                grammar: ["perfect"],
+                keyPhrases: ["terrified", "frightened", "slave", "immediately", "at once", "got up"],
+                hints: { "perterritus": "very frightened", "surrexit": "surgo - perfect" }
+            }
+        ]
+    },
+
+    {
+        id: "beginner_market",
+        title: "At the Market",
+        theme: "daily_life",
+        maxChapter: 2,
+        introduction: "A woman goes shopping at the Roman market.",
+        sentences: [
+            {
+                latin: "femina ad forum ambulat.",
+                translations: [
+                    "the woman walks to the forum.",
+                    "the woman is walking to the forum.",
+                    "a woman walks to the market."
+                ],
+                grammar: ["present_active"],
+                keyPhrases: ["woman", "walks", "walking", "forum", "market"],
+                hints: { "forum": "forum/market", "ambulat": "ambulo - present" }
+            },
+            {
+                latin: "femina cibum emere vult.",
+                translations: [
+                    "the woman wants to buy food.",
+                    "the woman wishes to buy food."
+                ],
+                grammar: ["present_active", "infinitive"],
+                keyPhrases: ["woman", "wants", "wishes", "buy", "food"],
+                hints: { "emere": "infinitive (to buy)", "vult": "volo - present (wants)" }
+            },
+            {
+                latin: "mercator feminae cibum ostendit.",
+                translations: [
+                    "the merchant shows the food to the woman.",
+                    "the merchant shows the woman the food.",
+                    "a merchant is showing food to the woman."
+                ],
+                grammar: ["present_active", "dative"],
+                keyPhrases: ["merchant", "shows", "showing", "food", "woman"],
+                hints: { "feminae": "dative (to the woman)", "ostendit": "ostendo - present" }
+            },
+            {
+                latin: "femina mercatori pecuniam dat.",
+                translations: [
+                    "the woman gives money to the merchant.",
+                    "the woman gives the merchant money."
+                ],
+                grammar: ["present_active", "dative"],
+                keyPhrases: ["woman", "gives", "money", "merchant"],
+                hints: { "mercatori": "dative (to the merchant)", "dat": "do - present" }
+            },
+            {
+                latin: "femina laeta domum redit.",
+                translations: [
+                    "the happy woman returns home.",
+                    "the woman returns home happily.",
+                    "the happy woman goes back home."
+                ],
+                grammar: ["present_active"],
+                keyPhrases: ["happy", "woman", "returns", "goes back", "home"],
+                hints: { "laeta": "happy", "domum": "homeward", "redit": "redeo - present" }
+            }
+        ]
+    },
+
+    {
+        id: "beginner_soldier",
+        title: "The New Soldier",
+        theme: "military",
+        maxChapter: 4,
+        introduction: "A young man joins the Roman army.",
+        sentences: [
+            {
+                latin: "Marcus erat iuvenis Romanus.",
+                translations: [
+                    "Marcus was a young Roman.",
+                    "Marcus was a Roman young man."
+                ],
+                grammar: ["imperfect"],
+                keyPhrases: ["Marcus", "young", "Roman"],
+                hints: { "iuvenis": "young man", "erat": "sum - imperfect" }
+            },
+            {
+                latin: "miles fieri volebat.",
+                translations: [
+                    "he wanted to become a soldier.",
+                    "he wished to become a soldier."
+                ],
+                grammar: ["imperfect", "infinitive"],
+                keyPhrases: ["wanted", "wished", "become", "soldier"],
+                hints: { "fieri": "infinitive (to become)", "volebat": "volo - imperfect" }
+            },
+            {
+                latin: "tandem ad castra advenit.",
+                translations: [
+                    "at last he arrived at the camp.",
+                    "finally he came to the camp."
+                ],
+                grammar: ["perfect"],
+                keyPhrases: ["at last", "finally", "arrived", "came", "camp"],
+                hints: { "tandem": "at last/finally", "castra": "camp", "advenit": "advenio - perfect" }
+            },
+            {
+                latin: "dux eum rogavit: 'cur huc venisti?'",
+                translations: [
+                    "the leader asked him: 'why have you come here?'",
+                    "the general asked him: 'why did you come here?'"
+                ],
+                grammar: ["perfect", "direct_questions"],
+                keyPhrases: ["leader", "general", "asked", "why", "come", "here"],
+                hints: { "dux": "leader/general", "huc": "here/to this place", "venisti": "venio - perfect 2nd sing" }
+            },
+            {
+                latin: "'pro patria pugnare volo,' respondit Marcus.",
+                translations: [
+                    "'I want to fight for my country,' Marcus replied.",
+                    "'I wish to fight for my fatherland,' replied Marcus."
+                ],
+                grammar: ["present_active", "infinitive", "perfect"],
+                keyPhrases: ["want", "wish", "fight", "country", "fatherland", "replied", "Marcus"],
+                hints: { "pro patria": "for the fatherland", "pugnare": "infinitive", "respondit": "respondeo - perfect" }
+            },
+            {
+                latin: "dux laetus Marcum in exercitum accepit.",
+                translations: [
+                    "the happy leader accepted Marcus into the army.",
+                    "the pleased general received Marcus into the army."
+                ],
+                grammar: ["perfect"],
+                keyPhrases: ["happy", "pleased", "leader", "general", "accepted", "received", "Marcus", "army"],
+                hints: { "exercitum": "army", "accepit": "accipio - perfect" }
+            }
+        ]
+    },
+
+    {
+        id: "beginner_dog",
+        title: "The Lost Dog",
+        theme: "daily_life",
+        maxChapter: 4,
+        introduction: "A boy searches for his missing dog.",
+        sentences: [
+            {
+                latin: "puer canem habebat.",
+                translations: [
+                    "the boy had a dog.",
+                    "a boy used to have a dog."
+                ],
+                grammar: ["imperfect"],
+                keyPhrases: ["boy", "had", "dog"],
+                hints: { "canem": "dog (accusative)", "habebat": "habeo - imperfect" }
+            },
+            {
+                latin: "canis e villa effugit.",
+                translations: [
+                    "the dog escaped from the house.",
+                    "the dog ran away from the villa."
+                ],
+                grammar: ["perfect"],
+                keyPhrases: ["dog", "escaped", "ran away", "house", "villa"],
+                hints: { "effugit": "effugio - perfect", "e villa": "from the house" }
+            },
+            {
+                latin: "puer tristis canem quaerebat.",
+                translations: [
+                    "the sad boy was looking for the dog.",
+                    "the sad boy searched for the dog."
+                ],
+                grammar: ["imperfect"],
+                keyPhrases: ["sad", "boy", "looking for", "searched", "dog"],
+                hints: { "tristis": "sad", "quaerebat": "quaero - imperfect" }
+            },
+            {
+                latin: "'ubi est canis meus?' clamavit.",
+                translations: [
+                    "'where is my dog?' he shouted.",
+                    "'where is my dog?' he cried."
+                ],
+                grammar: ["direct_questions", "perfect"],
+                keyPhrases: ["where", "my", "dog", "shouted", "cried"],
+                hints: { "ubi": "where", "meus": "my", "clamavit": "clamo - perfect" }
+            },
+            {
+                latin: "tandem canem in horto invenit.",
+                translations: [
+                    "at last he found the dog in the garden.",
+                    "finally he found the dog in the garden."
+                ],
+                grammar: ["perfect"],
+                keyPhrases: ["at last", "finally", "found", "dog", "garden"],
+                hints: { "tandem": "at last/finally", "invenit": "invenio - perfect" }
+            },
+            {
+                latin: "puer laetissimus erat!",
+                translations: [
+                    "the boy was very happy!",
+                    "the boy was most happy!"
+                ],
+                grammar: ["imperfect", "superlatives"],
+                keyPhrases: ["boy", "very happy", "most happy"],
+                hints: { "laetissimus": "superlative of laetus (very/most happy)" }
+            }
+        ]
+    },
+
     // ========== MYTHOLOGY STORIES ==========
     {
         id: "myth_marsyas",
