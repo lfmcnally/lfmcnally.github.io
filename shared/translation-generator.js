@@ -1,99 +1,420 @@
 // GCSE Latin Translation Generator
-// Core logic for generating narrative passages and auto-marking translations
+// Template-based passage generation with vocabulary substitution
 
 // ========== PASSAGE GENERATION ==========
 
 /**
- * Generate a passage based on chapter level and optional grammar spotlight
- * Now uses complete narrative passages instead of random sentences
- * @param {number} maxChapter - Maximum chapter for vocab/grammar (1-10)
- * @param {string|null} spotlight - Grammar spotlight key (e.g., 'purpose_clauses') or null
- * @param {string} intensity - 'light', 'heavy', or 'intensive' (affects sentence selection within passage)
- * @param {number} length - Target number of sentences (4-12)
- * @returns {object} Generated passage with sentences and metadata
+ * Generate a passage from a template, filling vocabulary slots
  */
 function generatePassage(maxChapter, spotlight = null, intensity = 'heavy', length = 6) {
-    // Filter passages by chapter level
-    let availablePassages = narrativePassages.filter(p => p.maxChapter <= maxChapter);
+    // Filter templates by chapter
+    let availableTemplates = storyTemplates.filter(t => t.maxChapter <= maxChapter);
 
-    if (availablePassages.length === 0) {
-        console.error('No passages available for chapter', maxChapter);
+    if (availableTemplates.length === 0) {
+        console.error('No templates available for chapter', maxChapter);
         return null;
     }
 
-    // If spotlight specified, prefer passages with sentences matching that grammar
+    // If spotlight specified, prefer templates with matching grammar
     if (spotlight && grammarSpotlights[spotlight]) {
-        const spotlightData = grammarSpotlights[spotlight];
-
-        // Check if spotlight is available at this chapter level
-        if (spotlightData.minChapter <= maxChapter) {
-            const spotlightTags = spotlightData.tags;
-
-            // Score passages by how many sentences contain the spotlight grammar
-            const scoredPassages = availablePassages.map(passage => {
-                const matchingCount = passage.sentences.filter(s =>
-                    s.grammar.some(g => spotlightTags.includes(g))
-                ).length;
-                return { passage, score: matchingCount };
-            });
-
-            // Sort by score (highest first) and filter to those with at least one match
-            scoredPassages.sort((a, b) => b.score - a.score);
-            const matchingPassages = scoredPassages.filter(sp => sp.score > 0);
-
-            if (matchingPassages.length > 0) {
-                // Randomly select from top-scoring passages
-                const topScore = matchingPassages[0].score;
-                const topPassages = matchingPassages.filter(sp => sp.score >= topScore - 1);
-                availablePassages = topPassages.map(sp => sp.passage);
-            }
+        const spotlightTags = grammarSpotlights[spotlight].tags;
+        const matchingTemplates = availableTemplates.filter(t =>
+            t.sentences.some(s => s.grammar.some(g => spotlightTags.includes(g)))
+        );
+        if (matchingTemplates.length > 0) {
+            availableTemplates = matchingTemplates;
         }
     }
 
-    // Randomly select a passage
-    const selectedPassage = availablePassages[Math.floor(Math.random() * availablePassages.length)];
+    // Select random template
+    const template = availableTemplates[Math.floor(Math.random() * availableTemplates.length)];
 
-    // Determine which sentences to include based on length
-    let sentences = [...selectedPassage.sentences];
+    // Generate slot values for the whole passage
+    const slotValues = generateSlotValues(template, maxChapter);
 
-    // If passage is longer than requested length, trim from the end (keeping narrative flow)
-    // But always keep at least the first and last sentences for story coherence
-    if (sentences.length > length && length >= 4) {
-        const toRemove = sentences.length - length;
-        // Remove sentences from the middle, preserving beginning and end
-        const middleStart = Math.floor(sentences.length / 3);
-        const middleEnd = Math.floor(2 * sentences.length / 3);
+    // Build sentences
+    const sentences = template.sentences.map((sentenceTemplate, idx) => {
+        const { latin, english } = fillTemplate(sentenceTemplate, slotValues);
+        return {
+            latin: latin,
+            translations: [english],
+            grammar: sentenceTemplate.grammar,
+            keyPhrases: extractKeyPhrases(english),
+            hints: generateHints(latin, sentenceTemplate),
+            index: idx,
+            totalSentences: template.sentences.length
+        };
+    });
 
-        // Create array of removable indices (middle section)
-        const removableIndices = [];
-        for (let i = middleStart; i < middleEnd && removableIndices.length < toRemove; i++) {
-            removableIndices.push(i);
-        }
+    // Trim to requested length if needed
+    const finalSentences = sentences.slice(0, Math.min(length, sentences.length));
 
-        // Remove sentences (from end of removable range to preserve indices)
-        removableIndices.reverse().forEach(idx => {
-            if (sentences.length > length) {
-                sentences.splice(idx, 1);
-            }
-        });
-    }
-
-    // If passage is shorter than requested, that's fine - use all sentences
+    // Build title with slot values
+    const title = fillTitleSlots(template.title, slotValues);
+    const intro = fillTitleSlots(template.introduction, slotValues);
 
     return {
-        title: selectedPassage.title,
-        maxChapter: selectedPassage.maxChapter,
+        title: title,
+        maxChapter: template.maxChapter,
         spotlight: spotlight,
         intensity: intensity,
-        introduction: selectedPassage.introduction,
-        theme: selectedPassage.theme,
-        sentences: sentences.map((s, idx) => ({
-            ...s,
-            index: idx,
-            totalSentences: sentences.length
-        })),
-        fullText: sentences.map(s => s.latin).join(' ')
+        introduction: intro,
+        theme: template.theme,
+        sentences: finalSentences.map((s, i) => ({ ...s, index: i, totalSentences: finalSentences.length })),
+        fullText: finalSentences.map(s => s.latin).join(' ')
     };
+}
+
+/**
+ * Generate random values for all slots in a template
+ */
+function generateSlotValues(template, maxChapter) {
+    const values = {};
+
+    // Collect all unique slots from all sentences
+    const allSlots = {};
+    template.sentences.forEach(s => {
+        Object.entries(s.slots || {}).forEach(([key, config]) => {
+            if (!allSlots[key]) allSlots[key] = config;
+        });
+    });
+
+    // Generate value for each slot
+    Object.entries(allSlots).forEach(([slotName, config]) => {
+        values[slotName] = generateSlotValue(slotName, config, maxChapter);
+    });
+
+    return values;
+}
+
+/**
+ * Generate a single slot value
+ */
+function generateSlotValue(slotName, config, maxChapter) {
+    const type = config.type;
+    const filter = config.filter || {};
+
+    if (type === 'name') {
+        if (filter.heroic) {
+            return { latin: randomChoice(romanNames.heroic), english: randomChoice(romanNames.heroic) };
+        }
+        if (filter.male) {
+            return { latin: randomChoice(romanNames.male), english: randomChoice(romanNames.male) };
+        }
+        if (filter.female) {
+            return { latin: randomChoice(romanNames.female), english: randomChoice(romanNames.female) };
+        }
+        return { latin: randomChoice(romanNames.male), english: randomChoice(romanNames.male) };
+    }
+
+    if (type === 'noun') {
+        const nouns = Object.entries(vocabulary.nouns)
+            .filter(([_, n]) => n.chapter <= maxChapter)
+            .filter(([_, n]) => !filter.gender || n.gender === filter.gender)
+            .filter(([_, n]) => !filter.meaning || (Array.isArray(filter.meaning) ? filter.meaning.includes(n.meaning) : n.meaning === filter.meaning));
+
+        if (nouns.length === 0) return { latin: 'servus', english: 'slave', data: vocabulary.nouns.servus };
+        const [word, data] = randomChoice(nouns);
+        return { latin: word, english: data.meaning, data: data };
+    }
+
+    if (type === 'adjective') {
+        const adjs = Object.entries(vocabulary.adjectives)
+            .filter(([_, a]) => a.chapter <= maxChapter)
+            .filter(([_, a]) => !filter.meaning || a.meaning === filter.meaning)
+            .filter(([_, a]) => !filter.positive || ['good', 'happy', 'beautiful'].includes(a.meaning));
+
+        if (adjs.length === 0) return { latin: 'bonus', english: 'good', data: vocabulary.adjectives.bonus };
+        const [word, data] = randomChoice(adjs);
+        return { latin: word, english: data.meaning, data: data };
+    }
+
+    if (type === 'place') {
+        const places = Object.entries(vocabulary.places)
+            .filter(([_, p]) => p.chapter <= maxChapter);
+
+        if (places.length === 0) return { latin: 'forum', english: 'forum' };
+        const [word, data] = randomChoice(places);
+        return { latin: word, english: data.meanings ? randomChoice(data.meanings) : data.meaning };
+    }
+
+    if (type === 'creature') {
+        const creature = randomChoice(creatures.monsters);
+        return {
+            latin: creature.latin,
+            english: creature.english,
+            data: creature
+        };
+    }
+
+    return { latin: 'res', english: 'thing' };
+}
+
+/**
+ * Fill a sentence template with slot values
+ */
+function fillTemplate(sentenceTemplate, slotValues) {
+    let latin = sentenceTemplate.template;
+    let english = sentenceTemplate.translation;
+
+    // Replace all slot references
+    Object.entries(slotValues).forEach(([slotName, value]) => {
+        // Basic replacements
+        latin = latin.replace(new RegExp(`\\{${slotName}\\}`, 'g'), value.latin);
+        english = english.replace(new RegExp(`\\{${slotName}_ENG\\}`, 'g'), value.english);
+
+        // Handle case variations for Latin
+        if (value.data) {
+            const forms = getLatinForms(value.latin, value.data);
+            latin = latin.replace(new RegExp(`\\{${slotName}_ACC\\}`, 'g'), forms.acc);
+            latin = latin.replace(new RegExp(`\\{${slotName}_GEN\\}`, 'g'), forms.gen);
+            latin = latin.replace(new RegExp(`\\{${slotName}_DAT\\}`, 'g'), forms.dat);
+            latin = latin.replace(new RegExp(`\\{${slotName}_ABL\\}`, 'g'), forms.abl);
+        } else {
+            // For names/simple words, use basic patterns
+            latin = latin.replace(new RegExp(`\\{${slotName}_ACC\\}`, 'g'), value.latin);
+            latin = latin.replace(new RegExp(`\\{${slotName}_GEN\\}`, 'g'), value.latin);
+            latin = latin.replace(new RegExp(`\\{${slotName}_DAT\\}`, 'g'), value.latin);
+            latin = latin.replace(new RegExp(`\\{${slotName}_ABL\\}`, 'g'), value.latin);
+        }
+    });
+
+    // Handle PLACE special cases
+    if (slotValues.PLACE) {
+        const placeData = vocabulary.places[slotValues.PLACE.latin] || vocabulary.nouns[slotValues.PLACE.latin];
+        if (placeData) {
+            const forms = getPlaceForms(slotValues.PLACE.latin);
+            latin = latin.replace(/\{PLACE_ACC\}/g, forms.acc);
+            latin = latin.replace(/\{PLACE_ABL\}/g, forms.abl);
+        }
+        english = english.replace(/\{PLACE_ENG\}/g, slotValues.PLACE.english);
+    }
+
+    // Handle OBJECT
+    if (slotValues.OBJECT) {
+        const forms = getLatinForms(slotValues.OBJECT.latin, slotValues.OBJECT.data);
+        latin = latin.replace(/\{OBJECT_ACC\}/g, forms.acc);
+        english = english.replace(/\{OBJECT_ENG\}/g, slotValues.OBJECT.english);
+    }
+
+    // Handle ANIMAL
+    if (slotValues.ANIMAL) {
+        const forms = getLatinForms(slotValues.ANIMAL.latin, slotValues.ANIMAL.data);
+        latin = latin.replace(/\{ANIMAL\}/g, slotValues.ANIMAL.latin);
+        latin = latin.replace(/\{ANIMAL_ACC\}/g, forms.acc);
+        english = english.replace(/\{ANIMAL_ENG\}/g, slotValues.ANIMAL.english);
+    }
+
+    // Handle PERSON
+    if (slotValues.PERSON) {
+        latin = latin.replace(/\{PERSON\}/g, slotValues.PERSON.latin);
+        english = english.replace(/\{PERSON_ENG\}/g, slotValues.PERSON.english);
+        english = english.replace(/\{PERSON_DESC\}/g, slotValues.PERSON.english);
+        if (slotValues.PERSON.data) {
+            const forms = getLatinForms(slotValues.PERSON.latin, slotValues.PERSON.data);
+            latin = latin.replace(/\{PERSON_DAT\}/g, forms.dat);
+        }
+    }
+
+    // Handle HERO and MONSTER
+    if (slotValues.HERO) {
+        latin = latin.replace(/\{HERO\}/g, slotValues.HERO.latin);
+        english = english.replace(/\{HERO_ENG\}/g, slotValues.HERO.english);
+    }
+    if (slotValues.MONSTER) {
+        latin = latin.replace(/\{MONSTER\}/g, slotValues.MONSTER.latin);
+        english = english.replace(/\{MONSTER_ENG\}/g, slotValues.MONSTER.english);
+        if (slotValues.MONSTER.data) {
+            const forms = getCreatureForms(slotValues.MONSTER.data);
+            latin = latin.replace(/\{MONSTER_ACC\}/g, forms.acc);
+            latin = latin.replace(/\{MONSTER_ABL\}/g, forms.abl);
+        }
+    }
+
+    // Handle ADJ
+    if (slotValues.ADJ) {
+        latin = latin.replace(/\{ADJ\}/g, slotValues.ADJ.latin);
+        latin = latin.replace(/\{ADJ_ACC\}/g, getAdjForm(slotValues.ADJ, 'acc'));
+        english = english.replace(/\{ADJ_ENG\}/g, slotValues.ADJ.english);
+    }
+
+    return { latin, english };
+}
+
+/**
+ * Get Latin case forms for a noun
+ */
+function getLatinForms(word, data) {
+    if (!data) return { nom: word, acc: word, gen: word, dat: word, abl: word };
+
+    const stem = data.stem;
+    const decl = data.decl;
+    const gender = data.gender;
+
+    // First declension
+    if (decl === 1) {
+        return {
+            nom: stem + 'a',
+            acc: stem + 'am',
+            gen: stem + 'ae',
+            dat: stem + 'ae',
+            abl: stem + 'a'
+        };
+    }
+
+    // Second declension masculine
+    if (decl === 2 && gender === 'm') {
+        // Handle -er nouns like puer
+        if (word.endsWith('er')) {
+            return {
+                nom: word,
+                acc: stem + 'um',
+                gen: stem + 'i',
+                dat: stem + 'o',
+                abl: stem + 'o'
+            };
+        }
+        return {
+            nom: stem + 'us',
+            acc: stem + 'um',
+            gen: stem + 'i',
+            dat: stem + 'o',
+            abl: stem + 'o'
+        };
+    }
+
+    // Second declension neuter
+    if (decl === 2 && gender === 'n') {
+        return {
+            nom: stem + 'um',
+            acc: stem + 'um',
+            gen: stem + 'i',
+            dat: stem + 'o',
+            abl: stem + 'o'
+        };
+    }
+
+    // Third declension (simplified)
+    if (decl === 3) {
+        // Get genitive stem from gen field
+        const genStem = data.gen ? data.gen.replace(/is$/, '') : stem;
+        return {
+            nom: word,
+            acc: genStem + 'em',
+            gen: genStem + 'is',
+            dat: genStem + 'i',
+            abl: genStem + 'e'
+        };
+    }
+
+    return { nom: word, acc: word, gen: word, dat: word, abl: word };
+}
+
+/**
+ * Get place forms (simplified)
+ */
+function getPlaceForms(place) {
+    const placeFormsMap = {
+        forum: { acc: 'forum', abl: 'foro' },
+        hortus: { acc: 'hortum', abl: 'horto' },
+        villa: { acc: 'villam', abl: 'villa' },
+        taberna: { acc: 'tabernam', abl: 'taberna' },
+        templum: { acc: 'templum', abl: 'templo' },
+        via: { acc: 'viam', abl: 'via' },
+        silva: { acc: 'silvam', abl: 'silva' },
+        urbs: { acc: 'urbem', abl: 'urbe' },
+        castra: { acc: 'castra', abl: 'castris' },
+        Roma: { acc: 'Romam', abl: 'Roma' },
+        mons: { acc: 'montem', abl: 'monte' },
+        flumen: { acc: 'flumen', abl: 'flumine' },
+        mare: { acc: 'mare', abl: 'mari' }
+    };
+    return placeFormsMap[place] || { acc: place, abl: place };
+}
+
+/**
+ * Get creature forms
+ */
+function getCreatureForms(creature) {
+    if (creature.decl === 2 && creature.gender === 'n') {
+        const stem = creature.latin.replace(/um$/, '');
+        return { acc: stem + 'um', abl: stem + 'o' };
+    }
+    if (creature.decl === 3) {
+        const stem = creature.latin.replace(/s$/, '').replace(/o$/, 'on');
+        return { acc: stem + 'em', abl: stem + 'e' };
+    }
+    return { acc: creature.latin, abl: creature.latin };
+}
+
+/**
+ * Get adjective form for a case
+ */
+function getAdjForm(adj, caseForm) {
+    if (!adj.data) return adj.latin;
+    const stem = adj.data.stem;
+    const type = adj.data.type;
+
+    if (type === '212') {
+        if (caseForm === 'acc') return stem + 'um'; // masculine accusative
+        return stem + 'us';
+    }
+    if (type === '3') {
+        if (caseForm === 'acc') return stem + 'em';
+        return stem + 'is';
+    }
+    return adj.latin;
+}
+
+/**
+ * Fill title slots
+ */
+function fillTitleSlots(text, slotValues) {
+    let result = text;
+    Object.entries(slotValues).forEach(([slot, value]) => {
+        result = result.replace(new RegExp(`\\{${slot}\\}`, 'g'), value.latin);
+        result = result.replace(new RegExp(`\\{${slot}_ENG\\}`, 'g'), value.english);
+    });
+    // Clean up any remaining slots
+    result = result.replace(/\{[A-Z_]+\}/g, '');
+    return result;
+}
+
+/**
+ * Extract key phrases from English translation
+ */
+function extractKeyPhrases(english) {
+    // Remove common words and return key words
+    const stopWords = ['the', 'a', 'an', 'to', 'in', 'on', 'at', 'for', 'is', 'was', 'were', 'are', 'his', 'her', 'its'];
+    const words = english.toLowerCase().replace(/[.,!?'"]/g, '').split(' ');
+    return words.filter(w => w.length > 2 && !stopWords.includes(w));
+}
+
+/**
+ * Generate hints for a sentence
+ */
+function generateHints(latin, sentenceTemplate) {
+    const hints = {};
+    const words = latin.split(' ');
+
+    // Add grammar-based hints
+    if (sentenceTemplate.grammar.includes('imperfect')) {
+        const imperfectWords = words.filter(w => w.match(/(bat|bant|bebat|bebant)$/));
+        imperfectWords.forEach(w => hints[w] = 'imperfect tense');
+    }
+    if (sentenceTemplate.grammar.includes('perfect')) {
+        const perfectWords = words.filter(w => w.match(/(vit|vit|verunt|xit|xerunt)$/));
+        perfectWords.forEach(w => hints[w] = 'perfect tense');
+    }
+
+    return hints;
+}
+
+/**
+ * Helper: random choice from array
+ */
+function randomChoice(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
 }
 
 /**
@@ -108,317 +429,122 @@ function shuffleArray(array) {
 }
 
 /**
- * Get available grammar spotlights for a given chapter level
+ * Get available grammar spotlights for chapter
  */
 function getAvailableSpotlights(maxChapter) {
     const available = [];
     for (const [key, data] of Object.entries(grammarSpotlights)) {
         if (data.minChapter <= maxChapter) {
-            available.push({
-                key: key,
-                name: data.name,
-                minChapter: data.minChapter
-            });
+            available.push({ key, name: data.name, minChapter: data.minChapter });
         }
     }
     return available.sort((a, b) => a.minChapter - b.minChapter);
 }
 
-/**
- * Get available passages for a given chapter level (for UI display)
- */
-function getAvailablePassages(maxChapter) {
-    return narrativePassages
-        .filter(p => p.maxChapter <= maxChapter)
-        .map(p => ({
-            id: p.id,
-            title: p.title,
-            theme: p.theme,
-            maxChapter: p.maxChapter,
-            sentenceCount: p.sentences.length,
-            introduction: p.introduction
-        }));
-}
+// ========== ANSWER CHECKING ==========
 
-// ========== ANSWER CHECKING (Lenient Matching) ==========
-
-/**
- * Calculate Levenshtein distance between two strings
- */
 function levenshteinDistance(str1, str2) {
-    const m = str1.length;
-    const n = str2.length;
+    const m = str1.length, n = str2.length;
     const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
-
     for (let i = 0; i <= m; i++) dp[i][0] = i;
     for (let j = 0; j <= n; j++) dp[0][j] = j;
-
     for (let i = 1; i <= m; i++) {
         for (let j = 1; j <= n; j++) {
-            if (str1[i - 1] === str2[j - 1]) {
-                dp[i][j] = dp[i - 1][j - 1];
-            } else {
-                dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-            }
+            dp[i][j] = str1[i-1] === str2[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
         }
     }
     return dp[m][n];
 }
 
-/**
- * Normalize text for comparison
- */
 function normalizeText(text) {
-    return text
-        .toLowerCase()
-        .replace(/[.,!?;:'"]/g, '')      // Remove punctuation
-        .replace(/[-–—]/g, ' ')           // Replace dashes with spaces
-        .replace(/\s+/g, ' ')             // Collapse multiple spaces
-        .replace(/['']/g, "'")            // Normalize apostrophes
-        .trim();
+    return text.toLowerCase().replace(/[.,!?;:'"]/g, '').replace(/[-–—]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-/**
- * Remove common prefixes/articles
- */
-function removeCommonPrefixes(text) {
-    return text
-        .replace(/^(the |a |an )/, '')
-        .replace(/\b(he\/she\/it|he\/she|he |she |it )/g, '')
-        .trim();
-}
-
-/**
- * Check if two strings are close enough (allowing for typos)
- */
-function isCloseMatch(userAnswer, correctAnswer, maxDistance = 2) {
-    if (userAnswer === correctAnswer) return true;
-
-    // Allow more typos for longer answers
-    const allowedDistance = correctAnswer.length >= 20 ? 3 :
-                           correctAnswer.length >= 10 ? 2 : 1;
-    const distance = levenshteinDistance(userAnswer, correctAnswer);
-
-    return distance <= Math.min(maxDistance, allowedDistance);
-}
-
-/**
- * Check if user answer contains a key phrase
- */
-function containsKeyPhrase(userAnswer, phrase) {
-    // Handle regex patterns
-    if (phrase.includes('|')) {
-        const pattern = new RegExp(phrase, 'i');
-        return pattern.test(userAnswer);
-    }
-
-    // Simple substring match (case-insensitive)
-    return userAnswer.toLowerCase().includes(phrase.toLowerCase());
-}
-
-/**
- * Main translation checking function
- * @param {string} userAnswer - User's translation attempt
- * @param {object} sentence - Sentence object with translations and keyPhrases
- * @returns {object} { correct: boolean, partial: boolean, matchType: string, feedback: string }
- */
 function checkTranslation(userAnswer, sentence) {
     const userNorm = normalizeText(userAnswer);
     const translations = sentence.translations || [];
     const keyPhrases = sentence.keyPhrases || [];
 
-    // Empty answer check
     if (!userNorm) {
-        return {
-            correct: false,
-            partial: false,
-            matchType: 'empty',
-            feedback: 'Please enter a translation.'
-        };
+        return { correct: false, partial: false, matchType: 'empty', feedback: 'Please enter a translation.' };
     }
 
-    // Check against acceptable translations
     for (const translation of translations) {
-        const translationNorm = normalizeText(translation);
-
-        // Exact match
-        if (userNorm === translationNorm) {
-            return {
-                correct: true,
-                partial: false,
-                matchType: 'exact',
-                feedback: 'Perfect translation!'
-            };
+        const transNorm = normalizeText(translation);
+        if (userNorm === transNorm) {
+            return { correct: true, partial: false, matchType: 'exact', feedback: 'Perfect translation!' };
         }
-
-        // Close match (allowing typos)
-        if (isCloseMatch(userNorm, translationNorm)) {
-            return {
-                correct: true,
-                partial: false,
-                matchType: 'close',
-                feedback: 'Correct! (minor spelling differences accepted)'
-            };
-        }
-
-        // Match without articles/prefixes
-        const userSimple = removeCommonPrefixes(userNorm);
-        const transSimple = removeCommonPrefixes(translationNorm);
-        if (userSimple === transSimple || isCloseMatch(userSimple, transSimple)) {
-            return {
-                correct: true,
-                partial: false,
-                matchType: 'simplified',
-                feedback: 'Correct!'
-            };
+        if (levenshteinDistance(userNorm, transNorm) <= 3) {
+            return { correct: true, partial: false, matchType: 'close', feedback: 'Correct! (minor differences accepted)' };
         }
     }
 
-    // Key phrase matching for partial credit
+    // Check key phrases
     if (keyPhrases.length > 0) {
-        let matchedCount = 0;
-        for (const phrase of keyPhrases) {
-            if (containsKeyPhrase(userNorm, phrase)) {
-                matchedCount++;
-            }
+        let matched = keyPhrases.filter(p => userNorm.includes(p.toLowerCase())).length;
+        let ratio = matched / keyPhrases.length;
+        if (ratio >= 0.7) {
+            return { correct: true, partial: false, matchType: 'phrases', feedback: 'Correct! Your translation captures the meaning.' };
         }
-
-        const matchRatio = matchedCount / keyPhrases.length;
-
-        if (matchRatio >= 0.8) {
-            return {
-                correct: true,
-                partial: false,
-                matchType: 'phrases',
-                feedback: 'Correct! Your translation captures the meaning.'
-            };
-        } else if (matchRatio >= 0.5) {
-            return {
-                correct: false,
-                partial: true,
-                matchType: 'partial',
-                matchedPhrases: matchedCount,
-                totalPhrases: keyPhrases.length,
-                feedback: `Partially correct - you got ${matchedCount}/${keyPhrases.length} key elements.`
-            };
+        if (ratio >= 0.4) {
+            return { correct: false, partial: true, matchType: 'partial', feedback: `Partially correct - ${matched}/${keyPhrases.length} key elements.` };
         }
     }
 
-    // No match
-    return {
-        correct: false,
-        partial: false,
-        matchType: 'incorrect',
-        feedback: 'Not quite right. Check your translation against the model answer.'
-    };
+    return { correct: false, partial: false, matchType: 'incorrect', feedback: 'Not quite right. Check your translation against the model answer.' };
 }
 
-// ========== HINT SYSTEM ==========
-
-/**
- * Get a hint for a Latin word (dictionary form only, not meaning)
- */
 function getWordHint(sentence, word) {
-    const wordLower = word.toLowerCase().replace(/[.,!?;:]/g, '');
     const hints = sentence.hints || {};
-
-    // Check if we have a specific hint for this word
+    const wordLower = word.toLowerCase().replace(/[.,!?;:]/g, '');
     for (const [key, hint] of Object.entries(hints)) {
-        if (key.toLowerCase() === wordLower || key.toLowerCase().includes(wordLower)) {
-            return hint;
-        }
+        if (key.toLowerCase() === wordLower) return hint;
     }
-
     return null;
 }
 
-/**
- * Get grammar hint for the sentence
- */
 function getGrammarHint(sentence) {
     const grammar = sentence.grammar || [];
-
-    const grammarDescriptions = {
-        'present_active': 'Present tense (active voice)',
-        'imperfect': 'Imperfect tense (was doing / used to do)',
+    const descriptions = {
+        'present_active': 'Present tense',
+        'imperfect': 'Imperfect tense (was doing / used to)',
         'perfect': 'Perfect tense (did / has done)',
         'pluperfect': 'Pluperfect tense (had done)',
-        'future': 'Future tense (will do)',
-        'present_passive': 'Present passive (is being done)',
-        'imperfect_passive': 'Imperfect passive (was being done)',
-        'perfect_passive': 'Perfect passive (was done / has been done)',
-        'present_participle': 'Present participle (-ing form)',
-        'ppp': 'Perfect passive participle (having been done)',
-        'ablative_absolute': 'Ablative absolute construction',
-        'purpose_clauses': 'Purpose clause (ut + subjunctive = in order to)',
-        'result_clauses': 'Result clause (so...that)',
-        'indirect_commands': 'Indirect command',
-        'indirect_questions': 'Indirect question (question word + subjunctive)',
-        'indirect_statement': 'Indirect statement (acc + infinitive)',
-        'cum_clauses': 'Cum clause (when/since/although + subjunctive)',
-        'relative_clauses': 'Relative clause (who/which/that)',
-        'deponent_verbs': 'Deponent verb (passive form, active meaning)',
-        'comparatives': 'Comparative adjective/adverb',
-        'superlatives': 'Superlative adjective/adverb',
-        'conditionals': 'Conditional sentence (if...then)',
+        'perfect_passive': 'Perfect passive (was done)',
+        'ablative_absolute': 'Ablative absolute',
         'direct_speech': 'Direct speech',
         'direct_questions': 'Direct question',
-        'ubi_postquam': 'Time clause (when/after)',
-        'quod_quamquam': 'Causal/concessive clause (because/although)'
+        'infinitive': 'Infinitive (to do)',
+        'vocative': 'Vocative case (addressing someone)',
+        'superlatives': 'Superlative (very/most)',
+        'ubi_postquam': 'Time clause (when/after)'
     };
-
-    const relevantGrammar = grammar
-        .filter(g => grammarDescriptions[g])
-        .map(g => grammarDescriptions[g]);
-
-    if (relevantGrammar.length > 0) {
-        return `This sentence contains: ${relevantGrammar.join(', ')}`;
-    }
-
-    return 'Check the verb tense and noun cases carefully.';
+    const relevant = grammar.filter(g => descriptions[g]).map(g => descriptions[g]);
+    return relevant.length > 0 ? `This sentence contains: ${relevant.join(', ')}` : 'Check verb tenses and noun cases.';
 }
 
-// ========== STATISTICS ==========
-
-/**
- * Calculate session statistics
- */
 function calculateStats(results) {
     const total = results.length;
     const correct = results.filter(r => r.correct).length;
     const partial = results.filter(r => r.partial).length;
-    const incorrect = total - correct - partial;
-
     const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
-
-    return {
-        total,
-        correct,
-        partial,
-        incorrect,
-        percentage,
-        grade: getGrade(percentage)
-    };
+    const grades = [
+        { min: 90, grade: 'A*', message: 'Outstanding!' },
+        { min: 80, grade: 'A', message: 'Great job!' },
+        { min: 70, grade: 'B', message: 'Good effort!' },
+        { min: 60, grade: 'C', message: 'Satisfactory.' },
+        { min: 50, grade: 'D', message: 'Keep working!' },
+        { min: 0, grade: 'U', message: 'Practice more!' }
+    ];
+    const gradeInfo = grades.find(g => percentage >= g.min);
+    return { total, correct, partial, incorrect: total - correct - partial, percentage, grade: gradeInfo };
 }
 
-/**
- * Get grade based on percentage
- */
-function getGrade(percentage) {
-    if (percentage >= 90) return { grade: 'A*', message: 'Outstanding! Excellent work!' };
-    if (percentage >= 80) return { grade: 'A', message: 'Great job! Well done!' };
-    if (percentage >= 70) return { grade: 'B', message: 'Good effort! Keep practising!' };
-    if (percentage >= 60) return { grade: 'C', message: 'Satisfactory. More practice needed.' };
-    if (percentage >= 50) return { grade: 'D', message: 'Keep working at it!' };
-    return { grade: 'U', message: 'Don\'t give up! Practice makes perfect.' };
-}
-
-// Export for use in browser
+// Export for browser
 if (typeof window !== 'undefined') {
     window.TranslationGenerator = {
         generatePassage,
         getAvailableSpotlights,
-        getAvailablePassages,
         checkTranslation,
         getWordHint,
         getGrammarHint,
@@ -427,18 +553,7 @@ if (typeof window !== 'undefined') {
     };
 }
 
-// Export for Node.js (testing)
+// Export for Node.js
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        generatePassage,
-        getAvailableSpotlights,
-        getAvailablePassages,
-        checkTranslation,
-        getWordHint,
-        getGrammarHint,
-        calculateStats,
-        levenshteinDistance,
-        normalizeText,
-        isCloseMatch
-    };
+    module.exports = { generatePassage, getAvailableSpotlights, checkTranslation, getWordHint, getGrammarHint, calculateStats };
 }
