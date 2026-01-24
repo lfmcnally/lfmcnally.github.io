@@ -1,59 +1,603 @@
 // GCSE Latin Translation Generator Data
-// Narrative-driven passages based on actual GCSE exam style
-// Each passage tells a complete story with connected sentences
+// Template-based system that generates varied passages using vocabulary lists
 
-// Chapter grammar mapping - what grammar is introduced in each chapter
-const chapterGrammar = {
-    1: {
-        name: "Chapter 1",
-        grammar: ["present_active", "nominative", "accusative", "1st_declension", "2nd_declension", "sum_present", "prepositions_acc"],
-        description: "Present tense, nominative & accusative, 1st/2nd declension"
+// ========== VOCABULARY BY CHAPTER ==========
+// Based on OCR GCSE Latin Defined Vocabulary List
+
+const vocabulary = {
+    // NOUNS: { word: { stem, gen, gender, decl, meaning, meanings (array for variations) } }
+    nouns: {
+        // Chapter 1-2: Basic nouns
+        puella: { stem: "puell", gen: "puellae", gender: "f", decl: 1, meaning: "girl", chapter: 1 },
+        femina: { stem: "femin", gen: "feminae", gender: "f", decl: 1, meaning: "woman", chapter: 1 },
+        ancilla: { stem: "ancill", gen: "ancillae", gender: "f", decl: 1, meaning: "slave-girl", chapter: 1 },
+        filia: { stem: "fili", gen: "filiae", gender: "f", decl: 1, meaning: "daughter", chapter: 1 },
+        via: { stem: "vi", gen: "viae", gender: "f", decl: 1, meaning: "road", meanings: ["road", "street", "way"], chapter: 1 },
+        aqua: { stem: "aqu", gen: "aquae", gender: "f", decl: 1, meaning: "water", chapter: 1 },
+        terra: { stem: "terr", gen: "terrae", gender: "f", decl: 1, meaning: "land", meanings: ["land", "ground", "earth"], chapter: 1 },
+        villa: { stem: "vill", gen: "villae", gender: "f", decl: 1, meaning: "villa", meanings: ["villa", "house"], chapter: 1 },
+        cena: { stem: "cen", gen: "cenae", gender: "f", decl: 1, meaning: "dinner", meanings: ["dinner", "meal"], chapter: 1 },
+        taberna: { stem: "tabern", gen: "tabernae", gender: "f", decl: 1, meaning: "shop", meanings: ["shop", "inn"], chapter: 1 },
+
+        servus: { stem: "serv", gen: "servi", gender: "m", decl: 2, meaning: "slave", chapter: 1 },
+        dominus: { stem: "domin", gen: "domini", gender: "m", decl: 2, meaning: "master", meanings: ["master", "lord"], chapter: 1 },
+        filius: { stem: "fili", gen: "filii", gender: "m", decl: 2, meaning: "son", chapter: 1 },
+        amicus: { stem: "amic", gen: "amici", gender: "m", decl: 2, meaning: "friend", chapter: 1 },
+        equus: { stem: "equ", gen: "equi", gender: "m", decl: 2, meaning: "horse", chapter: 1 },
+        hortus: { stem: "hort", gen: "horti", gender: "m", decl: 2, meaning: "garden", chapter: 1 },
+        cibus: { stem: "cib", gen: "cibi", gender: "m", decl: 2, meaning: "food", chapter: 1 },
+        gladius: { stem: "gladi", gen: "gladii", gender: "m", decl: 2, meaning: "sword", chapter: 1 },
+        nuntius: { stem: "nunti", gen: "nuntii", gender: "m", decl: 2, meaning: "messenger", meanings: ["messenger", "message"], chapter: 1 },
+
+        templum: { stem: "templ", gen: "templi", gender: "n", decl: 2, meaning: "temple", chapter: 2 },
+        forum: { stem: "for", gen: "fori", gender: "n", decl: 2, meaning: "forum", meanings: ["forum", "market place"], chapter: 2 },
+        vinum: { stem: "vin", gen: "vini", gender: "n", decl: 2, meaning: "wine", chapter: 2 },
+        periculum: { stem: "pericul", gen: "periculi", gender: "n", decl: 2, meaning: "danger", chapter: 2 },
+
+        // Chapter 3-4: More nouns
+        puer: { stem: "puer", gen: "pueri", gender: "m", decl: 2, meaning: "boy", chapter: 3 },
+        vir: { stem: "vir", gen: "viri", gender: "m", decl: 2, meaning: "man", chapter: 3 },
+        ager: { stem: "agr", gen: "agri", gender: "m", decl: 2, meaning: "field", chapter: 3 },
+        magister: { stem: "magistr", gen: "magistri", gender: "m", decl: 2, meaning: "teacher", meanings: ["teacher", "master"], chapter: 3 },
+
+        rex: { stem: "reg", gen: "regis", gender: "m", decl: 3, meaning: "king", chapter: 4 },
+        dux: { stem: "duc", gen: "ducis", gender: "m", decl: 3, meaning: "leader", meanings: ["leader", "general"], chapter: 4 },
+        miles: { stem: "milit", gen: "militis", gender: "m", decl: 3, meaning: "soldier", chapter: 4 },
+        pater: { stem: "patr", gen: "patris", gender: "m", decl: 3, meaning: "father", chapter: 4 },
+        mater: { stem: "matr", gen: "matris", gender: "f", decl: 3, meaning: "mother", chapter: 4 },
+        frater: { stem: "fratr", gen: "fratris", gender: "m", decl: 3, meaning: "brother", chapter: 4 },
+        soror: { stem: "soror", gen: "sororis", gender: "f", decl: 3, meaning: "sister", chapter: 4 },
+        senex: { stem: "sen", gen: "senis", gender: "m", decl: 3, meaning: "old man", chapter: 4 },
+        iuvenis: { stem: "iuven", gen: "iuvenis", gender: "m", decl: 3, meaning: "young man", chapter: 4 },
+        canis: { stem: "can", gen: "canis", gender: "m", decl: 3, meaning: "dog", chapter: 4 },
+
+        urbs: { stem: "urb", gen: "urbis", gender: "f", decl: 3, meaning: "city", chapter: 4 },
+        nox: { stem: "noct", gen: "noctis", gender: "f", decl: 3, meaning: "night", chapter: 4 },
+        vox: { stem: "voc", gen: "vocis", gender: "f", decl: 3, meaning: "voice", meanings: ["voice", "shout"], chapter: 4 },
+        navis: { stem: "nav", gen: "navis", gender: "f", decl: 3, meaning: "ship", chapter: 4 },
+        mors: { stem: "mort", gen: "mortis", gender: "f", decl: 3, meaning: "death", chapter: 4 },
+
+        nomen: { stem: "nomin", gen: "nominis", gender: "n", decl: 3, meaning: "name", chapter: 4 },
+        tempus: { stem: "tempor", gen: "temporis", gender: "n", decl: 3, meaning: "time", chapter: 4 },
+        corpus: { stem: "corpor", gen: "corporis", gender: "n", decl: 3, meaning: "body", chapter: 4 },
+        iter: { stem: "itiner", gen: "itineris", gender: "n", decl: 3, meaning: "journey", meanings: ["journey", "route"], chapter: 4 },
+
+        // Chapter 5-6
+        hostis: { stem: "host", gen: "hostis", gender: "m", decl: 3, meaning: "enemy", chapter: 5 },
+        civis: { stem: "civ", gen: "civis", gender: "m", decl: 3, meaning: "citizen", chapter: 5 },
+        mercator: { stem: "mercator", gen: "mercatoris", gender: "m", decl: 3, meaning: "merchant", chapter: 5 },
+        imperator: { stem: "imperator", gen: "imperatoris", gender: "m", decl: 3, meaning: "emperor", meanings: ["emperor", "general"], chapter: 5 },
+
+        flumen: { stem: "flumin", gen: "fluminis", gender: "n", decl: 3, meaning: "river", chapter: 5 },
+        mare: { stem: "mar", gen: "maris", gender: "n", decl: 3, meaning: "sea", chapter: 5 },
+
+        // Chapter 7+
+        poeta: { stem: "poet", gen: "poetae", gender: "m", decl: 1, meaning: "poet", chapter: 7 },
+        nauta: { stem: "naut", gen: "nautae", gender: "m", decl: 1, meaning: "sailor", chapter: 7 },
+        agricola: { stem: "agricol", gen: "agricolae", gender: "m", decl: 1, meaning: "farmer", chapter: 7 }
     },
-    2: {
-        name: "Chapter 2",
-        grammar: ["genitive", "dative", "ablative", "2nd_conj", "3rd_conj", "4th_conj", "2nd_neuter", "infinitive", "prepositions_abl"],
-        description: "All cases, all conjugations, infinitive"
+
+    // VERBS: { word: { stem, conj, meaning, meanings } }
+    verbs: {
+        // Chapter 1: 1st conjugation present
+        ambulo: { stem: "ambul", conj: 1, meaning: "walk", meanings: ["walk", "walks"], chapter: 1 },
+        amo: { stem: "am", conj: 1, meaning: "love", meanings: ["love", "loves", "like", "likes"], chapter: 1 },
+        clamo: { stem: "clam", conj: 1, meaning: "shout", meanings: ["shout", "shouts", "cry", "cries"], chapter: 1 },
+        laboro: { stem: "labor", conj: 1, meaning: "work", meanings: ["work", "works"], chapter: 1 },
+        porto: { stem: "port", conj: 1, meaning: "carry", meanings: ["carry", "carries"], chapter: 1 },
+        paro: { stem: "par", conj: 1, meaning: "prepare", meanings: ["prepare", "prepares"], chapter: 1 },
+        specto: { stem: "spect", conj: 1, meaning: "watch", meanings: ["watch", "watches", "look at"], chapter: 1 },
+        voco: { stem: "voc", conj: 1, meaning: "call", meanings: ["call", "calls"], chapter: 1 },
+        intro: { stem: "intr", conj: 1, meaning: "enter", meanings: ["enter", "enters"], chapter: 1 },
+        festino: { stem: "festin", conj: 1, meaning: "hurry", meanings: ["hurry", "hurries"], chapter: 1 },
+        habito: { stem: "habit", conj: 1, meaning: "live", meanings: ["live", "lives", "dwell", "dwells"], chapter: 1 },
+        narro: { stem: "narr", conj: 1, meaning: "tell", meanings: ["tell", "tells", "relate"], chapter: 1 },
+        navigo: { stem: "navig", conj: 1, meaning: "sail", meanings: ["sail", "sails"], chapter: 1 },
+        rogo: { stem: "rog", conj: 1, meaning: "ask", meanings: ["ask", "asks"], chapter: 1 },
+        supero: { stem: "super", conj: 1, meaning: "overcome", meanings: ["overcome", "overcomes", "defeat", "defeats"], chapter: 1 },
+
+        // Chapter 2: Other conjugations present
+        habeo: { stem: "hab", conj: 2, meaning: "have", meanings: ["have", "has", "hold", "holds"], chapter: 2 },
+        video: { stem: "vid", conj: 2, meaning: "see", meanings: ["see", "sees"], chapter: 2 },
+        maneo: { stem: "man", conj: 2, meaning: "remain", meanings: ["remain", "remains", "stay", "stays"], chapter: 2 },
+        teneo: { stem: "ten", conj: 2, meaning: "hold", meanings: ["hold", "holds"], chapter: 2 },
+        timeo: { stem: "tim", conj: 2, meaning: "fear", meanings: ["fear", "fears", "am afraid", "is afraid"], chapter: 2 },
+        terreo: { stem: "terr", conj: 2, meaning: "frighten", meanings: ["frighten", "frightens", "terrify"], chapter: 2 },
+        respondeo: { stem: "respond", conj: 2, meaning: "reply", meanings: ["reply", "replies", "respond", "responds"], chapter: 2 },
+
+        duco: { stem: "duc", conj: 3, meaning: "lead", meanings: ["lead", "leads"], chapter: 2 },
+        dico: { stem: "dic", conj: 3, meaning: "say", meanings: ["say", "says", "speak"], chapter: 2 },
+        scribo: { stem: "scrib", conj: 3, meaning: "write", meanings: ["write", "writes"], chapter: 2 },
+        curro: { stem: "curr", conj: 3, meaning: "run", meanings: ["run", "runs"], chapter: 2 },
+        pono: { stem: "pon", conj: 3, meaning: "put", meanings: ["put", "puts", "place", "places"], chapter: 2 },
+        vinco: { stem: "vinc", conj: 3, meaning: "conquer", meanings: ["conquer", "conquers", "defeat", "defeats"], chapter: 2 },
+        mitto: { stem: "mitt", conj: 3, meaning: "send", meanings: ["send", "sends"], chapter: 2 },
+        rego: { stem: "reg", conj: 3, meaning: "rule", meanings: ["rule", "rules"], chapter: 2 },
+
+        audio: { stem: "audi", conj: 4, meaning: "hear", meanings: ["hear", "hears", "listen to"], chapter: 2 },
+        venio: { stem: "veni", conj: 4, meaning: "come", meanings: ["come", "comes"], chapter: 2 },
+        dormio: { stem: "dormi", conj: 4, meaning: "sleep", meanings: ["sleep", "sleeps"], chapter: 2 },
+
+        // Chapter 3: Imperfect tense verbs (same verbs, used in imperfect)
+        // Chapter 4: Perfect tense verbs
+
+        // Irregular verbs
+        sum: { stem: "s", conj: 0, meaning: "be", meanings: ["am", "is", "are"], chapter: 1, irregular: true },
+        do: { stem: "d", conj: 1, meaning: "give", meanings: ["give", "gives"], chapter: 2, irregular: true },
+        eo: { stem: "e", conj: 0, meaning: "go", meanings: ["go", "goes"], chapter: 2, irregular: true },
+        fero: { stem: "fer", conj: 3, meaning: "bring", meanings: ["bring", "brings", "carry", "carries"], chapter: 3, irregular: true },
+        volo: { stem: "vol", conj: 0, meaning: "want", meanings: ["want", "wants", "wish", "wishes"], chapter: 3, irregular: true },
+        possum: { stem: "poss", conj: 0, meaning: "be able", meanings: ["can", "am able", "is able"], chapter: 3, irregular: true },
+        facio: { stem: "fac", conj: 3, meaning: "do", meanings: ["do", "does", "make", "makes"], chapter: 4, irregular: true },
+        capio: { stem: "capi", conj: 3, meaning: "take", meanings: ["take", "takes", "capture", "captures"], chapter: 4, irregular: true }
     },
-    3: {
-        name: "Chapter 3",
-        grammar: ["imperfect", "possum", "adjectives_212", "imperatives", "vocative"],
-        description: "Imperfect tense, possum, adjectives, imperatives"
+
+    // ADJECTIVES: { word: { stem, type, meaning } }
+    // type: "212" for 2-1-2 (bonus-a-um), "3" for 3rd declension
+    adjectives: {
+        bonus: { stem: "bon", type: "212", meaning: "good", chapter: 1 },
+        malus: { stem: "mal", type: "212", meaning: "bad", chapter: 1 },
+        magnus: { stem: "magn", type: "212", meaning: "big", meanings: ["big", "large", "great"], chapter: 1 },
+        parvus: { stem: "parv", type: "212", meaning: "small", meanings: ["small", "little"], chapter: 1 },
+        laetus: { stem: "laet", type: "212", meaning: "happy", meanings: ["happy", "joyful"], chapter: 1 },
+        iratus: { stem: "irat", type: "212", meaning: "angry", chapter: 1 },
+        perterritus: { stem: "perterrit", type: "212", meaning: "terrified", meanings: ["terrified", "very frightened"], chapter: 1 },
+        fessus: { stem: "fess", type: "212", meaning: "tired", chapter: 1 },
+        novus: { stem: "nov", type: "212", meaning: "new", chapter: 1 },
+        primus: { stem: "prim", type: "212", meaning: "first", chapter: 1 },
+        pulcher: { stem: "pulchr", type: "212", meaning: "beautiful", meanings: ["beautiful", "handsome"], chapter: 1 },
+        miser: { stem: "miser", type: "212", meaning: "miserable", meanings: ["miserable", "wretched", "unhappy"], chapter: 1 },
+        multus: { stem: "mult", type: "212", meaning: "much", meanings: ["much", "many"], chapter: 1 },
+
+        tristis: { stem: "trist", type: "3", meaning: "sad", chapter: 3 },
+        fortis: { stem: "fort", type: "3", meaning: "brave", meanings: ["brave", "strong"], chapter: 3 },
+        brevis: { stem: "brev", type: "3", meaning: "short", meanings: ["short", "brief"], chapter: 3 },
+        gravis: { stem: "grav", type: "3", meaning: "heavy", meanings: ["heavy", "serious"], chapter: 3 },
+        omnis: { stem: "omn", type: "3", meaning: "all", meanings: ["all", "every"], chapter: 3 },
+
+        felix: { stem: "felic", type: "3cons", meaning: "lucky", meanings: ["lucky", "fortunate"], chapter: 5 },
+        ingens: { stem: "ingent", type: "3cons", meaning: "huge", meanings: ["huge", "enormous"], chapter: 5 },
+        sapiens: { stem: "sapient", type: "3cons", meaning: "wise", chapter: 5 }
     },
-    4: {
-        name: "Chapter 4",
-        grammar: ["perfect", "3rd_declension", "3rd_neuter", "direct_questions", "ego_tu"],
-        description: "Perfect tense, 3rd declension, direct questions"
+
+    // ADVERBS
+    adverbs: {
+        bene: { meaning: "well", chapter: 1 },
+        male: { meaning: "badly", chapter: 1 },
+        celeriter: { meaning: "quickly", chapter: 1 },
+        lente: { meaning: "slowly", chapter: 1 },
+        statim: { meaning: "immediately", meanings: ["immediately", "at once"], chapter: 1 },
+        tandem: { meaning: "at last", meanings: ["at last", "finally"], chapter: 1 },
+        subito: { meaning: "suddenly", chapter: 1 },
+        semper: { meaning: "always", chapter: 1 },
+        numquam: { meaning: "never", chapter: 1 },
+        saepe: { meaning: "often", chapter: 1 },
+        mox: { meaning: "soon", chapter: 1 },
+        nunc: { meaning: "now", chapter: 1 },
+        hodie: { meaning: "today", chapter: 1 },
+        olim: { meaning: "once", meanings: ["once", "one day", "once upon a time"], chapter: 1 },
+        tamen: { meaning: "however", chapter: 1 },
+        igitur: { meaning: "therefore", chapter: 2 },
+        itaque: { meaning: "and so", meanings: ["and so", "therefore"], chapter: 2 },
+        deinde: { meaning: "then", meanings: ["then", "next"], chapter: 2 },
+        interea: { meaning: "meanwhile", chapter: 3 },
+        diu: { meaning: "for a long time", chapter: 3 },
+        iam: { meaning: "now", meanings: ["now", "already"], chapter: 3 }
     },
-    5: {
-        name: "Chapter 5",
-        grammar: ["future", "adjectives_3rd", "is_ea_id", "se_reflexive", "suus", "nos_vos"],
-        description: "Future tense, 3rd declension adjectives, pronouns"
-    },
-    6: {
-        name: "Chapter 6",
-        grammar: ["pluperfect", "relative_clauses", "ubi_postquam", "quod_quamquam", "eo", "numerals"],
-        description: "Pluperfect, relative clauses, time clauses"
-    },
-    7: {
-        name: "Chapter 7",
-        grammar: ["present_passive", "imperfect_passive", "future_passive", "agent_instrument", "present_participle", "ppp", "hic_ille", "comparatives", "superlatives"],
-        description: "Passive voice, participles, comparatives"
-    },
-    8: {
-        name: "Chapter 8",
-        grammar: ["perfect_passive", "pluperfect_passive", "ablative_absolute", "future_participle", "conditionals", "ipse_idem", "negative_commands"],
-        description: "Perfect passive, ablative absolute, conditionals"
-    },
-    9: {
-        name: "Chapter 9",
-        grammar: ["deponent_verbs", "indirect_statement", "passive_infinitive", "perfect_infinitive", "future_infinitive", "semi_deponents"],
-        description: "Deponent verbs, indirect statement"
-    },
-    10: {
-        name: "Chapter 10",
-        grammar: ["purpose_clauses", "result_clauses", "indirect_commands", "indirect_questions", "cum_clauses", "verbs_of_fearing", "imperfect_subjunctive", "pluperfect_subjunctive", "4th_5th_declension", "gerundive"],
-        description: "Subjunctive uses, purpose/result clauses"
+
+    // Place words
+    places: {
+        Roma: { meaning: "Rome", chapter: 1 },
+        forum: { meaning: "forum", meanings: ["forum", "market place"], chapter: 1 },
+        hortus: { meaning: "garden", chapter: 1 },
+        via: { meaning: "street", meanings: ["street", "road"], chapter: 1 },
+        villa: { meaning: "villa", meanings: ["villa", "house"], chapter: 1 },
+        taberna: { meaning: "shop", chapter: 1 },
+        templum: { meaning: "temple", chapter: 2 },
+        castra: { meaning: "camp", chapter: 4 },
+        urbs: { meaning: "city", chapter: 4 },
+        silva: { meaning: "forest", meanings: ["forest", "woods"], chapter: 3 },
+        mons: { meaning: "mountain", chapter: 4 },
+        flumen: { meaning: "river", chapter: 5 },
+        mare: { meaning: "sea", chapter: 5 }
     }
+};
+
+// ========== STORY TEMPLATES ==========
+// Each template has slots that get filled with vocabulary
+// Slots: {PERSON}, {PERSON2}, {PLACE}, {OBJECT}, {ADJ}, {VERB}, etc.
+
+const storyTemplates = [
+    {
+        id: "template_daily_shopping",
+        title: "A Trip to the {PLACE}",
+        theme: "daily_life",
+        maxChapter: 2,
+        introduction: "A {PERSON_DESC} goes to the {PLACE} in Rome.",
+        sentences: [
+            {
+                template: "{PERSON} ad {PLACE_ACC} ambulat.",
+                translation: "the {PERSON_ENG} walks to the {PLACE_ENG}.",
+                grammar: ["present_active"],
+                slots: {
+                    PERSON: { type: "noun", filter: { chapter: 1 } },
+                    PLACE: { type: "place", filter: { chapter: 2 } }
+                }
+            },
+            {
+                template: "{PERSON} {OBJECT_ACC} emere vult.",
+                translation: "the {PERSON_ENG} wants to buy {OBJECT_ENG}.",
+                grammar: ["present_active", "infinitive"],
+                slots: {
+                    OBJECT: { type: "noun", filter: { chapter: 1, gender: "m" } }
+                }
+            },
+            {
+                template: "mercator {PERSON_DAT} {OBJECT_ACC} ostendit.",
+                translation: "the merchant shows the {OBJECT_ENG} to the {PERSON_ENG}.",
+                grammar: ["present_active", "dative"],
+                slots: {}
+            },
+            {
+                template: "{PERSON} mercatori pecuniam dat.",
+                translation: "the {PERSON_ENG} gives money to the merchant.",
+                grammar: ["present_active", "dative"],
+                slots: {}
+            },
+            {
+                template: "{PERSON} {ADJ} domum redit.",
+                translation: "the {ADJ_ENG} {PERSON_ENG} returns home.",
+                grammar: ["present_active"],
+                slots: {
+                    ADJ: { type: "adjective", filter: { chapter: 1, positive: true } }
+                }
+            }
+        ]
+    },
+
+    {
+        id: "template_lazy_slave",
+        title: "The {ADJ} Slave",
+        theme: "daily_life",
+        maxChapter: 3,
+        introduction: "A master discovers his slave is not working.",
+        sentences: [
+            {
+                template: "{PERSON} dominus Romanus erat.",
+                translation: "{PERSON_ENG} was a Roman master.",
+                grammar: ["imperfect"],
+                slots: {
+                    PERSON: { type: "name", filter: { male: true } }
+                }
+            },
+            {
+                template: "servus in {PLACE_ABL} laborare debebat.",
+                translation: "the slave had to work in the {PLACE_ENG}.",
+                grammar: ["imperfect", "infinitive"],
+                slots: {
+                    PLACE: { type: "place", filter: { chapter: 2 } }
+                }
+            },
+            {
+                template: "sed servus in {PLACE_ABL} dormiebat!",
+                translation: "but the slave was sleeping in the {PLACE_ENG}!",
+                grammar: ["imperfect"],
+                slots: {}
+            },
+            {
+                template: "dominus {ADJ} clamavit: 'cur non laboras, serve?'",
+                translation: "the {ADJ_ENG} master shouted: 'why are you not working, slave?'",
+                grammar: ["perfect", "direct_questions", "vocative"],
+                slots: {
+                    ADJ: { type: "adjective", filter: { meaning: "angry" } }
+                }
+            },
+            {
+                template: "servus perterritus statim surrexit.",
+                translation: "the terrified slave immediately got up.",
+                grammar: ["perfect"],
+                slots: {}
+            }
+        ]
+    },
+
+    {
+        id: "template_lost_animal",
+        title: "The Lost {ANIMAL}",
+        theme: "daily_life",
+        maxChapter: 4,
+        introduction: "A {PERSON_DESC} searches for a missing {ANIMAL_ENG}.",
+        sentences: [
+            {
+                template: "{PERSON} {ANIMAL_ACC} habebat.",
+                translation: "the {PERSON_ENG} had a {ANIMAL_ENG}.",
+                grammar: ["imperfect"],
+                slots: {
+                    PERSON: { type: "noun", filter: { meaning: ["boy", "girl", "old man"] } },
+                    ANIMAL: { type: "noun", filter: { meaning: ["dog", "horse"] } }
+                }
+            },
+            {
+                template: "{ANIMAL} e villa effugit.",
+                translation: "the {ANIMAL_ENG} escaped from the house.",
+                grammar: ["perfect"],
+                slots: {}
+            },
+            {
+                template: "{PERSON} {ADJ} {ANIMAL_ACC} quaerebat.",
+                translation: "the {ADJ_ENG} {PERSON_ENG} was looking for the {ANIMAL_ENG}.",
+                grammar: ["imperfect"],
+                slots: {
+                    ADJ: { type: "adjective", filter: { meaning: "sad" } }
+                }
+            },
+            {
+                template: "'ubi est {ANIMAL} meus?' clamavit.",
+                translation: "'where is my {ANIMAL_ENG}?' he shouted.",
+                grammar: ["perfect", "direct_questions"],
+                slots: {}
+            },
+            {
+                template: "tandem {ANIMAL_ACC} in {PLACE_ABL} invenit.",
+                translation: "at last he found the {ANIMAL_ENG} in the {PLACE_ENG}.",
+                grammar: ["perfect"],
+                slots: {
+                    PLACE: { type: "place", filter: { chapter: 2 } }
+                }
+            },
+            {
+                template: "{PERSON} laetissimus erat!",
+                translation: "the {PERSON_ENG} was very happy!",
+                grammar: ["imperfect", "superlatives"],
+                slots: {}
+            }
+        ]
+    },
+
+    {
+        id: "template_brave_soldier",
+        title: "The {ADJ} Soldier",
+        theme: "military",
+        maxChapter: 4,
+        introduction: "A soldier shows great courage in battle.",
+        sentences: [
+            {
+                template: "milites Romani contra hostes pugnabant.",
+                translation: "the Roman soldiers were fighting against the enemy.",
+                grammar: ["imperfect"],
+                slots: {}
+            },
+            {
+                template: "unus miles {ADJ} erat.",
+                translation: "one soldier was very {ADJ_ENG}.",
+                grammar: ["imperfect"],
+                slots: {
+                    ADJ: { type: "adjective", filter: { meaning: "brave" } }
+                }
+            },
+            {
+                template: "hostes eum neccare volebant.",
+                translation: "the enemy wanted to kill him.",
+                grammar: ["imperfect", "infinitive"],
+                slots: {}
+            },
+            {
+                template: "sed miles fortiter pugnavit.",
+                translation: "but the soldier fought bravely.",
+                grammar: ["perfect"],
+                slots: {}
+            },
+            {
+                template: "tandem hostes victi sunt.",
+                translation: "at last the enemy were defeated.",
+                grammar: ["perfect_passive"],
+                slots: {}
+            },
+            {
+                template: "dux militem laudavit.",
+                translation: "the general praised the soldier.",
+                grammar: ["perfect"],
+                slots: {}
+            }
+        ]
+    },
+
+    {
+        id: "template_dinner_party",
+        title: "The Dinner Party",
+        theme: "daily_life",
+        maxChapter: 6,
+        introduction: "A wealthy Roman hosts a dinner party with unexpected events.",
+        sentences: [
+            {
+                template: "{PERSON}, vir dives, amicos ad cenam invitaverat.",
+                translation: "{PERSON_ENG}, a wealthy man, had invited friends to dinner.",
+                grammar: ["pluperfect"],
+                slots: {
+                    PERSON: { type: "name", filter: { male: true } }
+                }
+            },
+            {
+                template: "servi cibum {ADJ_ACC} parabant.",
+                translation: "the slaves were preparing {ADJ_ENG} food.",
+                grammar: ["imperfect"],
+                slots: {
+                    ADJ: { type: "adjective", filter: { meaning: "good" } }
+                }
+            },
+            {
+                template: "ubi omnes amici advenerunt, {PERSON} eos in triclinium duxit.",
+                translation: "when all the friends arrived, {PERSON_ENG} led them into the dining room.",
+                grammar: ["perfect", "ubi_postquam"],
+                slots: {}
+            },
+            {
+                template: "cenam laeti consumebant.",
+                translation: "they happily ate the dinner.",
+                grammar: ["imperfect"],
+                slots: {}
+            },
+            {
+                template: "subito servus in triclinium cucurrit.",
+                translation: "suddenly a slave ran into the dining room.",
+                grammar: ["perfect"],
+                slots: {}
+            },
+            {
+                template: "'domine,' inquit, 'fur in horto visus est!'",
+                translation: "'master,' he said, 'a thief has been seen in the garden!'",
+                grammar: ["perfect_passive", "direct_speech"],
+                slots: {}
+            },
+            {
+                template: "omnes e triclinio festinaverunt.",
+                translation: "everyone hurried out of the dining room.",
+                grammar: ["perfect"],
+                slots: {}
+            },
+            {
+                template: "sed fur iam effugerat!",
+                translation: "but the thief had already escaped!",
+                grammar: ["pluperfect"],
+                slots: {}
+            }
+        ]
+    },
+
+    {
+        id: "template_journey",
+        title: "The Journey to {DESTINATION}",
+        theme: "travel",
+        maxChapter: 5,
+        introduction: "Travellers make a difficult journey.",
+        sentences: [
+            {
+                template: "{PERSON} et amici iter longum faciebant.",
+                translation: "{PERSON_ENG} and his friends were making a long journey.",
+                grammar: ["imperfect"],
+                slots: {
+                    PERSON: { type: "name", filter: { male: true } }
+                }
+            },
+            {
+                template: "ad {PLACE_ACC} ire volebant.",
+                translation: "they wanted to go to {PLACE_ENG}.",
+                grammar: ["imperfect", "infinitive"],
+                slots: {
+                    PLACE: { type: "place", filter: { chapter: 4 } }
+                }
+            },
+            {
+                template: "via longa et difficilis erat.",
+                translation: "the road was long and difficult.",
+                grammar: ["imperfect"],
+                slots: {}
+            },
+            {
+                template: "mox omnes fessi erant.",
+                translation: "soon everyone was tired.",
+                grammar: ["imperfect"],
+                slots: {}
+            },
+            {
+                template: "'hic manere debemus,' dixit {PERSON}.",
+                translation: "'we must stay here,' said {PERSON_ENG}.",
+                grammar: ["present_active", "direct_speech"],
+                slots: {}
+            },
+            {
+                template: "itaque in villa parva dormierunt.",
+                translation: "and so they slept in a small inn.",
+                grammar: ["perfect"],
+                slots: {}
+            },
+            {
+                template: "postero die tandem advenerunt.",
+                translation: "on the next day they finally arrived.",
+                grammar: ["perfect"],
+                slots: {}
+            }
+        ]
+    },
+
+    {
+        id: "template_myth_hero",
+        title: "{HERO} and the {MONSTER}",
+        theme: "mythology",
+        maxChapter: 8,
+        introduction: "A hero faces a dangerous creature.",
+        sentences: [
+            {
+                template: "olim {HERO} erat vir fortissimus.",
+                translation: "once upon a time {HERO_ENG} was a very brave man.",
+                grammar: ["imperfect", "superlatives"],
+                slots: {
+                    HERO: { type: "name", filter: { heroic: true } }
+                }
+            },
+            {
+                template: "{MONSTER} terribilis in silva habitabat.",
+                translation: "a terrible {MONSTER_ENG} was living in the forest.",
+                grammar: ["imperfect"],
+                slots: {
+                    MONSTER: { type: "creature" }
+                }
+            },
+            {
+                template: "multi cives ab eo necati erant.",
+                translation: "many citizens had been killed by it.",
+                grammar: ["pluperfect_passive"],
+                slots: {}
+            },
+            {
+                template: "{HERO} constituit {MONSTER_ACC} superare.",
+                translation: "{HERO_ENG} decided to overcome the {MONSTER_ENG}.",
+                grammar: ["perfect", "infinitive"],
+                slots: {}
+            },
+            {
+                template: "gladio rapto, ad silvam contendit.",
+                translation: "having seized his sword, he hurried to the forest.",
+                grammar: ["ablative_absolute", "perfect"],
+                slots: {}
+            },
+            {
+                template: "diu fortiter pugnabat.",
+                translation: "for a long time he fought bravely.",
+                grammar: ["imperfect"],
+                slots: {}
+            },
+            {
+                template: "tandem, {MONSTER_ABL} victo, domum rediit.",
+                translation: "at last, with the {MONSTER_ENG} defeated, he returned home.",
+                grammar: ["ablative_absolute", "perfect"],
+                slots: {}
+            },
+            {
+                template: "omnes cives eum laudaverunt.",
+                translation: "all the citizens praised him.",
+                grammar: ["perfect"],
+                slots: {}
+            }
+        ]
+    }
+];
+
+// Roman names for template slots
+const romanNames = {
+    male: ["Marcus", "Gaius", "Lucius", "Publius", "Quintus", "Titus", "Sextus", "Aulus"],
+    female: ["Julia", "Claudia", "Cornelia", "Livia", "Aurelia", "Caecilia"],
+    heroic: ["Hercules", "Perseus", "Theseus", "Aeneas", "Achilles"]
+};
+
+// Creatures for mythology templates
+const creatures = {
+    monsters: [
+        { latin: "monstrum", english: "monster", gender: "n", decl: 2 },
+        { latin: "serpens", english: "serpent", gender: "m", decl: 3 },
+        { latin: "draco", english: "dragon", gender: "m", decl: 3 },
+        { latin: "leo", english: "lion", gender: "m", decl: 3 }
+    ]
 };
 
 // Grammar spotlight definitions
@@ -64,1181 +608,38 @@ const grammarSpotlights = {
     future: { name: "Future tense", minChapter: 5, tags: ["future"] },
     present_passive: { name: "Present passive", minChapter: 7, tags: ["present_passive"] },
     perfect_passive: { name: "Perfect passive", minChapter: 8, tags: ["perfect_passive"] },
-    present_participle: { name: "Present participle", minChapter: 7, tags: ["present_participle"] },
-    ppp: { name: "Perfect passive participle", minChapter: 7, tags: ["ppp"] },
     ablative_absolute: { name: "Ablative absolute", minChapter: 8, tags: ["ablative_absolute"] },
     purpose_clauses: { name: "Purpose clauses", minChapter: 10, tags: ["purpose_clauses"] },
     result_clauses: { name: "Result clauses", minChapter: 10, tags: ["result_clauses"] },
-    indirect_commands: { name: "Indirect commands", minChapter: 10, tags: ["indirect_commands"] },
-    cum_clauses: { name: "Cum clauses", minChapter: 10, tags: ["cum_clauses"] },
-    indirect_questions: { name: "Indirect questions", minChapter: 10, tags: ["indirect_questions"] },
-    relative_clauses: { name: "Relative clauses", minChapter: 6, tags: ["relative_clauses"] },
     indirect_statement: { name: "Indirect statement", minChapter: 9, tags: ["indirect_statement"] },
-    deponent_verbs: { name: "Deponent verbs", minChapter: 9, tags: ["deponent_verbs"] },
-    comparatives: { name: "Comparatives & Superlatives", minChapter: 7, tags: ["comparatives", "superlatives"] }
+    relative_clauses: { name: "Relative clauses", minChapter: 6, tags: ["relative_clauses"] }
 };
 
-// ========== NARRATIVE PASSAGES ==========
-// Complete stories with connected sentences, GCSE exam style
-
-const narrativePassages = [
-    // ========== BEGINNER STORIES (Chapters 1-4) ==========
-    {
-        id: "beginner_villa",
-        title: "Life in a Roman Villa",
-        theme: "daily_life",
-        maxChapter: 1,
-        introduction: "A simple day in a Roman household.",
-        sentences: [
-            {
-                latin: "dominus in villa habitat.",
-                translations: [
-                    "the master lives in the villa.",
-                    "the master is living in the house.",
-                    "a master lives in the villa."
-                ],
-                grammar: ["present_active"],
-                keyPhrases: ["master", "lives", "living", "villa", "house"],
-                hints: { "dominus": "master", "villa": "villa/house", "habitat": "habito - present" }
-            },
-            {
-                latin: "servi in villa laborant.",
-                translations: [
-                    "the slaves work in the villa.",
-                    "the slaves are working in the house.",
-                    "slaves work in the villa."
-                ],
-                grammar: ["present_active"],
-                keyPhrases: ["slaves", "work", "working", "villa", "house"],
-                hints: { "servi": "slaves (nominative plural)", "laborant": "laboro - present plural" }
-            },
-            {
-                latin: "ancilla cibum parat.",
-                translations: [
-                    "the slave-girl prepares food.",
-                    "the maid is preparing food.",
-                    "a slave-girl prepares food."
-                ],
-                grammar: ["present_active"],
-                keyPhrases: ["slave-girl", "maid", "prepares", "preparing", "food"],
-                hints: { "ancilla": "slave-girl/maid", "cibum": "food (accusative)", "parat": "paro - present" }
-            },
-            {
-                latin: "dominus cibum consumit.",
-                translations: [
-                    "the master eats the food.",
-                    "the master is eating the food."
-                ],
-                grammar: ["present_active"],
-                keyPhrases: ["master", "eats", "eating", "food"],
-                hints: { "consumit": "consumo - present (eats)" }
-            },
-            {
-                latin: "dominus laetus est.",
-                translations: [
-                    "the master is happy.",
-                    "the master is pleased."
-                ],
-                grammar: ["present_active"],
-                keyPhrases: ["master", "happy", "pleased"],
-                hints: { "laetus": "happy", "est": "sum - present" }
-            }
-        ]
-    },
-
-    {
-        id: "beginner_slave",
-        title: "The Lazy Slave",
-        theme: "daily_life",
-        maxChapter: 3,
-        introduction: "A master discovers his slave is not working.",
-        sentences: [
-            {
-                latin: "Gaius erat dominus Romanus.",
-                translations: [
-                    "Gaius was a Roman master.",
-                    "Gaius was a Roman lord."
-                ],
-                grammar: ["imperfect"],
-                keyPhrases: ["Gaius", "Roman", "master", "lord"],
-                hints: { "erat": "sum - imperfect", "dominus": "master/lord" }
-            },
-            {
-                latin: "servus in horto laborare debebat.",
-                translations: [
-                    "the slave had to work in the garden.",
-                    "the slave was supposed to work in the garden.",
-                    "a slave ought to work in the garden."
-                ],
-                grammar: ["imperfect", "infinitive"],
-                keyPhrases: ["slave", "had to", "supposed to", "work", "garden"],
-                hints: { "debebat": "debeo - imperfect (had to/ought)", "laborare": "infinitive" }
-            },
-            {
-                latin: "sed servus in horto dormiebat!",
-                translations: [
-                    "but the slave was sleeping in the garden!",
-                    "but the slave was asleep in the garden!"
-                ],
-                grammar: ["imperfect"],
-                keyPhrases: ["but", "slave", "sleeping", "asleep", "garden"],
-                hints: { "dormiebat": "dormio - imperfect" }
-            },
-            {
-                latin: "dominus iratus clamavit: 'cur non laboras, serve?'",
-                translations: [
-                    "the angry master shouted: 'why are you not working, slave?'",
-                    "the angry master cried: 'why aren't you working, slave?'"
-                ],
-                grammar: ["perfect", "direct_questions", "vocative", "imperatives"],
-                keyPhrases: ["angry", "master", "shouted", "cried", "why", "not", "working", "slave"],
-                hints: { "iratus": "angry", "clamavit": "clamo - perfect", "serve": "vocative" }
-            },
-            {
-                latin: "servus perterritus statim surrexit.",
-                translations: [
-                    "the terrified slave immediately got up.",
-                    "the very frightened slave got up at once."
-                ],
-                grammar: ["perfect"],
-                keyPhrases: ["terrified", "frightened", "slave", "immediately", "at once", "got up"],
-                hints: { "perterritus": "very frightened", "surrexit": "surgo - perfect" }
-            }
-        ]
-    },
-
-    {
-        id: "beginner_market",
-        title: "At the Market",
-        theme: "daily_life",
-        maxChapter: 2,
-        introduction: "A woman goes shopping at the Roman market.",
-        sentences: [
-            {
-                latin: "femina ad forum ambulat.",
-                translations: [
-                    "the woman walks to the forum.",
-                    "the woman is walking to the forum.",
-                    "a woman walks to the market."
-                ],
-                grammar: ["present_active"],
-                keyPhrases: ["woman", "walks", "walking", "forum", "market"],
-                hints: { "forum": "forum/market", "ambulat": "ambulo - present" }
-            },
-            {
-                latin: "femina cibum emere vult.",
-                translations: [
-                    "the woman wants to buy food.",
-                    "the woman wishes to buy food."
-                ],
-                grammar: ["present_active", "infinitive"],
-                keyPhrases: ["woman", "wants", "wishes", "buy", "food"],
-                hints: { "emere": "infinitive (to buy)", "vult": "volo - present (wants)" }
-            },
-            {
-                latin: "mercator feminae cibum ostendit.",
-                translations: [
-                    "the merchant shows the food to the woman.",
-                    "the merchant shows the woman the food.",
-                    "a merchant is showing food to the woman."
-                ],
-                grammar: ["present_active", "dative"],
-                keyPhrases: ["merchant", "shows", "showing", "food", "woman"],
-                hints: { "feminae": "dative (to the woman)", "ostendit": "ostendo - present" }
-            },
-            {
-                latin: "femina mercatori pecuniam dat.",
-                translations: [
-                    "the woman gives money to the merchant.",
-                    "the woman gives the merchant money."
-                ],
-                grammar: ["present_active", "dative"],
-                keyPhrases: ["woman", "gives", "money", "merchant"],
-                hints: { "mercatori": "dative (to the merchant)", "dat": "do - present" }
-            },
-            {
-                latin: "femina laeta domum redit.",
-                translations: [
-                    "the happy woman returns home.",
-                    "the woman returns home happily.",
-                    "the happy woman goes back home."
-                ],
-                grammar: ["present_active"],
-                keyPhrases: ["happy", "woman", "returns", "goes back", "home"],
-                hints: { "laeta": "happy", "domum": "homeward", "redit": "redeo - present" }
-            }
-        ]
-    },
-
-    {
-        id: "beginner_soldier",
-        title: "The New Soldier",
-        theme: "military",
-        maxChapter: 4,
-        introduction: "A young man joins the Roman army.",
-        sentences: [
-            {
-                latin: "Marcus erat iuvenis Romanus.",
-                translations: [
-                    "Marcus was a young Roman.",
-                    "Marcus was a Roman young man."
-                ],
-                grammar: ["imperfect"],
-                keyPhrases: ["Marcus", "young", "Roman"],
-                hints: { "iuvenis": "young man", "erat": "sum - imperfect" }
-            },
-            {
-                latin: "miles fieri volebat.",
-                translations: [
-                    "he wanted to become a soldier.",
-                    "he wished to become a soldier."
-                ],
-                grammar: ["imperfect", "infinitive"],
-                keyPhrases: ["wanted", "wished", "become", "soldier"],
-                hints: { "fieri": "infinitive (to become)", "volebat": "volo - imperfect" }
-            },
-            {
-                latin: "tandem ad castra advenit.",
-                translations: [
-                    "at last he arrived at the camp.",
-                    "finally he came to the camp."
-                ],
-                grammar: ["perfect"],
-                keyPhrases: ["at last", "finally", "arrived", "came", "camp"],
-                hints: { "tandem": "at last/finally", "castra": "camp", "advenit": "advenio - perfect" }
-            },
-            {
-                latin: "dux eum rogavit: 'cur huc venisti?'",
-                translations: [
-                    "the leader asked him: 'why have you come here?'",
-                    "the general asked him: 'why did you come here?'"
-                ],
-                grammar: ["perfect", "direct_questions"],
-                keyPhrases: ["leader", "general", "asked", "why", "come", "here"],
-                hints: { "dux": "leader/general", "huc": "here/to this place", "venisti": "venio - perfect 2nd sing" }
-            },
-            {
-                latin: "'pro patria pugnare volo,' respondit Marcus.",
-                translations: [
-                    "'I want to fight for my country,' Marcus replied.",
-                    "'I wish to fight for my fatherland,' replied Marcus."
-                ],
-                grammar: ["present_active", "infinitive", "perfect"],
-                keyPhrases: ["want", "wish", "fight", "country", "fatherland", "replied", "Marcus"],
-                hints: { "pro patria": "for the fatherland", "pugnare": "infinitive", "respondit": "respondeo - perfect" }
-            },
-            {
-                latin: "dux laetus Marcum in exercitum accepit.",
-                translations: [
-                    "the happy leader accepted Marcus into the army.",
-                    "the pleased general received Marcus into the army."
-                ],
-                grammar: ["perfect"],
-                keyPhrases: ["happy", "pleased", "leader", "general", "accepted", "received", "Marcus", "army"],
-                hints: { "exercitum": "army", "accepit": "accipio - perfect" }
-            }
-        ]
-    },
-
-    {
-        id: "beginner_dog",
-        title: "The Lost Dog",
-        theme: "daily_life",
-        maxChapter: 4,
-        introduction: "A boy searches for his missing dog.",
-        sentences: [
-            {
-                latin: "puer canem habebat.",
-                translations: [
-                    "the boy had a dog.",
-                    "a boy used to have a dog."
-                ],
-                grammar: ["imperfect"],
-                keyPhrases: ["boy", "had", "dog"],
-                hints: { "canem": "dog (accusative)", "habebat": "habeo - imperfect" }
-            },
-            {
-                latin: "canis e villa effugit.",
-                translations: [
-                    "the dog escaped from the house.",
-                    "the dog ran away from the villa."
-                ],
-                grammar: ["perfect"],
-                keyPhrases: ["dog", "escaped", "ran away", "house", "villa"],
-                hints: { "effugit": "effugio - perfect", "e villa": "from the house" }
-            },
-            {
-                latin: "puer tristis canem quaerebat.",
-                translations: [
-                    "the sad boy was looking for the dog.",
-                    "the sad boy searched for the dog."
-                ],
-                grammar: ["imperfect"],
-                keyPhrases: ["sad", "boy", "looking for", "searched", "dog"],
-                hints: { "tristis": "sad", "quaerebat": "quaero - imperfect" }
-            },
-            {
-                latin: "'ubi est canis meus?' clamavit.",
-                translations: [
-                    "'where is my dog?' he shouted.",
-                    "'where is my dog?' he cried."
-                ],
-                grammar: ["direct_questions", "perfect"],
-                keyPhrases: ["where", "my", "dog", "shouted", "cried"],
-                hints: { "ubi": "where", "meus": "my", "clamavit": "clamo - perfect" }
-            },
-            {
-                latin: "tandem canem in horto invenit.",
-                translations: [
-                    "at last he found the dog in the garden.",
-                    "finally he found the dog in the garden."
-                ],
-                grammar: ["perfect"],
-                keyPhrases: ["at last", "finally", "found", "dog", "garden"],
-                hints: { "tandem": "at last/finally", "invenit": "invenio - perfect" }
-            },
-            {
-                latin: "puer laetissimus erat!",
-                translations: [
-                    "the boy was very happy!",
-                    "the boy was most happy!"
-                ],
-                grammar: ["imperfect", "superlatives"],
-                keyPhrases: ["boy", "very happy", "most happy"],
-                hints: { "laetissimus": "superlative of laetus (very/most happy)" }
-            }
-        ]
-    },
-
-    // ========== MYTHOLOGY STORIES ==========
-    {
-        id: "myth_marsyas",
-        title: "Marsyas and Apollo",
-        theme: "mythology",
-        maxChapter: 9,
-        introduction: "The minor god Marsyas pays the price for challenging Apollo to a music contest.",
-        sentences: [
-            {
-                latin: "Marsyas erat satyrus stultus, qui in silvis habitabat.",
-                translations: [
-                    "Marsyas was a foolish satyr, who lived in the woods.",
-                    "Marsyas was a stupid satyr who used to live in the forests.",
-                    "Marsyas was a foolish satyr, who was living in the woods."
-                ],
-                grammar: ["imperfect", "relative_clauses"],
-                keyPhrases: ["Marsyas", "foolish", "satyr", "lived", "woods", "forests"],
-                hints: { "erat": "sum - imperfect", "qui": "relative pronoun", "habitabat": "habito - imperfect" }
-            },
-            {
-                latin: "olim, dum per montes ambulat, tibiam in terra iacentem conspexit.",
-                translations: [
-                    "once, while he was walking through the mountains, he caught sight of a pipe lying on the ground.",
-                    "one day, while walking through the mountains, he noticed a flute lying on the ground.",
-                    "once, as he walked through the mountains, he spotted a pipe lying on the earth."
-                ],
-                grammar: ["present_active", "perfect", "present_participle"],
-                keyPhrases: ["once", "while", "walking", "mountains", "caught sight", "noticed", "pipe", "flute", "lying", "ground"],
-                hints: { "dum": "while + present", "iacentem": "iaceo - present participle", "conspexit": "conspicio - perfect" }
-            },
-            {
-                latin: "'quam pulchra est illa tibia!' exclamavit.",
-                translations: [
-                    "'how beautiful that pipe is!' he exclaimed.",
-                    "'how lovely is that flute!' he cried out.",
-                    "'how beautiful that flute is!' he shouted."
-                ],
-                grammar: ["direct_speech", "present_active"],
-                keyPhrases: ["how", "beautiful", "lovely", "pipe", "flute", "exclaimed", "cried", "shouted"],
-                hints: { "quam": "how (exclamatory)", "illa": "that", "exclamavit": "exclamo - perfect" }
-            },
-            {
-                latin: "deinde, tibia statim rapta, domum rediit.",
-                translations: [
-                    "then, having immediately seized the pipe, he returned home.",
-                    "then, with the pipe immediately snatched up, he went back home.",
-                    "next, after quickly grabbing the flute, he returned home."
-                ],
-                grammar: ["ablative_absolute", "perfect"],
-                keyPhrases: ["then", "immediately", "seized", "snatched", "grabbed", "pipe", "flute", "returned", "home"],
-                hints: { "tibia rapta": "ablative absolute", "rediit": "redeo - perfect" }
-            },
-            {
-                latin: "mox omnes satyrum mirabantur quod optime canere poterat.",
-                translations: [
-                    "soon everyone was amazed at the satyr because he could sing very well.",
-                    "soon all were marvelling at the satyr because he was able to play excellently.",
-                    "soon everyone admired the satyr because he could perform very well."
-                ],
-                grammar: ["imperfect", "quod_clause", "superlatives"],
-                keyPhrases: ["soon", "everyone", "all", "amazed", "marvelling", "admired", "satyr", "because", "sing", "play", "well", "excellently"],
-                hints: { "mirabantur": "miror - imperfect deponent", "optime": "superlative adverb", "poterat": "possum - imperfect" }
-            },
-            {
-                latin: "itaque Marsyas constituit Apollinem ad certamen invitare.",
-                translations: [
-                    "and so Marsyas decided to invite Apollo to a contest.",
-                    "therefore Marsyas decided to challenge Apollo to a competition.",
-                    "so Marsyas resolved to invite Apollo to a contest."
-                ],
-                grammar: ["perfect", "infinitive"],
-                keyPhrases: ["so", "therefore", "Marsyas", "decided", "resolved", "invite", "challenge", "Apollo", "contest", "competition"],
-                hints: { "itaque": "and so/therefore", "constituit": "constituo - perfect", "invitare": "infinitive" }
-            },
-            {
-                latin: "nam omnibus ostendere volebat se meliorem illo deo esse.",
-                translations: [
-                    "for he wanted to show everyone that he was better than that god.",
-                    "for he wished to demonstrate to all that he was superior to that god.",
-                    "because he wanted to prove to everyone that he was better than that god."
-                ],
-                grammar: ["imperfect", "indirect_statement", "comparatives"],
-                keyPhrases: ["for", "wanted", "wished", "show", "demonstrate", "prove", "everyone", "better", "superior", "god"],
-                hints: { "se...esse": "indirect statement", "meliorem": "comparative of bonus", "illo": "ablative of comparison" }
-            },
-            {
-                latin: "postridie certamen coepit.",
-                translations: [
-                    "on the next day the contest began.",
-                    "the following day the competition started.",
-                    "on the next day the contest started."
-                ],
-                grammar: ["perfect"],
-                keyPhrases: ["next day", "following day", "contest", "competition", "began", "started"],
-                hints: { "postridie": "on the next day", "coepit": "coepi - perfect" }
-            },
-            {
-                latin: "tandem, satyro victo, Apollo clamavit: 'nunc hunc stultum satyrum puniam!'",
-                translations: [
-                    "at last, with the satyr defeated, Apollo shouted: 'now I will punish this foolish satyr!'",
-                    "finally, after the satyr was beaten, Apollo cried: 'now I shall punish this stupid satyr!'",
-                    "at last, when the satyr had been conquered, Apollo shouted: 'now I will punish this foolish satyr!'"
-                ],
-                grammar: ["ablative_absolute", "perfect", "future", "direct_speech"],
-                keyPhrases: ["at last", "finally", "satyr", "defeated", "beaten", "conquered", "Apollo", "shouted", "cried", "punish", "foolish", "stupid"],
-                hints: { "satyro victo": "ablative absolute", "puniam": "punio - future" }
-            },
-            {
-                latin: "itaque Marsyas mortem crudelem passus est.",
-                translations: [
-                    "and so Marsyas suffered a cruel death.",
-                    "therefore Marsyas endured a cruel death.",
-                    "so Marsyas met a cruel death."
-                ],
-                grammar: ["deponent_verbs", "perfect"],
-                keyPhrases: ["so", "therefore", "Marsyas", "suffered", "endured", "met", "cruel", "death"],
-                hints: { "passus est": "patior - perfect deponent" }
-            }
-        ]
-    },
-
-    {
-        id: "myth_orpheus",
-        title: "Orpheus and Eurydice",
-        theme: "mythology",
-        maxChapter: 10,
-        introduction: "Orpheus attempts to rescue his wife Eurydice from the Underworld.",
-        sentences: [
-            {
-                latin: "Orpheus erat poeta clarus, qui uxorem Eurydicen maxime amabat.",
-                translations: [
-                    "Orpheus was a famous poet, who loved his wife Eurydice very much.",
-                    "Orpheus was a celebrated poet who greatly loved his wife Eurydice.",
-                    "Orpheus was a famous poet, who loved his wife Eurydice deeply."
-                ],
-                grammar: ["imperfect", "relative_clauses", "superlatives"],
-                keyPhrases: ["Orpheus", "famous", "celebrated", "poet", "loved", "wife", "Eurydice", "very much", "greatly", "deeply"],
-                hints: { "clarus": "famous", "maxime": "very much (superlative)", "amabat": "amo - imperfect" }
-            },
-            {
-                latin: "olim Eurydice, a serpente vulnerata, mortua est.",
-                translations: [
-                    "one day Eurydice, having been wounded by a snake, died.",
-                    "once Eurydice, wounded by a serpent, died.",
-                    "one day Eurydice, after being bitten by a snake, died."
-                ],
-                grammar: ["ppp", "agent_instrument", "perfect"],
-                keyPhrases: ["one day", "once", "Eurydice", "wounded", "bitten", "snake", "serpent", "died"],
-                hints: { "vulnerata": "PPP of vulnero", "a serpente": "agent", "mortua est": "morior - perfect deponent" }
-            },
-            {
-                latin: "Orpheus tam tristis erat ut ad Inferos descendere constitueret.",
-                translations: [
-                    "Orpheus was so sad that he decided to descend to the Underworld.",
-                    "Orpheus was so miserable that he resolved to go down to the Underworld.",
-                    "Orpheus was so grief-stricken that he decided to descend to the realm of the dead."
-                ],
-                grammar: ["imperfect", "result_clauses", "imperfect_subjunctive"],
-                keyPhrases: ["Orpheus", "so", "sad", "miserable", "grief-stricken", "decided", "resolved", "descend", "go down", "Underworld", "realm of the dead"],
-                hints: { "tam...ut": "result clause", "constitueret": "imperfect subjunctive", "Inferos": "the Underworld" }
-            },
-            {
-                latin: "ubi ad regiam Plutonis advenit, cecinit ut uxorem reciperet.",
-                translations: [
-                    "when he arrived at the palace of Pluto, he sang in order to get his wife back.",
-                    "when he reached the kingdom of Pluto, he sang so that he might recover his wife.",
-                    "when he came to Pluto's palace, he sang to win back his wife."
-                ],
-                grammar: ["ubi_postquam", "perfect", "purpose_clauses"],
-                keyPhrases: ["when", "arrived", "reached", "came", "palace", "kingdom", "Pluto", "sang", "get back", "recover", "win back", "wife"],
-                hints: { "ubi": "when", "cecinit": "cano - perfect", "ut reciperet": "purpose clause" }
-            },
-            {
-                latin: "rex Inferorum, carmine commotus, Orpheo dixit: 'licet tibi uxorem abducere.'",
-                translations: [
-                    "the king of the Underworld, moved by the song, said to Orpheus: 'you are allowed to take your wife away.'",
-                    "the king of the dead, having been moved by the music, told Orpheus: 'it is permitted for you to lead your wife away.'",
-                    "the ruler of the Underworld, moved by the singing, said to Orpheus: 'you may take your wife away.'"
-                ],
-                grammar: ["ppp", "perfect", "direct_speech", "dative"],
-                keyPhrases: ["king", "ruler", "Underworld", "dead", "moved", "song", "music", "singing", "said", "told", "Orpheus", "allowed", "permitted", "take", "lead", "wife", "away"],
-                hints: { "commotus": "PPP of commoveo", "Orpheo": "dative", "licet": "it is allowed + dative" }
-            },
-            {
-                latin: "'sed cave ne eam respicias, antequam ad lucem perveneritis.'",
-                translations: [
-                    "'but beware lest you look back at her, before you have reached the light.'",
-                    "'but take care not to look back at her, before you arrive at the light.'",
-                    "'but be careful that you do not look at her, until you have reached the light.'"
-                ],
-                grammar: ["imperatives", "negative_commands", "purpose_clauses", "perfect_subjunctive"],
-                keyPhrases: ["but", "beware", "take care", "be careful", "not", "look back", "look at", "her", "before", "until", "reached", "arrive", "light"],
-                hints: { "cave ne": "beware lest + subjunctive", "respicias": "present subjunctive", "perveneritis": "perfect subjunctive" }
-            },
-            {
-                latin: "Orpheus laetus uxorem e tenebris ducebat.",
-                translations: [
-                    "Orpheus happily was leading his wife out of the darkness.",
-                    "Orpheus joyfully led his wife from the shadows.",
-                    "A happy Orpheus was leading his wife out of the darkness."
-                ],
-                grammar: ["imperfect", "adjectives_212"],
-                keyPhrases: ["Orpheus", "happy", "happily", "joyfully", "leading", "led", "wife", "out of", "from", "darkness", "shadows"],
-                hints: { "laetus": "happy", "ducebat": "duco - imperfect", "tenebris": "ablative" }
-            },
-            {
-                latin: "sed, cum prope lucem essent, Orpheus uxorem respexit.",
-                translations: [
-                    "but, when they were near the light, Orpheus looked back at his wife.",
-                    "but, since they were close to the light, Orpheus glanced back at his wife.",
-                    "but, when they were almost at the light, Orpheus looked at his wife."
-                ],
-                grammar: ["cum_clauses", "imperfect_subjunctive", "perfect"],
-                keyPhrases: ["but", "when", "since", "near", "close", "almost", "light", "Orpheus", "looked back", "glanced back", "looked at", "wife"],
-                hints: { "cum...essent": "cum clause + subjunctive", "respexit": "respicio - perfect" }
-            },
-            {
-                latin: "statim Eurydice ad Inferos retracta est, neque Orpheus eam iterum vidit.",
-                translations: [
-                    "immediately Eurydice was dragged back to the Underworld, and Orpheus never saw her again.",
-                    "at once Eurydice was pulled back to the realm of the dead, nor did Orpheus see her again.",
-                    "immediately Eurydice was taken back to the Underworld, and Orpheus did not see her again."
-                ],
-                grammar: ["perfect_passive", "perfect"],
-                keyPhrases: ["immediately", "at once", "Eurydice", "dragged", "pulled", "taken", "back", "Underworld", "realm of the dead", "Orpheus", "never", "not", "see", "saw", "again"],
-                hints: { "retracta est": "retraho - perfect passive", "neque": "and not/nor", "iterum": "again" }
-            }
-        ]
-    },
-
-    {
-        id: "myth_daedalus",
-        title: "Daedalus and Icarus",
-        theme: "mythology",
-        maxChapter: 10,
-        introduction: "Daedalus and his son Icarus attempt to escape from Crete by flying.",
-        sentences: [
-            {
-                latin: "Daedalus erat artifex peritissimus, qui in insula Creta habitabat.",
-                translations: [
-                    "Daedalus was a very skilled craftsman, who lived on the island of Crete.",
-                    "Daedalus was a most expert craftsman who was living on the island of Crete.",
-                    "Daedalus was a highly skilled craftsman, who lived on Crete."
-                ],
-                grammar: ["imperfect", "superlatives", "relative_clauses"],
-                keyPhrases: ["Daedalus", "skilled", "expert", "craftsman", "lived", "living", "island", "Crete"],
-                hints: { "peritissimus": "superlative of peritus", "qui": "relative pronoun" }
-            },
-            {
-                latin: "rex Minos eum in insula retinebat, quod effugere nolebat.",
-                translations: [
-                    "King Minos was keeping him on the island, because he did not want him to escape.",
-                    "King Minos held him on the island, because he didn't want him to flee.",
-                    "King Minos was detaining him on the island, since he did not want him to escape."
-                ],
-                grammar: ["imperfect", "quod_quamquam", "infinitive"],
-                keyPhrases: ["King Minos", "keeping", "held", "detaining", "island", "because", "since", "did not want", "escape", "flee"],
-                hints: { "retinebat": "retineo - imperfect", "quod": "because", "effugere": "infinitive" }
-            },
-            {
-                latin: "tandem Daedalus consilium cepit: alas ex pennis et cera facere constituit.",
-                translations: [
-                    "at last Daedalus formed a plan: he decided to make wings from feathers and wax.",
-                    "finally Daedalus made a plan: he resolved to construct wings out of feathers and wax.",
-                    "at last Daedalus conceived a plan: he decided to make wings from feathers and wax."
-                ],
-                grammar: ["perfect", "infinitive"],
-                keyPhrases: ["at last", "finally", "Daedalus", "formed", "made", "conceived", "plan", "decided", "resolved", "make", "construct", "wings", "feathers", "wax"],
-                hints: { "consilium cepit": "formed a plan (idiom)", "alas": "wings (acc)", "cera": "wax" }
-            },
-            {
-                latin: "alis perfectis, filium Icarum monuit ne prope solem volaret.",
-                translations: [
-                    "with the wings completed, he warned his son Icarus not to fly near the sun.",
-                    "when the wings were finished, he warned his son Icarus not to fly close to the sun.",
-                    "after the wings had been made, he advised his son Icarus not to fly near the sun."
-                ],
-                grammar: ["ablative_absolute", "perfect", "indirect_commands"],
-                keyPhrases: ["wings", "completed", "finished", "made", "warned", "advised", "son", "Icarus", "not", "fly", "near", "close", "sun"],
-                hints: { "alis perfectis": "ablative absolute", "monuit ne": "warned not to + subjunctive", "volaret": "imperfect subjunctive" }
-            },
-            {
-                latin: "'si nimis alte volaveris,' inquit, 'sol ceram liquefaciet.'",
-                translations: [
-                    "'if you fly too high,' he said, 'the sun will melt the wax.'",
-                    "'if you should fly too high,' he said, 'the sun will melt the wax.'",
-                    "'if you fly too high,' he said, 'the sun will dissolve the wax.'"
-                ],
-                grammar: ["conditionals", "future", "direct_speech"],
-                keyPhrases: ["if", "fly", "too", "high", "said", "sun", "melt", "dissolve", "wax"],
-                hints: { "si volaveris": "future perfect in condition", "liquefaciet": "liquefacio - future" }
-            },
-            {
-                latin: "pater et filius e Creta volabant; Icarus tamen, gaudio elatus, ad solem ascendebat.",
-                translations: [
-                    "the father and son were flying from Crete; however Icarus, carried away by joy, was ascending towards the sun.",
-                    "father and son flew from Crete; but Icarus, elated with joy, was rising towards the sun.",
-                    "the father and son were flying from Crete; Icarus however, overcome with joy, was going up toward the sun."
-                ],
-                grammar: ["imperfect", "ppp"],
-                keyPhrases: ["father", "son", "flying", "flew", "Crete", "however", "but", "Icarus", "carried away", "elated", "overcome", "joy", "ascending", "rising", "going up", "towards", "sun"],
-                hints: { "volabant": "volo - imperfect", "elatus": "PPP of effero", "ascendebat": "ascendo - imperfect" }
-            },
-            {
-                latin: "subito cera liquefacta est et Icarus in mare cecidit.",
-                translations: [
-                    "suddenly the wax melted and Icarus fell into the sea.",
-                    "suddenly the wax was melted and Icarus fell into the sea.",
-                    "all at once the wax melted and Icarus dropped into the sea."
-                ],
-                grammar: ["perfect_passive", "perfect"],
-                keyPhrases: ["suddenly", "all at once", "wax", "melted", "Icarus", "fell", "dropped", "into", "sea"],
-                hints: { "liquefacta est": "liquefacio - perfect passive", "cecidit": "cado - perfect" }
-            },
-            {
-                latin: "Daedalus, ubi filium in undis mortuum vidit, valde dolebat.",
-                translations: [
-                    "Daedalus, when he saw his son dead in the waves, grieved greatly.",
-                    "when Daedalus saw his son dead in the waves, he was very sad.",
-                    "Daedalus, when he saw his dead son in the waves, was greatly grieving."
-                ],
-                grammar: ["ubi_postquam", "perfect", "imperfect", "ppp"],
-                keyPhrases: ["Daedalus", "when", "saw", "son", "dead", "waves", "grieved", "sad", "grieving", "greatly", "very"],
-                hints: { "ubi": "when", "mortuum": "PPP of morior", "dolebat": "doleo - imperfect" }
-            }
-        ]
-    },
-
-    // ========== MILITARY STORIES ==========
-    {
-        id: "military_casilinum",
-        title: "The Siege of Casilinum",
-        theme: "military",
-        maxChapter: 10,
-        introduction: "The siege of Casilinum by the Carthaginians results in those inside the city taking desperate action.",
-        sentences: [
-            {
-                latin: "illo tempore Carthaginienses, Hannibale duce, bellum contra Romanos gerebant.",
-                translations: [
-                    "at that time the Carthaginians, with Hannibal as leader, were waging war against the Romans.",
-                    "at that time the Carthaginians, under the leadership of Hannibal, were fighting a war against the Romans.",
-                    "at that time the Carthaginians, led by Hannibal, were waging war against the Romans."
-                ],
-                grammar: ["imperfect", "ablative_absolute"],
-                keyPhrases: ["at that time", "Carthaginians", "Hannibal", "leader", "leadership", "led by", "waging", "fighting", "war", "against", "Romans"],
-                hints: { "Hannibale duce": "ablative absolute", "gerebant": "gero - imperfect" }
-            },
-            {
-                latin: "postquam ad urbem parvam Casilinum nomine advenerunt, eam obsidere constituerunt.",
-                translations: [
-                    "after they arrived at a small city called Casilinum, they decided to besiege it.",
-                    "when they reached a small town named Casilinum, they decided to besiege it.",
-                    "after they came to a small city by the name of Casilinum, they resolved to besiege it."
-                ],
-                grammar: ["ubi_postquam", "perfect", "infinitive"],
-                keyPhrases: ["after", "when", "arrived", "reached", "came", "small", "city", "town", "called", "named", "Casilinum", "decided", "resolved", "besiege"],
-                hints: { "postquam": "after", "nomine": "by name/called", "obsidere": "infinitive" }
-            },
-            {
-                latin: "putabant enim milites Romanos sine cibo mox perituros esse.",
-                translations: [
-                    "for they thought that the Roman soldiers would soon die without food.",
-                    "for they believed the Roman soldiers were going to die soon without food.",
-                    "they thought, you see, that the Roman soldiers would soon perish without food."
-                ],
-                grammar: ["indirect_statement", "future_infinitive"],
-                keyPhrases: ["for", "thought", "believed", "Roman", "soldiers", "would", "going to", "soon", "die", "perish", "without", "food"],
-                hints: { "putabant": "introduces indirect statement", "perituros esse": "future active infinitive" }
-            },
-            {
-                latin: "tandem milites et cives urbis de vita adeo desperabant ut diutius vivere nollent.",
-                translations: [
-                    "at last the soldiers and citizens of the city were so despairing about their lives that they did not want to live any longer.",
-                    "finally the soldiers and citizens despaired of life so much that they didn't want to live any longer.",
-                    "at last the soldiers and citizens of the city were despairing so much about life that they refused to live any longer."
-                ],
-                grammar: ["imperfect", "result_clauses", "imperfect_subjunctive"],
-                keyPhrases: ["at last", "finally", "soldiers", "citizens", "city", "despairing", "despaired", "life", "lives", "so", "did not want", "refused", "live", "any longer"],
-                hints: { "adeo...ut": "result clause", "nollent": "nolo - imperfect subjunctive" }
-            },
-            {
-                latin: "itaque alii ad summos muros urbis ascenderunt ut ad terram se deicerent.",
-                translations: [
-                    "and so some climbed to the top of the city walls to throw themselves to the ground.",
-                    "therefore some went up to the highest walls of the city in order to throw themselves down to the earth.",
-                    "so some climbed to the top of the city walls in order to hurl themselves to the ground."
-                ],
-                grammar: ["perfect", "purpose_clauses", "se_reflexive"],
-                keyPhrases: ["so", "therefore", "some", "climbed", "went up", "top", "highest", "walls", "city", "throw", "hurl", "themselves", "ground", "earth"],
-                hints: { "alii": "some", "summos": "highest/top of", "ut deicerent": "purpose clause", "se": "themselves (reflexive)" }
-            },
-            {
-                latin: "alii in muris immoti stabant et corpora sua armis hostium offerebant.",
-                translations: [
-                    "others stood motionless on the walls and offered their bodies to the weapons of the enemy.",
-                    "others were standing still on the walls and offering their bodies to enemy weapons.",
-                    "others stood unmoving on the walls and presented their bodies to the enemies' weapons."
-                ],
-                grammar: ["imperfect", "adjectives_212"],
-                keyPhrases: ["others", "stood", "standing", "motionless", "still", "unmoving", "walls", "offered", "offering", "presented", "bodies", "weapons", "enemy", "enemies"],
-                hints: { "immoti": "motionless", "offerebant": "offero - imperfect" }
-            },
-            {
-                latin: "Gracchus, ubi cognovit quid accideret, rem diligenter cogitabat.",
-                translations: [
-                    "Gracchus, when he found out what was happening, was thinking carefully about the matter.",
-                    "when Gracchus learned what was happening, he considered the situation carefully.",
-                    "Gracchus, when he discovered what was going on, was pondering the matter carefully."
-                ],
-                grammar: ["ubi_postquam", "indirect_questions", "imperfect_subjunctive", "imperfect"],
-                keyPhrases: ["Gracchus", "when", "found out", "learned", "discovered", "what", "happening", "going on", "thinking", "considered", "pondering", "carefully", "matter", "situation"],
-                hints: { "quid accideret": "indirect question + subjunctive", "cogitabat": "cogito - imperfect" }
-            },
-            {
-                latin: "nam civibus militibusque auxilium ferre maxime cupiebat, sed imperator Romanus eum iusserat nihil facere.",
-                translations: [
-                    "for he very much wanted to bring help to the citizens and soldiers, but the Roman general had ordered him to do nothing.",
-                    "for he greatly wished to give aid to the citizens and soldiers, but the Roman commander had ordered him not to do anything.",
-                    "because he very much wanted to bring assistance to the citizens and soldiers, but the Roman general had commanded him to do nothing."
-                ],
-                grammar: ["imperfect", "pluperfect", "indirect_commands", "dative"],
-                keyPhrases: ["for", "because", "very much", "greatly", "wanted", "wished", "bring", "give", "help", "aid", "assistance", "citizens", "soldiers", "but", "Roman", "general", "commander", "ordered", "commanded", "do nothing", "not do anything"],
-                hints: { "civibus militibusque": "dative", "ferre": "infinitive of fero", "iusserat": "iubeo - pluperfect" }
-            }
-        ]
-    },
-
-    {
-        id: "military_horatius",
-        title: "Horatius at the Bridge",
-        theme: "military",
-        maxChapter: 8,
-        introduction: "Horatius defends Rome against the Etruscan army by holding a bridge alone.",
-        sentences: [
-            {
-                latin: "Etrusci, qui Romam oppugnare volebant, ad pontem magnum advenerunt.",
-                translations: [
-                    "the Etruscans, who wanted to attack Rome, arrived at a large bridge.",
-                    "the Etruscans, who wished to attack Rome, came to a great bridge.",
-                    "the Etruscans, who wanted to assault Rome, arrived at a big bridge."
-                ],
-                grammar: ["relative_clauses", "imperfect", "perfect"],
-                keyPhrases: ["Etruscans", "who", "wanted", "wished", "attack", "assault", "Rome", "arrived", "came", "large", "great", "big", "bridge"],
-                hints: { "qui": "relative pronoun", "volebant": "volo - imperfect", "advenerunt": "advenio - perfect" }
-            },
-            {
-                latin: "pons flumen Tiberim transibat et viam ad urbem praebebat.",
-                translations: [
-                    "the bridge crossed the river Tiber and provided a route to the city.",
-                    "the bridge went across the Tiber river and gave a way to the city.",
-                    "the bridge spanned the river Tiber and offered a path to the city."
-                ],
-                grammar: ["imperfect"],
-                keyPhrases: ["bridge", "crossed", "went across", "spanned", "river", "Tiber", "provided", "gave", "offered", "route", "way", "path", "city"],
-                hints: { "transibat": "transeo - imperfect", "praebebat": "praebeo - imperfect" }
-            },
-            {
-                latin: "Romani, hostibus visis, valde timebant.",
-                translations: [
-                    "the Romans, when the enemy had been seen, were very afraid.",
-                    "the Romans, having seen the enemy, were very frightened.",
-                    "when the Romans saw the enemy, they were very scared."
-                ],
-                grammar: ["ablative_absolute", "imperfect"],
-                keyPhrases: ["Romans", "enemy", "seen", "saw", "very", "afraid", "frightened", "scared"],
-                hints: { "hostibus visis": "ablative absolute", "timebant": "timeo - imperfect" }
-            },
-            {
-                latin: "sed Horatius, vir fortissimus, solus in ponte stabat.",
-                translations: [
-                    "but Horatius, a very brave man, was standing alone on the bridge.",
-                    "but Horatius, a most courageous man, stood alone on the bridge.",
-                    "but Horatius, a very brave man, stood by himself on the bridge."
-                ],
-                grammar: ["imperfect", "superlatives"],
-                keyPhrases: ["but", "Horatius", "very brave", "most courageous", "man", "standing", "stood", "alone", "by himself", "bridge"],
-                hints: { "fortissimus": "superlative of fortis", "solus": "alone", "stabat": "sto - imperfect" }
-            },
-            {
-                latin: "'festinate!' clamavit, 'pontem post me frangite!'",
-                translations: [
-                    "'hurry!' he shouted, 'break the bridge behind me!'",
-                    "'make haste!' he cried, 'destroy the bridge behind me!'",
-                    "'hurry up!' he shouted, 'smash the bridge behind me!'"
-                ],
-                grammar: ["imperatives", "perfect"],
-                keyPhrases: ["hurry", "make haste", "hurry up", "shouted", "cried", "break", "destroy", "smash", "bridge", "behind me"],
-                hints: { "festinate": "imperative plural", "frangite": "imperative plural of frango" }
-            },
-            {
-                latin: "diu solus contra omnes hostes pugnabat; interea Romani pontem frangebant.",
-                translations: [
-                    "for a long time he fought alone against all the enemy; meanwhile the Romans were breaking the bridge.",
-                    "he fought alone against all the enemies for a long time; in the meantime the Romans were destroying the bridge.",
-                    "for a long time he was fighting alone against all the enemy; meanwhile the Romans were smashing the bridge."
-                ],
-                grammar: ["imperfect"],
-                keyPhrases: ["long time", "fought", "fighting", "alone", "against", "all", "enemy", "enemies", "meanwhile", "in the meantime", "Romans", "breaking", "destroying", "smashing", "bridge"],
-                hints: { "diu": "for a long time", "interea": "meanwhile", "frangebant": "frango - imperfect" }
-            },
-            {
-                latin: "tandem, ponte fracto, Horatius in flumen desiluit.",
-                translations: [
-                    "at last, with the bridge broken, Horatius jumped down into the river.",
-                    "finally, when the bridge had been destroyed, Horatius leaped into the river.",
-                    "at last, after the bridge was smashed, Horatius jumped into the river."
-                ],
-                grammar: ["ablative_absolute", "perfect"],
-                keyPhrases: ["at last", "finally", "bridge", "broken", "destroyed", "smashed", "Horatius", "jumped", "leaped", "into", "river"],
-                hints: { "ponte fracto": "ablative absolute", "desiluit": "desilio - perfect" }
-            },
-            {
-                latin: "quamquam vulneratus erat, trans Tiberim ad salutem natavit.",
-                translations: [
-                    "although he was wounded, he swam across the Tiber to safety.",
-                    "although he had been wounded, he swam across the Tiber to safety.",
-                    "even though he was injured, he swam across the Tiber to safety."
-                ],
-                grammar: ["quod_quamquam", "ppp", "perfect"],
-                keyPhrases: ["although", "even though", "wounded", "injured", "swam", "across", "Tiber", "safety"],
-                hints: { "quamquam": "although", "vulneratus erat": "pluperfect passive", "natavit": "nato - perfect" }
-            }
-        ]
-    },
-
-    // ========== DAILY LIFE STORIES ==========
-    {
-        id: "daily_thief",
-        title: "The Cunning Thief",
-        theme: "daily_life",
-        maxChapter: 7,
-        introduction: "A clever thief is caught by a merchant in Rome.",
-        sentences: [
-            {
-                latin: "mercator Romanus in taberna sua multas res pretiosas habebat.",
-                translations: [
-                    "a Roman merchant had many valuable things in his shop.",
-                    "the Roman merchant had many precious items in his shop.",
-                    "a Roman merchant kept many valuable goods in his shop."
-                ],
-                grammar: ["imperfect"],
-                keyPhrases: ["Roman", "merchant", "had", "kept", "many", "valuable", "precious", "things", "items", "goods", "shop"],
-                hints: { "taberna": "shop", "pretiosas": "valuable/precious", "habebat": "habeo - imperfect" }
-            },
-            {
-                latin: "fur callidus has res videre et capere cupiebat.",
-                translations: [
-                    "a cunning thief wanted to see and take these things.",
-                    "a clever thief wished to see and seize these items.",
-                    "a cunning thief wanted to see these things and steal them."
-                ],
-                grammar: ["imperfect", "infinitive"],
-                keyPhrases: ["cunning", "clever", "thief", "wanted", "wished", "see", "take", "seize", "steal", "things", "items"],
-                hints: { "callidus": "cunning/clever", "cupiebat": "cupio - imperfect" }
-            },
-            {
-                latin: "itaque nocte ad tabernam lente ambulavit.",
-                translations: [
-                    "and so at night he walked slowly to the shop.",
-                    "therefore he walked slowly to the shop at night.",
-                    "so he walked slowly to the shop during the night."
-                ],
-                grammar: ["perfect"],
-                keyPhrases: ["so", "therefore", "night", "walked", "slowly", "shop"],
-                hints: { "nocte": "at night (ablative of time)", "lente": "slowly" }
-            },
-            {
-                latin: "per fenestram parvam in tabernam intravit.",
-                translations: [
-                    "he entered the shop through a small window.",
-                    "through a small window he went into the shop.",
-                    "he got into the shop through a small window."
-                ],
-                grammar: ["perfect"],
-                keyPhrases: ["entered", "went into", "got into", "shop", "through", "small", "window"],
-                hints: { "fenestram": "window (accusative)", "intravit": "intro - perfect" }
-            },
-            {
-                latin: "subito mercator, qui in cubiculo dormiebat, clamorem audivit.",
-                translations: [
-                    "suddenly the merchant, who was sleeping in his bedroom, heard a noise.",
-                    "suddenly the merchant, who was asleep in his room, heard a shout.",
-                    "all at once the merchant, who was sleeping in the bedroom, heard a sound."
-                ],
-                grammar: ["relative_clauses", "imperfect", "perfect"],
-                keyPhrases: ["suddenly", "all at once", "merchant", "who", "sleeping", "asleep", "bedroom", "room", "heard", "noise", "shout", "sound"],
-                hints: { "qui": "relative pronoun", "dormiebat": "dormio - imperfect", "clamorem": "noise/shout" }
-            },
-            {
-                latin: "e lecto surrexit et furem in taberna stantem invenit.",
-                translations: [
-                    "he got up from bed and found the thief standing in the shop.",
-                    "he rose from bed and discovered the thief standing in the shop.",
-                    "he got out of bed and found the thief who was standing in the shop."
-                ],
-                grammar: ["perfect", "present_participle"],
-                keyPhrases: ["got up", "rose", "got out", "bed", "found", "discovered", "thief", "standing", "shop"],
-                hints: { "surrexit": "surgo - perfect", "stantem": "present participle of sto" }
-            },
-            {
-                latin: "'cur in taberna mea stas?' rogavit mercator iratus.",
-                translations: [
-                    "'why are you standing in my shop?' asked the angry merchant.",
-                    "'why do you stand in my shop?' the angry merchant asked.",
-                    "'why are you in my shop?' asked the angry merchant."
-                ],
-                grammar: ["direct_questions", "present_active", "direct_speech"],
-                keyPhrases: ["why", "standing", "stand", "my", "shop", "asked", "angry", "merchant"],
-                hints: { "cur": "why", "stas": "sto - present", "rogavit": "rogo - perfect" }
-            },
-            {
-                latin: "fur, territus, pecuniam quam ceperat reddidit et celeriter effugit.",
-                translations: [
-                    "the thief, terrified, gave back the money which he had taken and quickly escaped.",
-                    "the frightened thief returned the money that he had seized and fled quickly.",
-                    "the thief, scared, handed back the money he had taken and quickly ran away."
-                ],
-                grammar: ["ppp", "relative_clauses", "pluperfect", "perfect"],
-                keyPhrases: ["thief", "terrified", "frightened", "scared", "gave back", "returned", "handed back", "money", "which", "that", "taken", "seized", "quickly", "escaped", "fled", "ran away"],
-                hints: { "territus": "PPP of terreo", "quam": "relative pronoun", "ceperat": "capio - pluperfect" }
-            }
-        ]
-    },
-
-    {
-        id: "daily_school",
-        title: "A Day at School",
-        theme: "daily_life",
-        maxChapter: 5,
-        introduction: "A young Roman boy has a difficult day at school.",
-        sentences: [
-            {
-                latin: "Marcus, puer Romanus, ad ludum cotidie ambulabat.",
-                translations: [
-                    "Marcus, a Roman boy, used to walk to school every day.",
-                    "Marcus, a Roman boy, walked to school daily.",
-                    "Marcus, a Roman boy, would walk to school every day."
-                ],
-                grammar: ["imperfect"],
-                keyPhrases: ["Marcus", "Roman", "boy", "used to walk", "walked", "would walk", "school", "every day", "daily"],
-                hints: { "ludum": "school", "cotidie": "daily/every day", "ambulabat": "ambulo - imperfect" }
-            },
-            {
-                latin: "hodie tamen sero advenit, quod diu dormierat.",
-                translations: [
-                    "today however he arrived late, because he had slept for a long time.",
-                    "but today he arrived late, because he had slept too long.",
-                    "today however he came late, since he had been sleeping for a long time."
-                ],
-                grammar: ["perfect", "pluperfect", "quod_quamquam"],
-                keyPhrases: ["today", "however", "but", "arrived", "came", "late", "because", "since", "slept", "sleeping", "long time", "too long"],
-                hints: { "hodie": "today", "sero": "late", "dormierat": "dormio - pluperfect" }
-            },
-            {
-                latin: "magister iratus eum rogavit: 'cur tam sero advenisti?'",
-                translations: [
-                    "the angry teacher asked him: 'why have you arrived so late?'",
-                    "the angry teacher asked him: 'why did you arrive so late?'",
-                    "the angry master asked him: 'why have you come so late?'"
-                ],
-                grammar: ["perfect", "direct_questions", "direct_speech"],
-                keyPhrases: ["angry", "teacher", "master", "asked", "why", "arrived", "come", "so", "late"],
-                hints: { "magister": "teacher", "tam": "so", "advenisti": "advenio - perfect 2nd sing" }
-            },
-            {
-                latin: "Marcus timidus respondit: 'in via canem magnum vidi.'",
-                translations: [
-                    "the timid Marcus replied: 'I saw a large dog in the street.'",
-                    "Marcus timidly replied: 'I saw a big dog in the road.'",
-                    "the nervous Marcus replied: 'I saw a large dog in the street.'"
-                ],
-                grammar: ["perfect", "direct_speech"],
-                keyPhrases: ["timid", "timidly", "nervous", "Marcus", "replied", "saw", "large", "big", "dog", "street", "road"],
-                hints: { "timidus": "timid/nervous", "respondit": "respondeo - perfect" }
-            },
-            {
-                latin: "'mendax es!' clamavit magister. 'nunc labora!'",
-                translations: [
-                    "'you are a liar!' shouted the teacher. 'now work!'",
-                    "'you're lying!' the teacher shouted. 'now get to work!'",
-                    "'you are a liar!' cried the teacher. 'work now!'"
-                ],
-                grammar: ["present_active", "imperatives", "direct_speech"],
-                keyPhrases: ["liar", "lying", "shouted", "cried", "teacher", "now", "work", "get to work"],
-                hints: { "mendax": "liar", "labora": "imperative of laboro" }
-            },
-            {
-                latin: "Marcus tristis multas horas in ludo laborabat.",
-                translations: [
-                    "the sad Marcus worked for many hours at school.",
-                    "Marcus, sad, was working for many hours at school.",
-                    "a sad Marcus worked for many hours in the school."
-                ],
-                grammar: ["imperfect", "time_how_long"],
-                keyPhrases: ["sad", "Marcus", "worked", "working", "many", "hours", "school"],
-                hints: { "tristis": "sad", "multas horas": "accusative of duration" }
-            },
-            {
-                latin: "tandem domum rediit; mater eum rogavit: 'quomodo erat dies tuus?'",
-                translations: [
-                    "at last he returned home; his mother asked him: 'how was your day?'",
-                    "finally he went back home; his mother asked him: 'how was your day?'",
-                    "at last he came back home; his mother asked: 'how was your day?'"
-                ],
-                grammar: ["perfect", "direct_questions", "direct_speech"],
-                keyPhrases: ["at last", "finally", "returned", "went back", "came back", "home", "mother", "asked", "how", "day"],
-                hints: { "domum": "homeward", "rediit": "redeo - perfect", "quomodo": "how" }
-            },
-            {
-                latin: "'pessimus!' respondit Marcus.",
-                translations: [
-                    "'terrible!' Marcus replied.",
-                    "'the worst!' replied Marcus.",
-                    "'awful!' Marcus replied."
-                ],
-                grammar: ["superlatives", "perfect"],
-                keyPhrases: ["terrible", "worst", "awful", "replied", "Marcus"],
-                hints: { "pessimus": "superlative of malus (worst/terrible)" }
-            }
-        ]
-    },
-
-    {
-        id: "daily_dinner",
-        title: "The Dinner Party",
-        theme: "daily_life",
-        maxChapter: 6,
-        introduction: "A wealthy Roman hosts a dinner party with unexpected events.",
-        sentences: [
-            {
-                latin: "Lucius, vir dives, amicos ad cenam invitaverat.",
-                translations: [
-                    "Lucius, a wealthy man, had invited friends to dinner.",
-                    "Lucius, a rich man, had invited his friends to a meal.",
-                    "Lucius, a wealthy man, had invited friends to a feast."
-                ],
-                grammar: ["pluperfect"],
-                keyPhrases: ["Lucius", "wealthy", "rich", "man", "invited", "friends", "dinner", "meal", "feast"],
-                hints: { "dives": "rich/wealthy", "cenam": "dinner", "invitaverat": "invito - pluperfect" }
-            },
-            {
-                latin: "servi cibum optimum parabant et vinum in mensas ponebant.",
-                translations: [
-                    "the slaves were preparing excellent food and putting wine on the tables.",
-                    "slaves were preparing the best food and placing wine on the tables.",
-                    "the slaves were getting ready excellent food and placing wine on the tables."
-                ],
-                grammar: ["imperfect", "superlatives"],
-                keyPhrases: ["slaves", "preparing", "getting ready", "excellent", "best", "food", "putting", "placing", "wine", "tables"],
-                hints: { "optimum": "best/excellent (superlative)", "parabant": "paro - imperfect" }
-            },
-            {
-                latin: "ubi omnes amici advenerunt, Lucius eos in triclinium duxit.",
-                translations: [
-                    "when all the friends arrived, Lucius led them into the dining room.",
-                    "when all his friends had arrived, Lucius led them into the dining room.",
-                    "after all the friends arrived, Lucius led them to the dining room."
-                ],
-                grammar: ["ubi_postquam", "perfect"],
-                keyPhrases: ["when", "after", "all", "friends", "arrived", "Lucius", "led", "dining room"],
-                hints: { "ubi": "when", "triclinium": "dining room", "duxit": "duco - perfect" }
-            },
-            {
-                latin: "cenam laeti consumebant et multa de rebus publicis dicebant.",
-                translations: [
-                    "they happily ate the dinner and said many things about public affairs.",
-                    "they were happily eating the meal and talking a lot about politics.",
-                    "they ate the dinner happily and were saying many things about public matters."
-                ],
-                grammar: ["imperfect"],
-                keyPhrases: ["happily", "ate", "eating", "dinner", "meal", "said", "talking", "many things", "lot", "public affairs", "politics", "matters"],
-                hints: { "laeti": "happy/happily", "rebus publicis": "public affairs/politics" }
-            },
-            {
-                latin: "subito servus in triclinium cucurrit et domino nuntium dedit.",
-                translations: [
-                    "suddenly a slave ran into the dining room and gave a message to the master.",
-                    "all at once a slave ran into the dining room and gave the master a message.",
-                    "suddenly a slave ran into the dining room and delivered a message to the master."
-                ],
-                grammar: ["perfect", "dative"],
-                keyPhrases: ["suddenly", "all at once", "slave", "ran", "dining room", "gave", "delivered", "message", "master"],
-                hints: { "cucurrit": "curro - perfect", "domino": "dative", "nuntium": "message" }
-            },
-            {
-                latin: "'domine,' inquit, 'fur in horto visus est!'",
-                translations: [
-                    "'master,' he said, 'a thief has been seen in the garden!'",
-                    "'master,' he said, 'a thief was seen in the garden!'",
-                    "'sir,' he said, 'a thief has been spotted in the garden!'"
-                ],
-                grammar: ["perfect_passive", "direct_speech"],
-                keyPhrases: ["master", "sir", "said", "thief", "seen", "spotted", "garden"],
-                hints: { "domine": "vocative", "visus est": "video - perfect passive" }
-            },
-            {
-                latin: "omnes e triclinio festinaverunt et furem petebant.",
-                translations: [
-                    "everyone hurried out of the dining room and was looking for the thief.",
-                    "all hurried from the dining room and were searching for the thief.",
-                    "everyone rushed out of the dining room and looked for the thief."
-                ],
-                grammar: ["perfect", "imperfect"],
-                keyPhrases: ["everyone", "all", "hurried", "rushed", "out of", "from", "dining room", "looking for", "searching for", "thief"],
-                hints: { "festinaverunt": "festino - perfect", "petebant": "peto - imperfect" }
-            },
-            {
-                latin: "sed fur iam effugerat; cena tamen optima fuerat!",
-                translations: [
-                    "but the thief had already escaped; the dinner however had been excellent!",
-                    "but the thief had already fled; nevertheless the dinner had been excellent!",
-                    "but the thief had already run away; the meal however had been excellent!"
-                ],
-                grammar: ["pluperfect"],
-                keyPhrases: ["but", "thief", "already", "escaped", "fled", "run away", "dinner", "meal", "however", "nevertheless", "excellent"],
-                hints: { "iam": "already", "effugerat": "effugio - pluperfect", "fuerat": "sum - pluperfect" }
-            }
-        ]
-    }
-];
+// Chapter grammar reference
+const chapterGrammar = {
+    1: { name: "Chapter 1", description: "Present tense, nominative & accusative" },
+    2: { name: "Chapter 2", description: "All cases, all conjugations" },
+    3: { name: "Chapter 3", description: "Imperfect tense, imperatives" },
+    4: { name: "Chapter 4", description: "Perfect tense, 3rd declension" },
+    5: { name: "Chapter 5", description: "Future tense, pronouns" },
+    6: { name: "Chapter 6", description: "Pluperfect, relative clauses" },
+    7: { name: "Chapter 7", description: "Passive voice, participles" },
+    8: { name: "Chapter 8", description: "Ablative absolute, conditionals" },
+    9: { name: "Chapter 9", description: "Deponent verbs, indirect statement" },
+    10: { name: "Chapter 10", description: "Subjunctive, purpose/result clauses" }
+};
 
 // Export for browser
 if (typeof window !== 'undefined') {
-    window.chapterGrammar = chapterGrammar;
+    window.vocabulary = vocabulary;
+    window.storyTemplates = storyTemplates;
+    window.romanNames = romanNames;
+    window.creatures = creatures;
     window.grammarSpotlights = grammarSpotlights;
-    window.narrativePassages = narrativePassages;
+    window.chapterGrammar = chapterGrammar;
 }
 
-// Export for Node.js (testing)
+// Export for Node.js
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { chapterGrammar, grammarSpotlights, narrativePassages };
+    module.exports = { vocabulary, storyTemplates, romanNames, creatures, grammarSpotlights, chapterGrammar };
 }
