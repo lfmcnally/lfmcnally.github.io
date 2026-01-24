@@ -1200,7 +1200,7 @@ const sentenceBank = [
         ],
         keyPhrases: ["soldier", "follow", "enemy"],
         hints: {
-            secuti sunt: "sequi - deponent verb, perfect (passive form, active meaning)"
+            "secuti sunt": "sequi - deponent verb, perfect (passive form, active meaning)"
         }
     },
     {
