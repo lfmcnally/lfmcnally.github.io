@@ -1,124 +1,99 @@
 // GCSE Latin Translation Generator
-// Core logic for generating passages and auto-marking translations
+// Core logic for generating narrative passages and auto-marking translations
 
 // ========== PASSAGE GENERATION ==========
 
 /**
  * Generate a passage based on chapter level and optional grammar spotlight
+ * Now uses complete narrative passages instead of random sentences
  * @param {number} maxChapter - Maximum chapter for vocab/grammar (1-10)
  * @param {string|null} spotlight - Grammar spotlight key (e.g., 'purpose_clauses') or null
- * @param {string} intensity - 'light', 'heavy', or 'intensive'
- * @param {number} length - Number of sentences (4-12)
+ * @param {string} intensity - 'light', 'heavy', or 'intensive' (affects sentence selection within passage)
+ * @param {number} length - Target number of sentences (4-12)
  * @returns {object} Generated passage with sentences and metadata
  */
 function generatePassage(maxChapter, spotlight = null, intensity = 'heavy', length = 6) {
-    // Filter sentences by chapter
-    let availableSentences = sentenceBank.filter(s => s.maxChapter <= maxChapter);
+    // Filter passages by chapter level
+    let availablePassages = narrativePassages.filter(p => p.maxChapter <= maxChapter);
 
-    if (availableSentences.length === 0) {
-        console.error('No sentences available for chapter', maxChapter);
+    if (availablePassages.length === 0) {
+        console.error('No passages available for chapter', maxChapter);
         return null;
     }
 
-    let selectedSentences = [];
-
+    // If spotlight specified, prefer passages with sentences matching that grammar
     if (spotlight && grammarSpotlights[spotlight]) {
         const spotlightData = grammarSpotlights[spotlight];
 
         // Check if spotlight is available at this chapter level
-        if (spotlightData.minChapter > maxChapter) {
-            console.warn(`Spotlight ${spotlight} requires chapter ${spotlightData.minChapter}, but max is ${maxChapter}`);
-            spotlight = null;
-        } else {
-            // Get sentences that match the spotlight
+        if (spotlightData.minChapter <= maxChapter) {
             const spotlightTags = spotlightData.tags;
-            const spotlightSentences = availableSentences.filter(s =>
-                s.grammar.some(g => spotlightTags.includes(g))
-            );
 
-            // Calculate how many spotlight sentences based on intensity
-            let spotlightCount;
-            switch (intensity) {
-                case 'light':
-                    spotlightCount = Math.min(2, Math.floor(length * 0.25));
-                    break;
-                case 'intensive':
-                    spotlightCount = length;
-                    break;
-                case 'heavy':
-                default:
-                    spotlightCount = Math.min(spotlightSentences.length, Math.floor(length * 0.6));
-            }
+            // Score passages by how many sentences contain the spotlight grammar
+            const scoredPassages = availablePassages.map(passage => {
+                const matchingCount = passage.sentences.filter(s =>
+                    s.grammar.some(g => spotlightTags.includes(g))
+                ).length;
+                return { passage, score: matchingCount };
+            });
 
-            // Shuffle and select spotlight sentences
-            const shuffledSpotlight = shuffleArray([...spotlightSentences]);
-            selectedSentences = shuffledSpotlight.slice(0, spotlightCount);
+            // Sort by score (highest first) and filter to those with at least one match
+            scoredPassages.sort((a, b) => b.score - a.score);
+            const matchingPassages = scoredPassages.filter(sp => sp.score > 0);
 
-            // Fill remaining with non-spotlight sentences
-            const remainingCount = length - selectedSentences.length;
-            if (remainingCount > 0) {
-                const nonSpotlight = availableSentences.filter(s =>
-                    !spotlightTags.some(t => s.grammar.includes(t))
-                );
-                const shuffledNon = shuffleArray([...nonSpotlight]);
-                selectedSentences = [...selectedSentences, ...shuffledNon.slice(0, remainingCount)];
+            if (matchingPassages.length > 0) {
+                // Randomly select from top-scoring passages
+                const topScore = matchingPassages[0].score;
+                const topPassages = matchingPassages.filter(sp => sp.score >= topScore - 1);
+                availablePassages = topPassages.map(sp => sp.passage);
             }
         }
     }
 
-    // If no spotlight or not enough sentences, fill with random sentences
-    if (selectedSentences.length < length) {
-        const remaining = length - selectedSentences.length;
-        const usedIds = new Set(selectedSentences.map(s => s.id));
-        const unused = availableSentences.filter(s => !usedIds.has(s.id));
-        const shuffled = shuffleArray([...unused]);
-        selectedSentences = [...selectedSentences, ...shuffled.slice(0, remaining)];
+    // Randomly select a passage
+    const selectedPassage = availablePassages[Math.floor(Math.random() * availablePassages.length)];
+
+    // Determine which sentences to include based on length
+    let sentences = [...selectedPassage.sentences];
+
+    // If passage is longer than requested length, trim from the end (keeping narrative flow)
+    // But always keep at least the first and last sentences for story coherence
+    if (sentences.length > length && length >= 4) {
+        const toRemove = sentences.length - length;
+        // Remove sentences from the middle, preserving beginning and end
+        const middleStart = Math.floor(sentences.length / 3);
+        const middleEnd = Math.floor(2 * sentences.length / 3);
+
+        // Create array of removable indices (middle section)
+        const removableIndices = [];
+        for (let i = middleStart; i < middleEnd && removableIndices.length < toRemove; i++) {
+            removableIndices.push(i);
+        }
+
+        // Remove sentences (from end of removable range to preserve indices)
+        removableIndices.reverse().forEach(idx => {
+            if (sentences.length > length) {
+                sentences.splice(idx, 1);
+            }
+        });
     }
 
-    // Shuffle final selection for variety
-    selectedSentences = shuffleArray(selectedSentences);
-
-    // Limit to requested length
-    selectedSentences = selectedSentences.slice(0, length);
-
-    // Generate passage title
-    const title = generatePassageTitle(selectedSentences);
+    // If passage is shorter than requested, that's fine - use all sentences
 
     return {
-        title: title,
-        maxChapter: maxChapter,
+        title: selectedPassage.title,
+        maxChapter: selectedPassage.maxChapter,
         spotlight: spotlight,
         intensity: intensity,
-        sentences: selectedSentences.map((s, idx) => ({
+        introduction: selectedPassage.introduction,
+        theme: selectedPassage.theme,
+        sentences: sentences.map((s, idx) => ({
             ...s,
             index: idx,
-            totalSentences: selectedSentences.length
+            totalSentences: sentences.length
         })),
-        fullText: selectedSentences.map(s => s.latin).join(' ')
+        fullText: sentences.map(s => s.latin).join(' ')
     };
-}
-
-/**
- * Generate a title based on passage content
- */
-function generatePassageTitle(sentences) {
-    const themes = sentences.map(s => s.theme);
-    const themeCounts = {};
-    themes.forEach(t => themeCounts[t] = (themeCounts[t] || 0) + 1);
-
-    const mainTheme = Object.keys(themeCounts).reduce((a, b) =>
-        themeCounts[a] > themeCounts[b] ? a : b
-    );
-
-    const titles = {
-        daily_life: ['A Day in Rome', 'Roman Life', 'The Roman Household', 'At Home', 'In the City'],
-        military: ['The Battle', 'Roman Soldiers', 'War and Peace', 'The Campaign', 'Victory and Defeat'],
-        mythology: ['Tales of the Gods', 'Ancient Legends', 'Heroes and Monsters', 'The King\'s Tale'],
-        travel: ['The Journey', 'A Voyage', 'On the Road', 'Travellers\' Tales']
-    };
-
-    const options = titles[mainTheme] || titles.daily_life;
-    return options[Math.floor(Math.random() * options.length)];
 }
 
 /**
@@ -142,12 +117,27 @@ function getAvailableSpotlights(maxChapter) {
             available.push({
                 key: key,
                 name: data.name,
-                description: data.description,
                 minChapter: data.minChapter
             });
         }
     }
     return available.sort((a, b) => a.minChapter - b.minChapter);
+}
+
+/**
+ * Get available passages for a given chapter level (for UI display)
+ */
+function getAvailablePassages(maxChapter) {
+    return narrativePassages
+        .filter(p => p.maxChapter <= maxChapter)
+        .map(p => ({
+            id: p.id,
+            title: p.title,
+            theme: p.theme,
+            maxChapter: p.maxChapter,
+            sentenceCount: p.sentences.length,
+            introduction: p.introduction
+        }));
 }
 
 // ========== ANSWER CHECKING (Lenient Matching) ==========
@@ -360,16 +350,21 @@ function getGrammarHint(sentence) {
         'present_participle': 'Present participle (-ing form)',
         'ppp': 'Perfect passive participle (having been done)',
         'ablative_absolute': 'Ablative absolute construction',
-        'purpose_clauses': 'Purpose clause (ut + subjunctive)',
+        'purpose_clauses': 'Purpose clause (ut + subjunctive = in order to)',
         'result_clauses': 'Result clause (so...that)',
         'indirect_commands': 'Indirect command',
-        'indirect_questions': 'Indirect question',
+        'indirect_questions': 'Indirect question (question word + subjunctive)',
         'indirect_statement': 'Indirect statement (acc + infinitive)',
         'cum_clauses': 'Cum clause (when/since/although + subjunctive)',
         'relative_clauses': 'Relative clause (who/which/that)',
         'deponent_verbs': 'Deponent verb (passive form, active meaning)',
         'comparatives': 'Comparative adjective/adverb',
-        'superlatives': 'Superlative adjective/adverb'
+        'superlatives': 'Superlative adjective/adverb',
+        'conditionals': 'Conditional sentence (if...then)',
+        'direct_speech': 'Direct speech',
+        'direct_questions': 'Direct question',
+        'ubi_postquam': 'Time clause (when/after)',
+        'quod_quamquam': 'Causal/concessive clause (because/although)'
     };
 
     const relevantGrammar = grammar
@@ -423,6 +418,7 @@ if (typeof window !== 'undefined') {
     window.TranslationGenerator = {
         generatePassage,
         getAvailableSpotlights,
+        getAvailablePassages,
         checkTranslation,
         getWordHint,
         getGrammarHint,
@@ -436,6 +432,7 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         generatePassage,
         getAvailableSpotlights,
+        getAvailablePassages,
         checkTranslation,
         getWordHint,
         getGrammarHint,
