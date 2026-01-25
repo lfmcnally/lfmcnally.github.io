@@ -41,6 +41,7 @@ function generatePassage(maxChapter, spotlight = null, intensity = 'heavy', leng
             grammar: sentenceTemplate.grammar,
             keyPhrases: extractKeyPhrases(english),
             hints: generateHints(latin, sentenceTemplate),
+            gloss: sentenceTemplate.gloss || {},  // Include glosses from template
             index: idx,
             totalSentences: template.sentences.length
         };
@@ -443,6 +444,169 @@ function getAvailableSpotlights(maxChapter) {
 
 // ========== ANSWER CHECKING ==========
 
+// Synonym groups for flexible answer matching
+const synonymGroups = {
+    // Verbs
+    shout: ['shout', 'shouted', 'cry', 'cried', 'call', 'called', 'exclaim', 'exclaimed', 'yell', 'yelled'],
+    walk: ['walk', 'walked', 'go', 'went', 'travel', 'travelled', 'traveled'],
+    run: ['run', 'ran', 'rush', 'rushed', 'hurry', 'hurried', 'hasten', 'hastened'],
+    fight: ['fight', 'fought', 'battle', 'battled', 'combat', 'combated'],
+    kill: ['kill', 'killed', 'slay', 'slew', 'slain', 'murder', 'murdered'],
+    say: ['say', 'said', 'speak', 'spoke', 'tell', 'told', 'reply', 'replied', 'respond', 'responded'],
+    see: ['see', 'saw', 'spot', 'spotted', 'notice', 'noticed', 'observe', 'observed'],
+    hear: ['hear', 'heard', 'listen', 'listened'],
+    come: ['come', 'came', 'arrive', 'arrived', 'reach', 'reached'],
+    leave: ['leave', 'left', 'depart', 'departed', 'set out', 'set off'],
+    give: ['give', 'gave', 'present', 'presented', 'hand', 'handed'],
+    take: ['take', 'took', 'seize', 'seized', 'grab', 'grabbed', 'capture', 'captured'],
+    make: ['make', 'made', 'create', 'created', 'build', 'built', 'construct', 'constructed'],
+    find: ['find', 'found', 'discover', 'discovered', 'locate', 'located'],
+    ask: ['ask', 'asked', 'inquire', 'inquired', 'question', 'questioned'],
+    fear: ['fear', 'feared', 'dread', 'dreaded', 'be afraid', 'was afraid', 'were afraid'],
+    love: ['love', 'loved', 'adore', 'adored', 'cherish', 'cherished'],
+    hate: ['hate', 'hated', 'detest', 'detested', 'loathe', 'loathed'],
+    want: ['want', 'wanted', 'wish', 'wished', 'desire', 'desired'],
+    begin: ['begin', 'began', 'start', 'started', 'commence', 'commenced'],
+    end: ['end', 'ended', 'finish', 'finished', 'complete', 'completed'],
+    prepare: ['prepare', 'prepared', 'get ready', 'got ready', 'make ready', 'made ready'],
+    send: ['send', 'sent', 'dispatch', 'dispatched'],
+    bring: ['bring', 'brought', 'carry', 'carried', 'bear', 'bore'],
+    lead: ['lead', 'led', 'guide', 'guided', 'conduct', 'conducted'],
+    follow: ['follow', 'followed', 'pursue', 'pursued', 'chase', 'chased'],
+    flee: ['flee', 'fled', 'escape', 'escaped', 'run away', 'ran away'],
+    defeat: ['defeat', 'defeated', 'conquer', 'conquered', 'overcome', 'overcame', 'beat', 'beaten'],
+    praise: ['praise', 'praised', 'commend', 'commended', 'honor', 'honored', 'honour', 'honoured'],
+    punish: ['punish', 'punished', 'discipline', 'disciplined'],
+    warn: ['warn', 'warned', 'caution', 'cautioned', 'alert', 'alerted'],
+    try: ['try', 'tried', 'attempt', 'attempted', 'endeavor', 'endeavored'],
+    believe: ['believe', 'believed', 'think', 'thought', 'consider', 'considered'],
+    // Nouns
+    soldier: ['soldier', 'soldiers', 'warrior', 'warriors', 'fighter', 'fighters'],
+    king: ['king', 'monarch', 'ruler', 'sovereign'],
+    citizen: ['citizen', 'citizens', 'townsman', 'townsmen', 'inhabitant', 'inhabitants'],
+    enemy: ['enemy', 'enemies', 'foe', 'foes', 'opponent', 'opponents'],
+    friend: ['friend', 'friends', 'companion', 'companions', 'comrade', 'comrades'],
+    slave: ['slave', 'slaves', 'servant', 'servants'],
+    master: ['master', 'lord', 'owner'],
+    boy: ['boy', 'boys', 'lad', 'lads', 'youth', 'youths'],
+    girl: ['girl', 'girls', 'maiden', 'maidens'],
+    man: ['man', 'men', 'person', 'people'],
+    woman: ['woman', 'women', 'lady', 'ladies'],
+    father: ['father', 'dad', 'parent'],
+    mother: ['mother', 'mom', 'mum', 'parent'],
+    son: ['son', 'child', 'offspring'],
+    daughter: ['daughter', 'child', 'offspring'],
+    road: ['road', 'street', 'way', 'path', 'route'],
+    house: ['house', 'home', 'dwelling', 'residence', 'villa'],
+    city: ['city', 'town', 'urban area'],
+    camp: ['camp', 'encampment', 'base'],
+    temple: ['temple', 'shrine', 'sanctuary'],
+    forest: ['forest', 'woods', 'woodland', 'grove'],
+    river: ['river', 'stream'],
+    sea: ['sea', 'ocean'],
+    danger: ['danger', 'peril', 'risk', 'threat'],
+    war: ['war', 'battle', 'conflict', 'warfare'],
+    peace: ['peace', 'tranquility', 'harmony'],
+    gift: ['gift', 'present', 'offering'],
+    letter: ['letter', 'message', 'epistle'],
+    word: ['word', 'words', 'speech', 'statement'],
+    // Adjectives
+    brave: ['brave', 'courageous', 'bold', 'valiant', 'fearless'],
+    happy: ['happy', 'joyful', 'glad', 'pleased', 'delighted'],
+    sad: ['sad', 'unhappy', 'sorrowful', 'miserable', 'wretched'],
+    angry: ['angry', 'furious', 'enraged', 'irate', 'wrathful'],
+    afraid: ['afraid', 'frightened', 'scared', 'terrified', 'fearful'],
+    tired: ['tired', 'weary', 'exhausted', 'fatigued'],
+    big: ['big', 'large', 'great', 'huge', 'enormous'],
+    small: ['small', 'little', 'tiny', 'minor'],
+    good: ['good', 'fine', 'excellent', 'splendid'],
+    bad: ['bad', 'evil', 'wicked', 'terrible'],
+    old: ['old', 'aged', 'elderly', 'ancient'],
+    new: ['new', 'fresh', 'recent', 'modern'],
+    strong: ['strong', 'powerful', 'mighty', 'robust'],
+    weak: ['weak', 'feeble', 'frail'],
+    // Adverbs
+    quickly: ['quickly', 'swiftly', 'rapidly', 'fast', 'speedily'],
+    slowly: ['slowly', 'gradually', 'leisurely'],
+    bravely: ['bravely', 'courageously', 'boldly', 'valiantly'],
+    suddenly: ['suddenly', 'unexpectedly', 'abruptly', 'all at once'],
+    immediately: ['immediately', 'at once', 'instantly', 'straight away', 'right away'],
+    finally: ['finally', 'at last', 'eventually', 'in the end'],
+    already: ['already', 'by now', 'by then'],
+    // Common phrases
+    'at once': ['at once', 'immediately', 'instantly', 'right away'],
+    'at last': ['at last', 'finally', 'eventually', 'in the end'],
+    'for a long time': ['for a long time', 'for ages', 'for many years'],
+    'very much': ['very much', 'greatly', 'a lot', 'a great deal']
+};
+
+// Build reverse lookup for faster matching
+const wordToSynonymGroup = {};
+Object.entries(synonymGroups).forEach(([key, words]) => {
+    words.forEach(word => {
+        wordToSynonymGroup[word.toLowerCase()] = key;
+    });
+});
+
+/**
+ * Check if two words are synonyms
+ */
+function areSynonyms(word1, word2) {
+    const w1 = word1.toLowerCase();
+    const w2 = word2.toLowerCase();
+    if (w1 === w2) return true;
+    const group1 = wordToSynonymGroup[w1];
+    const group2 = wordToSynonymGroup[w2];
+    return group1 && group1 === group2;
+}
+
+/**
+ * Get all words in the sentence, normalized
+ */
+function getWords(text) {
+    return text.toLowerCase().replace(/[.,!?;:'"()]/g, '').split(/\s+/).filter(w => w.length > 0);
+}
+
+/**
+ * Check if user answer matches allowing for word order flexibility
+ * Returns a score from 0 to 1
+ */
+function wordOrderFlexibleMatch(userAnswer, modelAnswer) {
+    const userWords = getWords(userAnswer);
+    const modelWords = getWords(modelAnswer);
+
+    // Skip very short comparisons
+    if (modelWords.length < 3) {
+        return normalizeText(userAnswer) === normalizeText(modelAnswer) ? 1 : 0;
+    }
+
+    // Count how many model words are present in user answer (with synonyms)
+    let matchedWords = 0;
+    const userWordsUsed = new Set();
+
+    for (const modelWord of modelWords) {
+        // Skip common stop words for flexible matching
+        const stopWords = ['the', 'a', 'an', 'to', 'in', 'on', 'at', 'for', 'of', 'is', 'was', 'were', 'are', 'his', 'her', 'its', 'and', 'but', 'or'];
+        if (stopWords.includes(modelWord)) {
+            matchedWords += userWords.includes(modelWord) ? 1 : 0.5; // Partial credit for stop words
+            continue;
+        }
+
+        // Check for exact match or synonym
+        for (let i = 0; i < userWords.length; i++) {
+            if (userWordsUsed.has(i)) continue;
+
+            if (userWords[i] === modelWord || areSynonyms(userWords[i], modelWord)) {
+                matchedWords++;
+                userWordsUsed.add(i);
+                break;
+            }
+        }
+    }
+
+    return matchedWords / modelWords.length;
+}
+
 function levenshteinDistance(str1, str2) {
     const m = str1.length, n = str2.length;
     const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
@@ -469,26 +633,70 @@ function checkTranslation(userAnswer, sentence) {
         return { correct: false, partial: false, matchType: 'empty', feedback: 'Please enter a translation.' };
     }
 
+    // 1. Check for exact match
     for (const translation of translations) {
         const transNorm = normalizeText(translation);
         if (userNorm === transNorm) {
             return { correct: true, partial: false, matchType: 'exact', feedback: 'Perfect translation!' };
         }
+    }
+
+    // 2. Check for close match (minor typos)
+    for (const translation of translations) {
+        const transNorm = normalizeText(translation);
         if (levenshteinDistance(userNorm, transNorm) <= 3) {
             return { correct: true, partial: false, matchType: 'close', feedback: 'Correct! (minor differences accepted)' };
         }
     }
 
-    // Check key phrases
+    // 3. Check for word-order flexible match with synonyms
+    let bestFlexScore = 0;
+    for (const translation of translations) {
+        const score = wordOrderFlexibleMatch(userNorm, translation);
+        if (score > bestFlexScore) bestFlexScore = score;
+    }
+
+    if (bestFlexScore >= 0.85) {
+        return { correct: true, partial: false, matchType: 'flexible', feedback: 'Correct! Your translation captures the meaning.' };
+    }
+
+    if (bestFlexScore >= 0.70) {
+        return { correct: true, partial: false, matchType: 'flexible', feedback: 'Correct! (acceptable alternative wording)' };
+    }
+
+    // 4. Check key phrases with synonym matching
     if (keyPhrases.length > 0) {
-        let matched = keyPhrases.filter(p => userNorm.includes(p.toLowerCase())).length;
-        let ratio = matched / keyPhrases.length;
+        let matched = 0;
+        const userWords = getWords(userNorm);
+
+        for (const phrase of keyPhrases) {
+            const phraseLower = phrase.toLowerCase();
+            // Direct match
+            if (userNorm.includes(phraseLower)) {
+                matched++;
+                continue;
+            }
+            // Check if any user word is a synonym
+            for (const userWord of userWords) {
+                if (areSynonyms(userWord, phraseLower)) {
+                    matched++;
+                    break;
+                }
+            }
+        }
+
+        const ratio = matched / keyPhrases.length;
         if (ratio >= 0.7) {
-            return { correct: true, partial: false, matchType: 'phrases', feedback: 'Correct! Your translation captures the meaning.' };
+            return { correct: true, partial: false, matchType: 'phrases', feedback: 'Correct! Your translation captures the key meaning.' };
         }
-        if (ratio >= 0.4) {
-            return { correct: false, partial: true, matchType: 'partial', feedback: `Partially correct - ${matched}/${keyPhrases.length} key elements.` };
+        if (ratio >= 0.4 || bestFlexScore >= 0.5) {
+            return { correct: false, partial: true, matchType: 'partial', feedback: `Partially correct - you got some key elements.` };
         }
+    }
+
+    // 5. Even lower threshold partial credit based on flexible score
+    if (bestFlexScore >= 0.4) {
+        return { correct: false, partial: true, matchType: 'partial', feedback: 'Partially correct - some elements are right.' };
     }
 
     return { correct: false, partial: false, matchType: 'incorrect', feedback: 'Not quite right. Check your translation against the model answer.' };
