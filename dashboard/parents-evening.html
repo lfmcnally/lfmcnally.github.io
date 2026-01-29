@@ -490,7 +490,12 @@
             `;
 
             try {
-                // Fetch all task attempts
+                const isClassicsClass = classData.type === 'classics';
+                const oneWeekAgo = new Date();
+                oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+                const oneWeekAgoISO = oneWeekAgo.toISOString();
+
+                // Fetch all task attempts for this class
                 const { data: allAttempts } = await supabase
                     .from('task_attempts')
                     .select('*, tasks(title, class_id)')
@@ -499,9 +504,88 @@
 
                 const attempts = (allAttempts || []).filter(a => a.tasks?.class_id === classData.id);
 
+                // For language classes: separate vocab and set text time
+                // For classics: reading time is in task_attempts with total_questions = 0
+                let vocabTime = 0, vocabTimeWeek = 0;
+                let setTextTime = 0, setTextTimeWeek = 0;
+                let readingTime = 0, readingTimeWeek = 0;
+                let contentTestTime = 0, contentTestTimeWeek = 0;
+
+                if (isClassicsClass) {
+                    // Fetch content test attempts for this student
+                    const { data: contentTests } = await supabase
+                        .from('content_test_attempts')
+                        .select('*, content_tests!inner(class_id)')
+                        .eq('student_id', student.id);
+
+                    const classContentTests = (contentTests || []).filter(ct => ct.content_tests?.class_id === classData.id);
+
+                    classContentTests.forEach(ct => {
+                        const time = ct.time_spent_seconds || 0;
+                        contentTestTime += time;
+                        if (ct.completed_at && ct.completed_at >= oneWeekAgoISO) {
+                            contentTestTimeWeek += time;
+                        }
+                    });
+
+                    // Reading time from assigned tasks: task_attempts with total_questions = 0
+                    attempts.forEach(a => {
+                        const time = a.time_spent_seconds || 0;
+                        if (a.total_questions === 0) {
+                            readingTime += time;
+                            if (a.started_at && a.started_at >= oneWeekAgoISO) {
+                                readingTimeWeek += time;
+                            }
+                        }
+                    });
+
+                    // Also fetch unassigned reading time (reading done without a task assignment)
+                    // These are task_attempts with no task_id but with classics content_path
+                    const { data: unassignedReadings } = await supabase
+                        .from('task_attempts')
+                        .select('time_spent_seconds, started_at, content_path')
+                        .eq('student_id', student.id)
+                        .is('task_id', null)
+                        .eq('total_questions', 0);
+
+                    // Classic content paths include aeneid, iliad, odyssey, greek-art
+                    const classicsPathPatterns = ['/aeneid/', '/iliad/', '/odyssey/', '/greek-art/', '/classics/'];
+                    (unassignedReadings || []).forEach(r => {
+                        const path = (r.content_path || '').toLowerCase();
+                        if (classicsPathPatterns.some(p => path.includes(p))) {
+                            const time = r.time_spent_seconds || 0;
+                            readingTime += time;
+                            if (r.started_at && r.started_at >= oneWeekAgoISO) {
+                                readingTimeWeek += time;
+                            }
+                        }
+                    });
+                } else {
+                    // Language class: vocab and set text time
+                    attempts.forEach(a => {
+                        const time = a.time_spent_seconds || 0;
+                        const isSetText = a.content_path && a.content_path.includes('set-text');
+                        const isThisWeek = a.started_at && a.started_at >= oneWeekAgoISO;
+
+                        if (isSetText) {
+                            setTextTime += time;
+                            if (isThisWeek) setTextTimeWeek += time;
+                        } else {
+                            vocabTime += time;
+                            if (isThisWeek) vocabTimeWeek += time;
+                        }
+                    });
+                }
+
+                const totalTime = isClassicsClass
+                    ? (readingTime + contentTestTime)
+                    : (vocabTime + setTextTime);
+                const totalTimeWeek = isClassicsClass
+                    ? (readingTimeWeek + contentTestTimeWeek)
+                    : (vocabTimeWeek + setTextTimeWeek);
+
                 // Stats
                 const completedAttempts = attempts.filter(a => a.completed_at);
-                const totalTime = attempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
                 const totalSessions = attempts.length;
 
                 const scoredAttempts = attempts.filter(a => a.score !== null);
@@ -587,6 +671,53 @@
                 const recentAttempts = attempts.slice(0, 6);
                 const scoreClass = avgScore >= 70 ? 'good' : avgScore >= 50 ? 'okay' : 'poor';
 
+                // Build time breakdown HTML based on class type
+                const timeBreakdownHtml = isClassicsClass ? `
+                    <div class="card full-width">
+                        <div class="card-title">Time Spent</div>
+                        <div class="big-stats">
+                            <div class="big-stat">
+                                <div class="big-stat-value">${formatTime(totalTimeWeek)}</div>
+                                <div class="big-stat-label">This Week</div>
+                            </div>
+                            <div class="big-stat">
+                                <div class="big-stat-value">${formatTime(totalTime)}</div>
+                                <div class="big-stat-label">Total Time</div>
+                            </div>
+                            <div class="big-stat">
+                                <div class="big-stat-value">${formatTime(readingTime)}</div>
+                                <div class="big-stat-label">Reading</div>
+                            </div>
+                            <div class="big-stat">
+                                <div class="big-stat-value">${formatTime(contentTestTime)}</div>
+                                <div class="big-stat-label">Content Tests</div>
+                            </div>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="card full-width">
+                        <div class="card-title">Time Spent</div>
+                        <div class="big-stats">
+                            <div class="big-stat">
+                                <div class="big-stat-value">${formatTime(totalTimeWeek)}</div>
+                                <div class="big-stat-label">This Week</div>
+                            </div>
+                            <div class="big-stat">
+                                <div class="big-stat-value">${formatTime(totalTime)}</div>
+                                <div class="big-stat-label">Total Time</div>
+                            </div>
+                            <div class="big-stat">
+                                <div class="big-stat-value">${formatTime(vocabTime)}</div>
+                                <div class="big-stat-label">Vocabulary</div>
+                            </div>
+                            <div class="big-stat">
+                                <div class="big-stat-value">${formatTime(setTextTime)}</div>
+                                <div class="big-stat-label">Set Text</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
                 document.getElementById('content').innerHTML = `
                     <div class="student-header">
                         <div class="student-name">${student.full_name || 'Unknown'}</div>
@@ -594,13 +725,11 @@
                     </div>
 
                     <div class="dashboard-grid">
+                        ${timeBreakdownHtml}
+
                         <div class="card full-width">
                             <div class="card-title">Overview</div>
                             <div class="big-stats">
-                                <div class="big-stat">
-                                    <div class="big-stat-value">${formatTime(totalTime)}</div>
-                                    <div class="big-stat-label">Total Time</div>
-                                </div>
                                 <div class="big-stat">
                                     <div class="big-stat-value">${totalSessions}</div>
                                     <div class="big-stat-label">Sessions</div>
