@@ -584,6 +584,93 @@
             color: #374151;
         }
 
+        /* Style highlighting */
+        .word.style-tier1 { border-bottom: 2px solid #f0c040; }
+        .word.style-tier2 { border-bottom: 2px solid #38b2ac; }
+        .word.style-tier3 { border-bottom: 2px solid #9f7aea; }
+        .word.style-tier1:hover, .word.style-tier2:hover, .word.style-tier3:hover { background: rgba(159, 122, 234, 0.15); }
+        body.dark-mode .word.style-tier1 { border-bottom-color: #ecc94b; }
+        body.dark-mode .word.style-tier2 { border-bottom-color: #4fd1c5; }
+        body.dark-mode .word.style-tier3 { border-bottom-color: #b794f4; }
+
+        .style-popup { position: fixed; background: white; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); padding: 1rem 1.25rem; z-index: 1000; max-width: 400px; min-width: 280px; display: none; }
+        .style-popup.visible { display: block; }
+        .style-popup .device { font-weight: 600; color: #9f7aea; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+        .style-popup .latin { font-style: italic; color: #4b5563; margin-bottom: 0.5rem; }
+        .style-popup .effect { font-size: 0.95rem; line-height: 1.6; color: #1f2937; }
+        body.dark-mode .style-popup { background: #4f0c28; }
+        body.dark-mode .style-popup .device { color: #b794f4; }
+        body.dark-mode .style-popup .latin { color: #b8a8b8; }
+        body.dark-mode .style-popup .effect { color: #c5d2f8; }
+
+        /* Style mode indicator */
+        .style-mode-indicator {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: #f3e8ff;
+            color: #6b21a8;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            z-index: 200;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        body.style-mode .style-mode-indicator {
+            display: block;
+        }
+        body.dark-mode .style-mode-indicator {
+            background: #4f0c28;
+            color: #b794f4;
+        }
+
+        /* Style legend */
+        .style-legend {
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .style-legend.visible {
+            display: block;
+        }
+        body.dark-mode .style-legend {
+            background: #4f0c28;
+            border-color: #5a1a3a;
+        }
+        .style-legend h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.75rem;
+        }
+        body.dark-mode .style-legend h4 {
+            color: #c5d2f8;
+        }
+        .style-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: #4b5563;
+        }
+        body.dark-mode .style-legend-item {
+            color: #b8a8b8;
+        }
+        .style-legend-color {
+            width: 20px;
+            height: 4px;
+            border-radius: 2px;
+        }
+        .style-legend-color.tier1 { background: #f0c040; }
+        .style-legend-color.tier2 { background: #38b2ac; }
+        .style-legend-color.tier3 { background: #9f7aea; }
+
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
@@ -651,8 +738,24 @@
                             <button class="btn" onclick="toggleSentenceMode()">Sentence Mode</button>
                             <button class="btn" onclick="toggleLineNumbers()">Line Numbers</button>
                             <button class="btn" onclick="togglePointerMode()">Pointer Mode</button>
+                            <button class="btn" onclick="toggleStyleMode()">Style</button>
                             <button class="btn" onclick="toggleDarkMode()">🌙 Dark</button>
                             <button class="btn" onclick="toggleFullScreen()">⛶ Full Screen</button>
+                        </div>
+                        <div class="style-legend" id="styleLegend">
+                            <h4>Style Analysis Key</h4>
+                            <div class="style-legend-item">
+                                <span class="style-legend-color tier1"></span>
+                                <span>Tier 1: Sound patterns (alliteration, assonance, repetition)</span>
+                            </div>
+                            <div class="style-legend-item">
+                                <span class="style-legend-color tier2"></span>
+                                <span>Tier 2: Structural devices (tricolon, chiasmus, word order)</span>
+                            </div>
+                            <div class="style-legend-item">
+                                <span class="style-legend-color tier3"></span>
+                                <span>Tier 3: Thematic effects (euphemism, irony, characterisation)</span>
+                            </div>
                         </div>
                         <div class="sentence-nav" id="sentenceNav">
                             <button onclick="prevSentence()">← Previous</button>
@@ -677,7 +780,9 @@
     </main>
 
     <div class="vocab-popup" id="vocabPopup"></div>
+    <div class="style-popup" id="stylePopup"></div>
     <div class="mode-indicator">📍 Pointer Mode (click words to highlight, click again to remove)</div>
+    <div class="style-mode-indicator">🎨 Style Mode (click highlighted words to see literary analysis)</div>
 
     <script>
 const vocab = {
@@ -797,6 +902,31 @@ const vocab = {
     "ignaram": { lemma: "ignarus, -a, -um", parsing: "acc. fem. sing.", meaning: "unaware, ignorant" }
 };
 
+const styleData = {
+    // Tier 1: Sound patterns (alliteration, assonance, repetition)
+    "placuitque": { tier: 1, device: "Alliteration", latin: "placuitque primo", effect: "The repeated 'p' sound in 'placuitque primo' creates a chilling matter-of-factness about the decision to murder. The soft plosives make the horrific choice sound almost casual, emphasising Nero's moral detachment." },
+    "primo": { tier: 1, device: "Alliteration", latin: "placuitque primo", effect: "Part of the 'p' alliteration with 'placuitque'. The combination suggests a bureaucratic orderliness to Nero's murderous planning, as if poison were simply the first item on an agenda." },
+    "vitare": { tier: 1, device: "Parallel Infinitives", latin: "vitare...laudare", effect: "The parallel infinitives 'vitare' (to avoid) and 'laudare' (to praise) create a rhythmic contrast showing Nero's two-faced behaviour: avoiding his mother while praising her absence. The structure emphasises his hypocrisy." },
+    "laudare": { tier: 1, device: "Parallel Infinitives", latin: "vitare...laudare", effect: "Paired with 'vitare', this infinitive completes the picture of Nero's duplicity. The balanced structure makes his false praise seem as deliberate and calculated as his avoidance." },
+    "aut": { tier: 1, device: "Polysyndeton", latin: "aut Tusculanum vel Antiatem", effect: "The accumulation of conjunctions (aut...vel) creates a sense of multiplying locations, suggesting Nero's relief whenever Agrippina goes anywhere at all. Each 'or' extends his desire for distance." },
+
+    // Tier 2: Structural devices (tricolon, chiasmus, word order)
+    "veneno": { tier: 2, device: "Ascending Tricolon", latin: "veneno an ferro vel qua alia vi", effect: "The first element of a tricolon presenting murder methods. The progression from poison (subtle) to sword (direct) to 'any other violence' (unlimited) shows Nero's deliberation escalating from specific to horrifyingly open-ended." },
+    "ferro": { tier: 2, device: "Ascending Tricolon", latin: "veneno an ferro vel qua alia vi", effect: "The middle term of the tricolon. 'Ferrum' (sword/iron) represents direct violence, positioned between covert poisoning and the sweeping 'any other means', creating a crescendo of murderous intent." },
+    "vi": { tier: 2, device: "Ascending Tricolon", latin: "veneno an ferro vel qua alia vi", effect: "The climactic third element expands to 'any other violence', showing that Nero's only concern is effectiveness, not method. The open-ended 'qua alia vi' reveals the depth of his determination." },
+    "classi": { tier: 2, device: "Triple Appositive", latin: "classi praefectus...educator...invisus", effect: "The first of three appositives describing Anicetus. His naval command provides the practical means for the plot. Tacitus's triple characterisation builds a complete portrait of the perfect conspirator." },
+    "educator": { tier: 2, device: "Triple Appositive", latin: "classi praefectus...educator...invisus", effect: "The second appositive reveals Anicetus's intimate connection to Nero as childhood tutor, explaining his access and loyalty. The word choice ('educator' rather than just 'magister') emphasises the bond." },
+    "invisus": { tier: 2, device: "Triple Appositive", latin: "classi praefectus...educator...invisus", effect: "The climactic third appositive: Anicetus was 'hated' by Agrippina with mutual hostility. This provides his personal motive, completing the portrait: means, loyalty, and motivation for matricide." },
+
+    // Tier 3: Thematic effects (euphemism, irony, characterisation)
+    "praegravem": { tier: 3, device: "Dehumanising Vocabulary", latin: "praegravem ratus", effect: "Tacitus shows Nero reducing his mother to an object - a 'burden' (praegravem). This single adjective encapsulates the moral horror: the emperor views matricide as merely lifting an inconvenience. The prefix 'prae-' intensifies her nuisance value." },
+    "constituit": { tier: 3, device: "Delayed Main Verb", latin: "interficere constituit", effect: "The main verb 'constituit' (he decided) comes after 'interficere' (to kill), building suspense. The reader reaches 'to kill' and must wait for the chilling confirmation. This word order mirrors the terrible finality of Nero's resolution." },
+    "interficere": { tier: 3, device: "Blunt Vocabulary", latin: "interficere constituit", effect: "Rather than a euphemism, Tacitus uses the stark 'interficere' (to kill) - a word typically reserved for killing enemies. Applied to Nero's own mother, it emphasises the violation of natural bonds." },
+    "usu": { tier: 3, device: "Bitter Irony", latin: "usu scelerum", effect: "The phrase 'experience in crimes' (usu scelerum) is devastatingly ironic. Agrippina's own criminal past - including possibly poisoning Claudius - now protects her from her son's poison. The hunter becomes prey to her own methods." },
+    "artem": { tier: 3, device: "Perverted Language", latin: "per artem soluta", effect: "The word 'ars' (skill, art) typically suggests civilised achievement. Here it describes the 'craftsmanship' of a murder device. Tacitus shows how imperial corruption perverts even positive vocabulary into instruments of death." },
+    "ignaram": { tier: 3, device: "Pathetic Final Word", latin: "effunderet ignaram", effect: "The passage ends with 'ignaram' (unaware) - the last word emphasising Agrippina's vulnerability. She who knew all the court's secrets would die 'unknowing'. The placement creates pathos and condemns the treachery of the plot." }
+};
+
 const latinSentences = [
     "igitur Nero vitare secretos eius congressus,",
     "abscedentem in hortos aut Tusculanum vel Antiatem in agrum laudare quod otium capesseret.",
@@ -839,6 +969,7 @@ let currentPopup = null;
 let sentenceModeActive = false;
 let currentSentenceIndex = 0;
 let pointerModeActive = false;
+let styleModeActive = false;
 
 function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
@@ -883,6 +1014,17 @@ function togglePointerMode() {
     const btn = event.currentTarget;
     btn.classList.toggle('active');
 
+    // Exit style mode if entering pointer mode
+    if (pointerModeActive && styleModeActive) {
+        styleModeActive = false;
+        document.body.classList.remove('style-mode');
+        document.getElementById('styleLegend').classList.remove('visible');
+        document.querySelectorAll('.btn').forEach(b => {
+            if (b.textContent === 'Style') b.classList.remove('active');
+        });
+        hideStylePopup();
+    }
+
     if (!pointerModeActive) {
         // Clear all pointed words when exiting pointer mode
         document.querySelectorAll('.word.pointed').forEach(w => w.classList.remove('pointed'));
@@ -892,6 +1034,77 @@ function togglePointerMode() {
     if (pointerModeActive) {
         hidePopup();
     }
+}
+
+function toggleStyleMode() {
+    styleModeActive = !styleModeActive;
+    document.body.classList.toggle('style-mode');
+    const btn = event.currentTarget;
+    btn.classList.toggle('active');
+
+    const legend = document.getElementById('styleLegend');
+    legend.classList.toggle('visible', styleModeActive);
+
+    // Exit pointer mode if entering style mode
+    if (styleModeActive && pointerModeActive) {
+        pointerModeActive = false;
+        document.body.classList.remove('pointer-mode');
+        document.querySelectorAll('.word.pointed').forEach(w => w.classList.remove('pointed'));
+        document.querySelectorAll('.btn').forEach(b => {
+            if (b.textContent === 'Pointer Mode') b.classList.remove('active');
+        });
+    }
+
+    // Hide popups when toggling
+    if (styleModeActive) {
+        hidePopup();
+    } else {
+        hideStylePopup();
+    }
+}
+
+function showStylePopup(event, word) {
+    const popup = document.getElementById('stylePopup');
+    const data = styleData[word.toLowerCase()];
+
+    if (!data) {
+        popup.classList.remove('visible');
+        return;
+    }
+
+    popup.innerHTML = `
+        <div class="device">${data.device}</div>
+        <div class="latin">${data.latin}</div>
+        <div class="effect">${data.effect}</div>
+    `;
+
+    // Position popup near the word
+    const rect = event.target.getBoundingClientRect();
+    const popupWidth = 380;
+    const popupHeight = 200;
+
+    let left = rect.left + (rect.width / 2) - (popupWidth / 2);
+    let top = rect.bottom + 12;
+
+    // Keep popup within viewport horizontally
+    if (left < 10) left = 10;
+    if (left + popupWidth > window.innerWidth - 10) {
+        left = window.innerWidth - popupWidth - 10;
+    }
+
+    // If popup would go below viewport, show above word
+    if (top + popupHeight > window.innerHeight) {
+        top = rect.top - popupHeight - 12;
+    }
+
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+    popup.classList.add('visible');
+}
+
+function hideStylePopup() {
+    const popup = document.getElementById('stylePopup');
+    popup.classList.remove('visible');
 }
 
 function toggleSentenceMode() {
@@ -940,6 +1153,7 @@ function prevSentence() {
         currentSentenceIndex--;
         updateSentenceDisplay();
         hidePopup();
+        hideStylePopup();
     }
 }
 
@@ -949,6 +1163,7 @@ function nextSentence() {
         currentSentenceIndex++;
         updateSentenceDisplay();
         hidePopup();
+        hideStylePopup();
     }
 }
 
@@ -968,7 +1183,12 @@ function generateLatinHTML() {
                     const word = match[1];
                     const punct = match[2];
                     const lookupWord = word.toLowerCase();
-                    html += `<span class="word" data-word="${lookupWord}">${word}</span>${punct}`;
+                    // Check for style tier class
+                    let styleClass = '';
+                    if (styleData[lookupWord]) {
+                        styleClass = ` style-tier${styleData[lookupWord].tier}`;
+                    }
+                    html += `<span class="word${styleClass}" data-word="${lookupWord}">${word}</span>${punct}`;
                     // Add space after unless it's the last token
                     if (i < tokens.length - 1) html += ' ';
                 } else {
@@ -1093,6 +1313,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (pointerModeActive) {
                 // Toggle pointed class
                 this.classList.toggle('pointed');
+            } else if (styleModeActive) {
+                // Show style popup if word has style data
+                const wordText = this.dataset.word;
+                if (styleData[wordText]) {
+                    showStylePopup(e, wordText);
+                } else {
+                    hideStylePopup();
+                    // Still show vocab popup for non-style words in style mode
+                    showVocabPopup(e, wordText);
+                }
             } else {
                 showVocabPopup(e, this.dataset.word);
             }
@@ -1103,6 +1333,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(e) {
         if (!e.target.classList.contains('word')) {
             hidePopup();
+            hideStylePopup();
 
             // If in pointer mode and clicking background (not buttons), clear all highlights
             if (pointerModeActive && !e.target.closest('.btn-group') && !e.target.closest('.sentence-nav')) {
@@ -1130,6 +1361,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('.word.pointed').forEach(w => w.classList.remove('pointed'));
                 document.querySelectorAll('.btn').forEach(btn => {
                     if (btn.textContent === 'Pointer Mode') btn.classList.remove('active');
+                });
+            }
+            // Also exit style mode on escape
+            if (styleModeActive) {
+                styleModeActive = false;
+                document.body.classList.remove('style-mode');
+                document.getElementById('styleLegend').classList.remove('visible');
+                hideStylePopup();
+                document.querySelectorAll('.btn').forEach(btn => {
+                    if (btn.textContent === 'Style') btn.classList.remove('active');
                 });
             }
         }
