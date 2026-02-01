@@ -124,6 +124,37 @@
         .resource-card ul { margin-left: 1.5rem; margin-top: 0.5rem; }
         .resource-card li { margin-bottom: 0.5rem; }
         @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .main-content { margin-left: 0; } .latin-text { font-size: 1.25rem; line-height: 2.2; } }
+
+        /* Style highlighting */
+        .word.style-tier1 { border-bottom: 2px solid #f0c040; }
+        .word.style-tier2 { border-bottom: 2px solid #38b2ac; }
+        .word.style-tier3 { border-bottom: 2px solid #9f7aea; }
+        .word.style-tier1:hover, .word.style-tier2:hover, .word.style-tier3:hover {
+            background: rgba(159, 122, 234, 0.15);
+        }
+        body.dark-mode .word.style-tier1 { border-bottom-color: #ecc94b; }
+        body.dark-mode .word.style-tier2 { border-bottom-color: #4fd1c5; }
+        body.dark-mode .word.style-tier3 { border-bottom-color: #b794f4; }
+
+        .style-popup {
+            position: fixed;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            padding: 1rem 1.25rem;
+            z-index: 1000;
+            max-width: 400px;
+            min-width: 280px;
+            display: none;
+        }
+        .style-popup.visible { display: block; }
+        .style-popup .device { font-weight: 600; color: #9f7aea; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+        .style-popup .latin { font-style: italic; color: #4b5563; margin-bottom: 0.5rem; }
+        .style-popup .effect { font-size: 0.95rem; line-height: 1.6; color: #1f2937; }
+        body.dark-mode .style-popup { background: #4f0c28; }
+        body.dark-mode .style-popup .device { color: #b794f4; }
+        body.dark-mode .style-popup .latin { color: #b8a8b8; }
+        body.dark-mode .style-popup .effect { color: #c5d2f8; }
     </style>
 </head>
 <body>
@@ -190,6 +221,7 @@
                             <button class="btn" onclick="toggleSentenceMode()">Sentence Mode</button>
                             <button class="btn" onclick="toggleLineNumbers()">Line Numbers</button>
                             <button class="btn" onclick="togglePointerMode()">Pointer Mode</button>
+                            <button class="btn" onclick="toggleStyleMode()">Style</button>
                             <button class="btn" onclick="toggleDarkMode()">🌙 Dark</button>
                             <button class="btn" onclick="toggleFullScreen()">⛶ Full Screen</button>
                         </div>
@@ -216,6 +248,7 @@
     </main>
 
     <div class="vocab-popup" id="vocabPopup"></div>
+    <div class="style-popup" id="stylePopup"></div>
     <div class="mode-indicator">📍 Pointer Mode</div>
 
     <script>
@@ -345,6 +378,20 @@ const vocab = {
     "odia": { lemma: "odium, -i (n.)", parsing: "acc. pl.", meaning: "hatred" }
 };
 
+const styleData = {
+    "diu,distulit": { tier: 1, device: "Alliteration", text: "diu...distulit" },
+    "flagrantior,facetias": { tier: 1, device: "Alliteration", text: "flagrantior...facetias" },
+    "matrimonium,discidium": { tier: 1, device: "Homoeoteleuton", text: "matrimonium et discidium" },
+    "non,modo,sed,etiam": { tier: 2, device: "Correlative Structure", text: "non modo...sed...etiam", effect: "The balanced 'not only...but also' construction emphasises that Nero lacks both power AND freedom, building Poppaea's accusation to a climax." },
+    "formam,avos,fecunditatem,animum": { tier: 2, device: "Tricolon with Variation", text: "formam...avos...fecunditatem...animum", effect: "A series of rhetorical questions listing Poppaea's qualities, each answered with implicit sarcasm. The accumulation creates mounting pressure on Nero." },
+    "superbiam,avaritiam": { tier: 2, device: "Asyndetic Pair", text: "superbiam avaritiamque", effect: "The vices are piled up without pause, suggesting Agrippina's faults are too numerous to list properly." },
+    "scelus": { tier: 3, device: "Proleptic Irony", text: "diu meditatum scelus", effect: "Tacitus names the 'crime' before revealing its nature (matricide), creating dramatic tension. The reader knows the outcome; the word 'scelus' colours everything that follows with moral judgement." },
+    "pupillum": { tier: 3, device: "Degrading Metaphor", text: "pupillum vocare", effect: "Calling the emperor a 'ward' (legally, a minor under guardianship) inverts the power structure entirely. The word's placement after 'principem' (emperor) creates maximum shock through juxtaposition." },
+    "lacrimis,arte": { tier: 3, device: "Oxymoronic Pairing", text: "lacrimis et arte adulterae", effect: "The combination of 'tears' (suggesting genuine emotion) with 'skill' (suggesting calculation) exposes Poppaea's manipulation. The genitive 'adulterae' adds Tacitus's moral condemnation." },
+    "caedem": { tier: 3, device: "Climactic Word Order", text: "usque ad caedem", effect: "The passage builds inexorably to this word - 'murder'. Placed at the end of the chapter, it provides the shocking climax that the formal consular dating at the opening belied." },
+    "nullo,credente": { tier: 3, device: "Tragic Irony", text: "credente nullo", effect: "The ablative absolute 'with no one believing' creates devastating dramatic irony: the reader knows that Nero's hatred WILL extend to matricide. Universal disbelief becomes universal complicity." }
+};
+
 const latinSentences = [
     "Gaio Vipstano C. Fonteio consulibus diu meditatum scelus non ultra Nero distulit, vetustate imperii coalita audacia et flagrantior in dies amore Poppaeae,",
     "quae sibi matrimonium et discidium Octaviae incolumi Agrippina haud sperans crebris criminationibus, aliquando per facetias incusare principem et pupillum vocare,",
@@ -379,6 +426,7 @@ let currentPopup = null;
 let sentenceModeActive = false;
 let currentSentenceIndex = 0;
 let pointerModeActive = false;
+let styleModeActive = false;
 
 function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
@@ -410,6 +458,61 @@ function togglePointerMode() {
     event.currentTarget.classList.toggle('active');
     if (!pointerModeActive) document.querySelectorAll('.word.pointed').forEach(w => w.classList.remove('pointed'));
     if (pointerModeActive) hidePopup();
+}
+
+function toggleStyleMode() {
+    styleModeActive = !styleModeActive;
+    const btn = event.currentTarget;
+    btn.classList.toggle('active');
+
+    // Show/hide style underlines
+    document.querySelectorAll('.word').forEach(word => {
+        const w = word.dataset.word.toLowerCase();
+        for (const [words, data] of Object.entries(styleData)) {
+            if (words.split(',').includes(w)) {
+                if (styleModeActive) {
+                    word.classList.add('style-tier' + data.tier);
+                } else {
+                    word.classList.remove('style-tier1', 'style-tier2', 'style-tier3');
+                }
+            }
+        }
+    });
+
+    if (!styleModeActive) hideStylePopup();
+}
+
+function showStylePopup(event, word) {
+    if (!styleModeActive) return;
+
+    const popup = document.getElementById('stylePopup');
+    let styleInfo = null;
+
+    for (const [words, data] of Object.entries(styleData)) {
+        if (words.split(',').includes(word.toLowerCase())) {
+            styleInfo = data;
+            break;
+        }
+    }
+
+    if (!styleInfo) return;
+
+    let html = `<div class="device">${styleInfo.device}</div>`;
+    html += `<div class="latin">"${styleInfo.text}"</div>`;
+    if (styleInfo.effect) {
+        html += `<div class="effect">${styleInfo.effect}</div>`;
+    }
+
+    popup.innerHTML = html;
+
+    const rect = event.target.getBoundingClientRect();
+    popup.style.left = Math.min(rect.left, window.innerWidth - 420) + 'px';
+    popup.style.top = (rect.bottom + 10) + 'px';
+    popup.classList.add('visible');
+}
+
+function hideStylePopup() {
+    document.getElementById('stylePopup').classList.remove('visible');
 }
 
 function toggleSentenceMode() {
@@ -506,8 +609,27 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('latinText').innerHTML = generateLatinHTML();
     if (localStorage.getItem('darkMode') === 'true') { document.body.classList.add('dark-mode'); setTimeout(() => { document.querySelectorAll('.btn').forEach(btn => { if (btn.textContent.includes('Dark')) { btn.textContent = '☀️ Light'; btn.classList.add('active'); } }); }, 0); }
     if (localStorage.getItem('lineNumbers') === 'true') { document.getElementById('latinText').classList.add('show-lines'); setTimeout(() => { document.querySelectorAll('.btn').forEach(btn => { if (btn.textContent === 'Line Numbers') btn.classList.add('active'); }); }, 0); }
-    document.querySelectorAll('.word').forEach(word => { word.addEventListener('click', function(e) { e.stopPropagation(); if (pointerModeActive) this.classList.toggle('pointed'); else showVocabPopup(e, this.dataset.word); }); });
-    document.addEventListener('click', function(e) { if (!e.target.classList.contains('word')) { hidePopup(); if (pointerModeActive && !e.target.closest('.btn-group') && !e.target.closest('.sentence-nav')) document.querySelectorAll('.word.pointed').forEach(w => w.classList.remove('pointed')); } });
+    document.querySelectorAll('.word').forEach(word => {
+        word.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (pointerModeActive) {
+                this.classList.toggle('pointed');
+            } else if (styleModeActive) {
+                showStylePopup(e, this.dataset.word);
+            } else {
+                showVocabPopup(e, this.dataset.word);
+            }
+        });
+    });
+    document.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('word')) {
+            hidePopup();
+            hideStylePopup();
+            if (pointerModeActive && !e.target.closest('.btn-group') && !e.target.closest('.sentence-nav')) {
+                document.querySelectorAll('.word.pointed').forEach(w => w.classList.remove('pointed'));
+            }
+        }
+    });
     document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { if (document.body.classList.contains('full-screen')) { document.body.classList.remove('full-screen'); document.querySelectorAll('.btn').forEach(btn => { if (btn.textContent.includes('Full Screen')) { btn.textContent = '⛶ Full Screen'; btn.classList.remove('active'); } }); } if (pointerModeActive) { pointerModeActive = false; document.body.classList.remove('pointer-mode'); document.querySelectorAll('.word.pointed').forEach(w => w.classList.remove('pointed')); document.querySelectorAll('.btn').forEach(btn => { if (btn.textContent === 'Pointer Mode') btn.classList.remove('active'); }); } } if (sentenceModeActive) { if (e.key === 'ArrowLeft') prevSentence(); else if (e.key === 'ArrowRight') nextSentence(); } });
 });
     </script>

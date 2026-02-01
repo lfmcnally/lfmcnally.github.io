@@ -276,6 +276,25 @@
             border-color: #0066ff;
         }
 
+        /* Style highlighting */
+        .word.style-tier1 { border-bottom: 2px solid #f0c040; }
+        .word.style-tier2 { border-bottom: 2px solid #38b2ac; }
+        .word.style-tier3 { border-bottom: 2px solid #9f7aea; }
+        .word.style-tier1:hover, .word.style-tier2:hover, .word.style-tier3:hover { background: rgba(159, 122, 234, 0.15); }
+        body.dark-mode .word.style-tier1 { border-bottom-color: #ecc94b; }
+        body.dark-mode .word.style-tier2 { border-bottom-color: #4fd1c5; }
+        body.dark-mode .word.style-tier3 { border-bottom-color: #b794f4; }
+
+        .style-popup { position: fixed; background: white; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); padding: 1rem 1.25rem; z-index: 1000; max-width: 400px; min-width: 280px; display: none; }
+        .style-popup.visible { display: block; }
+        .style-popup .device { font-weight: 600; color: #9f7aea; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+        .style-popup .latin { font-style: italic; color: #4b5563; margin-bottom: 0.5rem; }
+        .style-popup .effect { font-size: 0.95rem; line-height: 1.6; color: #1f2937; }
+        body.dark-mode .style-popup { background: #4f0c28; }
+        body.dark-mode .style-popup .device { color: #b794f4; }
+        body.dark-mode .style-popup .latin { color: #b8a8b8; }
+        body.dark-mode .style-popup .effect { color: #c5d2f8; }
+
         /* Dark mode styles */
         body.dark-mode {
             background: #2d0818;
@@ -651,6 +670,7 @@
                             <button class="btn" onclick="toggleSentenceMode()">Sentence Mode</button>
                             <button class="btn" onclick="toggleLineNumbers()">Line Numbers</button>
                             <button class="btn" onclick="togglePointerMode()">Pointer Mode</button>
+                            <button class="btn" onclick="toggleStyleMode()">Style</button>
                             <button class="btn" onclick="toggleDarkMode()">🌙 Dark</button>
                             <button class="btn" onclick="toggleFullScreen()">⛶ Full Screen</button>
                         </div>
@@ -677,6 +697,7 @@
     </main>
 
     <div class="vocab-popup" id="vocabPopup"></div>
+    <div class="style-popup" id="stylePopup"></div>
     <div class="mode-indicator">📍 Pointer Mode (click words to highlight, click again to remove)</div>
 
     <script>
@@ -811,6 +832,81 @@ const latinSentences = [
     "quae puellaribus annis stuprum cum Lepido spe dominationis admiserat, pari cupidine usque ad libita Pallantis provoluta et exercita ad omne flagitium patrui nuptiis."
 ];
 
+const styleData = {
+    "comptam": {
+        tier: 1,
+        device: "Homoioteleuton",
+        latin: "comptam...paratam",
+        effect: "The matching -am endings create a chilling parallel: Agrippina is both 'adorned' (comptam) and 'prepared' (paratam) for incest, with the rhyme suggesting deliberate calculation in her seduction."
+    },
+    "paratam": {
+        tier: 1,
+        device: "Homoioteleuton",
+        latin: "comptam...paratam",
+        effect: "The matching -am endings link external appearance (comptam) to internal intention (paratam), suggesting Agrippina's corruption runs from surface to soul."
+    },
+    "vinum": {
+        tier: 1,
+        device: "Hendiadys",
+        latin: "per vinum et epulas",
+        effect: "'Through wine and feasting' essentially means 'through drunken feasting' - two nouns express one idea, emphasising Nero's intoxicated vulnerability."
+    },
+    "profani": {
+        tier: 1,
+        device: "Alliteration",
+        latin: "profani principis",
+        effect: "The repeated 'p' sound hammers home the pollution theme: an 'unholy emperor' - the soldiers' religious horror at incest made audible."
+    },
+    "lasciva": {
+        tier: 2,
+        device: "Hyperbaton",
+        latin: "lasciva oscula...praenuntias flagitii blanditias",
+        effect: "The adjectives are dramatically separated from their nouns: 'wanton...kisses' and 'scandal-announcing...caresses'. This word order mimics courtiers glimpsing fragments of the shameful scene."
+    },
+    "muliebres": {
+        tier: 3,
+        device: "Irony",
+        latin: "contra muliebres inlecebras subsidium a femina petivisse",
+        effect: "Seneca seeks 'help from a woman' against 'feminine enticements' - a paradoxical cure. Tacitus implies that only a woman's cunning can counter a woman's seduction, perhaps questioning male moral authority."
+    },
+    "gloriante": {
+        tier: 2,
+        device: "Ablative Absolute",
+        latin: "gloriante matre",
+        effect: "The participle carries heavy moral weight: 'the mother boasting'. This grammatically subordinate phrase delivers the most damning accusation - Agrippina's shameless pride in incest."
+    },
+    "tradit": {
+        tier: 3,
+        device: "Source Citation",
+        latin: "tradit Cluvius...Fabius Rusticus memorat",
+        effect: "Tacitus names his sources explicitly, creating historiographical distance. By presenting competing versions, he appears objective while still transmitting the scandal - a technique of apparent neutrality."
+    },
+    "seu": {
+        tier: 2,
+        device: "Disjunctive Structure",
+        latin: "seu concepit...seu credibilior",
+        effect: "'Whether...or whether' - Tacitus refuses to choose between alternatives, but both options condemn Agrippina. The apparent fairness masks a rhetorical trap."
+    },
+    "tantum": {
+        tier: 1,
+        device: "Intensifying Genitive",
+        latin: "tantum immanitatis",
+        effect: "'Such great monstrosity' - the partitive genitive with tantum creates emphasis on the scale of Agrippina's moral perversion."
+    },
+    "fama": {
+        tier: 3,
+        device: "Authorial Distance",
+        latin: "fama huc inclinat",
+        effect: "Tacitus uses fama ('rumour') to pass judgment while maintaining plausible deniability. The passive 'inclines this way' allows him to condemn without taking direct responsibility."
+    },
+    "exercita": {
+        tier: 2,
+        device: "Military Metaphor",
+        latin: "exercita ad omne flagitium",
+        effect: "'Trained for every disgrace' - exercita uses military/athletic vocabulary for sexual degradation. Agrippina is portrayed as professionally skilled in vice, like a soldier drilled for battle."
+    }
+};
+
 const resources = {
     summary: `<h4>Summary</h4>
 <p>Tacitus presents conflicting historical accounts of alleged incest between Agrippina and Nero. According to Cluvius, Agrippina initiated the seduction when Nero was drunk at midday banquets. Seneca intervened by sending Acte to warn Nero about spreading rumours and potential military revolt.</p>
@@ -836,6 +932,7 @@ let currentPopup = null;
 let sentenceModeActive = false;
 let currentSentenceIndex = 0;
 let pointerModeActive = false;
+let styleModeActive = false;
 
 function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
@@ -888,7 +985,77 @@ function togglePointerMode() {
     // Hide vocab popup when entering pointer mode
     if (pointerModeActive) {
         hidePopup();
+        hideStylePopup();
     }
+}
+
+function toggleStyleMode() {
+    styleModeActive = !styleModeActive;
+    const btn = event.currentTarget;
+    btn.classList.toggle('active');
+
+    // Update word classes for style highlighting
+    document.querySelectorAll('.word').forEach(word => {
+        const lookupWord = word.dataset.word.toLowerCase();
+        if (styleModeActive && styleData[lookupWord]) {
+            word.classList.add('style-tier' + styleData[lookupWord].tier);
+        } else {
+            word.classList.remove('style-tier1', 'style-tier2', 'style-tier3');
+        }
+    });
+
+    if (!styleModeActive) {
+        hideStylePopup();
+    }
+
+    // Hide vocab popup when entering style mode
+    if (styleModeActive) {
+        hidePopup();
+    }
+}
+
+function showStylePopup(event, word) {
+    const popup = document.getElementById('stylePopup');
+    const data = styleData[word.toLowerCase()];
+
+    if (!data) {
+        popup.classList.remove('visible');
+        return;
+    }
+
+    popup.innerHTML = `
+        <div class="device">${data.device}</div>
+        <div class="latin">${data.latin}</div>
+        <div class="effect">${data.effect}</div>
+    `;
+
+    // Position popup near the word
+    const rect = event.target.getBoundingClientRect();
+    const popupWidth = 340;
+    const popupHeight = 180;
+
+    let left = rect.left + (rect.width / 2) - (popupWidth / 2);
+    let top = rect.bottom + 12;
+
+    // Keep popup within viewport horizontally
+    if (left < 10) left = 10;
+    if (left + popupWidth > window.innerWidth - 10) {
+        left = window.innerWidth - popupWidth - 10;
+    }
+
+    // If popup would go below viewport, show above word
+    if (top + popupHeight > window.innerHeight) {
+        top = rect.top - popupHeight - 12;
+    }
+
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+    popup.classList.add('visible');
+}
+
+function hideStylePopup() {
+    const popup = document.getElementById('stylePopup');
+    popup.classList.remove('visible');
 }
 
 function toggleSentenceMode() {
@@ -937,6 +1104,7 @@ function prevSentence() {
         currentSentenceIndex--;
         updateSentenceDisplay();
         hidePopup();
+        hideStylePopup();
     }
 }
 
@@ -946,6 +1114,7 @@ function nextSentence() {
         currentSentenceIndex++;
         updateSentenceDisplay();
         hidePopup();
+        hideStylePopup();
     }
 }
 
@@ -965,7 +1134,12 @@ function generateLatinHTML() {
                     const word = match[1];
                     const punct = match[2];
                     const lookupWord = word.toLowerCase();
-                    html += `<span class="word" data-word="${lookupWord}">${word}</span>${punct}`;
+                    // Check if word has style data and add tier class if style mode is active
+                    let tierClass = '';
+                    if (styleModeActive && styleData[lookupWord]) {
+                        tierClass = ' style-tier' + styleData[lookupWord].tier;
+                    }
+                    html += `<span class="word${tierClass}" data-word="${lookupWord}">${word}</span>${punct}`;
                     // Add space after unless it's the last token
                     if (i < tokens.length - 1) html += ' ';
                 } else {
@@ -1090,7 +1264,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (pointerModeActive) {
                 // Toggle pointed class
                 this.classList.toggle('pointed');
+            } else if (styleModeActive && styleData[this.dataset.word.toLowerCase()]) {
+                // Show style popup for words with style data
+                hidePopup();
+                showStylePopup(e, this.dataset.word);
             } else {
+                // Show vocab popup
+                hideStylePopup();
                 showVocabPopup(e, this.dataset.word);
             }
         });
@@ -1100,6 +1280,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', function(e) {
         if (!e.target.classList.contains('word')) {
             hidePopup();
+            hideStylePopup();
 
             // If in pointer mode and clicking background (not buttons), clear all highlights
             if (pointerModeActive && !e.target.closest('.btn-group') && !e.target.closest('.sentence-nav')) {
