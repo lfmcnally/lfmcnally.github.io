@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6.4 Legacy and Comparison - Presentation Mode</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Source Sans 3', sans-serif;
+            background: #1a1a2e;
+            color: white;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: #0066ff;
+            transition: width 0.3s ease;
+            z-index: 1000;
+        }
+
+        /* Presentation Bar */
+        .presentation-bar {
+            position: fixed;
+            top: 4px;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .section-nav {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .section-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .section-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .section-btn.active {
+            background: #0066ff;
+            border-color: #0066ff;
+            color: white;
+        }
+
+        .top-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .clock {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.8);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .grid-btn {
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            color: white;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .grid-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Slides Container */
+        .slides-container {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            max-width: 1200px;
+            max-height: 100%;
+            overflow-y: auto;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Slide Content Styles */
+        .slide-title {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: white;
+            text-align: center;
+        }
+
+        .slide-subtitle {
+            font-size: 1.5rem;
+            color: rgba(255,255,255,0.7);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .slide h2 {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 2.2rem;
+            color: #60a5fa;
+            margin-bottom: 1.5rem;
+        }
+
+        .slide h3 {
+            font-size: 1.6rem;
+            color: #93c5fd;
+            margin-bottom: 1rem;
+        }
+
+        .slide p {
+            font-size: 1.4rem;
+            line-height: 1.8;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 1.5rem;
+        }
+
+        .slide ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .slide li {
+            font-size: 1.3rem;
+            line-height: 1.7;
+            color: rgba(255,255,255,0.9);
+            padding-left: 2rem;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .slide li:before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #60a5fa;
+            font-weight: bold;
+        }
+
+        /* Key Point Box */
+        .key-point {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .key-point-title {
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 0.75rem;
+            color: #bfdbfe;
+        }
+
+        .key-point p {
+            color: white;
+            margin: 0;
+        }
+
+        /* Warning Box */
+        .warning-box {
+            background: linear-gradient(135deg, #92400e 0%, #f59e0b 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .warning-box p {
+            color: white;
+            margin: 0;
+        }
+
+        /* Danger Box */
+        .danger-box {
+            background: linear-gradient(135deg, #991b1b 0%, #ef4444 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .danger-box p {
+            color: white;
+            margin: 0;
+        }
+
+        /* Success Box */
+        .success-box {
+            background: linear-gradient(135deg, #065f46 0%, #10b981 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .success-box p {
+            color: white;
+            margin: 0;
+        }
+
+        /* Primary Source */
+        .primary-source {
+            background: rgba(255,255,255,0.05);
+            border-left: 4px solid #a78bfa;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            border-radius: 0 12px 12px 0;
+        }
+
+        .primary-source p {
+            font-style: italic;
+            font-size: 1.5rem;
+            color: rgba(255,255,255,0.95);
+        }
+
+        .source-citation {
+            font-style: normal;
+            font-size: 1rem;
+            color: #a78bfa;
+            margin-top: 1rem;
+            display: block;
+        }
+
+        /* Dark Box */
+        .dark-box {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .dark-box h4 {
+            color: #60a5fa;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Two Column Layout */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 1.5rem 0;
+        }
+
+        .column-box {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .column-box h4 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .column-box p {
+            font-size: 1.1rem;
+        }
+
+        .column-box li {
+            font-size: 1.1rem;
+        }
+
+        /* Three Column Layout */
+        .three-column {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        /* Figure Cards */
+        .figure-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .figure-card {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .figure-card.caesar {
+            border-top: 4px solid #dc2626;
+        }
+
+        .figure-card.cicero {
+            border-top: 4px solid #2563eb;
+        }
+
+        .figure-card.cato {
+            border-top: 4px solid #7c3aed;
+        }
+
+        .figure-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .figure-name {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .figure-dates {
+            font-size: 1rem;
+            color: rgba(255,255,255,0.6);
+            margin-bottom: 1rem;
+        }
+
+        .figure-label {
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .figure-card.caesar .figure-label {
+            background: rgba(220, 38, 38, 0.3);
+            color: #fca5a5;
+        }
+
+        .figure-card.cicero .figure-label {
+            background: rgba(37, 99, 235, 0.3);
+            color: #93c5fd;
+        }
+
+        .figure-card.cato .figure-label {
+            background: rgba(124, 58, 237, 0.3);
+            color: #c4b5fd;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 1.1rem;
+        }
+
+        .comparison-table th {
+            background: rgba(0,0,0,0.5);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: white;
+        }
+
+        .comparison-table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.9);
+        }
+
+        .comparison-table tr:nth-child(even) {
+            background: rgba(255,255,255,0.03);
+        }
+
+        .comparison-table .caesar-col {
+            border-left: 3px solid #dc2626;
+        }
+
+        .comparison-table .cicero-col {
+            border-left: 3px solid #2563eb;
+        }
+
+        .comparison-table .cato-col {
+            border-left: 3px solid #7c3aed;
+        }
+
+        /* Exit Question */
+        .exit-question {
+            background: rgba(0, 102, 255, 0.1);
+            border: 2px solid #0066ff;
+            border-radius: 16px;
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .question-label {
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #60a5fa;
+            margin-bottom: 1.5rem;
+        }
+
+        .question-text {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 1.8rem;
+            color: white;
+            line-height: 1.5;
+            margin-bottom: 2rem;
+        }
+
+        .reveal-btn {
+            padding: 1rem 2.5rem;
+            background: #0066ff;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .reveal-btn:hover {
+            background: #0052cc;
+            transform: translateY(-2px);
+        }
+
+        .answer-text {
+            display: none;
+            font-size: 1.3rem;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.7;
+            text-align: left;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .answer-text.visible {
+            display: block;
+        }
+
+        /* Course Complete */
+        .course-complete {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .complete-icon {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .complete-title {
+            font-family: 'Libre Baskerville', serif;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .complete-subtitle {
+            font-size: 1.3rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 2rem;
+        }
+
+        .complete-quote {
+            font-style: italic;
+            font-size: 1.2rem;
+            color: #60a5fa;
+            max-width: 700px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-btn {
+            padding: 0.75rem 1.5rem;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .slide-counter {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* Grid Overlay */
+        .grid-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 26, 46, 0.98);
+            z-index: 200;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .grid-overlay.visible {
+            display: block;
+        }
+
+        .grid-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .grid-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .close-grid {
+            padding: 0.5rem 1rem;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .grid-slides {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .grid-slide {
+            background: rgba(255,255,255,0.05);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .grid-slide:hover {
+            border-color: #0066ff;
+            transform: translateY(-4px);
+        }
+
+        .grid-slide.current {
+            border-color: #0066ff;
+            background: rgba(0, 102, 255, 0.1);
+        }
+
+        .grid-slide-number {
+            font-size: 0.85rem;
+            color: #60a5fa;
+            margin-bottom: 0.5rem;
+        }
+
+        .grid-slide-title {
+            font-size: 1rem;
+            color: white;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+
+    <div class="presentation-bar">
+        <div class="section-nav">
+            <button class="section-btn active" data-section="introduction">Introduction</button>
+            <button class="section-btn" data-section="caesar">Caesar</button>
+            <button class="section-btn" data-section="cicero">Cicero</button>
+            <button class="section-btn" data-section="cato">Cato</button>
+            <button class="section-btn" data-section="conclusion">Conclusion</button>
+            <button class="section-btn" data-section="exit">Exit Questions</button>
+        </div>
+        <div class="top-right">
+            <div class="clock" id="clock">00:00</div>
+            <button class="grid-btn" id="gridBtn">Grid View</button>
+        </div>
+    </div>
+
+    <div class="slides-container">
+        <!-- Slide 1: Title -->
+        <div class="slide active" data-section="introduction">
+            <h1 class="slide-title">Legacy and Comparison</h1>
+            <p class="slide-subtitle">Caesar, Cicero, and Cato: Three Models of Political Conduct</p>
+            <div class="key-point" style="max-width: 800px; margin: 2rem auto;">
+                <p style="text-align: center; font-size: 1.3rem;">The final lesson of the Politics of the Late Republic—comparing the three dominant figures who shaped Rome's transformation.</p>
+            </div>
+        </div>
+
+        <!-- Slide 2: Learning Objectives -->
+        <div class="slide" data-section="introduction">
+            <h2>Learning Objectives</h2>
+            <div class="dark-box">
+                <h4>What You'll Learn</h4>
+                <ul>
+                    <li>How Caesar, Cicero, and Cato each responded to the Republic's crisis</li>
+                    <li>The strengths and fatal weaknesses of each approach</li>
+                    <li>Why none of them could save the Republic</li>
+                    <li>What the birth of the Principate meant for Roman liberty</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 3: Three Models -->
+        <div class="slide" data-section="introduction">
+            <h2>Three Models of Political Conduct</h2>
+            <div class="figure-cards">
+                <div class="figure-card caesar">
+                    <div class="figure-icon">⚔️</div>
+                    <div class="figure-name">Julius Caesar</div>
+                    <div class="figure-dates">100-44 BC</div>
+                    <div class="figure-label">THE VISIONARY</div>
+                </div>
+                <div class="figure-card cicero">
+                    <div class="figure-icon">📜</div>
+                    <div class="figure-name">Marcus Cicero</div>
+                    <div class="figure-dates">106-43 BC</div>
+                    <div class="figure-label">THE IDEALIST</div>
+                </div>
+                <div class="figure-card cato">
+                    <div class="figure-icon">🏛️</div>
+                    <div class="figure-name">Cato the Younger</div>
+                    <div class="figure-dates">95-46 BC</div>
+                    <div class="figure-label">THE MARTYR</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: The Central Question -->
+        <div class="slide" data-section="introduction">
+            <h2>The Central Question</h2>
+            <div class="key-point">
+                <p style="font-size: 1.5rem; text-align: center;">Each of these men believed they were defending the Republic.</p>
+            </div>
+            <div class="three-column" style="margin-top: 2rem;">
+                <div class="column-box" style="border-top: 4px solid #dc2626;">
+                    <h4 style="color: #f87171;">Caesar</h4>
+                    <p style="text-align: center;">Thought he could REFORM it</p>
+                </div>
+                <div class="column-box" style="border-top: 4px solid #2563eb;">
+                    <h4 style="color: #60a5fa;">Cicero</h4>
+                    <p style="text-align: center;">Thought he could PRESERVE it</p>
+                </div>
+                <div class="column-box" style="border-top: 4px solid #7c3aed;">
+                    <h4 style="color: #c4b5fd;">Cato</h4>
+                    <p style="text-align: center;">Thought he could PURIFY it</p>
+                </div>
+            </div>
+            <p style="text-align: center; margin-top: 2rem;">All three failed—but their failures illuminate WHY the Republic could not survive.</p>
+        </div>
+
+        <!-- Slide 5: Caesar - Overview -->
+        <div class="slide" data-section="caesar">
+            <h2>Julius Caesar: Visionary or Tyrant?</h2>
+            <p>Caesar remains the most CONTESTED figure of the Late Republic. Was he a far-sighted reformer, or a power-hungry tyrant? The answer may be BOTH.</p>
+            <div class="two-column">
+                <div class="column-box" style="border-top: 4px solid #10b981;">
+                    <h4 style="color: #34d399;">Strengths</h4>
+                    <ul>
+                        <li><strong>Military brilliance:</strong> Rome's greatest general</li>
+                        <li><strong>Reforming ambition:</strong> Addressed genuine problems</li>
+                        <li><strong>Strategic clemency:</strong> Pardoned enemies</li>
+                        <li><strong>Administrative competence:</strong> Actually governed</li>
+                    </ul>
+                </div>
+                <div class="column-box" style="border-top: 4px solid #dc2626;">
+                    <h4 style="color: #f87171;">Weaknesses</h4>
+                    <ul>
+                        <li><strong>Disregard for tradition:</strong> Mocked Republican forms</li>
+                        <li><strong>Power consolidation:</strong> Perpetual dictator</li>
+                        <li><strong>Political blindness:</strong> Clemency bred resentment</li>
+                        <li><strong>No succession plan:</strong> Ensured more civil war</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Caesar - Primary Source -->
+        <div class="slide" data-section="caesar">
+            <h2>Caesar in His Own Words</h2>
+            <div class="primary-source">
+                <p>"I came, I saw, I conquered."</p>
+                <span class="source-citation">— Caesar, on his victory at Zela (Suetonius)</span>
+            </div>
+            <p style="margin-top: 2rem;">This famous phrase captures Caesar's essential character: decisive, confident, and focused on results rather than process.</p>
+        </div>
+
+        <!-- Slide 7: Caesar - Contested Legacy -->
+        <div class="slide" data-section="caesar">
+            <h2>The Contested Legacy</h2>
+            <div class="dark-box">
+                <h4>Modern Interpretations</h4>
+                <ul>
+                    <li><strong>The "Great Man" view:</strong> A genius who recognised the Republic was doomed and tried to create something better</li>
+                    <li><strong>The "Destroyer" view:</strong> His ambition wrecked a system that might have reformed itself</li>
+                    <li><strong>The "Symptom" view:</strong> Merely the most successful of many ambitious men—the system created him</li>
+                </ul>
+            </div>
+            <div class="warning-box" style="margin-top: 1.5rem;">
+                <p><strong>The Uncomfortable Truth:</strong> Whether Caesar was a visionary or a tyrant may depend on whether the Republic COULD have been saved. If it was already dying, Caesar was a surgeon. If it could have recovered, he was the disease.</p>
+            </div>
+        </div>
+
+        <!-- Slide 8: Caesar - Enduring Legacy -->
+        <div class="slide" data-section="caesar">
+            <h2>Caesar's Enduring Legacy</h2>
+            <div class="success-box">
+                <p><strong>What Lasted:</strong> The Julian calendar, colonial foundations, citizenship grants, and administrative reforms outlasted the Republic itself. The title "Caesar" became synonymous with supreme power—giving us "Kaiser" and "Tsar."</p>
+            </div>
+            <div class="key-point" style="margin-top: 2rem;">
+                <div class="key-point-title">Exam Tip</div>
+                <p>Be prepared to argue BOTH sides. Caesar was neither purely heroic nor purely villainous, but a product of a broken system who broke it further.</p>
+            </div>
+        </div>
+
+        <!-- Slide 9: Cicero - Overview -->
+        <div class="slide" data-section="cicero">
+            <h2>Marcus Tullius Cicero: The Idealist</h2>
+            <p>Cicero believed in the Republic with an almost religious fervour. A "new man" who had risen through talent alone, he saw the constitutional order as the guarantor of justice, liberty, and civilisation.</p>
+            <div class="two-column">
+                <div class="column-box" style="border-top: 4px solid #10b981;">
+                    <h4 style="color: #34d399;">Strengths</h4>
+                    <ul>
+                        <li><strong>Rhetorical mastery:</strong> Rome's greatest orator</li>
+                        <li><strong>Philosophical depth:</strong> Shaped Western thought</li>
+                        <li><strong>Faith in law:</strong> Believed in constitutional government</li>
+                        <li><strong>Moral courage:</strong> Opposed Caesar, then Antony</li>
+                    </ul>
+                </div>
+                <div class="column-box" style="border-top: 4px solid #dc2626;">
+                    <h4 style="color: #f87171;">Weaknesses</h4>
+                    <ul>
+                        <li><strong>Political naivete:</strong> Overestimated persuasion</li>
+                        <li><strong>Reliance on compromise:</strong> Sought middle ground</li>
+                        <li><strong>Misreading realpolitik:</strong> Believed Octavian could be used</li>
+                        <li><strong>Vanity:</strong> Self-praise alienated allies</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: Cicero - Primary Source -->
+        <div class="slide" data-section="cicero">
+            <h2>Cicero's Despair</h2>
+            <div class="primary-source">
+                <p>"The authority of the Senate has been destroyed, the harmony of the orders shattered, all courts of justice abolished. The Republic is no more."</p>
+                <span class="source-citation">— Cicero, Letters to Atticus</span>
+            </div>
+            <p style="margin-top: 2rem;">Cicero understood the Republic's problems better than anyone—but understanding did not bring the power to solve them.</p>
+        </div>
+
+        <!-- Slide 11: Cicero - The Tragedy -->
+        <div class="slide" data-section="cicero">
+            <h2>The Tragedy of Cicero</h2>
+            <div class="dark-box">
+                <h4>The Intellectual in Politics</h4>
+                <ul>
+                    <li>He understood the Republic's problems better than anyone</li>
+                    <li>He articulated its values more beautifully than anyone</li>
+                    <li>He was powerless to save it because he lacked MILITARY FORCE</li>
+                </ul>
+            </div>
+            <div class="danger-box" style="margin-top: 1.5rem;">
+                <p><strong>The Final Irony:</strong> Cicero's last political gamble was supporting Octavian against Antony. Instead, Octavian joined Antony in the Triumvirate and agreed to Cicero's proscription. His head and hands were displayed on the Rostra.</p>
+            </div>
+        </div>
+
+        <!-- Slide 12: Cicero - Enduring Legacy -->
+        <div class="slide" data-section="cicero">
+            <h2>Cicero's Enduring Legacy</h2>
+            <div class="success-box">
+                <p><strong>His writings shaped:</strong> Renaissance humanism, the American Founding Fathers, and the entire Western tradition of constitutional thought. John Adams called him "the greatest orator, the greatest statesman, and the greatest philosopher that Rome ever produced."</p>
+            </div>
+            <p style="margin-top: 2rem; text-align: center;">Cicero lost the political battle but won the cultural war.</p>
+        </div>
+
+        <!-- Slide 13: Cato - Overview -->
+        <div class="slide" data-section="cato">
+            <h2>Cato the Younger: The Martyr</h2>
+            <p>If Cicero was the voice of the Republic, Cato was its CONSCIENCE. Stern, unyielding, and incorruptible, he embodied the old Roman virtues.</p>
+            <div class="two-column">
+                <div class="column-box" style="border-top: 4px solid #10b981;">
+                    <h4 style="color: #34d399;">Strengths</h4>
+                    <ul>
+                        <li><strong>Absolute integrity:</strong> Could not be bribed or threatened</li>
+                        <li><strong>Moral consistency:</strong> Same standards for all</li>
+                        <li><strong>Embodiment of libertas:</strong> Living symbol of freedom</li>
+                        <li><strong>Personal courage:</strong> Chose death over surrender</li>
+                    </ul>
+                </div>
+                <div class="column-box" style="border-top: 4px solid #dc2626;">
+                    <h4 style="color: #f87171;">Weaknesses</h4>
+                    <ul>
+                        <li><strong>Inflexibility:</strong> Could not adapt or compromise</li>
+                        <li><strong>Failed to lead coalitions:</strong> Alienated potential allies</li>
+                        <li><strong>Inability to see grey:</strong> Politics requires pragmatism</li>
+                        <li><strong>Counterproductive:</strong> Obstruction created crises</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: Cato - Primary Source -->
+        <div class="slide" data-section="cato">
+            <h2>Cicero on Cato</h2>
+            <div class="primary-source">
+                <p>"Cato spoke as if he were living in Plato's Republic, not in the sewers of Romulus."</p>
+                <span class="source-citation">— Cicero, Letters to Atticus</span>
+            </div>
+            <p style="margin-top: 2rem;">Even Cicero, who admired Cato, recognised that his idealism was disconnected from political reality.</p>
+        </div>
+
+        <!-- Slide 15: Cato - The Paradox -->
+        <div class="slide" data-section="cato">
+            <h2>The Paradox of Cato</h2>
+            <p>Cato's suicide at Thapsus (46 BC) transformed him from a politician into a SYMBOL. By refusing Caesar's clemency, he denied the dictator moral victory.</p>
+            <div class="dark-box">
+                <h4>The Uncomfortable Question</h4>
+                <ul>
+                    <li>His refusal to compromise made cooperation impossible—may have pushed events toward civil war</li>
+                    <li>His blocking of legitimate grievances drove men like Pompey into Caesar's arms</li>
+                    <li>His absolutism made it harder, not easier, to build an anti-Caesar coalition</li>
+                </ul>
+            </div>
+            <div class="warning-box" style="margin-top: 1.5rem;">
+                <p><strong>Did Cato's resistance HELP preserve the Republic—or HASTEN its destruction?</strong></p>
+            </div>
+        </div>
+
+        <!-- Slide 16: Cato - Enduring Legacy -->
+        <div class="slide" data-section="cato">
+            <h2>Cato's Enduring Legacy</h2>
+            <div class="success-box">
+                <p><strong>Cato became the archetype</strong> of the principled politician who refuses to compromise with tyranny. George Washington's favourite play was "Cato" (1713). Patrick Henry's "Give me liberty or give me death" echoes Cato's choice at Utica.</p>
+            </div>
+            <p style="margin-top: 2rem; text-align: center;">The very inflexibility that made him ineffective in life made him IMMORTAL in death.</p>
+        </div>
+
+        <!-- Slide 17: Comparison Table -->
+        <div class="slide" data-section="conclusion">
+            <h2>Comparing the Three Figures</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Aspect</th>
+                        <th>Caesar</th>
+                        <th>Cicero</th>
+                        <th>Cato</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Approach</strong></td>
+                        <td class="caesar-col">TRANSFORM through power</td>
+                        <td class="cicero-col">PRESERVE through persuasion</td>
+                        <td class="cato-col">PURIFY through resistance</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Primary Tool</strong></td>
+                        <td class="caesar-col">Military force</td>
+                        <td class="cicero-col">Oratory</td>
+                        <td class="cato-col">Moral authority</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Greatest Strength</strong></td>
+                        <td class="caesar-col">Could GET THINGS DONE</td>
+                        <td class="cicero-col">Articulated ideals</td>
+                        <td class="cato-col">Embodied virtues</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fatal Flaw</strong></td>
+                        <td class="caesar-col">Destroyed what he saved</td>
+                        <td class="cicero-col">Lacked power</td>
+                        <td class="cato-col">Made enemies of allies</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Slide 18: Key Insight -->
+        <div class="slide" data-section="conclusion">
+            <h2>The Key Insight</h2>
+            <div class="warning-box">
+                <p><strong>Notice:</strong> Each man's GREATEST STRENGTH was related to their FATAL FLAW.</p>
+            </div>
+            <div class="three-column" style="margin-top: 2rem;">
+                <div class="column-box" style="border-top: 4px solid #dc2626;">
+                    <h4 style="color: #f87171;">Caesar</h4>
+                    <p>Ability to get things done came with disregard for tradition</p>
+                </div>
+                <div class="column-box" style="border-top: 4px solid #2563eb;">
+                    <h4 style="color: #60a5fa;">Cicero</h4>
+                    <p>Articulation of ideals came without power to implement them</p>
+                </div>
+                <div class="column-box" style="border-top: 4px solid #7c3aed;">
+                    <h4 style="color: #c4b5fd;">Cato</h4>
+                    <p>Embodiment of virtue came with inability to build coalitions</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 19: The End of the Republic -->
+        <div class="slide" data-section="conclusion">
+            <h2>The End of the Republic</h2>
+            <div class="danger-box">
+                <p><strong>The Final Verdict:</strong> The death of Cicero in 43 BC closed the door on any return to the old system. When the Triumvirs displayed his head and hands on the Rostra, they were symbolically killing the Republic itself.</p>
+            </div>
+            <p style="margin-top: 2rem;">The Republican cause would continue briefly under Brutus and Cassius, but after Philippi (42 BC), the Republic was truly dead.</p>
+        </div>
+
+        <!-- Slide 20: Birth of the Principate -->
+        <div class="slide" data-section="conclusion">
+            <h2>The Birth of the Principate</h2>
+            <div class="dark-box">
+                <h4>What Emerged from the Ruins</h4>
+                <ul>
+                    <li>Octavian became <strong>Augustus</strong>—the first emperor</li>
+                    <li>Republican forms were preserved, but real power lay with one man</li>
+                    <li>The Senate survived, but only as a rubber stamp</li>
+                    <li>Elections continued, but outcomes were predetermined</li>
+                </ul>
+            </div>
+            <div class="success-box" style="margin-top: 1.5rem;">
+                <p><strong>The Irony:</strong> Augustus claimed to have RESTORED the Republic. In reality, he completed its destruction—but so skilfully that Romans could pretend otherwise for generations.</p>
+            </div>
+        </div>
+
+        <!-- Slide 21: What the Republic's Fall Teaches -->
+        <div class="slide" data-section="conclusion">
+            <h2>What the Republic's Fall Teaches Us</h2>
+            <div class="key-point">
+                <div class="key-point-title">Enduring Lessons</div>
+                <p>Constitutional systems depend on the WILLINGNESS of citizens to respect them. When wealth inequality and military power undermine institutions, when violence becomes normalised, and when compromise is seen as weakness rather than wisdom, republics die.</p>
+            </div>
+            <p style="margin-top: 2rem; text-align: center;">Caesar, Cicero, and Cato each understood part of this truth—but none could prevent the catastrophe.</p>
+        </div>
+
+        <!-- Slide 22: Exit Question 1 -->
+        <div class="slide" data-section="exit">
+            <div class="exit-question">
+                <div class="question-label">Exit Question 1</div>
+                <div class="question-text">Compare Caesar and Cicero's approaches. Why did Caesar succeed where Cicero failed?</div>
+                <button class="reveal-btn" onclick="revealAnswer(this)">Reveal Answer</button>
+                <div class="answer-text">Caesar understood that POWER in the Late Republic rested on MILITARY FORCE, not constitutional authority or rhetorical skill. He built loyal armies and was willing to use violence. Cicero believed the Republic could be saved through persuasion and respect for constitutional norms—but the other major players were not bound by the same respect for tradition. Cicero could deliver brilliant speeches, but he could not command a single legion. In an age of civil war, that made him politically irrelevant.</div>
+            </div>
+        </div>
+
+        <!-- Slide 23: Exit Question 2 -->
+        <div class="slide" data-section="exit">
+            <div class="exit-question">
+                <div class="question-label">Exit Question 2</div>
+                <div class="question-text">Why did Cato become a symbol of Republican virtue, despite his political failures?</div>
+                <button class="reveal-btn" onclick="revealAnswer(this)">Reveal Answer</button>
+                <div class="answer-text">Cato's SUICIDE at Thapsus transformed him from a divisive politician into a martyr for liberty. By refusing Caesar's clemency and choosing death over submission, he denied the dictator moral victory and made himself a symbol of principled resistance. His death was celebrated by Stoic philosophers and Republican sympathisers who saw him as embodying the old Roman virtues. The very inflexibility that made him ineffective in life made him IMMORTAL in death.</div>
+            </div>
+        </div>
+
+        <!-- Slide 24: Exit Question 3 -->
+        <div class="slide" data-section="exit">
+            <div class="exit-question">
+                <div class="question-label">Exit Question 3</div>
+                <div class="question-text">Which approach was most viable for saving the Republic? Defend your answer.</div>
+                <button class="reveal-btn" onclick="revealAnswer(this)">Reveal Answer</button>
+                <div class="answer-text">This is a DEBATE question with no single right answer. Strong responses might argue: (1) NONE were viable—the Republic was doomed by structural problems no individual could solve; (2) CICERO's approach might have worked in an earlier era, but required elite consensus that no longer existed; (3) CAESAR's approach could have created a stable new order if he had lived longer; (4) CATO's approach was noble but actively counterproductive, as his obstruction prevented compromises that might have defused tensions. The best answers acknowledge complexity and engage with counter-arguments.</div>
+            </div>
+        </div>
+
+        <!-- Slide 25: Exit Question 4 -->
+        <div class="slide" data-section="exit">
+            <div class="exit-question">
+                <div class="question-label">Exit Question 4</div>
+                <div class="question-text">What lessons does the Republic's fall offer about constitutional systems?</div>
+                <button class="reveal-btn" onclick="revealAnswer(this)">Reveal Answer</button>
+                <div class="answer-text">The Republic's fall demonstrates that constitutional systems depend on the WILLINGNESS of powerful actors to respect their constraints. When wealth inequality created armies loyal to generals rather than the state, when violence became normalised in politics, and when compromise was seen as weakness, the Republic's checks and balances became meaningless. The formal structures survived—consulships, tribunes, Senate meetings—but real power shifted to those with military force. Constitutions are only as strong as the political CULTURE that sustains them.</div>
+            </div>
+        </div>
+
+        <!-- Slide 26: Exit Question 5 -->
+        <div class="slide" data-section="exit">
+            <div class="exit-question">
+                <div class="question-label">Exit Question 5</div>
+                <div class="question-text">Why is Cicero's death called "the death of the Republic"?</div>
+                <button class="reveal-btn" onclick="revealAnswer(this)">Reveal Answer</button>
+                <div class="answer-text">Cicero's death was significant both literally and symbolically. LITERALLY, it removed the last major political figure who genuinely believed in Republican government. SYMBOLICALLY, his head and hands displayed on the Rostra represented the silencing of constitutional discourse itself. The Triumvirs were not merely killing a man; they were demonstrating that eloquence meant nothing against military power. After Cicero, opposition to one-man rule would take different forms—conspiracy, plots—but the dream of restoring genuine Republican government died with him.</div>
+            </div>
+        </div>
+
+        <!-- Slide 27: Course Complete -->
+        <div class="slide" data-section="exit">
+            <div class="course-complete">
+                <div class="complete-icon">🏆</div>
+                <div class="complete-title">Course Complete</div>
+                <div class="complete-subtitle">You have completed the Politics of the Late Republic course.</div>
+                <div class="complete-quote">"The Republic, which had endured for five centuries, perished not from external enemies but from the ambitions of its own citizens. Its death was slow, violent, and—in the end—perhaps inevitable."</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="nav-bar">
+        <button class="nav-btn" id="prevBtn" disabled>
+            ← Previous
+        </button>
+        <div class="slide-counter">
+            <span id="currentSlide">1</span> / <span id="totalSlides">27</span>
+        </div>
+        <button class="nav-btn" id="nextBtn">
+            Next →
+        </button>
+    </div>
+
+    <!-- Grid Overlay -->
+    <div class="grid-overlay" id="gridOverlay">
+        <div class="grid-header">
+            <div class="grid-title">All Slides</div>
+            <button class="close-grid" id="closeGrid">Close (Esc)</button>
+        </div>
+        <div class="grid-slides" id="gridSlides"></div>
+    </div>
+
+    <script>
+        // State
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('totalSlides').textContent = totalSlides;
+            updateProgress();
+            updateClock();
+            setInterval(updateClock, 1000);
+            buildGrid();
+            initializeNavigation();
+            initializeSectionButtons();
+        });
+
+        // Clock
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${minutes}`;
+        }
+
+        // Progress
+        function updateProgress() {
+            const progress = ((currentSlide + 1) / totalSlides) * 100;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+            document.getElementById('currentSlide').textContent = currentSlide + 1;
+
+            // Update section buttons
+            const currentSection = slides[currentSlide].getAttribute('data-section');
+            document.querySelectorAll('.section-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-section') === currentSection);
+            });
+
+            // Update nav buttons
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        // Navigation
+        function initializeNavigation() {
+            document.getElementById('prevBtn').addEventListener('click', () => goToSlide(currentSlide - 1));
+            document.getElementById('nextBtn').addEventListener('click', () => goToSlide(currentSlide + 1));
+
+            document.addEventListener('keydown', function(e) {
+                if (document.getElementById('gridOverlay').classList.contains('visible')) {
+                    if (e.key === 'Escape') closeGridView();
+                    return;
+                }
+
+                switch(e.key) {
+                    case 'ArrowRight':
+                    case ' ':
+                        e.preventDefault();
+                        if (currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);
+                        break;
+                    case 'ArrowLeft':
+                        if (currentSlide > 0) goToSlide(currentSlide - 1);
+                        break;
+                    case 'g':
+                    case 'G':
+                        openGridView();
+                        break;
+                    case 'Escape':
+                        closeGridView();
+                        break;
+                }
+            });
+
+            document.getElementById('gridBtn').addEventListener('click', openGridView);
+            document.getElementById('closeGrid').addEventListener('click', closeGridView);
+        }
+
+        function goToSlide(index) {
+            if (index < 0 || index >= totalSlides) return;
+            slides[currentSlide].classList.remove('active');
+            currentSlide = index;
+            slides[currentSlide].classList.add('active');
+            updateProgress();
+        }
+
+        // Section Buttons
+        function initializeSectionButtons() {
+            document.querySelectorAll('.section-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const section = this.getAttribute('data-section');
+                    for (let i = 0; i < totalSlides; i++) {
+                        if (slides[i].getAttribute('data-section') === section) {
+                            goToSlide(i);
+                            break;
+                        }
+                    }
+                });
+            });
+        }
+
+        // Grid View
+        function buildGrid() {
+            const gridContainer = document.getElementById('gridSlides');
+            slides.forEach((slide, index) => {
+                const gridSlide = document.createElement('div');
+                gridSlide.className = 'grid-slide' + (index === currentSlide ? ' current' : '');
+
+                const title = slide.querySelector('h1, h2, .question-text');
+                const titleText = title ? title.textContent.substring(0, 60) : `Slide ${index + 1}`;
+
+                gridSlide.innerHTML = `
+                    <div class="grid-slide-number">Slide ${index + 1}</div>
+                    <div class="grid-slide-title">${titleText}</div>
+                `;
+
+                gridSlide.addEventListener('click', () => {
+                    goToSlide(index);
+                    closeGridView();
+                });
+
+                gridContainer.appendChild(gridSlide);
+            });
+        }
+
+        function openGridView() {
+            document.getElementById('gridOverlay').classList.add('visible');
+            document.querySelectorAll('.grid-slide').forEach((el, i) => {
+                el.classList.toggle('current', i === currentSlide);
+            });
+        }
+
+        function closeGridView() {
+            document.getElementById('gridOverlay').classList.remove('visible');
+        }
+
+        // Reveal Answer
+        function revealAnswer(btn) {
+            const answer = btn.nextElementSibling;
+            answer.classList.add('visible');
+            btn.textContent = 'Answer Revealed';
+            btn.style.background = '#10b981';
+        }
+    </script>
+</body>
+</html>
