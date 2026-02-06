@@ -439,6 +439,93 @@
             border: 1px solid #ffeaa7;
         }
 
+        /* Input mode toggle */
+        .mode-toggle {
+            display: flex;
+            gap: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #6b7280;
+        }
+
+        .mode-option {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: white;
+            color: #6b7280;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .mode-option.active {
+            background: #6b7280;
+            color: white;
+        }
+
+        .mode-option:hover:not(.active) {
+            background: #f3f4f6;
+        }
+
+        /* Multiple choice options */
+        .mc-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            max-width: 600px;
+            margin: 0 auto 1.5rem;
+        }
+
+        .mc-option {
+            padding: 1rem 1.25rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            background: white;
+            font-size: 1.05rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-align: center;
+            font-family: Georgia, 'Times New Roman', serif;
+            color: #1f2937;
+        }
+
+        .mc-option:hover:not(.disabled) {
+            border-color: #7c3aed;
+            background: #f3e8ff;
+            transform: translateY(-1px);
+        }
+
+        .mc-option.correct {
+            border-color: #10b981;
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .mc-option.incorrect {
+            border-color: #ef4444;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .mc-option.disabled {
+            cursor: default;
+            opacity: 0.7;
+        }
+
+        .mc-option.disabled:not(.correct):not(.incorrect) {
+            opacity: 0.5;
+        }
+
+        @media (max-width: 480px) {
+            .mc-options {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .progress-section {
             background: #f9fafb;
             border-radius: 12px;
@@ -832,6 +919,21 @@
                                 <button class="direction-option" data-direction="perfect-to-present" onclick="setDirection('perfect-to-present')">
                                     Perfect → Present
                                 </button>
+                                <button class="direction-option" data-direction="perfect-to-english" onclick="setDirection('perfect-to-english')">
+                                    Perfect → English
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style="font-weight: 600; color: #6b7280; font-size: 0.875rem; display: block; margin-bottom: 0.5rem;">Input Mode</label>
+                            <div class="mode-toggle">
+                                <button class="mode-option active" data-mode="typing" onclick="setInputMode('typing')">
+                                    Typing
+                                </button>
+                                <button class="mode-option" data-mode="multiple-choice" onclick="setInputMode('multiple-choice')">
+                                    Multiple Choice
+                                </button>
                             </div>
                         </div>
 
@@ -868,18 +970,32 @@
                     <div class="quiz-content">
                         <div class="answer-section">
                             <div class="answer-label" id="answerLabel">Type the perfect tense form:</div>
-                            <input type="text" class="form-control" id="answerInput" placeholder="e.g. tuli" autocomplete="off">
 
-                            <div class="btn-group">
-                                <button class="btn" onclick="checkAnswer()" id="checkBtn">
-                                    <span style="margin-right: 0.5rem;">✓</span>Check Answer
-                                </button>
-                                <button class="btn btn-secondary hidden" onclick="nextQuestion()" id="nextBtn">
-                                    <span style="margin-right: 0.5rem;">→</span>Next Verb
-                                </button>
-                                <button class="btn btn-warning" onclick="revealAnswer()" id="revealBtn">
-                                    <span style="margin-right: 0.5rem;">💡</span>Reveal Answer
-                                </button>
+                            <!-- Typing mode -->
+                            <div id="typingMode">
+                                <input type="text" class="form-control" id="answerInput" placeholder="e.g. tuli" autocomplete="off">
+
+                                <div class="btn-group">
+                                    <button class="btn" onclick="checkAnswer()" id="checkBtn">
+                                        <span style="margin-right: 0.5rem;">✓</span>Check Answer
+                                    </button>
+                                    <button class="btn btn-secondary hidden" onclick="nextQuestion()" id="nextBtn">
+                                        <span style="margin-right: 0.5rem;">→</span>Next Verb
+                                    </button>
+                                    <button class="btn btn-warning" onclick="revealAnswer()" id="revealBtn">
+                                        <span style="margin-right: 0.5rem;">💡</span>Reveal Answer
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Multiple choice mode -->
+                            <div id="mcMode" style="display: none;">
+                                <div class="mc-options" id="mcOptions"></div>
+                                <div class="btn-group">
+                                    <button class="btn btn-secondary hidden" onclick="nextQuestion()" id="mcNextBtn">
+                                        <span style="margin-right: 0.5rem;">→</span>Next Verb
+                                    </button>
+                                </div>
                             </div>
 
                             <div id="feedback" class="feedback"></div>
@@ -908,9 +1024,11 @@
                 <div class="widget">
                     <h3>How It Works</h3>
                     <p>Choose a direction to practise:</p>
-                    <p><strong>Present → Perfect:</strong> You see the present tense and type the perfect form.</p>
-                    <p><strong>Perfect → Present:</strong> You see the perfect form and type the present tense or the English meaning.</p>
-                    <p>Each verb must be answered correctly <strong>2 times</strong> to be mastered. Wrong answers reset progress on that verb.</p>
+                    <p><strong>Present → Perfect:</strong> You see the present tense and give the perfect form.</p>
+                    <p><strong>Perfect → Present:</strong> You see the perfect form and give the present tense or English meaning.</p>
+                    <p><strong>Perfect → English:</strong> You see the perfect form and give the English translation only.</p>
+                    <p>Switch between <strong>Typing</strong> and <strong>Multiple Choice</strong> input. MC mode is great for getting started!</p>
+                    <p>Each verb must be answered correctly <strong>2 times</strong> to be mastered. Wrong answers reset progress.</p>
                 </div>
 
                 <div class="widget">
@@ -1016,6 +1134,7 @@
     <script>
         // ========== STATE ==========
         let direction = 'present-to-perfect';
+        let inputMode = 'typing';
         let practiceWords = [];
         let currentWord = null;
         let wordMastery = {};
@@ -1023,6 +1142,7 @@
         let totalWordsToMaster = 0;
         let scoreCount = 0;
         let answeredCount = 0;
+        let mcAnswered = false;
         const MASTERY_THRESHOLD = 2;
 
         // ========== ANSWER CHECKING ==========
@@ -1081,31 +1201,35 @@
                 }
 
                 return false;
-            } else {
-                // Perfect → Present direction
+            } else if (direction === 'perfect-to-present') {
                 // User can type the present form OR the English meaning
                 const presentNorm = normalizeText(word.present);
                 if (isCloseMatch(userNorm, presentNorm)) return true;
 
-                // Check English meanings
-                const englishNorm = normalizeText(word.english);
-                const meanings = englishNorm.split(/[,;\/]/).map(m => m.trim()).filter(m => m.length > 0);
-                meanings.push(englishNorm);
-
-                for (const meaning of meanings) {
-                    if (isCloseMatch(userNorm, meaning)) return true;
-
-                    // Remove common prefixes
-                    const withoutPrefix = meaning.replace(/^(to |i |a |an |the |be )/, '').trim();
-                    if (withoutPrefix && isCloseMatch(userNorm, withoutPrefix)) return true;
-
-                    const userWithoutPrefix = userNorm.replace(/^(to |i |a |an |the |be )/, '').trim();
-                    if (userWithoutPrefix && isCloseMatch(userWithoutPrefix, meaning)) return true;
-                    if (withoutPrefix && userWithoutPrefix && isCloseMatch(userWithoutPrefix, withoutPrefix)) return true;
-                }
-
-                return false;
+                return checkEnglishMatch(userNorm, word.english);
+            } else {
+                // perfect-to-english: only accept English meaning
+                return checkEnglishMatch(userNorm, word.english);
             }
+        }
+
+        function checkEnglishMatch(userNorm, english) {
+            const englishNorm = normalizeText(english);
+            const meanings = englishNorm.split(/[,;\/]/).map(m => m.trim()).filter(m => m.length > 0);
+            meanings.push(englishNorm);
+
+            for (const meaning of meanings) {
+                if (isCloseMatch(userNorm, meaning)) return true;
+
+                const withoutPrefix = meaning.replace(/^(to |i |a |an |the |be )/, '').trim();
+                if (withoutPrefix && isCloseMatch(userNorm, withoutPrefix)) return true;
+
+                const userWithoutPrefix = userNorm.replace(/^(to |i |a |an |the |be )/, '').trim();
+                if (userWithoutPrefix && isCloseMatch(userWithoutPrefix, meaning)) return true;
+                if (withoutPrefix && userWithoutPrefix && isCloseMatch(userWithoutPrefix, withoutPrefix)) return true;
+            }
+
+            return false;
         }
 
         // ========== SETUP ==========
@@ -1115,6 +1239,142 @@
             document.querySelectorAll('.direction-option').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.direction === dir);
             });
+        }
+
+        function setInputMode(mode) {
+            inputMode = mode;
+            document.querySelectorAll('.mode-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+        }
+
+        // ========== MULTIPLE CHOICE ==========
+
+        function generateDistractors(correctWord, count) {
+            // Pick random wrong answers from the full dataset
+            const pool = irregularPerfectData.filter(w => w.present !== correctWord.present);
+            shuffleArray(pool);
+
+            const distractors = [];
+            const usedValues = new Set();
+
+            // Determine what the correct answer text is so we don't duplicate it
+            let correctText;
+            if (direction === 'present-to-perfect') {
+                correctText = correctWord.perfect;
+            } else if (direction === 'perfect-to-present') {
+                correctText = correctWord.present;
+            } else {
+                correctText = correctWord.english.split(',')[0].trim();
+            }
+            usedValues.add(correctText.toLowerCase());
+
+            for (const w of pool) {
+                if (distractors.length >= count) break;
+
+                let text;
+                if (direction === 'present-to-perfect') {
+                    text = w.perfect;
+                } else if (direction === 'perfect-to-present') {
+                    text = w.present;
+                } else {
+                    text = w.english.split(',')[0].trim();
+                }
+
+                if (!usedValues.has(text.toLowerCase())) {
+                    usedValues.add(text.toLowerCase());
+                    distractors.push(text);
+                }
+            }
+
+            return distractors;
+        }
+
+        function renderMCOptions(correctWord) {
+            let correctText;
+            if (direction === 'present-to-perfect') {
+                correctText = correctWord.perfect;
+            } else if (direction === 'perfect-to-present') {
+                correctText = correctWord.present;
+            } else {
+                correctText = correctWord.english.split(',')[0].trim();
+            }
+
+            const distractors = generateDistractors(correctWord, 3);
+            const options = [correctText, ...distractors];
+            shuffleArray(options);
+
+            const container = document.getElementById('mcOptions');
+            container.innerHTML = '';
+            mcAnswered = false;
+
+            options.forEach(optText => {
+                const btn = document.createElement('button');
+                btn.className = 'mc-option';
+                btn.textContent = optText;
+                btn.addEventListener('click', () => handleMCChoice(btn, optText, correctText, correctWord));
+                container.appendChild(btn);
+            });
+        }
+
+        function handleMCChoice(btn, chosen, correctText, word) {
+            if (mcAnswered) return;
+            mcAnswered = true;
+
+            const isCorrect = chosen === correctText;
+            const feedback = document.getElementById('feedback');
+
+            // Disable all buttons and highlight correct/incorrect
+            document.querySelectorAll('.mc-option').forEach(b => {
+                b.classList.add('disabled');
+                if (b.textContent === correctText) {
+                    b.classList.add('correct');
+                }
+            });
+
+            if (!isCorrect) {
+                btn.classList.add('incorrect');
+            }
+
+            // Tracking
+            if (typeof window.onWordAnswered === 'function') {
+                window.onWordAnswered({
+                    latin: word.present,
+                    english: word.english,
+                    info: word.info,
+                    chapter: word.chapter
+                }, isCorrect);
+            }
+
+            if (isCorrect) {
+                wordMastery[word.present]++;
+                scoreCount++;
+
+                const newMastery = wordMastery[word.present];
+                if (newMastery >= MASTERY_THRESHOLD) {
+                    masteredCount++;
+                    feedback.innerHTML = `<strong>Correct!</strong> ✓ <span style="color: #059669; font-weight: bold;">MASTERED! 🌟</span><br><small>${word.present} → ${word.perfect} (${word.english})</small>`;
+                } else {
+                    feedback.innerHTML = `<strong>Correct!</strong> ✓ (${newMastery}/${MASTERY_THRESHOLD} towards mastery)<br><small>${word.present} → ${word.perfect} (${word.english})</small>`;
+                }
+                feedback.className = 'feedback feedback-correct';
+            } else {
+                const previousMastery = wordMastery[word.present];
+                wordMastery[word.present] = 0;
+
+                let resetMessage = '';
+                if (previousMastery > 0) {
+                    resetMessage = `<br><em>Progress reset — you'll need to get this right ${MASTERY_THRESHOLD} times again.</em>`;
+                }
+
+                feedback.innerHTML = `<strong>Incorrect</strong> ✗<br>You chose: "<em>${chosen}</em>"<br>Correct: <strong>${word.present}</strong> → <strong>${word.perfect}</strong> (${word.english})${resetMessage}`;
+                feedback.className = 'feedback feedback-incorrect';
+            }
+
+            answeredCount++;
+            updateDisplay();
+
+            document.getElementById('mcNextBtn').style.display = 'inline-block';
         }
 
         function getFilteredVerbs() {
@@ -1205,34 +1465,54 @@
             const currentMastery = wordMastery[currentWord.present];
             const masteryIndicator = currentMastery > 0 ? ` (${currentMastery}/${MASTERY_THRESHOLD} ✓)` : '';
 
+            // Set up the prompt based on direction
             if (direction === 'present-to-perfect') {
                 document.getElementById('promptLabel').textContent = 'Give the perfect tense of:';
                 document.getElementById('latinWord').textContent = currentWord.present;
                 document.getElementById('wordInfo').textContent = currentWord.info + masteryIndicator;
                 document.getElementById('wordEnglish').textContent = currentWord.english;
                 document.getElementById('wordEnglish').style.display = 'block';
-                document.getElementById('answerLabel').textContent = 'Type the perfect tense form:';
+                document.getElementById('answerLabel').textContent = inputMode === 'typing' ? 'Type the perfect tense form:' : 'Choose the correct perfect form:';
                 document.getElementById('answerInput').placeholder = 'e.g. tuli';
-            } else {
+            } else if (direction === 'perfect-to-present') {
                 document.getElementById('promptLabel').textContent = 'Identify this perfect tense form:';
                 document.getElementById('latinWord').textContent = currentWord.perfect;
                 document.getElementById('wordInfo').textContent = currentWord.info + masteryIndicator;
                 document.getElementById('wordEnglish').textContent = '';
                 document.getElementById('wordEnglish').style.display = 'none';
-                document.getElementById('answerLabel').textContent = 'Type the present tense or English meaning:';
+                document.getElementById('answerLabel').textContent = inputMode === 'typing' ? 'Type the present tense or English meaning:' : 'Choose the correct present tense:';
                 document.getElementById('answerInput').placeholder = 'e.g. fero or bring';
+            } else {
+                // perfect-to-english
+                document.getElementById('promptLabel').textContent = 'Translate this perfect tense form:';
+                document.getElementById('latinWord').textContent = currentWord.perfect;
+                document.getElementById('wordInfo').textContent = currentWord.info + masteryIndicator;
+                document.getElementById('wordEnglish').textContent = '';
+                document.getElementById('wordEnglish').style.display = 'none';
+                document.getElementById('answerLabel').textContent = inputMode === 'typing' ? 'Type the English meaning:' : 'Choose the correct English meaning:';
+                document.getElementById('answerInput').placeholder = 'e.g. bring, carry';
             }
 
-            document.getElementById('answerInput').value = '';
+            // Show/hide typing vs MC mode
+            if (inputMode === 'typing') {
+                document.getElementById('typingMode').style.display = 'block';
+                document.getElementById('mcMode').style.display = 'none';
+                document.getElementById('answerInput').value = '';
+                document.getElementById('checkBtn').style.display = 'inline-block';
+                document.getElementById('nextBtn').style.display = 'none';
+                document.getElementById('revealBtn').style.display = 'inline-block';
+                document.getElementById('answerInput').focus();
+            } else {
+                document.getElementById('typingMode').style.display = 'none';
+                document.getElementById('mcMode').style.display = 'block';
+                document.getElementById('mcNextBtn').style.display = 'none';
+                renderMCOptions(currentWord);
+            }
+
             document.getElementById('feedback').innerHTML = '';
             document.getElementById('feedback').className = 'feedback';
 
-            document.getElementById('checkBtn').style.display = 'inline-block';
-            document.getElementById('nextBtn').style.display = 'none';
-            document.getElementById('revealBtn').style.display = 'inline-block';
-
             updateDisplay();
-            document.getElementById('answerInput').focus();
 
             // Tracking
             if (typeof window.onWordDisplayed === 'function') {
@@ -1350,13 +1630,15 @@
             else if (pct >= 70) message = 'Good effort! Keep practising! 📚';
             else message = 'You did it! Practice makes perfect! 💪';
 
-            const dirLabel = direction === 'present-to-perfect' ? 'Present → Perfect' : 'Perfect → Present';
+            const dirLabels = { 'present-to-perfect': 'Present → Perfect', 'perfect-to-present': 'Perfect → Present', 'perfect-to-english': 'Perfect → English' };
+            const dirLabel = dirLabels[direction] || direction;
+            const modeLabel = inputMode === 'typing' ? 'Typing' : 'Multiple Choice';
 
             document.getElementById('finalMessage').innerHTML = `
                 <strong>All ${totalWordsToMaster} verbs mastered!</strong> 🎉
                 <br><br>Final Score: ${scoreCount}/${answeredCount} (${pct}%)
                 <br>${message}
-                <br><small>Mode: ${dirLabel} | Each verb answered correctly ${MASTERY_THRESHOLD} times.</small>
+                <br><small>Mode: ${dirLabel} (${modeLabel}) | Each verb answered correctly ${MASTERY_THRESHOLD} times.</small>
                 <br><br><button class="btn" onclick="resetPractice()" style="margin-top: 1rem;">New Practice Session</button>
             `;
             document.getElementById('completion-message').classList.remove('hidden');
@@ -1364,6 +1646,8 @@
             document.getElementById('checkBtn').style.display = 'none';
             document.getElementById('nextBtn').style.display = 'none';
             document.getElementById('revealBtn').style.display = 'none';
+            document.getElementById('mcNextBtn').style.display = 'none';
+            document.getElementById('mcOptions').innerHTML = '';
 
             // Tracking
             if (typeof taskTracker !== 'undefined' && taskTracker.isTracking) {
@@ -1429,12 +1713,21 @@
             checkTrackingStatus();
             updateVerbCount();
 
-            // Enter key support
+            // Enter key support for typing mode
             document.getElementById('answerInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     if (document.getElementById('checkBtn').style.display !== 'none') {
                         checkAnswer();
                     } else if (document.getElementById('nextBtn').style.display !== 'none') {
+                        nextQuestion();
+                    }
+                }
+            });
+
+            // Enter key support for MC mode (advance to next)
+            document.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && inputMode === 'multiple-choice') {
+                    if (document.getElementById('mcNextBtn').style.display !== 'none') {
                         nextQuestion();
                     }
                 }
