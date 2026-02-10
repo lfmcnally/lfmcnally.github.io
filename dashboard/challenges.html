@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Challenges - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container { max-width: 1100px; margin: 0 auto; }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            color: white;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        .header h1 { font-size: 1.75rem; font-weight: 700; }
+        .header p { opacity: 0.9; margin-top: 0.25rem; }
+        .header-actions { display: flex; gap: 1rem; }
+
+        /* Buttons */
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-ghost {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.4);
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,0.3); }
+        .btn-white { background: white; color: #7c3aed; }
+        .btn-white:hover { background: #f0f4ff; transform: translateY(-2px); }
+        .btn-primary { background: #7c3aed; color: white; }
+        .btn-primary:hover { background: #6d28d9; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-secondary { background: #6b7280; color: white; }
+        .btn-secondary:hover { background: #4b5563; }
+        .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.8rem; }
+        .btn-lg { padding: 0.75rem 2rem; font-size: 1.1rem; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+        .card-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-title {
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .card-body { padding: 1.25rem; }
+
+        /* Form */
+        .form-group { margin-bottom: 1.25rem; }
+        .form-label {
+            display: block;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+        }
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .form-hint {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 0.35rem;
+        }
+
+        /* Challenge Type Selector */
+        .challenge-types {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .challenge-type-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fafafa;
+        }
+        .challenge-type-card:hover {
+            border-color: #7c3aed;
+            background: #faf5ff;
+        }
+        .challenge-type-card.selected {
+            border-color: #7c3aed;
+            background: #f5f3ff;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+        }
+        .challenge-type-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+        .challenge-type-name { font-weight: 600; color: #1f2937; margin-bottom: 0.25rem; }
+        .challenge-type-desc { font-size: 0.8rem; color: #6b7280; line-height: 1.4; }
+
+        /* Active Challenges */
+        .challenge-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+            background: white;
+        }
+        .challenge-item:hover { border-color: #7c3aed; }
+        .challenge-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .challenge-item-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #1f2937;
+        }
+        .challenge-badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-speed { background: #fef3c7; color: #92400e; }
+        .badge-streak { background: #fee2e2; color: #dc2626; }
+        .badge-marathon { background: #dcfce7; color: #166534; }
+        .badge-active { background: #dcfce7; color: #166534; }
+        .badge-ended { background: #f3f4f6; color: #6b7280; }
+        .challenge-meta {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+        .challenge-meta span { display: flex; align-items: center; gap: 0.35rem; }
+        .challenge-actions { display: flex; gap: 0.5rem; }
+
+        /* Live Scoreboard */
+        .scoreboard {
+            background: #0f172a;
+            border-radius: 16px;
+            overflow: hidden;
+            color: white;
+        }
+        .scoreboard-header {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+            text-align: center;
+        }
+        .scoreboard-header h2 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+        .scoreboard-header p { opacity: 0.8; font-size: 0.9rem; }
+        .scoreboard-info {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            font-size: 0.85rem;
+        }
+        .scoreboard-info-item { display: flex; align-items: center; gap: 0.35rem; }
+        .scoreboard-body { padding: 1rem; }
+        .scoreboard-row {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s;
+        }
+        .scoreboard-row.rank-1 { background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,215,0,0.05)); }
+        .scoreboard-row.rank-2 { background: linear-gradient(135deg, rgba(192,192,192,0.2), rgba(192,192,192,0.05)); }
+        .scoreboard-row.rank-3 { background: linear-gradient(135deg, rgba(205,127,50,0.2), rgba(205,127,50,0.05)); }
+        .scoreboard-row:not(.rank-1):not(.rank-2):not(.rank-3) { background: rgba(255,255,255,0.05); }
+        .scoreboard-rank {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+        .scoreboard-rank.gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #78350f; }
+        .scoreboard-rank.silver { background: linear-gradient(135deg, #d1d5db, #9ca3af); color: #374151; }
+        .scoreboard-rank.bronze { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; }
+        .scoreboard-rank.other { background: rgba(255,255,255,0.1); color: #9ca3af; }
+        .scoreboard-name { flex: 1; font-weight: 500; font-size: 1rem; }
+        .scoreboard-status {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-right: 1rem;
+        }
+        .status-active { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .status-completed { background: rgba(124, 58, 237, 0.2); color: #a78bfa; }
+        .status-waiting { background: rgba(255,255,255,0.1); color: #6b7280; }
+        .scoreboard-value {
+            font-weight: 700;
+            font-size: 1.25rem;
+            min-width: 60px;
+            text-align: right;
+        }
+        .scoreboard-sublabel {
+            font-size: 0.7rem;
+            color: #9ca3af;
+            text-align: right;
+        }
+        .scoreboard-empty {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+        .scoreboard-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+
+        /* Live indicator */
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            display: inline-block;
+            margin-right: 0.35rem;
+            animation: pulse-dot 1.5s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Share link section */
+        .share-section {
+            background: #f5f3ff;
+            border: 2px dashed #c4b5fd;
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .share-link {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            justify-content: center;
+        }
+        .share-link input {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            width: 400px;
+            max-width: 100%;
+            text-align: center;
+            font-family: monospace;
+        }
+
+        /* Tabs */
+        .view-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .view-tab {
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: 2px solid #e5e7eb;
+            background: white;
+            color: #6b7280;
+            transition: all 0.2s;
+        }
+        .view-tab:hover { border-color: #7c3aed; color: #7c3aed; }
+        .view-tab.active {
+            background: #7c3aed;
+            color: white;
+            border-color: #7c3aed;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #6b7280;
+        }
+        .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .empty-state p { margin-bottom: 1rem; }
+
+        /* Loading */
+        .loading { text-align: center; padding: 3rem; color: #6b7280; }
+
+        /* Modal overlay */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 { font-size: 1.15rem; font-weight: 600; color: #1f2937; }
+        .modal-close {
+            background: none; border: none; font-size: 1.5rem;
+            color: #9ca3af; cursor: pointer; padding: 0; line-height: 1;
+        }
+        .modal-close:hover { color: #1f2937; }
+        .modal-body { padding: 1.5rem; }
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            background: #f9fafb;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .challenge-types { grid-template-columns: 1fr; }
+            .form-row { grid-template-columns: 1fr; }
+            .header-content { flex-direction: column; text-align: center; gap: 1rem; }
+            .scoreboard-info { flex-direction: column; gap: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <div>
+                    <h1>🏆 Class Challenges</h1>
+                    <p id="className">Loading...</p>
+                </div>
+                <div class="header-actions">
+                    <a id="backLink" href="class.html" class="btn btn-ghost">← Back to Class</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Tabs -->
+        <div class="view-tabs">
+            <button class="view-tab active" onclick="showView('challenges')">📋 Challenges</button>
+            <button class="view-tab" onclick="showView('create')">+ Create New</button>
+        </div>
+
+        <!-- Challenges List View -->
+        <div id="challengesView">
+            <div id="challengesContainer">
+                <div class="loading">Loading challenges...</div>
+            </div>
+        </div>
+
+        <!-- Create Challenge View -->
+        <div id="createView" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Create New Challenge</span>
+                </div>
+                <div class="card-body">
+                    <!-- Challenge Type -->
+                    <div class="form-group">
+                        <label class="form-label">Challenge Type</label>
+                        <div class="challenge-types">
+                            <div class="challenge-type-card selected" onclick="selectChallengeType('speed')" id="type-speed">
+                                <div class="challenge-type-icon">⚡</div>
+                                <div class="challenge-type-name">Speed Round</div>
+                                <div class="challenge-type-desc">Most correct answers within the time limit</div>
+                            </div>
+                            <div class="challenge-type-card" onclick="selectChallengeType('streak')" id="type-streak">
+                                <div class="challenge-type-icon">🔥</div>
+                                <div class="challenge-type-name">Streak Challenge</div>
+                                <div class="challenge-type-desc">Longest run of consecutive correct answers</div>
+                            </div>
+                            <div class="challenge-type-card" onclick="selectChallengeType('marathon')" id="type-marathon">
+                                <div class="challenge-type-icon">🏁</div>
+                                <div class="challenge-type-name">Marathon</div>
+                                <div class="challenge-type-desc">Master every word - fastest time wins</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Title -->
+                    <div class="form-group">
+                        <label class="form-label">Challenge Title</label>
+                        <input type="text" class="form-input" id="challengeTitle" placeholder="e.g. Chapter 3 Speed Blitz">
+                    </div>
+
+                    <!-- Vocab Config -->
+                    <div class="form-group">
+                        <label class="form-label">Vocabulary Chapters</label>
+                        <div id="chapterSelector" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                            <!-- Populated dynamically -->
+                        </div>
+                        <p class="form-hint">Select one or more chapters. Words from all selected chapters will be included.</p>
+                    </div>
+
+                    <!-- Word Range (optional) -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Word Range Start (optional)</label>
+                            <input type="number" class="form-input" id="wordFrom" min="1" placeholder="From word #">
+                            <p class="form-hint">Leave blank for all words in selected chapters</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Word Range End (optional)</label>
+                            <input type="number" class="form-input" id="wordTo" placeholder="To word #">
+                        </div>
+                    </div>
+
+                    <!-- Time Limit (for speed) -->
+                    <div class="form-group" id="timeLimitGroup">
+                        <label class="form-label">Time Limit</label>
+                        <select class="form-select" id="timeLimit">
+                            <option value="120">2 minutes</option>
+                            <option value="180">3 minutes</option>
+                            <option value="300" selected>5 minutes</option>
+                            <option value="600">10 minutes</option>
+                            <option value="900">15 minutes</option>
+                        </select>
+                    </div>
+
+                    <!-- Word Count Preview -->
+                    <div id="wordCountPreview" style="padding: 0.75rem; background: #f5f3ff; border-radius: 8px; font-size: 0.9rem; color: #5b21b6; margin-bottom: 1.25rem;">
+                        Select chapters to see word count
+                    </div>
+
+                    <button class="btn btn-primary btn-lg" onclick="createChallenge()" style="width: 100%;">Create Challenge</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Scoreboard View (shown when viewing a specific challenge) -->
+        <div id="scoreboardView" style="display: none;">
+            <div class="share-section" id="shareSection">
+                <strong>Share this link with your students:</strong>
+                <div class="share-link">
+                    <input type="text" id="challengeLink" readonly>
+                    <button class="btn btn-primary btn-sm" onclick="copyLink()">Copy</button>
+                </div>
+            </div>
+
+            <div class="scoreboard" id="scoreboard">
+                <div class="scoreboard-header">
+                    <h2 id="scoreboardTitle">Challenge</h2>
+                    <p id="scoreboardSubtitle"></p>
+                    <div class="scoreboard-info">
+                        <div class="scoreboard-info-item">
+                            <span class="live-dot"></span> Live
+                        </div>
+                        <div class="scoreboard-info-item" id="scoreboardParticipants">0 participants</div>
+                        <div class="scoreboard-info-item" id="scoreboardCompleted">0 completed</div>
+                    </div>
+                </div>
+                <div class="scoreboard-body" id="scoreboardBody">
+                    <div class="scoreboard-empty">
+                        <div class="scoreboard-empty-icon">⏳</div>
+                        <p>Waiting for students to start...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                <button class="btn btn-secondary" onclick="showView('challenges')">← Back to Challenges</button>
+                <button class="btn btn-danger" id="endChallengeBtn" onclick="endChallenge()">End Challenge</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm End Modal -->
+    <div class="modal-overlay" id="endChallengeModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>End Challenge?</h3>
+                <button class="modal-close" onclick="closeEndModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>This will deactivate the challenge. Students who haven't started won't be able to join. Students currently taking the challenge can still finish.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEndModal()">Cancel</button>
+                <button class="btn btn-danger" onclick="confirmEndChallenge()">End Challenge</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../auth/config.js"></script>
+    <script src="../shared/vocabulary-data.js"></script>
+    <script src="../shared/greek-vocabulary-data.js"></script>
+    <script>
+        let currentUser = null;
+        let currentClass = null;
+        let challenges = [];
+        let selectedType = 'speed';
+        let selectedChapters = new Set();
+        let viewingChallengeId = null;
+        let realtimeSubscription = null;
+
+        // Get class ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const classId = urlParams.get('classId');
+
+        if (!classId) {
+            window.location.href = 'teacher.html';
+        }
+
+        async function init() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { window.location.href = '../auth/login.html'; return; }
+
+            const { data: profile } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (!profile || profile.role !== 'teacher') {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+            currentUser = profile;
+
+            // Load class info
+            const { data: cls } = await supabase
+                .from('classes')
+                .select('*')
+                .eq('id', classId)
+                .single();
+
+            if (!cls) { window.location.href = 'teacher.html'; return; }
+            currentClass = cls;
+
+            document.getElementById('className').textContent = cls.name;
+            document.getElementById('backLink').href = `class.html?id=${classId}`;
+
+            populateChapterSelector();
+            await loadChallenges();
+        }
+
+        // Get vocab data based on class type
+        function getVocabData() {
+            if (currentClass.type === 'greek') {
+                return typeof greekVocabularyData !== 'undefined' ? greekVocabularyData : [];
+            }
+            return typeof vocabularyData !== 'undefined' ? vocabularyData : [];
+        }
+
+        function getWordKey() {
+            return currentClass.type === 'greek' ? 'greek' : 'latin';
+        }
+
+        function getLanguage() {
+            if (currentClass.type === 'greek') return 'greek';
+            if (currentClass.type === 'prep-latin') return 'prep-latin';
+            return 'latin';
+        }
+
+        // Populate chapter checkboxes from vocab data
+        function populateChapterSelector() {
+            const vocab = getVocabData();
+            const chapters = [...new Set(vocab.map(w => w.chapter))].sort((a, b) => a - b);
+            const container = document.getElementById('chapterSelector');
+
+            container.innerHTML = chapters.map(ch => `
+                <label style="display: flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: all 0.15s;"
+                    onmouseover="this.style.borderColor='#7c3aed'" onmouseout="this.style.borderColor=this.querySelector('input').checked?'#7c3aed':'#d1d5db'">
+                    <input type="checkbox" value="${ch}" onchange="toggleChapter(${ch}, this)" style="accent-color: #7c3aed;">
+                    Ch ${ch}
+                </label>
+            `).join('');
+        }
+
+        function toggleChapter(ch, checkbox) {
+            if (checkbox.checked) {
+                selectedChapters.add(ch);
+            } else {
+                selectedChapters.delete(ch);
+            }
+            checkbox.parentElement.style.borderColor = checkbox.checked ? '#7c3aed' : '#d1d5db';
+            checkbox.parentElement.style.background = checkbox.checked ? '#f5f3ff' : 'white';
+            updateWordCountPreview();
+        }
+
+        function updateWordCountPreview() {
+            const preview = document.getElementById('wordCountPreview');
+            if (selectedChapters.size === 0) {
+                preview.textContent = 'Select chapters to see word count';
+                return;
+            }
+            const words = getFilteredWords();
+            preview.textContent = `${words.length} words from ${selectedChapters.size} chapter${selectedChapters.size > 1 ? 's' : ''} selected`;
+        }
+
+        function getFilteredWords() {
+            const vocab = getVocabData();
+            let words = vocab.filter(w => selectedChapters.has(w.chapter));
+
+            const from = parseInt(document.getElementById('wordFrom').value);
+            const to = parseInt(document.getElementById('wordTo').value);
+
+            if (!isNaN(from) && from > 0) {
+                words = words.slice(from - 1);
+            }
+            if (!isNaN(to) && to > 0) {
+                const fromVal = isNaN(from) || from < 1 ? 0 : from - 1;
+                words = vocab.filter(w => selectedChapters.has(w.chapter)).slice(fromVal, to);
+            }
+
+            return words;
+        }
+
+        // Challenge type selection
+        function selectChallengeType(type) {
+            selectedType = type;
+            document.querySelectorAll('.challenge-type-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById('type-' + type).classList.add('selected');
+
+            // Show/hide time limit for speed type
+            document.getElementById('timeLimitGroup').style.display = type === 'speed' ? 'block' : 'none';
+        }
+
+        // View switching
+        function showView(view) {
+            document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+
+            document.getElementById('challengesView').style.display = 'none';
+            document.getElementById('createView').style.display = 'none';
+            document.getElementById('scoreboardView').style.display = 'none';
+
+            if (view === 'challenges') {
+                document.getElementById('challengesView').style.display = 'block';
+                document.querySelectorAll('.view-tab')[0].classList.add('active');
+                if (realtimeSubscription) {
+                    realtimeSubscription.unsubscribe();
+                    realtimeSubscription = null;
+                }
+            } else if (view === 'create') {
+                document.getElementById('createView').style.display = 'block';
+                document.querySelectorAll('.view-tab')[1].classList.add('active');
+            } else if (view === 'scoreboard') {
+                document.getElementById('scoreboardView').style.display = 'block';
+            }
+        }
+
+        // Create challenge
+        async function createChallenge() {
+            const title = document.getElementById('challengeTitle').value.trim();
+            if (!title) { alert('Please enter a challenge title'); return; }
+            if (selectedChapters.size === 0) { alert('Please select at least one chapter'); return; }
+
+            const words = getFilteredWords();
+            if (words.length === 0) { alert('No words found for the selected chapters/range'); return; }
+
+            const from = parseInt(document.getElementById('wordFrom').value);
+            const to = parseInt(document.getElementById('wordTo').value);
+            const timeLimit = selectedType === 'speed' ? parseInt(document.getElementById('timeLimit').value) : null;
+
+            const { data, error } = await supabase
+                .from('challenges')
+                .insert({
+                    class_id: classId,
+                    created_by: currentUser.id,
+                    title: title,
+                    challenge_type: selectedType,
+                    language: getLanguage(),
+                    chapters: Array.from(selectedChapters),
+                    word_from: isNaN(from) ? null : from,
+                    word_to: isNaN(to) ? null : to,
+                    time_limit_seconds: timeLimit,
+                    is_active: true
+                })
+                .select()
+                .single();
+
+            if (error) {
+                alert('Error creating challenge: ' + error.message);
+                return;
+            }
+
+            // Reset form
+            document.getElementById('challengeTitle').value = '';
+            selectedChapters.clear();
+            document.querySelectorAll('#chapterSelector input').forEach(cb => {
+                cb.checked = false;
+                cb.parentElement.style.borderColor = '#d1d5db';
+                cb.parentElement.style.background = 'white';
+            });
+            document.getElementById('wordFrom').value = '';
+            document.getElementById('wordTo').value = '';
+            updateWordCountPreview();
+
+            await loadChallenges();
+            viewChallenge(data.id);
+        }
+
+        // Load challenges
+        async function loadChallenges() {
+            const { data, error } = await supabase
+                .from('challenges')
+                .select('*')
+                .eq('class_id', classId)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error loading challenges:', error);
+                return;
+            }
+
+            challenges = data || [];
+            renderChallenges();
+        }
+
+        function renderChallenges() {
+            const container = document.getElementById('challengesContainer');
+
+            if (challenges.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🏆</div>
+                        <p>No challenges yet. Create one to get your class competing!</p>
+                        <button class="btn btn-primary" onclick="showView('create')">+ Create Challenge</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁' };
+            const typeNames = { speed: 'Speed Round', streak: 'Streak Challenge', marathon: 'Marathon' };
+
+            container.innerHTML = challenges.map(ch => `
+                <div class="challenge-item">
+                    <div class="challenge-item-header">
+                        <div class="challenge-item-title">${typeIcons[ch.challenge_type] || ''} ${ch.title}</div>
+                        <div>
+                            <span class="challenge-badge badge-${ch.challenge_type}">${typeNames[ch.challenge_type]}</span>
+                            <span class="challenge-badge ${ch.is_active ? 'badge-active' : 'badge-ended'}">${ch.is_active ? 'Active' : 'Ended'}</span>
+                        </div>
+                    </div>
+                    <div class="challenge-meta">
+                        <span>📚 Chapters ${ch.chapters.join(', ')}</span>
+                        ${ch.time_limit_seconds ? `<span>⏱️ ${Math.floor(ch.time_limit_seconds / 60)} min</span>` : ''}
+                        <span>📅 ${new Date(ch.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <div class="challenge-actions">
+                        <button class="btn btn-primary btn-sm" onclick="viewChallenge('${ch.id}')">View Scoreboard</button>
+                        <button class="btn btn-sm ${ch.is_active ? 'btn-secondary' : 'btn-success'}" onclick="toggleChallenge('${ch.id}', ${!ch.is_active})">
+                            ${ch.is_active ? 'Deactivate' : 'Reactivate'}
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteChallenge('${ch.id}')">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Toggle challenge active state
+        async function toggleChallenge(id, active) {
+            await supabase.from('challenges').update({ is_active: active }).eq('id', id);
+            await loadChallenges();
+        }
+
+        // Delete challenge
+        async function deleteChallenge(id) {
+            if (!confirm('Delete this challenge? All student results will be lost.')) return;
+            await supabase.from('challenges').delete().eq('id', id);
+            await loadChallenges();
+        }
+
+        // View live scoreboard for a challenge
+        async function viewChallenge(id) {
+            viewingChallengeId = id;
+            const challenge = challenges.find(c => c.id === id);
+            if (!challenge) return;
+
+            const typeNames = { speed: 'Speed Round', streak: 'Streak Challenge', marathon: 'Marathon' };
+            document.getElementById('scoreboardTitle').textContent = challenge.title;
+            document.getElementById('scoreboardSubtitle').textContent =
+                typeNames[challenge.challenge_type] +
+                (challenge.time_limit_seconds ? ` - ${Math.floor(challenge.time_limit_seconds / 60)} minutes` : '') +
+                ` - Chapters ${challenge.chapters.join(', ')}`;
+
+            // Set share link
+            const baseUrl = window.location.origin;
+            const link = `${baseUrl}/dashboard/challenge.html?id=${id}`;
+            document.getElementById('challengeLink').value = link;
+
+            document.getElementById('endChallengeBtn').style.display = challenge.is_active ? 'inline-flex' : 'none';
+
+            showView('scoreboard');
+            await refreshScoreboard(id, challenge.challenge_type);
+            subscribeToScoreboard(id, challenge.challenge_type);
+        }
+
+        // Refresh scoreboard data
+        async function refreshScoreboard(challengeId, challengeType) {
+            const { data: attempts } = await supabase
+                .from('challenge_attempts')
+                .select('*, users:student_id(full_name)')
+                .eq('challenge_id', challengeId)
+                .order('completed', { ascending: false });
+
+            renderScoreboard(attempts || [], challengeType);
+        }
+
+        // Render scoreboard
+        function renderScoreboard(attempts, challengeType) {
+            const body = document.getElementById('scoreboardBody');
+
+            // Update stats
+            document.getElementById('scoreboardParticipants').textContent = `${attempts.length} participant${attempts.length !== 1 ? 's' : ''}`;
+            const completedCount = attempts.filter(a => a.completed).length;
+            document.getElementById('scoreboardCompleted').textContent = `${completedCount} completed`;
+
+            if (attempts.length === 0) {
+                body.innerHTML = `
+                    <div class="scoreboard-empty">
+                        <div class="scoreboard-empty-icon">⏳</div>
+                        <p>Waiting for students to start...</p>
+                        <p style="font-size: 0.8rem;">Share the link above with your class</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort by the relevant metric
+            let sorted;
+            if (challengeType === 'speed') {
+                sorted = [...attempts].sort((a, b) => b.score - a.score || a.time_spent_seconds - b.time_spent_seconds);
+            } else if (challengeType === 'streak') {
+                sorted = [...attempts].sort((a, b) => b.best_streak - a.best_streak || b.score - a.score);
+            } else { // marathon
+                sorted = [...attempts].sort((a, b) => {
+                    if (a.completed && !b.completed) return -1;
+                    if (!a.completed && b.completed) return 1;
+                    if (a.completed && b.completed) return a.time_spent_seconds - b.time_spent_seconds;
+                    return b.words_mastered - a.words_mastered;
+                });
+            }
+
+            body.innerHTML = sorted.map((a, i) => {
+                const rank = i + 1;
+                const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : 'other';
+                const rankLabel = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+                const name = a.users?.full_name || 'Student';
+
+                let status, statusClass;
+                if (a.completed) {
+                    status = 'Finished';
+                    statusClass = 'status-completed';
+                } else if (a.score > 0 || a.total_questions > 0) {
+                    status = 'In Progress';
+                    statusClass = 'status-active';
+                } else {
+                    status = 'Joined';
+                    statusClass = 'status-waiting';
+                }
+
+                let value, sublabel;
+                if (challengeType === 'speed') {
+                    value = a.score;
+                    const pct = a.total_questions > 0 ? Math.round((a.score / a.total_questions) * 100) : 0;
+                    sublabel = `${pct}% accuracy`;
+                } else if (challengeType === 'streak') {
+                    value = a.best_streak;
+                    sublabel = `${a.score}/${a.total_questions} correct`;
+                } else {
+                    value = a.words_mastered || 0;
+                    sublabel = a.completed ? formatTime(a.time_spent_seconds) : 'in progress';
+                }
+
+                return `
+                    <div class="scoreboard-row rank-${rank <= 3 ? rank : ''}">
+                        <div class="scoreboard-rank ${rankClass}">${rankLabel}</div>
+                        <div class="scoreboard-name">${name}</div>
+                        <span class="scoreboard-status ${statusClass}">${status}</span>
+                        <div>
+                            <div class="scoreboard-value">${value}</div>
+                            <div class="scoreboard-sublabel">${sublabel}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function formatTime(seconds) {
+            if (!seconds) return '—';
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        // Real-time subscription for live updates
+        function subscribeToScoreboard(challengeId, challengeType) {
+            if (realtimeSubscription) {
+                realtimeSubscription.unsubscribe();
+            }
+
+            realtimeSubscription = supabase
+                .channel(`challenge-${challengeId}`)
+                .on('postgres_changes',
+                    { event: '*', schema: 'public', table: 'challenge_attempts', filter: `challenge_id=eq.${challengeId}` },
+                    () => {
+                        refreshScoreboard(challengeId, challengeType);
+                    }
+                )
+                .subscribe();
+        }
+
+        // End challenge
+        function endChallenge() {
+            document.getElementById('endChallengeModal').classList.add('open');
+        }
+        function closeEndModal() {
+            document.getElementById('endChallengeModal').classList.remove('open');
+        }
+        async function confirmEndChallenge() {
+            closeEndModal();
+            await supabase.from('challenges').update({ is_active: false }).eq('id', viewingChallengeId);
+            document.getElementById('endChallengeBtn').style.display = 'none';
+            await loadChallenges();
+        }
+
+        // Copy link
+        function copyLink() {
+            const input = document.getElementById('challengeLink');
+            input.select();
+            navigator.clipboard.writeText(input.value).then(() => {
+                const btn = input.nextElementSibling;
+                btn.textContent = 'Copied!';
+                setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+            });
+        }
+
+        // Listen for word range changes
+        document.getElementById('wordFrom').addEventListener('input', updateWordCountPreview);
+        document.getElementById('wordTo').addEventListener('input', updateWordCountPreview);
+
+        // Close modal on overlay click
+        document.getElementById('endChallengeModal').addEventListener('click', function(e) {
+            if (e.target === this) closeEndModal();
+        });
+
+        init();
+    </script>
+</body>
+</html>
