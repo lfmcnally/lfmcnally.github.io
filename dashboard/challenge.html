@@ -73,6 +73,7 @@
         .badge-streak { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
         .badge-marathon { background: rgba(16, 185, 129, 0.2); color: #10b981; }
         .badge-gold_rush { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .badge-auction { background: rgba(124, 58, 237, 0.2); color: #a78bfa; }
 
         /* Chest overlay (Gold Rush) */
         .chest-overlay {
@@ -358,6 +359,42 @@
             margin-top: 0.25rem;
         }
 
+        /* Auction bet overlay */
+        .bet-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 200;
+        }
+        .bet-overlay.open { display: flex; }
+        .bet-prompt { font-size: 1.4rem; font-weight: 700; color: #a78bfa; margin-bottom: 0.25rem; }
+        .bet-balance { font-size: 1rem; color: #94a3b8; margin-bottom: 1.5rem; }
+        .bet-balance span { color: #a78bfa; font-weight: 700; }
+        .bet-options { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+        .bet-btn {
+            width: 100px; height: 100px; border-radius: 16px; border: 3px solid rgba(124,58,237,0.3);
+            background: rgba(124,58,237,0.1); color: white; font-size: 1.5rem; font-weight: 800;
+            cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 0.25rem;
+        }
+        .bet-btn:hover { border-color: #a78bfa; background: rgba(124,58,237,0.25); transform: scale(1.08); box-shadow: 0 0 20px rgba(124,58,237,0.3); }
+        .bet-btn .bet-label { font-size: 0.7rem; font-weight: 500; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+        .bet-btn.all-in { border-color: rgba(239,68,68,0.5); background: rgba(239,68,68,0.1); }
+        .bet-btn.all-in:hover { border-color: #f87171; background: rgba(239,68,68,0.25); box-shadow: 0 0 20px rgba(239,68,68,0.3); }
+        .bet-result {
+            display: none; flex-direction: column; align-items: center; text-align: center;
+            animation: card-pop 0.4s ease;
+        }
+        .bet-result.show { display: flex; }
+        .bet-result-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+        .bet-result-text { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .bet-result-amount { font-size: 2rem; font-weight: 800; }
+        .bet-result-amount.win { color: #34d399; }
+        .bet-result-amount.lose { color: #f87171; }
+
+        @media (max-width: 768px) {
+            .bet-btn { width: 80px; height: 80px; font-size: 1.2rem; }
+        }
+
         /* Mini leaderboard on results */
         .results-leaderboard { margin-top: 1.5rem; margin-bottom: 1.5rem; width: 100%; }
         .results-leaderboard h3 { font-size: 1rem; color: #94a3b8; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
@@ -375,6 +412,7 @@
         .mini-lb-tag { font-size: 0.65rem; color: #a78bfa; }
         .mini-lb-score { font-weight: 700; font-size: 1.1rem; color: #a78bfa; }
         .mini-lb-score.gold { color: #fbbf24; }
+        .mini-lb-score.purple { color: #a78bfa; }
 
         /* Streak animation overlay */
         .streak-popup {
@@ -516,6 +554,18 @@
                 <div class="card-points" id="cardPoints">+10</div>
                 <div class="card-rarity-label" id="cardRarity">Common</div>
             </div>
+        </div>
+    </div>
+
+    <!-- Bet Overlay (Auction) -->
+    <div class="bet-overlay" id="betOverlay">
+        <div class="bet-prompt">Place your bet!</div>
+        <div class="bet-balance">Your balance: <span id="betBalanceDisplay">100</span> coins</div>
+        <div class="bet-options" id="betOptions"></div>
+        <div class="bet-result" id="betResult">
+            <div class="bet-result-icon" id="betResultIcon"></div>
+            <div class="bet-result-text" id="betResultText"></div>
+            <div class="bet-result-amount" id="betResultAmount"></div>
         </div>
     </div>
 
@@ -695,6 +745,95 @@
         }
         // ========== END GOLD RUSH ==========
 
+        // ========== AUCTION MODE ==========
+        const AUCTION_START_COINS = 100;
+        let auctionCoins = AUCTION_START_COINS;
+        let auctionBet = 0;
+        let auctionCorrect = 0;
+        let betOpen = false;
+
+        function showBetScreen() {
+            betOpen = true;
+            const options = document.getElementById('betOptions');
+            const balance = auctionCoins;
+
+            // Generate bet buttons based on current balance
+            let btns = '';
+            const amounts = [10, 25, 50];
+            for (const amt of amounts) {
+                if (amt <= balance) {
+                    btns += `<div class="bet-btn" onclick="placeBet(${amt})"><div>${amt}</div><div class="bet-label">coins</div></div>`;
+                }
+            }
+            // All-in button
+            if (balance > 0) {
+                btns += `<div class="bet-btn all-in" onclick="placeBet(${balance})"><div>${balance}</div><div class="bet-label">ALL IN</div></div>`;
+            }
+
+            options.innerHTML = btns;
+            document.getElementById('betBalanceDisplay').textContent = balance;
+            options.style.display = 'flex';
+            document.getElementById('betResult').classList.remove('show');
+            document.getElementById('betOverlay').classList.add('open');
+        }
+
+        function placeBet(amount) {
+            auctionBet = Math.min(amount, auctionCoins);
+            betOpen = false;
+            document.getElementById('betOverlay').classList.remove('open');
+            // Now show the question
+            showNextWord();
+            document.getElementById('answerInput').focus();
+        }
+
+        function showAuctionResult(won) {
+            betOpen = true;
+            const result = document.getElementById('betResult');
+            const options = document.getElementById('betOptions');
+            options.style.display = 'none';
+
+            if (won) {
+                auctionCoins += auctionBet;
+                document.getElementById('betResultIcon').textContent = '🎉';
+                document.getElementById('betResultText').textContent = 'You won the bet!';
+                document.getElementById('betResultAmount').textContent = `+${auctionBet} coins`;
+                document.getElementById('betResultAmount').className = 'bet-result-amount win';
+            } else {
+                auctionCoins -= auctionBet;
+                if (auctionCoins < 0) auctionCoins = 0;
+                document.getElementById('betResultIcon').textContent = '😬';
+                document.getElementById('betResultText').textContent = 'You lost the bet!';
+                document.getElementById('betResultAmount').textContent = `-${auctionBet} coins`;
+                document.getElementById('betResultAmount').className = 'bet-result-amount lose';
+            }
+
+            score = auctionCoins;
+            document.getElementById('betBalanceDisplay').textContent = auctionCoins;
+            result.classList.add('show');
+            document.getElementById('betOverlay').classList.add('open');
+
+            updateStats();
+            debouncedSave();
+
+            const delay = auctionBet >= 50 ? 2000 : 1500;
+            setTimeout(() => {
+                document.getElementById('betOverlay').classList.remove('open');
+                result.classList.remove('show');
+                betOpen = false;
+                if (challengeActive) {
+                    // Show next bet screen
+                    if (auctionCoins <= 0) {
+                        // Bankrupt - give them a lifeline of 10 coins
+                        auctionCoins = 10;
+                        score = auctionCoins;
+                        updateStats();
+                    }
+                    showBetScreen();
+                }
+            }, delay);
+        }
+        // ========== END AUCTION ==========
+
         // State
         let currentUser = null;
         let challenge = null;
@@ -808,7 +947,7 @@
         let waitingSubscription = null;
 
         function setupWaitingScreen(ch) {
-            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁', gold_rush: '🎁' };
+            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁', gold_rush: '🎁', auction: '💰' };
             document.getElementById('introIcon').textContent = typeIcons[ch.challenge_type] || '🏆';
             document.getElementById('introTitle').textContent = ch.title;
             document.getElementById('introTypeBadge').textContent = 'Waiting for teacher to start...';
@@ -855,9 +994,9 @@
         }
 
         function setupPreScreen(ch) {
-            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁', gold_rush: '🎁' };
-            const typeNames = { speed: 'Speed Round', streak: 'Streak Challenge', marathon: 'Marathon', gold_rush: 'Gold Rush' };
-            const typeBadges = { speed: 'badge-speed', streak: 'badge-streak', marathon: 'badge-marathon', gold_rush: 'badge-gold_rush' };
+            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁', gold_rush: '🎁', auction: '💰' };
+            const typeNames = { speed: 'Speed Round', streak: 'Streak Challenge', marathon: 'Marathon', gold_rush: 'Gold Rush', auction: 'Auction' };
+            const typeBadges = { speed: 'badge-speed', streak: 'badge-streak', marathon: 'badge-marathon', gold_rush: 'badge-gold_rush', auction: 'badge-auction' };
 
             document.getElementById('introIcon').textContent = typeIcons[ch.challenge_type] || '🏆';
             document.getElementById('introTitle').textContent = ch.title;
@@ -872,7 +1011,11 @@
             detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Chapters</span><span class="challenge-detail-value">${ch.chapters.join(', ')}</span></div>`;
             detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Words</span><span class="challenge-detail-value">${words.length}</span></div>`;
 
-            if (ch.challenge_type === 'gold_rush') {
+            if (ch.challenge_type === 'auction') {
+                detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Time Limit</span><span class="challenge-detail-value">${Math.floor(ch.time_limit_seconds / 60)} minutes</span></div>`;
+                detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Starting Coins</span><span class="challenge-detail-value">💰 ${AUCTION_START_COINS}</span></div>`;
+                detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Goal</span><span class="challenge-detail-value">Bet coins before each question - most coins at the end wins!</span></div>`;
+            } else if (ch.challenge_type === 'gold_rush') {
                 detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Time Limit</span><span class="challenge-detail-value">${Math.floor(ch.time_limit_seconds / 60)} minutes</span></div>`;
                 detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Goal</span><span class="challenge-detail-value">Earn gold by answering + open chests for bonus!</span></div>`;
             } else if (ch.challenge_type === 'speed') {
@@ -973,8 +1116,19 @@
                 scoreItem.querySelector('.stat-item-label').textContent = 'Gold';
             }
 
+            // Auction init
+            if (challenge.challenge_type === 'auction') {
+                auctionCoins = AUCTION_START_COINS;
+                auctionCorrect = 0;
+                auctionBet = 0;
+                score = auctionCoins;
+                const scoreItem = document.querySelector('.stat-score');
+                scoreItem.querySelector('.stat-item-label').textContent = 'Coins';
+                scoreItem.style.color = '#a78bfa';
+            }
+
             // Setup timer
-            if ((challenge.challenge_type === 'speed' || challenge.challenge_type === 'gold_rush') && challenge.time_limit_seconds) {
+            if ((challenge.challenge_type === 'speed' || challenge.challenge_type === 'gold_rush' || challenge.challenge_type === 'auction') && challenge.time_limit_seconds) {
                 timeRemaining = challenge.time_limit_seconds;
                 startTimer();
             } else {
@@ -992,8 +1146,14 @@
                 document.getElementById('timerDisplay').style.display = 'block';
             }
 
-            showNextWord();
-            document.getElementById('answerInput').focus();
+            // Auction: show bet screen first, otherwise show word
+            if (challenge.challenge_type === 'auction') {
+                updateStats();
+                showBetScreen();
+            } else {
+                showNextWord();
+                document.getElementById('answerInput').focus();
+            }
         }
 
         function startTimer() {
@@ -1147,6 +1307,11 @@
                 score = goldTotal;
             }
 
+            // Auction: track correct answers (score handled by showAuctionResult)
+            if (challenge.challenge_type === 'auction' && correct) {
+                auctionCorrect++;
+            }
+
             updateStats();
             input.disabled = true;
 
@@ -1157,6 +1322,14 @@
 
             // Save progress (debounced)
             debouncedSave();
+
+            // Auction: show bet result after brief delay
+            if (challenge.challenge_type === 'auction') {
+                setTimeout(() => {
+                    if (challengeActive) showAuctionResult(correct);
+                }, 600);
+                return;
+            }
 
             // Gold Rush: show chest after correct answer, auto-advance after wrong
             if (challenge.challenge_type === 'gold_rush') {
@@ -1181,7 +1354,7 @@
         }
 
         function skipWord() {
-            if (!challengeActive || !currentWord || chestOpen) return;
+            if (!challengeActive || !currentWord || chestOpen || betOpen) return;
             totalQuestions++;
             currentStreak = 0;
             document.getElementById('streakFire').classList.remove('active');
@@ -1193,11 +1366,17 @@
             updateStats();
             debouncedSave();
 
+            // Auction: skipping counts as wrong (lose bet)
+            if (challenge.challenge_type === 'auction') {
+                setTimeout(() => { if (challengeActive) showAuctionResult(false); }, 600);
+                return;
+            }
+
             setTimeout(() => { if (challengeActive) showNextWord(); }, 800);
         }
 
         function nextWord() {
-            if (!challengeActive || chestOpen) return;
+            if (!challengeActive || chestOpen || betOpen) return;
             showNextWord();
         }
 
@@ -1206,6 +1385,11 @@
                 document.getElementById('statScore').textContent = goldTotal;
                 document.getElementById('statStreak').textContent = currentStreak;
                 const accuracy = totalQuestions > 0 ? Math.round((goldRushCorrect / totalQuestions) * 100) : 0;
+                document.getElementById('statAccuracy').textContent = accuracy + '%';
+            } else if (challenge && challenge.challenge_type === 'auction') {
+                document.getElementById('statScore').textContent = auctionCoins;
+                document.getElementById('statStreak').textContent = currentStreak;
+                const accuracy = totalQuestions > 0 ? Math.round((auctionCorrect / totalQuestions) * 100) : 0;
                 document.getElementById('statAccuracy').textContent = accuracy + '%';
             } else {
                 document.getElementById('statScore').textContent = score;
@@ -1253,6 +1437,12 @@
             challengeActive = false;
             clearInterval(timerInterval);
 
+            // Close any open overlays
+            document.getElementById('chestOverlay').classList.remove('open');
+            document.getElementById('betOverlay').classList.remove('open');
+            chestOpen = false;
+            betOpen = false;
+
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
 
             // Final save
@@ -1283,8 +1473,10 @@
             document.getElementById('resultsScreen').style.display = 'flex';
 
             const isGoldRushResult = challenge && challenge.challenge_type === 'gold_rush';
+            const isAuctionResult = challenge && challenge.challenge_type === 'auction';
+            const correctCount = isGoldRushResult ? goldRushCorrect : isAuctionResult ? auctionCorrect : attempt.score;
             const accuracy = attempt.total_questions > 0
-                ? Math.round(((isGoldRushResult ? goldRushCorrect : attempt.score) / attempt.total_questions) * 100)
+                ? Math.round((correctCount / attempt.total_questions) * 100)
                 : 0;
 
             if (accuracy >= 90) {
@@ -1306,6 +1498,7 @@
             const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
 
             const isGoldRush = challenge && challenge.challenge_type === 'gold_rush';
+            const isAuction = challenge && challenge.challenge_type === 'auction';
 
             let statsHtml = '';
             if (isGoldRush) {
@@ -1316,9 +1509,17 @@
                     </div>
                 `;
             }
+            if (isAuction) {
+                statsHtml += `
+                    <div class="result-stat" style="grid-column: span 2;">
+                        <div class="result-stat-value" style="color: #a78bfa; font-size: 2.5rem;">💰 ${attempt.score}</div>
+                        <div class="result-stat-label">Final Balance (started with ${AUCTION_START_COINS})</div>
+                    </div>
+                `;
+            }
             statsHtml += `
                 <div class="result-stat">
-                    <div class="result-stat-value">${isGoldRush ? goldRushCorrect : attempt.score}</div>
+                    <div class="result-stat-value">${isGoldRush ? goldRushCorrect : isAuction ? auctionCorrect : attempt.score}</div>
                     <div class="result-stat-label">Correct Answers</div>
                 </div>
                 <div class="result-stat">
@@ -1375,7 +1576,7 @@
             // Sort by challenge type
             let sorted;
             const ct = challenge.challenge_type;
-            if (ct === 'speed' || ct === 'gold_rush') {
+            if (ct === 'speed' || ct === 'gold_rush' || ct === 'auction') {
                 sorted = [...attempts].sort((a, b) => b.score - a.score || a.time_spent_seconds - b.time_spent_seconds);
             } else if (ct === 'streak') {
                 sorted = [...attempts].sort((a, b) => b.best_streak - a.best_streak || b.score - a.score);
@@ -1402,8 +1603,10 @@
                 const tagHtml = tagInfo ? `<div class="mini-lb-tag">${tagInfo.emoji} ${tagInfo.text}</div>` : '';
                 const isMe = currentUser && a.student_id === currentUser.id;
 
+                const isAuc = ct === 'auction';
                 let scoreDisplay;
-                if (isGR) scoreDisplay = `🪙 ${a.score}`;
+                if (isAuc) scoreDisplay = `💰 ${a.score}`;
+                else if (isGR) scoreDisplay = `🪙 ${a.score}`;
                 else if (ct === 'streak') scoreDisplay = `🔥 ${a.best_streak}`;
                 else if (ct === 'marathon') scoreDisplay = a.completed ? formatMiniTime(a.time_spent_seconds) : `${a.words_mastered || 0} words`;
                 else scoreDisplay = a.score;
@@ -1413,7 +1616,7 @@
                         <div class="mini-lb-medal">${medals[i]}</div>
                         <div class="mini-lb-avatar">${emoji}</div>
                         <div class="mini-lb-name">${isMe ? 'You' : name.split(' ')[0]}${tagHtml}</div>
-                        <div class="mini-lb-score${isGR ? ' gold' : ''}">${scoreDisplay}</div>
+                        <div class="mini-lb-score${isGR ? ' gold' : isAuc ? ' purple' : ''}">${scoreDisplay}</div>
                     </div>`;
             }).join('');
 
@@ -1430,7 +1633,7 @@
         // Enter key to submit
         document.getElementById('answerInput').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
-                if (chestOpen) return; // Don't advance while chest is showing
+                if (chestOpen || betOpen) return; // Don't advance while overlay is showing
                 if (document.getElementById('nextBtn').style.display !== 'none') {
                     nextWord();
                 } else {
