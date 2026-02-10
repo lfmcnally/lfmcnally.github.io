@@ -95,7 +95,7 @@
         .form-hint { font-size: 0.8rem; color: #6b7280; margin-top: 0.35rem; }
 
         /* Challenge Type Selector */
-        .challenge-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+        .challenge-types { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
         .challenge-type-card {
             border: 2px solid #e5e7eb; border-radius: 12px; padding: 1.25rem;
             text-align: center; cursor: pointer; transition: all 0.2s; background: #fafafa;
@@ -127,6 +127,7 @@
         .badge-speed { background: #fef3c7; color: #92400e; }
         .badge-streak { background: #fee2e2; color: #dc2626; }
         .badge-marathon { background: #dcfce7; color: #166534; }
+        .badge-gold_rush { background: #fef3c7; color: #92400e; }
         .badge-waiting { background: #fef3c7; color: #92400e; }
         .badge-active { background: #dcfce7; color: #166534; }
         .badge-ended { background: #f3f4f6; color: #6b7280; }
@@ -239,7 +240,7 @@
 
         @media (max-width: 768px) {
             body { padding: 1rem; }
-            .challenge-types { grid-template-columns: 1fr; }
+            .challenge-types { grid-template-columns: 1fr 1fr; }
             .form-row { grid-template-columns: 1fr; }
             .header-content { flex-direction: column; text-align: center; gap: 1rem; }
             .scoreboard-info { flex-direction: column; gap: 0.5rem; }
@@ -299,6 +300,11 @@
                                 <div class="challenge-type-icon">🏁</div>
                                 <div class="challenge-type-name">Marathon</div>
                                 <div class="challenge-type-desc">Master every word - fastest time wins</div>
+                            </div>
+                            <div class="challenge-type-card" onclick="selectChallengeType('gold_rush')" id="type-gold_rush">
+                                <div class="challenge-type-icon">🎁</div>
+                                <div class="challenge-type-name">Gold Rush</div>
+                                <div class="challenge-type-desc">Answer questions and open chests for bonus gold - like Blooket!</div>
                             </div>
                         </div>
                     </div>
@@ -571,7 +577,7 @@
             selectedType = type;
             document.querySelectorAll('.challenge-type-card').forEach(c => c.classList.remove('selected'));
             document.getElementById('type-' + type).classList.add('selected');
-            document.getElementById('timeLimitGroup').style.display = type === 'speed' ? 'block' : 'none';
+            document.getElementById('timeLimitGroup').style.display = (type === 'speed' || type === 'gold_rush') ? 'block' : 'none';
         }
 
         // === VIEW SWITCHING ===
@@ -614,7 +620,7 @@
             const words = getSelectedWords();
             if (words.length === 0) { alert('Please select at least one word'); return; }
 
-            const timeLimit = selectedType === 'speed' ? parseInt(document.getElementById('timeLimit').value) : null;
+            const timeLimit = (selectedType === 'speed' || selectedType === 'gold_rush') ? parseInt(document.getElementById('timeLimit').value) : null;
 
             // Calculate word_from and word_to based on selected indices
             const sortedIndices = [...selectedWordIndices].sort((a, b) => a - b);
@@ -706,8 +712,8 @@
                 return;
             }
 
-            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁' };
-            const typeNames = { speed: 'Speed Round', streak: 'Streak Challenge', marathon: 'Marathon' };
+            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁', gold_rush: '🎁' };
+            const typeNames = { speed: 'Speed Round', streak: 'Streak Challenge', marathon: 'Marathon', gold_rush: 'Gold Rush' };
             const statusNames = { waiting: 'Waiting', active: 'Live', ended: 'Ended' };
             const statusBadges = { waiting: 'badge-waiting', active: 'badge-active', ended: 'badge-ended' };
 
@@ -757,7 +763,7 @@
             if (!viewingChallenge) return;
 
             const ch = viewingChallenge;
-            const typeNames = { speed: 'Speed Round', streak: 'Streak Challenge', marathon: 'Marathon' };
+            const typeNames = { speed: 'Speed Round', streak: 'Streak Challenge', marathon: 'Marathon', gold_rush: 'Gold Rush' };
 
             document.getElementById('scoreboardTitle').textContent = ch.title;
             document.getElementById('scoreboardSubtitle').textContent =
@@ -828,7 +834,7 @@
             }
 
             let sorted;
-            if (challengeType === 'speed') {
+            if (challengeType === 'speed' || challengeType === 'gold_rush') {
                 sorted = [...attempts].sort((a, b) => b.score - a.score || a.time_spent_seconds - b.time_spent_seconds);
             } else if (challengeType === 'streak') {
                 sorted = [...attempts].sort((a, b) => b.best_streak - a.best_streak || b.score - a.score);
@@ -866,7 +872,10 @@
                 else { status = 'Joined'; statusClass = 'status-waiting'; }
 
                 let value, sublabel;
-                if (challengeType === 'speed') {
+                if (challengeType === 'gold_rush') {
+                    value = a.score;
+                    sublabel = `${a.total_questions} answered`;
+                } else if (challengeType === 'speed') {
                     value = a.score;
                     const pct = a.total_questions > 0 ? Math.round((a.score / a.total_questions) * 100) : 0;
                     sublabel = `${pct}% accuracy`;
@@ -951,7 +960,7 @@
             // Sort by ranking
             const ch = viewingChallenge;
             let sorted;
-            if (ch.challenge_type === 'speed') sorted = [...lastAttempts].sort((a, b) => b.score - a.score || a.time_spent_seconds - b.time_spent_seconds);
+            if (ch.challenge_type === 'speed' || ch.challenge_type === 'gold_rush') sorted = [...lastAttempts].sort((a, b) => b.score - a.score || a.time_spent_seconds - b.time_spent_seconds);
             else if (ch.challenge_type === 'streak') sorted = [...lastAttempts].sort((a, b) => b.best_streak - a.best_streak || b.score - a.score);
             else sorted = [...lastAttempts].sort((a, b) => { if (a.completed && !b.completed) return -1; if (!a.completed && b.completed) return 1; return a.time_spent_seconds - b.time_spent_seconds; });
 
