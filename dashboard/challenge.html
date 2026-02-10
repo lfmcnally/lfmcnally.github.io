@@ -72,6 +72,68 @@
         .badge-speed { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
         .badge-streak { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
         .badge-marathon { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .badge-gold_rush { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+
+        /* Chest overlay (Gold Rush) */
+        .chest-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.95);
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 50; padding: 2rem;
+        }
+        .chest-overlay.open { display: flex; }
+        .chest-prompt { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; color: #fbbf24; }
+        .chest-subtext { font-size: 0.9rem; color: #94a3b8; margin-bottom: 2rem; }
+        .chest-row { display: flex; gap: 1.5rem; }
+        .chest-box {
+            width: 110px; height: 110px;
+            background: linear-gradient(145deg, #92400e 0%, #78350f 50%, #451a03 100%);
+            border: 3px solid #d97706; border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3rem; cursor: pointer; transition: all 0.2s;
+            animation: chest-wobble 2s ease-in-out infinite;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .chest-box:nth-child(2) { animation-delay: 0.3s; }
+        .chest-box:nth-child(3) { animation-delay: 0.6s; }
+        .chest-box:hover { transform: scale(1.12); border-color: #fbbf24; box-shadow: 0 0 25px rgba(251, 191, 36, 0.3); }
+        @keyframes chest-wobble {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        /* Card reveal */
+        .card-reveal {
+            display: none; flex-direction: column; align-items: center; text-align: center;
+            animation: card-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .card-reveal.show { display: flex; }
+        @keyframes card-pop {
+            0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+            100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+        .card-reveal-box {
+            padding: 2rem 2.5rem; border-radius: 16px; border: 3px solid;
+            min-width: 280px; max-width: 350px;
+        }
+        .card-reveal-box.rarity-common { border-color: #6b7280; background: rgba(107, 114, 128, 0.15); }
+        .card-reveal-box.rarity-uncommon { border-color: #10b981; background: rgba(16, 185, 129, 0.1); box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); }
+        .card-reveal-box.rarity-rare { border-color: #3b82f6; background: rgba(59, 130, 246, 0.1); box-shadow: 0 0 25px rgba(59, 130, 246, 0.3); }
+        .card-reveal-box.rarity-legendary { border-color: #fbbf24; background: rgba(251, 191, 36, 0.1); box-shadow: 0 0 30px rgba(251, 191, 36, 0.4); animation: legendary-glow 1s infinite alternate; }
+        .card-reveal-box.rarity-negative { border-color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+        @keyframes legendary-glow {
+            from { box-shadow: 0 0 20px rgba(251, 191, 36, 0.3); }
+            to { box-shadow: 0 0 40px rgba(251, 191, 36, 0.6); }
+        }
+        .card-emoji { font-size: 3rem; margin-bottom: 0.75rem; }
+        .card-text { font-size: 1rem; color: #e2e8f0; margin-bottom: 1rem; line-height: 1.4; }
+        .card-points { font-size: 2rem; font-weight: 800; }
+        .card-points.positive { color: #34d399; }
+        .card-points.negative { color: #f87171; }
+        .card-rarity-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; margin-top: 0.5rem; }
+
+        /* Gold stat color */
+        .stat-gold .stat-item-value { color: #fbbf24; }
         .challenge-details {
             background: rgba(255,255,255,0.05);
             border-radius: 12px;
@@ -327,6 +389,9 @@
             .word-text { font-size: 1.75rem; }
             .answer-input { font-size: 1.1rem; }
             .results-stats { grid-template-columns: 1fr 1fr; }
+            .chest-box { width: 90px; height: 90px; font-size: 2.5rem; }
+            .chest-row { gap: 1rem; }
+            .card-reveal-box { min-width: 240px; padding: 1.5rem; }
         }
     </style>
 </head>
@@ -413,6 +478,25 @@
     <!-- Streak Popup -->
     <div class="streak-popup" id="streakPopup"></div>
 
+    <!-- Chest Overlay (Gold Rush) -->
+    <div class="chest-overlay" id="chestOverlay">
+        <div class="chest-prompt" id="chestPrompt">Choose a chest!</div>
+        <div class="chest-subtext" id="chestSubtext">+10 gold for the correct answer</div>
+        <div class="chest-row" id="chestRow">
+            <div class="chest-box" onclick="openChest(0)">🎁</div>
+            <div class="chest-box" onclick="openChest(1)">🎁</div>
+            <div class="chest-box" onclick="openChest(2)">🎁</div>
+        </div>
+        <div class="card-reveal" id="cardReveal">
+            <div class="card-reveal-box" id="cardRevealBox">
+                <div class="card-emoji" id="cardEmoji">🪙</div>
+                <div class="card-text" id="cardText">Found some coins!</div>
+                <div class="card-points" id="cardPoints">+10</div>
+                <div class="card-rarity-label" id="cardRarity">Common</div>
+            </div>
+        </div>
+    </div>
+
     <script src="../auth/config.js"></script>
     <script src="../shared/vocabulary-data.js"></script>
     <script src="../shared/greek-vocabulary-data.js"></script>
@@ -478,6 +562,111 @@
             return false;
         }
         // ========== END ANSWER CHECKING ==========
+
+        // ========== GOLD RUSH: CHANCE CARDS ==========
+        const BASE_GOLD = 10;
+        let goldTotal = 0;
+        let goldRushCorrect = 0;
+        let pendingCard = null;
+        let chestOpen = false;
+
+        const CHANCE_CARDS = [
+            // Common positive (~45%)
+            { text: "A few coins from the forum.", points: 5, rarity: 'common', emoji: '🪙' },
+            { text: "A merchant tips you for good Latin.", points: 10, rarity: 'common', emoji: '🏪' },
+            { text: "Found coins in a Roman bath!", points: 10, rarity: 'common', emoji: '🏛️' },
+            { text: "Pocket change from a centurion.", points: 5, rarity: 'common', emoji: '🪖' },
+            { text: "Small bounty from the Senate.", points: 15, rarity: 'common', emoji: '🏛️' },
+            { text: "A grateful farmer shares his wealth.", points: 10, rarity: 'common', emoji: '🌾' },
+            // Uncommon positive (~23%)
+            { text: "Caesar is impressed by your knowledge!", points: 25, rarity: 'uncommon', emoji: '👑' },
+            { text: "You discovered a hidden mosaic!", points: 20, rarity: 'uncommon', emoji: '🎨' },
+            { text: "A senator rewards your wisdom!", points: 30, rarity: 'uncommon', emoji: '🏛️' },
+            { text: "Found treasure in the Colosseum!", points: 25, rarity: 'uncommon', emoji: '🏟️' },
+            { text: "The gods smile upon you!", points: 20, rarity: 'uncommon', emoji: '⚡' },
+            // Rare positive (~7%)
+            { text: "Roman treasure hoard discovered!", points: 50, rarity: 'rare', emoji: '💎' },
+            { text: "The Oracle of Delphi blesses you!", points: 50, rarity: 'rare', emoji: '🔮' },
+            { text: "You won the chariot race!", points: 50, rarity: 'rare', emoji: '🏇' },
+            // Legendary (~2%)
+            { text: "You've conquered Gaul!", points: 100, rarity: 'legendary', emoji: '⚔️' },
+            // Negative (~23%)
+            { text: "Mr McNally took too long marking your prep.", points: -5, rarity: 'negative', emoji: '📝' },
+            { text: "A pickpocket strikes in the forum!", points: -10, rarity: 'negative', emoji: '😈' },
+            { text: "You insulted a gladiator by accident.", points: -15, rarity: 'negative', emoji: '⚔️' },
+            { text: "The tax collector found you!", points: -10, rarity: 'negative', emoji: '💸' },
+            { text: "Vesuvius erupts nearby!", points: -20, rarity: 'negative', emoji: '🌋' },
+            { text: "Your toga was stolen at the baths.", points: -5, rarity: 'negative', emoji: '😰' },
+            { text: "You tripped in the amphitheatre.", points: -10, rarity: 'negative', emoji: '🤕' },
+            { text: "Barbarians raided your stash!", points: -15, rarity: 'negative', emoji: '🗡️' },
+        ];
+
+        function pickChanceCard() {
+            const roll = Math.random() * 100;
+            let pool;
+            if (roll < 45) pool = CHANCE_CARDS.filter(c => c.rarity === 'common');
+            else if (roll < 68) pool = CHANCE_CARDS.filter(c => c.rarity === 'uncommon');
+            else if (roll < 75) pool = CHANCE_CARDS.filter(c => c.rarity === 'rare');
+            else if (roll < 77) pool = CHANCE_CARDS.filter(c => c.rarity === 'legendary');
+            else pool = CHANCE_CARDS.filter(c => c.rarity === 'negative');
+            return pool[Math.floor(Math.random() * pool.length)];
+        }
+
+        function showChestSelection() {
+            chestOpen = true;
+            document.getElementById('chestRow').style.display = 'flex';
+            document.getElementById('cardReveal').classList.remove('show');
+            document.getElementById('chestPrompt').textContent = 'Choose a chest!';
+            document.getElementById('chestSubtext').textContent = `+${BASE_GOLD} gold for the correct answer`;
+            document.getElementById('chestOverlay').classList.add('open');
+            pendingCard = pickChanceCard();
+        }
+
+        function openChest(idx) {
+            if (!pendingCard) return;
+            const card = pendingCard;
+            pendingCard = null;
+
+            // Hide chests, show card
+            document.getElementById('chestRow').style.display = 'none';
+            document.getElementById('chestPrompt').textContent = '';
+            document.getElementById('chestSubtext').textContent = '';
+
+            const reveal = document.getElementById('cardReveal');
+            const box = document.getElementById('cardRevealBox');
+
+            document.getElementById('cardEmoji').textContent = card.emoji;
+            document.getElementById('cardText').textContent = card.text;
+
+            const pointsText = card.points > 0 ? `+${card.points}` : `${card.points}`;
+            document.getElementById('cardPoints').textContent = `${pointsText} gold`;
+            document.getElementById('cardPoints').className = `card-points ${card.points >= 0 ? 'positive' : 'negative'}`;
+
+            const rarityLabels = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare', legendary: 'LEGENDARY', negative: 'Bad Luck' };
+            const rarityColors = { common: '#9ca3af', uncommon: '#34d399', rare: '#60a5fa', legendary: '#fbbf24', negative: '#f87171' };
+            document.getElementById('cardRarity').textContent = rarityLabels[card.rarity];
+            document.getElementById('cardRarity').style.color = rarityColors[card.rarity];
+
+            box.className = `card-reveal-box rarity-${card.rarity}`;
+            reveal.classList.add('show');
+
+            // Apply gold from card
+            goldTotal += card.points;
+            if (goldTotal < 0) goldTotal = 0;
+            score = goldTotal;
+            updateStats();
+            debouncedSave();
+
+            // Auto-close after delay
+            const delay = card.rarity === 'legendary' ? 2500 : card.rarity === 'rare' ? 2000 : 1500;
+            setTimeout(() => {
+                document.getElementById('chestOverlay').classList.remove('open');
+                reveal.classList.remove('show');
+                chestOpen = false;
+                if (challengeActive) showNextWord();
+            }, delay);
+        }
+        // ========== END GOLD RUSH ==========
 
         // State
         let currentUser = null;
@@ -592,7 +781,7 @@
         let waitingSubscription = null;
 
         function setupWaitingScreen(ch) {
-            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁' };
+            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁', gold_rush: '🎁' };
             document.getElementById('introIcon').textContent = typeIcons[ch.challenge_type] || '🏆';
             document.getElementById('introTitle').textContent = ch.title;
             document.getElementById('introTypeBadge').textContent = 'Waiting for teacher to start...';
@@ -639,9 +828,9 @@
         }
 
         function setupPreScreen(ch) {
-            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁' };
-            const typeNames = { speed: 'Speed Round', streak: 'Streak Challenge', marathon: 'Marathon' };
-            const typeBadges = { speed: 'badge-speed', streak: 'badge-streak', marathon: 'badge-marathon' };
+            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁', gold_rush: '🎁' };
+            const typeNames = { speed: 'Speed Round', streak: 'Streak Challenge', marathon: 'Marathon', gold_rush: 'Gold Rush' };
+            const typeBadges = { speed: 'badge-speed', streak: 'badge-streak', marathon: 'badge-marathon', gold_rush: 'badge-gold_rush' };
 
             document.getElementById('introIcon').textContent = typeIcons[ch.challenge_type] || '🏆';
             document.getElementById('introTitle').textContent = ch.title;
@@ -656,7 +845,10 @@
             detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Chapters</span><span class="challenge-detail-value">${ch.chapters.join(', ')}</span></div>`;
             detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Words</span><span class="challenge-detail-value">${words.length}</span></div>`;
 
-            if (ch.challenge_type === 'speed') {
+            if (ch.challenge_type === 'gold_rush') {
+                detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Time Limit</span><span class="challenge-detail-value">${Math.floor(ch.time_limit_seconds / 60)} minutes</span></div>`;
+                detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Goal</span><span class="challenge-detail-value">Earn gold by answering + open chests for bonus!</span></div>`;
+            } else if (ch.challenge_type === 'speed') {
                 detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Time Limit</span><span class="challenge-detail-value">${Math.floor(ch.time_limit_seconds / 60)} minutes</span></div>`;
                 detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Goal</span><span class="challenge-detail-value">Most correct answers wins</span></div>`;
             } else if (ch.challenge_type === 'streak') {
@@ -743,8 +935,19 @@
                 }
             }
 
+            // Gold Rush init
+            if (challenge.challenge_type === 'gold_rush') {
+                goldTotal = 0;
+                goldRushCorrect = 0;
+                score = 0;
+                // Change stat labels for gold mode
+                const scoreItem = document.querySelector('.stat-score');
+                scoreItem.classList.add('stat-gold');
+                scoreItem.querySelector('.stat-item-label').textContent = 'Gold';
+            }
+
             // Setup timer
-            if (challenge.challenge_type === 'speed' && challenge.time_limit_seconds) {
+            if ((challenge.challenge_type === 'speed' || challenge.challenge_type === 'gold_rush') && challenge.time_limit_seconds) {
                 timeRemaining = challenge.time_limit_seconds;
                 startTimer();
             } else {
@@ -910,6 +1113,13 @@
                 }
             }
 
+            // Gold Rush: add base gold for correct answer
+            if (challenge.challenge_type === 'gold_rush' && correct) {
+                goldRushCorrect++;
+                goldTotal += BASE_GOLD;
+                score = goldTotal;
+            }
+
             updateStats();
             input.disabled = true;
 
@@ -921,6 +1131,20 @@
             // Save progress (debounced)
             debouncedSave();
 
+            // Gold Rush: show chest after correct answer, auto-advance after wrong
+            if (challenge.challenge_type === 'gold_rush') {
+                if (correct) {
+                    setTimeout(() => {
+                        if (challengeActive) showChestSelection();
+                    }, 500);
+                } else {
+                    setTimeout(() => {
+                        if (challengeActive) nextWord();
+                    }, 1200);
+                }
+                return;
+            }
+
             // For speed mode, auto-advance after brief delay
             if (challenge.challenge_type === 'speed') {
                 setTimeout(() => {
@@ -930,7 +1154,7 @@
         }
 
         function skipWord() {
-            if (!challengeActive || !currentWord) return;
+            if (!challengeActive || !currentWord || chestOpen) return;
             totalQuestions++;
             currentStreak = 0;
             document.getElementById('streakFire').classList.remove('active');
@@ -946,15 +1170,22 @@
         }
 
         function nextWord() {
-            if (!challengeActive) return;
+            if (!challengeActive || chestOpen) return;
             showNextWord();
         }
 
         function updateStats() {
-            document.getElementById('statScore').textContent = score;
-            document.getElementById('statStreak').textContent = currentStreak;
-            const accuracy = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
-            document.getElementById('statAccuracy').textContent = accuracy + '%';
+            if (challenge && challenge.challenge_type === 'gold_rush') {
+                document.getElementById('statScore').textContent = goldTotal;
+                document.getElementById('statStreak').textContent = currentStreak;
+                const accuracy = totalQuestions > 0 ? Math.round((goldRushCorrect / totalQuestions) * 100) : 0;
+                document.getElementById('statAccuracy').textContent = accuracy + '%';
+            } else {
+                document.getElementById('statScore').textContent = score;
+                document.getElementById('statStreak').textContent = currentStreak;
+                const accuracy = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+                document.getElementById('statAccuracy').textContent = accuracy + '%';
+            }
         }
 
         function showStreakPopup(streak) {
@@ -1024,7 +1255,10 @@
             document.getElementById('quizScreen').style.display = 'none';
             document.getElementById('resultsScreen').style.display = 'flex';
 
-            const accuracy = attempt.total_questions > 0 ? Math.round((attempt.score / attempt.total_questions) * 100) : 0;
+            const isGoldRushResult = challenge && challenge.challenge_type === 'gold_rush';
+            const accuracy = attempt.total_questions > 0
+                ? Math.round(((isGoldRushResult ? goldRushCorrect : attempt.score) / attempt.total_questions) * 100)
+                : 0;
 
             if (accuracy >= 90) {
                 document.getElementById('resultsIcon').textContent = '🌟';
@@ -1044,9 +1278,20 @@
             const secs = attempt.time_spent_seconds % 60;
             const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
 
-            let statsHtml = `
+            const isGoldRush = challenge && challenge.challenge_type === 'gold_rush';
+
+            let statsHtml = '';
+            if (isGoldRush) {
+                statsHtml += `
+                    <div class="result-stat" style="grid-column: span 2;">
+                        <div class="result-stat-value" style="color: #fbbf24; font-size: 2.5rem;">${attempt.score}</div>
+                        <div class="result-stat-label">Total Gold</div>
+                    </div>
+                `;
+            }
+            statsHtml += `
                 <div class="result-stat">
-                    <div class="result-stat-value">${attempt.score}</div>
+                    <div class="result-stat-value">${isGoldRush ? goldRushCorrect : attempt.score}</div>
                     <div class="result-stat-label">Correct Answers</div>
                 </div>
                 <div class="result-stat">
@@ -1078,6 +1323,7 @@
         // Enter key to submit
         document.getElementById('answerInput').addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
+                if (chestOpen) return; // Don't advance while chest is showing
                 if (document.getElementById('nextBtn').style.display !== 'none') {
                     nextWord();
                 } else {
