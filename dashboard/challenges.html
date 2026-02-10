@@ -186,6 +186,7 @@
         .scoreboard-rank.other { background: rgba(255,255,255,0.1); color: #9ca3af; }
         .scoreboard-avatar { width: 32px; height: 32px; border-radius: 50%; background: rgba(124, 58, 237, 0.15); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-right: 0.5rem; flex-shrink: 0; }
         .scoreboard-name { flex: 1; font-weight: 500; font-size: 1rem; }
+        .scoreboard-tag { font-size: 0.7rem; color: #a78bfa; margin-top: 0.1rem; }
         .scoreboard-status { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; margin-right: 1rem; }
         .status-active { background: rgba(16, 185, 129, 0.2); color: #34d399; }
         .status-completed { background: rgba(124, 58, 237, 0.2); color: #a78bfa; }
@@ -386,10 +387,11 @@
                 </div>
             </div>
 
+            <div id="autoXpNotice" style="display: none; margin-top: 1rem; padding: 0.75rem 1rem; background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.3); border-radius: 8px; font-size: 0.85rem; color: #a78bfa;"></div>
             <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
                 <button class="btn btn-secondary" onclick="showView('challenges')">← Back</button>
                 <button class="btn btn-danger" id="endChallengeBtn" onclick="endChallenge()">End Challenge</button>
-                <button class="btn btn-warning" id="awardXpBtn" onclick="openXpModal()" style="display: none;">⭐ Award XP</button>
+                <button class="btn btn-warning" id="awardXpBtn" onclick="openXpModal()" style="display: none;">⭐ Adjust XP</button>
             </div>
         </div>
     </div>
@@ -433,6 +435,7 @@
     <script src="../shared/vocabulary-data.js"></script>
     <script src="../shared/greek-vocabulary-data.js"></script>
     <script src="../latin/data/suburani-vocab.js"></script>
+    <script src="../shared/xp-system.js"></script>
     <script>
         let currentUser = null;
         let currentClass = null;
@@ -784,6 +787,7 @@
             document.getElementById('startSection').style.display = isWaiting ? 'block' : 'none';
             document.getElementById('endChallengeBtn').style.display = (isWaiting || isActive) ? 'inline-flex' : 'none';
             document.getElementById('awardXpBtn').style.display = isEnded ? 'inline-flex' : 'none';
+            document.getElementById('autoXpNotice').style.display = 'none';
 
             if (isActive) {
                 document.getElementById('joinCodeDisplay').querySelector('.join-code-hint').textContent =
@@ -832,14 +836,14 @@
                 const studentIds = [...new Set(results.map(a => a.student_id))];
                 const { data: users } = await supabase
                     .from('users')
-                    .select('id, full_name, selected_emoji')
+                    .select('id, full_name, selected_emoji, selected_tag')
                     .in('id', studentIds);
 
                 const userMap = {};
                 if (users) users.forEach(u => { userMap[u.id] = u; });
                 results.forEach(a => {
                     const u = userMap[a.student_id];
-                    a.users = { full_name: u?.full_name || 'Student', id: a.student_id, emoji: u?.selected_emoji || null };
+                    a.users = { full_name: u?.full_name || 'Student', id: a.student_id, emoji: u?.selected_emoji || null, tag: u?.selected_tag || null };
                 });
             }
 
@@ -890,6 +894,9 @@
                 const rankLabel = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
                 const name = a.users?.full_name || 'Student';
                 const emoji = a.users?.emoji || '🙂';
+                const tagId = a.users?.tag;
+                const tagInfo = tagId && typeof xpSystem !== 'undefined' ? xpSystem.TAGS?.find(t => t.id === tagId) : null;
+                const tagHtml = tagInfo ? `<div class="scoreboard-tag">${tagInfo.emoji} ${tagInfo.text}</div>` : '';
                 const flash = changedStudents.has(a.student_id) ? ' score-flash' : '';
 
                 let status, statusClass;
@@ -918,7 +925,7 @@
                     <div class="scoreboard-row rank-${rank <= 3 ? rank : ''}${flash}" data-student="${a.student_id}">
                         <div class="scoreboard-rank ${rankClass}">${rankLabel}</div>
                         <div class="scoreboard-avatar">${emoji}</div>
-                        <div class="scoreboard-name">${name}</div>
+                        <div class="scoreboard-name">${name}${tagHtml}</div>
                         <span class="scoreboard-status ${statusClass}">${status}</span>
                         <div>
                             <div class="scoreboard-value"${valueStyle}>${value}</div>
@@ -976,10 +983,60 @@
 
             // One final scoreboard refresh to get the latest data
             await refreshScoreboard(viewingChallengeId, viewingChallenge.challenge_type);
+
+            // Auto-award XP to top 3
+            await autoAwardXp();
+
             await loadChallenges();
         }
 
         // === XP AWARDS ===
+
+        function sortAttemptsByRank(attempts, challengeType) {
+            if (challengeType === 'speed' || challengeType === 'gold_rush') return [...attempts].sort((a, b) => b.score - a.score || a.time_spent_seconds - b.time_spent_seconds);
+            if (challengeType === 'streak') return [...attempts].sort((a, b) => b.best_streak - a.best_streak || b.score - a.score);
+            return [...attempts].sort((a, b) => { if (a.completed && !b.completed) return -1; if (!a.completed && b.completed) return 1; return a.time_spent_seconds - b.time_spent_seconds; });
+        }
+
+        async function autoAwardXp() {
+            if (lastAttempts.length === 0) return;
+            const ch = viewingChallenge;
+            const sorted = sortAttemptsByRank(lastAttempts, ch.challenge_type);
+            const xpAmounts = [50, 30, 20]; // 1st, 2nd, 3rd
+            let awarded = 0;
+
+            for (let i = 0; i < Math.min(3, sorted.length); i++) {
+                const a = sorted[i];
+                // Only award to students who actually participated
+                if (a.score === 0 && a.total_questions === 0) continue;
+                const xp = xpAmounts[i];
+                const studentId = a.student_id;
+
+                const { data: user } = await supabase.from('users').select('xp, total_xp_earned').eq('id', studentId).single();
+                if (user) {
+                    await supabase.from('users').update({
+                        xp: (user.xp || 0) + xp,
+                        total_xp_earned: (user.total_xp_earned || 0) + xp
+                    }).eq('id', studentId);
+
+                    await supabase.from('xp_transactions').insert({
+                        user_id: studentId,
+                        amount: xp,
+                        reason: `Challenge ${i === 0 ? '1st' : i === 1 ? '2nd' : '3rd'} place: ${ch.title}`,
+                        reference_id: viewingChallengeId
+                    });
+                    awarded++;
+                }
+            }
+
+            if (awarded > 0) {
+                const names = sorted.slice(0, Math.min(3, sorted.length))
+                    .filter(a => a.score > 0 || a.total_questions > 0)
+                    .map((a, i) => `${['🥇','🥈','🥉'][i]} ${a.users?.full_name || 'Student'} (+${xpAmounts[i]} XP)`);
+                document.getElementById('autoXpNotice').innerHTML = `<strong>XP auto-awarded:</strong> ${names.join(' &nbsp; ')}`;
+                document.getElementById('autoXpNotice').style.display = 'block';
+            }
+        }
 
         function openXpModal() {
             const list = document.getElementById('xpAwardList');
@@ -987,10 +1044,7 @@
 
             // Sort by ranking
             const ch = viewingChallenge;
-            let sorted;
-            if (ch.challenge_type === 'speed' || ch.challenge_type === 'gold_rush') sorted = [...lastAttempts].sort((a, b) => b.score - a.score || a.time_spent_seconds - b.time_spent_seconds);
-            else if (ch.challenge_type === 'streak') sorted = [...lastAttempts].sort((a, b) => b.best_streak - a.best_streak || b.score - a.score);
-            else sorted = [...lastAttempts].sort((a, b) => { if (a.completed && !b.completed) return -1; if (!a.completed && b.completed) return 1; return a.time_spent_seconds - b.time_spent_seconds; });
+            const sorted = sortAttemptsByRank(lastAttempts, ch.challenge_type);
 
             // Default XP: 50, 30, 20, 10 for top 4
             const defaults = [50, 30, 20, 10];
