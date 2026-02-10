@@ -358,6 +358,24 @@
             margin-top: 0.25rem;
         }
 
+        /* Mini leaderboard on results */
+        .results-leaderboard { margin-top: 1.5rem; margin-bottom: 1.5rem; width: 100%; }
+        .results-leaderboard h3 { font-size: 1rem; color: #94a3b8; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+        .mini-lb-row {
+            display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem;
+            border-radius: 10px; margin-bottom: 0.4rem;
+        }
+        .mini-lb-row.rank-1 { background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05)); }
+        .mini-lb-row.rank-2 { background: linear-gradient(135deg, rgba(192,192,192,0.15), rgba(192,192,192,0.05)); }
+        .mini-lb-row.rank-3 { background: linear-gradient(135deg, rgba(205,127,50,0.15), rgba(205,127,50,0.05)); }
+        .mini-lb-row.is-me { border: 1px solid rgba(124, 58, 237, 0.4); }
+        .mini-lb-medal { font-size: 1.3rem; width: 28px; text-align: center; flex-shrink: 0; }
+        .mini-lb-avatar { font-size: 1.2rem; }
+        .mini-lb-name { flex: 1; font-weight: 500; font-size: 0.9rem; text-align: left; }
+        .mini-lb-tag { font-size: 0.65rem; color: #a78bfa; }
+        .mini-lb-score { font-weight: 700; font-size: 1.1rem; color: #a78bfa; }
+        .mini-lb-score.gold { color: #fbbf24; }
+
         /* Streak animation overlay */
         .streak-popup {
             position: fixed;
@@ -471,6 +489,10 @@
             <h1 id="resultsTitle">Challenge Complete!</h1>
             <p id="resultsMessage">Great effort!</p>
             <div class="results-stats" id="resultsStats"></div>
+            <div class="results-leaderboard" id="resultsLeaderboard" style="display: none;">
+                <h3>Leaderboard</h3>
+                <div id="resultsLeaderboardBody"></div>
+            </div>
             <a href="student.html" class="btn btn-primary btn-lg">Back to Dashboard</a>
         </div>
     </div>
@@ -501,6 +523,7 @@
     <script src="../shared/vocabulary-data.js"></script>
     <script src="../shared/greek-vocabulary-data.js"></script>
     <script src="../latin/data/suburani-vocab.js"></script>
+    <script src="../shared/xp-system.js"></script>
     <script>
         // ========== LENIENT ANSWER CHECKING (from vocabulary-quiz.js) ==========
         function levenshteinDistance(str1, str2) {
@@ -1322,6 +1345,86 @@
             }
 
             document.getElementById('resultsStats').innerHTML = statsHtml;
+
+            // Fetch and show top 3 leaderboard
+            loadResultsLeaderboard();
+        }
+
+        async function loadResultsLeaderboard() {
+            if (!challenge) return;
+            const challengeId = new URLSearchParams(window.location.search).get('id');
+
+            // Fetch all attempts for this challenge
+            const { data: attempts } = await supabase
+                .from('challenge_attempts')
+                .select('*')
+                .eq('challenge_id', challengeId);
+
+            if (!attempts || attempts.length === 0) return;
+
+            // Fetch user profiles
+            const studentIds = [...new Set(attempts.map(a => a.student_id))];
+            const { data: users } = await supabase
+                .from('users')
+                .select('id, full_name, selected_emoji, selected_tag')
+                .in('id', studentIds);
+
+            const userMap = {};
+            if (users) users.forEach(u => { userMap[u.id] = u; });
+
+            // Sort by challenge type
+            let sorted;
+            const ct = challenge.challenge_type;
+            if (ct === 'speed' || ct === 'gold_rush') {
+                sorted = [...attempts].sort((a, b) => b.score - a.score || a.time_spent_seconds - b.time_spent_seconds);
+            } else if (ct === 'streak') {
+                sorted = [...attempts].sort((a, b) => b.best_streak - a.best_streak || b.score - a.score);
+            } else {
+                sorted = [...attempts].sort((a, b) => {
+                    if (a.completed && !b.completed) return -1;
+                    if (!a.completed && b.completed) return 1;
+                    if (a.completed && b.completed) return a.time_spent_seconds - b.time_spent_seconds;
+                    return (b.words_mastered || 0) - (a.words_mastered || 0);
+                });
+            }
+
+            const top3 = sorted.slice(0, 3);
+            const medals = ['🥇', '🥈', '🥉'];
+            const isGR = ct === 'gold_rush';
+
+            const body = document.getElementById('resultsLeaderboardBody');
+            body.innerHTML = top3.map((a, i) => {
+                const u = userMap[a.student_id];
+                const name = u?.full_name || 'Student';
+                const emoji = u?.selected_emoji || '🙂';
+                const tagId = u?.selected_tag;
+                const tagInfo = tagId && typeof xpSystem !== 'undefined' ? xpSystem.TAGS?.find(t => t.id === tagId) : null;
+                const tagHtml = tagInfo ? `<div class="mini-lb-tag">${tagInfo.emoji} ${tagInfo.text}</div>` : '';
+                const isMe = currentUser && a.student_id === currentUser.id;
+
+                let scoreDisplay;
+                if (isGR) scoreDisplay = `🪙 ${a.score}`;
+                else if (ct === 'streak') scoreDisplay = `🔥 ${a.best_streak}`;
+                else if (ct === 'marathon') scoreDisplay = a.completed ? formatMiniTime(a.time_spent_seconds) : `${a.words_mastered || 0} words`;
+                else scoreDisplay = a.score;
+
+                return `
+                    <div class="mini-lb-row rank-${i + 1}${isMe ? ' is-me' : ''}">
+                        <div class="mini-lb-medal">${medals[i]}</div>
+                        <div class="mini-lb-avatar">${emoji}</div>
+                        <div class="mini-lb-name">${isMe ? 'You' : name.split(' ')[0]}${tagHtml}</div>
+                        <div class="mini-lb-score${isGR ? ' gold' : ''}">${scoreDisplay}</div>
+                    </div>`;
+            }).join('');
+
+            document.getElementById('resultsLeaderboard').style.display = 'block';
+        }
+
+        function formatMiniTime(seconds) {
+            if (!seconds) return '—';
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m}:${s.toString().padStart(2, '0')}`;
         }
 
         // Enter key to submit
