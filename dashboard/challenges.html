@@ -160,7 +160,15 @@
         .scoreboard-body { padding: 1rem; }
         .scoreboard-row {
             display: flex; align-items: center; padding: 0.75rem 1rem;
-            border-radius: 10px; margin-bottom: 0.5rem; transition: all 0.3s;
+            border-radius: 10px; margin-bottom: 0.5rem;
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .scoreboard-row.score-flash {
+            animation: score-flash 0.6s ease;
+        }
+        @keyframes score-flash {
+            0%, 100% { box-shadow: none; }
+            50% { box-shadow: 0 0 12px rgba(124, 58, 237, 0.4); }
         }
         .scoreboard-row.rank-1 { background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,215,0,0.05)); }
         .scoreboard-row.rank-2 { background: linear-gradient(135deg, rgba(192,192,192,0.2), rgba(192,192,192,0.05)); }
@@ -430,6 +438,8 @@
         let viewingChallenge = null;
         let realtimeSubscription = null;
         let lastAttempts = [];
+        let scoreboardPollInterval = null;
+        let previousScores = {}; // track score changes for flash animation
 
         const urlParams = new URLSearchParams(window.location.search);
         const classId = urlParams.get('classId');
@@ -576,6 +586,7 @@
                 document.getElementById('challengesView').style.display = 'block';
                 document.querySelectorAll('.view-tab')[0].classList.add('active');
                 if (realtimeSubscription) { realtimeSubscription.unsubscribe(); realtimeSubscription = null; }
+                if (scoreboardPollInterval) { clearInterval(scoreboardPollInterval); scoreboardPollInterval = null; }
             } else if (view === 'create') {
                 document.getElementById('createView').style.display = 'block';
                 document.querySelectorAll('.view-tab')[1].classList.add('active');
@@ -830,11 +841,24 @@
                 });
             }
 
+            // Detect which students' scores changed since last render
+            const changedStudents = new Set();
+            for (const a of sorted) {
+                const key = a.student_id;
+                const prevScore = previousScores[key];
+                const currentScore = challengeType === 'streak' ? a.best_streak : (challengeType === 'marathon' ? (a.words_mastered || 0) : a.score);
+                if (prevScore !== undefined && prevScore !== currentScore) {
+                    changedStudents.add(key);
+                }
+                previousScores[key] = currentScore;
+            }
+
             body.innerHTML = sorted.map((a, i) => {
                 const rank = i + 1;
                 const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : 'other';
                 const rankLabel = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
                 const name = a.users?.full_name || 'Student';
+                const flash = changedStudents.has(a.student_id) ? ' score-flash' : '';
 
                 let status, statusClass;
                 if (a.completed) { status = 'Finished'; statusClass = 'status-completed'; }
@@ -855,7 +879,7 @@
                 }
 
                 return `
-                    <div class="scoreboard-row rank-${rank <= 3 ? rank : ''}">
+                    <div class="scoreboard-row rank-${rank <= 3 ? rank : ''}${flash}" data-student="${a.student_id}">
                         <div class="scoreboard-rank ${rankClass}">${rankLabel}</div>
                         <div class="scoreboard-name">${name}</div>
                         <span class="scoreboard-status ${statusClass}">${status}</span>
@@ -874,10 +898,12 @@
             return `${m}:${s.toString().padStart(2, '0')}`;
         }
 
-        // Realtime subscription
+        // Realtime subscription + polling fallback
         function subscribeToScoreboard(challengeId, challengeType) {
             if (realtimeSubscription) realtimeSubscription.unsubscribe();
+            if (scoreboardPollInterval) clearInterval(scoreboardPollInterval);
 
+            // Realtime (may not work without proper publication setup)
             realtimeSubscription = supabase
                 .channel(`challenge-${challengeId}`)
                 .on('postgres_changes',
@@ -885,6 +911,11 @@
                     () => { refreshScoreboard(challengeId, challengeType); }
                 )
                 .subscribe();
+
+            // Polling fallback - every 2 seconds for reliable live updates
+            scoreboardPollInterval = setInterval(() => {
+                refreshScoreboard(challengeId, challengeType);
+            }, 2000);
         }
 
         // === END CHALLENGE ===
@@ -898,10 +929,16 @@
             viewingChallenge.status = 'ended';
             viewingChallenge.is_active = false;
 
+            // Stop live polling (keep realtime for any final saves)
+            if (scoreboardPollInterval) { clearInterval(scoreboardPollInterval); scoreboardPollInterval = null; }
+
             document.getElementById('startSection').style.display = 'none';
             document.getElementById('joinCodeDisplay').style.display = 'none';
             document.getElementById('endChallengeBtn').style.display = 'none';
             document.getElementById('awardXpBtn').style.display = 'inline-flex';
+
+            // One final scoreboard refresh to get the latest data
+            await refreshScoreboard(viewingChallengeId, viewingChallenge.challenge_type);
             await loadChallenges();
         }
 
