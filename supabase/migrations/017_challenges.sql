@@ -18,8 +18,14 @@ CREATE TABLE IF NOT EXISTS challenges (
     word_from INTEGER, -- optional: start index within chapter words
     word_to INTEGER, -- optional: end index within chapter words
     time_limit_seconds INTEGER, -- for speed challenges (e.g. 300 = 5 mins)
+    join_code TEXT UNIQUE NOT NULL, -- short code students type to join (e.g. GO-AB3F)
+    status TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'active', 'ended')),
+    -- waiting: students can join, challenge hasn't started yet
+    -- active: challenge is running, students can play
+    -- ended: challenge is over
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+    started_at TIMESTAMP WITH TIME ZONE, -- when teacher pressed Start
     expires_at TIMESTAMP WITH TIME ZONE -- optional auto-expiry
 );
 
@@ -42,6 +48,7 @@ CREATE TABLE IF NOT EXISTS challenge_attempts (
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_challenges_class_id ON challenges(class_id);
 CREATE INDEX IF NOT EXISTS idx_challenges_active ON challenges(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_challenges_join_code ON challenges(join_code);
 CREATE INDEX IF NOT EXISTS idx_challenge_attempts_challenge_id ON challenge_attempts(challenge_id);
 CREATE INDEX IF NOT EXISTS idx_challenge_attempts_student_id ON challenge_attempts(student_id);
 
@@ -95,5 +102,11 @@ CREATE POLICY "Teachers can view challenge attempts for their classes"
         )
     );
 
--- Enable realtime for live scoreboard
+-- Allow any authenticated user to look up a challenge by join code (for joining)
+CREATE POLICY "Anyone can look up challenges by join code"
+    ON challenges FOR SELECT
+    USING (auth.uid() IS NOT NULL);
+
+-- Enable realtime for live scoreboard and waiting room
 ALTER PUBLICATION supabase_realtime ADD TABLE challenge_attempts;
+ALTER PUBLICATION supabase_realtime ADD TABLE challenges;
