@@ -967,6 +967,19 @@
             </div>
         </div>
 
+        <!-- Join Challenge -->
+        <div style="background: linear-gradient(135deg, #7c3aed, #5b21b6); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem; color: white;">
+            <span style="font-size: 1.5rem;">🏆</span>
+            <div style="flex: 1;">
+                <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.35rem;">Join a Challenge</div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="challengeCodeInput" placeholder="Enter code (e.g. GO-AB3F)" style="flex: 1; padding: 0.5rem 0.75rem; border-radius: 8px; border: 2px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.15); color: white; font-size: 0.9rem; font-family: monospace; text-transform: uppercase; letter-spacing: 1px;" maxlength="10">
+                    <button onclick="joinChallenge()" style="padding: 0.5rem 1rem; border-radius: 8px; border: none; background: white; color: #7c3aed; font-weight: 700; cursor: pointer; font-size: 0.9rem; white-space: nowrap;">Go</button>
+                </div>
+                <div id="challengeCodeMsg" style="font-size: 0.8rem; margin-top: 0.3rem; min-height: 1.1em;"></div>
+            </div>
+        </div>
+
         <!-- Quick Actions -->
         <div class="quick-actions" id="quickActions">
             <!-- Dynamically populated based on classes -->
@@ -3779,14 +3792,49 @@
             }
         }
 
+        // Join challenge by code
+        async function joinChallenge() {
+            const code = document.getElementById('challengeCodeInput').value.trim().toUpperCase();
+            const msg = document.getElementById('challengeCodeMsg');
+            if (!code) { msg.textContent = 'Enter a challenge code'; return; }
+
+            msg.textContent = 'Looking up challenge...';
+
+            const { data: challenge, error } = await supabase
+                .from('challenges')
+                .select('id, title, status, is_active')
+                .eq('join_code', code)
+                .single();
+
+            if (error || !challenge) {
+                msg.textContent = 'Challenge not found. Check the code and try again.';
+                return;
+            }
+            if (!challenge.is_active) {
+                msg.textContent = 'This challenge has ended.';
+                return;
+            }
+
+            // Redirect to challenge page
+            window.location.href = `challenge.html?id=${challenge.id}`;
+        }
+
         // Start
         init();
-        
+
         // Allow Enter key to join (if join input exists)
         const joinInput = document.getElementById('joinCodeInput');
         if (joinInput) {
             joinInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') joinClass();
+            });
+        }
+
+        // Allow Enter key for challenge code
+        const challengeInput = document.getElementById('challengeCodeInput');
+        if (challengeInput) {
+            challengeInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') joinChallenge();
             });
         }
     </script>

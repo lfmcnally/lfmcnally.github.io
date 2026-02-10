@@ -416,6 +416,7 @@
     <script src="../auth/config.js"></script>
     <script src="../shared/vocabulary-data.js"></script>
     <script src="../shared/greek-vocabulary-data.js"></script>
+    <script src="../latin/data/suburani-vocab.js"></script>
     <script>
         // ========== LENIENT ANSWER CHECKING (from vocabulary-quiz.js) ==========
         function levenshteinDistance(str1, str2) {
@@ -537,8 +538,8 @@
 
             challenge = ch;
 
-            // Check if challenge is active
-            if (!ch.is_active) {
+            // Check if challenge has ended
+            if (!ch.is_active || ch.status === 'ended') {
                 document.getElementById('introTitle').textContent = ch.title;
                 document.getElementById('introIcon').textContent = '🏁';
                 document.getElementById('introDetails').innerHTML = '<p style="color: #94a3b8; text-align: center;">This challenge has ended.</p>';
@@ -562,7 +563,79 @@
                 return;
             }
 
+            // Register the student as joined (create attempt record so teacher sees them)
+            if (!existingAttempt) {
+                await supabase.from('challenge_attempts').insert({
+                    challenge_id: challengeId,
+                    student_id: currentUser.id,
+                    score: 0,
+                    total_questions: 0,
+                    best_streak: 0,
+                    time_spent_seconds: 0,
+                    words_mastered: 0,
+                    completed: false
+                });
+            }
+
+            // If challenge is still waiting for teacher to press Start
+            if (ch.status === 'waiting') {
+                setupWaitingScreen(ch);
+                return;
+            }
+
+            // Challenge is active - go to pre-screen
             setupPreScreen(ch);
+        }
+
+        // Waiting room - polls for teacher to press Start
+        let waitingInterval = null;
+        let waitingSubscription = null;
+
+        function setupWaitingScreen(ch) {
+            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁' };
+            document.getElementById('introIcon').textContent = typeIcons[ch.challenge_type] || '🏆';
+            document.getElementById('introTitle').textContent = ch.title;
+            document.getElementById('introTypeBadge').textContent = 'Waiting for teacher to start...';
+            document.getElementById('introTypeBadge').className = 'type-badge';
+            document.getElementById('introTypeBadge').style.background = 'rgba(251, 191, 36, 0.2)';
+            document.getElementById('introTypeBadge').style.color = '#fbbf24';
+
+            document.getElementById('introDetails').innerHTML = `
+                <div style="text-align: center; padding: 1rem;">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem; animation: pulse-dot 1.5s infinite;">⏳</div>
+                    <p style="color: #94a3b8;">You're in! Waiting for your teacher to start the challenge...</p>
+                    <p style="color: #64748b; font-size: 0.8rem; margin-top: 0.5rem;">The challenge will begin automatically when the teacher presses Start.</p>
+                </div>
+            `;
+
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('preMessage').textContent = '';
+
+            // Subscribe to challenge changes (status update)
+            waitingSubscription = supabase
+                .channel(`waiting-${challengeId}`)
+                .on('postgres_changes',
+                    { event: 'UPDATE', schema: 'public', table: 'challenges', filter: `id=eq.${challengeId}` },
+                    (payload) => {
+                        if (payload.new.status === 'active') {
+                            if (waitingSubscription) { waitingSubscription.unsubscribe(); waitingSubscription = null; }
+                            challenge.status = 'active';
+                            setupPreScreen(challenge);
+                        }
+                    }
+                )
+                .subscribe();
+
+            // Also poll as fallback (in case realtime misses it)
+            waitingInterval = setInterval(async () => {
+                const { data } = await supabase.from('challenges').select('status').eq('id', challengeId).single();
+                if (data && data.status === 'active') {
+                    clearInterval(waitingInterval);
+                    if (waitingSubscription) { waitingSubscription.unsubscribe(); waitingSubscription = null; }
+                    challenge.status = 'active';
+                    setupPreScreen(challenge);
+                }
+            }, 3000);
         }
 
         function setupPreScreen(ch) {
@@ -594,12 +667,15 @@
 
             document.getElementById('introDetails').innerHTML = detailsHtml;
             document.getElementById('startBtn').style.display = 'inline-flex';
+            document.getElementById('preMessage').textContent = 'Your teacher has started the challenge - press Start when ready!';
         }
 
         function loadWords(ch) {
             let vocabData;
             if (ch.language === 'greek') {
                 vocabData = typeof greekVocabularyData !== 'undefined' ? greekVocabularyData : [];
+            } else if (ch.language === 'prep-latin') {
+                vocabData = typeof suburaniVocabularyData !== 'undefined' ? suburaniVocabularyData : [];
             } else {
                 vocabData = typeof vocabularyData !== 'undefined' ? vocabularyData : [];
             }
