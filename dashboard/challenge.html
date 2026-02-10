@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Challenge - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f172a;
+            min-height: 100vh;
+            color: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Loading / Error states */
+        .state-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 2rem;
+        }
+        .state-screen h1 { font-size: 2rem; margin-bottom: 1rem; }
+        .state-screen p { color: #94a3b8; font-size: 1.1rem; margin-bottom: 1.5rem; }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-primary { background: #7c3aed; color: white; }
+        .btn-primary:hover { background: #6d28d9; transform: translateY(-2px); }
+        .btn-lg { padding: 1rem 2.5rem; font-size: 1.2rem; border-radius: 12px; }
+        .btn-ghost {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,0.15); }
+
+        /* Pre-challenge screen */
+        #preScreen {
+            background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+        }
+        .challenge-intro {
+            max-width: 500px;
+        }
+        .challenge-intro-icon { font-size: 4rem; margin-bottom: 1.5rem; }
+        .challenge-intro h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .challenge-intro .type-badge {
+            display: inline-block;
+            padding: 0.35rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        .badge-speed { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .badge-streak { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .badge-marathon { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .challenge-details {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+        .challenge-detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .challenge-detail-row:last-child { border: none; }
+        .challenge-detail-label { color: #94a3b8; }
+        .challenge-detail-value { font-weight: 600; }
+
+        /* Quiz area */
+        #quizScreen {
+            display: none;
+            flex: 1;
+            padding: 0;
+        }
+
+        /* Top stats bar */
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-group {
+            display: flex;
+            gap: 2rem;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-item-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .stat-item-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            margin-top: 0.25rem;
+        }
+        .stat-score .stat-item-value { color: #a78bfa; }
+        .stat-streak .stat-item-value { color: #f59e0b; }
+        .stat-accuracy .stat-item-value { color: #34d399; }
+
+        /* Timer */
+        .timer-display {
+            font-size: 2rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            padding: 0.5rem 1.5rem;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.1);
+        }
+        .timer-display.warning { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+        .timer-display.danger { color: #ef4444; background: rgba(239, 68, 68, 0.15); animation: pulse-timer 0.5s infinite alternate; }
+        @keyframes pulse-timer { from { opacity: 1; } to { opacity: 0.7; } }
+
+        /* Streak fire */
+        .streak-fire {
+            display: none;
+            font-size: 1.5rem;
+            animation: flame 0.3s ease-in-out;
+        }
+        .streak-fire.active { display: inline; }
+        @keyframes flame {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        /* Main quiz content */
+        .quiz-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Progress bar */
+        .challenge-progress {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        .challenge-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #7c3aed, #a78bfa);
+            border-radius: 3px;
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        /* Word display */
+        .word-display {
+            text-align: center;
+            margin-bottom: 2rem;
+            width: 100%;
+        }
+        .word-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #94a3b8;
+            margin-bottom: 0.75rem;
+        }
+        .word-text {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+        }
+        .word-info {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        /* Answer input */
+        .answer-area {
+            width: 100%;
+            max-width: 500px;
+        }
+        .answer-input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.05);
+            color: white;
+            font-size: 1.25rem;
+            text-align: center;
+            outline: none;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .answer-input:focus {
+            border-color: #7c3aed;
+            background: rgba(124, 58, 237, 0.05);
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15);
+        }
+        .answer-input.correct {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .answer-input.incorrect {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Feedback */
+        .feedback {
+            text-align: center;
+            margin-top: 1rem;
+            min-height: 2rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        .feedback-correct { color: #34d399; }
+        .feedback-incorrect { color: #f87171; }
+
+        /* Action buttons */
+        .action-row {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            width: 100%;
+            max-width: 500px;
+        }
+        .action-row .btn { flex: 1; justify-content: center; }
+
+        /* Results screen */
+        #resultsScreen { display: none; }
+        .results-card {
+            max-width: 500px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .results-icon { font-size: 4rem; margin-bottom: 1rem; }
+        .results-card h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .results-card p { color: #94a3b8; margin-bottom: 2rem; }
+        .results-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .result-stat {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+        .result-stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #a78bfa;
+        }
+        .result-stat-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 0.25rem;
+        }
+
+        /* Streak animation overlay */
+        .streak-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 3rem;
+            font-weight: 800;
+            color: #f59e0b;
+            text-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+            pointer-events: none;
+            z-index: 100;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .streak-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .streak-popup.hide {
+            transform: translate(-50%, -70%) scale(0.5);
+            opacity: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-bar { padding: 0.75rem 1rem; }
+            .stat-group { gap: 1rem; }
+            .stat-item-value { font-size: 1.25rem; }
+            .timer-display { font-size: 1.5rem; padding: 0.4rem 1rem; }
+            .word-text { font-size: 1.75rem; }
+            .answer-input { font-size: 1.1rem; }
+            .results-stats { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Pre-Challenge Screen -->
+    <div id="preScreen" class="state-screen">
+        <div class="challenge-intro">
+            <div class="challenge-intro-icon" id="introIcon">⚡</div>
+            <h1 id="introTitle">Loading...</h1>
+            <div class="type-badge badge-speed" id="introTypeBadge">Speed Round</div>
+            <div class="challenge-details" id="introDetails">
+                <div class="challenge-detail-row">
+                    <span class="challenge-detail-label">Loading...</span>
+                    <span class="challenge-detail-value">...</span>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-lg" id="startBtn" onclick="startChallenge()" style="display: none;">
+                Start Challenge
+            </button>
+            <p id="preMessage" style="color: #94a3b8; font-size: 0.9rem; margin-top: 1rem;"></p>
+        </div>
+    </div>
+
+    <!-- Quiz Screen -->
+    <div id="quizScreen">
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-group">
+                <div class="stat-item stat-score">
+                    <div class="stat-item-value" id="statScore">0</div>
+                    <div class="stat-item-label">Score</div>
+                </div>
+                <div class="stat-item stat-streak">
+                    <div class="stat-item-value">
+                        <span id="statStreak">0</span>
+                        <span class="streak-fire" id="streakFire">🔥</span>
+                    </div>
+                    <div class="stat-item-label">Streak</div>
+                </div>
+                <div class="stat-item stat-accuracy">
+                    <div class="stat-item-value" id="statAccuracy">0%</div>
+                    <div class="stat-item-label">Accuracy</div>
+                </div>
+            </div>
+            <div class="timer-display" id="timerDisplay">5:00</div>
+        </div>
+
+        <!-- Quiz Content -->
+        <div class="quiz-main">
+            <div class="challenge-progress">
+                <div class="challenge-progress-fill" id="progressFill"></div>
+            </div>
+
+            <div class="word-display">
+                <div class="word-label" id="wordLabel">Translate this word</div>
+                <div class="word-text" id="wordText">—</div>
+                <div class="word-info" id="wordInfo"></div>
+            </div>
+
+            <div class="answer-area">
+                <input type="text" class="answer-input" id="answerInput" placeholder="Type your answer..." autocomplete="off" autocapitalize="off" spellcheck="false">
+                <div class="feedback" id="feedback"></div>
+                <div class="action-row">
+                    <button class="btn btn-primary" id="checkBtn" onclick="checkAnswer()">Check</button>
+                    <button class="btn btn-ghost" id="skipBtn" onclick="skipWord()">Skip</button>
+                    <button class="btn btn-primary" id="nextBtn" onclick="nextWord()" style="display: none;">Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="resultsScreen" class="state-screen">
+        <div class="results-card">
+            <div class="results-icon" id="resultsIcon">🏆</div>
+            <h1 id="resultsTitle">Challenge Complete!</h1>
+            <p id="resultsMessage">Great effort!</p>
+            <div class="results-stats" id="resultsStats"></div>
+            <a href="student.html" class="btn btn-primary btn-lg">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <!-- Streak Popup -->
+    <div class="streak-popup" id="streakPopup"></div>
+
+    <script src="../auth/config.js"></script>
+    <script src="../shared/vocabulary-data.js"></script>
+    <script src="../shared/greek-vocabulary-data.js"></script>
+    <script>
+        // ========== LENIENT ANSWER CHECKING (from vocabulary-quiz.js) ==========
+        function levenshteinDistance(str1, str2) {
+            const m = str1.length, n = str2.length;
+            const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+            for (let i = 0; i <= m; i++) dp[i][0] = i;
+            for (let j = 0; j <= n; j++) dp[0][j] = j;
+            for (let i = 1; i <= m; i++) {
+                for (let j = 1; j <= n; j++) {
+                    if (str1[i-1] === str2[j-1]) dp[i][j] = dp[i-1][j-1];
+                    else dp[i][j] = 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+                }
+            }
+            return dp[m][n];
+        }
+
+        function normalizeText(text) {
+            return text.toLowerCase().replace(/\.{2,}/g, ' ').replace(/[-–—]/g, ' ').replace(/\s+/g, ' ').replace(/['']/g, "'").trim();
+        }
+
+        function removeSpacesAndDashes(text) {
+            return text.toLowerCase().replace(/[-–—\s.]/g, '');
+        }
+
+        function removeCommonPrefixes(text) {
+            return text.replace(/^(to |i |a |an |the )/, '').replace(/^(he\/she\/it |he |she |it )/, '').replace(/^(we |you |they )/, '').trim();
+        }
+
+        function isCloseMatch(userAnswer, correctAnswer) {
+            if (userAnswer === correctAnswer) return true;
+            const allowedDistance = correctAnswer.length >= 8 ? 2 : (correctAnswer.length >= 4 ? 1 : 0);
+            return levenshteinDistance(userAnswer, correctAnswer) <= allowedDistance;
+        }
+
+        function isAnswerCorrect(userAnswer, correctAnswer) {
+            const userNorm = normalizeText(userAnswer);
+            const correctNorm = normalizeText(correctAnswer);
+            const acceptableAnswers = correctNorm.split(/[,;\/]/).map(a => a.trim()).filter(a => a.length > 0);
+            acceptableAnswers.push(correctNorm);
+
+            for (const acceptable of acceptableAnswers) {
+                const withoutParens = acceptable.replace(/\([^)]*\)/g, '').trim().replace(/\s+/g, ' ');
+                const variations = [acceptable, withoutParens, removeCommonPrefixes(acceptable), removeCommonPrefixes(withoutParens)];
+                const userVariations = [userNorm, removeCommonPrefixes(userNorm)];
+
+                for (const correctVar of variations) {
+                    if (!correctVar) continue;
+                    for (const userVar of userVariations) {
+                        if (userVar === correctVar) return true;
+                        if (isCloseMatch(userVar, correctVar)) return true;
+                        if (removeSpacesAndDashes(userVar) === removeSpacesAndDashes(correctVar)) return true;
+                        const correctWords = correctVar.split(' ').filter(w => w.length > 2);
+                        for (const word of correctWords) {
+                            if (isCloseMatch(userVar, word)) return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+        // ========== END ANSWER CHECKING ==========
+
+        // State
+        let currentUser = null;
+        let challenge = null;
+        let attemptId = null;
+        let words = [];
+        let currentWordIndex = 0;
+        let currentWord = null;
+        let score = 0;
+        let totalQuestions = 0;
+        let currentStreak = 0;
+        let bestStreak = 0;
+        let wordsMastered = 0;
+        let wordMastery = {}; // for marathon mode
+        let timerInterval = null;
+        let timeRemaining = 0;
+        let timeSpent = 0;
+        let startTime = null;
+        let challengeActive = false;
+        let saveDebounce = null;
+
+        const MASTERY_THRESHOLD = 2; // for marathon mode
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const challengeId = urlParams.get('id');
+
+        if (!challengeId) {
+            document.getElementById('preScreen').innerHTML = '<div class="state-screen"><h1>No challenge specified</h1><p>This link is missing a challenge ID.</p><a href="student.html" class="btn btn-primary">Back to Dashboard</a></div>';
+        }
+
+        async function init() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { window.location.href = '../auth/login.html'; return; }
+
+            const { data: profile } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (!profile) { window.location.href = '../auth/login.html'; return; }
+            currentUser = profile;
+
+            // Load challenge
+            const { data: ch, error } = await supabase
+                .from('challenges')
+                .select('*, classes(name, type)')
+                .eq('id', challengeId)
+                .single();
+
+            if (error || !ch) {
+                document.getElementById('introTitle').textContent = 'Challenge not found';
+                document.getElementById('introIcon').textContent = '❌';
+                document.getElementById('introDetails').innerHTML = '<p style="color: #94a3b8;">This challenge may have been deleted.</p>';
+                document.getElementById('introTypeBadge').style.display = 'none';
+                return;
+            }
+
+            challenge = ch;
+
+            // Check if challenge is active
+            if (!ch.is_active) {
+                document.getElementById('introTitle').textContent = ch.title;
+                document.getElementById('introIcon').textContent = '🏁';
+                document.getElementById('introDetails').innerHTML = '<p style="color: #94a3b8; text-align: center;">This challenge has ended.</p>';
+                document.getElementById('introTypeBadge').textContent = 'Ended';
+                document.getElementById('introTypeBadge').className = 'type-badge';
+                document.getElementById('introTypeBadge').style.background = 'rgba(255,255,255,0.1)';
+                document.getElementById('introTypeBadge').style.color = '#94a3b8';
+                return;
+            }
+
+            // Check if student already has an attempt
+            const { data: existingAttempt } = await supabase
+                .from('challenge_attempts')
+                .select('*')
+                .eq('challenge_id', challengeId)
+                .eq('student_id', currentUser.id)
+                .single();
+
+            if (existingAttempt && existingAttempt.completed) {
+                showResults(existingAttempt);
+                return;
+            }
+
+            setupPreScreen(ch);
+        }
+
+        function setupPreScreen(ch) {
+            const typeIcons = { speed: '⚡', streak: '🔥', marathon: '🏁' };
+            const typeNames = { speed: 'Speed Round', streak: 'Streak Challenge', marathon: 'Marathon' };
+            const typeBadges = { speed: 'badge-speed', streak: 'badge-streak', marathon: 'badge-marathon' };
+
+            document.getElementById('introIcon').textContent = typeIcons[ch.challenge_type] || '🏆';
+            document.getElementById('introTitle').textContent = ch.title;
+            document.getElementById('introTypeBadge').textContent = typeNames[ch.challenge_type];
+            document.getElementById('introTypeBadge').className = `type-badge ${typeBadges[ch.challenge_type]}`;
+
+            // Load words
+            loadWords(ch);
+
+            let detailsHtml = '';
+            detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Class</span><span class="challenge-detail-value">${ch.classes?.name || 'Unknown'}</span></div>`;
+            detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Chapters</span><span class="challenge-detail-value">${ch.chapters.join(', ')}</span></div>`;
+            detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Words</span><span class="challenge-detail-value">${words.length}</span></div>`;
+
+            if (ch.challenge_type === 'speed') {
+                detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Time Limit</span><span class="challenge-detail-value">${Math.floor(ch.time_limit_seconds / 60)} minutes</span></div>`;
+                detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Goal</span><span class="challenge-detail-value">Most correct answers wins</span></div>`;
+            } else if (ch.challenge_type === 'streak') {
+                detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Goal</span><span class="challenge-detail-value">Longest consecutive correct streak</span></div>`;
+            } else {
+                detailsHtml += `<div class="challenge-detail-row"><span class="challenge-detail-label">Goal</span><span class="challenge-detail-value">Master every word (${MASTERY_THRESHOLD}x correct each), fastest time wins</span></div>`;
+            }
+
+            document.getElementById('introDetails').innerHTML = detailsHtml;
+            document.getElementById('startBtn').style.display = 'inline-flex';
+        }
+
+        function loadWords(ch) {
+            let vocabData;
+            if (ch.language === 'greek') {
+                vocabData = typeof greekVocabularyData !== 'undefined' ? greekVocabularyData : [];
+            } else {
+                vocabData = typeof vocabularyData !== 'undefined' ? vocabularyData : [];
+            }
+
+            words = vocabData.filter(w => ch.chapters.includes(w.chapter));
+
+            if (ch.word_from && ch.word_to) {
+                words = words.slice(ch.word_from - 1, ch.word_to);
+            } else if (ch.word_from) {
+                words = words.slice(ch.word_from - 1);
+            } else if (ch.word_to) {
+                words = words.slice(0, ch.word_to);
+            }
+
+            // Shuffle
+            for (let i = words.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [words[i], words[j]] = [words[j], words[i]];
+            }
+        }
+
+        function getWordKey() {
+            return challenge.language === 'greek' ? 'greek' : 'latin';
+        }
+
+        // Start the challenge
+        async function startChallenge() {
+            if (words.length === 0) {
+                alert('No words available for this challenge.');
+                return;
+            }
+
+            // Create attempt record
+            const { data: attempt, error } = await supabase
+                .from('challenge_attempts')
+                .upsert({
+                    challenge_id: challengeId,
+                    student_id: currentUser.id,
+                    score: 0,
+                    total_questions: 0,
+                    best_streak: 0,
+                    time_spent_seconds: 0,
+                    words_mastered: 0,
+                    completed: false,
+                    started_at: new Date().toISOString()
+                }, { onConflict: 'challenge_id,student_id' })
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Error creating attempt:', error);
+                alert('Error starting challenge. Please try again.');
+                return;
+            }
+
+            attemptId = attempt.id;
+            startTime = Date.now();
+            challengeActive = true;
+
+            // Initialize marathon mastery tracking
+            if (challenge.challenge_type === 'marathon') {
+                wordMastery = {};
+                for (const w of words) {
+                    wordMastery[w[getWordKey()]] = 0;
+                }
+            }
+
+            // Setup timer
+            if (challenge.challenge_type === 'speed' && challenge.time_limit_seconds) {
+                timeRemaining = challenge.time_limit_seconds;
+                startTimer();
+            } else {
+                // Count up for streak and marathon
+                timeSpent = 0;
+                startCountUpTimer();
+            }
+
+            // Show quiz
+            document.getElementById('preScreen').style.display = 'none';
+            document.getElementById('quizScreen').style.display = 'flex';
+
+            // Hide timer for streak mode (we still track time but don't show countdown)
+            if (challenge.challenge_type === 'streak') {
+                document.getElementById('timerDisplay').style.display = 'block';
+            }
+
+            showNextWord();
+            document.getElementById('answerInput').focus();
+        }
+
+        function startTimer() {
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                timeSpent++;
+                updateTimerDisplay();
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    endChallenge();
+                }
+            }, 1000);
+        }
+
+        function startCountUpTimer() {
+            updateCountUpDisplay();
+            timerInterval = setInterval(() => {
+                timeSpent++;
+                updateCountUpDisplay();
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const display = document.getElementById('timerDisplay');
+            const mins = Math.floor(timeRemaining / 60);
+            const secs = timeRemaining % 60;
+            display.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+            display.classList.remove('warning', 'danger');
+            if (timeRemaining <= 10) display.classList.add('danger');
+            else if (timeRemaining <= 30) display.classList.add('warning');
+        }
+
+        function updateCountUpDisplay() {
+            const display = document.getElementById('timerDisplay');
+            const mins = Math.floor(timeSpent / 60);
+            const secs = timeSpent % 60;
+            display.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Show the next word
+        function showNextWord() {
+            if (!challengeActive) return;
+
+            if (challenge.challenge_type === 'marathon') {
+                // Pick an unmastered word
+                const unmastered = words.filter(w => wordMastery[w[getWordKey()]] < MASTERY_THRESHOLD);
+                if (unmastered.length === 0) {
+                    endChallenge();
+                    return;
+                }
+                currentWord = unmastered[Math.floor(Math.random() * unmastered.length)];
+            } else {
+                // Cycle through words, reshuffle when done
+                if (currentWordIndex >= words.length) {
+                    currentWordIndex = 0;
+                    for (let i = words.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [words[i], words[j]] = [words[j], words[i]];
+                    }
+                }
+                currentWord = words[currentWordIndex];
+                currentWordIndex++;
+            }
+
+            const key = getWordKey();
+            document.getElementById('wordText').textContent = currentWord[key];
+            document.getElementById('wordInfo').textContent = currentWord.info || '';
+            document.getElementById('wordLabel').textContent = challenge.language === 'greek' ? 'Translate this Greek word' : 'Translate this Latin word';
+
+            // Reset input
+            const input = document.getElementById('answerInput');
+            input.value = '';
+            input.className = 'answer-input';
+            input.disabled = false;
+            input.focus();
+
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('feedback').className = 'feedback';
+            document.getElementById('checkBtn').style.display = 'inline-flex';
+            document.getElementById('skipBtn').style.display = 'inline-flex';
+            document.getElementById('nextBtn').style.display = 'none';
+
+            // Update progress for marathon
+            if (challenge.challenge_type === 'marathon') {
+                const total = words.length;
+                const mastered = Object.values(wordMastery).filter(v => v >= MASTERY_THRESHOLD).length;
+                document.getElementById('progressFill').style.width = `${(mastered / total) * 100}%`;
+            }
+        }
+
+        // Check answer
+        function checkAnswer() {
+            if (!challengeActive || !currentWord) return;
+
+            const input = document.getElementById('answerInput');
+            const userAnswer = input.value.trim();
+            if (!userAnswer) return;
+
+            const correct = isAnswerCorrect(userAnswer, currentWord.english);
+            totalQuestions++;
+
+            const feedback = document.getElementById('feedback');
+
+            if (correct) {
+                score++;
+                currentStreak++;
+                if (currentStreak > bestStreak) bestStreak = currentStreak;
+
+                input.className = 'answer-input correct';
+                feedback.textContent = `Correct! "${currentWord.english}"`;
+                feedback.className = 'feedback feedback-correct';
+
+                // Marathon mastery
+                if (challenge.challenge_type === 'marathon') {
+                    const key = getWordKey();
+                    wordMastery[currentWord[key]]++;
+                    if (wordMastery[currentWord[key]] === MASTERY_THRESHOLD) {
+                        wordsMastered++;
+                        feedback.textContent += ' - MASTERED!';
+                    }
+                }
+
+                // Streak animations
+                document.getElementById('streakFire').classList.toggle('active', currentStreak >= 3);
+                if (currentStreak > 0 && currentStreak % 5 === 0) {
+                    showStreakPopup(currentStreak);
+                }
+            } else {
+                currentStreak = 0;
+                input.className = 'answer-input incorrect';
+                feedback.innerHTML = `Incorrect. Answer: <strong>"${currentWord.english}"</strong>`;
+                feedback.className = 'feedback feedback-incorrect';
+                document.getElementById('streakFire').classList.remove('active');
+
+                // Marathon: reset mastery for this word
+                if (challenge.challenge_type === 'marathon') {
+                    const key = getWordKey();
+                    const wasMastered = wordMastery[currentWord[key]] >= MASTERY_THRESHOLD;
+                    wordMastery[currentWord[key]] = 0;
+                    if (wasMastered) wordsMastered--;
+                }
+            }
+
+            updateStats();
+            input.disabled = true;
+
+            // Show next button
+            document.getElementById('checkBtn').style.display = 'none';
+            document.getElementById('skipBtn').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'inline-flex';
+
+            // Save progress (debounced)
+            debouncedSave();
+
+            // For speed mode, auto-advance after brief delay
+            if (challenge.challenge_type === 'speed') {
+                setTimeout(() => {
+                    if (challengeActive) nextWord();
+                }, correct ? 600 : 1200);
+            }
+        }
+
+        function skipWord() {
+            if (!challengeActive || !currentWord) return;
+            totalQuestions++;
+            currentStreak = 0;
+            document.getElementById('streakFire').classList.remove('active');
+
+            const feedback = document.getElementById('feedback');
+            feedback.innerHTML = `Skipped. Answer: <strong>"${currentWord.english}"</strong>`;
+            feedback.className = 'feedback feedback-incorrect';
+
+            updateStats();
+            debouncedSave();
+
+            setTimeout(() => { if (challengeActive) showNextWord(); }, 800);
+        }
+
+        function nextWord() {
+            if (!challengeActive) return;
+            showNextWord();
+        }
+
+        function updateStats() {
+            document.getElementById('statScore').textContent = score;
+            document.getElementById('statStreak').textContent = currentStreak;
+            const accuracy = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
+            document.getElementById('statAccuracy').textContent = accuracy + '%';
+        }
+
+        function showStreakPopup(streak) {
+            const popup = document.getElementById('streakPopup');
+            popup.textContent = `🔥 ${streak} STREAK!`;
+            popup.className = 'streak-popup show';
+            setTimeout(() => { popup.className = 'streak-popup hide'; }, 1200);
+            setTimeout(() => { popup.className = 'streak-popup'; }, 1500);
+        }
+
+        // Save progress to database
+        async function saveProgress() {
+            if (!attemptId) return;
+
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+            await supabase
+                .from('challenge_attempts')
+                .update({
+                    score: score,
+                    total_questions: totalQuestions,
+                    best_streak: bestStreak,
+                    time_spent_seconds: elapsed,
+                    words_mastered: wordsMastered
+                })
+                .eq('id', attemptId);
+        }
+
+        function debouncedSave() {
+            if (saveDebounce) clearTimeout(saveDebounce);
+            saveDebounce = setTimeout(saveProgress, 500);
+        }
+
+        // End challenge
+        async function endChallenge() {
+            if (!challengeActive) return;
+            challengeActive = false;
+            clearInterval(timerInterval);
+
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+            // Final save
+            const { data } = await supabase
+                .from('challenge_attempts')
+                .update({
+                    score: score,
+                    total_questions: totalQuestions,
+                    best_streak: bestStreak,
+                    time_spent_seconds: elapsed,
+                    words_mastered: wordsMastered,
+                    completed: true,
+                    completed_at: new Date().toISOString()
+                })
+                .eq('id', attemptId)
+                .select()
+                .single();
+
+            showResults(data || {
+                score, total_questions: totalQuestions, best_streak: bestStreak,
+                time_spent_seconds: elapsed, words_mastered: wordsMastered
+            });
+        }
+
+        function showResults(attempt) {
+            document.getElementById('preScreen').style.display = 'none';
+            document.getElementById('quizScreen').style.display = 'none';
+            document.getElementById('resultsScreen').style.display = 'flex';
+
+            const accuracy = attempt.total_questions > 0 ? Math.round((attempt.score / attempt.total_questions) * 100) : 0;
+
+            if (accuracy >= 90) {
+                document.getElementById('resultsIcon').textContent = '🌟';
+                document.getElementById('resultsTitle').textContent = 'Outstanding!';
+                document.getElementById('resultsMessage').textContent = 'Incredible performance!';
+            } else if (accuracy >= 70) {
+                document.getElementById('resultsIcon').textContent = '🏆';
+                document.getElementById('resultsTitle').textContent = 'Great Job!';
+                document.getElementById('resultsMessage').textContent = 'Solid effort!';
+            } else {
+                document.getElementById('resultsIcon').textContent = '💪';
+                document.getElementById('resultsTitle').textContent = 'Challenge Complete!';
+                document.getElementById('resultsMessage').textContent = 'Keep practising - you\'ll get there!';
+            }
+
+            const mins = Math.floor(attempt.time_spent_seconds / 60);
+            const secs = attempt.time_spent_seconds % 60;
+            const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+            let statsHtml = `
+                <div class="result-stat">
+                    <div class="result-stat-value">${attempt.score}</div>
+                    <div class="result-stat-label">Correct Answers</div>
+                </div>
+                <div class="result-stat">
+                    <div class="result-stat-value">${accuracy}%</div>
+                    <div class="result-stat-label">Accuracy</div>
+                </div>
+                <div class="result-stat">
+                    <div class="result-stat-value">${attempt.best_streak}</div>
+                    <div class="result-stat-label">Best Streak</div>
+                </div>
+                <div class="result-stat">
+                    <div class="result-stat-value">${timeStr}</div>
+                    <div class="result-stat-label">Time</div>
+                </div>
+            `;
+
+            if (challenge && challenge.challenge_type === 'marathon') {
+                statsHtml += `
+                    <div class="result-stat" style="grid-column: span 2;">
+                        <div class="result-stat-value">${attempt.words_mastered}</div>
+                        <div class="result-stat-label">Words Mastered</div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('resultsStats').innerHTML = statsHtml;
+        }
+
+        // Enter key to submit
+        document.getElementById('answerInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                if (document.getElementById('nextBtn').style.display !== 'none') {
+                    nextWord();
+                } else {
+                    checkAnswer();
+                }
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>
