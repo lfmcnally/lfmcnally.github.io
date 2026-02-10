@@ -785,7 +785,8 @@
             document.getElementById('awardXpBtn').style.display = isEnded ? 'inline-flex' : 'none';
 
             if (isActive) {
-                document.getElementById('joinCodeDisplay').querySelector('.join-code-hint').textContent = 'Challenge is live!';
+                document.getElementById('joinCodeDisplay').querySelector('.join-code-hint').textContent =
+                    ch.challenge_type === 'gold_rush' ? '🪙 Gold Rush is live!' : 'Challenge is live!';
             }
 
             showView('scoreboard');
@@ -812,13 +813,35 @@
 
         // Refresh scoreboard
         async function refreshScoreboard(challengeId, challengeType) {
-            const { data: attempts } = await supabase
+            // Fetch attempts (no FK join - avoids auth.users vs public.users issues)
+            const { data: attempts, error } = await supabase
                 .from('challenge_attempts')
-                .select('*, users:student_id(full_name, id)')
+                .select('*')
                 .eq('challenge_id', challengeId)
                 .order('completed', { ascending: false });
 
-            lastAttempts = attempts || [];
+            if (error) {
+                console.error('Scoreboard fetch error:', error);
+            }
+
+            const results = attempts || [];
+
+            // Look up student names separately from public.users
+            if (results.length > 0) {
+                const studentIds = [...new Set(results.map(a => a.student_id))];
+                const { data: users } = await supabase
+                    .from('users')
+                    .select('id, full_name')
+                    .in('id', studentIds);
+
+                const nameMap = {};
+                if (users) users.forEach(u => { nameMap[u.id] = u.full_name; });
+                results.forEach(a => {
+                    a.users = { full_name: nameMap[a.student_id] || 'Student', id: a.student_id };
+                });
+            }
+
+            lastAttempts = results;
             renderScoreboard(lastAttempts, challengeType);
         }
 
@@ -871,9 +894,10 @@
                 else if (a.score > 0 || a.total_questions > 0) { status = 'In Progress'; statusClass = 'status-active'; }
                 else { status = 'Joined'; statusClass = 'status-waiting'; }
 
-                let value, sublabel;
+                let value, sublabel, valueStyle = '';
                 if (challengeType === 'gold_rush') {
-                    value = a.score;
+                    value = `🪙 ${a.score}`;
+                    valueStyle = ' style="color: #fbbf24;"';
                     sublabel = `${a.total_questions} answered`;
                 } else if (challengeType === 'speed') {
                     value = a.score;
@@ -893,7 +917,7 @@
                         <div class="scoreboard-name">${name}</div>
                         <span class="scoreboard-status ${statusClass}">${status}</span>
                         <div>
-                            <div class="scoreboard-value">${value}</div>
+                            <div class="scoreboard-value"${valueStyle}>${value}</div>
                             <div class="scoreboard-sublabel">${sublabel}</div>
                         </div>
                     </div>`;
