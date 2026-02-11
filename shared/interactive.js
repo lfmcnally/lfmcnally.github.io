@@ -123,8 +123,8 @@ function showVocabulary(vocabId) {
         const vocabTranslation = document.getElementById('vocab-translation');
         
         if (typeof vocabData !== 'undefined' && vocabData[vocabId]) {
-            vocabTitle.textContent = vocabId.replace(/-/g, ' ');
-            vocabTranslation.textContent = vocabData[vocabId];
+            vocabTitle.textContent = vocabData[vocabId].title || vocabId.replace(/-/g, ' ');
+            vocabTranslation.textContent = vocabData[vocabId].translation;
         } else {
             vocabTitle.textContent = 'Vocabulary';
             vocabTranslation.textContent = 'Definition not found';
