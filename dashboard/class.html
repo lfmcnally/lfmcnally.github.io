@@ -1228,6 +1228,54 @@
             </div>
         </div>
 
+        <!-- Vocab Schedule Card -->
+        <div class="card" id="vocabScheduleCard" style="margin-bottom: 1.5rem; display: none;">
+            <div class="card-header" style="justify-content: space-between;">
+                <span class="card-title">📅 A-Level Vocab Schedule</span>
+            </div>
+            <div class="card-body" id="vocabScheduleContainer">
+                <div id="vocabScheduleContent">
+                    <div id="vocabScheduleSetup">
+                        <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">Set a deadline for students to learn all 1,126 A-Level Latin vocabulary words. Words will be split into equal daily chunks.</p>
+                        <div style="display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 150px;">
+                                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 0.25rem;">Start Date</label>
+                                <input type="date" id="vocabStartDate" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem;">
+                            </div>
+                            <div style="flex: 1; min-width: 150px;">
+                                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 0.25rem;">Deadline</label>
+                                <input type="date" id="vocabDeadlineDate" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem;">
+                            </div>
+                            <button class="btn btn-primary btn-sm" onclick="saveVocabSchedule()" id="vocabScheduleSaveBtn">Set Schedule</button>
+                        </div>
+                        <div id="vocabSchedulePreview" style="margin-top: 0.75rem; display: none;"></div>
+                    </div>
+                    <div id="vocabScheduleActive" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <div>
+                                <div style="font-weight: 600; font-size: 0.95rem;" id="vocabScheduleSummary"></div>
+                                <div style="color: #6b7280; font-size: 0.85rem;" id="vocabScheduleDetail"></div>
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="editVocabSchedule()">Edit</button>
+                        </div>
+                        <div style="background: #f3f4f6; border-radius: 8px; height: 8px; overflow: hidden;">
+                            <div id="vocabScheduleProgress" style="background: linear-gradient(90deg, #7c3aed, #a78bfa); height: 100%; border-radius: 8px; transition: width 0.3s;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 0.25rem;">
+                            <span style="font-size: 0.8rem; color: #6b7280;" id="vocabScheduleProgressLabel"></span>
+                            <span style="font-size: 0.8rem; color: #6b7280;" id="vocabScheduleDaysLeft"></span>
+                        </div>
+                        <div id="vocabStudentProgress" style="margin-top: 1rem; border-top: 1px solid #e5e7eb; padding-top: 0.75rem;">
+                            <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem;">Student Mastery</div>
+                            <div id="vocabStudentList" style="display: flex; flex-direction: column; gap: 0.4rem;">
+                                <div style="color: #9ca3af; font-size: 0.85rem;">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Main Grid -->
         <div class="dashboard-grid">
             <!-- Students Card -->
@@ -1822,6 +1870,7 @@
     <script src="../shared/vocabulary-data.js"></script>
     <script src="../shared/greek-vocabulary-data.js"></script>
     <script src="../latin/data/suburani-vocab.js"></script>
+    <script src="../shared/vocab-schedule.js"></script>
 
     <script>
         let currentUser = null;
@@ -2026,6 +2075,191 @@
 
             // Show and load content settings
             await loadContentSettings();
+
+            // Show and load vocab schedule (for non-classics classes)
+            if (classData.type !== 'classics') {
+                await loadVocabSchedule();
+            }
+        }
+
+        // Vocab Schedule functions
+        async function loadVocabSchedule() {
+            const card = document.getElementById('vocabScheduleCard');
+            if (!card) return;
+            card.style.display = 'block';
+
+            const startDate = currentClass.vocab_start_date;
+            const deadline = currentClass.vocab_deadline;
+
+            if (startDate && deadline) {
+                showActiveVocabSchedule(startDate, deadline);
+            } else {
+                showVocabScheduleSetup();
+            }
+
+            // Live preview when dates change
+            document.getElementById('vocabStartDate').addEventListener('change', previewVocabSchedule);
+            document.getElementById('vocabDeadlineDate').addEventListener('change', previewVocabSchedule);
+        }
+
+        function showVocabScheduleSetup() {
+            document.getElementById('vocabScheduleSetup').style.display = 'block';
+            document.getElementById('vocabScheduleActive').style.display = 'none';
+            // Default start date to today
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('vocabStartDate').value = today;
+        }
+
+        function showActiveVocabSchedule(startDate, deadline) {
+            document.getElementById('vocabScheduleSetup').style.display = 'none';
+            document.getElementById('vocabScheduleActive').style.display = 'block';
+
+            const totalWords = 1126;
+            const summary = VocabSchedule.getProgressSummary(
+                { length: totalWords },
+                startDate,
+                deadline
+            );
+
+            document.getElementById('vocabScheduleSummary').textContent =
+                `${summary.wordsPerDay} words/day over ${summary.daysTotal} days`;
+            document.getElementById('vocabScheduleDetail').textContent =
+                `${new Date(startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - ${new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+            document.getElementById('vocabScheduleProgress').style.width = summary.percentComplete + '%';
+            document.getElementById('vocabScheduleProgressLabel').textContent =
+                `Day ${summary.currentDay} of ${summary.daysTotal} (${summary.percentComplete}%)`;
+            document.getElementById('vocabScheduleDaysLeft').textContent =
+                summary.hasFinished ? 'Complete' : `${summary.daysRemaining} days left`;
+
+            // Load per-student mastery data
+            loadVocabStudentProgress();
+        }
+
+        async function loadVocabStudentProgress() {
+            const container = document.getElementById('vocabStudentList');
+            if (!container || classStudents.length === 0) {
+                if (container) container.innerHTML = '<div style="color: #9ca3af; font-size: 0.85rem;">No students enrolled yet.</div>';
+                return;
+            }
+
+            const studentIds = classStudents.map(s => s.id);
+
+            // Fetch word mastery counts for all students (latin language)
+            const { data: masteryData, error } = await supabase
+                .from('word_mastery')
+                .select('student_id, mastered_at')
+                .in('student_id', studentIds)
+                .eq('language', 'latin')
+                .not('mastered_at', 'is', null);
+
+            if (error) {
+                container.innerHTML = '<div style="color: #dc2626; font-size: 0.85rem;">Failed to load progress.</div>';
+                return;
+            }
+
+            // Count mastered words per student
+            const masteryCounts = {};
+            studentIds.forEach(id => masteryCounts[id] = 0);
+            (masteryData || []).forEach(row => {
+                if (masteryCounts[row.student_id] !== undefined) {
+                    masteryCounts[row.student_id]++;
+                }
+            });
+
+            const totalWords = 1126;
+
+            // Sort students by mastery count (highest first)
+            const sorted = classStudents
+                .map(s => ({ ...s, mastered: masteryCounts[s.id] || 0 }))
+                .sort((a, b) => b.mastered - a.mastered);
+
+            container.innerHTML = sorted.map(s => {
+                const pct = Math.round((s.mastered / totalWords) * 100);
+                const color = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : pct >= 20 ? '#6366f1' : '#9ca3af';
+                return `
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 0.85rem; min-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${s.full_name || 'Student'}</span>
+                        <div style="flex: 1; background: #f3f4f6; border-radius: 4px; height: 6px; overflow: hidden;">
+                            <div style="background: ${color}; height: 100%; width: ${pct}%; border-radius: 4px; transition: width 0.3s;"></div>
+                        </div>
+                        <span style="font-size: 0.8rem; color: #6b7280; min-width: 60px; text-align: right;">${s.mastered}/${totalWords}</span>
+                    </div>`;
+            }).join('');
+        }
+
+        function editVocabSchedule() {
+            document.getElementById('vocabScheduleSetup').style.display = 'block';
+            document.getElementById('vocabScheduleActive').style.display = 'none';
+            if (currentClass.vocab_start_date) {
+                document.getElementById('vocabStartDate').value = currentClass.vocab_start_date;
+            }
+            if (currentClass.vocab_deadline) {
+                document.getElementById('vocabDeadlineDate').value = currentClass.vocab_deadline;
+            }
+            document.getElementById('vocabScheduleSaveBtn').textContent = 'Update Schedule';
+        }
+
+        function previewVocabSchedule() {
+            const startDate = document.getElementById('vocabStartDate').value;
+            const deadline = document.getElementById('vocabDeadlineDate').value;
+            const preview = document.getElementById('vocabSchedulePreview');
+
+            if (!startDate || !deadline) {
+                preview.style.display = 'none';
+                return;
+            }
+
+            const start = new Date(startDate);
+            const end = new Date(deadline);
+            if (end <= start) {
+                preview.style.display = 'block';
+                preview.innerHTML = '<span style="color: #dc2626; font-size: 0.85rem;">Deadline must be after the start date.</span>';
+                return;
+            }
+
+            const totalWords = 1126;
+            const { daysTotal, wordsPerDay } = VocabSchedule.calculateSchedule(startDate, deadline, totalWords);
+            const weeks = Math.ceil(daysTotal / 7);
+
+            preview.style.display = 'block';
+            preview.innerHTML = `<span style="color: #7c3aed; font-size: 0.85rem; font-weight: 600;">~${wordsPerDay} words/day over ${daysTotal} days (${weeks} weeks) - ${totalWords} words total</span>`;
+        }
+
+        async function saveVocabSchedule() {
+            const startDate = document.getElementById('vocabStartDate').value;
+            const deadline = document.getElementById('vocabDeadlineDate').value;
+
+            if (!startDate || !deadline) {
+                alert('Please set both a start date and deadline.');
+                return;
+            }
+
+            if (new Date(deadline) <= new Date(startDate)) {
+                alert('Deadline must be after the start date.');
+                return;
+            }
+
+            const btn = document.getElementById('vocabScheduleSaveBtn');
+            btn.textContent = 'Saving...';
+            btn.disabled = true;
+
+            const { error } = await supabase
+                .from('classes')
+                .update({ vocab_start_date: startDate, vocab_deadline: deadline })
+                .eq('id', currentClass.id);
+
+            btn.disabled = false;
+
+            if (error) {
+                btn.textContent = 'Set Schedule';
+                alert('Failed to save: ' + error.message);
+                return;
+            }
+
+            currentClass.vocab_start_date = startDate;
+            currentClass.vocab_deadline = deadline;
+            showActiveVocabSchedule(startDate, deadline);
+            btn.textContent = 'Set Schedule';
         }
 
         // Load content settings for this class

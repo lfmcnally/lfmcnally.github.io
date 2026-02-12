@@ -18,6 +18,19 @@ let totalWordsToMaster = 0; // Total words that need mastering
 // Tricky word tracking
 let currentWordTrickyStatus = false; // Track if current word is marked as tricky
 
+// Test mode - hides hints, derivations, and reveal button for formal tests
+let isVocabTestMode = false;
+
+function setTestMode(enabled) {
+    isVocabTestMode = enabled;
+    const hintBtn = document.getElementById('hint-btn');
+    const derivationBtn = document.getElementById('derivation-btn');
+    const revealBtn = document.getElementById('reveal-btn');
+    if (hintBtn) hintBtn.style.display = enabled ? 'none' : '';
+    if (derivationBtn) derivationBtn.style.display = enabled ? 'none' : '';
+    if (revealBtn) revealBtn.style.display = enabled ? 'none' : '';
+}
+
 // ========== LENIENT ANSWER CHECKING ==========
 
 // Calculate Levenshtein distance (edit distance) between two strings
@@ -233,10 +246,18 @@ function loadQuestion() {
     
     document.getElementById('check-btn').style.display = 'inline-block';
     document.getElementById('next-btn').style.display = 'none';
-    document.getElementById('reveal-btn').style.display = 'inline-block';
+    document.getElementById('reveal-btn').style.display = isVocabTestMode ? 'none' : 'inline-block';
 
     // Reset hint/derivation display for new word
     resetHintDisplay();
+
+    // In test mode, keep hint/derivation/reveal hidden
+    if (isVocabTestMode) {
+        const hintBtn = document.getElementById('hint-btn');
+        const derivationBtn = document.getElementById('derivation-btn');
+        if (hintBtn) hintBtn.style.display = 'none';
+        if (derivationBtn) derivationBtn.style.display = 'none';
+    }
 
     updateDisplay();
     document.getElementById('answer-input').focus();
