@@ -1068,6 +1068,41 @@
                     </div>
                 </div>
 
+                <!-- Daily Vocab Schedule -->
+                <div class="card" style="margin-bottom: 1rem; display: none;" id="dailyVocabCard">
+                    <div class="card-header" style="justify-content: space-between;">
+                        <span>📅 Daily Vocab</span>
+                        <span style="font-size: 0.8rem; color: #6b7280;" id="dailyVocabDayLabel"></span>
+                    </div>
+                    <div class="card-body" style="padding: 0.875rem 1rem;">
+                        <div id="dailyVocabContent">
+                            <div style="margin-bottom: 0.75rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                                    <span style="font-size: 0.85rem; font-weight: 600;" id="dailyVocabProgressText"></span>
+                                    <span style="font-size: 0.8rem; color: #6b7280;" id="dailyVocabDeadline"></span>
+                                </div>
+                                <div style="background: #f3f4f6; border-radius: 6px; height: 6px; overflow: hidden;">
+                                    <div id="dailyVocabProgressBar" style="background: linear-gradient(90deg, #7c3aed, #a78bfa); height: 100%; border-radius: 6px; transition: width 0.3s;"></div>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem;" id="dailyVocabActions">
+                                <a id="dailyVocabLearnBtn" href="#" style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.75rem; background: linear-gradient(135deg, #7c3aed, #5b21b6); color: white; border-radius: 10px; text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;">
+                                    <span>Learn Today's Words</span>
+                                    <span id="dailyVocabNewCount" style="background: rgba(255,255,255,0.2); padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.8rem;"></span>
+                                </a>
+                                <a id="dailyVocabReviewBtn" href="#" style="display: none; align-items: center; justify-content: space-between; padding: 0.6rem 0.75rem; background: white; color: #374151; border: 2px solid #e5e7eb; border-radius: 10px; text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;">
+                                    <span>Review Previous Words</span>
+                                    <span id="dailyVocabReviewCount" style="color: #6b7280; font-size: 0.8rem;"></span>
+                                </a>
+                                <a id="dailyVocabWeeklyTestBtn" href="#" style="display: none; align-items: center; justify-content: space-between; padding: 0.6rem 0.75rem; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border-radius: 10px; text-decoration: none; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;">
+                                    <span>Weekly Test</span>
+                                    <span style="background: rgba(255,255,255,0.2); padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.8rem;" id="dailyVocabWeekLabel"></span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Class Leaderboard -->
                 <div class="card" style="margin-bottom: 1rem;" id="leaderboardCard">
                     <div class="card-header" style="justify-content: space-between;">
@@ -1103,6 +1138,7 @@
     </div>
 
     <script src="../auth/config.js"></script>
+    <script src="../shared/vocab-schedule.js"></script>
     
     <!-- Word List Modal -->
     <div class="modal-overlay" id="wordListModal">
@@ -1192,6 +1228,9 @@
 
             // Show/hide sections based on class type
             updateSectionsForClassType();
+
+            // Load daily vocab schedule if applicable
+            loadDailyVocab();
 
             // Load announcements and resources
             try {
@@ -1326,6 +1365,69 @@
                 document.getElementById('activityCalendarCard').style.display = 'block';
                 document.getElementById('recentActivityCard').style.display = 'block';
                 document.getElementById('leaderboardCard').style.display = 'block';
+            }
+        }
+
+        // Daily Vocab Schedule
+        function loadDailyVocab() {
+            const card = document.getElementById('dailyVocabCard');
+            if (!card) return;
+            if (!currentClass.vocab_start_date || !currentClass.vocab_deadline) return;
+
+            const startDate = currentClass.vocab_start_date;
+            const deadline = currentClass.vocab_deadline;
+            const totalWords = 1126;
+
+            const summary = VocabSchedule.getProgressSummary(
+                { length: totalWords },
+                startDate,
+                deadline
+            );
+
+            // Show the card
+            card.style.display = 'block';
+
+            // Day label
+            document.getElementById('dailyVocabDayLabel').textContent =
+                summary.hasFinished ? 'Complete' : `Day ${summary.currentDay}`;
+
+            // Progress bar
+            document.getElementById('dailyVocabProgressText').textContent =
+                `${summary.wordsCoveredToday} / ${summary.totalWords} words`;
+            document.getElementById('dailyVocabDeadline').textContent =
+                summary.hasFinished ? 'Done!' : `${summary.daysRemaining}d left`;
+            document.getElementById('dailyVocabProgressBar').style.width =
+                summary.percentComplete + '%';
+
+            // Learn button
+            const learnBtn = document.getElementById('dailyVocabLearnBtn');
+            const practicePath = `../latin/a-level-vocabulary-practice.html`;
+            learnBtn.href = `${practicePath}?mode=daily&class_id=${currentClassId}`;
+            document.getElementById('dailyVocabNewCount').textContent =
+                summary.hasFinished ? 'All done' : `${summary.wordsPerDay} words`;
+
+            if (summary.hasFinished) {
+                learnBtn.querySelector('span:first-child').textContent = 'Review All Words';
+                learnBtn.href = `${practicePath}?mode=review&class_id=${currentClassId}`;
+            }
+
+            // Review button (only show if there are previous days' words)
+            const reviewBtn = document.getElementById('dailyVocabReviewBtn');
+            if (summary.currentDay > 1 && !summary.hasFinished) {
+                const learnedSoFar = (summary.currentDay - 1) * summary.wordsPerDay;
+                reviewBtn.style.display = 'flex';
+                reviewBtn.href = `${practicePath}?mode=review&class_id=${currentClassId}`;
+                document.getElementById('dailyVocabReviewCount').textContent =
+                    `from ${Math.min(learnedSoFar, totalWords)} learned`;
+            }
+
+            // Weekly test button
+            const weeklyTestBtn = document.getElementById('dailyVocabWeeklyTestBtn');
+            if (summary.isEndOfWeek || summary.currentWeek > 1) {
+                weeklyTestBtn.style.display = 'flex';
+                const testWeek = summary.isEndOfWeek ? summary.currentWeek : summary.currentWeek - 1;
+                weeklyTestBtn.href = `${practicePath}?mode=weekly-test&week=${testWeek}&class_id=${currentClassId}`;
+                document.getElementById('dailyVocabWeekLabel').textContent = `Week ${testWeek}`;
             }
         }
 

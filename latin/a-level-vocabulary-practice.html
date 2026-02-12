@@ -1186,6 +1186,7 @@
     <script src="../shared/a-level-vocabulary-data.js"></script>
     <script src="../shared/navigation.js"></script>
     <script src="../shared/vocabulary-quiz.js"></script>
+    <script src="../shared/vocab-schedule.js"></script>
 
     <script>
         // Current word being practised (for tracking)
@@ -1676,7 +1677,78 @@
             }
         }
 
+        // Schedule mode: launch practice directly from daily vocab schedule
+        async function handleScheduleMode(mode, urlParams) {
+            await waitForVocabularyData();
+            const classId = urlParams.get('class_id');
+            if (!classId) return false;
+
+            // Fetch class data for schedule dates
+            const { data: classData, error } = await supabase
+                .from('classes')
+                .select('vocab_start_date, vocab_deadline')
+                .eq('id', classId)
+                .single();
+
+            if (error || !classData || !classData.vocab_start_date || !classData.vocab_deadline) return false;
+
+            const startDate = classData.vocab_start_date;
+            const deadline = classData.vocab_deadline;
+            let practiceWords = [];
+            let label = '';
+            let isTestMode = false;
+
+            if (mode === 'daily') {
+                practiceWords = VocabSchedule.getTodaysWords(aLevelVocabularyData, startDate, deadline);
+                const day = VocabSchedule.getCurrentDay(startDate);
+                label = `Day ${day} - New Words`;
+            } else if (mode === 'review') {
+                practiceWords = VocabSchedule.getReviewSet(aLevelVocabularyData, startDate, deadline, 25);
+                label = 'Review - Random Selection';
+            } else if (mode === 'weekly-test') {
+                const week = parseInt(urlParams.get('week')) || VocabSchedule.getCurrentWeek(startDate);
+                practiceWords = VocabSchedule.getWeekWords(aLevelVocabularyData, startDate, deadline, week);
+                label = `Weekly Test - Week ${week}`;
+                isTestMode = true;
+            }
+
+            if (practiceWords.length === 0) return false;
+
+            // Hide the selection UI and start practice directly
+            const setupPanel = document.getElementById('setupPanel');
+            if (setupPanel) setupPanel.style.display = 'none';
+
+            // Enable test mode if weekly test (no hints, no reveal)
+            if (isTestMode && typeof setTestMode === 'function') {
+                setTestMode(true);
+            }
+
+            // Track as task if task_id present
+            initTaskMode();
+            checkTrackingStatus();
+
+            setTimeout(() => {
+                initializePractice(practiceWords, label, 0, practiceWords.length - 1);
+            }, 200);
+            return true;
+        }
+
         document.addEventListener('DOMContentLoaded', async function() {
+            // Check for schedule mode first
+            const urlParams = new URLSearchParams(window.location.search);
+            const scheduleMode = urlParams.get('mode');
+            if (scheduleMode && ['daily', 'review', 'weekly-test'].includes(scheduleMode)) {
+                try {
+                    const handled = await handleScheduleMode(scheduleMode, urlParams);
+                    if (handled) {
+                        document.getElementById('infoModal').style.display = 'none';
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Schedule mode failed, falling back to normal:', e);
+                }
+            }
+
             initTaskMode();
             checkTrackingStatus();
 
@@ -1700,8 +1772,6 @@
             // Topic and Set practice buttons
             document.getElementById('startTopicPracticeBtn').addEventListener('click', startTopicPractice);
             document.getElementById('startSetPracticeBtn').addEventListener('click', startSetPractice);
-
-            const urlParams = new URLSearchParams(window.location.search);
 
             const urlFromLetter = urlParams.get('fromLetter');
             const urlToLetter = urlParams.get('toLetter');
