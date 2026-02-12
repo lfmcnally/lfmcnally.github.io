@@ -146,9 +146,9 @@ const VocabSchedule = {
         const todaySchedule = schedule.find(d => d.day === currentDay);
         const wordsCoveredToday = todaySchedule ? todaySchedule.endIndex + 1 : totalWords;
 
-        // Is it the end of a week? (day 7, 14, 21, etc.)
-        const dayInWeek = ((currentDay - 1) % 7) + 1;
-        const isEndOfWeek = dayInWeek >= 6; // Saturday or Sunday of the learning week
+        // Is it the weekend? (Saturday = 6, Sunday = 0)
+        const calendarDay = today.getDay();
+        const isEndOfWeek = calendarDay === 6 || calendarDay === 0;
 
         const hasFinished = currentDay > daysTotal;
 
