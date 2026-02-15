@@ -1612,7 +1612,6 @@
             const deadline = classData.vocab_deadline;
             let practiceWords = [];
             let label = '';
-            let isTestMode = false;
 
             if (mode === 'daily') {
                 practiceWords = VocabSchedule.getTodaysWords(greekALevelVocabularyData, startDate, deadline);
@@ -1621,11 +1620,6 @@
             } else if (mode === 'review') {
                 practiceWords = VocabSchedule.getReviewSet(greekALevelVocabularyData, startDate, deadline, 25);
                 label = 'Review - Random Selection';
-            } else if (mode === 'weekly-test') {
-                const week = parseInt(urlParams.get('week')) || VocabSchedule.getCurrentWeek(startDate);
-                practiceWords = VocabSchedule.getWeekWords(greekALevelVocabularyData, startDate, deadline, week);
-                label = `Weekly Test - Week ${week}`;
-                isTestMode = true;
             }
 
             if (practiceWords.length === 0) return false;
@@ -1635,18 +1629,9 @@
             if (setupPanel) setupPanel.style.display = 'none';
             document.getElementById('quizArea').classList.add('active');
 
-            // Enable test mode if weekly test (no hints, no reveal)
-            if (isTestMode && typeof setTestMode === 'function') {
-                setTestMode(true);
-            }
-
             // Start tracking this practice session
             if (typeof taskTracker !== 'undefined') {
                 taskTracker.setLanguage('greek');
-                if (mode === 'weekly-test') {
-                    const week = parseInt(urlParams.get('week')) || VocabSchedule.getCurrentWeek(startDate);
-                    taskTracker.setContentPath(window.location.pathname + '?mode=weekly-test&week=' + week);
-                }
                 await taskTracker.start();
             }
 
@@ -1664,7 +1649,7 @@
             // Check for schedule mode first
             const urlParams = new URLSearchParams(window.location.search);
             const scheduleMode = urlParams.get('mode');
-            if (scheduleMode && ['daily', 'review', 'weekly-test'].includes(scheduleMode)) {
+            if (scheduleMode && ['daily', 'review'].includes(scheduleMode)) {
                 try {
                     const handled = await handleScheduleMode(scheduleMode, urlParams);
                     if (handled) {

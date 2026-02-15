@@ -1123,6 +1123,7 @@
     <script src="../shared/task-tracker.js"></script>
     <script src="../shared/xp-system.js"></script>
     <script src="../shared/greek-alevel-vocabulary-data.js"></script>
+    <script src="../shared/vocab-schedule.js"></script>
     <script>
         // Test state
         let testWords = [];
@@ -1681,8 +1682,73 @@
             }
         }
 
+        // Schedule mode: auto-start weekly test from student dashboard
+        async function handleScheduleMode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mode = urlParams.get('mode');
+            if (mode !== 'weekly-test') return false;
+
+            const classId = urlParams.get('class_id');
+            if (!classId || typeof supabase === 'undefined') return false;
+
+            const { data: classData, error } = await supabase
+                .from('classes')
+                .select('vocab_start_date, vocab_deadline')
+                .eq('id', classId)
+                .single();
+
+            if (error || !classData || !classData.vocab_start_date || !classData.vocab_deadline) return false;
+
+            const startDate = classData.vocab_start_date;
+            const deadline = classData.vocab_deadline;
+            const week = parseInt(urlParams.get('week')) || VocabSchedule.getCurrentWeek(startDate);
+
+            let weekWords = VocabSchedule.getWeekWords(greekALevelVocabularyData, startDate, deadline, week);
+            if (weekWords.length === 0) return false;
+
+            // Shuffle and pick up to 25 words for the formal test
+            const shuffled = shuffleArray(weekWords);
+            testWords = shuffled.slice(0, Math.min(25, shuffled.length));
+
+            // Set up the test UI
+            document.getElementById('testTitle').textContent = `Weekly Test - Week ${week}`;
+            document.getElementById('testInfo').textContent = `${testWords.length} words`;
+
+            const tbody = document.getElementById('testTableBody');
+            tbody.innerHTML = '';
+
+            testWords.forEach((word, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div class="greek-word">${word.greek}</div>
+                        <div class="word-info">${word.info}</div>
+                    </td>
+                    <td class="answer-cell">
+                        <input type="text" class="answer-input" id="answer-${index}"
+                               placeholder="Enter English meaning..." autocomplete="off">
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('setupPanel').style.display = 'none';
+            document.getElementById('testArea').classList.add('active');
+
+            // Start tracking with weekly-test content path
+            testStartTime = new Date();
+            if (typeof taskTracker !== 'undefined') {
+                taskTracker.setLanguage('greek');
+                taskTracker.setContentPath(window.location.pathname + '?mode=weekly-test&week=' + week);
+                await taskTracker.start();
+            }
+
+            document.getElementById('answer-0').focus();
+            return true;
+        }
+
         // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             // Setup event listeners
             document.getElementById('fromLetter').addEventListener('change', handleFromLetterSelect);
             document.getElementById('toLetter').addEventListener('change', handleToLetterSelect);
@@ -1692,6 +1758,14 @@
             document.getElementById('markBtn').addEventListener('click', markTest);
             document.getElementById('resetBtn').addEventListener('click', resetTest);
             document.getElementById('printBlankBtn').addEventListener('click', printBlankTest);
+
+            // Check for schedule mode (weekly test from student dashboard)
+            try {
+                const handled = await handleScheduleMode();
+                if (handled) return;
+            } catch (e) {
+                console.error('Schedule mode failed, falling back to normal:', e);
+            }
 
             // Initialize letter dropdown
             initializeLetterDropdown();
