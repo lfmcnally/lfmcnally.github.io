@@ -1246,6 +1246,19 @@
                                 <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 0.25rem;">Deadline</label>
                                 <input type="date" id="vocabDeadlineDate" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem;">
                             </div>
+                            <div style="flex: 1; min-width: 130px;">
+                                <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 0.25rem;">Test Day</label>
+                                <select id="vocabTestDay" style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.9rem; background: white;">
+                                    <option value="">No weekly test</option>
+                                    <option value="1">Monday</option>
+                                    <option value="2">Tuesday</option>
+                                    <option value="3">Wednesday</option>
+                                    <option value="4">Thursday</option>
+                                    <option value="5">Friday</option>
+                                    <option value="6">Saturday</option>
+                                    <option value="0">Sunday</option>
+                                </select>
+                            </div>
                             <button class="btn btn-primary btn-sm" onclick="saveVocabSchedule()" id="vocabScheduleSaveBtn">Set Schedule</button>
                         </div>
                         <div id="vocabSchedulePreview" style="margin-top: 0.75rem; display: none;"></div>
@@ -2157,8 +2170,11 @@
 
             document.getElementById('vocabScheduleSummary').textContent =
                 `${summary.wordsPerDay} words/day over ${summary.daysTotal} days`;
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const testDay = currentClass.vocab_test_day;
+            const testDayLabel = testDay !== null && testDay !== undefined && testDay !== '' ? ` · Test: ${dayNames[testDay]}s` : '';
             document.getElementById('vocabScheduleDetail').textContent =
-                `${new Date(startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - ${new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+                `${new Date(startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - ${new Date(deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}${testDayLabel}`;
             document.getElementById('vocabScheduleProgress').style.width = summary.percentComplete + '%';
             document.getElementById('vocabScheduleProgressLabel').textContent =
                 `Day ${summary.currentDay} of ${summary.daysTotal} (${summary.percentComplete}%)`;
@@ -2283,18 +2299,46 @@
                 });
             }
 
-            // Group practice attempts by student and date
+            // Separate regular practice from weekly tests
             const practiceByStudentDay = {};
+            const weeklyTestsByStudent = {}; // { student_id: { weekNum: { score, total, correct } } }
             attempts.forEach(a => {
-                const date = new Date(a.started_at).toISOString().split('T')[0];
-                const key = `${a.student_id}_${date}`;
-                if (!practiceByStudentDay[key]) {
-                    practiceByStudentDay[key] = { sessions: 0, totalQ: 0, correctQ: 0 };
+                const cp = a.content_path || '';
+                if (cp.includes('weekly-test')) {
+                    // Extract week number from content_path
+                    const weekMatch = cp.match(/week=(\d+)/);
+                    const week = weekMatch ? parseInt(weekMatch[1]) : 0;
+                    if (week > 0 && a.score !== null && a.score !== undefined) {
+                        if (!weeklyTestsByStudent[a.student_id]) weeklyTestsByStudent[a.student_id] = {};
+                        // Keep the best attempt per week
+                        const existing = weeklyTestsByStudent[a.student_id][week];
+                        if (!existing || a.score > existing.score) {
+                            weeklyTestsByStudent[a.student_id][week] = {
+                                score: a.score,
+                                total: a.total_questions || 0,
+                                correct: a.correct_answers || 0
+                            };
+                        }
+                    }
+                } else {
+                    // Regular practice
+                    const date = new Date(a.started_at).toISOString().split('T')[0];
+                    const key = `${a.student_id}_${date}`;
+                    if (!practiceByStudentDay[key]) {
+                        practiceByStudentDay[key] = { sessions: 0, totalQ: 0, correctQ: 0 };
+                    }
+                    practiceByStudentDay[key].sessions++;
+                    practiceByStudentDay[key].totalQ += (a.total_questions || 0);
+                    practiceByStudentDay[key].correctQ += (a.correct_answers || 0);
                 }
-                practiceByStudentDay[key].sessions++;
-                practiceByStudentDay[key].totalQ += (a.total_questions || 0);
-                practiceByStudentDay[key].correctQ += (a.correct_answers || 0);
             });
+
+            // Determine which weeks have test data
+            const allWeeks = new Set();
+            Object.values(weeklyTestsByStudent).forEach(weeks => {
+                Object.keys(weeks).forEach(w => allWeeks.add(parseInt(w)));
+            });
+            const weekNumbers = [...allWeeks].sort((a, b) => a - b);
 
             // Count mastered per student
             const masteryCounts = {};
@@ -2325,7 +2369,12 @@
             const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const content = document.getElementById('vocabPracticeContent');
 
-            // Test column headers
+            // Weekly test column headers (auto-generated from schedule)
+            const weeklyTestHeaders = weekNumbers.map(w =>
+                `<th style="text-align: center; padding: 0.25rem; border-bottom: 2px solid #e5e7eb; min-width: 45px; font-size: 0.75rem; background: #fffbeb;" title="Weekly Test - Week ${w}">Wk${w}</th>`
+            ).join('');
+
+            // Manual test column headers
             const testHeaders = recentTests.map(t => {
                 const maxScore = t.content_path && t.content_path.includes(':') ? t.content_path.split(':')[1] : '?';
                 const shortTitle = (t.title || 'Test').length > 10 ? (t.title || 'Test').substring(0, 10) + '…' : (t.title || 'Test');
@@ -2346,6 +2395,7 @@
                             </th>`;
                         }).join('')}
                         <th style="text-align: center; padding: 0.25rem; border-bottom: 2px solid #e5e7eb; min-width: 55px; font-size: 0.75rem;">Words</th>
+                        ${weeklyTestHeaders}
                         ${testHeaders}
                     </tr>
                 </thead>
@@ -2386,7 +2436,21 @@
                     <span style="font-size: 0.65rem; color: #9ca3af;">/${config.totalWords}</span>
                 </td>`;
 
-                // Test score columns
+                // Weekly test score columns (auto-generated from schedule)
+                weekNumbers.forEach(w => {
+                    const studentWeekly = weeklyTestsByStudent[student.id];
+                    const result = studentWeekly ? studentWeekly[w] : undefined;
+
+                    if (result) {
+                        const acc = result.total > 0 ? Math.round((result.correct / result.total) * 100) : result.score;
+                        const wColor = acc >= 80 ? '#10b981' : acc >= 60 ? '#f59e0b' : '#ef4444';
+                        html += `<td style="text-align: center; padding: 0.4rem; border-bottom: 1px solid #f3f4f6; font-size: 0.8rem; font-weight: 600; color: ${wColor}; background: #fffbeb;" title="${result.correct}/${result.total} correct">${acc}%</td>`;
+                    } else {
+                        html += `<td style="text-align: center; padding: 0.4rem; border-bottom: 1px solid #f3f4f6; font-size: 0.8rem; color: #d1d5db; background: #fffbeb;">—</td>`;
+                    }
+                });
+
+                // Manual test score columns
                 recentTests.forEach(t => {
                     const scores = testScoresByStudent[student.id];
                     const score = scores ? scores[t.id] : undefined;
@@ -2428,6 +2492,9 @@
             }
             if (currentClass.vocab_deadline) {
                 document.getElementById('vocabDeadlineDate').value = currentClass.vocab_deadline;
+            }
+            if (currentClass.vocab_test_day !== null && currentClass.vocab_test_day !== undefined) {
+                document.getElementById('vocabTestDay').value = currentClass.vocab_test_day;
             }
             document.getElementById('vocabScheduleSaveBtn').textContent = 'Update Schedule';
         }
@@ -2477,9 +2544,12 @@
             btn.textContent = 'Saving...';
             btn.disabled = true;
 
+            const testDayValue = document.getElementById('vocabTestDay').value;
+            const testDay = testDayValue !== '' ? parseInt(testDayValue) : null;
+
             const { error } = await supabase
                 .from('classes')
-                .update({ vocab_start_date: startDate, vocab_deadline: deadline })
+                .update({ vocab_start_date: startDate, vocab_deadline: deadline, vocab_test_day: testDay })
                 .eq('id', currentClass.id);
 
             btn.disabled = false;
@@ -2492,6 +2562,7 @@
 
             currentClass.vocab_start_date = startDate;
             currentClass.vocab_deadline = deadline;
+            currentClass.vocab_test_day = testDay;
             showActiveVocabSchedule(startDate, deadline);
             btn.textContent = 'Set Schedule';
         }
