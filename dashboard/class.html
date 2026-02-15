@@ -1231,12 +1231,12 @@
         <!-- Vocab Schedule Card -->
         <div class="card" id="vocabScheduleCard" style="margin-bottom: 1.5rem; display: none;">
             <div class="card-header" style="justify-content: space-between;">
-                <span class="card-title">📅 A-Level Vocab Schedule</span>
+                <span class="card-title" id="vocabScheduleTitle">📅 A-Level Vocab Schedule</span>
             </div>
             <div class="card-body" id="vocabScheduleContainer">
                 <div id="vocabScheduleContent">
                     <div id="vocabScheduleSetup">
-                        <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;">Set a deadline for students to learn all 1,126 A-Level Latin vocabulary words. Words will be split into equal daily chunks.</p>
+                        <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1rem;" id="vocabScheduleDescription">Set a deadline for students to learn all vocabulary words. Words will be split into equal daily chunks.</p>
                         <div style="display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap;">
                             <div style="flex: 1; min-width: 150px;">
                                 <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #374151; margin-bottom: 0.25rem;">Start Date</label>
@@ -2082,11 +2082,31 @@
             }
         }
 
+        // Vocab Schedule config - adapts based on class type
+        function getVocabConfig() {
+            const type = currentClass?.type || 'latin';
+            if (type === 'greek') {
+                return { totalWords: 1166, language: 'greek', label: 'A-Level Greek', color: '#0066ff', colorLight: '#60a5fa' };
+            }
+            return { totalWords: 1126, language: 'latin', label: 'A-Level Latin', color: '#7c3aed', colorLight: '#a78bfa' };
+        }
+
         // Vocab Schedule functions
         async function loadVocabSchedule() {
             const card = document.getElementById('vocabScheduleCard');
             if (!card) return;
             card.style.display = 'block';
+
+            // Update card title and description based on class type
+            const config = getVocabConfig();
+            const titleEl = document.getElementById('vocabScheduleTitle');
+            if (titleEl) titleEl.textContent = `📅 ${config.label} Vocab Schedule`;
+            const descEl = document.getElementById('vocabScheduleDescription');
+            if (descEl) descEl.textContent = `Set a deadline for students to learn all ${config.totalWords.toLocaleString()} ${config.label} vocabulary words. Words will be split into equal daily chunks.`;
+
+            // Set progress bar color
+            const progressBar = document.getElementById('vocabScheduleProgress');
+            if (progressBar) progressBar.style.background = `linear-gradient(90deg, ${config.color}, ${config.colorLight})`;
 
             const startDate = currentClass.vocab_start_date;
             const deadline = currentClass.vocab_deadline;
@@ -2114,7 +2134,8 @@
             document.getElementById('vocabScheduleSetup').style.display = 'none';
             document.getElementById('vocabScheduleActive').style.display = 'block';
 
-            const totalWords = 1126;
+            const config = getVocabConfig();
+            const totalWords = config.totalWords;
             const summary = VocabSchedule.getProgressSummary(
                 { length: totalWords },
                 startDate,
@@ -2142,14 +2163,15 @@
                 return;
             }
 
+            const config = getVocabConfig();
             const studentIds = classStudents.map(s => s.id);
 
-            // Fetch word mastery counts for all students (latin language)
+            // Fetch word mastery counts for all students
             const { data: masteryData, error } = await supabase
                 .from('word_mastery')
                 .select('student_id, mastered_at')
                 .in('student_id', studentIds)
-                .eq('language', 'latin')
+                .eq('language', config.language)
                 .not('mastered_at', 'is', null);
 
             if (error) {
@@ -2166,7 +2188,7 @@
                 }
             });
 
-            const totalWords = 1126;
+            const totalWords = config.totalWords;
 
             // Sort students by mastery count (highest first)
             const sorted = classStudents
@@ -2217,12 +2239,13 @@
                 return;
             }
 
-            const totalWords = 1126;
+            const config = getVocabConfig();
+            const totalWords = config.totalWords;
             const { daysTotal, wordsPerDay } = VocabSchedule.calculateSchedule(startDate, deadline, totalWords);
             const weeks = Math.ceil(daysTotal / 7);
 
             preview.style.display = 'block';
-            preview.innerHTML = `<span style="color: #7c3aed; font-size: 0.85rem; font-weight: 600;">~${wordsPerDay} words/day over ${daysTotal} days (${weeks} weeks) - ${totalWords} words total</span>`;
+            preview.innerHTML = `<span style="color: ${config.color}; font-size: 0.85rem; font-weight: 600;">~${wordsPerDay} words/day over ${daysTotal} days (${weeks} weeks) - ${totalWords} words total</span>`;
         }
 
         async function saveVocabSchedule() {
