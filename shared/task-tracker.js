@@ -28,6 +28,11 @@ const taskTracker = {
         this.language = lang || 'latin';
         console.log('Task tracker language set to:', this.language);
     },
+
+    // Set custom content path (e.g. to distinguish weekly tests from regular practice)
+    setContentPath(path) {
+        this.contentPath = path;
+    },
     
     // Initialize - check if user is logged in
     async init() {
@@ -70,7 +75,7 @@ const taskTracker = {
             .insert({
                 task_id: this.taskId, // null for free practice
                 student_id: this.userId,
-                content_path: window.location.pathname, // Track what page they're practicing
+                content_path: this.contentPath || window.location.pathname, // Track what page they're practicing
                 started_at: this.startTime.toISOString()
             })
             .select()
