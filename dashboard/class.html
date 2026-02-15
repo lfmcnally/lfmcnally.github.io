@@ -1276,6 +1276,19 @@
             </div>
         </div>
 
+        <!-- Vocab Practice Tracker Card -->
+        <div class="card" id="vocabPracticeCard" style="margin-bottom: 1.5rem; display: none;">
+            <div class="card-header" style="justify-content: space-between;">
+                <span class="card-title" id="vocabPracticeTitle">📈 Daily Practice Tracker</span>
+                <span id="vocabPracticeSummary" style="font-size: 0.85rem; color: #6b7280;"></span>
+            </div>
+            <div class="card-body" id="vocabPracticeBody">
+                <div id="vocabPracticeContent">
+                    <div class="loading">Loading practice data...</div>
+                </div>
+            </div>
+        </div>
+
         <!-- Main Grid -->
         <div class="dashboard-grid">
             <!-- Students Card -->
@@ -2207,6 +2220,204 @@
                         <span style="font-size: 0.8rem; color: #6b7280; min-width: 60px; text-align: right;">${s.mastered}/${totalWords}</span>
                     </div>`;
             }).join('');
+        }
+
+        // Vocab Practice Tracker - shows daily practice heatmap for all students
+        async function loadVocabPracticeTracker() {
+            const card = document.getElementById('vocabPracticeCard');
+            if (!card || !currentClass || classStudents.length === 0) return;
+            card.style.display = 'block';
+
+            const config = getVocabConfig();
+            document.getElementById('vocabPracticeTitle').textContent = `📈 ${config.label} Daily Practice`;
+
+            const studentIds = classStudents.map(s => s.id);
+
+            // Get practice attempts for last 14 days
+            const twoWeeksAgo = new Date();
+            twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 13);
+            twoWeeksAgo.setHours(0, 0, 0, 0);
+
+            const pathFilter = config.language === 'greek'
+                ? '%greek%vocabulary-practice%'
+                : '%latin%vocabulary-practice%';
+
+            const [attemptsRes, masteryRes, testsRes] = await Promise.all([
+                supabase
+                    .from('task_attempts')
+                    .select('student_id, started_at, score, total_questions, correct_answers, content_path')
+                    .in('student_id', studentIds)
+                    .like('content_path', pathFilter)
+                    .gte('started_at', twoWeeksAgo.toISOString()),
+                supabase
+                    .from('word_mastery')
+                    .select('student_id, mastered_at')
+                    .in('student_id', studentIds)
+                    .eq('language', config.language)
+                    .not('mastered_at', 'is', null),
+                supabase
+                    .from('tasks')
+                    .select('id, title, content_path, due_date')
+                    .eq('class_id', currentClass.id)
+                    .like('content_path', 'manual_test%')
+                    .order('due_date', { ascending: false })
+                    .limit(3)
+            ]);
+
+            const attempts = attemptsRes.data || [];
+            const masteryData = masteryRes.data || [];
+            const recentTests = testsRes.data || [];
+
+            // Get scores for recent tests
+            let testScoresByStudent = {};
+            if (recentTests.length > 0) {
+                const testIds = recentTests.map(t => t.id);
+                const { data: testScores } = await supabase
+                    .from('task_attempts')
+                    .select('task_id, student_id, score')
+                    .in('task_id', testIds);
+
+                (testScores || []).forEach(s => {
+                    if (!testScoresByStudent[s.student_id]) testScoresByStudent[s.student_id] = {};
+                    testScoresByStudent[s.student_id][s.task_id] = s.score;
+                });
+            }
+
+            // Group practice attempts by student and date
+            const practiceByStudentDay = {};
+            attempts.forEach(a => {
+                const date = new Date(a.started_at).toISOString().split('T')[0];
+                const key = `${a.student_id}_${date}`;
+                if (!practiceByStudentDay[key]) {
+                    practiceByStudentDay[key] = { sessions: 0, totalQ: 0, correctQ: 0 };
+                }
+                practiceByStudentDay[key].sessions++;
+                practiceByStudentDay[key].totalQ += (a.total_questions || 0);
+                practiceByStudentDay[key].correctQ += (a.correct_answers || 0);
+            });
+
+            // Count mastered per student
+            const masteryCounts = {};
+            studentIds.forEach(id => masteryCounts[id] = 0);
+            masteryData.forEach(row => {
+                if (masteryCounts[row.student_id] !== undefined) masteryCounts[row.student_id]++;
+            });
+
+            // Build date headers for the last 7 days
+            const days = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                d.setHours(12, 0, 0, 0);
+                days.push(d.toISOString().split('T')[0]);
+            }
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            let practicedToday = 0;
+            studentIds.forEach(id => {
+                if (practiceByStudentDay[`${id}_${todayStr}`]) practicedToday++;
+            });
+
+            document.getElementById('vocabPracticeSummary').textContent =
+                `${practicedToday}/${studentIds.length} practiced today`;
+
+            // Build tracker table
+            const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const content = document.getElementById('vocabPracticeContent');
+
+            // Test column headers
+            const testHeaders = recentTests.map(t => {
+                const maxScore = t.content_path && t.content_path.includes(':') ? t.content_path.split(':')[1] : '?';
+                const shortTitle = (t.title || 'Test').length > 10 ? (t.title || 'Test').substring(0, 10) + '…' : (t.title || 'Test');
+                return `<th style="text-align: center; padding: 0.25rem; border-bottom: 2px solid #e5e7eb; min-width: 50px; font-size: 0.75rem;" title="${escapeHtml(t.title || 'Test')} (/${maxScore})">${escapeHtml(shortTitle)}</th>`;
+            }).join('');
+
+            let html = `<div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                    <tr>
+                        <th style="text-align: left; padding: 0.5rem; border-bottom: 2px solid #e5e7eb; min-width: 110px;">Student</th>
+                        ${days.map(d => {
+                            const date = new Date(d + 'T12:00:00');
+                            const isToday = d === todayStr;
+                            return `<th style="text-align: center; padding: 0.25rem; border-bottom: 2px solid #e5e7eb; min-width: 36px; ${isToday ? 'background: #f0f9ff;' : ''}">
+                                <div style="font-size: 0.65rem; color: #6b7280;">${dayLabels[date.getDay()]}</div>
+                                <div style="font-size: 0.8rem;">${date.getDate()}</div>
+                            </th>`;
+                        }).join('')}
+                        <th style="text-align: center; padding: 0.25rem; border-bottom: 2px solid #e5e7eb; min-width: 55px; font-size: 0.75rem;">Words</th>
+                        ${testHeaders}
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            // Sort students by name
+            const sorted = [...classStudents].sort((a, b) =>
+                (a.full_name || '').localeCompare(b.full_name || ''));
+
+            sorted.forEach(student => {
+                html += `<tr>
+                    <td style="padding: 0.4rem 0.5rem; border-bottom: 1px solid #f3f4f6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px;">${escapeHtml(student.full_name || 'Student')}</td>`;
+
+                days.forEach(d => {
+                    const key = `${student.id}_${d}`;
+                    const data = practiceByStudentDay[key];
+                    const isToday = d === todayStr;
+
+                    if (data) {
+                        const acc = data.totalQ > 0 ? Math.round((data.correctQ / data.totalQ) * 100) : 0;
+                        const color = acc >= 80 ? '#10b981' : acc >= 60 ? '#f59e0b' : '#ef4444';
+                        html += `<td style="text-align: center; padding: 0.4rem; border-bottom: 1px solid #f3f4f6; ${isToday ? 'background: #f0f9ff;' : ''}" title="${data.sessions} session(s), ${data.totalQ} Qs, ${acc}% accuracy">
+                            <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: ${color};"></span>
+                        </td>`;
+                    } else {
+                        html += `<td style="text-align: center; padding: 0.4rem; border-bottom: 1px solid #f3f4f6; ${isToday ? 'background: #f0f9ff;' : ''}">
+                            <span style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; background: ${isToday ? '#e0f2fe' : '#f3f4f6'}; border: 1px solid ${isToday ? '#93c5fd' : '#e5e7eb'};"></span>
+                        </td>`;
+                    }
+                });
+
+                // Mastered column
+                const mastered = masteryCounts[student.id] || 0;
+                const pct = Math.round((mastered / config.totalWords) * 100);
+                const mColor = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#6b7280';
+                html += `<td style="text-align: center; padding: 0.4rem; border-bottom: 1px solid #f3f4f6;">
+                    <span style="font-weight: 600; font-size: 0.8rem; color: ${mColor};">${mastered}</span>
+                    <span style="font-size: 0.65rem; color: #9ca3af;">/${config.totalWords}</span>
+                </td>`;
+
+                // Test score columns
+                recentTests.forEach(t => {
+                    const scores = testScoresByStudent[student.id];
+                    const score = scores ? scores[t.id] : undefined;
+                    const maxScore = t.content_path && t.content_path.includes(':') ? parseInt(t.content_path.split(':')[1]) : 20;
+
+                    if (score === -1) {
+                        html += `<td style="text-align: center; padding: 0.4rem; border-bottom: 1px solid #f3f4f6; font-size: 0.8rem; color: #9ca3af;">NP</td>`;
+                    } else if (score !== undefined) {
+                        const scorePct = Math.round((score / maxScore) * 100);
+                        const sColor = scorePct >= 80 ? '#10b981' : scorePct >= 60 ? '#f59e0b' : '#ef4444';
+                        html += `<td style="text-align: center; padding: 0.4rem; border-bottom: 1px solid #f3f4f6; font-size: 0.8rem; font-weight: 600; color: ${sColor};">${score}/${maxScore}</td>`;
+                    } else {
+                        html += `<td style="text-align: center; padding: 0.4rem; border-bottom: 1px solid #f3f4f6; font-size: 0.8rem; color: #d1d5db;">—</td>`;
+                    }
+                });
+
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+
+            // Legend
+            html += `<div style="display: flex; gap: 1rem; margin-top: 0.75rem; font-size: 0.75rem; color: #6b7280; flex-wrap: wrap;">
+                <span><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #10b981; vertical-align: middle;"></span> ≥80%</span>
+                <span><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #f59e0b; vertical-align: middle;"></span> ≥60%</span>
+                <span><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; vertical-align: middle;"></span> &lt;60%</span>
+                <span><span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #f3f4f6; border: 1px solid #e5e7eb; vertical-align: middle;"></span> No practice</span>
+                <span style="margin-left: auto; font-style: italic;">Hover dots for details</span>
+            </div>`;
+
+            content.innerHTML = html;
         }
 
         function editVocabSchedule() {
@@ -3787,10 +3998,15 @@
             await loadResources();
             await loadVocabTests();
 
+            // Load daily practice tracker for vocab-supporting classes
+            if (currentClass.type !== 'classics') {
+                await loadVocabPracticeTracker();
+            }
+
             document.getElementById('taskChapter').addEventListener('change', handleChapterChange);
             document.getElementById('taskFromWord').addEventListener('change', handleFromWordChange);
         }
-        
+
         // Class Stats & Leaderboard Data
         let classStatsData = {
             studentStats: [], // Array of { student, attempts, totalTime, avgScore, wordsMastered, streak }
