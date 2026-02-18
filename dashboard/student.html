@@ -1341,3 +1341,1051 @@
             </div>
         </div>
     </div>
+
+    <script>
+        let currentUser = null;
+        let attempts = [];
+        let currentClassId = null;
+        let currentClass = null;
+        let currentCalendarRange = 'month';
+
+        // Initialize
+        async function init() {
+            // Parse class_id from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            currentClassId = urlParams.get('class_id');
+
+            // If no class_id, redirect to hub
+            if (!currentClassId) {
+                window.location.href = 'student-hub.html';
+                return;
+            }
+
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            // Get user profile
+            const { data: profile } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (!profile || profile.role !== 'student') {
+                window.location.href = '../auth/login.html';
+                return;
+            }
+
+            currentUser = profile;
+
+            // Load current class info
+            const { data: classData, error: classError } = await supabase
+                .from('classes')
+                .select('*')
+                .eq('id', currentClassId)
+                .single();
+
+            if (classError || !classData) {
+                window.location.href = 'student-hub.html';
+                return;
+            }
+
+            currentClass = classData;
+
+            // Update header with class info
+            document.getElementById('welcomeMessage').textContent = currentClass.name;
+            document.getElementById('headerSubtext').textContent = getClassTypeLabel(currentClass.type);
+
+            // Load all data (filtered to current class)
+            await loadAttempts();
+            await loadLanguageProgress(); // Builds class-specific section
+            await loadLeaderboardData();
+            renderCalendar(currentCalendarRange);
+            renderRecentActivity();
+            loadPendingTasks();
+            renderQuickActions();
+
+            // Show/hide sections based on class type
+            updateSectionsForClassType();
+
+            // Load daily vocab schedule if applicable
+            loadDailyVocab();
+
+            // Load announcements and resources
+            try {
+                await loadAnnouncements();
+            } catch (e) {
+                console.error('Error loading announcements:', e);
+            }
+
+            try {
+                await loadResources();
+            } catch (e) {
+                console.error('Error loading resources:', e);
+            }
+
+            // Load achievements (don't crash page on error)
+            try {
+                await loadAchievements();
+            } catch (e) {
+                console.error('Error loading achievements:', e);
+            }
+
+            // Load set text progress (don't let errors crash the whole page)
+            try {
+                await loadSetTextProgress();
+            } catch (e) {
+                console.error('Error loading set text progress:', e);
+            }
+
+            // Load class switcher
+            await loadClassSwitcher();
+
+            // Load headline metrics
+            try {
+                await loadHeadlineMetrics();
+            } catch (e) {
+                console.error('Error loading headline metrics:', e);
+            }
+
+            // Load recently completed
+            try {
+                await loadRecentlyCompleted();
+            } catch (e) {
+                console.error('Error loading recently completed:', e);
+            }
+        }
+
+        // Load class switcher dropdown with pending task counts
+        async function loadClassSwitcher() {
+            const container = document.getElementById('classSwitcherContainer');
+            const switcher = document.getElementById('classSwitcher');
+            if (!switcher || !container) return;
+
+            // Get all classes this student is in
+            const { data: memberships } = await supabase
+                .from('class_members')
+                .select(`
+                    class_id,
+                    classes (
+                        id,
+                        name,
+                        type
+                    )
+                `)
+                .eq('student_id', currentUser.id);
+
+            if (!memberships || memberships.length <= 1) {
+                // Only one class or none - hide the switcher
+                container.style.display = 'none';
+                return;
+            }
+
+            const typeIcons = {
+                latin: '\uD83D\uDCD6',
+                'prep-latin': '\uD83D\uDCDA',
+                greek: '\uD83C\uDFFA',
+                classics: '\uD83C\uDFDB\uFE0F'
+            };
+
+            // For each class, count pending tasks
+            for (const membership of memberships) {
+                const cls = membership.classes;
+                try {
+                    const { count } = await supabase
+                        .from('tasks')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('class_id', cls.id)
+                        .gte('due_date', new Date().toISOString());
+                    cls.pendingCount = count || 0;
+                } catch (e) {
+                    cls.pendingCount = 0;
+                }
+            }
+
+            switcher.innerHTML = memberships.map(m => {
+                const icon = typeIcons[m.classes.type] || '\uD83D\uDCDA';
+                const selected = m.class_id === currentClassId ? 'selected' : '';
+                const countLabel = m.classes.pendingCount > 0 ? ` (${m.classes.pendingCount} due)` : '';
+                return `<option value="${m.class_id}" ${selected}>${icon} ${m.classes.name}${countLabel}</option>`;
+            }).join('');
+
+            container.style.display = 'block';
+
+            // Update header subtext with pending count for current class
+            const currentMembership = memberships.find(m => m.class_id === currentClassId);
+            if (currentMembership) {
+                const count = currentMembership.classes.pendingCount;
+                document.getElementById('headerSubtext').textContent =
+                    count > 0
+                        ? `${getClassTypeLabel(currentClass.type)} \u2022 ${count} task${count !== 1 ? 's' : ''} due`
+                        : getClassTypeLabel(currentClass.type);
+            }
+        }
+
+        // Switch to a different class
+        function switchClass(classId) {
+            if (classId && classId !== currentClassId) {
+                window.location.href = `student.html?class_id=${classId}`;
+            }
+        }
+
+        // Helper: get class type label
+        function getClassTypeLabel(type) {
+            const labels = {
+                latin: 'Latin GCSE',
+                'prep-latin': 'Prep Latin',
+                greek: 'Greek GCSE',
+                classics: 'Classical Civilisation'
+            };
+            return labels[type] || type;
+        }
+
+        // Helper: get class type icon
+        function getClassTypeIcon(type) {
+            const icons = {
+                latin: '\uD83D\uDCD6',
+                'prep-latin': '\uD83D\uDCDA',
+                greek: '\uD83C\uDFFA',
+                classics: '\uD83C\uDFDB\uFE0F'
+            };
+            return icons[type] || '\uD83D\uDCDA';
+        }
+
+        // Headline Metrics
+        async function loadHeadlineMetrics() {
+            // Words mastered or quizzes done (depending on class type)
+            if (currentClass.type === 'classics') {
+                document.getElementById('metricWordsLabel').textContent = 'Quizzes Done';
+                const { data } = await supabase
+                    .from('classics_quiz_progress')
+                    .select('id')
+                    .eq('student_id', currentUser.id);
+                document.getElementById('metricWordsOrQuizzes').textContent = data ? data.length : 0;
+            } else {
+                const lang = currentClass.type === 'greek' ? 'greek' : (currentClass.type === 'prep-latin' ? 'prep-latin' : 'latin');
+                const { data } = await supabase
+                    .from('word_mastery')
+                    .select('correct_count, incorrect_count')
+                    .eq('student_id', currentUser.id)
+                    .eq('language', lang);
+                const mastered = (data || []).filter(w => {
+                    const total = w.correct_count + w.incorrect_count;
+                    return w.correct_count >= 3 && total > 0 && (w.correct_count / total) >= 0.7;
+                });
+                document.getElementById('metricWordsOrQuizzes').textContent = mastered.length;
+            }
+
+            // Average score
+            const { data: scoreAttempts } = await supabase
+                .from('task_attempts')
+                .select('score')
+                .eq('student_id', currentUser.id)
+                .not('score', 'is', null);
+            if (scoreAttempts && scoreAttempts.length > 0) {
+                const avg = scoreAttempts.reduce((s, a) => s + a.score, 0) / scoreAttempts.length;
+                document.getElementById('metricAvgScore').textContent = Math.round(avg) + '%';
+            }
+
+            // Active days in last 30
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const { data: recentAttempts } = await supabase
+                .from('task_attempts')
+                .select('started_at')
+                .eq('student_id', currentUser.id)
+                .gte('started_at', thirtyDaysAgo.toISOString());
+            const activeDays = new Set((recentAttempts || []).map(a => new Date(a.started_at).toISOString().split('T')[0])).size;
+            document.getElementById('metricActiveDays').textContent = activeDays;
+
+            // XP
+            try {
+                const { data: xpData } = await supabase
+                    .from('xp_transactions')
+                    .select('xp_amount')
+                    .eq('student_id', currentUser.id);
+                const totalXP = (xpData || []).reduce((s, x) => s + (x.xp_amount || 0), 0);
+                document.getElementById('metricXP').textContent = totalXP;
+            } catch (e) {
+                // xp_transactions table may not exist
+                document.getElementById('metricXP').textContent = '0';
+            }
+        }
+
+        // Update sections based on class type
+        function updateSectionsForClassType() {
+            const type = currentClass.type;
+
+            // Show/hide set text progress (only for Latin GCSE)
+            const setTextCard = document.getElementById('setTextCard');
+            if (setTextCard) {
+                setTextCard.style.display = type === 'latin' ? 'block' : 'none';
+            }
+
+            // Show/hide word mastery section if only classics
+            const wordMasterySection = document.querySelector('.word-mastery-section');
+            if (wordMasterySection) {
+                wordMasterySection.style.display = type === 'classics' ? 'none' : 'block';
+            }
+
+            // Update leaderboard options based on class type
+            const wordsOption = document.querySelector('#leaderboardType option[value="words"]');
+            if (wordsOption) {
+                wordsOption.style.display = type === 'classics' ? 'none' : 'block';
+            }
+
+            // Show achievements, activity calendar, leaderboard for ALL class types
+            document.getElementById('achievementsCard').style.display = 'block';
+            document.getElementById('activityCalendarCard').style.display = 'block';
+            document.getElementById('leaderboardCard').style.display = 'block';
+
+            // Daily vocab: hide for classics
+            if (type === 'classics') {
+                const vocabCard = document.getElementById('dailyVocabCard');
+                if (vocabCard) vocabCard.style.display = 'none';
+            }
+        }
+
+        // Calendar range toggle
+        function setCalendarRange(range, btn) {
+            currentCalendarRange = range;
+            // Update active button
+            document.querySelectorAll('.cal-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            renderCalendar(range);
+        }
+
+        // Daily Vocab Schedule
+        function loadDailyVocab() {
+            const card = document.getElementById('dailyVocabCard');
+            if (!card) return;
+            if (!currentClass.vocab_start_date || !currentClass.vocab_deadline) return;
+
+            const startDate = currentClass.vocab_start_date;
+            const deadline = currentClass.vocab_deadline;
+            // Adapt word count and practice path based on class type
+            const isGreekClass = currentClass.type === 'greek';
+            const totalWords = isGreekClass ? 1166 : 1126;
+
+            const summary = VocabSchedule.getProgressSummary(
+                { length: totalWords },
+                startDate,
+                deadline
+            );
+
+            // Show the card
+            card.style.display = 'block';
+
+            // Day label
+            document.getElementById('dailyVocabDayLabel').textContent =
+                summary.hasFinished ? 'Complete' : `Day ${summary.currentDay}`;
+
+            // Progress bar
+            document.getElementById('dailyVocabProgressText').textContent =
+                `${summary.wordsCoveredToday} / ${summary.totalWords} words`;
+            document.getElementById('dailyVocabDeadline').textContent =
+                summary.hasFinished ? 'Done!' : `${summary.daysRemaining}d left`;
+            document.getElementById('dailyVocabProgressBar').style.width =
+                summary.percentComplete + '%';
+
+            // Learn button
+            const learnBtn = document.getElementById('dailyVocabLearnBtn');
+            const practicePath = isGreekClass
+                ? `../greek/a-level-vocabulary-practice.html`
+                : `../latin/a-level-vocabulary-practice.html`;
+            learnBtn.href = `${practicePath}?mode=daily&class_id=${currentClassId}`;
+            document.getElementById('dailyVocabNewCount').textContent =
+                summary.hasFinished ? 'All done' : `${summary.wordsPerDay} words`;
+
+            if (summary.hasFinished) {
+                learnBtn.querySelector('span:first-child').textContent = 'Review All Words';
+                learnBtn.href = `${practicePath}?mode=review&class_id=${currentClassId}`;
+            }
+
+            // Review button (only show if there are previous days' words)
+            const reviewBtn = document.getElementById('dailyVocabReviewBtn');
+            if (summary.currentDay > 1 && !summary.hasFinished) {
+                const learnedSoFar = (summary.currentDay - 1) * summary.wordsPerDay;
+                reviewBtn.style.display = 'flex';
+                reviewBtn.href = `${practicePath}?mode=review&class_id=${currentClassId}`;
+                document.getElementById('dailyVocabReviewCount').textContent =
+                    `from ${Math.min(learnedSoFar, totalWords)} learned`;
+            }
+
+            // Weekly test button
+            const weeklyTestBtn = document.getElementById('dailyVocabWeeklyTestBtn');
+            const vocabTestDay = currentClass.vocab_test_day;
+            const todayDayOfWeek = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+            const isTestDay = vocabTestDay !== null && vocabTestDay !== undefined && vocabTestDay !== '' && parseInt(vocabTestDay) === todayDayOfWeek;
+
+            if (isTestDay && summary.currentWeek >= 1 && !summary.hasFinished) {
+                // It's test day - show prominently at the top of actions
+                const testWeek = summary.currentWeek;
+                weeklyTestBtn.style.display = 'flex';
+                weeklyTestBtn.style.background = 'linear-gradient(135deg, #dc2626, #b91c1c)';
+                weeklyTestBtn.href = `${practicePath}?mode=weekly-test&week=${testWeek}&class_id=${currentClassId}`;
+                weeklyTestBtn.querySelector('span:first-child').textContent = '\uD83D\uDCDD Weekly Test Due Today';
+                document.getElementById('dailyVocabWeekLabel').textContent = `Week ${testWeek}`;
+                // Move test button to top of action list
+                const actionsDiv = document.getElementById('dailyVocabActions');
+                actionsDiv.insertBefore(weeklyTestBtn, actionsDiv.firstChild);
+            } else if (summary.isEndOfWeek || summary.currentWeek > 1) {
+                weeklyTestBtn.style.display = 'flex';
+                const testWeek = summary.isEndOfWeek ? summary.currentWeek : summary.currentWeek - 1;
+                weeklyTestBtn.href = `${practicePath}?mode=weekly-test&week=${testWeek}&class_id=${currentClassId}`;
+                document.getElementById('dailyVocabWeekLabel').textContent = `Week ${testWeek}`;
+            }
+        }
+
+        // Language progress data
+        let languageData = {}; // { latin: { classes, attempts, words, stats }, greek: {...}, classics: {...} }
+
+        // Load and render language progress sections (now class-specific)
+        async function loadLanguageProgress() {
+            const container = document.getElementById('languageProgressSections');
+            const type = currentClass.type;
+
+            // Get word mastery data for this language type
+            let words = [];
+            if (type !== 'classics') {
+                const { data: wordData } = await supabase
+                    .from('word_mastery')
+                    .select('*')
+                    .eq('student_id', currentUser.id)
+                    .eq('language', type);
+                words = wordData || [];
+            }
+
+            // Get task attempts for tasks in this class
+            const { data: taskAttempts } = await supabase
+                .from('task_attempts')
+                .select('*, tasks(class_id)')
+                .eq('student_id', currentUser.id);
+
+            const classAttempts = (taskAttempts || []).filter(a =>
+                a.tasks && a.tasks.class_id === currentClassId
+            );
+
+            // For classics, get quiz progress
+            let classicsProgress = [];
+            if (type === 'classics') {
+                const { data: quizProgress } = await supabase
+                    .from('classics_quiz_progress')
+                    .select('*')
+                    .eq('student_id', currentUser.id);
+                classicsProgress = quizProgress || [];
+            }
+
+            // For Latin, also get set text progress
+            let setTextProgress = [];
+            if (type === 'latin') {
+                const { data: stProgress } = await supabase
+                    .from('set_text_progress')
+                    .select('*')
+                    .eq('student_id', currentUser.id);
+                setTextProgress = stProgress || [];
+            }
+
+            // Calculate stats
+            const stats = calculateLanguageStats(classAttempts, words, type, classicsProgress, setTextProgress);
+
+            languageData[type] = {
+                classes: [currentClass],
+                attempts: classAttempts,
+                words: words,
+                stats
+            };
+
+            // Render single class section
+            await renderClassProgressSection(container, type, stats);
+        }
+
+        // Render progress section for current class
+        async function renderClassProgressSection(container, type, stats) {
+            const typeConfig = {
+                latin: {
+                    icon: '\uD83D\uDCD6',
+                    name: 'Latin GCSE',
+                    hasVocab: true,
+                    practiseUrl: '../latin/vocabulary-hub.html',
+                    reviewUrl: '../latin/vocabulary-practice.html?mode=review&language=latin'
+                },
+                'prep-latin': {
+                    icon: '\uD83D\uDCDA',
+                    name: 'Prep Latin',
+                    hasVocab: true,
+                    practiseUrl: '../latin/prep-vocabulary-practice.html',
+                    reviewUrl: '../latin/prep-vocabulary-practice.html?mode=review&language=prep-latin'
+                },
+                greek: {
+                    icon: '\uD83C\uDFFA',
+                    name: 'Greek',
+                    hasVocab: true,
+                    practiseUrl: '../greek/vocabulary-practice.html',
+                    reviewUrl: '../greek/vocabulary-practice.html?mode=review&language=greek'
+                },
+                classics: {
+                    icon: '\uD83C\uDFDB\uFE0F',
+                    name: 'Classical Civilisation',
+                    hasVocab: false,
+                    practiseUrl: '../classics/quiz.html'
+                }
+            };
+
+            const config = typeConfig[type] || typeConfig.latin;
+
+            // Build additional progress sections based on type
+            let additionalContent = '';
+
+            if (type === 'latin') {
+                // Load set text progress for Latin GCSE
+                additionalContent = await buildSetTextOverview();
+            } else if (type === 'classics') {
+                // Load reading progress for all Classical Civ courses and topic overview
+                const [iliadProgress, aeneidProgress, greekArtProgress, topicOverview] = await Promise.all([
+                    buildIliadReadingProgress(),
+                    buildAeneidReadingProgress(),
+                    buildGreekArtReadingProgress(),
+                    buildClassicsTopicOverview()
+                ]);
+                additionalContent = iliadProgress + aeneidProgress + greekArtProgress + topicOverview;
+            }
+
+            let html = `
+                <div class="language-section">
+                    <div class="language-header">
+                        <div class="language-title">
+                            <span class="language-title-icon">${config.icon}</span>
+                            Your Progress
+                        </div>
+                        <a href="${config.practiseUrl}" class="language-practise-btn">Practise Now</a>
+                    </div>
+
+                    <div class="language-stats">
+                        ${config.hasVocab ? `
+                            <div class="language-stat">
+                                <div class="language-stat-value">${stats.mastered}</div>
+                                <div class="language-stat-label">\uD83C\uDF1F Words Mastered</div>
+                            </div>
+                        ` : `
+                            <div class="language-stat">
+                                <div class="language-stat-value">${stats.sessionsCompleted}</div>
+                                <div class="language-stat-label">\u2705 Sessions</div>
+                            </div>
+                        `}
+                        <div class="language-stat">
+                            <div class="language-stat-value">${stats.timeStr}</div>
+                            <div class="language-stat-label">\u23F1\uFE0F Time Practised</div>
+                        </div>
+                        <div class="language-stat">
+                            <div class="language-stat-value">${stats.streak}</div>
+                            <div class="language-stat-label">\uD83D\uDD25 Day Streak</div>
+                        </div>
+                        ${config.hasVocab ? `
+                            <div class="language-stat">
+                                <div class="language-stat-value">${stats.struggling}</div>
+                                <div class="language-stat-label">\uD83D\uDCAA Need Practice</div>
+                            </div>
+                        ` : `
+                            <div class="language-stat">
+                                <div class="language-stat-value">${stats.avgAccuracy}%</div>
+                                <div class="language-stat-label">\uD83C\uDFAF Avg Score</div>
+                            </div>
+                        `}
+                    </div>
+
+                    ${config.hasVocab && stats.struggling > 0 ? `
+                        <a href="${config.reviewUrl}" class="language-review-btn">
+                            \uD83D\uDCAA Review Weak Words (${stats.struggling})
+                        </a>
+                    ` : ''}
+
+                    ${additionalContent}
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Build set text overview for Latin GCSE
+        async function buildSetTextOverview() {
+            const allSetTexts = [
+                { id: 'messalina', name: 'Messalina', sections: 9 },
+                { id: 'baucis-philemon', name: 'Baucis & Philemon', sections: 6 },
+                { id: 'otium', name: 'Otium', sections: 3 }
+            ];
+
+            // Filter by class content settings
+            const settings = currentClass.content_settings || {};
+            const enabledTexts = settings.set_texts || ['messalina', 'baucis-philemon', 'otium'];
+            const setTexts = allSetTexts.filter(t => enabledTexts.includes(t.id));
+
+            if (setTexts.length === 0) return '';
+
+            try {
+                // Get all set text progress
+                const { data: progress } = await supabase
+                    .from('set_text_progress')
+                    .select('text_id, section_id, best_score')
+                    .eq('student_id', currentUser.id);
+
+                if (!progress) return '';
+
+                // Build progress map by text
+                const progressByText = {};
+                progress.forEach(p => {
+                    if (!progressByText[p.text_id]) progressByText[p.text_id] = {};
+                    progressByText[p.text_id][p.section_id] = p.best_score;
+                });
+
+                let html = `
+                    <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;">
+                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.75rem; font-size: 0.95rem;">\uD83D\uDCDC Set Text Progress</div>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                `;
+
+                for (const text of setTexts) {
+                    const textProgress = progressByText[text.id] || {};
+                    const completedSections = Object.keys(textProgress).length;
+                    const avgScore = completedSections > 0
+                        ? Math.round(Object.values(textProgress).reduce((a, b) => a + b, 0) / completedSections)
+                        : 0;
+
+                    // Build section indicators
+                    let sectionHtml = '';
+                    for (let i = 1; i <= text.sections; i++) {
+                        const score = textProgress[i];
+                        if (score !== undefined) {
+                            const bg = score >= 70 ? '#dcfce7' : score >= 50 ? '#fef3c7' : '#fee2e2';
+                            const color = score >= 70 ? '#16a34a' : score >= 50 ? '#d97706' : '#dc2626';
+                            sectionHtml += `<span style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: ${bg}; color: ${color}; border-radius: 6px; font-size: 0.7rem; font-weight: 600;" title="Section ${i}: ${score}%">${i}</span>`;
+                        } else {
+                            sectionHtml += `<span style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: #f3f4f6; color: #9ca3af; border-radius: 6px; font-size: 0.7rem;" title="Section ${i}: Not started">${i}</span>`;
+                        }
+                    }
+
+                    html += `
+                        <div style="background: #f9fafb; border-radius: 10px; padding: 0.75rem; border: 1px solid #e5e7eb;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-weight: 500; color: #374151; font-size: 0.85rem;">${text.name}</span>
+                                <span style="font-size: 0.75rem; color: #6b7280;">${completedSections}/${text.sections} sections ${avgScore > 0 ? `\u2022 ${avgScore}% avg` : ''}</span>
+                            </div>
+                            <div style="display: flex; gap: 0.25rem; flex-wrap: wrap;">${sectionHtml}</div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                        </div>
+                        <a href="../latin/literature/set-text-quiz.html" style="display: block; margin-top: 0.75rem; color: #0066ff; font-size: 0.85rem; font-weight: 500; text-decoration: none;">Practice Set Texts \u2192</a>
+                    </div>
+                `;
+
+                return html;
+            } catch (err) {
+                console.error('Error building set text overview:', err);
+                return '';
+            }
+        }
+
+        // Build topic overview for Classical Civ
+        async function buildClassicsTopicOverview() {
+            // Define all courses with their topics and subtopics
+            const allCourses = {
+                politics: {
+                    id: 'politics',
+                    name: 'Politics of the Late Republic',
+                    icon: '\uD83C\uDFDB\uFE0F',
+                    topics: [
+                        { id: 'topic-1', name: 'Topic 1: The Roman Republic', subtopics: [
+                            { id: '1', number: '1.1', title: 'What was the Roman Republic?' },
+                            { id: '2', number: '1.2', title: 'The Constitution' },
+                            { id: '3', number: '1.3', title: 'Patronage and Amicitia' },
+                            { id: '4', number: '1.4', title: 'Political Ideals' },
+                            { id: '5', number: '1.5', title: 'Political Factions' }
+                        ]},
+                        { id: 'topic-2', name: 'Topic 2: The End of the Republic', subtopics: [
+                            { id: '1', number: '2.1', title: 'The Gracchi' },
+                            { id: '2', number: '2.2', title: 'Marius and Sulla' },
+                            { id: '3', number: '2.3', title: 'Sulla\'s Dictatorship' }
+                        ]}
+                    ]
+                },
+                myth: {
+                    id: 'myth',
+                    name: 'Myth & Religion',
+                    icon: '\u26A1',
+                    topics: [
+                        { id: 'topic-1', name: 'Topic 1: Hercules - The Twelve Labours', subtopics: [
+                            { id: '1', number: '1.1', title: 'The First Six Labours' },
+                            { id: '2', number: '1.2', title: 'The Last Six Labours' }
+                        ]},
+                        { id: 'topic-2', name: 'Topic 2: Hercules - Other Stories', subtopics: [
+                            { id: '1', number: '2.1', title: 'Cacus and Deianira' }
+                        ]},
+                        { id: 'topic-3', name: 'Topic 3: The Iliad', subtopics: [
+                            { id: '1', number: '3.1', title: 'Books 1, 3, 6' },
+                            { id: '2', number: '3.2', title: 'Books 9, 16, 18' },
+                            { id: '3', number: '3.3', title: 'Books 22, 24' }
+                        ]}
+                    ]
+                }
+            };
+
+            // Filter by class content settings
+            const settings = currentClass.content_settings || {};
+            const enabledCourses = settings.courses || ['politics', 'myth'];
+            const courses = enabledCourses.map(id => allCourses[id]).filter(c => c);
+
+            if (courses.length === 0) return '';
+
+            try {
+                // Get classics quiz progress
+                const { data: progress } = await supabase
+                    .from('classics_quiz_progress')
+                    .select('course_id, topic_id, subtopic_id, score_percentage, attempts')
+                    .eq('student_id', currentUser.id);
+
+                // Build progress map: course-topic-subtopic -> best score
+                const progressMap = {};
+                (progress || []).forEach(p => {
+                    const key = `${p.course_id}-${p.topic_id}-${p.subtopic_id}`;
+                    if (!progressMap[key] || p.score_percentage > progressMap[key].score) {
+                        progressMap[key] = { score: p.score_percentage, attempts: p.attempts };
+                    }
+                });
+
+                let html = `
+                    <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;">
+                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.75rem; font-size: 0.95rem;">\uD83C\uDFDB\uFE0F Topic Progress</div>
+                `;
+
+                for (const course of courses) {
+                    html += `<div style="margin-bottom: 1rem;">
+                        <div style="font-weight: 500; color: #374151; margin-bottom: 0.5rem; font-size: 0.9rem;">${course.icon} ${course.name}</div>
+                    `;
+
+                    for (const topic of course.topics) {
+                        let completed = 0;
+                        let total = topic.subtopics.length;
+                        let subtopicHtml = '';
+
+                        for (const sub of topic.subtopics) {
+                            const key = `${course.id}-${topic.id}-${sub.id}`;
+                            const p = progressMap[key];
+
+                            if (p) {
+                                completed++;
+                                const bg = p.score >= 80 ? '#dcfce7' : p.score >= 60 ? '#fef3c7' : '#fee2e2';
+                                const color = p.score >= 80 ? '#16a34a' : p.score >= 60 ? '#d97706' : '#dc2626';
+                                subtopicHtml += `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; background: ${bg}; border-radius: 6px; font-size: 0.75rem;">
+                                        <span style="color: ${color}; font-weight: 600; min-width: 32px;">${p.score}%</span>
+                                        <span style="color: #374151;">${sub.number}: ${sub.title}</span>
+                                    </div>
+                                `;
+                            } else {
+                                subtopicHtml += `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.6rem; background: #f3f4f6; border-radius: 6px; font-size: 0.75rem;">
+                                        <span style="color: #9ca3af; min-width: 32px;">\u2014</span>
+                                        <span style="color: #9ca3af;">${sub.number}: ${sub.title}</span>
+                                    </div>
+                                `;
+                            }
+                        }
+
+                        html += `
+                            <div style="background: #f9fafb; border-radius: 8px; padding: 0.6rem; border: 1px solid #e5e7eb; margin-bottom: 0.5rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                                    <span style="font-weight: 500; color: #1f2937; font-size: 0.8rem;">${topic.name}</span>
+                                    <span style="font-size: 0.7rem; color: ${completed === total ? '#16a34a' : '#6b7280'}; background: ${completed === total ? '#dcfce7' : '#f3f4f6'}; padding: 0.15rem 0.4rem; border-radius: 4px;">${completed}/${total}</span>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.25rem;">${subtopicHtml}</div>
+                            </div>
+                        `;
+                    }
+
+                    html += `</div>`;
+                }
+
+                html += `
+                    <a href="../classics/quiz.html" style="display: block; margin-top: 0.5rem; color: #0066ff; font-size: 0.85rem; font-weight: 500; text-decoration: none;">Practice Topics \u2192</a>
+                </div>
+                `;
+
+                return html;
+            } catch (err) {
+                console.error('Error building classics topic overview:', err);
+                return '';
+            }
+        }
+
+        // Build Iliad reading progress section showing individual lessons with links
+        async function buildIliadReadingProgress() {
+            // All Iliad lessons with titles and paths
+            const iliadLessons = [
+                { id: '1-1', title: 'The whole narrative', path: '../classical-civ/iliad/topic1/1-1.html' },
+                { id: '1-2', title: 'Oral tradition', path: '../classical-civ/iliad/topic1/1-2.html' },
+                { id: '1-3', title: 'The Homeric Question', path: '../classical-civ/iliad/topic1/1-3.html' },
+                { id: '1-4', title: 'Epic structure', path: '../classical-civ/iliad/topic1/1-4.html' },
+                { id: '1-5', title: 'Literary techniques', path: '../classical-civ/iliad/topic1/1-5.html' },
+                { id: '2-1', title: 'Book 1 in detail', path: '../classical-civ/iliad/topic2/2-1.html' },
+                { id: '2-2', title: 'Book 3 in detail', path: '../classical-civ/iliad/topic2/2-2.html' },
+                { id: '2-3', title: 'Key themes', path: '../classical-civ/iliad/topic2/2-3.html' },
+                { id: '2-4', title: 'Achilles & Agamemnon', path: '../classical-civ/iliad/topic2/2-4.html' },
+                { id: '2-5', title: 'Literary techniques', path: '../classical-civ/iliad/topic2/2-5.html' },
+                { id: '3-1', title: 'Book 4 in detail', path: '../classical-civ/iliad/topic3/3-1.html' },
+                { id: '3-2', title: 'Book 6 in detail', path: '../classical-civ/iliad/topic3/3-2.html' },
+                { id: '3-3', title: 'War vs domestic life', path: '../classical-civ/iliad/topic3/3-3.html' },
+                { id: '3-4', title: 'Hector & Andromache', path: '../classical-civ/iliad/topic3/3-4.html' },
+                { id: '3-5', title: "Women's roles", path: '../classical-civ/iliad/topic3/3-5.html' },
+                { id: '3-6', title: 'Literary techniques', path: '../classical-civ/iliad/topic3/3-6.html' },
+                { id: '4-1', title: 'Embassy to Achilles', path: '../classical-civ/iliad/topic4/4-1.html' },
+                { id: '4-2', title: 'The Doloneia', path: '../classical-civ/iliad/topic4/4-2.html' },
+                { id: '4-3', title: 'Heroic values', path: '../classical-civ/iliad/topic4/4-3.html' },
+                { id: '4-4', title: "Achilles' refusal", path: '../classical-civ/iliad/topic4/4-4.html' },
+                { id: '4-5', title: 'Literary techniques', path: '../classical-civ/iliad/topic4/4-5.html' },
+                { id: '5-1', title: "Patroclus' aristeia", path: '../classical-civ/iliad/topic5/5-1.html' },
+                { id: '5-2', title: 'Fight for the body', path: '../classical-civ/iliad/topic5/5-2.html' },
+                { id: '5-3', title: 'Death and mortality', path: '../classical-civ/iliad/topic5/5-3.html' },
+                { id: '5-4', title: 'Patroclus & Achilles', path: '../classical-civ/iliad/topic5/5-4.html' },
+                { id: '5-5', title: 'Literary techniques', path: '../classical-civ/iliad/topic5/5-5.html' },
+                { id: '6-1', title: 'Shield of Achilles', path: '../classical-civ/iliad/topic6/6-1.html' },
+                { id: '6-2', title: 'Arming for battle', path: '../classical-civ/iliad/topic6/6-2.html' },
+                { id: '6-3', title: 'Grief and revenge', path: '../classical-civ/iliad/topic6/6-3.html' },
+                { id: '6-4', title: 'Achilles transformed', path: '../classical-civ/iliad/topic6/6-4.html' },
+                { id: '6-5', title: 'The Shield: microcosm', path: '../classical-civ/iliad/topic6/6-5.html' },
+                { id: '7-1', title: "Hector's death", path: '../classical-civ/iliad/topic7/7-1.html' },
+                { id: '7-2', title: 'Funeral games', path: '../classical-civ/iliad/topic7/7-2.html' },
+                { id: '7-3', title: "Priam's supplication", path: '../classical-civ/iliad/topic7/7-3.html' },
+                { id: '7-4', title: 'Reconciliation', path: '../classical-civ/iliad/topic7/7-4.html' },
+                { id: '7-5', title: 'Hector, Priam, Achilles', path: '../classical-civ/iliad/topic7/7-5.html' }
+            ];
+
+            try {
+                // Get all reading sessions with content_path
+                const { data: readingSessions } = await supabase
+                    .from('task_attempts')
+                    .select('time_spent_seconds, started_at, content_path')
+                    .eq('student_id', currentUser.id)
+                    .eq('total_questions', 0); // Reading sessions have 0 questions
+
+                // Calculate total time metrics and per-lesson times from database
+                let totalIliadTime = 0;
+                const today = new Date().toISOString().split('T')[0];
+                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                let todayTime = 0;
+                let weekTime = 0;
+                const timeByLesson = {};
+
+                (readingSessions || []).forEach(s => {
+                    const time = s.time_spent_seconds || 0;
+                    const date = (s.started_at || '').split('T')[0];
+                    const path = s.content_path || '';
+
+                    totalIliadTime += time;
+                    if (date === today) todayTime += time;
+                    if (date >= weekAgo) weekTime += time;
+
+                    // Track per-lesson time by lesson id (e.g., "1-1")
+                    if (path.includes('iliad')) {
+                        const match = path.match(/\/(\d+-\d+)\.html/);
+                        if (match) {
+                            timeByLesson[match[1]] = (timeByLesson[match[1]] || 0) + time;
+                        }
+                    }
+                });
+
+                const formatTime = (secs) => {
+                    if (secs < 60) return secs > 0 ? `${secs}s` : '\u2014';
+                    const mins = Math.floor(secs / 60);
+                    if (mins < 60) return `${mins}m`;
+                    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+                };
+
+                let html = `
+                    <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;">
+                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.75rem; font-size: 0.95rem;">\uD83D\uDCD6 Iliad Reading Progress</div>
+
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                            <div style="background: #eff6ff; padding: 0.6rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #0066ff;">${formatTime(todayTime)}</div>
+                                <div style="font-size: 0.7rem; color: #6b7280;">Today</div>
+                            </div>
+                            <div style="background: #eff6ff; padding: 0.6rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #0066ff;">${formatTime(weekTime)}</div>
+                                <div style="font-size: 0.7rem; color: #6b7280;">This Week</div>
+                            </div>
+                            <div style="background: #eff6ff; padding: 0.6rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #0066ff;">${formatTime(totalIliadTime)}</div>
+                                <div style="font-size: 0.7rem; color: #6b7280;">All Time</div>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.3rem;">
+                `;
+
+                for (const lesson of iliadLessons) {
+                    const time = timeByLesson[lesson.id] || 0;
+                    const hasTime = time > 0;
+                    const bgColor = hasTime ? '#dcfce7' : '#f3f4f6';
+                    const textColor = hasTime ? '#065f46' : '#6b7280';
+                    const timeColor = hasTime ? '#16a34a' : '#9ca3af';
+
+                    html += `
+                        <a href="${lesson.path}" style="text-decoration: none; flex: 0 0 calc(50% - 0.15rem);">
+                            <div style="background: ${bgColor}; border-radius: 6px; padding: 0.35rem 0.5rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; transition: border-color 0.15s;" onmouseover="this.style.borderColor='#0066ff'" onmouseout="this.style.borderColor='transparent'">
+                                <span style="font-size: 0.7rem; color: ${textColor}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${lesson.id}: ${lesson.title}</span>
+                                <span style="font-size: 0.6rem; color: ${timeColor}; font-weight: 500; margin-left: 0.25rem; flex-shrink: 0;">${formatTime(time)}</span>
+                            </div>
+                        </a>
+                    `;
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+
+                return html;
+            } catch (err) {
+                console.error('Error building Iliad reading progress:', err);
+                return '';
+            }
+        }
+
+        // Build Aeneid reading progress section showing individual lessons with links
+        async function buildAeneidReadingProgress() {
+            // All Aeneid lessons with titles and paths
+            const aeneidLessons = [
+                { id: '1-1', title: 'The Whole Narrative', path: '../classical-civ/aeneid/topic1/1-1.html' },
+                { id: '1-2', title: 'Book 1 - Aeneas in Carthage', path: '../classical-civ/aeneid/topic1/1-2.html' },
+                { id: '1-3', title: 'Book 2 - The Fall of Troy', path: '../classical-civ/aeneid/topic1/1-3.html' },
+                { id: '1-4', title: "Book 4 - Dido's Tragedy", path: '../classical-civ/aeneid/topic1/1-4.html' },
+                { id: '1-5', title: 'Book 6 - The Underworld', path: '../classical-civ/aeneid/topic1/1-5.html' },
+                { id: '2-1', title: 'Book 1 in Detail', path: '../classical-civ/aeneid/topic2/2-1.html' },
+                { id: '2-2', title: 'Book 2 in Detail', path: '../classical-civ/aeneid/topic2/2-2.html' },
+                { id: '2-3', title: 'Key Themes: Pietas, Fate, Destiny', path: '../classical-civ/aeneid/topic2/2-3.html' },
+                { id: '2-4', title: 'Characters: Aeneas, Dido, Juno', path: '../classical-civ/aeneid/topic2/2-4.html' },
+                { id: '2-5', title: 'Literary Techniques in Books 1 & 2', path: '../classical-civ/aeneid/topic2/2-5.html' },
+                { id: '3-1', title: 'Book 4 in Detail', path: '../classical-civ/aeneid/topic3/3-1.html' },
+                { id: '3-2', title: 'Dido - Queen and Tragic Lover', path: '../classical-civ/aeneid/topic3/3-2.html' },
+                { id: '3-3', title: 'Love vs Duty: Pietas vs Furor', path: '../classical-civ/aeneid/topic3/3-3.html' },
+                { id: '3-4', title: 'Relationships Between Men and Women', path: '../classical-civ/aeneid/topic3/3-4.html' },
+                { id: '3-5', title: 'Literary Techniques in Book 4', path: '../classical-civ/aeneid/topic3/3-5.html' },
+                { id: '4-1', title: 'Book 6 in Detail', path: '../classical-civ/aeneid/topic4/4-1.html' },
+                { id: '4-2', title: "The Parade of Heroes and Rome's Destiny", path: '../classical-civ/aeneid/topic4/4-2.html' },
+                { id: '4-3', title: 'Role of Fate and Destiny', path: '../classical-civ/aeneid/topic4/4-3.html' },
+                { id: '4-4', title: 'The Immortals and Mortal-Immortal Relationships', path: '../classical-civ/aeneid/topic4/4-4.html' },
+                { id: '4-5', title: 'Memory and the Past', path: '../classical-civ/aeneid/topic4/4-5.html' },
+                { id: '5-1', title: 'Book 7 in Detail', path: '../classical-civ/aeneid/topic5/5-1.html' },
+                { id: '5-2', title: 'Book 8 in Detail', path: '../classical-civ/aeneid/topic5/5-2.html' },
+                { id: '5-3', title: 'Portrayal of Different Nations', path: '../classical-civ/aeneid/topic5/5-3.html' },
+                { id: '5-4', title: 'The Shield of Aeneas and Roman Destiny', path: '../classical-civ/aeneid/topic5/5-4.html' },
+                { id: '5-5', title: 'Literary Techniques in Books 7 & 8', path: '../classical-civ/aeneid/topic5/5-5.html' },
+                { id: '6-1', title: 'Book 9: Nisus and Euryalus', path: '../classical-civ/aeneid/topic6/6-1.html' },
+                { id: '6-2', title: 'Book 10: Pallas, Lausus, Mezentius', path: '../classical-civ/aeneid/topic6/6-2.html' },
+                { id: '6-3', title: 'Portrayal of War', path: '../classical-civ/aeneid/topic6/6-3.html' },
+                { id: '6-4', title: 'Family and Friendship', path: '../classical-civ/aeneid/topic6/6-4.html' },
+                { id: '6-5', title: 'Literary Techniques in Books 9 & 10', path: '../classical-civ/aeneid/topic6/6-5.html' },
+                { id: '7-1', title: 'Book 11 in Detail', path: '../classical-civ/aeneid/topic7/7-1.html' },
+                { id: '7-2', title: 'Book 12 in Detail', path: '../classical-civ/aeneid/topic7/7-2.html' },
+                { id: '7-3', title: 'Aeneas vs Turnus: Concepts of a Hero', path: '../classical-civ/aeneid/topic7/7-3.html' },
+                { id: '7-4', title: "Pietas vs Furor: The Epic's Conclusion", path: '../classical-civ/aeneid/topic7/7-4.html' },
+                { id: '7-5', title: 'Women in the Aeneid: Camilla, Lavinia, Amata', path: '../classical-civ/aeneid/topic7/7-5.html' },
+                { id: '8-1', title: 'Augustus and the Augustan Age', path: '../classical-civ/aeneid/topic8/8-1.html' },
+                { id: '8-2', title: "Virgil's Relationship to Augustus", path: '../classical-civ/aeneid/topic8/8-2.html' },
+                { id: '8-3', title: 'Propaganda and Ambivalence', path: '../classical-civ/aeneid/topic8/8-3.html' },
+                { id: '8-4', title: 'Key Augustan Themes in the Aeneid', path: '../classical-civ/aeneid/topic8/8-4.html' },
+                { id: '8-5', title: 'Reception and Legacy', path: '../classical-civ/aeneid/topic8/8-5.html' }
+            ];
+
+            try {
+                const { data: readingSessions } = await supabase
+                    .from('task_attempts')
+                    .select('time_spent_seconds, started_at, content_path')
+                    .eq('student_id', currentUser.id)
+                    .eq('total_questions', 0);
+
+                let totalAeneidTime = 0;
+                const today = new Date().toISOString().split('T')[0];
+                const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                let todayTime = 0;
+                let weekTime = 0;
+                const timeByLesson = {};
+
+                (readingSessions || []).forEach(s => {
+                    const time = s.time_spent_seconds || 0;
+                    const date = (s.started_at || '').split('T')[0];
+                    const path = s.content_path || '';
+
+                    if (path.includes('aeneid')) {
+                        totalAeneidTime += time;
+                        if (date === today) todayTime += time;
+                        if (date >= weekAgo) weekTime += time;
+                        const match = path.match(/\/(\d+-\d+)\.html/);
+                        if (match) {
+                            timeByLesson[match[1]] = (timeByLesson[match[1]] || 0) + time;
+                        }
+                    }
+                });
+
+                const formatTime = (secs) => {
+                    if (secs < 60) return secs > 0 ? `${secs}s` : '\u2014';
+                    const mins = Math.floor(secs / 60);
+                    if (mins < 60) return `${mins}m`;
+                    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+                };
+
+                let html = `
+                    <div style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #e5e7eb;">
+                        <div style="font-weight: 600; color: #1f2937; margin-bottom: 0.75rem; font-size: 0.95rem;">\uD83D\uDCD6 Aeneid Reading Progress</div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                            <div style="background: #fef3c7; padding: 0.6rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #d97706;">${formatTime(todayTime)}</div>
+                                <div style="font-size: 0.7rem; color: #6b7280;">Today</div>
+                            </div>
+                            <div style="background: #fef3c7; padding: 0.6rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #d97706;">${formatTime(weekTime)}</div>
+                                <div style="font-size: 0.7rem; color: #6b7280;">This Week</div>
+                            </div>
+                            <div style="background: #fef3c7; padding: 0.6rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 1.1rem; font-weight: 700; color: #d97706;">${formatTime(totalAeneidTime)}</div>
+                                <div style="font-size: 0.7rem; color: #6b7280;">All Time</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.3rem;">
+                `;
+
+                for (const lesson of aeneidLessons) {
+                    const time = timeByLesson[lesson.id] || 0;
+                    const hasTime = time > 0;
+                    const bgColor = hasTime ? '#fef3c7' : '#f3f4f6';
+                    const textColor = hasTime ? '#92400e' : '#6b7280';
+                    const timeColor = hasTime ? '#d97706' : '#9ca3af';
+
+                    html += `
+                        <a href="${lesson.path}" style="text-decoration: none; flex: 0 0 calc(50% - 0.15rem);">
+                            <div style="background: ${bgColor}; border-radius: 6px; padding: 0.35rem 0.5rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid transparent; transition: border-color 0.15s;" onmouseover="this.style.borderColor='#d97706'" onmouseout="this.style.borderColor='transparent'">
+                                <span style="font-size: 0.7rem; color: ${textColor}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${lesson.id}: ${lesson.title}</span>
+                                <span style="font-size: 0.6rem; color: ${timeColor}; font-weight: 500; margin-left: 0.25rem; flex-shrink: 0;">${formatTime(time)}</span>
+                            </div>
+                        </a>
+                    `;
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+
+                return html;
+            } catch (err) {
+                console.error('Error building Aeneid reading progress:', err);
+                return '';
+            }
+        }
