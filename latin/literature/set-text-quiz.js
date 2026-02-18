@@ -343,7 +343,7 @@ async function startReviewMode() {
         let query = supabase
             .from('set_text_answers')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('student_id', user.id)
             .eq('is_correct', false);
 
         // Filter by text if specified
@@ -479,7 +479,7 @@ async function getNextAttemptNumber(textId, sectionNum) {
         const { data, error } = await supabase
             .from('set_text_answers')
             .select('attempt_number')
-            .eq('user_id', currentUser.id)
+            .eq('student_id', currentUser.id)
             .eq('text_id', textId)
             .eq('section_number', sectionNum)
             .order('attempt_number', { ascending: false })
@@ -876,10 +876,10 @@ async function saveAnswersToDatabase() {
     }
 
     try {
-        // Add user_id to each answer
+        // Add student_id to each answer
         const answersWithUser = answersToSave.map(a => ({
             ...a,
-            user_id: currentUser.id
+            student_id: currentUser.id
         }));
 
         const { error } = await supabase
@@ -921,7 +921,7 @@ async function saveProgress(percentage) {
         const { data: existing } = await supabase
             .from('set_text_progress')
             .select('*')
-            .eq('user_id', currentUser.id)
+            .eq('student_id', currentUser.id)
             .eq('text_id', textInfo.id)
             .eq('section_id', sectionData.section)
             .single();
@@ -943,7 +943,7 @@ async function saveProgress(percentage) {
             await supabase
                 .from('set_text_progress')
                 .insert({
-                    user_id: currentUser.id,
+                    student_id: currentUser.id,
                     text_id: textInfo.id,
                     section_id: sectionData.section,
                     best_score: percentage,
