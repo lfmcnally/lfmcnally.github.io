@@ -2202,34 +2202,71 @@
 
         function renderActivityChart(days) {
             const ctx = document.getElementById('activityChart').getContext('2d');
-            
+
             // Group attempts by date
             const activityByDate = {};
             const now = new Date();
-            
-            // Initialize all dates
-            for (let i = days - 1; i >= 0; i--) {
-                const date = new Date(now);
-                date.setDate(date.getDate() - i);
-                const key = date.toISOString().split('T')[0];
-                activityByDate[key] = { sessions: 0, minutes: 0 };
-            }
 
-            // Fill in actual data
-            allAttempts.forEach(a => {
-                const date = new Date(a.started_at).toISOString().split('T')[0];
-                if (activityByDate[date]) {
+            if (days === 0) {
+                // All time: collect all dates from attempts
+                allAttempts.forEach(a => {
+                    if (!a.started_at) return;
+                    const date = new Date(a.started_at).toISOString().split('T')[0];
+                    if (!activityByDate[date]) {
+                        activityByDate[date] = { sessions: 0, minutes: 0 };
+                    }
                     activityByDate[date].sessions++;
                     activityByDate[date].minutes += Math.round((a.time_spent_seconds || 0) / 60);
-                }
-            });
+                });
 
-            const labels = Object.keys(activityByDate).map(d => {
+                // If no attempts, show last 30 days as empty
+                if (Object.keys(activityByDate).length === 0) {
+                    for (let i = 29; i >= 0; i--) {
+                        const date = new Date(now);
+                        date.setDate(date.getDate() - i);
+                        const key = date.toISOString().split('T')[0];
+                        activityByDate[key] = { sessions: 0, minutes: 0 };
+                    }
+                } else {
+                    // Fill gaps between earliest and latest date
+                    const sortedDates = Object.keys(activityByDate).sort();
+                    const earliest = new Date(sortedDates[0]);
+                    const latest = new Date(sortedDates[sortedDates.length - 1]);
+                    for (let d = new Date(earliest); d <= latest; d.setDate(d.getDate() + 1)) {
+                        const key = d.toISOString().split('T')[0];
+                        if (!activityByDate[key]) {
+                            activityByDate[key] = { sessions: 0, minutes: 0 };
+                        }
+                    }
+                }
+            } else {
+                // Initialize all dates for the range
+                for (let i = days - 1; i >= 0; i--) {
+                    const date = new Date(now);
+                    date.setDate(date.getDate() - i);
+                    const key = date.toISOString().split('T')[0];
+                    activityByDate[key] = { sessions: 0, minutes: 0 };
+                }
+
+                // Fill in actual data
+                allAttempts.forEach(a => {
+                    const date = new Date(a.started_at).toISOString().split('T')[0];
+                    if (activityByDate[date]) {
+                        activityByDate[date].sessions++;
+                        activityByDate[date].minutes += Math.round((a.time_spent_seconds || 0) / 60);
+                    }
+                });
+            }
+
+            // Sort by date for "All" mode
+            const sortedKeys = Object.keys(activityByDate).sort();
+            const labels = sortedKeys.map(d => {
                 const date = new Date(d);
                 return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
             });
-            const sessionData = Object.values(activityByDate).map(d => d.sessions);
-            const minuteData = Object.values(activityByDate).map(d => d.minutes);
+            const minuteData = sortedKeys.map(k => activityByDate[k].minutes);
+
+            const tickLimit = days === 0 ? 15 : (days <= 30 ? 15 : 12);
 
             if (activityChart) activityChart.destroy();
 
@@ -2259,7 +2296,7 @@
                             ticks: {
                                 maxRotation: 45,
                                 minRotation: 45,
-                                maxTicksLimit: days <= 30 ? 15 : 12
+                                maxTicksLimit: tickLimit
                             }
                         }
                     }
