@@ -1396,7 +1396,9 @@
                     loadStudentInfo().catch(e => console.error('loadStudentInfo error:', e)),
                     loadAttempts().catch(e => console.error('loadAttempts error:', e)),
                     loadTaskGrid().catch(e => console.error('loadTaskGrid error:', e)),
-                    loadClassmates().catch(e => console.error('loadClassmates error:', e))
+                    loadClassmates().catch(e => console.error('loadClassmates error:', e)),
+                    loadClassStudents().catch(e => console.error('loadClassStudents error:', e)),
+                    loadStudentClasses().catch(e => console.error('loadStudentClasses error:', e))
                 ];
 
                 // Load type-specific data
@@ -1429,6 +1431,11 @@
                 }
 
                 renderSessions();
+
+                // Load new features (insights + unified tracker)
+                loadInsights().catch(e => console.error('loadInsights error:', e));
+                buildTrackerItems();
+                renderUnifiedTracker('all');
 
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('content').style.display = 'block';
@@ -2879,6 +2886,370 @@
         document.getElementById('noteModal').addEventListener('click', function(e) {
             if (e.target === this) closeNoteModal();
         });
+
+        // ============ PREV/NEXT STUDENT NAVIGATION ============
+
+        let classStudents = [];
+        let currentStudentIndex = -1;
+
+        async function loadClassStudents() {
+            if (!classId) return;
+
+            const { data } = await supabaseClient
+                .from('class_members')
+                .select('student_id, users(full_name)')
+                .eq('class_id', classId)
+                .order('users(full_name)');
+
+            if (data) {
+                classStudents = data.map(d => ({
+                    id: d.student_id,
+                    name: d.users?.full_name || 'Unknown'
+                })).sort((a, b) => a.name.localeCompare(b.name));
+
+                currentStudentIndex = classStudents.findIndex(s => s.id === studentId);
+
+                if (classStudents.length > 1) {
+                    document.getElementById('studentNav').style.display = 'flex';
+                    updateNavButtons();
+                }
+            }
+        }
+
+        function updateNavButtons() {
+            document.getElementById('prevStudentBtn').disabled = currentStudentIndex <= 0;
+            document.getElementById('nextStudentBtn').disabled = currentStudentIndex >= classStudents.length - 1;
+            document.getElementById('navPosition').textContent =
+                `${currentStudentIndex + 1} of ${classStudents.length}`;
+        }
+
+        function navigateStudent(direction) {
+            const newIndex = currentStudentIndex + direction;
+            if (newIndex < 0 || newIndex >= classStudents.length) return;
+            const newStudent = classStudents[newIndex];
+            window.location.href = `student-profile.html?student_id=${newStudent.id}&class_id=${classId}`;
+        }
+
+        // ============ SUBJECT SWITCHER ============
+
+        async function loadStudentClasses() {
+            const { data } = await supabaseClient
+                .from('class_members')
+                .select('class_id, classes(id, name, type)')
+                .eq('student_id', studentId);
+
+            if (data && data.length > 1) {
+                const select = document.getElementById('classSwitcherSelect');
+                select.innerHTML = data.map(d => {
+                    const c = d.classes;
+                    const icon = c.type === 'latin' ? '📖' : c.type === 'greek' ? '🏺' : c.type === 'classics' ? '🏛️' : '📚';
+                    return `<option value="${c.id}" ${c.id === classId ? 'selected' : ''}>${icon} ${c.name}</option>`;
+                }).join('');
+                document.getElementById('subjectSwitcher').style.display = 'flex';
+            }
+        }
+
+        function switchStudentClass(newClassId) {
+            window.location.href = `student-profile.html?student_id=${studentId}&class_id=${newClassId}`;
+        }
+
+        // ============ INSIGHTS (STRENGTHS & AREAS FOR IMPROVEMENT) ============
+
+        async function loadInsights() {
+            const card = document.getElementById('insightsCard');
+            const strengthsList = document.getElementById('strengthsList');
+            const weaknessesList = document.getElementById('weaknessesList');
+
+            const strengths = [];
+            const weaknesses = [];
+
+            // Analyze vocabulary (for non-classics)
+            if (classType !== 'classics' && allWords.length > 0) {
+                const mastered = allWords.filter(w => {
+                    const total = w.correct_count + w.incorrect_count;
+                    return w.correct_count >= 3 && total > 0 && (w.correct_count / total) >= 0.7;
+                });
+                const struggling = allWords.filter(w => {
+                    const total = w.correct_count + w.incorrect_count;
+                    return total > 0 && (w.correct_count / total) < 0.5;
+                });
+
+                if (mastered.length > 0 && mastered.length >= allWords.length * 0.6) {
+                    strengths.push(`Vocabulary: ${mastered.length} words mastered (${Math.round(mastered.length / allWords.length * 100)}%)`);
+                }
+                if (struggling.length > 5) {
+                    weaknesses.push(`${struggling.length} vocabulary words below 50% accuracy`);
+                }
+            }
+
+            // Analyze scores
+            const scoredAttempts = allAttempts.filter(a => a.score !== null && a.score !== undefined);
+            if (scoredAttempts.length >= 3) {
+                const avgScore = scoredAttempts.reduce((s, a) => s + a.score, 0) / scoredAttempts.length;
+                if (avgScore >= 85) strengths.push(`Average score: ${Math.round(avgScore)}% across ${scoredAttempts.length} sessions`);
+                else if (avgScore < 60) weaknesses.push(`Average score only ${Math.round(avgScore)}% - needs practice`);
+
+                // Recent trend
+                const recent = scoredAttempts.slice(0, 5);
+                const older = scoredAttempts.slice(5, 10);
+                if (recent.length >= 3 && older.length >= 3) {
+                    const recentAvg = recent.reduce((s, a) => s + a.score, 0) / recent.length;
+                    const olderAvg = older.reduce((s, a) => s + a.score, 0) / older.length;
+                    if (recentAvg > olderAvg + 10) strengths.push('Scores are improving recently');
+                    else if (recentAvg < olderAvg - 10) weaknesses.push('Scores have been declining recently');
+                }
+            }
+
+            // Analyze consistency/effort
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const recentAttempts = allAttempts.filter(a => new Date(a.started_at) >= thirtyDaysAgo);
+            const activeDays = new Set(recentAttempts.map(a => new Date(a.started_at).toISOString().split('T')[0])).size;
+
+            if (activeDays >= 15) strengths.push(`Very consistent: ${activeDays} active days in last 30 days`);
+            else if (activeDays >= 8) strengths.push(`Regular practice: ${activeDays} active days in last 30 days`);
+            else if (activeDays <= 3 && allAttempts.length > 0) weaknesses.push(`Only ${activeDays} active day${activeDays !== 1 ? 's' : ''} in last 30 days`);
+
+            // Analyze overdue tasks
+            if (classId) {
+                const { data: tasks } = await supabaseClient
+                    .from('tasks')
+                    .select('id, title, due_date')
+                    .eq('class_id', classId)
+                    .lt('due_date', new Date().toISOString());
+
+                if (tasks && tasks.length > 0) {
+                    const taskIds = tasks.map(t => t.id);
+                    const completedTaskIds = allAttempts
+                        .filter(a => a.task_id && taskIds.includes(a.task_id) && a.completed_at)
+                        .map(a => a.task_id);
+                    const overdue = tasks.filter(t => !completedTaskIds.includes(t.id));
+                    if (overdue.length > 0) {
+                        weaknesses.push(`${overdue.length} overdue task${overdue.length !== 1 ? 's' : ''}`);
+                    }
+                    const completed = tasks.filter(t => completedTaskIds.includes(t.id));
+                    if (completed.length > 0 && completed.length === tasks.length) {
+                        strengths.push('All past tasks completed');
+                    }
+                }
+            }
+
+            // Render
+            if (strengths.length === 0 && weaknesses.length === 0) {
+                card.style.display = 'none';
+                return;
+            }
+
+            card.style.display = 'block';
+
+            strengthsList.innerHTML = strengths.length > 0
+                ? strengths.map(s => `<li><span style="color:#22c55e;">●</span> ${escapeHtml(s)}</li>`).join('')
+                : '<li style="color:#9ca3af;">Not enough data yet</li>';
+
+            weaknessesList.innerHTML = weaknesses.length > 0
+                ? weaknesses.map(w => `<li><span style="color:#ef4444;">●</span> ${escapeHtml(w)}</li>`).join('')
+                : '<li style="color:#9ca3af;">No issues identified</li>';
+        }
+
+        // ============ UNIFIED TRACKER TABLE ============
+
+        let trackerItems = [];
+        let trackerSortField = 'lastAttempt';
+        let trackerSortAsc = false;
+
+        function buildTrackerItems() {
+            trackerItems = [];
+
+            // From task attempts: group by task
+            const taskMap = {};
+            allAttempts.forEach(a => {
+                if (!a.task_id) return;
+                const key = a.task_id;
+                if (!taskMap[key]) {
+                    taskMap[key] = {
+                        name: a.tasks?.title || 'Task',
+                        type: 'tasks',
+                        attempts: [],
+                        lastAttempt: null,
+                        lastScore: null,
+                        bestScore: null,
+                        status: 'not-started'
+                    };
+                }
+                taskMap[key].attempts.push(a);
+            });
+
+            for (const [taskId, info] of Object.entries(taskMap)) {
+                const sorted = info.attempts.sort((a, b) => new Date(b.started_at) - new Date(a.started_at));
+                info.lastAttempt = sorted[0]?.started_at || null;
+                info.lastScore = sorted[0]?.score ?? null;
+                info.bestScore = Math.max(...sorted.map(a => a.score ?? 0));
+                const hasCompleted = sorted.some(a => a.completed_at);
+                info.status = hasCompleted ? 'completed' : (sorted.length > 0 ? 'in-progress' : 'not-started');
+                trackerItems.push(info);
+            }
+
+            // From word mastery: summarize as a single item (for non-classics)
+            if (classType !== 'classics' && allWords.length > 0) {
+                const total = allWords.length;
+                const mastered = allWords.filter(w => {
+                    const t = w.correct_count + w.incorrect_count;
+                    return w.correct_count >= 3 && t > 0 && (w.correct_count / t) >= 0.7;
+                }).length;
+                const pct = total > 0 ? Math.round((mastered / total) * 100) : 0;
+                const lastSeen = allWords.reduce((latest, w) => {
+                    if (w.last_seen_at && (!latest || new Date(w.last_seen_at) > new Date(latest))) return w.last_seen_at;
+                    return latest;
+                }, null);
+
+                trackerItems.push({
+                    name: `Vocabulary (${mastered}/${total} mastered)`,
+                    type: 'vocabulary',
+                    lastAttempt: lastSeen,
+                    lastScore: pct,
+                    bestScore: pct,
+                    status: mastered === total && total > 0 ? 'completed' : (mastered > 0 ? 'in-progress' : 'not-started')
+                });
+            }
+
+            // From set text progress
+            if (setTextProgress && setTextProgress.length > 0) {
+                const byText = {};
+                setTextProgress.forEach(p => {
+                    if (!byText[p.text_id]) byText[p.text_id] = { attempts: [], best: 0 };
+                    byText[p.text_id].attempts.push(p);
+                    const pct = p.questions_total > 0 ? Math.round((p.questions_correct / p.questions_total) * 100) : 0;
+                    if (pct > byText[p.text_id].best) byText[p.text_id].best = pct;
+                });
+
+                for (const [textId, data] of Object.entries(byText)) {
+                    const sorted = data.attempts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                    const lastPct = sorted[0]?.questions_total > 0
+                        ? Math.round((sorted[0].questions_correct / sorted[0].questions_total) * 100) : null;
+                    trackerItems.push({
+                        name: `Set Text: ${textId}`,
+                        type: 'vocabulary',
+                        lastAttempt: sorted[0]?.created_at || null,
+                        lastScore: lastPct,
+                        bestScore: data.best,
+                        status: data.attempts.length > 0 ? 'in-progress' : 'not-started'
+                    });
+                }
+            }
+
+            // From classics quiz progress
+            if (classicsQuizProgress && classicsQuizProgress.length > 0) {
+                const byTopic = {};
+                classicsQuizProgress.forEach(q => {
+                    const key = q.subtopic_id || q.topic_id || 'Quiz';
+                    if (!byTopic[key]) byTopic[key] = { attempts: [], best: 0 };
+                    byTopic[key].attempts.push(q);
+                    if ((q.score_percentage || 0) > byTopic[key].best) byTopic[key].best = q.score_percentage || 0;
+                });
+
+                for (const [topic, data] of Object.entries(byTopic)) {
+                    const sorted = data.attempts.sort((a, b) => new Date(b.completed_at) - new Date(a.completed_at));
+                    trackerItems.push({
+                        name: topic,
+                        type: 'quizzes',
+                        lastAttempt: sorted[0]?.completed_at || null,
+                        lastScore: sorted[0]?.score_percentage ?? null,
+                        bestScore: data.best,
+                        status: 'completed'
+                    });
+                }
+            }
+        }
+
+        function renderUnifiedTracker(filter) {
+            const tbody = document.getElementById('unifiedTrackerBody');
+
+            if (trackerItems.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="tracker-empty">No progress data yet</td></tr>';
+                return;
+            }
+
+            // Sort
+            const sorted = [...trackerItems].sort((a, b) => {
+                let aVal, bVal;
+                switch (trackerSortField) {
+                    case 'name':
+                        aVal = (a.name || '').toLowerCase();
+                        bVal = (b.name || '').toLowerCase();
+                        return trackerSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                    case 'type':
+                        aVal = a.type;
+                        bVal = b.type;
+                        return trackerSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                    case 'lastAttempt':
+                        aVal = a.lastAttempt ? new Date(a.lastAttempt).getTime() : 0;
+                        bVal = b.lastAttempt ? new Date(b.lastAttempt).getTime() : 0;
+                        return trackerSortAsc ? aVal - bVal : bVal - aVal;
+                    case 'lastScore':
+                        aVal = a.lastScore ?? -1;
+                        bVal = b.lastScore ?? -1;
+                        return trackerSortAsc ? aVal - bVal : bVal - aVal;
+                    case 'bestScore':
+                        aVal = a.bestScore ?? -1;
+                        bVal = b.bestScore ?? -1;
+                        return trackerSortAsc ? aVal - bVal : bVal - aVal;
+                    case 'status':
+                        const order = { 'overdue': 0, 'not-started': 1, 'in-progress': 2, 'completed': 3 };
+                        aVal = order[a.status] ?? 1;
+                        bVal = order[b.status] ?? 1;
+                        return trackerSortAsc ? aVal - bVal : bVal - aVal;
+                    default:
+                        return 0;
+                }
+            });
+
+            // Filter
+            const filtered = filter && filter !== 'all'
+                ? sorted.filter(item => item.type === filter)
+                : sorted;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="tracker-empty">No items in this category</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(item => {
+                const lastDate = item.lastAttempt
+                    ? new Date(item.lastAttempt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : '-';
+                const lastScore = item.lastScore !== null && item.lastScore !== undefined ? `${item.lastScore}%` : '-';
+                const bestScore = item.bestScore !== null && item.bestScore !== undefined && item.bestScore > 0 ? `${item.bestScore}%` : '-';
+
+                return `
+                    <tr data-type="${item.type}">
+                        <td style="font-weight:500;">${escapeHtml(item.name)}</td>
+                        <td><span class="tracker-type-badge ${item.type}">${item.type}</span></td>
+                        <td>${lastDate}</td>
+                        <td>${lastScore}</td>
+                        <td>${bestScore}</td>
+                        <td><span class="tracker-status-badge ${item.status}">${item.status.replace('-', ' ')}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function sortUnifiedTracker(field) {
+            if (trackerSortField === field) {
+                trackerSortAsc = !trackerSortAsc;
+            } else {
+                trackerSortField = field;
+                trackerSortAsc = field === 'name' || field === 'type';
+            }
+            const activeFilter = document.querySelector('.tracker-filters .filter-btn.active');
+            const filterType = activeFilter ? activeFilter.textContent.toLowerCase().trim() : 'all';
+            renderUnifiedTracker(filterType === 'all' ? 'all' : filterType);
+        }
+
+        function filterTracker(type, btn) {
+            document.querySelectorAll('.tracker-filters .filter-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            renderUnifiedTracker(type);
+        }
 
         // Start
         init();
