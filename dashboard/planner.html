@@ -890,8 +890,9 @@ function showView(n,btn){
 }
 
 // WEEK NAVIGATION
-function shiftWeek(d){weekOffset+=d;renderWeek();updateTodayPanel()}
-function jumpToday(){const t=new Date();t.setHours(0,0,0,0);weekOffset=Math.max(0,Math.min(Math.round((monOf(t)-monOf(TERM_START))/604800000),4));renderWeek();updateTodayPanel()}
+function termWeeks(){if(!PDATA.termStart||!PDATA.termEnd)return 20;return Math.max(0,Math.floor((TERM_END-monOf(TERM_START))/604800000))}
+function shiftWeek(d){weekOffset=Math.max(0,Math.min(weekOffset+d,termWeeks()));renderWeek();updateTodayPanel()}
+function jumpToday(){const t=new Date();t.setHours(0,0,0,0);weekOffset=Math.max(0,Math.min(Math.round((monOf(t)-monOf(TERM_START))/604800000),termWeeks()));renderWeek();updateTodayPanel()}
 
 // WEEK RENDER
 function renderWeek(){
@@ -903,11 +904,13 @@ function renderWeek(){
   if(ttView==='time'){grid.style.display='block';grid.appendChild(renderTimeline(mon,wt,today));return}
   grid.style.display='';
   for(let di=0;di<=5;di++){
-    const date=addD(mon,di),isToday=sameD(date,today),lessons=TT[wt][di]||[],ds=date.toISOString().slice(0,10);
-    const edEntries=gEd(ds).sort((a,b)=>t2m(a.start)-t2m(b.start));
+    const date=addD(mon,di),isToday=sameD(date,today);
     const col=document.createElement('div');col.className='day-col';
     const hd=document.createElement('div');hd.className=`day-hd${isToday?' today-hd':''}`;
     hd.innerHTML=`<div class="dn">${DAYS[di].slice(0,3)}</div><div class="dd">${fmtS(date)}</div>`;col.appendChild(hd);
+    if(date<TERM_START||date>TERM_END){const e=document.createElement('div');e.className='empty-day';e.textContent='Outside term';e.style.color='var(--dim)';col.appendChild(e);grid.appendChild(col);continue}
+    const lessons=TT[wt][di]||[],ds=date.toISOString().slice(0,10);
+    const edEntries=gEd(ds).sort((a,b)=>t2m(a.start)-t2m(b.start));
     const allItems=[...lessons.map(([time,code])=>({type:'lesson',time,code,sM:t2m(time)})),...edEntries.map(e=>({type:e.type,time:e.start,sM:t2m(e.start),entry:e}))].sort((a,b)=>a.sM-b.sM);
     if(!allItems.length){const e=document.createElement('div');e.className='empty-day';e.textContent='Free';col.appendChild(e);grid.appendChild(col);continue}
     for(const item of allItems){
@@ -948,7 +951,7 @@ function renderWeek(){
 function renderHeatmap(){
   const today=new Date();today.setHours(0,0,0,0);
   const container=document.getElementById('heatmap');container.innerHTML='';
-  for(let w=0;w<5;w++){
+  for(let w=0;w<=termWeeks();w++){
     const mon=addD(monOf(TERM_START),w*7),wt=wkT(mon);
     const row=document.createElement('div');row.className='hm-week';
     const lbl=document.createElement('div');lbl.className='hm-lbl';lbl.textContent=`Wk ${wt}\n${fmtS(mon)}`;lbl.style.whiteSpace='pre-line';row.appendChild(lbl);
@@ -960,12 +963,12 @@ function renderHeatmap(){
       const hdr=document.createElement('div');hdr.className=`hm-day-hdr${isToday?' today-col':''}`;hdr.textContent=`${DAYS[di].slice(0,3)} ${fmtS(date)}`;dayCol.appendChild(hdr);
       const cells=document.createElement('div');cells.className='hm-cells';
       const ls=(TT[wt][di]||[]).filter(([,c])=>!isSt(c));
-      if(!ls.length){const e=document.createElement('div');e.style.cssText='height:10px;font-size:.52rem;color:var(--dim);padding:0 .26rem;display:flex;align-items:center';e.textContent='&#8211;';cells.appendChild(e)}
+      if(!ls.length){const e=document.createElement('div');e.style.cssText='height:10px;font-size:.52rem;color:var(--dim);padding:0 .26rem;display:flex;align-items:center';e.textContent='–';cells.appendChild(e)}
       for(const[time,code]of ls){
         const data=loadL(date,time,code),colour=gCol(code),planned=!!(data.topic||data.plan);
         const cell=document.createElement('div');cell.className=`hcell${data.cancelled?' hcell-cancelled':planned?' hcell-planned':' hcell-empty'}`;
         cell.style.cssText=data.cancelled?'background:#f0e8e8;border-left-color:#c0a0a0;color:#b08080':planned?`background:${bl(colour,.2)};border-left-color:${colour};color:${dk(colour,.72)}`:' background:var(--parch);border-left-color:var(--border);color:var(--dim)';
-        cell.textContent=data.topic?`${code} &#8212; ${data.topic.slice(0,15)}${data.topic.length>15?'&#8230;':''}`:code;
+        cell.textContent=data.topic?`${code} — ${data.topic.slice(0,15)}${data.topic.length>15?'…':''}`:code;
         cell.addEventListener('click',()=>openModal(date,time,code));cells.appendChild(cell);
       }
       dayCol.appendChild(cells);days.appendChild(dayCol);
@@ -1103,8 +1106,8 @@ function openModal(date,time,code){
   activeModal={date,time,code};selBehType='';editPrepKey=null;
   const today=new Date();today.setHours(0,0,0,0);
   const colour=gCol(code),tc=dk(colour,.72);
-  document.getElementById('mName').textContent=`${code} &#8212; ${sn(code)}`;document.getElementById('mName').style.color=tc;
-  document.getElementById('mMeta').textContent=`${fmtF(date)} &middot; ${time} &middot; ${dur(code)}min`;
+  document.getElementById('mName').textContent=`${code} — ${sn(code)}`;document.getElementById('mName').style.color=tc;
+  document.getElementById('mMeta').textContent=`${fmtF(date)} · ${time} · ${dur(code)}min`;
   const all=datesFor(code),taught=all.filter(({date:d})=>d<today).length,remaining=all.filter(({date:d})=>d>=today).length,total=all.length;
   document.getElementById('mRem').textContent=remaining;document.getElementById('mRemLabel').textContent=`${remaining} lesson${remaining!==1?'s':''} remaining`;document.getElementById('mTaughtLabel').textContent=`${taught} taught this term`;
   const fill=document.getElementById('mBarFill');fill.style.width=`${total?(taught/total)*100:0}%`;fill.style.background=colour;
@@ -1117,7 +1120,7 @@ function openModal(date,time,code){
     cw.innerHTML=`<div class="prep-collect-wrap"><div class="prep-collect-lbl">Collection status</div><div class="prep-collect-btns"><button class="pcbtn${cs==='in'?' ai':''}" onclick="setPrepCollect('${prepDue.key}','in',this)">&#x2713; All in</button><button class="pcbtn${cs==='partial'?' ap':''}" onclick="setPrepCollect('${prepDue.key}','partial',this)">~ Partial</button><button class="pcbtn${cs==='missing'?' am':''}" onclick="setPrepCollect('${prepDue.key}','missing',this)">&#x2715; Not in</button></div></div>`;
   } else {pw.style.display='none';cw.innerHTML=''}
   const idx=all.findIndex(x=>sameD(x.date,date)&&x.time===time);
-  const setPrevNext=(de,to,te,entry)=>{if(entry){document.getElementById(de).textContent=`${fmtF(entry.date)} &middot; ${entry.time}`;const d=loadL(entry.date,entry.time,code);document.getElementById(to).textContent=d.topic||'';document.getElementById(to).style.display=d.topic?'block':'none';document.getElementById(te).innerHTML=d.cancelled?`<em>Cancelled${d.cancelReason?` &#8212; ${d.cancelReason}`:''}</em>`:(d.plan?esc(d.plan).replace(/\n/g,'<br>'):`<span class="pn-empty">No notes recorded</span>`)}else{document.getElementById(de).textContent='&#8212;';document.getElementById(to).style.display='none';document.getElementById(te).innerHTML=`<span class="pn-empty">${idx===0?'First lesson of term':'Last lesson of term'}</span>`}};
+  const setPrevNext=(de,to,te,entry)=>{if(entry){document.getElementById(de).textContent=`${fmtF(entry.date)} · ${entry.time}`;const d=loadL(entry.date,entry.time,code);document.getElementById(to).textContent=d.topic||'';document.getElementById(to).style.display=d.topic?'block':'none';document.getElementById(te).innerHTML=d.cancelled?`<em>Cancelled${d.cancelReason?` — ${d.cancelReason}`:''}</em>`:(d.plan?esc(d.plan).replace(/\n/g,'<br>'):`<span class="pn-empty">No notes recorded</span>`)}else{document.getElementById(de).textContent='—';document.getElementById(to).style.display='none';document.getElementById(te).innerHTML=`<span class="pn-empty">${idx===0?'First lesson of term':'Last lesson of term'}</span>`}};
   setPrevNext('mPrevDate','mPrevTopic','mPrevText',idx>0?all[idx-1]:null);
   setPrevNext('mNextDate','mNextTopic','mNextText',idx<all.length-1?all[idx+1]:null);
   const data=loadL(date,time,code);
@@ -1295,12 +1298,22 @@ function renderTimeline(mon, wt, today) {
   // ── day columns ──
   for (let di = 0; di <= 5; di++) {
     const date   = addD(mon, di);
+    const dayCol = document.createElement('div');
+    dayCol.className = 'tl-day-col';
+
+    if (date < TERM_START || date > TERM_END) {
+      const body = document.createElement('div');
+      body.className = 'tl-body';
+      body.style.cssText = `height:${totalPx}px;position:relative;display:flex;align-items:center;justify-content:center;`;
+      body.innerHTML = '<div style="color:var(--dim);font-size:.7rem">Outside term</div>';
+      dayCol.appendChild(body);
+      wrap.appendChild(dayCol);
+      continue;
+    }
+
     const ds     = date.toISOString().slice(0, 10);
     const lessons = TT[wt][di] || [];
     const edEntries = gEd(ds);
-
-    const dayCol = document.createElement('div');
-    dayCol.className = 'tl-day-col';
 
     // body container with fixed height
     const body = document.createElement('div');
@@ -1671,8 +1684,8 @@ function seedOwnerData() {
     },
     subjects: {La:{name:'Latin'},Cc:{name:'Classical Civ.'},Gk:{name:'Greek'},En:{name:'English'},Ss:{name:'Supervised Study'}},
     defaultColours: {'10Cc':'#2d7a6a','11La':'#9a6820','9Gk':'#5040a0','12La':'#7a5200','8La':'#a04020','13Cc':'#1a5c7a','9XLa':'#7a3060','9YLa':'#3a6030','13La':'#602070','10En':'#7a3030','10Ss':'#7a7068'},
-    termStart: '2025-02-23',
-    termEnd: '2025-03-26',
+    termStart: '2026-02-23',
+    termEnd: '2026-03-27',
     classColours: {},
     lessons: {},
     rosters: {},
@@ -1681,8 +1694,8 @@ function seedOwnerData() {
     quickNotes: {},
     events: {},
     termPeriods: [
-      {id:'default-1',type:'term',label:'Spring Term 2',start:'2025-02-23',end:'2025-04-11'},
-      {id:'default-ht',type:'halfterm',label:'Half Term',start:'2025-02-17',end:'2025-02-21'}
+      {id:'default-1',type:'term',label:'Spring Term 2',start:'2026-02-23',end:'2026-04-10'},
+      {id:'default-ht',type:'halfterm',label:'Half Term',start:'2026-02-16',end:'2026-02-20'}
     ]
   };
 }
@@ -1696,7 +1709,7 @@ function startApp() {
   document.getElementById('appContent').style.display = '';
   const t = new Date(); t.setHours(0, 0, 0, 0);
   if (PDATA.termStart) {
-    weekOffset = Math.max(0, Math.min(Math.round((monOf(t) - monOf(TERM_START)) / 604800000), 20));
+    weekOffset = Math.max(0, Math.min(Math.round((monOf(t) - monOf(TERM_START)) / 604800000), termWeeks()));
   }
   renderWeek(); renderTermBanner(); updateClock(); setInterval(updateClock, 30000);
   window.addEventListener('resize', () => { if (ttView === 'time') renderWeek(); });
