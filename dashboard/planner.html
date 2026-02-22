@@ -468,6 +468,8 @@ body.timeline-mode .week-layout{grid-template-columns:1fr}
 .tl-now-line::before{content:'';position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#e03030;border:2px solid #fff}
 .tl-card.tl-now{box-shadow:0 0 0 2px rgba(44,40,32,.25),var(--sh-md);z-index:5}
 .tl-time-hdr{background:var(--warm);border-right:1px solid var(--bsoft);border-bottom:1px solid var(--bsoft);position:sticky;top:0;z-index:4}
+.tl-day-notes{position:absolute;top:0;left:0;right:0;z-index:2;display:flex;flex-direction:column;gap:.1rem;padding:.18rem .18rem 0}
+.tl-day-notes .dnote-card{margin:0;opacity:.92;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 
 
 /* TERM BANNER */
@@ -1778,16 +1780,6 @@ function renderTimeline(mon, wt, today) {
     const lessons = TT[wt][di] || [];
     const edEntries = gEd(ds);
 
-    // Day notes pinned above timeline
-    for (const dn of gDayNotes(ds)) {
-      const nc = document.createElement('div');
-      nc.className = 'dnote-card';
-      nc.style.cssText = 'margin:0 .18rem .14rem;border-radius:4px;padding:.22rem .38rem';
-      nc.innerHTML = `<span class="dnote-icon">&#x1F4CC;</span><span class="dnote-text" style="font-size:.58rem">${esc(dn.text)}</span>`;
-      nc.addEventListener('click', () => openDnModal(ds, dn));
-      dayCol.appendChild(nc);
-    }
-
     // body container with fixed height
     const body = document.createElement('div');
     body.className = 'tl-body';
@@ -1891,6 +1883,22 @@ function renderTimeline(mon, wt, today) {
         line.style.top = ((nowM - DAY_START) * PX_PER_MIN) + 'px';
         body.appendChild(line);
       }
+    }
+
+    // Day notes as absolute overlay inside body
+    const dayNotes = gDayNotes(ds);
+    if (dayNotes.length) {
+      const notesWrap = document.createElement('div');
+      notesWrap.className = 'tl-day-notes';
+      for (const dn of dayNotes) {
+        const nc = document.createElement('div');
+        nc.className = 'dnote-card';
+        nc.style.cssText = 'border-radius:4px;padding:.22rem .38rem';
+        nc.innerHTML = `<span class="dnote-icon">&#x1F4CC;</span><span class="dnote-text" style="font-size:.58rem">${esc(dn.text)}</span>`;
+        nc.addEventListener('click', () => openDnModal(ds, dn));
+        notesWrap.appendChild(nc);
+      }
+      body.appendChild(notesWrap);
     }
 
     dayCol.appendChild(body);
