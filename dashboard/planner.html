@@ -397,6 +397,7 @@ body.timeline-mode .week-layout{grid-template-columns:1fr}
 .tl-ecard.du-card{background:var(--du-bg);border-color:var(--du-br);border-left-color:var(--du)}
 .tl-now-line{position:absolute;left:0;right:0;height:2px;background:#e03030;z-index:10;pointer-events:none;box-shadow:0 0 4px rgba(224,48,48,.4)}
 .tl-now-line::before{content:'';position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:#e03030;border:2px solid #fff}
+.tl-card.tl-now{box-shadow:0 0 0 2px rgba(44,40,32,.25),var(--sh-md);z-index:5}
 .tl-time-hdr{background:var(--warm);border-right:1px solid var(--bsoft);border-bottom:1px solid var(--bsoft);position:sticky;top:0;z-index:4}
 
 
@@ -880,6 +881,7 @@ function updateClock(){
   else if(nxt){const until=t2m(nxt.time)-nowM;if(until<=45){status=`<strong>${nxt.code}</strong> in ${until}m`;cls='soon'}else{status=`Next: <strong>${nxt.code}</strong> at ${nxt.time}`}}
   el.innerHTML=status;el.className=`clock-lesson${cls?' '+cls:''}`;
   updateTodayPanel();
+  updateTimelineNow();
 }
 
 // TODAY PANEL
@@ -1359,8 +1361,8 @@ const DAY_START = 8 * 60;  // 08:00
 const DAY_END   = 18 * 60; // 18:00
 // PX_PER_MIN computed dynamically to fit viewport — see calcPxPerMin()
 function calcPxPerMin() {
-  // available height = viewport minus header(50) + nav(36) + wk-ctrl(~38) + main padding(~20) + hdr row(36)
-  const avail = window.innerHeight - 50 - 36 - 38 - 20 - 36 - 8;
+  // available height = viewport minus header(50) + nav(36) + wk-ctrl(~38) + main padding(~34) + hdr row(36) + term banner(~28) + border/padding(8)
+  const avail = window.innerHeight - 50 - 36 - 38 - 34 - 36 - 28 - 8;
   return Math.max(1.2, avail / (DAY_END - DAY_START));
 }
 
@@ -1469,8 +1471,15 @@ function renderTimeline(mon, wt, today) {
       for (const p of gAllPrep(code)) if (p.data.dueLessonKey === tk) { prepDue = p; break; }
       const beh = gBeh(code).filter(b => b.lessonDate === ds && b.lessonTime === time);
 
+      const isToday = sameD(date, today);
+      const nowMin = today.getHours() * 60 + today.getMinutes();
+      const isNow = isToday && !data.cancelled && nowMin >= startM && nowMin < endM;
+
       const card = document.createElement('div');
-      card.className = `tl-card lcard${data.cancelled ? ' cancelled' : ''}`;
+      card.className = `tl-card lcard${data.cancelled ? ' cancelled' : ''}${isNow ? ' tl-now' : ''}`;
+      card.dataset.startM = startM;
+      card.dataset.endM = endM;
+      card.dataset.isToday = isToday ? '1' : '';
       card.style.cssText = `top:${topPx}px;height:${heightPx}px;background:${bg};border-color:${bc};border-left-color:${ac};`;
 
       let h = '';
@@ -1536,6 +1545,25 @@ function renderTimeline(mon, wt, today) {
     wrap.appendChild(dayCol);
   }
   return wrap;
+}
+
+function updateTimelineNow() {
+  if (ttView !== 'time') return;
+  const now = new Date();
+  const nowM = now.getHours() * 60 + now.getMinutes();
+  const PX_PER_MIN = calcPxPerMin();
+  // Move now-lines
+  document.querySelectorAll('[id^="tlNowLine_"]').forEach(el => {
+    if (nowM >= DAY_START && nowM <= DAY_END) {
+      el.style.top = ((nowM - DAY_START) * PX_PER_MIN) + 'px';
+      el.style.display = '';
+    } else { el.style.display = 'none'; }
+  });
+  // Update current-lesson highlights
+  document.querySelectorAll('.tl-card[data-is-today="1"]').forEach(card => {
+    const s = +card.dataset.startM, e = +card.dataset.endM;
+    card.classList.toggle('tl-now', nowM >= s && nowM < e);
+  });
 }
 
 
