@@ -1744,7 +1744,36 @@ function renderTimeline(mon, wt, today) {
     wrap.appendChild(hdr);
   }
 
-  // ── time gutter body ──
+  // ── Row 2: Day notes (separate grid row so all columns stay aligned) ──
+  let _anyNotes = false;
+  for (let di = 0; di <= 5; di++) {
+    const d = addD(mon, di);
+    if (d >= TERM_START && d <= TERM_END && gDayNotes(d.toISOString().slice(0,10)).length) { _anyNotes = true; break; }
+  }
+  if (_anyNotes) {
+    const ns = document.createElement('div');
+    ns.style.cssText = 'background:var(--warm);border-right:1px solid var(--bsoft);';
+    wrap.appendChild(ns);
+    for (let di = 0; di <= 5; di++) {
+      const date = addD(mon, di);
+      const nc = document.createElement('div');
+      nc.style.cssText = `border-right:${di < 5 ? '1px solid var(--bsoft)' : 'none'};`;
+      if (date >= TERM_START && date <= TERM_END) {
+        const ds = date.toISOString().slice(0, 10);
+        for (const dn of gDayNotes(ds)) {
+          const c = document.createElement('div');
+          c.className = 'dnote-card';
+          c.style.cssText = 'margin:0 .18rem .14rem;border-radius:4px;padding:.22rem .38rem';
+          c.innerHTML = `<span class="dnote-icon">&#x1F4CC;</span><span class="dnote-text" style="font-size:.58rem">${esc(dn.text)}</span>`;
+          c.addEventListener('click', () => openDnModal(ds, dn));
+          nc.appendChild(c);
+        }
+      }
+      wrap.appendChild(nc);
+    }
+  }
+
+  // ── Row 3: Time gutter + Day columns ──
   const gutterBody = document.createElement('div');
   gutterBody.className = 'tl-time-col';
   gutterBody.style.cssText = `height:${totalPx}px;position:relative;`;
@@ -1777,16 +1806,6 @@ function renderTimeline(mon, wt, today) {
     const ds     = date.toISOString().slice(0, 10);
     const lessons = TT[wt][di] || [];
     const edEntries = gEd(ds);
-
-    // Day notes pinned above timeline
-    for (const dn of gDayNotes(ds)) {
-      const nc = document.createElement('div');
-      nc.className = 'dnote-card';
-      nc.style.cssText = 'margin:0 .18rem .14rem;border-radius:4px;padding:.22rem .38rem';
-      nc.innerHTML = `<span class="dnote-icon">&#x1F4CC;</span><span class="dnote-text" style="font-size:.58rem">${esc(dn.text)}</span>`;
-      nc.addEventListener('click', () => openDnModal(ds, dn));
-      dayCol.appendChild(nc);
-    }
 
     // body container with fixed height
     const body = document.createElement('div');
