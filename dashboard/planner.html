@@ -88,6 +88,7 @@ body.timeline-mode main{padding-bottom:.5rem}
 .badge-det{background:#fdf0f5;color:#8a206a;border:1px solid #e0b8d0}
 .badge-praise{background:#f0f8f0;color:#1a6a20;border:1px solid #b0d8b0}
 .plan-dot{position:absolute;top:4px;right:4px;width:5px;height:5px;border-radius:50%}
+.prep-night-dot{position:absolute;top:4px;right:12px;width:6px;height:6px;border-radius:50%;background:#c89a30;border:1px solid #a07a20;opacity:.7}
 /* EVENT/DUTY CARD */
 .ecard{border-radius:6px;padding:.4rem .54rem .4rem .66rem;border:1px solid transparent;border-left-width:3px;cursor:pointer;transition:transform .14s,box-shadow .14s;position:relative}
 .ecard:hover{transform:translateY(-1px);box-shadow:var(--sh-md)}
@@ -708,6 +709,11 @@ body.timeline-mode .week-layout{grid-template-columns:1fr}
         <button class="add-period-btn" onclick="addTermPeriod()">+ Add period</button>
         <div class="term-save-bar"><button class="sm-action-btn" onclick="saveTermPeriods()">Save calendar</button><span class="term-saved" id="termSavedMsg">Saved &#x2713;</span></div>
       </div>
+      <div><div class="sst">Prep nights</div>
+        <div style="font-size:.62rem;color:var(--mid);margin-bottom:.45rem;line-height:1.5">Select which evenings you typically set prep. A small dot will appear on lessons that day as a reminder.</div>
+        <div id="prepNightRows"></div>
+        <button class="add-period-btn" onclick="addPrepNight()" id="addPrepNightBtn">+ Add prep night</button>
+      </div>
       <div><div class="sst">Class colours</div><div id="colourRows"></div></div>
       <div><div class="sst">Class rosters</div><div id="rosterRows"></div></div>
     </div>
@@ -737,7 +743,8 @@ let PDATA = {
   quickNotes: {},
   events: {},
   recurringEvents: [],
-  termPeriods: []
+  termPeriods: [],
+  prepNights: []
 };
 
 // Derived globals (populated from PDATA after load)
@@ -979,6 +986,7 @@ function renderWeek(){
           if(p)bs.push(`<span class="lc-badge badge-praise">&#9733; ${p}</span>`);
           if(bs.length)h+=`<div class="lc-indicators">${bs.join('')}</div>`;
           if(data.topic||data.plan)h+=`<div class="plan-dot" style="background:${colour}"></div>`;
+          if(isPrepNight(wt,di))h+='<div class="prep-night-dot" title="Prep night"></div>';
         }
         card.innerHTML=h;if(!study)card.addEventListener('click',()=>openModal(date,time,code));col.appendChild(card);
       } else {
@@ -1485,6 +1493,7 @@ function renderTimeline(mon, wt, today) {
         if (p) bs.push(`<span class="lc-badge badge-praise">&#9733;</span>`);
         if (bs.length && heightPx > 58) h += `<div class="lc-indicators">${bs.join('')}</div>`;
         if ((data.topic || data.plan)) h += `<div class="plan-dot" style="background:${colour}"></div>`;
+        if (isPrepNight(wt, di)) h += '<div class="prep-night-dot" title="Prep night"></div>';
       }
       card.innerHTML = h;
       card.addEventListener('click', () => openModal(date, time, code));
@@ -1772,6 +1781,59 @@ function removeTtSlot(week, dayIdx, slotIdx) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SETTINGS: PREP NIGHTS
+// ═══════════════════════════════════════════════════════════════════════════
+function isPrepNight(week, dayIdx) {
+  return (PDATA.prepNights || []).some(pn => pn.week === week && pn.day === dayIdx);
+}
+
+function renderPrepNightRows() {
+  const container = document.getElementById('prepNightRows');
+  container.innerHTML = '';
+  const nights = PDATA.prepNights || [];
+  for (let i = 0; i < nights.length; i++) {
+    const pn = nights[i];
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:.38rem;margin-bottom:.35rem;padding:.38rem .55rem;background:var(--warm);border:1px solid var(--bsoft);border-radius:6px';
+    row.innerHTML = `<select class="finput" style="flex:1;font-size:.68rem;padding:.28rem .4rem" onchange="updatePrepNight(${i},'week',this.value)">
+      <option value="A"${pn.week==='A'?' selected':''}>Week A</option>
+      <option value="B"${pn.week==='B'?' selected':''}>Week B</option>
+    </select>
+    <select class="finput" style="flex:1.5;font-size:.68rem;padding:.28rem .4rem" onchange="updatePrepNight(${i},'day',+this.value)">
+      ${DAYS.map((d,di) => `<option value="${di}"${pn.day===di?' selected':''}>${d}</option>`).join('')}
+    </select>
+    <button class="subj-del" onclick="removePrepNight(${i})" title="Remove" style="flex-shrink:0">&#x2715;</button>`;
+    container.appendChild(row);
+  }
+  if (!nights.length) {
+    container.innerHTML = '<div style="font-size:.62rem;color:var(--dim);font-style:italic;padding:.26rem 0">No prep nights set.</div>';
+  }
+}
+
+function addPrepNight() {
+  if (!PDATA.prepNights) PDATA.prepNights = [];
+  PDATA.prepNights.push({ week: 'A', day: 0 });
+  scheduleSave();
+  renderPrepNightRows();
+  renderWeek();
+}
+
+function updatePrepNight(idx, field, value) {
+  if (!PDATA.prepNights?.[idx]) return;
+  PDATA.prepNights[idx][field] = value;
+  scheduleSave();
+  renderWeek();
+}
+
+function removePrepNight(idx) {
+  if (!PDATA.prepNights) return;
+  PDATA.prepNights.splice(idx, 1);
+  scheduleSave();
+  renderPrepNightRows();
+  renderWeek();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ENHANCED SETTINGS OPEN
 // ═══════════════════════════════════════════════════════════════════════════
 const _origOpenSettings = openSettings;
@@ -1781,6 +1843,7 @@ openSettings = function() {
   document.getElementById('termEndInput').value = PDATA.termEnd || '';
   renderSubjectRows();
   renderTtSetup();
+  renderPrepNightRows();
   _origOpenSettings();
 };
 
@@ -1879,7 +1942,8 @@ function startApp() {
           behaviour: {},
           quickNotes: {},
           events: {},
-          termPeriods: []
+          termPeriods: [],
+          prepNights: []
         };
       }
     }
