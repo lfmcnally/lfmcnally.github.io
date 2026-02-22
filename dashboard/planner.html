@@ -241,6 +241,15 @@ body.timeline-mode main{padding-bottom:.5rem}
 .plan-ta{width:100%;background:var(--warm);border:1px solid var(--border);border-radius:7px;padding:.58rem .78rem;font-family:'Nunito',sans-serif;font-size:.76rem;color:var(--text);line-height:1.7;resize:vertical;min-height:72px;outline:none;transition:border-color .13s,box-shadow .13s}
 .plan-ta:focus{border-color:var(--mid);box-shadow:0 0 0 3px rgba(44,40,32,.05)}
 .plan-ta::placeholder{color:var(--dim);font-style:italic}
+.res-add-row{display:flex;gap:.4rem;align-items:center;margin-top:.4rem}
+.res-input{flex:1;padding:.34rem .5rem!important;font-size:.68rem!important}
+.res-add-btn{white-space:nowrap;padding:.34rem .6rem!important;font-size:.62rem!important}
+.res-item{display:flex;align-items:center;gap:.5rem;padding:.36rem .5rem;background:#fff;border:1px solid var(--border);border-radius:5px;margin-bottom:.3rem}
+.res-item a{flex:1;font-size:.72rem;color:var(--mid);text-decoration:none;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.res-item a:hover{text-decoration:underline}
+.res-item .res-domain{font-size:.58rem;color:var(--dim);margin-left:.3rem;font-weight:400}
+.res-del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:.72rem;padding:.1rem .3rem;border-radius:3px;transition:color .1s}
+.res-del:hover{color:#c03030}
 .cancel-box{background:var(--warm);border:1px solid var(--bsoft);border-radius:7px;padding:.68rem .84rem}
 .cancel-row{display:flex;align-items:center;justify-content:space-between;gap:.8rem}
 .cancel-title{font-size:.73rem;font-weight:600}
@@ -567,6 +576,14 @@ body.timeline-mode .week-layout{grid-template-columns:1fr}
         <input type="text" class="topic-in" id="mTopic" placeholder="e.g. Tacitus Annals 1.1&#8211;3 &#8212; passive voice"></div>
       <div><div class="slabel">Notes <span style="font-weight:300;letter-spacing:0;text-transform:none;font-size:.66rem;color:var(--dim)">(detail, modal only)</span></div>
         <textarea class="plan-ta" id="mPlan" placeholder="Resources, timings, differentiation, key questions&#8230;"></textarea></div>
+      <div><div class="slabel">Resources</div>
+        <div id="mResources"></div>
+        <div class="res-add-row">
+          <input type="text" class="finput res-input" id="resTitle" placeholder="Title">
+          <input type="url" class="finput res-input" id="resUrl" placeholder="https://...">
+          <button class="sm-action-btn res-add-btn" onclick="addResource()">Add</button>
+        </div>
+      </div>
       <div class="cancel-box">
         <div class="cancel-row">
           <div><div class="cancel-title">Cancel this lesson</div><div class="cancel-sub">Trip, illness, INSET, assembly, cover&#8230;</div></div>
@@ -1126,6 +1143,7 @@ function openModal(date,time,code){
   const data=loadL(date,time,code);
   document.getElementById('mTopic').value=data.topic||'';document.getElementById('mPlan').value=data.plan||'';
   const tgl=document.getElementById('cancelTgl');tgl.checked=data.cancelled||false;document.getElementById('cancelReason').value=data.cancelReason||'';document.getElementById('cancelReasonWrap').classList.toggle('open',tgl.checked);
+  renderResources();
   populatePrepPane(date,time,code);populateBehLog();populateBehForm(code);
   document.querySelectorAll('.modal-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.modal-pane').forEach(p=>p.classList.remove('active'));document.querySelector('.modal-tab').classList.add('active');document.getElementById('paneplan').classList.add('active');
   document.getElementById('savedMsg').classList.remove('show');document.getElementById('overlay').classList.add('open');
@@ -1137,9 +1155,36 @@ function switchTab(n,btn){document.querySelectorAll('.modal-tab').forEach(t=>t.c
 function toggleCancel(){document.getElementById('cancelReasonWrap').classList.toggle('open',document.getElementById('cancelTgl').checked)}
 function saveLesson(){
   if(!activeModal)return;const{date,time,code}=activeModal;
-  saveL(date,time,code,{topic:document.getElementById('mTopic').value.trim(),plan:document.getElementById('mPlan').value,cancelled:document.getElementById('cancelTgl').checked,cancelReason:document.getElementById('cancelReason').value.trim()});
+  const prev=loadL(date,time,code);
+  saveL(date,time,code,{topic:document.getElementById('mTopic').value.trim(),plan:document.getElementById('mPlan').value,cancelled:document.getElementById('cancelTgl').checked,cancelReason:document.getElementById('cancelReason').value.trim(),resources:prev.resources||[]});
   const msg=document.getElementById('savedMsg');msg.classList.add('show');setTimeout(()=>msg.classList.remove('show'),2200);
   renderWeek();updateTodayPanel();updateClock();
+}
+function renderResources(){
+  if(!activeModal)return;const{date,time,code}=activeModal;
+  const data=loadL(date,time,code),res=data.resources||[];
+  const wrap=document.getElementById('mResources');wrap.innerHTML='';
+  for(let i=0;i<res.length;i++){
+    const r=res[i],el=document.createElement('div');el.className='res-item';
+    let domain='';try{domain=new URL(r.url).hostname.replace('www.','')}catch(e){}
+    el.innerHTML=`<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}<span class="res-domain">${esc(domain)}</span></a><button class="res-del" onclick="removeResource(${i})" title="Remove">&#x2715;</button>`;
+    wrap.appendChild(el);
+  }
+}
+function addResource(){
+  if(!activeModal)return;const{date,time,code}=activeModal;
+  const title=document.getElementById('resTitle').value.trim(),url=document.getElementById('resUrl').value.trim();
+  if(!title||!url)return;
+  const data=loadL(date,time,code);if(!data.resources)data.resources=[];
+  data.resources.push({title,url});saveL(date,time,code,data);
+  document.getElementById('resTitle').value='';document.getElementById('resUrl').value='';
+  renderResources();
+}
+function removeResource(idx){
+  if(!activeModal)return;const{date,time,code}=activeModal;
+  const data=loadL(date,time,code);if(!data.resources)return;
+  data.resources.splice(idx,1);saveL(date,time,code,data);
+  renderResources();
 }
 
 // PREP PANE
@@ -1434,8 +1479,7 @@ function defaultTermPeriods() {
 }
 
 function getTermPeriods() {
-  const stored = gTermPeriods();
-  return stored.length ? stored : defaultTermPeriods();
+  return gTermPeriods();
 }
 
 // What period (if any) does a given Monday fall in?
@@ -1738,6 +1782,16 @@ function startApp() {
 
     // Load planner data from Supabase
     const loaded = await loadFromCloud();
+    if (loaded && user.email === 'lawrencefmcnally@gmail.com') {
+      // Update owner's stale term dates if they're in the past
+      const seed = seedOwnerData();
+      if (PDATA.termEnd && new Date(PDATA.termEnd+'T00:00:00') < new Date()) {
+        PDATA.termStart = seed.termStart;
+        PDATA.termEnd = seed.termEnd;
+        PDATA.termPeriods = seed.termPeriods;
+        await syncToCloud();
+      }
+    }
     if (!loaded) {
       // Check if this is the site owner — seed their existing timetable
       if (user.email === 'lawrencefmcnally@gmail.com') {
