@@ -261,6 +261,14 @@ body.timeline-mode main{padding-bottom:1.4rem}
 .qn-saved.show{opacity:1}
 .qn-save-btn{background:var(--text);color:#fff;border:none;border-radius:5px;padding:.24rem .7rem;font-family:'Nunito',sans-serif;font-size:.62rem;font-weight:700;cursor:pointer;transition:background .11s}
 .qn-save-btn:hover{background:#3d3830}
+/* ALL LESSONS VIEW */
+.al-day{margin-bottom:1.1rem}
+.al-day-hdr{font-family:'Lora',serif;font-size:.82rem;font-weight:600;color:var(--text);padding:.38rem .3rem .28rem;border-bottom:1px solid var(--bsoft);margin-bottom:.32rem;display:flex;align-items:baseline;gap:.4rem;position:sticky;top:0;background:var(--cream);z-index:2}
+.al-day-hdr .al-wk{font-family:'Nunito',sans-serif;font-size:.56rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--soft)}
+.al-day-hdr.today-al{color:var(--text)}
+.al-day-hdr.today-al::after{content:'Today';font-family:'Nunito',sans-serif;font-size:.55rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;background:var(--text);color:#fff;padding:.08rem .4rem;border-radius:10px;margin-left:.3rem}
+.al-list{display:flex;flex-direction:column;gap:.18rem}
+.al-empty{font-size:.68rem;color:var(--dim);font-style:italic;padding:1.4rem .3rem;text-align:center}
 /* LESSON MODAL */
 .overlay{display:none;position:fixed;inset:0;background:rgba(44,40,32,.42);backdrop-filter:blur(7px);z-index:200;align-items:center;justify-content:center;padding:1rem}
 .overlay.open{display:flex}
@@ -559,6 +567,7 @@ body.timeline-mode .week-layout{grid-template-columns:1fr}
 </header>
 <nav class="nav">
   <button class="ntab active"  onclick="showView('week',this)">This Week</button>
+  <button class="ntab" onclick="showView('alllessons',this)">All Lessons</button>
   <button class="ntab" onclick="showView('heatmap',this)">Term Overview</button>
   <button class="ntab" onclick="showView('classes',this)">All Classes</button>
   <button class="ntab" onclick="showView('past',this)">Past Lessons</button>
@@ -610,6 +619,7 @@ body.timeline-mode .week-layout{grid-template-columns:1fr}
     <div id="behContent"></div>
   </div>
   <div class="view" id="viewNotes"><div class="qn-grid" id="qnGrid"></div></div>
+  <div class="view" id="viewAllLessons"><div id="allLessonsContent"></div></div>
 </main>
 
 <!-- SEARCH OVERLAY -->
@@ -1042,7 +1052,7 @@ function showView(n,btn){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('visible'));
   document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  const map={week:'viewWeek',heatmap:'viewHeatmap',classes:'viewClasses',past:'viewPast',behaviour:'viewBehaviour',notes:'viewNotes'};
+  const map={week:'viewWeek',heatmap:'viewHeatmap',classes:'viewClasses',past:'viewPast',behaviour:'viewBehaviour',notes:'viewNotes',alllessons:'viewAllLessons'};
   document.getElementById(map[n]).classList.add('visible');
   if(n==='week'){renderWeek();updateTodayPanel()}
   if(n==='heatmap')renderHeatmap();
@@ -1050,6 +1060,7 @@ function showView(n,btn){
   if(n==='past')renderPast();
   if(n==='behaviour')renderBehView();
   if(n==='notes')renderNotes();
+  if(n==='alllessons')renderAllLessons();
 }
 
 // WEEK NAVIGATION
@@ -1169,6 +1180,62 @@ function renderClasses(){
     card.addEventListener('click',()=>showClassDetail(code));
     grid.appendChild(card);
   }
+}
+
+// ALL LESSONS VIEW
+function renderAllLessons(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const container=document.getElementById('allLessonsContent');container.innerHTML='';
+  if(!PDATA.termStart||!PDATA.termEnd){container.innerHTML='<div class="al-empty">Set term dates in Settings to see lessons.</div>';return}
+  // Collect every lesson across all classes, keyed by date string
+  const dayMap=new Map();
+  let mon=monOf(TERM_START);
+  while(mon<=TERM_END){
+    const wt=wkT(mon);
+    for(let di=0;di<=5;di++){
+      const dt=addD(mon,di);
+      if(dt<TERM_START||dt>TERM_END)continue;
+      const slots=TT[wt]?.[di]||[];
+      if(!slots.length)continue;
+      const ds=dt.toISOString().slice(0,10);
+      if(!dayMap.has(ds))dayMap.set(ds,{date:dt,wt,lessons:[]});
+      for(const[time,code]of slots){
+        if(isSt(code))continue;
+        dayMap.get(ds).lessons.push({time,code});
+      }
+    }
+    mon=addD(mon,7);
+  }
+  if(!dayMap.size){container.innerHTML='<div class="al-empty">No lessons found this term.</div>';return}
+  // Sort days chronologically, lessons by time within each day
+  const sortedDays=[...dayMap.values()].sort((a,b)=>a.date-b.date);
+  let scrollTarget=null;
+  for(const day of sortedDays){
+    day.lessons.sort((a,b)=>t2m(a.time)-t2m(b.time));
+    const isToday=sameD(day.date,today);
+    const sec=document.createElement('div');sec.className='al-day';
+    const hdr=document.createElement('div');hdr.className=`al-day-hdr${isToday?' today-al':''}`;
+    hdr.innerHTML=`${fmtF(day.date)} <span class="al-wk">Week ${day.wt}</span>`;
+    sec.appendChild(hdr);
+    const list=document.createElement('div');list.className='al-list';
+    for(const{time,code}of day.lessons){
+      const d=loadL(day.date,time,code);
+      const colour=gCol(code);
+      const classes=['cd-lesson'];
+      if(isToday)classes.push('is-today');
+      if(d.cancelled)classes.push('cancelled');
+      const hasPlan=!!(d.topic||d.plan);
+      const el=document.createElement('div');el.className=classes.join(' ');el.style.borderLeftColor=colour;
+      el.dataset.date=day.date.toISOString();el.dataset.time=time;el.dataset.code=code;
+      el.innerHTML=`<div class="cd-ldate">${time}<div class="cd-ltime">${code} · ${sn(code)}</div></div>${d.cancelled?`<span class="cd-lcancel">Cancelled${d.cancelReason?' — '+esc(d.cancelReason):''}</span>`:`<div class="cd-ltopic">${d.topic?esc(d.topic):`<span style="color:var(--dim);font-style:italic;font-weight:400">No topic set</span>`}</div>`}${hasPlan&&!d.cancelled?'<div class="cd-ldot"></div>':''}`;
+      el.addEventListener('click',()=>{const dt=new Date(el.dataset.date);dt.setHours(0,0,0,0);openModal(dt,el.dataset.time,el.dataset.code)});
+      list.appendChild(el);
+    }
+    sec.appendChild(list);
+    container.appendChild(sec);
+    if(isToday)scrollTarget=sec;
+  }
+  if(scrollTarget)scrollTarget.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 // PAST VIEW
