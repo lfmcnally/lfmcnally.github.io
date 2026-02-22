@@ -523,6 +523,15 @@ body.timeline-mode .week-layout{grid-template-columns:1fr}
 .tt-setup-slot{display:flex;align-items:center;gap:.32rem;padding:.2rem 0;font-size:.68rem}
 .tt-setup-slot .slot-del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:.66rem}
 .tt-setup-slot .slot-del:hover{color:#c03030}
+.tt-setup-slot .slot-time{min-width:42px;font-weight:600;cursor:pointer;border-radius:3px;padding:0 .18rem;transition:background .12s}
+.tt-setup-slot .slot-time:hover{background:rgba(0,0,0,.06)}
+.tt-setup-slot .slot-time-edit{width:80px;font-size:.68rem;padding:.14rem .28rem;border:1px solid var(--border);border-radius:4px;font-family:'Nunito',sans-serif}
+.tt-slot-migrate{font-size:.58rem;color:var(--mid);margin-top:.12rem;padding:.3rem .42rem;background:#f8f5f0;border:1px solid var(--bsoft);border-radius:5px;display:flex;align-items:center;gap:.32rem;flex-wrap:wrap}
+.tt-slot-migrate button{font-size:.58rem;padding:.14rem .48rem;border-radius:4px;border:1px solid var(--border);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:600;transition:all .12s}
+.tt-slot-migrate .migrate-yes{background:var(--text);color:#fff;border-color:var(--text)}
+.tt-slot-migrate .migrate-yes:hover{opacity:.85}
+.tt-slot-migrate .migrate-no{background:#fff;color:var(--mid)}
+.tt-slot-migrate .migrate-no:hover{border-color:var(--mid)}
 .tt-add-row{display:flex;gap:.28rem;margin-top:.32rem;flex-wrap:wrap}
 .tt-add-row .finput{width:auto;padding:.28rem .48rem;font-size:.68rem}
 .week-ab-toggle{display:flex;gap:.18rem}
@@ -2120,7 +2129,7 @@ function renderTtSetup() {
     let slotsHtml = '';
     for (let si = 0; si < slots.length; si++) {
       const [time, code] = slots[si];
-      slotsHtml += `<div class="tt-setup-slot"><span style="min-width:42px;font-weight:600">${time}</span> <span style="flex:1">${code}</span><button class="slot-del" onclick="removeTtSlot('${ttSetupWeek}',${di},${si})">&#x2715;</button></div>`;
+      slotsHtml += `<div class="tt-setup-slot" id="ttSlot_${ttSetupWeek}_${di}_${si}"><span class="slot-time" onclick="editSlotTime('${ttSetupWeek}',${di},${si})" title="Click to change time">${time}</span> <span style="flex:1">${code}</span><button class="slot-del" onclick="removeTtSlot('${ttSetupWeek}',${di},${si})">&#x2715;</button></div>`;
     }
     if (!slots.length) slotsHtml = '<div style="font-size:.62rem;color:var(--dim);font-style:italic;padding:.14rem 0">No lessons</div>';
     day.innerHTML = `<div class="tt-setup-day-hdr"><span>${DAYS[di]}</span></div>${slotsHtml}
@@ -2148,6 +2157,86 @@ function removeTtSlot(week, dayIdx, slotIdx) {
   applyPDATA();
   scheduleSave();
   renderTtSetup();
+  renderWeek();
+}
+function editSlotTime(week, dayIdx, slotIdx) {
+  const slot = PDATA.timetable[week]?.[dayIdx]?.[slotIdx];
+  if (!slot) return;
+  const [oldTime, code] = slot;
+  const container = document.getElementById(`ttSlot_${week}_${dayIdx}_${slotIdx}`);
+  const timeSpan = container.querySelector('.slot-time');
+  const input = document.createElement('input');
+  input.type = 'time'; input.value = oldTime; input.className = 'slot-time-edit';
+  timeSpan.replaceWith(input);
+  input.focus();
+  const commit = () => {
+    const newTime = input.value;
+    if (!newTime || newTime === oldTime) { renderTtSetup(); return; }
+    // Update the timetable slot
+    PDATA.timetable[week][dayIdx][slotIdx] = [newTime, code];
+    PDATA.timetable[week][dayIdx].sort((a, b) => t2m(a[0]) - t2m(b[0]));
+    applyPDATA(); scheduleSave(); renderTtSetup(); renderWeek();
+    // Check if there are lessons to migrate
+    const toMigrate = findLessonsToMigrate(week, dayIdx, oldTime, newTime, code);
+    if (toMigrate.length) {
+      // Find the new index after sort
+      const newIdx = PDATA.timetable[week][dayIdx].findIndex(s => s[0] === newTime && s[1] === code);
+      showMigratePrompt(week, dayIdx, newIdx >= 0 ? newIdx : slotIdx, oldTime, newTime, code, toMigrate);
+    }
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { input.removeEventListener('blur', commit); commit(); } if (e.key === 'Escape') renderTtSetup(); });
+}
+function findLessonsToMigrate(week, dayIdx, oldTime, newTime, code) {
+  const found = [];
+  if (!TERM_START || !TERM_END) return found;
+  let mon = monOf(TERM_START);
+  while (mon <= TERM_END) {
+    if (wkT(mon) === week) {
+      const date = addD(mon, dayIdx);
+      if (date >= TERM_START && date <= TERM_END) {
+        const key = lk(date, oldTime, code);
+        if (PDATA.lessons[key]) found.push({ date, oldTime, code, key });
+      }
+    }
+    mon = addD(mon, 7);
+  }
+  return found;
+}
+function showMigratePrompt(week, dayIdx, slotIdx, oldTime, newTime, code, toMigrate) {
+  const container = document.getElementById(`ttSlot_${week}_${dayIdx}_${slotIdx}`);
+  if (!container) return;
+  const existing = container.querySelector('.tt-slot-migrate');
+  if (existing) existing.remove();
+  const bar = document.createElement('div');
+  bar.className = 'tt-slot-migrate';
+  bar.innerHTML = `${toMigrate.length} existing lesson${toMigrate.length !== 1 ? 's' : ''} for <strong>${code}</strong> at ${oldTime} on ${DAYS[dayIdx]}s. Move them to ${newTime}? <button class="migrate-yes" onclick="migrateLessons('${week}',${dayIdx},'${oldTime}','${newTime}','${code}');this.closest('.tt-slot-migrate').remove()">Yes, move all</button><button class="migrate-no" onclick="this.closest('.tt-slot-migrate').remove()">No, keep old times</button>`;
+  container.appendChild(bar);
+}
+function migrateLessons(week, dayIdx, oldTime, newTime, code) {
+  const toMove = findLessonsToMigrate(week, dayIdx, oldTime, newTime, code);
+  const migratedDates = new Set();
+  for (const { date, key } of toMove) {
+    const data = PDATA.lessons[key];
+    if (!data) continue;
+    const newKey = lk(date, newTime, code);
+    PDATA.lessons[newKey] = data;
+    delete PDATA.lessons[key];
+    migratedDates.add(date.toISOString().slice(0, 10));
+  }
+  // Also migrate prep references whose dates fall on migrated days
+  for (const [pk, pd] of Object.entries(PDATA.prep || {})) {
+    if (!pd || !pd.code || pd.code !== code) continue;
+    let changed = false;
+    if (pd.setKey) { const [sd, st] = pd.setKey.split('::'); if (st === oldTime && migratedDates.has(sd)) { pd.setKey = `${sd}::${newTime}`; pd.setDisplay = (pd.setDisplay || '').replace(oldTime, newTime); changed = true; } }
+    if (pd.dueLessonKey) { const [dd, dt] = pd.dueLessonKey.split('::'); if (dt === oldTime && migratedDates.has(dd)) { pd.dueLessonKey = `${dd}::${newTime}`; pd.dueDisplay = (pd.dueDisplay || '').replace(oldTime, newTime); changed = true; } }
+    if (changed) PDATA.prep[pk] = pd;
+  }
+  // Also migrate behaviour references on migrated dates
+  for (const entry of (PDATA.behaviour[code] || [])) {
+    if (entry.lessonTime === oldTime && migratedDates.has(entry.lessonDate)) entry.lessonTime = newTime;
+  }
+  scheduleSave();
   renderWeek();
 }
 
