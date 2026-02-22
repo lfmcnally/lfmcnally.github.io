@@ -710,7 +710,7 @@ body.timeline-mode .week-layout{grid-template-columns:1fr}
         <div class="term-save-bar"><button class="sm-action-btn" onclick="saveTermPeriods()">Save calendar</button><span class="term-saved" id="termSavedMsg">Saved &#x2713;</span></div>
       </div>
       <div><div class="sst">Prep nights</div>
-        <div style="font-size:.62rem;color:var(--mid);margin-bottom:.45rem;line-height:1.5">Select which evenings you typically set prep. A small dot will appear on lessons that day as a reminder.</div>
+        <div style="font-size:.62rem;color:var(--mid);margin-bottom:.45rem;line-height:1.5">Set which evening each class typically gets prep. A dot will appear on that class's lessons as a reminder.</div>
         <div id="prepNightRows"></div>
         <button class="add-period-btn" onclick="addPrepNight()" id="addPrepNightBtn">+ Add prep night</button>
       </div>
@@ -986,7 +986,7 @@ function renderWeek(){
           if(p)bs.push(`<span class="lc-badge badge-praise">&#9733; ${p}</span>`);
           if(bs.length)h+=`<div class="lc-indicators">${bs.join('')}</div>`;
           if(data.topic||data.plan)h+=`<div class="plan-dot" style="background:${colour}"></div>`;
-          if(isPrepNight(wt,di))h+='<div class="prep-night-dot" title="Prep night"></div>';
+          if(isPrepNight(wt,di,code))h+='<div class="prep-night-dot" title="Prep night"></div>';
         }
         card.innerHTML=h;if(!study)card.addEventListener('click',()=>openModal(date,time,code));col.appendChild(card);
       } else {
@@ -1493,7 +1493,7 @@ function renderTimeline(mon, wt, today) {
         if (p) bs.push(`<span class="lc-badge badge-praise">&#9733;</span>`);
         if (bs.length && heightPx > 58) h += `<div class="lc-indicators">${bs.join('')}</div>`;
         if ((data.topic || data.plan)) h += `<div class="plan-dot" style="background:${colour}"></div>`;
-        if (isPrepNight(wt, di)) h += '<div class="prep-night-dot" title="Prep night"></div>';
+        if (isPrepNight(wt, di, code)) h += '<div class="prep-night-dot" title="Prep night"></div>';
       }
       card.innerHTML = h;
       card.addEventListener('click', () => openModal(date, time, code));
@@ -1783,23 +1783,28 @@ function removeTtSlot(week, dayIdx, slotIdx) {
 // ═══════════════════════════════════════════════════════════════════════════
 // SETTINGS: PREP NIGHTS
 // ═══════════════════════════════════════════════════════════════════════════
-function isPrepNight(week, dayIdx) {
-  return (PDATA.prepNights || []).some(pn => pn.week === week && pn.day === dayIdx);
+function isPrepNight(week, dayIdx, code) {
+  return (PDATA.prepNights || []).some(pn => pn.week === week && pn.day === dayIdx && pn.code === code);
 }
 
 function renderPrepNightRows() {
   const container = document.getElementById('prepNightRows');
   container.innerHTML = '';
   const nights = PDATA.prepNights || [];
+  const classes = allC();
   for (let i = 0; i < nights.length; i++) {
     const pn = nights[i];
     const row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;gap:.38rem;margin-bottom:.35rem;padding:.38rem .55rem;background:var(--warm);border:1px solid var(--bsoft);border-radius:6px';
-    row.innerHTML = `<select class="finput" style="flex:1;font-size:.68rem;padding:.28rem .4rem" onchange="updatePrepNight(${i},'week',this.value)">
-      <option value="A"${pn.week==='A'?' selected':''}>Week A</option>
-      <option value="B"${pn.week==='B'?' selected':''}>Week B</option>
+    row.innerHTML = `<select class="finput" style="flex:1.2;font-size:.68rem;padding:.28rem .4rem" onchange="updatePrepNight(${i},'code',this.value)">
+      <option value="">Class&#8230;</option>
+      ${classes.map(c => `<option value="${c}"${pn.code===c?' selected':''}>${c}</option>`).join('')}
     </select>
-    <select class="finput" style="flex:1.5;font-size:.68rem;padding:.28rem .4rem" onchange="updatePrepNight(${i},'day',+this.value)">
+    <select class="finput" style="flex:.8;font-size:.68rem;padding:.28rem .4rem" onchange="updatePrepNight(${i},'week',this.value)">
+      <option value="A"${pn.week==='A'?' selected':''}>Wk A</option>
+      <option value="B"${pn.week==='B'?' selected':''}>Wk B</option>
+    </select>
+    <select class="finput" style="flex:1.2;font-size:.68rem;padding:.28rem .4rem" onchange="updatePrepNight(${i},'day',+this.value)">
       ${DAYS.map((d,di) => `<option value="${di}"${pn.day===di?' selected':''}>${d}</option>`).join('')}
     </select>
     <button class="subj-del" onclick="removePrepNight(${i})" title="Remove" style="flex-shrink:0">&#x2715;</button>`;
@@ -1812,7 +1817,8 @@ function renderPrepNightRows() {
 
 function addPrepNight() {
   if (!PDATA.prepNights) PDATA.prepNights = [];
-  PDATA.prepNights.push({ week: 'A', day: 0 });
+  const classes = allC();
+  PDATA.prepNights.push({ code: classes[0] || '', week: 'A', day: 0 });
   scheduleSave();
   renderPrepNightRows();
   renderWeek();
@@ -1822,6 +1828,7 @@ function updatePrepNight(idx, field, value) {
   if (!PDATA.prepNights?.[idx]) return;
   PDATA.prepNights[idx][field] = value;
   scheduleSave();
+  renderPrepNightRows();
   renderWeek();
 }
 
