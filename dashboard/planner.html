@@ -462,6 +462,12 @@ body.timeline-mode .week-layout{grid-template-columns:1fr}
 .subj-del:hover{color:#c03030}
 .save-indicator{position:fixed;bottom:16px;right:16px;background:var(--text);color:#fff;padding:.38rem .82rem;border-radius:7px;font-family:'Nunito',sans-serif;font-size:.66rem;font-weight:600;opacity:0;transition:opacity .3s;z-index:100;pointer-events:none}
 .save-indicator.show{opacity:1}
+/* RECURRENCE */
+.ed-recur-row{display:flex;gap:.26rem;flex-wrap:wrap}
+.ed-recur-btn{background:#fff;border:1px solid var(--border);border-radius:4px;padding:.22rem .6rem;font-family:'Nunito',sans-serif;font-size:.62rem;font-weight:600;cursor:pointer;transition:all .11s;color:var(--soft)}
+.ed-recur-btn:hover{border-color:var(--mid);color:var(--text)}
+.ed-recur-btn.active{background:var(--text);color:#fff;border-color:var(--text)}
+.ec-recur{font-size:.5rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--soft);margin-top:.04rem}
 
 </style>
 </head>
@@ -652,6 +658,14 @@ body.timeline-mode .week-layout{grid-template-columns:1fr}
         <div class="frow"><label class="slabel">Start</label><input type="time" class="finput" id="edStart" value="09:00"></div>
         <div class="frow"><label class="slabel">End</label><input type="time" class="finput" id="edEnd" value="10:00"></div>
       </div>
+      <div class="frow"><label class="slabel">Recurrence</label>
+        <div class="ed-recur-row" id="edRecurRow">
+          <button class="ed-recur-btn active" data-recur="once" onclick="setEdRecur('once',this)">Once</button>
+          <button class="ed-recur-btn" data-recur="all" onclick="setEdRecur('all',this)">Every week</button>
+          <button class="ed-recur-btn" data-recur="A" onclick="setEdRecur('A',this)">Week A only</button>
+          <button class="ed-recur-btn" data-recur="B" onclick="setEdRecur('B',this)">Week B only</button>
+        </div>
+      </div>
     </div>
     <div class="ed-foot">
       <button class="btn-save" onclick="saveEdEntry()">Save</button>
@@ -722,6 +736,7 @@ let PDATA = {
   behaviour: {},
   quickNotes: {},
   events: {},
+  recurringEvents: [],
   termPeriods: []
 };
 
@@ -819,12 +834,25 @@ function gBeh(c){return PDATA.behaviour[c]||[]}
 function sBeh(c,a){PDATA.behaviour[c]=a;scheduleSave()}
 function gQNote(c){return PDATA.quickNotes[c]||''}
 function sQNote(c,t){PDATA.quickNotes[c]=t;scheduleSave()}
-function gEd(ds){return PDATA.events[ds]||[]}
+function gEd(ds){
+  const oneOff=PDATA.events[ds]||[];
+  const d=new Date(ds+'T00:00:00');
+  const di=((d.getDay()||7)-1);
+  if(di<0||di>5)return oneOff;
+  const wt=wkT(monOf(d));
+  const recs=(PDATA.recurringEvents||[]).filter(r=>r.day===di&&(r.weeks==='all'||r.weeks===wt));
+  if(!recs.length)return oneOff;
+  // exclude recurring events that have been individually deleted for this date
+  const deletedSet=new Set((PDATA.events['_del_'+ds]||[]).map(id=>id));
+  const merged=[...oneOff];
+  for(const r of recs){if(!deletedSet.has(r.id))merged.push({id:r.id,type:r.type,title:r.title,start:r.start,end:r.end,_recurring:true,_weeks:r.weeks})}
+  return merged;
+}
 function sEd(ds,a){PDATA.events[ds]=a;scheduleSave()}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function typeLbl(t){return{verbal:'Verbal',detention:'Detention',praise:'Praise',note:'Note'}[t]||t}
 
-let weekOffset=0,activeModal=null,selBehType='',behFilter='all',editPrepKey=null,edType='event',edEditId=null,edEditDs=null;
+let weekOffset=0,activeModal=null,selBehType='',behFilter='all',editPrepKey=null,edType='event',edEditId=null,edEditDs=null,edRecur='once',edEditRecurring=false;
 function curMon(){return addD(monOf(TERM_START),weekOffset*7)}
 
 // CLOCK
@@ -956,7 +984,8 @@ function renderWeek(){
       } else {
         const e=item.entry,card=document.createElement('div');
         card.className=`ecard ${e.type==='event'?'ev-card':'du-card'}`;
-        card.innerHTML=`<div class="ec-time">${e.start}&#8211;${e.end}</div><div class="ec-title">${esc(e.title)}</div><div class="ec-type">${e.type==='event'?'Event':'Duty'}</div><button class="ec-del" onclick="delEdEntry(event,'${ds}','${e.id}')" title="Remove">&#x2715;</button>`;
+        const recurLbl=e._recurring?`<div class="ec-recur">&#x21bb; ${e._weeks==='all'?'Weekly':'Week '+e._weeks}</div>`:'';
+        card.innerHTML=`<div class="ec-time">${e.start}&#8211;${e.end}</div><div class="ec-title">${esc(e.title)}</div><div class="ec-type">${e.type==='event'?'Event':'Duty'}</div>${recurLbl}<button class="ec-del" onclick="deleteEdEntry(event,'${ds}','${e.id}')" title="Remove">&#x2715;</button>`;
         card.addEventListener('click',()=>editEdEntry(ds,e));col.appendChild(card);
       }
     }
@@ -1072,19 +1101,21 @@ function saveQNBtn(btn,code,ta){const t=ta||btn.closest('.qn-card').querySelecto
 
 // ED MODAL
 function openEdModal(type,prefillDs){
-  edType=type;edEditId=null;edEditDs=null;
+  edType=type;edEditId=null;edEditDs=null;edEditRecurring=false;
   document.getElementById('edTitleTxt').textContent=type==='event'?'Add Event':'Add Duty';
   setEdType(type);document.getElementById('edTitleIn').value='';document.getElementById('edStart').value='09:00';document.getElementById('edEnd').value='10:00';
   document.getElementById('edDeleteBtn').style.display='none';
+  setEdRecur('once');
   const mon=curMon(),sel=document.getElementById('edDay');sel.innerHTML='';
   for(let di=0;di<=5;di++){const date=addD(mon,di);const opt=document.createElement('option');opt.value=date.toISOString().slice(0,10);opt.textContent=`${DAYS[di]} ${fmtS(date)}`;if(prefillDs&&date.toISOString().slice(0,10)===prefillDs)opt.selected=true;sel.appendChild(opt)}
   document.getElementById('edOverlay').classList.add('open');setTimeout(()=>document.getElementById('edTitleIn').focus(),200);
 }
 function editEdEntry(ds,e){
-  edType=e.type;edEditId=e.id;edEditDs=ds;
+  edType=e.type;edEditId=e.id;edEditDs=ds;edEditRecurring=!!e._recurring;
   document.getElementById('edTitleTxt').textContent=e.type==='event'?'Edit Event':'Edit Duty';
   setEdType(e.type);document.getElementById('edTitleIn').value=e.title;document.getElementById('edStart').value=e.start;document.getElementById('edEnd').value=e.end;
   document.getElementById('edDeleteBtn').style.display='inline-flex';
+  setEdRecur(e._recurring?e._weeks:'once');
   const mon=curMon(),sel=document.getElementById('edDay');sel.innerHTML='';
   for(let di=0;di<=5;di++){const date=addD(mon,di);const opt=document.createElement('option');opt.value=date.toISOString().slice(0,10);opt.textContent=`${DAYS[di]} ${fmtS(date)}`;if(date.toISOString().slice(0,10)===ds)opt.selected=true;sel.appendChild(opt)}
   document.getElementById('edOverlay').classList.add('open');
@@ -1094,24 +1125,59 @@ function setEdType(type){
   document.getElementById('edTypeEv').className=`ed-type-btn${type==='event'?' sel-ev':''}`;
   document.getElementById('edTypeDu').className=`ed-type-btn${type==='duty'?' sel-du':''}`;
 }
+function setEdRecur(v,btn){
+  edRecur=v;
+  document.querySelectorAll('.ed-recur-btn').forEach(b=>{b.classList.remove('active');if(b.dataset.recur===v)b.classList.add('active')});
+}
 function saveEdEntry(){
   const title=document.getElementById('edTitleIn').value.trim();if(!title){alert('Please enter a title.');return}
   const ds=document.getElementById('edDay').value;
   const start=document.getElementById('edStart').value;
   const end=document.getElementById('edEnd').value;
   if(t2m(end)<=t2m(start)){alert('End time must be after start time.');return}
-  const entries=gEd(ds).filter(e=>e.id!==edEditId);
   const id=edEditId||Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-  entries.push({id,type:edType,title,start,end});
-  // if day changed for edit, remove from old
-  if(edEditDs&&edEditDs!==ds){const old=gEd(edEditDs).filter(e=>e.id!==edEditId);sEd(edEditDs,old)}
-  sEd(ds,entries);
+  const selDate=new Date(ds+'T00:00:00');
+  const dayIdx=((selDate.getDay()||7)-1);
+  // Remove old entry from wherever it lived
+  if(edEditId){
+    if(edEditRecurring){PDATA.recurringEvents=(PDATA.recurringEvents||[]).filter(r=>r.id!==edEditId)}
+    else{if(edEditDs){const old=(PDATA.events[edEditDs]||[]).filter(e=>e.id!==edEditId);if(old.length)PDATA.events[edEditDs]=old;else delete PDATA.events[edEditDs]}}
+  }
+  if(edRecur==='once'){
+    const entries=(PDATA.events[ds]||[]).filter(e=>e.id!==id);
+    entries.push({id,type:edType,title,start,end});
+    PDATA.events[ds]=entries;
+  } else {
+    if(!PDATA.recurringEvents)PDATA.recurringEvents=[];
+    PDATA.recurringEvents.push({id,type:edType,title,start,end,day:dayIdx,weeks:edRecur});
+  }
+  scheduleSave();
   closeEdModal();renderWeek();updateTodayPanel();
 }
 function deleteEdEntry(evObj,ds,id){
   if(evObj)evObj.stopPropagation();
-  const entries=gEd(ds||edEditDs).filter(e=>e.id!==(id||edEditId));
-  sEd(ds||edEditDs,entries);
+  const targetDs=ds||edEditDs;
+  const targetId=id||edEditId;
+  const isRec=(PDATA.recurringEvents||[]).some(r=>r.id===targetId);
+  if(isRec){
+    // From inline X (ds provided) → just skip this date
+    // From modal Delete button (ds is falsy) → ask
+    let deleteAll=false;
+    if(!ds){deleteAll=confirm('Delete ALL occurrences of this recurring event?\n\nOK = delete all\nCancel = remove just this date')}
+    if(deleteAll){
+      PDATA.recurringEvents=(PDATA.recurringEvents||[]).filter(r=>r.id!==targetId);
+      for(const k of Object.keys(PDATA.events)){if(k.startsWith('_del_')){PDATA.events[k]=(PDATA.events[k]||[]).filter(i=>i!==targetId);if(!PDATA.events[k].length)delete PDATA.events[k]}}
+    } else {
+      const delKey='_del_'+targetDs;
+      if(!PDATA.events[delKey])PDATA.events[delKey]=[];
+      if(!PDATA.events[delKey].includes(targetId))PDATA.events[delKey].push(targetId);
+    }
+    scheduleSave();
+  } else {
+    const entries=(PDATA.events[targetDs]||[]).filter(e=>e.id!==targetId);
+    if(entries.length)PDATA.events[targetDs]=entries;else delete PDATA.events[targetDs];
+    scheduleSave();
+  }
   if(!ds)closeEdModal();
   renderWeek();updateTodayPanel();
 }
@@ -1439,6 +1505,7 @@ function renderTimeline(mon, wt, today) {
       let h = '';
       if (heightPx > 26) h += `<div class="ec-time" style="font-size:.52rem">${e.start}&#8211;${e.end}</div>`;
       h += `<div class="ec-title" style="font-size:${heightPx < 34 ? '.68rem' : '.76rem'}">${esc(e.title)}</div>`;
+      if (e._recurring && heightPx > 38) h += `<div class="ec-recur" style="font-size:.46rem">&#x21bb; ${e._weeks==='all'?'Weekly':'Wk '+e._weeks}</div>`;
       card.innerHTML = h;
       card.addEventListener('click', () => editEdEntry(ds, e));
       body.appendChild(card);
