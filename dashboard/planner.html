@@ -106,6 +106,23 @@ body.timeline-mode main{padding-bottom:1.4rem}
 .ec-del{position:absolute;top:3px;right:4px;background:none;border:none;color:var(--dim);cursor:pointer;font-size:.68rem;opacity:0;transition:opacity .14s,color .12s}
 .ecard:hover .ec-del{opacity:1}
 .ec-del:hover{color:#c03030}
+/* DAY NOTE CARD */
+.dnote-card{border-radius:6px;padding:.34rem .52rem;border:1px dashed #c0b8d0;border-left:3px solid #7c6aa0;background:#f6f3fa;cursor:pointer;transition:transform .14s,box-shadow .14s;position:relative;margin-bottom:.12rem}
+.dnote-card:hover{transform:translateY(-1px);box-shadow:var(--sh-md)}
+.dnote-icon{font-size:.62rem;margin-right:.22rem}
+.dnote-text{font-size:.66rem;font-weight:600;color:#5a4a78;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dnote-del{position:absolute;top:2px;right:4px;background:none;border:none;color:var(--dim);cursor:pointer;font-size:.62rem;opacity:0;transition:opacity .14s,color .12s}
+.dnote-card:hover .dnote-del{opacity:1}
+.dnote-del:hover{color:#c03030}
+.day-hd-wrap{display:flex;align-items:center;justify-content:space-between}
+.day-add-note{background:none;border:none;color:var(--dim);cursor:pointer;font-size:.72rem;line-height:1;padding:0 .1rem;transition:color .12s;flex-shrink:0}
+.day-add-note:hover{color:var(--text)}
+/* DAY NOTE MODAL */
+.dn-modal{background:var(--white);border-radius:13px;box-shadow:var(--sh-lg);width:100%;max-width:400px;animation:popIn .21s cubic-bezier(.34,1.56,.64,1)}
+.dn-top{padding:1rem 1.3rem .78rem;border-bottom:1px solid var(--bsoft);display:flex;align-items:center;justify-content:space-between}
+.dn-title-txt{font-family:'Lora',serif;font-size:.95rem;font-weight:600}
+.dn-body{padding:.92rem 1.3rem;display:flex;flex-direction:column;gap:.72rem}
+.dn-foot{padding:.62rem 1.3rem 1.1rem;border-top:1px solid var(--bsoft);display:flex;gap:.42rem}
 /* TODAY PANEL */
 .today-panel{background:var(--white);border:1px solid var(--bsoft);border-radius:10px;box-shadow:var(--sh-sm);position:sticky;top:62px;overflow:hidden;max-height:calc(100vh - 74px);display:flex;flex-direction:column}
 .tp-hdr{padding:.68rem .95rem .55rem;border-bottom:1px solid var(--bsoft);display:flex;align-items:baseline;justify-content:space-between;flex-shrink:0}
@@ -736,6 +753,25 @@ body.timeline-mode .week-layout{grid-template-columns:1fr}
   </div>
 </div>
 
+<!-- DAY NOTE MODAL -->
+<div class="overlay" id="dnOverlay" onclick="dnBgClick(event)">
+  <div class="dn-modal">
+    <div class="dn-top">
+      <span class="dn-title-txt" id="dnTitleTxt">Add Day Note</span>
+      <button class="m-close" onclick="closeDnModal()">&#x2715;</button>
+    </div>
+    <div class="dn-body">
+      <div class="frow"><label class="slabel">Note</label>
+        <input type="text" class="finput" id="dnTextIn" placeholder="e.g. Parents Evening, INSET Day, Sports Day&#8230;"></div>
+    </div>
+    <div class="dn-foot">
+      <button class="btn-save" onclick="saveDnEntry()">Save</button>
+      <button class="btn-discard" onclick="closeDnModal()">Discard</button>
+      <button class="btn-discard" id="dnDeleteBtn" style="display:none;margin-left:auto;border-color:#e0a0a0;color:#c03030" onclick="deleteDnEntry()">Delete</button>
+    </div>
+  </div>
+</div>
+
 <!-- SETTINGS MODAL -->
 <div class="settings-overlay" id="settingsOverlay" onclick="settingsBgClick(event)">
   <div class="settings-modal">
@@ -804,7 +840,8 @@ let PDATA = {
   events: {},
   recurringEvents: [],
   termPeriods: [],
-  prepNights: []
+  prepNights: [],
+  dayNotes: {}
 };
 
 // Derived globals (populated from PDATA after load)
@@ -916,6 +953,10 @@ function gEd(ds){
   return merged;
 }
 function sEd(ds,a){PDATA.events[ds]=a;scheduleSave()}
+// Day notes (whole-day notes pinned at top of a day)
+function gDayNotes(ds){return PDATA.dayNotes[ds]||[]}
+function sDayNotes(ds,arr){PDATA.dayNotes[ds]=arr;scheduleSave()}
+
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function typeLbl(t){return{verbal:'Verbal',detention:'Detention',praise:'Praise',note:'Note'}[t]||t}
 
@@ -965,7 +1006,16 @@ function updateTodayPanel(){
   }
   items.sort((a,b)=>a.sM-b.sM);
   const scroll=document.getElementById('tpScroll');scroll.innerHTML='';
-  if(!items.length){scroll.innerHTML='<div class="tp-empty">No lessons or events today.</div>';return}
+  const todayDayNotes=gDayNotes(ds);
+  if(!items.length&&!todayDayNotes.length){scroll.innerHTML='<div class="tp-empty">No lessons or events today.</div>';return}
+  // Pinned day notes at top
+  for(const dn of todayDayNotes){
+    const el=document.createElement('div');el.className='dnote-card';el.style.marginBottom='.35rem';
+    el.innerHTML=`<span class="dnote-icon">&#x1F4CC;</span><span class="dnote-text">${esc(dn.text)}</span>`;
+    el.addEventListener('click',()=>openDnModal(ds,dn));
+    scroll.appendChild(el);
+  }
+  if(!items.length)return;
   const track=document.createElement('div');track.className='tp-track';
   const fill=document.createElement('div');fill.className='tp-fill';
   const marker=document.createElement('div');marker.className='tp-now-marker';
@@ -1020,12 +1070,22 @@ function renderWeek(){
     const date=addD(mon,di),isToday=sameD(date,today);
     const col=document.createElement('div');col.className='day-col';
     const hd=document.createElement('div');hd.className=`day-hd${isToday?' today-hd':''}`;
-    hd.innerHTML=`<div class="dn">${DAYS[di].slice(0,3)}</div><div class="dd">${fmtS(date)}</div>`;col.appendChild(hd);
+    const ds_hd=addD(mon,di).toISOString().slice(0,10);
+    hd.innerHTML=`<div class="day-hd-wrap"><div><div class="dn">${DAYS[di].slice(0,3)}</div><div class="dd">${fmtS(date)}</div></div><button class="day-add-note" title="Add day note" data-ds="${ds_hd}">&#x1F4CC;</button></div>`;
+    hd.querySelector('.day-add-note').addEventListener('click',function(ev){ev.stopPropagation();openDnModal(this.dataset.ds)});
+    col.appendChild(hd);
     if(date<TERM_START||date>TERM_END){const e=document.createElement('div');e.className='empty-day';e.textContent='Outside term';e.style.color='var(--dim)';col.appendChild(e);grid.appendChild(col);continue}
     const lessons=TT[wt][di]||[],ds=date.toISOString().slice(0,10);
+    // Day notes pinned at top
+    for(const dn of gDayNotes(ds)){
+      const nc=document.createElement('div');nc.className='dnote-card';
+      nc.innerHTML=`<span class="dnote-icon">&#x1F4CC;</span><span class="dnote-text">${esc(dn.text)}</span><button class="dnote-del" onclick="deleteDnInline(event,'${ds}','${dn.id}')" title="Remove">&#x2715;</button>`;
+      nc.addEventListener('click',()=>openDnModal(ds,dn));
+      col.appendChild(nc);
+    }
     const edEntries=gEd(ds).sort((a,b)=>t2m(a.start)-t2m(b.start));
     const allItems=[...lessons.map(([time,code])=>({type:'lesson',time,code,sM:t2m(time)})),...edEntries.map(e=>({type:e.type,time:e.start,sM:t2m(e.start),entry:e}))].sort((a,b)=>a.sM-b.sM);
-    if(!allItems.length){const e=document.createElement('div');e.className='empty-day';e.textContent='Free';col.appendChild(e);grid.appendChild(col);continue}
+    if(!allItems.length&&!gDayNotes(ds).length){const e=document.createElement('div');e.className='empty-day';e.textContent='Free';col.appendChild(e);grid.appendChild(col);continue}
     for(const item of allItems){
       if(item.type==='lesson'){
         const{time,code}=item,study=isSt(code),data=study?{}:loadL(date,time,code),colour=gCol(code);
@@ -1252,6 +1312,53 @@ function deleteEdEntry(evObj,ds,id){
 }
 function closeEdModal(){document.getElementById('edOverlay').classList.remove('open')}
 function edBgClick(e){if(e.target===document.getElementById('edOverlay'))closeEdModal()}
+
+// ─── DAY NOTES ──────────────────────────────────────────────────────────────
+let dnEditDs=null,dnEditId=null;
+function openDnModal(ds,existingNote){
+  dnEditDs=ds;
+  if(existingNote){
+    dnEditId=existingNote.id;
+    document.getElementById('dnTitleTxt').textContent='Edit Day Note';
+    document.getElementById('dnTextIn').value=existingNote.text;
+    document.getElementById('dnDeleteBtn').style.display='inline-flex';
+  } else {
+    dnEditId=null;
+    document.getElementById('dnTitleTxt').textContent='Add Day Note';
+    document.getElementById('dnTextIn').value='';
+    document.getElementById('dnDeleteBtn').style.display='none';
+  }
+  document.getElementById('dnOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('dnTextIn').focus(),200);
+}
+function saveDnEntry(){
+  const text=document.getElementById('dnTextIn').value.trim();
+  if(!text){alert('Please enter a note.');return}
+  const notes=gDayNotes(dnEditDs);
+  if(dnEditId){
+    const n=notes.find(n=>n.id===dnEditId);
+    if(n)n.text=text;
+  } else {
+    const id=Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+    notes.push({id,text});
+  }
+  sDayNotes(dnEditDs,notes);
+  closeDnModal();renderWeek();updateTodayPanel();
+}
+function deleteDnEntry(){
+  if(!dnEditId)return;
+  const notes=gDayNotes(dnEditDs).filter(n=>n.id!==dnEditId);
+  if(notes.length)sDayNotes(dnEditDs,notes);else{delete PDATA.dayNotes[dnEditDs];scheduleSave()}
+  closeDnModal();renderWeek();updateTodayPanel();
+}
+function deleteDnInline(ev,ds,id){
+  ev.stopPropagation();
+  const notes=gDayNotes(ds).filter(n=>n.id!==id);
+  if(notes.length)sDayNotes(ds,notes);else{delete PDATA.dayNotes[ds];scheduleSave()}
+  renderWeek();updateTodayPanel();
+}
+function closeDnModal(){document.getElementById('dnOverlay').classList.remove('open')}
+function dnBgClick(e){if(e.target===document.getElementById('dnOverlay'))closeDnModal()}
 
 // LESSON MODAL
 function openModal(date,time,code){
@@ -1508,7 +1615,7 @@ function renderClassDetail(code){
 
 // KEYBOARD
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){if(document.getElementById('searchOverlay').classList.contains('open'))closeSearch();else if(document.getElementById('overlay').classList.contains('open'))closeModal();else if(document.getElementById('edOverlay').classList.contains('open'))closeEdModal();else if(document.getElementById('settingsOverlay').classList.contains('open'))closeSettings();else if(classDetailCode)hideClassDetail()}
+  if(e.key==='Escape'){if(document.getElementById('searchOverlay').classList.contains('open'))closeSearch();else if(document.getElementById('dnOverlay').classList.contains('open'))closeDnModal();else if(document.getElementById('overlay').classList.contains('open'))closeModal();else if(document.getElementById('edOverlay').classList.contains('open'))closeEdModal();else if(document.getElementById('settingsOverlay').classList.contains('open'))closeSettings();else if(classDetailCode)hideClassDetail()}
   if((e.key==='s'||e.key==='S')&&(e.ctrlKey||e.metaKey)&&document.getElementById('overlay').classList.contains('open')){e.preventDefault();saveLesson()}
   if((e.key==='k'||e.key==='K')&&(e.ctrlKey||e.metaKey)){e.preventDefault();if(document.getElementById('searchOverlay').classList.contains('open'))closeSearch();else openSearch()}
 });
@@ -1594,6 +1701,16 @@ function renderTimeline(mon, wt, today) {
     const ds     = date.toISOString().slice(0, 10);
     const lessons = TT[wt][di] || [];
     const edEntries = gEd(ds);
+
+    // Day notes pinned above timeline
+    for (const dn of gDayNotes(ds)) {
+      const nc = document.createElement('div');
+      nc.className = 'dnote-card';
+      nc.style.cssText = 'margin:0 .18rem .14rem;border-radius:4px;padding:.22rem .38rem';
+      nc.innerHTML = `<span class="dnote-icon">&#x1F4CC;</span><span class="dnote-text" style="font-size:.58rem">${esc(dn.text)}</span>`;
+      nc.addEventListener('click', () => openDnModal(ds, dn));
+      dayCol.appendChild(nc);
+    }
 
     // body container with fixed height
     const body = document.createElement('div');
