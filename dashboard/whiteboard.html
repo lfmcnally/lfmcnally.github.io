@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Live Whiteboard - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            overflow: hidden;
+            color: #e0e0e0;
+        }
+
+        /* ============ TOP BAR ============ */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 1rem;
+            background: #16213e;
+            border-bottom: 1px solid #0f3460;
+            height: 52px;
+            z-index: 100;
+            position: relative;
+        }
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .topbar-center {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .back-btn:hover { color: white; background: rgba(255,255,255,0.1); }
+        .session-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: white;
+        }
+        .session-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .badge-live {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+        .badge-live::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ef4444;
+            animation: pulse-dot 1.5s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .badge-frozen {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+        .badge-viewers {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        /* ============ TOOLBAR (Teacher/permitted students) ============ */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.4rem 0.75rem;
+            background: #16213e;
+            border-bottom: 1px solid #0f3460;
+            height: 44px;
+        }
+        .toolbar.hidden { display: none; }
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .tool-divider {
+            width: 1px;
+            height: 24px;
+            background: #0f3460;
+            margin: 0 0.35rem;
+        }
+        .tool-btn {
+            width: 34px;
+            height: 34px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            background: none;
+            color: #94a3b8;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .tool-btn:hover { background: rgba(255,255,255,0.08); color: white; }
+        .tool-btn.active { border-color: #3b82f6; color: #3b82f6; background: rgba(59,130,246,0.15); }
+        .tool-btn.danger:hover { background: rgba(239,68,68,0.15); color: #ef4444; }
+
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .color-swatch:hover { transform: scale(1.15); }
+        .color-swatch.active { border-color: white; box-shadow: 0 0 0 2px rgba(255,255,255,0.3); }
+
+        .size-btn {
+            width: 34px;
+            height: 34px;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            background: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .size-btn:hover { background: rgba(255,255,255,0.08); }
+        .size-btn.active { border-color: #3b82f6; background: rgba(59,130,246,0.15); }
+        .size-dot {
+            border-radius: 50%;
+            background: #94a3b8;
+        }
+
+        /* ============ CANVAS ============ */
+        .canvas-wrapper {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+            background: white;
+        }
+        canvas {
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+        .canvas-wrapper.frozen canvas { cursor: not-allowed; }
+        .canvas-wrapper.view-only canvas { cursor: default; }
+
+        /* Frozen overlay */
+        .frozen-overlay {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .frozen-overlay.visible { display: flex; align-items: center; gap: 0.5rem; }
+
+        /* ============ TEACHER PANEL (right side) ============ */
+        .teacher-panel {
+            width: 280px;
+            background: #16213e;
+            border-left: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .teacher-panel.hidden { display: none; }
+        .panel-section {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #0f3460;
+        }
+        .panel-section-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+        .panel-btn {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.35rem;
+        }
+        .panel-btn-freeze {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+        }
+        .panel-btn-freeze:hover { background: rgba(59, 130, 246, 0.25); }
+        .panel-btn-freeze.active {
+            background: #3b82f6;
+            color: white;
+        }
+        .panel-btn-allow-all {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+        .panel-btn-allow-all:hover { background: rgba(16, 185, 129, 0.25); }
+        .panel-btn-allow-all.active {
+            background: #10b981;
+            color: white;
+        }
+        .panel-btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+        .panel-btn-danger:hover { background: rgba(239, 68, 68, 0.25); }
+
+        /* Student list in panel */
+        .student-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.4rem 0.5rem;
+            border-radius: 8px;
+            transition: all 0.15s;
+        }
+        .student-item:hover { background: rgba(255,255,255,0.05); }
+        .student-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 0;
+        }
+        .student-name {
+            font-size: 0.8rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .student-status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .student-status-dot.online { background: #34d399; }
+        .student-status-dot.offline { background: #475569; }
+        .student-toggle {
+            width: 36px;
+            height: 20px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .student-toggle.off { background: #334155; }
+        .student-toggle.on { background: #10b981; }
+        .student-toggle::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            transition: all 0.2s;
+        }
+        .student-toggle.off::after { left: 2px; }
+        .student-toggle.on::after { left: 18px; }
+
+        /* Attribution label on canvas */
+        .stroke-label {
+            position: absolute;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            pointer-events: none;
+            z-index: 5;
+            white-space: nowrap;
+        }
+
+        /* ============ LAYOUT ============ */
+        .app-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .main-area {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ============ LOADING / JOIN SCREEN ============ */
+        .loading-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: #1a1a2e;
+        }
+        .loading-card {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 16px;
+            padding: 2.5rem;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .loading-card h2 {
+            color: white;
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+        .loading-card p {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #0f3460;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .no-session-card {
+            text-align: center;
+        }
+        .no-session-card h2 { margin-bottom: 0.75rem; }
+        .no-session-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 768px) {
+            .topbar { padding: 0.4rem 0.75rem; }
+            .session-title { font-size: 0.8rem; }
+            .teacher-panel { width: 100%; position: fixed; bottom: 0; left: 0; right: 0; height: 45vh; z-index: 50; border-left: none; border-top: 1px solid #0f3460; }
+            .teacher-panel.hidden { display: none; }
+            .toolbar { overflow-x: auto; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading screen shown while initializing -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-card">
+            <div class="spinner"></div>
+            <h2>Loading Whiteboard</h2>
+            <p>Connecting to session...</p>
+        </div>
+    </div>
+
+    <!-- No active session screen (for students) -->
+    <div id="noSessionScreen" class="loading-screen" style="display:none;">
+        <div class="loading-card no-session-card">
+            <div class="no-session-icon">📋</div>
+            <h2>No Active Whiteboard</h2>
+            <p>Your teacher hasn't started a whiteboard session for this class yet. This page will automatically connect when one starts.</p>
+            <button onclick="window.history.back()" style="padding:0.5rem 1.5rem; border-radius:8px; border:none; background:#3b82f6; color:white; font-weight:600; cursor:pointer;">Go Back</button>
+        </div>
+    </div>
+
+    <!-- Main whiteboard app -->
+    <div id="whiteboardApp" class="app-layout" style="display:none;">
+        <!-- Top bar -->
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="back-btn" onclick="leaveWhiteboard()">&#x2190;</button>
+                <span class="session-title" id="sessionTitle">Whiteboard</span>
+                <span class="session-badge badge-live" id="badgeLive">LIVE</span>
+                <span class="session-badge badge-frozen" id="badgeFrozen" style="display:none;">FROZEN</span>
+            </div>
+            <div class="topbar-right">
+                <span class="session-badge badge-viewers" id="badgeViewers">0 online</span>
+                <button class="tool-btn" id="togglePanelBtn" title="Toggle panel" style="display:none;" onclick="togglePanel()">&#9776;</button>
+            </div>
+        </div>
+
+        <!-- Drawing toolbar -->
+        <div class="toolbar" id="toolbar">
+            <div class="tool-group">
+                <button class="tool-btn active" data-tool="pen" onclick="setTool('pen')" title="Pen">&#9998;</button>
+                <button class="tool-btn" data-tool="highlighter" onclick="setTool('highlighter')" title="Highlighter">&#9618;</button>
+                <button class="tool-btn" data-tool="eraser" onclick="setTool('eraser')" title="Eraser">&#9003;</button>
+            </div>
+            <div class="tool-divider"></div>
+            <div class="tool-group" id="colorSwatches">
+                <div class="color-swatch active" data-color="#000000" style="background:#000000;" onclick="setColor('#000000')"></div>
+                <div class="color-swatch" data-color="#ef4444" style="background:#ef4444;" onclick="setColor('#ef4444')"></div>
+                <div class="color-swatch" data-color="#3b82f6" style="background:#3b82f6;" onclick="setColor('#3b82f6')"></div>
+                <div class="color-swatch" data-color="#10b981" style="background:#10b981;" onclick="setColor('#10b981')"></div>
+                <div class="color-swatch" data-color="#f59e0b" style="background:#f59e0b;" onclick="setColor('#f59e0b')"></div>
+                <div class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6;" onclick="setColor('#8b5cf6')"></div>
+                <div class="color-swatch" data-color="#ec4899" style="background:#ec4899;" onclick="setColor('#ec4899')"></div>
+                <div class="color-swatch" data-color="#ffffff" style="background:#ffffff; border: 1px solid #ccc;" onclick="setColor('#ffffff')"></div>
+            </div>
+            <div class="tool-divider"></div>
+            <div class="tool-group">
+                <button class="size-btn active" data-size="2" onclick="setSize(2)" title="Thin"><div class="size-dot" style="width:4px;height:4px;"></div></button>
+                <button class="size-btn" data-size="5" onclick="setSize(5)" title="Medium"><div class="size-dot" style="width:8px;height:8px;"></div></button>
+                <button class="size-btn" data-size="10" onclick="setSize(10)" title="Thick"><div class="size-dot" style="width:12px;height:12px;"></div></button>
+                <button class="size-btn" data-size="20" onclick="setSize(20)" title="Extra thick"><div class="size-dot" style="width:16px;height:16px;"></div></button>
+            </div>
+            <div class="tool-divider"></div>
+            <div class="tool-group">
+                <button class="tool-btn" onclick="undoLast()" title="Undo">&#8630;</button>
+                <button class="tool-btn danger" onclick="clearCanvas()" title="Clear all">&#128465;</button>
+            </div>
+        </div>
+
+        <!-- Main drawing area + teacher panel -->
+        <div class="main-area">
+            <div class="canvas-wrapper" id="canvasWrapper">
+                <canvas id="whiteboard"></canvas>
+                <div class="frozen-overlay" id="frozenOverlay">&#10052; Board is frozen</div>
+            </div>
+            <div class="teacher-panel hidden" id="teacherPanel">
+                <div class="panel-section">
+                    <div class="panel-section-title">Board Controls</div>
+                    <button class="panel-btn panel-btn-freeze" id="freezeBtn" onclick="toggleFreeze()">
+                        &#10052; Freeze Board
+                    </button>
+                    <button class="panel-btn panel-btn-allow-all" id="allowAllBtn" onclick="toggleAllowAll()">
+                        &#9998; Allow All to Draw
+                    </button>
+                    <button class="panel-btn panel-btn-danger" onclick="clearCanvas()">
+                        &#128465; Clear Board
+                    </button>
+                    <button class="panel-btn panel-btn-danger" onclick="endSession()">
+                        &#9632; End Session
+                    </button>
+                </div>
+                <div class="panel-section" style="flex:1; overflow-y:auto;">
+                    <div class="panel-section-title">Students (<span id="onlineCount">0</span> online)</div>
+                    <div id="studentList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../auth/config.js"></script>
+    <script src="../auth/auth.js"></script>
+    <script>
+    // ============================================
+    // STATE
+    // ============================================
+    let currentUser = null;
+    let userProfile = null;
+    let isTeacher = false;
+    let sessionId = null;
+    let classId = null;
+    let className = '';
+    let channel = null;
+    let presenceChannel = null;
+
+    // Canvas state
+    const canvas = document.getElementById('whiteboard');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let currentTool = 'pen';
+    let currentColor = '#000000';
+    let currentSize = 2;
+    let isFrozen = false;
+    let canDraw = false; // Whether this user can currently draw
+    let strokes = []; // All strokes for undo
+    let currentStroke = null;
+    let lastPoint = null;
+
+    // Presence tracking
+    let onlineUsers = {};
+
+    // Student permissions (teacher only)
+    let studentPermissions = {};
+
+    // Stroke attribution
+    let userNames = {};
+
+    // ============================================
+    // INIT
+    // ============================================
+    async function init() {
+        currentUser = await getCurrentUser();
+        if (!currentUser) {
+            window.location.href = '../auth/login.html';
+            return;
+        }
+
+        userProfile = await getUserProfile();
+        if (!userProfile) {
+            window.location.href = '../auth/login.html';
+            return;
+        }
+
+        isTeacher = userProfile.role === 'teacher';
+        userNames[currentUser.id] = userProfile.full_name || 'Unknown';
+
+        // Get class ID from URL
+        const params = new URLSearchParams(window.location.search);
+        classId = params.get('classId');
+
+        if (!classId) {
+            showNoSession();
+            return;
+        }
+
+        // Load class name
+        const { data: classData } = await supabase
+            .from('classes')
+            .select('name')
+            .eq('id', classId)
+            .single();
+
+        if (classData) className = classData.name;
+
+        if (isTeacher) {
+            await initTeacher();
+        } else {
+            await initStudent();
+        }
+    }
+
+    // ============================================
+    // TEACHER INIT
+    // ============================================
+    async function initTeacher() {
+        // Check for existing active session
+        let { data: existing } = await supabase
+            .from('whiteboard_sessions')
+            .select('*')
+            .eq('class_id', classId)
+            .eq('teacher_id', currentUser.id)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        let session = existing && existing[0];
+
+        if (!session) {
+            // Create a new session
+            const { data: newSession, error } = await supabase
+                .from('whiteboard_sessions')
+                .insert({
+                    class_id: classId,
+                    teacher_id: currentUser.id,
+                    is_active: true,
+                    is_frozen: false,
+                    allow_all_students: false
+                })
+                .select()
+                .single();
+
+            if (error) {
+                alert('Error creating session: ' + error.message);
+                return;
+            }
+            session = newSession;
+        }
+
+        sessionId = session.id;
+        isFrozen = session.is_frozen;
+        canDraw = true; // Teacher can always draw
+
+        // Show the UI
+        showWhiteboard();
+        document.getElementById('sessionTitle').textContent = className + ' - Whiteboard';
+        document.getElementById('teacherPanel').classList.remove('hidden');
+        document.getElementById('togglePanelBtn').style.display = '';
+        updateFreezeUI();
+        updateAllowAllUI(session.allow_all_students);
+
+        // Set up canvas
+        setupCanvas();
+
+        // Load students
+        await loadClassStudents();
+
+        // Connect to realtime
+        connectToChannel();
+    }
+
+    // ============================================
+    // STUDENT INIT
+    // ============================================
+    async function initStudent() {
+        // Find active session for this class
+        let { data: sessions } = await supabase
+            .from('whiteboard_sessions')
+            .select('*')
+            .eq('class_id', classId)
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        const session = sessions && sessions[0];
+
+        if (!session) {
+            showNoSession();
+            // Poll for new sessions
+            pollForSession();
+            return;
+        }
+
+        sessionId = session.id;
+        isFrozen = session.is_frozen;
+        canDraw = session.allow_all_students;
+
+        // Check individual permission
+        if (!canDraw) {
+            const { data: perm } = await supabase
+                .from('whiteboard_permissions')
+                .select('can_draw')
+                .eq('session_id', sessionId)
+                .eq('student_id', currentUser.id)
+                .single();
+
+            if (perm && perm.can_draw) canDraw = true;
+        }
+
+        showWhiteboard();
+        document.getElementById('sessionTitle').textContent = className + ' - Whiteboard';
+        updateToolbarVisibility();
+        updateFreezeUI();
+
+        setupCanvas();
+        connectToChannel();
+    }
+
+    function pollForSession() {
+        const interval = setInterval(async () => {
+            const { data: sessions } = await supabase
+                .from('whiteboard_sessions')
+                .select('*')
+                .eq('class_id', classId)
+                .eq('is_active', true)
+                .limit(1);
+
+            if (sessions && sessions[0]) {
+                clearInterval(interval);
+                location.reload();
+            }
+        }, 3000);
+    }
+
+    // ============================================
+    // SCREEN MANAGEMENT
+    // ============================================
+    function showWhiteboard() {
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('noSessionScreen').style.display = 'none';
+        document.getElementById('whiteboardApp').style.display = 'flex';
+    }
+
+    function showNoSession() {
+        document.getElementById('loadingScreen').style.display = 'none';
+        document.getElementById('noSessionScreen').style.display = 'flex';
+        document.getElementById('whiteboardApp').style.display = 'none';
+    }
+
+    // ============================================
+    // CANVAS SETUP
+    // ============================================
+    function setupCanvas() {
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Mouse events
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+
+        // Touch events
+        canvas.addEventListener('touchstart', handleTouch(startDrawing), { passive: false });
+        canvas.addEventListener('touchmove', handleTouch(draw), { passive: false });
+        canvas.addEventListener('touchend', handleTouch(stopDrawing), { passive: false });
+        canvas.addEventListener('touchcancel', handleTouch(stopDrawing), { passive: false });
+    }
+
+    function resizeCanvas() {
+        const wrapper = document.getElementById('canvasWrapper');
+        const rect = wrapper.getBoundingClientRect();
+
+        // Save current drawing
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+
+        // Restore drawing
+        ctx.putImageData(imageData, 0, 0);
+
+        // Redraw all strokes to handle any size changes
+        redrawAllStrokes();
+    }
+
+    function handleTouch(handler) {
+        return function(e) {
+            e.preventDefault();
+            const touch = e.touches ? e.touches[0] : e.changedTouches[0];
+            if (touch) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseEvent = {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    offsetX: touch.clientX - rect.left,
+                    offsetY: touch.clientY - rect.top
+                };
+                handler(mouseEvent);
+            } else {
+                handler(e);
+            }
+        };
+    }
+
+    // ============================================
+    // DRAWING
+    // ============================================
+    function userCanDraw() {
+        if (isFrozen && !isTeacher) return false;
+        return canDraw;
+    }
+
+    function startDrawing(e) {
+        if (!userCanDraw()) return;
+
+        isDrawing = true;
+        const x = e.offsetX / canvas.width;
+        const y = e.offsetY / canvas.height;
+
+        currentStroke = {
+            tool: currentTool,
+            color: currentTool === 'eraser' ? '#ffffff' : currentColor,
+            size: currentTool === 'highlighter' ? currentSize * 3 : (currentTool === 'eraser' ? currentSize * 4 : currentSize),
+            opacity: currentTool === 'highlighter' ? 0.3 : 1,
+            points: [{ x, y }],
+            userId: currentUser.id,
+            userName: userProfile.full_name || 'Unknown'
+        };
+
+        lastPoint = { x: e.offsetX, y: e.offsetY };
+    }
+
+    function draw(e) {
+        if (!isDrawing || !currentStroke) return;
+
+        const x = e.offsetX / canvas.width;
+        const y = e.offsetY / canvas.height;
+        currentStroke.points.push({ x, y });
+
+        // Draw locally
+        drawSegment(
+            lastPoint.x, lastPoint.y,
+            e.offsetX, e.offsetY,
+            currentStroke
+        );
+
+        // Broadcast the point
+        if (channel) {
+            channel.send({
+                type: 'broadcast',
+                event: 'draw',
+                payload: {
+                    x1: lastPoint.x / canvas.width,
+                    y1: lastPoint.y / canvas.height,
+                    x2: x,
+                    y2: y,
+                    tool: currentStroke.tool,
+                    color: currentStroke.color,
+                    size: currentStroke.size,
+                    opacity: currentStroke.opacity,
+                    userId: currentUser.id,
+                    userName: currentStroke.userName
+                }
+            });
+        }
+
+        lastPoint = { x: e.offsetX, y: e.offsetY };
+    }
+
+    function stopDrawing() {
+        if (!isDrawing) return;
+        isDrawing = false;
+
+        if (currentStroke && currentStroke.points.length > 0) {
+            strokes.push(currentStroke);
+
+            // Broadcast stroke complete (for undo tracking on remote)
+            if (channel) {
+                channel.send({
+                    type: 'broadcast',
+                    event: 'stroke_complete',
+                    payload: { stroke: currentStroke }
+                });
+            }
+        }
+        currentStroke = null;
+        lastPoint = null;
+    }
+
+    function drawSegment(x1, y1, x2, y2, stroke) {
+        ctx.save();
+        ctx.globalAlpha = stroke.opacity;
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        if (stroke.tool === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.globalAlpha = 1;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function drawFullStroke(stroke) {
+        if (stroke.points.length < 1) return;
+
+        ctx.save();
+        ctx.globalAlpha = stroke.opacity;
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        if (stroke.tool === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.globalAlpha = 1;
+        }
+
+        ctx.beginPath();
+        const p0 = stroke.points[0];
+        ctx.moveTo(p0.x * canvas.width, p0.y * canvas.height);
+
+        for (let i = 1; i < stroke.points.length; i++) {
+            const p = stroke.points[i];
+            ctx.lineTo(p.x * canvas.width, p.y * canvas.height);
+        }
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    function redrawAllStrokes() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Fill white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (const stroke of strokes) {
+            drawFullStroke(stroke);
+        }
+    }
+
+    // ============================================
+    // TOOLS
+    // ============================================
+    function setTool(tool) {
+        currentTool = tool;
+        document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tool === tool);
+        });
+        canvas.style.cursor = tool === 'eraser' ? 'cell' : 'crosshair';
+    }
+
+    function setColor(color) {
+        currentColor = color;
+        if (currentTool === 'eraser') setTool('pen');
+        document.querySelectorAll('.color-swatch').forEach(s => {
+            s.classList.toggle('active', s.dataset.color === color);
+        });
+    }
+
+    function setSize(size) {
+        currentSize = size;
+        document.querySelectorAll('.size-btn').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.size) === size);
+        });
+    }
+
+    function undoLast() {
+        // Only undo own strokes
+        for (let i = strokes.length - 1; i >= 0; i--) {
+            if (strokes[i].userId === currentUser.id) {
+                strokes.splice(i, 1);
+                redrawAllStrokes();
+
+                // Broadcast undo
+                if (channel) {
+                    channel.send({
+                        type: 'broadcast',
+                        event: 'undo',
+                        payload: { userId: currentUser.id, index: i }
+                    });
+                }
+                return;
+            }
+        }
+    }
+
+    function clearCanvas() {
+        if (!isTeacher) return;
+        if (!confirm('Clear the entire whiteboard?')) return;
+
+        strokes = [];
+        redrawAllStrokes();
+
+        if (channel) {
+            channel.send({
+                type: 'broadcast',
+                event: 'clear',
+                payload: {}
+            });
+        }
+    }
+
+    // ============================================
+    // TEACHER CONTROLS
+    // ============================================
+    async function toggleFreeze() {
+        if (!isTeacher) return;
+        isFrozen = !isFrozen;
+
+        await supabase
+            .from('whiteboard_sessions')
+            .update({ is_frozen: isFrozen })
+            .eq('id', sessionId);
+
+        updateFreezeUI();
+
+        if (channel) {
+            channel.send({
+                type: 'broadcast',
+                event: 'freeze',
+                payload: { frozen: isFrozen }
+            });
+        }
+    }
+
+    function updateFreezeUI() {
+        const btn = document.getElementById('freezeBtn');
+        const badge = document.getElementById('badgeFrozen');
+        const overlay = document.getElementById('frozenOverlay');
+        const wrapper = document.getElementById('canvasWrapper');
+
+        if (btn) {
+            btn.classList.toggle('active', isFrozen);
+            btn.innerHTML = isFrozen ? '&#10052; Unfreeze Board' : '&#10052; Freeze Board';
+        }
+        badge.style.display = isFrozen ? '' : 'none';
+        overlay.classList.toggle('visible', isFrozen && !isTeacher);
+        wrapper.classList.toggle('frozen', isFrozen && !isTeacher);
+    }
+
+    async function toggleAllowAll() {
+        if (!isTeacher) return;
+
+        const btn = document.getElementById('allowAllBtn');
+        const isCurrentlyAllowed = btn.classList.contains('active');
+        const newValue = !isCurrentlyAllowed;
+
+        await supabase
+            .from('whiteboard_sessions')
+            .update({ allow_all_students: newValue })
+            .eq('id', sessionId);
+
+        updateAllowAllUI(newValue);
+
+        if (channel) {
+            channel.send({
+                type: 'broadcast',
+                event: 'allow_all',
+                payload: { allowAll: newValue }
+            });
+        }
+    }
+
+    function updateAllowAllUI(allowed) {
+        const btn = document.getElementById('allowAllBtn');
+        if (!btn) return;
+        btn.classList.toggle('active', allowed);
+        btn.innerHTML = allowed ? '&#9998; Revoke All Drawing' : '&#9998; Allow All to Draw';
+    }
+
+    async function toggleStudentPermission(studentId) {
+        if (!isTeacher) return;
+
+        const currentPerm = studentPermissions[studentId] || false;
+        const newPerm = !currentPerm;
+        studentPermissions[studentId] = newPerm;
+
+        // Upsert permission
+        await supabase
+            .from('whiteboard_permissions')
+            .upsert({
+                session_id: sessionId,
+                student_id: studentId,
+                can_draw: newPerm
+            }, { onConflict: 'session_id,student_id' });
+
+        updateStudentListUI();
+
+        // Notify the student
+        if (channel) {
+            channel.send({
+                type: 'broadcast',
+                event: 'permission_change',
+                payload: { studentId, canDraw: newPerm }
+            });
+        }
+    }
+
+    async function endSession() {
+        if (!isTeacher) return;
+        if (!confirm('End this whiteboard session? Students will be disconnected.')) return;
+
+        await supabase
+            .from('whiteboard_sessions')
+            .update({ is_active: false })
+            .eq('id', sessionId);
+
+        if (channel) {
+            channel.send({
+                type: 'broadcast',
+                event: 'session_end',
+                payload: {}
+            });
+        }
+
+        window.location.href = `class.html?id=${classId}`;
+    }
+
+    // ============================================
+    // STUDENT LIST (Teacher panel)
+    // ============================================
+    let classStudents = [];
+
+    async function loadClassStudents() {
+        const { data: members } = await supabase
+            .from('class_members')
+            .select('student_id, users(id, full_name)')
+            .eq('class_id', classId);
+
+        if (!members) return;
+
+        classStudents = members.map(m => ({
+            id: m.users.id,
+            name: m.users.full_name || 'Unknown'
+        }));
+
+        // Cache names for attribution
+        classStudents.forEach(s => { userNames[s.id] = s.name; });
+
+        // Load existing permissions
+        const { data: perms } = await supabase
+            .from('whiteboard_permissions')
+            .select('student_id, can_draw')
+            .eq('session_id', sessionId);
+
+        if (perms) {
+            perms.forEach(p => { studentPermissions[p.student_id] = p.can_draw; });
+        }
+
+        updateStudentListUI();
+    }
+
+    function updateStudentListUI() {
+        const container = document.getElementById('studentList');
+        if (!container) return;
+
+        if (classStudents.length === 0) {
+            container.innerHTML = '<p style="color:#64748b; font-size:0.8rem; text-align:center; padding:1rem;">No students in this class yet.</p>';
+            return;
+        }
+
+        container.innerHTML = classStudents.map(student => {
+            const isOnline = !!onlineUsers[student.id];
+            const canStudentDraw = studentPermissions[student.id] || false;
+            return `
+                <div class="student-item">
+                    <div class="student-info">
+                        <div class="student-status-dot ${isOnline ? 'online' : 'offline'}"></div>
+                        <span class="student-name">${student.name}</span>
+                    </div>
+                    <button class="student-toggle ${canStudentDraw ? 'on' : 'off'}"
+                        onclick="toggleStudentPermission('${student.id}')"
+                        title="${canStudentDraw ? 'Revoke drawing' : 'Allow drawing'}">
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        // Update online count
+        const onlineCount = Object.keys(onlineUsers).length;
+        document.getElementById('onlineCount').textContent = onlineCount;
+        document.getElementById('badgeViewers').textContent = onlineCount + ' online';
+    }
+
+    // ============================================
+    // REALTIME CONNECTION
+    // ============================================
+    function connectToChannel() {
+        const channelName = `whiteboard:${sessionId}`;
+
+        channel = supabase.channel(channelName, {
+            config: { broadcast: { self: false } }
+        });
+
+        // Listen for drawing events
+        channel.on('broadcast', { event: 'draw' }, ({ payload }) => {
+            const x1 = payload.x1 * canvas.width;
+            const y1 = payload.y1 * canvas.height;
+            const x2 = payload.x2 * canvas.width;
+            const y2 = payload.y2 * canvas.height;
+            drawSegment(x1, y1, x2, y2, payload);
+        });
+
+        // Listen for completed strokes (for undo tracking)
+        channel.on('broadcast', { event: 'stroke_complete' }, ({ payload }) => {
+            strokes.push(payload.stroke);
+            // Store user name for attribution
+            if (payload.stroke.userName) {
+                userNames[payload.stroke.userId] = payload.stroke.userName;
+            }
+        });
+
+        // Listen for undo
+        channel.on('broadcast', { event: 'undo' }, ({ payload }) => {
+            // Remove last stroke from this user
+            for (let i = strokes.length - 1; i >= 0; i--) {
+                if (strokes[i].userId === payload.userId) {
+                    strokes.splice(i, 1);
+                    redrawAllStrokes();
+                    return;
+                }
+            }
+        });
+
+        // Listen for clear
+        channel.on('broadcast', { event: 'clear' }, () => {
+            strokes = [];
+            redrawAllStrokes();
+        });
+
+        // Listen for freeze toggle
+        channel.on('broadcast', { event: 'freeze' }, ({ payload }) => {
+            isFrozen = payload.frozen;
+            updateFreezeUI();
+        });
+
+        // Listen for allow-all toggle
+        channel.on('broadcast', { event: 'allow_all' }, ({ payload }) => {
+            if (!isTeacher) {
+                canDraw = payload.allowAll || (studentPermissions[currentUser.id] || false);
+                updateToolbarVisibility();
+            }
+            updateAllowAllUI(payload.allowAll);
+        });
+
+        // Listen for individual permission changes
+        channel.on('broadcast', { event: 'permission_change' }, ({ payload }) => {
+            if (!isTeacher && payload.studentId === currentUser.id) {
+                canDraw = payload.canDraw;
+                updateToolbarVisibility();
+            }
+        });
+
+        // Listen for session end
+        channel.on('broadcast', { event: 'session_end' }, () => {
+            alert('The teacher has ended this whiteboard session.');
+            window.history.back();
+        });
+
+        // Presence tracking
+        channel.on('presence', { event: 'sync' }, () => {
+            const state = channel.presenceState();
+            onlineUsers = {};
+            Object.values(state).forEach(presences => {
+                presences.forEach(p => {
+                    onlineUsers[p.userId] = { name: p.userName };
+                });
+            });
+            updateStudentListUI();
+        });
+
+        channel.subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                await channel.track({
+                    userId: currentUser.id,
+                    userName: userProfile.full_name || 'Unknown',
+                    isTeacher: isTeacher
+                });
+            }
+        });
+    }
+
+    function updateToolbarVisibility() {
+        const toolbar = document.getElementById('toolbar');
+        const wrapper = document.getElementById('canvasWrapper');
+
+        if (canDraw) {
+            toolbar.classList.remove('hidden');
+            wrapper.classList.remove('view-only');
+        } else {
+            toolbar.classList.add('hidden');
+            wrapper.classList.add('view-only');
+        }
+    }
+
+    // ============================================
+    // PANEL TOGGLE (mobile)
+    // ============================================
+    function togglePanel() {
+        const panel = document.getElementById('teacherPanel');
+        panel.classList.toggle('hidden');
+    }
+
+    // ============================================
+    // LEAVE / CLEANUP
+    // ============================================
+    function leaveWhiteboard() {
+        if (channel) {
+            channel.untrack();
+            channel.unsubscribe();
+        }
+
+        if (isTeacher) {
+            window.location.href = `class.html?id=${classId}`;
+        } else {
+            window.history.back();
+        }
+    }
+
+    window.addEventListener('beforeunload', () => {
+        if (channel) {
+            channel.untrack();
+            channel.unsubscribe();
+        }
+    });
+
+    // ============================================
+    // START
+    // ============================================
+    init();
+    </script>
+</body>
+</html>
