@@ -522,6 +522,7 @@
 
     // Presence tracking
     let onlineUsers = {};
+    let channelSubscribed = false;
 
     // Student permissions (teacher only)
     let studentPermissions = {};
@@ -717,17 +718,16 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // Mouse events
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseleave', stopDrawing);
+        // Use Pointer Events (works across mouse, touch, pen, trackpad, Chromebook)
+        canvas.addEventListener('pointerdown', handlePointer(startDrawing));
+        canvas.addEventListener('pointermove', handlePointer(draw));
+        canvas.addEventListener('pointerup', handlePointer(stopDrawing));
+        canvas.addEventListener('pointerleave', handlePointer(stopDrawing));
+        canvas.addEventListener('pointercancel', handlePointer(stopDrawing));
 
-        // Touch events
-        canvas.addEventListener('touchstart', handleTouch(startDrawing), { passive: false });
-        canvas.addEventListener('touchmove', handleTouch(draw), { passive: false });
-        canvas.addEventListener('touchend', handleTouch(stopDrawing), { passive: false });
-        canvas.addEventListener('touchcancel', handleTouch(stopDrawing), { passive: false });
+        // Prevent default touch behaviour (scrolling, zooming) on canvas
+        canvas.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+        canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
     }
 
     function resizeCanvas() {
@@ -747,22 +747,11 @@
         redrawAllStrokes();
     }
 
-    function handleTouch(handler) {
+    function handlePointer(handler) {
         return function(e) {
             e.preventDefault();
-            const touch = e.touches ? e.touches[0] : e.changedTouches[0];
-            if (touch) {
-                const rect = canvas.getBoundingClientRect();
-                const mouseEvent = {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY,
-                    offsetX: touch.clientX - rect.left,
-                    offsetY: touch.clientY - rect.top
-                };
-                handler(mouseEvent);
-            } else {
-                handler(e);
-            }
+            // Pointer events already have offsetX/offsetY, so pass directly
+            handler(e);
         };
     }
 
@@ -809,7 +798,7 @@
         );
 
         // Broadcast the point
-        if (channel) {
+        if (channel && channelSubscribed) {
             channel.send({
                 type: 'broadcast',
                 event: 'draw',
@@ -962,7 +951,7 @@
         strokes = [];
         redrawAllStrokes();
 
-        if (channel) {
+        if (channel && channelSubscribed) {
             channel.send({
                 type: 'broadcast',
                 event: 'clear',
@@ -985,7 +974,7 @@
 
         updateFreezeUI();
 
-        if (channel) {
+        if (channel && channelSubscribed) {
             channel.send({
                 type: 'broadcast',
                 event: 'freeze',
@@ -1023,7 +1012,7 @@
 
         updateAllowAllUI(newValue);
 
-        if (channel) {
+        if (channel && channelSubscribed) {
             channel.send({
                 type: 'broadcast',
                 event: 'allow_all',
@@ -1058,7 +1047,7 @@
         updateStudentListUI();
 
         // Notify the student
-        if (channel) {
+        if (channel && channelSubscribed) {
             channel.send({
                 type: 'broadcast',
                 event: 'permission_change',
@@ -1076,7 +1065,7 @@
             .update({ is_active: false })
             .eq('id', sessionId);
 
-        if (channel) {
+        if (channel && channelSubscribed) {
             channel.send({
                 type: 'broadcast',
                 event: 'session_end',
@@ -1160,7 +1149,10 @@
         const channelName = `whiteboard:${sessionId}`;
 
         channel = supabase.channel(channelName, {
-            config: { broadcast: { self: false } }
+            config: {
+                broadcast: { self: false, ack: true },
+                presence: { key: currentUser.id }
+            }
         });
 
         // Listen for drawing events
@@ -1228,7 +1220,7 @@
             window.history.back();
         });
 
-        // Presence tracking
+        // Presence tracking - sync gives full state
         channel.on('presence', { event: 'sync' }, () => {
             const state = channel.presenceState();
             onlineUsers = {};
@@ -1240,8 +1232,24 @@
             updateStudentListUI();
         });
 
+        // Presence - join/leave for immediate updates
+        channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
+            newPresences.forEach(p => {
+                onlineUsers[p.userId] = { name: p.userName };
+            });
+            updateStudentListUI();
+        });
+
+        channel.on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+            leftPresences.forEach(p => {
+                delete onlineUsers[p.userId];
+            });
+            updateStudentListUI();
+        });
+
         channel.subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
+                channelSubscribed = true;
                 await channel.track({
                     userId: currentUser.id,
                     userName: userProfile.full_name || 'Unknown',
