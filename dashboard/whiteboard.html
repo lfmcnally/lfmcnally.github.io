@@ -426,6 +426,7 @@
             </div>
             <div class="topbar-right">
                 <span class="session-badge badge-viewers" id="badgeViewers">0 online</span>
+                <span class="session-badge" id="badgeConnection" style="background:#f59e0b; color:#000; cursor:pointer;" onclick="toggleDebugPanel()">Connecting...</span>
                 <button class="tool-btn" id="togglePanelBtn" title="Toggle panel" style="display:none;" onclick="togglePanel()">&#9776;</button>
             </div>
         </div>
@@ -492,9 +493,39 @@
         </div>
     </div>
 
+    <!-- Debug panel (toggle via connection badge) -->
+    <div id="debugPanel" style="display:none; position:fixed; bottom:0; left:0; right:0; background:rgba(0,0,0,0.95); color:#0f0; font-family:monospace; font-size:11px; padding:8px 12px; z-index:9999; max-height:40vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <strong>Whiteboard Debug</strong>
+            <span onclick="document.getElementById('debugPanel').style.display='none'" style="cursor:pointer;">X</span>
+        </div>
+        <div id="debugLog"></div>
+    </div>
+
     <script src="../auth/config.js"></script>
     <script src="../auth/auth.js"></script>
     <script>
+    // ============================================
+    // DEBUG HELPERS
+    // ============================================
+    function debugLog(msg) {
+        console.log('[WB]', msg);
+        const el = document.getElementById('debugLog');
+        if (el) {
+            const t = new Date().toLocaleTimeString();
+            el.innerHTML += `<div>${t} ${msg}</div>`;
+            el.scrollTop = el.scrollHeight;
+        }
+    }
+    function toggleDebugPanel() {
+        const p = document.getElementById('debugPanel');
+        p.style.display = p.style.display === 'none' ? '' : 'none';
+    }
+    function updateConnectionBadge(status, color) {
+        const b = document.getElementById('badgeConnection');
+        if (b) { b.textContent = status; b.style.background = color; }
+    }
+
     // ============================================
     // STATE
     // ============================================
@@ -820,7 +851,7 @@
                     userId: currentUser.id,
                     userName: currentStroke.userName
                 }
-            });
+            }).then(r => { if (r !== 'ok') debugLog(`draw send failed: ${r}`); });
         }
 
         lastPoint = { x: e.offsetX, y: e.offsetY };
@@ -835,11 +866,12 @@
 
             // Broadcast stroke complete (full stroke for remote redraw + undo tracking)
             if (channel && channelSubscribed) {
+                debugLog(`SEND stroke_complete (${currentStroke.points.length} pts)`);
                 channel.send({
                     type: 'broadcast',
                     event: 'stroke_complete',
                     payload: { stroke: currentStroke }
-                });
+                }).then(r => { debugLog(`stroke_complete result: ${r}`); });
             }
         }
         currentStroke = null;
@@ -1153,16 +1185,22 @@
     // ============================================
     function connectToChannel() {
         const channelName = `whiteboard:${sessionId}`;
+        debugLog(`Joining channel: ${channelName}`);
+        debugLog(`Session ID: ${sessionId}`);
+        debugLog(`User: ${currentUser.id} (${isTeacher ? 'teacher' : 'student'})`);
 
         channel = supabase.channel(channelName, {
             config: {
-                broadcast: { self: false },
+                broadcast: { self: true },
                 presence: { key: currentUser.id }
             }
         });
 
         // Listen for drawing events
         channel.on('broadcast', { event: 'draw' }, ({ payload }) => {
+            // Skip own messages (self:true is on for diagnostics)
+            if (payload.userId === currentUser.id) return;
+            debugLog(`RECV draw from ${payload.userName || payload.userId}`);
             const x1 = payload.x1 * canvas.width;
             const y1 = payload.y1 * canvas.height;
             const x2 = payload.x2 * canvas.width;
@@ -1172,6 +1210,9 @@
 
         // Listen for completed strokes — redraw the full stroke to fill in throttled gaps
         channel.on('broadcast', { event: 'stroke_complete' }, ({ payload }) => {
+            // Skip own messages (self:true is on for diagnostics)
+            if (payload.stroke.userId === currentUser.id) return;
+            debugLog(`RECV stroke_complete from ${payload.stroke.userName || payload.stroke.userId} (${payload.stroke.points.length} pts)`);
             strokes.push(payload.stroke);
             // Redraw the full stroke so any points skipped by throttle are filled in
             drawFullStroke(payload.stroke);
@@ -1230,6 +1271,7 @@
 
         // Presence tracking - sync gives full state
         channel.on('presence', { event: 'sync' }, () => {
+            debugLog('Presence sync fired');
             const state = channel.presenceState();
             onlineUsers = {};
             Object.values(state).forEach(presences => {
@@ -1243,6 +1285,7 @@
         // Presence - join/leave for immediate updates
         channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
             newPresences.forEach(p => {
+                debugLog(`Presence JOIN: ${p.userName} (${p.userId})`);
                 onlineUsers[p.userId] = { name: p.userName };
             });
             updateStudentListUI();
@@ -1255,14 +1298,37 @@
             updateStudentListUI();
         });
 
+        // Listen for test ping (diagnostic)
+        channel.on('broadcast', { event: 'ping' }, ({ payload }) => {
+            debugLog(`RECV ping from ${payload.from} (self=${payload.from === currentUser.id})`);
+        });
+
         channel.subscribe(async (status) => {
+            debugLog(`Channel status: ${status}`);
             if (status === 'SUBSCRIBED') {
                 channelSubscribed = true;
+                updateConnectionBadge('Connected', '#10b981');
+
                 await channel.track({
                     userId: currentUser.id,
                     userName: userProfile.full_name || 'Unknown',
                     isTeacher: isTeacher
                 });
+                debugLog('Presence tracked');
+
+                // Send a test ping to verify broadcast works
+                const pingResult = await channel.send({
+                    type: 'broadcast',
+                    event: 'ping',
+                    payload: { from: currentUser.id, name: userProfile.full_name, time: Date.now() }
+                });
+                debugLog(`Test ping sent, result: ${pingResult}`);
+            } else if (status === 'CHANNEL_ERROR') {
+                updateConnectionBadge('Error', '#ef4444');
+            } else if (status === 'TIMED_OUT') {
+                updateConnectionBadge('Timeout', '#ef4444');
+            } else {
+                updateConnectionBadge(status, '#f59e0b');
             }
         });
     }
