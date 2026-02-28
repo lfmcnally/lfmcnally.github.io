@@ -665,7 +665,7 @@
         await loadClassStudents();
 
         // Connect to realtime
-        connectToChannel();
+        await connectToChannel();
     }
 
     // ============================================
@@ -712,7 +712,7 @@
         updateFreezeUI();
 
         setupCanvas();
-        connectToChannel();
+        await connectToChannel();
     }
 
     function pollForSession() {
@@ -1183,23 +1183,30 @@
     // ============================================
     // REALTIME CONNECTION
     // ============================================
-    function connectToChannel() {
+    async function connectToChannel() {
         const channelName = `whiteboard:${sessionId}`;
         debugLog(`Joining channel: ${channelName}`);
         debugLog(`Session ID: ${sessionId}`);
         debugLog(`User: ${currentUser.id} (${isTeacher ? 'teacher' : 'student'})`);
 
+        // Set the auth token so Realtime server can authorize the channel
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+            supabase.realtime.setAuth(session.access_token);
+            debugLog('Auth token set for Realtime');
+        } else {
+            debugLog('WARNING: No access token available for Realtime');
+        }
+
         channel = supabase.channel(channelName, {
             config: {
-                broadcast: { self: true },
+                broadcast: { self: false },
                 presence: { key: currentUser.id }
             }
         });
 
         // Listen for drawing events
         channel.on('broadcast', { event: 'draw' }, ({ payload }) => {
-            // Skip own messages (self:true is on for diagnostics)
-            if (payload.userId === currentUser.id) return;
             debugLog(`RECV draw from ${payload.userName || payload.userId}`);
             const x1 = payload.x1 * canvas.width;
             const y1 = payload.y1 * canvas.height;
@@ -1210,8 +1217,6 @@
 
         // Listen for completed strokes — redraw the full stroke to fill in throttled gaps
         channel.on('broadcast', { event: 'stroke_complete' }, ({ payload }) => {
-            // Skip own messages (self:true is on for diagnostics)
-            if (payload.stroke.userId === currentUser.id) return;
             debugLog(`RECV stroke_complete from ${payload.stroke.userName || payload.stroke.userId} (${payload.stroke.points.length} pts)`);
             strokes.push(payload.stroke);
             // Redraw the full stroke so any points skipped by throttle are filled in
