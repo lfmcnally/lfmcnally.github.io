@@ -530,6 +530,10 @@
     // Stroke attribution
     let userNames = {};
 
+    // Broadcast throttle (limit to ~30 updates/sec to avoid overwhelming realtime)
+    let lastBroadcastTime = 0;
+    const BROADCAST_INTERVAL = 33; // ms
+
     // ============================================
     // INIT
     // ============================================
@@ -797,8 +801,10 @@
             currentStroke
         );
 
-        // Broadcast the point
-        if (channel && channelSubscribed) {
+        // Broadcast the point (throttled to ~30fps)
+        const now = Date.now();
+        if (channel && channelSubscribed && now - lastBroadcastTime >= BROADCAST_INTERVAL) {
+            lastBroadcastTime = now;
             channel.send({
                 type: 'broadcast',
                 event: 'draw',
@@ -827,8 +833,8 @@
         if (currentStroke && currentStroke.points.length > 0) {
             strokes.push(currentStroke);
 
-            // Broadcast stroke complete (for undo tracking on remote)
-            if (channel) {
+            // Broadcast stroke complete (full stroke for remote redraw + undo tracking)
+            if (channel && channelSubscribed) {
                 channel.send({
                     type: 'broadcast',
                     event: 'stroke_complete',
@@ -1150,7 +1156,7 @@
 
         channel = supabase.channel(channelName, {
             config: {
-                broadcast: { self: false, ack: true },
+                broadcast: { self: false },
                 presence: { key: currentUser.id }
             }
         });
@@ -1164,9 +1170,11 @@
             drawSegment(x1, y1, x2, y2, payload);
         });
 
-        // Listen for completed strokes (for undo tracking)
+        // Listen for completed strokes — redraw the full stroke to fill in throttled gaps
         channel.on('broadcast', { event: 'stroke_complete' }, ({ payload }) => {
             strokes.push(payload.stroke);
+            // Redraw the full stroke so any points skipped by throttle are filled in
+            drawFullStroke(payload.stroke);
             // Store user name for attribution
             if (payload.stroke.userName) {
                 userNames[payload.stroke.userId] = payload.stroke.userName;
