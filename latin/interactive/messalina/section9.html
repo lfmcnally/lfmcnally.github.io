@@ -774,6 +774,158 @@
             border-color: #0066ff;
             box-shadow: 0 0 0 2px rgba(0, 102, 255, 0.1);
         }
+
+        /* Analysis Style & Context Hints Panel */
+        .analysis-hints-panel {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 300px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid #e0e0e0;
+            z-index: 25;
+            transform: translateX(100%);
+            transition: transform 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .analysis-hints-panel.open {
+            transform: translateX(0);
+        }
+
+        .analysis-hints-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .analysis-hints-header h4 {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .analysis-hints-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #999;
+            padding: 0 4px;
+            font-family: inherit;
+            line-height: 1;
+        }
+
+        .analysis-hints-close:hover {
+            color: #333;
+        }
+
+        .analysis-hints-body {
+            padding: 10px 14px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .style-hint {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 3px solid;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .style-hint:last-child {
+            margin-bottom: 0;
+        }
+
+        .style-hint:hover {
+            background: #f0f0f0;
+        }
+
+        .style-hint.active {
+            background: #eef4ff;
+        }
+
+        .style-hint.type-style {
+            border-left-color: #0066ff;
+        }
+
+        .style-hint.type-context {
+            border-left-color: #d97706;
+        }
+
+        .style-hint-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .style-hint.type-style .style-hint-label {
+            color: #0066ff;
+        }
+
+        .style-hint.type-context .style-hint-label {
+            color: #b45309;
+        }
+
+        .style-hint-latin {
+            font-size: 0.75rem;
+            font-style: italic;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .style-hint-effect {
+            font-size: 0.78rem;
+            line-height: 1.5;
+            color: #555;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease, margin-top 0.25s ease;
+            margin-top: 0;
+        }
+
+        .style-hint.active .style-hint-effect {
+            max-height: 200px;
+            margin-top: 6px;
+        }
+
+        .analysis-hints-key {
+            display: flex;
+            gap: 14px;
+            padding: 8px 14px;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .analysis-hints-key-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.7rem;
+            color: #888;
+        }
+
+        .analysis-hints-key-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+        }
+
+        .analysis-sentence-display .word-group.hint-highlight .latin-word {
+            box-shadow: 0 0 0 2px #0066ff;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -1167,6 +1319,7 @@
                 <span class="analysis-nav-label" id="analysisNavLabel">Sentence 1 of 6</span>
                 <button class="analysis-btn" id="analysisNextBtn">&#9654;</button>
                 <button class="analysis-btn" id="analysisTranslationBtn" title="Toggle translation (T)">Translation</button>
+                <button class="analysis-btn" id="analysisHintsBtn" title="Style &amp; Context hints (H)">Hints</button>
             </div>
             <div class="analysis-toolbar-section">
                 <button class="analysis-btn" id="analysisSaveBtn">Save</button>
@@ -1221,6 +1374,22 @@
                 <div class="analysis-english-line" id="analysisEnglishLine"></div>
             </div>
             <canvas id="analysisCanvas"></canvas>
+            <!-- Style & Context Hints Panel -->
+            <div class="analysis-hints-panel" id="analysisHintsPanel">
+                <div class="analysis-hints-header">
+                    <h4>Style &amp; Context</h4>
+                    <button class="analysis-hints-close" id="analysisHintsClose">&times;</button>
+                </div>
+                <div class="analysis-hints-body" id="analysisHintsBody"></div>
+                <div class="analysis-hints-key">
+                    <span class="analysis-hints-key-item">
+                        <span class="analysis-hints-key-dot" style="background:#0066ff;"></span> Style
+                    </span>
+                    <span class="analysis-hints-key-item">
+                        <span class="analysis-hints-key-dot" style="background:#d97706;"></span> Context
+                    </span>
+                </div>
+            </div>
         </div>
 
         <!-- Notes panel -->
@@ -1510,6 +1679,67 @@
                 { lines: ['8'], title: 'Sentence 8' }
             ];
 
+            // === Style & Context Hints ===
+            const sentenceHints = [
+                // Sentence 1: adsidebat mater Lepida, quae florenti filiae haud concors fuerat;
+                [
+                    { type: 'style', label: 'Word Choice', latin: 'adsidebat', effect: 'adsidebat (\'was sitting beside\') \u2014 a quiet, intimate verb that contrasts sharply with the violent events surrounding Messalina. The stillness is poignant.', words: ['01-03'] },
+                    { type: 'style', label: 'Contrast/Antithesis', latin: 'haud concors... florenti', effect: 'haud concors (\'not on good terms\') during florenti (\'flourishing\') times \u2014 Lepida kept her distance when Messalina was powerful. The antithesis between past estrangement and present devotion is devastating.', words: ['01-06', '01-07', '01-09'] },
+                    { type: 'style', label: 'Juxtaposition', latin: 'mater Lepida', effect: 'mater (\'mother\') placed first emphasises the maternal role before the name, foregrounding the family bond at this desperate moment.', words: ['01-01', '01-02'] },
+                    { type: 'context', label: 'Broken Relationship', effect: 'Lepida had been estranged from Messalina during her years of power. Only now, at the end, does the mother return \u2014 showing how imperial power distorts even family bonds.' }
+                ],
+                // Sentence 2: sed supremis eius necessitatibus ad miserationem versa suadebat ne percussorem opperiretur:
+                [
+                    { type: 'style', label: 'Contrast/Antithesis', latin: 'florenti... supremis necessitatibus', effect: 'florenti (\'flourishing\', sentence 1) vs supremis necessitatibus (\'final crisis\') \u2014 a devastating contrast between Messalina\'s former power and her present desperation, spanning two sentences.', words: ['02-06', '02-07'] },
+                    { type: 'style', label: 'Emotive Language', latin: 'miserationem', effect: 'miserationem (\'pity\') \u2014 a powerful emotional word. Lepida is moved not by duty but by raw compassion for her doomed daughter.', words: ['02-04'] },
+                    { type: 'style', label: 'Word Choice', latin: 'percussorem', effect: 'percussorem (\'executioner/assassin\') \u2014 a blunt, violent word that makes the approaching death brutally concrete. Not a euphemism but a hammer blow.', words: ['02-11'] },
+                    { type: 'context', label: 'Roman Suicide', effect: 'Lepida urges Messalina not to wait for the executioner. In Roman culture, suicide before execution preserved dignity \u2014 it was the honourable way out.' }
+                ],
+                // Sentence 3: transiisse vitam neque aliud quam mortem decoram quaerendum.
+                [
+                    { type: 'style', label: 'Word Choice', latin: 'transiisse', effect: 'transiisse (\'had passed\') \u2014 a quiet, final verb. Life hasn\'t been snatched away violently; it has simply passed, like time itself. The understatement is devastating.', words: ['03-02'] },
+                    { type: 'style', label: 'Juxtaposition', latin: 'mortem decoram', effect: 'mortem decoram (\'honourable death\') \u2014 the juxtaposition of death with honour reflects the Stoic ideal that HOW one dies matters as much as having lived.', words: ['03-07', '03-06'] },
+                    { type: 'style', label: 'Emotive Language', latin: 'neque aliud quam', effect: 'neque aliud quam (\'nothing else than\') \u2014 narrows all possibility down to one option. There is nothing left except the manner of dying.', words: ['03-03', '03-04', '03-05'] },
+                    { type: 'context', label: 'Stoic Philosophy', effect: 'Lepida echoes Roman Stoic thinking: when life is over, seek a noble death. Self-mastery in dying could partially redeem a dishonourable life.' }
+                ],
+                // Sentence 4: sed nihil honestum inerat Messalinae animo per libidines corrupto;
+                [
+                    { type: 'style', label: 'Irony', latin: 'nihil honestum', effect: 'nihil honestum (\'nothing honourable\') \u2014 an absolute verdict. Not \'little honour\' but NOTHING. Tacitus destroys any hope that Messalina could achieve the noble death her mother urged.', words: ['04-02', '04-03'] },
+                    { type: 'style', label: 'Contrast/Antithesis', latin: 'honestum... corrupto', effect: 'honestum (\'honourable\') vs corrupto (\'corrupted\') \u2014 the antithesis between what is needed and what exists in her soul. Honour is absent; corruption fills the void.', words: ['04-03', '04-07'] },
+                    { type: 'style', label: 'Word Choice', latin: 'per libidines', effect: 'per libidines (\'through/by lusts\') \u2014 per makes her lusts the active agent of destruction. They didn\'t just accompany her; they consumed her from within.', words: ['04-08', '04-09'] },
+                    { type: 'context', label: 'Tacitean Judgement', effect: 'This is Tacitus the moralist at his most devastating. He intervenes as narrator to deliver an absolute verdict on Messalina\'s character \u2014 she is beyond redemption.' }
+                ],
+                // Sentence 5: lacrimae et questus inriti effundebantur, cum impetu venientium pulsae sunt fores adstititque tribunus.
+                [
+                    { type: 'style', label: 'Emotive Language', latin: 'lacrimae et questus inriti', effect: 'lacrimae (\'tears\') and questus inriti (\'useless laments\') \u2014 powerfully emotive vocabulary, but the adjective inriti (\'useless\') undercuts any sympathy. Her grief achieves nothing.', words: ['05-01', '05-04', '05-03'] },
+                    { type: 'style', label: 'Pace', latin: 'cum fores pulsae sunt... adstititque tribunus', effect: 'The sudden intrusion \u2014 doors struck, tribune standing \u2014 jolts the pace from slow weeping to violent action. The -que joining adstitit accelerates the narrative to a climax.', words: ['05-07', '05-08', '05-12', '05-11'] },
+                    { type: 'style', label: 'Contrast/Antithesis', latin: 'effundebantur... pulsae sunt', effect: 'Imperfect effundebantur (\'were being poured\') vs perfect pulsae sunt (\'were struck\') \u2014 the tense shift marks the brutal interruption of slow grief by sudden violence.', words: ['05-05', '05-08'] },
+                    { type: 'context', label: 'The Executioners Arrive', effect: 'The tribune has been sent by Narcissus to ensure Messalina dies. The doors being struck signals that time has run out \u2014 she waited too long.' }
+                ],
+                // Sentence 6: tunc primum Messalina fortunam suam intellexit ferrumque accepit;
+                [
+                    { type: 'style', label: 'Dramatic Irony', latin: 'tunc primum', effect: 'tunc primum (\'then for the first time\') \u2014 devastating dramatic irony. The reader has known her fate for pages; only NOW does Messalina understand. Her delusion lasted until the very end.', words: ['06-01', '06-02'] },
+                    { type: 'style', label: 'Word Choice', latin: 'fortunam', effect: 'fortunam (\'fate/fortune\') \u2014 not just \'situation\' but fortune in its full Roman sense: the reversal of luck that brings the mighty low. A word loaded with tragic weight.', words: ['06-06'] },
+                    { type: 'style', label: 'Pace', latin: 'ferrumque accepit', effect: 'ferrumque accepit (\'and took up the sword\') \u2014 the -que creates rapid pace, as if she snatches the sword in the same breath as understanding. A fleeting moment of resolve.', words: ['06-08', '06-07'] },
+                    { type: 'context', label: 'Too Late', effect: 'Messalina finally grasps what everyone else already knew. Taking up the sword suggests she will attempt honourable suicide \u2014 but the next sentence reveals she cannot.' }
+                ],
+                // Sentence 7: quod frustra iugulo aut pectori per trepidationem admovens, ictu tribuni transigitur.
+                [
+                    { type: 'style', label: 'Dramatic Irony', latin: 'frustra... admovens', effect: 'frustra (\'in vain\') \u2014 she who boldly committed treason and bigamy cannot summon the courage for one clean stroke. The irony between her former audacity and current paralysis is excruciating.', words: ['07-03', '07-01'] },
+                    { type: 'style', label: 'Juxtaposition', latin: 'iugulo aut pectori', effect: 'iugulo aut pectori (\'throat or breast\') \u2014 the juxtaposition of two targets shows her indecision. She knows where to strike but cannot commit, wavering between the two.', words: ['07-04', '07-06'] },
+                    { type: 'style', label: 'Word Choice', latin: 'trepidationem', effect: 'trepidationem (\'panic/trembling\') \u2014 a word of physical and moral cowardice. Not noble fear but undignified panic. It explains her failure to die honourably.', words: ['07-08'] },
+                    { type: 'style', label: 'Short Sentence', latin: 'ictu tribuni transigitur', effect: 'ictu tribuni transigitur (\'she was run through by the tribune\'s blow\') \u2014 brutally short. After all her wavering, death comes in three words. The passive voice strips her of all agency.', words: ['07-10', '07-11', '07-09'] },
+                    { type: 'context', label: 'Failed Suicide', effect: 'A noble Roman was expected to die by their own hand. Messalina\'s inability to do so is the final proof of Tacitus\'s verdict: nihil honestum inerat \u2014 nothing honourable was in her.' }
+                ],
+                // Sentence 8: corpus matri concessum.
+                [
+                    { type: 'style', label: 'Short Sentence', latin: 'corpus matri concessum', effect: 'Three words to end a life. The extreme brevity is devastating \u2014 no funeral oration, no mourning, no dramatic final words. Just disposal.', words: ['08-01', '08-03', '08-02'] },
+                    { type: 'style', label: 'Word Choice', latin: 'corpus', effect: 'corpus (\'body\') \u2014 not \'Messalina\' or even \'her\' but \'the body\'. She has been reduced from empress to object, from person to thing. Complete dehumanisation.', words: ['08-01'] },
+                    { type: 'style', label: 'Word Choice', latin: 'concessum', effect: 'concessum (\'granted\') \u2014 an administrative, impersonal verb. Her remains are handled like bureaucratic business, not treated with any human feeling.', words: ['08-02'] },
+                    { type: 'context', label: 'Final Indignity', effect: 'The body is \'granted\' to her mother \u2014 the same mother who urged a noble death. Lepida receives not a dignified corpse but the remains of a woman who could not die well.' }
+                ]
+            ];
+
             // === Canvas setup ===
             function resizeCanvas(preserveContent) {
                 const rect = workspace.getBoundingClientRect();
@@ -1692,6 +1922,62 @@
             }
             translationBtn.addEventListener('click', toggleTranslation);
 
+            // === Hints panel ===
+            const hintsPanel = document.getElementById('analysisHintsPanel');
+            const hintsBody = document.getElementById('analysisHintsBody');
+            const hintsBtn = document.getElementById('analysisHintsBtn');
+            let hintsOpen = false;
+
+            function toggleHintsPanel() {
+                hintsOpen = !hintsOpen;
+                hintsPanel.classList.toggle('open', hintsOpen);
+                hintsBtn.classList.toggle('active', hintsOpen);
+            }
+
+            function closeHintsPanel() {
+                hintsOpen = false;
+                hintsPanel.classList.remove('open');
+                hintsBtn.classList.remove('active');
+            }
+
+            function clearHintHighlights() {
+                document.querySelectorAll('#analysisLatinLine .hint-highlight').forEach(el => {
+                    el.classList.remove('hint-highlight');
+                });
+            }
+
+            function updateHintsPanel(idx) {
+                hintsBody.innerHTML = '';
+                clearHintHighlights();
+                const hints = sentenceHints[idx] || [];
+                hints.forEach((hint, i) => {
+                    const card = document.createElement('div');
+                    card.className = 'style-hint type-' + hint.type;
+                    card.innerHTML =
+                        '<div class="style-hint-label">' + hint.label + '</div>' +
+                        (hint.latin ? '<div class="style-hint-latin">' + hint.latin + '</div>' : '') +
+                        '<div class="style-hint-effect">' + hint.effect + '</div>';
+                    card.addEventListener('click', () => {
+                        const wasActive = card.classList.contains('active');
+                        hintsBody.querySelectorAll('.style-hint.active').forEach(c => c.classList.remove('active'));
+                        clearHintHighlights();
+                        if (!wasActive) {
+                            card.classList.add('active');
+                            if (hint.words && hint.words.length) {
+                                hint.words.forEach(order => {
+                                    const wg = document.querySelector('#analysisLatinLine .word-group[data-order="' + order + '"]');
+                                    if (wg) wg.classList.add('hint-highlight');
+                                });
+                            }
+                        }
+                    });
+                    hintsBody.appendChild(card);
+                });
+            }
+
+            hintsBtn.addEventListener('click', toggleHintsPanel);
+            document.getElementById('analysisHintsClose').addEventListener('click', closeHintsPanel);
+
             // === Sentence display ===
             function showSentence(idx) {
                 if (analysisActive && currentSentenceIdx !== idx) {
@@ -1734,6 +2020,7 @@
                 });
                 engEl.classList.toggle('hidden-translation', !translationVisible);
 
+                updateHintsPanel(idx);
                 requestAnimationFrame(() => loadAnalysis(idx));
             }
 
@@ -1761,6 +2048,7 @@
 
             function exitAnalysis() {
                 saveAnalysis();
+                closeHintsPanel();
                 analysisActive = false;
                 overlay.classList.remove('active');
                 document.body.style.overflow = '';
@@ -1805,6 +2093,9 @@
                 } else if (e.code === 'KeyS' && (e.ctrlKey || e.metaKey)) {
                     e.preventDefault();
                     saveAnalysis();
+                } else if (e.code === 'KeyH') {
+                    e.preventDefault();
+                    toggleHintsPanel();
                 } else if (e.code === 'KeyT') {
                     e.preventDefault();
                     toggleTranslation();
