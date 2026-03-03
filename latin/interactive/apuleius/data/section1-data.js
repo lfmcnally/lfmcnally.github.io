@@ -1,8 +1,16 @@
 // Analysis data for Apuleius Section 1 interactive text
 const textData = {
+    "fluctuat-imagery": {
+        title: "aestu pelagi simile maerendo fluctuat",
+        translation: '"like the tide of the sea, wavers in her grieving"',
+        device: "Sea Imagery",
+        description: "An extended simile comparing Psyche's emotional turmoil to the tossing of the sea, completed by the verb fluctuat which carries etymological force.",
+        effect: "The simile aestu pelagi simile ('like the tide of the sea') combined with fluctuat (literally 'she is wave-tossed') creates a vivid image of helpless, directionless agitation. The gerund maerendo ('in her grieving') adds emotional weight: this is not cool indecision but anguished turmoil. The imagery prepares the reader for the rapid antitheses that follow."
+    },
+
     "asyndetic-antithesis": {
-        title: "festinat, differt; audet, trepidat; diffidit, irascitur",
-        translation: '"she hurries, she delays; she dares, she trembles; she loses confidence, she grows angry"',
+        title: "festinat differt, audet trepidat, diffidit irascitur",
+        translation: '"she hurries, (then) delays, is daring, (then) fearful, doubtful, (then) angry"',
         device: "Asyndetic Antithesis",
         description: "Three pairs of contrasting verbs presented without conjunctions, each pair capturing a different dimension of Psyche's inner conflict.",
         effect: "The rapid alternation between opposite impulses mimics the oscillation of Psyche's mind. The absence of conjunctions (asyndeton) creates a breathless, staccato rhythm that conveys her agitation."
@@ -33,11 +41,11 @@ const textData = {
     },
 
     "ablative-absolute": {
-        title: "vespera noctis introitum faciente",
-        translation: '"with evening making the approach of night"',
+        title: "vespera iam noctem trahente",
+        translation: '"as evening was now (slowly) bringing in the night"',
         device: "Ablative Absolute",
-        description: "An elaborate ablative absolute that sets the scene and marks a transition from psychological turmoil to physical action.",
-        effect: "The shift from the rapid, staccato antitheses to this longer, atmospheric phrase signals a change of pace. Night — the time when her husband visits — is approaching, and Psyche must act. The personification of evening 'making' the approach of night adds a sense of inevitability."
+        description: "An ablative absolute that sets the scene and marks a transition from psychological turmoil to physical action.",
+        effect: "The shift from the rapid, staccato antitheses to this longer, atmospheric phrase signals a change of pace. Night — the time when her husband visits — is approaching, and Psyche must act. The verb trahente ('dragging, drawing') suggests the slow inevitability of nightfall closing in."
     },
 
     "transferred-epithet": {
@@ -49,7 +57,7 @@ const textData = {
     },
 
     "moral-judgement": {
-        title: "nefarii facinoris",
+        title: "nefarii sceleris",
         translation: '"of the wicked crime"',
         device: "Narratorial Judgement",
         description: "The narrator explicitly condemns the intended act as 'wicked' (nefarius), despite the fact that it will actually reveal the god Cupid.",
@@ -61,6 +69,6 @@ const textData = {
         translation: '"she prepares the equipment"',
         device: "Dramatic Irony",
         description: "Psyche is preparing a lamp and razor to reveal and kill a 'monster' — but the audience suspects her husband is the god Cupid.",
-        effect: "The clinical, purposeful language ('she prepares the equipment') contrasts with the reader's knowledge of what she will actually discover. The mundane practicality of 'apparatum' heightens the tragedy — she is methodically preparing to do something she will bitterly regret."
+        effect: "The clinical, purposeful language ('she prepares the equipment') contrasts with the reader's knowledge of what she will actually discover. The mundane practicality of 'apparatum' heightens the tragedy — she is methodically preparing for a moment that will shatter her life."
     }
 };
