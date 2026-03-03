@@ -564,6 +564,8 @@
     // Broadcast throttle (limit to ~30 updates/sec to avoid overwhelming realtime)
     let lastBroadcastTime = 0;
     let lastBroadcastPoint = null; // Last point that was actually sent via broadcast
+    let smoothMidPoint = null; // Last midpoint for smooth curve drawing
+    let remoteDrawState = {}; // Track remote users' in-progress drawing state for smooth curves
     const BROADCAST_INTERVAL = 33; // ms
 
     // ============================================
@@ -824,6 +826,7 @@
         };
 
         lastPoint = { x: e.offsetX, y: e.offsetY };
+        smoothMidPoint = null;
         lastBroadcastPoint = { x: e.offsetX / canvas.width, y: e.offsetY / canvas.height };
     }
 
@@ -834,12 +837,20 @@
         const y = e.offsetY / canvas.height;
         currentStroke.points.push({ x, y });
 
-        // Draw locally
-        drawSegment(
-            lastPoint.x, lastPoint.y,
-            e.offsetX, e.offsetY,
-            currentStroke
-        );
+        // Draw locally using smooth curves
+        const px = e.offsetX;
+        const py = e.offsetY;
+        const midX = (lastPoint.x + px) / 2;
+        const midY = (lastPoint.y + py) / 2;
+
+        if (smoothMidPoint === null) {
+            // 2nd point: line from start to first midpoint
+            drawSegment(lastPoint.x, lastPoint.y, midX, midY, currentStroke);
+        } else {
+            // 3rd+ point: quadratic curve from previous midpoint through lastPoint to new midpoint
+            drawCurveSegment(smoothMidPoint.x, smoothMidPoint.y, lastPoint.x, lastPoint.y, midX, midY, currentStroke);
+        }
+        smoothMidPoint = { x: midX, y: midY };
 
         // Broadcast the point (throttled to ~30fps)
         // Use lastBroadcastPoint so the receiver gets connected segments with no gaps
@@ -871,6 +882,12 @@
     function stopDrawing() {
         if (!isDrawing) return;
         isDrawing = false;
+
+        // Draw final segment from last midpoint to the actual last point
+        if (smoothMidPoint && lastPoint) {
+            drawSegment(smoothMidPoint.x, smoothMidPoint.y, lastPoint.x, lastPoint.y, currentStroke);
+        }
+        smoothMidPoint = null;
 
         if (currentStroke && currentStroke.points.length > 0) {
             const completedStroke = currentStroke;
@@ -915,6 +932,26 @@
         ctx.restore();
     }
 
+    function drawCurveSegment(fromX, fromY, cpX, cpY, toX, toY, stroke) {
+        ctx.save();
+        ctx.globalAlpha = stroke.opacity;
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        if (stroke.tool === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.globalAlpha = 1;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.quadraticCurveTo(cpX, cpY, toX, toY);
+        ctx.stroke();
+        ctx.restore();
+    }
+
     function drawFullStroke(stroke) {
         if (stroke.points.length < 1) return;
 
@@ -934,10 +971,31 @@
         const p0 = stroke.points[0];
         ctx.moveTo(p0.x * canvas.width, p0.y * canvas.height);
 
-        for (let i = 1; i < stroke.points.length; i++) {
-            const p = stroke.points[i];
-            ctx.lineTo(p.x * canvas.width, p.y * canvas.height);
+        if (stroke.points.length === 2) {
+            const p1 = stroke.points[1];
+            ctx.lineTo(p1.x * canvas.width, p1.y * canvas.height);
+        } else if (stroke.points.length > 2) {
+            // Smooth curves using quadratic Bezier through midpoints
+            const p1 = stroke.points[1];
+            let midX = (p0.x + p1.x) / 2 * canvas.width;
+            let midY = (p0.y + p1.y) / 2 * canvas.height;
+            ctx.lineTo(midX, midY);
+
+            for (let i = 1; i < stroke.points.length - 1; i++) {
+                const cp = stroke.points[i];
+                const next = stroke.points[i + 1];
+                midX = (cp.x + next.x) / 2 * canvas.width;
+                midY = (cp.y + next.y) / 2 * canvas.height;
+                ctx.quadraticCurveTo(
+                    cp.x * canvas.width, cp.y * canvas.height,
+                    midX, midY
+                );
+            }
+
+            const last = stroke.points[stroke.points.length - 1];
+            ctx.lineTo(last.x * canvas.width, last.y * canvas.height);
         }
+
         ctx.stroke();
         ctx.restore();
     }
@@ -1299,22 +1357,44 @@
             }
         });
 
-        // Listen for real-time drawing segments (fast visual feedback)
+        // Listen for real-time drawing segments (fast visual feedback, with smooth curves)
         channel.on('broadcast', { event: 'draw' }, ({ payload }) => {
             if (payload.userId === currentUser.id) return;
-            const x1 = payload.x1 * canvas.width;
-            const y1 = payload.y1 * canvas.height;
+            const uid = payload.userId;
             const x2 = payload.x2 * canvas.width;
             const y2 = payload.y2 * canvas.height;
-            drawSegment(x1, y1, x2, y2, payload);
+
+            let state = remoteDrawState[uid];
+            if (!state) {
+                // First segment from this user — start tracking
+                const x1 = payload.x1 * canvas.width;
+                const y1 = payload.y1 * canvas.height;
+                const midX = (x1 + x2) / 2;
+                const midY = (y1 + y2) / 2;
+                drawSegment(x1, y1, midX, midY, payload);
+                remoteDrawState[uid] = { lastPx: { x: x2, y: y2 }, lastMidPx: { x: midX, y: midY } };
+            } else {
+                // Subsequent segment — smooth quadratic curve
+                const midX = (state.lastPx.x + x2) / 2;
+                const midY = (state.lastPx.y + y2) / 2;
+                drawCurveSegment(
+                    state.lastMidPx.x, state.lastMidPx.y,
+                    state.lastPx.x, state.lastPx.y,
+                    midX, midY,
+                    payload
+                );
+                state.lastPx = { x: x2, y: y2 };
+                state.lastMidPx = { x: midX, y: midY };
+            }
         });
 
-        // Listen for completed strokes — adds to strokes array for persistence
+        // Listen for completed strokes — adds to strokes array and redraws smoothly
         channel.on('broadcast', { event: 'stroke_complete' }, ({ payload }) => {
             if (payload.stroke.userId === currentUser.id) return;
             debugLog('RECV stroke_complete from ' + (payload.stroke.userName || payload.stroke.userId));
+            delete remoteDrawState[payload.stroke.userId];
             strokes.push(payload.stroke);
-            drawFullStroke(payload.stroke);
+            redrawAllStrokes(); // Full redraw replaces incremental segments with smooth full-point curves
             if (payload.stroke.userName) {
                 userNames[payload.stroke.userId] = payload.stroke.userName;
             }
