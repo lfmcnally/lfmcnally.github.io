@@ -718,6 +718,8 @@
     // ============================================
     // VIEWPORT (infinite canvas)
     // ============================================
+    const MIN_ZOOM = 0.25;
+    const MAX_ZOOM = 5;
     let panX = 0, panY = 0, zoom = 1;
     let isPanning = false;
     let panStartX = 0, panStartY = 0;
@@ -729,6 +731,7 @@
     let touchStartZoom = null;
     let lastViewportBroadcast = 0;
     let spaceDown = false; // Spacebar held for pan mode
+    let rafPending = false; // requestAnimationFrame guard for pan/zoom redraw
 
     // ============================================
     // VIEWPORT HELPERS
@@ -748,21 +751,38 @@
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
+    function clampZoom(z) {
+        return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
+    }
+
+    function zoomAtPoint(newZoom, cx, cy) {
+        newZoom = clampZoom(newZoom);
+        const worldBefore = screenToWorld(cx, cy);
+        zoom = newZoom;
+        const worldAfter = screenToWorld(cx, cy);
+        panX += (worldAfter.x - worldBefore.x) * zoom;
+        panY += (worldAfter.y - worldBefore.y) * zoom;
+        updateZoomUI();
+        redrawAllStrokes();
+        broadcastViewport();
+    }
+
+    function getDefaultCursor() {
+        return canDraw ? (currentTool === 'eraser' ? 'cell' : 'crosshair') : 'default';
+    }
+
+    function resetViewport() {
+        panX = 0; panY = 0; zoom = 1;
+        updateZoomUI();
+    }
+
     // ============================================
     // STUDENT COLOR HELPERS
     // ============================================
-    async function loadStudentColors() {
-        const { data: members } = await supabase
-            .from('class_members')
-            .select('student_id')
-            .eq('class_id', classId)
-            .order('created_at', { ascending: true });
-
-        if (!members) return;
-
+    function assignStudentColors(memberIds) {
         studentColorMap = {};
-        members.forEach((m, i) => {
-            studentColorMap[m.student_id] = STUDENT_COLORS[i % STUDENT_COLORS.length];
+        memberIds.forEach((id, i) => {
+            studentColorMap[id] = STUDENT_COLORS[i % STUDENT_COLORS.length];
         });
 
         // Set own color if student
@@ -771,6 +791,18 @@
             currentColor = myAssignedColor;
             showStudentColorIndicator();
         }
+    }
+
+    async function loadStudentColor() {
+        // Lightweight version for students — single query to find own color index
+        const { data: members } = await supabase
+            .from('class_members')
+            .select('student_id')
+            .eq('class_id', classId)
+            .order('created_at', { ascending: true });
+
+        if (!members) return;
+        assignStudentColors(members.map(m => m.student_id));
     }
 
     function showStudentColorIndicator() {
@@ -885,9 +917,8 @@
         // Load existing strokes from DB (handles late join / refresh)
         await loadStrokesFromDB();
 
-        // Load students and assign colors
+        // Load students (also assigns colors)
         await loadClassStudents();
-        await loadStudentColors();
 
         // Connect to realtime
         connectToChannel();
@@ -943,8 +974,8 @@
         // Load existing strokes from DB (handles late join / refresh)
         await loadStrokesFromDB();
 
-        // Load student colors
-        await loadStudentColors();
+        // Load student color assignment
+        await loadStudentColor();
 
         connectToChannel();
     }
@@ -1014,7 +1045,7 @@
             if (e.code === 'Space') {
                 spaceDown = false;
                 if (!isPanning) {
-                    canvas.style.cursor = canDraw ? (currentTool === 'eraser' ? 'cell' : 'crosshair') : 'default';
+                    canvas.style.cursor = getDefaultCursor();
                 }
             }
         });
@@ -1054,20 +1085,28 @@
         if (isPanning) {
             panX = panStartPanX + (e.clientX - panStartX);
             panY = panStartPanY + (e.clientY - panStartY);
-            redrawAllStrokes();
+            scheduleRedraw();
             return;
         }
         if (activeTouches >= 2) return;
         draw(e);
     }
 
+    function scheduleRedraw() {
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(() => {
+            rafPending = false;
+            redrawAllStrokes();
+        });
+    }
+
     function handlePointerUp(e) {
         e.preventDefault();
         if (isPanning && (e.button === 1 || !spaceDown)) {
             isPanning = false;
-            canvas.style.cursor = canDraw ? (currentTool === 'eraser' ? 'cell' : 'crosshair') : 'default';
-            if (spaceDown) canvas.style.cursor = 'grab';
-            broadcastViewport();
+            canvas.style.cursor = spaceDown ? 'grab' : getDefaultCursor();
+            broadcastViewport(true);
             return;
         }
         if (activeTouches >= 2) return;
@@ -1106,7 +1145,7 @@
 
             // Pinch zoom
             const scale = dist / touchStartDist;
-            const newZoom = Math.max(0.25, Math.min(5, touchStartZoom * scale));
+            const newZoom = clampZoom(touchStartZoom * scale);
 
             // Pan
             const dx = mid.x - touchStartMid.x;
@@ -1124,14 +1163,9 @@
             panY = cy - worldY * zoom + dy;
 
             updateZoomUI();
-            redrawAllStrokes();
+            scheduleRedraw();
 
-            // Throttled viewport broadcast during gesture
-            const now = Date.now();
-            if (now - lastViewportBroadcast > 100) {
-                lastViewportBroadcast = now;
-                broadcastViewport();
-            }
+            broadcastViewport();
         }
     }
 
@@ -1142,7 +1176,7 @@
 
         if (prevTouches >= 2 && activeTouches < 2 && touchStartDist !== null) {
             touchStartDist = null;
-            broadcastViewport();
+            broadcastViewport(true);
         }
     }
 
@@ -1152,19 +1186,8 @@
     function handleWheel(e) {
         if (!isTeacher) return;
         e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        const newZoom = Math.max(0.25, Math.min(5, zoom * delta));
-
-        // Zoom toward cursor position
-        const worldBefore = screenToWorld(e.offsetX, e.offsetY);
-        zoom = newZoom;
-        const worldAfter = screenToWorld(e.offsetX, e.offsetY);
-        panX += (worldAfter.x - worldBefore.x) * zoom;
-        panY += (worldAfter.y - worldBefore.y) * zoom;
-
-        updateZoomUI();
-        redrawAllStrokes();
-        broadcastViewport();
+        const factor = e.deltaY > 0 ? 0.9 : 1.1;
+        zoomAtPoint(zoom * factor, e.offsetX, e.offsetY);
     }
 
     // ============================================
@@ -1468,16 +1491,6 @@
         return data.id;
     }
 
-    async function deleteAllStrokesFromDB() {
-        if (!sessionId) return;
-        const { error } = await supabase
-            .from('whiteboard_strokes')
-            .delete()
-            .eq('session_id', sessionId);
-
-        if (error) debugLog('Error clearing strokes: ' + error.message);
-    }
-
     async function deleteStrokeFromDB(dbId) {
         if (!dbId) return;
         const { error } = await supabase
@@ -1486,6 +1499,16 @@
             .eq('id', dbId);
 
         if (error) debugLog('Error deleting stroke: ' + error.message);
+    }
+
+    async function deleteStrokesFromDB(dbIds) {
+        if (!dbIds || dbIds.length === 0) return;
+        const { error } = await supabase
+            .from('whiteboard_strokes')
+            .delete()
+            .in('id', dbIds);
+
+        if (error) debugLog('Error batch deleting strokes: ' + error.message);
     }
 
     // ============================================
@@ -1548,10 +1571,9 @@
         strokes = strokes.filter(s => (s.page || 1) !== currentPage);
         redrawAllStrokes();
 
-        // Delete from DB
-        pageStrokes.forEach(s => {
-            if (s.dbId) deleteStrokeFromDB(s.dbId);
-        });
+        // Batch delete from DB
+        const dbIds = pageStrokes.map(s => s.dbId).filter(Boolean);
+        if (dbIds.length > 0) deleteStrokesFromDB(dbIds);
 
         if (channel && channelSubscribed) {
             channel.send({
@@ -1568,13 +1590,6 @@
     function addPage() {
         if (!isTeacher) return;
         totalPages++;
-        currentPage = totalPages;
-
-        // Reset viewport for new page
-        panX = 0; panY = 0; zoom = 1;
-        updateZoomUI();
-        updatePageUI();
-        redrawAllStrokes();
 
         // Save total pages to session
         supabase.from('whiteboard_sessions')
@@ -1589,14 +1604,14 @@
                 payload: { totalPages }
             });
         }
+
+        goToPage(totalPages);
     }
 
     function goToPage(page) {
         if (page < 1 || page > totalPages) return;
         currentPage = page;
-        // Reset viewport when changing pages
-        panX = 0; panY = 0; zoom = 1;
-        updateZoomUI();
+        resetViewport();
         updatePageUI();
         redrawAllStrokes();
     }
@@ -1615,36 +1630,19 @@
     // ============================================
     function zoomIn() {
         if (!isTeacher) return;
-        const newZoom = Math.max(0.25, Math.min(5, zoom * 1.2));
-        const worldBefore = screenToWorld(canvas.width / 2, canvas.height / 2);
-        zoom = newZoom;
-        const worldAfter = screenToWorld(canvas.width / 2, canvas.height / 2);
-        panX += (worldAfter.x - worldBefore.x) * zoom;
-        panY += (worldAfter.y - worldBefore.y) * zoom;
-        updateZoomUI();
-        redrawAllStrokes();
-        broadcastViewport();
+        zoomAtPoint(zoom * 1.2, canvas.width / 2, canvas.height / 2);
     }
 
     function zoomOut() {
         if (!isTeacher) return;
-        const newZoom = Math.max(0.25, Math.min(5, zoom / 1.2));
-        const worldBefore = screenToWorld(canvas.width / 2, canvas.height / 2);
-        zoom = newZoom;
-        const worldAfter = screenToWorld(canvas.width / 2, canvas.height / 2);
-        panX += (worldAfter.x - worldBefore.x) * zoom;
-        panY += (worldAfter.y - worldBefore.y) * zoom;
-        updateZoomUI();
-        redrawAllStrokes();
-        broadcastViewport();
+        zoomAtPoint(zoom / 1.2, canvas.width / 2, canvas.height / 2);
     }
 
     function resetView() {
         if (!isTeacher) return;
-        panX = 0; panY = 0; zoom = 1;
-        updateZoomUI();
+        resetViewport();
         redrawAllStrokes();
-        broadcastViewport();
+        broadcastViewport(true);
     }
 
     function updateZoomUI() {
@@ -1652,8 +1650,12 @@
         document.getElementById('zoomInfo').textContent = pct + '%';
     }
 
-    function broadcastViewport() {
+    function broadcastViewport(force) {
         if (!isTeacher || !channel || !channelSubscribed) return;
+        // Throttle to avoid flooding during continuous gestures
+        const now = Date.now();
+        if (!force && now - lastViewportBroadcast < 100) return;
+        lastViewportBroadcast = now;
         // Send viewport in normalised terms so it works across different screen sizes
         const centerNormX = (canvas.width / 2 - panX) / zoom / canvas.width;
         const centerNormY = (canvas.height / 2 - panY) / zoom / canvas.height;
@@ -1797,7 +1799,8 @@
         const { data: members } = await supabase
             .from('class_members')
             .select('student_id, users(id, full_name)')
-            .eq('class_id', classId);
+            .eq('class_id', classId)
+            .order('created_at', { ascending: true });
 
         if (!members) return;
 
@@ -1808,6 +1811,9 @@
 
         // Cache names for attribution
         classStudents.forEach(s => { userNames[s.id] = s.name; });
+
+        // Assign student colors from roster order (avoids separate DB query)
+        assignStudentColors(members.map(m => m.student_id));
 
         // Load existing permissions
         const { data: perms } = await supabase
