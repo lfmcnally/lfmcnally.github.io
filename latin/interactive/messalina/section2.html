@@ -774,6 +774,158 @@
             border-color: #0066ff;
             box-shadow: 0 0 0 2px rgba(0, 102, 255, 0.1);
         }
+
+        /* Analysis Style & Context Hints Panel */
+        .analysis-hints-panel {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 300px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid #e0e0e0;
+            z-index: 25;
+            transform: translateX(100%);
+            transition: transform 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .analysis-hints-panel.open {
+            transform: translateX(0);
+        }
+
+        .analysis-hints-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .analysis-hints-header h4 {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .analysis-hints-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #999;
+            padding: 0 4px;
+            font-family: inherit;
+            line-height: 1;
+        }
+
+        .analysis-hints-close:hover {
+            color: #333;
+        }
+
+        .analysis-hints-body {
+            padding: 10px 14px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .style-hint {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 3px solid;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .style-hint:last-child {
+            margin-bottom: 0;
+        }
+
+        .style-hint:hover {
+            background: #f0f0f0;
+        }
+
+        .style-hint.active {
+            background: #eef4ff;
+        }
+
+        .style-hint.type-style {
+            border-left-color: #0066ff;
+        }
+
+        .style-hint.type-context {
+            border-left-color: #d97706;
+        }
+
+        .style-hint-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .style-hint.type-style .style-hint-label {
+            color: #0066ff;
+        }
+
+        .style-hint.type-context .style-hint-label {
+            color: #b45309;
+        }
+
+        .style-hint-latin {
+            font-size: 0.75rem;
+            font-style: italic;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .style-hint-effect {
+            font-size: 0.78rem;
+            line-height: 1.5;
+            color: #555;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease, margin-top 0.25s ease;
+            margin-top: 0;
+        }
+
+        .style-hint.active .style-hint-effect {
+            max-height: 200px;
+            margin-top: 6px;
+        }
+
+        .analysis-hints-key {
+            display: flex;
+            gap: 14px;
+            padding: 8px 14px;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .analysis-hints-key-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.7rem;
+            color: #888;
+        }
+
+        .analysis-hints-key-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+        }
+
+        .analysis-sentence-display .word-group.hint-highlight .latin-word {
+            box-shadow: 0 0 0 2px #0066ff;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -1123,6 +1275,7 @@
                 <span class="analysis-nav-label" id="analysisNavLabel">Sentence 1 of 6</span>
                 <button class="analysis-btn" id="analysisNextBtn">&#9654;</button>
                 <button class="analysis-btn" id="analysisTranslationBtn" title="Toggle translation (T)">Translation</button>
+                <button class="analysis-btn" id="analysisHintsBtn" title="Style &amp; Context hints (H)">Hints</button>
             </div>
             <div class="analysis-toolbar-section">
                 <button class="analysis-btn" id="analysisSaveBtn">Save</button>
@@ -1177,6 +1330,22 @@
                 <div class="analysis-english-line" id="analysisEnglishLine"></div>
             </div>
             <canvas id="analysisCanvas"></canvas>
+            <!-- Style & Context Hints Panel -->
+            <div class="analysis-hints-panel" id="analysisHintsPanel">
+                <div class="analysis-hints-header">
+                    <h4>Style &amp; Context</h4>
+                    <button class="analysis-hints-close" id="analysisHintsClose">&times;</button>
+                </div>
+                <div class="analysis-hints-body" id="analysisHintsBody"></div>
+                <div class="analysis-hints-key">
+                    <span class="analysis-hints-key-item">
+                        <span class="analysis-hints-key-dot" style="background:#0066ff;"></span> Style
+                    </span>
+                    <span class="analysis-hints-key-item">
+                        <span class="analysis-hints-key-dot" style="background:#d97706;"></span> Context
+                    </span>
+                </div>
+            </div>
         </div>
 
         <!-- Notes panel -->
@@ -1464,6 +1633,54 @@
                 { lines: ['6'], title: 'Sentence 6' }
             ];
 
+            // === Style & Context Hints ===
+            const sentenceHints = [
+                // Sentence 1: illa ventitat domum, non furtim sed cum multis comitibus adhaeret, egredienti dat opes honoresque:
+                [
+                    { type: 'style', label: 'Historic Present', latin: 'ventitat, adhaeret, dat', effect: 'Tacitus uses present tense verbs (ventitat, adhaeret, dat) to describe past events. This makes the action feel vivid and immediate, as though we are watching Messalina\'s brazen behaviour unfold in front of us.', words: ['01-02', '01-10', '01-12'] },
+                    { type: 'style', label: 'Contrast', latin: 'non furtim sed cum multis comitibus', effect: 'The contrast between \'not secretly\' and \'with many companions\' emphasises Messalina\'s shocking boldness. She is not even trying to hide the affair \u2014 she flaunts it publicly.', words: ['01-04', '01-05', '01-06', '01-07', '01-08', '01-09'] },
+                    { type: 'style', label: 'Asyndeton', latin: 'ventitat... adhaeret... dat', effect: 'Three verbs listed without conjunctions (ventitat, adhaeret, dat) create a breathless, rapid sequence. Each action tumbles into the next, mirroring Messalina\'s reckless and unstoppable behaviour.', words: ['01-02', '01-10', '01-12'] },
+                    { type: 'style', label: 'Emotive Language', latin: 'adhaeret', effect: 'adhaeret (\'clings to\') is a powerfully physical verb. It suggests desperation and possessiveness, painting Messalina as obsessively attached to Silius in public view.', words: ['01-10'] },
+                    { type: 'context', label: 'Imperial Scandal', effect: 'As empress, Messalina\'s open visits to a lover\'s house with a large entourage would have been an enormous public scandal. She is effectively daring Rome to notice.' }
+                ],
+                // Sentence 2: postremo servi, liberti, paratus principis apud adulterum saepe videbantur.
+                [
+                    { type: 'style', label: 'Tricolon', latin: 'servi, liberti, paratus', effect: 'A three-part list (servi, liberti, paratus) catalogues the transfer of imperial property. The progression from people to objects emphasises how comprehensively Messalina has moved the emperor\'s entire household to her lover\'s home.', words: ['02-02', '02-03', '02-04'] },
+                    { type: 'style', label: 'Word Choice', latin: 'postremo', effect: 'postremo (\'finally\') signals the climax of a sequence. After the rapid actions of sentence 1, this word suggests things have reached their worst point \u2014 the scandal is now total.', words: ['02-01'] },
+                    { type: 'style', label: 'Irony', latin: 'principis apud adulterum', effect: 'The emperor\'s property at the adulterer\'s house \u2014 the irony is devastating. The most powerful man in Rome is unknowingly funding and furnishing his wife\'s affair.', words: ['02-05', '02-06', '02-07'] },
+                    { type: 'context', label: 'Imperial Household', effect: 'The servi (slaves), liberti (freedmen) and paratus (equipment/furnishings) represent the entire imperial household. Moving them to Silius\'s house was effectively moving the palace itself.' }
+                ],
+                // Sentence 3: at Claudius matrimonii sui ignarus.
+                [
+                    { type: 'style', label: 'Short Sentence', latin: 'at Claudius ignarus', effect: 'After the long, detailed sentences about Messalina\'s brazen behaviour, this blunt fragment is devastating. The brevity mirrors Claudius\'s irrelevance \u2014 he barely gets a sentence in his own story.', words: ['03-01', '03-02', '03-03'] },
+                    { type: 'style', label: 'Dramatic Irony', latin: 'matrimonii sui ignarus', effect: 'The reader knows everything Claudius does not. We have just read about the open visits, the companions, the imperial property being carted away \u2014 yet the emperor is \'unaware of his own marriage\'. The dramatic irony is crushing.', words: ['03-04', '03-05', '03-03'] },
+                    { type: 'style', label: 'Contrast', latin: 'at', effect: 'at (\'but\') creates a sharp contrast between the frenzy of Messalina\'s behaviour and Claudius\'s obliviousness. The single word pivots the entire narrative from action to ignorance.', words: ['03-01'] },
+                    { type: 'context', label: 'Emperor\'s Blindness', effect: 'Claudius was the most powerful man in the Roman world, yet he could not see what was happening in his own household. Tacitus uses this to undermine his authority and portray him as a passive, almost pathetic figure.' }
+                ],
+                // Sentence 4: iam Messalina propter facilitatem adulteriorum ad novas libidines versa est.
+                [
+                    { type: 'style', label: 'Word Choice', latin: 'facilitatem', effect: 'facilitatem (\'ease\') is chillingly casual. Her adulteries have become so routine, so easy, that she needs something more extreme to satisfy her. One word conveys moral decay.', words: ['04-05'] },
+                    { type: 'style', label: 'Emotive Language', latin: 'novas libidines', effect: 'novas libidines (\'new lusts\') \u2014 libidines is a strong, morally loaded word suggesting uncontrolled desire. The adjective novas shows she is escalating, always seeking fresh excess.', words: ['04-08', '04-09'] },
+                    { type: 'style', label: 'Pace', latin: 'iam', effect: 'iam (\'now/already\') signals urgency and acceleration. The narrative is speeding up \u2014 Messalina is not slowing down but pushing further, and the word creates a sense of impending crisis.', words: ['04-01'] },
+                    { type: 'context', label: 'Moral Escalation', effect: 'Tacitus shows Messalina\'s corruption as progressive: ordinary adultery is no longer enough. This escalation pattern prepares the reader for the even more shocking events to come.' }
+                ],
+                // Sentence 5: Silius, sive fatali insania an ratus, pericula ipsa remedium imminentium periculorum urgebat: dissimulationem abrumpi
+                [
+                    { type: 'style', label: 'Oxymoron', latin: 'fatali insania', effect: 'fatali insania (\'fatal madness\') combines fate (something predetermined) with madness (something irrational). Was Silius destined to act this way, or was he simply insane? Tacitus deliberately refuses to decide.', words: ['05-03', '05-04'] },
+                    { type: 'style', label: 'Paradox', latin: 'pericula remedium periculorum', effect: 'Dangers as the cure for dangers \u2014 the word pericula appears twice, creating a verbal echo that traps the reader in the same circular logic as Silius. More danger is his only escape from danger.', words: ['05-07', '05-09', '05-10', '05-11'] },
+                    { type: 'style', label: 'Repetition', latin: 'pericula... periculorum', effect: 'The repetition of the root word pericul- (pericula and periculorum) hammers home the inescapable nature of the danger. Silius is surrounded by it whichever way he turns.', words: ['05-07', '05-10', '05-11'] },
+                    { type: 'style', label: 'Word Choice', latin: 'abrumpi', effect: 'abrumpi (\'be broken off\') is a violent, decisive verb. Not a gentle ending but a forceful rupture \u2014 reflecting Silius\'s desperation and the extreme action he is proposing.', words: ['05-14'] },
+                    { type: 'context', label: 'Impossible Position', effect: 'Silius is trapped: continuing the secret affair risks discovery and death, but openly challenging the emperor is equally dangerous. His proposal to \'break off pretence\' is essentially a gamble with his life.' }
+                ],
+                // Sentence 6: quippe non exspectandum, dum princeps senesceret.
+                [
+                    { type: 'style', label: 'Short Sentence', latin: 'quippe non exspectandum', effect: 'This brief, punchy sentence delivers Silius\'s argument with blunt force. After the complex reasoning of sentence 5, the short length mirrors the simplicity and urgency of his conclusion: act now.', words: ['06-01', '06-02', '06-03'] },
+                    { type: 'style', label: 'Irony', latin: 'princeps senesceret', effect: 'princeps (\'emperor\') \u2014 Silius refers to Claudius by his title rather than his name, yet is plotting against him. The formal language makes the treasonous content all the more shocking.', words: ['06-05', '06-06'] },
+                    { type: 'style', label: 'Word Choice', latin: 'senesceret', effect: 'senesceret (\'grew old\') implies they are simply waiting for Claudius to die naturally. The casual tone about the emperor\'s death reveals how far Silius and Messalina have gone in their contempt for imperial authority.', words: ['06-06'] },
+                    { type: 'context', label: 'Treason', effect: 'Discussing the emperor\'s death \u2014 even his natural death \u2014 and planning around it was treasonous in imperial Rome. Silius is effectively suggesting they wait for (or hasten) Claudius\'s end.' }
+                ]
+            ];
+
             // === Canvas setup ===
             function resizeCanvas(preserveContent) {
                 const rect = workspace.getBoundingClientRect();
@@ -1646,6 +1863,62 @@
             }
             translationBtn.addEventListener('click', toggleTranslation);
 
+            // === Hints panel ===
+            const hintsPanel = document.getElementById('analysisHintsPanel');
+            const hintsBody = document.getElementById('analysisHintsBody');
+            const hintsBtn = document.getElementById('analysisHintsBtn');
+            let hintsOpen = false;
+
+            function toggleHintsPanel() {
+                hintsOpen = !hintsOpen;
+                hintsPanel.classList.toggle('open', hintsOpen);
+                hintsBtn.classList.toggle('active', hintsOpen);
+            }
+
+            function closeHintsPanel() {
+                hintsOpen = false;
+                hintsPanel.classList.remove('open');
+                hintsBtn.classList.remove('active');
+            }
+
+            function clearHintHighlights() {
+                document.querySelectorAll('#analysisLatinLine .hint-highlight').forEach(el => {
+                    el.classList.remove('hint-highlight');
+                });
+            }
+
+            function updateHintsPanel(idx) {
+                hintsBody.innerHTML = '';
+                clearHintHighlights();
+                const hints = sentenceHints[idx] || [];
+                hints.forEach((hint, i) => {
+                    const card = document.createElement('div');
+                    card.className = 'style-hint type-' + hint.type;
+                    card.innerHTML =
+                        '<div class="style-hint-label">' + hint.label + '</div>' +
+                        (hint.latin ? '<div class="style-hint-latin">' + hint.latin + '</div>' : '') +
+                        '<div class="style-hint-effect">' + hint.effect + '</div>';
+                    card.addEventListener('click', () => {
+                        const wasActive = card.classList.contains('active');
+                        hintsBody.querySelectorAll('.style-hint.active').forEach(c => c.classList.remove('active'));
+                        clearHintHighlights();
+                        if (!wasActive) {
+                            card.classList.add('active');
+                            if (hint.words && hint.words.length) {
+                                hint.words.forEach(order => {
+                                    const wg = document.querySelector('#analysisLatinLine .word-group[data-order="' + order + '"]');
+                                    if (wg) wg.classList.add('hint-highlight');
+                                });
+                            }
+                        }
+                    });
+                    hintsBody.appendChild(card);
+                });
+            }
+
+            hintsBtn.addEventListener('click', toggleHintsPanel);
+            document.getElementById('analysisHintsClose').addEventListener('click', closeHintsPanel);
+
             // === Sentence display ===
             function showSentence(idx) {
                 if (analysisActive && currentSentenceIdx !== idx) {
@@ -1688,6 +1961,7 @@
                 });
                 engEl.classList.toggle('hidden-translation', !translationVisible);
 
+                updateHintsPanel(idx);
                 requestAnimationFrame(() => loadAnalysis(idx));
             }
 
@@ -1715,6 +1989,7 @@
 
             function exitAnalysis() {
                 saveAnalysis();
+                closeHintsPanel();
                 analysisActive = false;
                 overlay.classList.remove('active');
                 document.body.style.overflow = '';
@@ -1759,6 +2034,9 @@
                 } else if (e.code === 'KeyS' && (e.ctrlKey || e.metaKey)) {
                     e.preventDefault();
                     saveAnalysis();
+                } else if (e.code === 'KeyH') {
+                    e.preventDefault();
+                    toggleHintsPanel();
                 } else if (e.code === 'KeyT') {
                     e.preventDefault();
                     toggleTranslation();
