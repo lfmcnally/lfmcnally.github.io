@@ -774,6 +774,158 @@
             border-color: #0066ff;
             box-shadow: 0 0 0 2px rgba(0, 102, 255, 0.1);
         }
+
+        /* Analysis Style & Context Hints Panel */
+        .analysis-hints-panel {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 300px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid #e0e0e0;
+            z-index: 25;
+            transform: translateX(100%);
+            transition: transform 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .analysis-hints-panel.open {
+            transform: translateX(0);
+        }
+
+        .analysis-hints-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .analysis-hints-header h4 {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .analysis-hints-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #999;
+            padding: 0 4px;
+            font-family: inherit;
+            line-height: 1;
+        }
+
+        .analysis-hints-close:hover {
+            color: #333;
+        }
+
+        .analysis-hints-body {
+            padding: 10px 14px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .style-hint {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 3px solid;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .style-hint:last-child {
+            margin-bottom: 0;
+        }
+
+        .style-hint:hover {
+            background: #f0f0f0;
+        }
+
+        .style-hint.active {
+            background: #eef4ff;
+        }
+
+        .style-hint.type-style {
+            border-left-color: #0066ff;
+        }
+
+        .style-hint.type-context {
+            border-left-color: #d97706;
+        }
+
+        .style-hint-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .style-hint.type-style .style-hint-label {
+            color: #0066ff;
+        }
+
+        .style-hint.type-context .style-hint-label {
+            color: #b45309;
+        }
+
+        .style-hint-latin {
+            font-size: 0.75rem;
+            font-style: italic;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .style-hint-effect {
+            font-size: 0.78rem;
+            line-height: 1.5;
+            color: #555;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease, margin-top 0.25s ease;
+            margin-top: 0;
+        }
+
+        .style-hint.active .style-hint-effect {
+            max-height: 200px;
+            margin-top: 6px;
+        }
+
+        .analysis-hints-key {
+            display: flex;
+            gap: 14px;
+            padding: 8px 14px;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .analysis-hints-key-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.7rem;
+            color: #888;
+        }
+
+        .analysis-hints-key-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+        }
+
+        .analysis-sentence-display .word-group.hint-highlight .latin-word {
+            box-shadow: 0 0 0 2px #0066ff;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -1125,6 +1277,7 @@
                 <span class="analysis-nav-label" id="analysisNavLabel">Sentence 1 of 6</span>
                 <button class="analysis-btn" id="analysisNextBtn">&#9654;</button>
                 <button class="analysis-btn" id="analysisTranslationBtn" title="Toggle translation (T)">Translation</button>
+                <button class="analysis-btn" id="analysisHintsBtn" title="Style &amp; Context hints (H)">Hints</button>
             </div>
             <div class="analysis-toolbar-section">
                 <button class="analysis-btn" id="analysisSaveBtn">Save</button>
@@ -1179,6 +1332,22 @@
                 <div class="analysis-english-line" id="analysisEnglishLine"></div>
             </div>
             <canvas id="analysisCanvas"></canvas>
+            <!-- Style & Context Hints Panel -->
+            <div class="analysis-hints-panel" id="analysisHintsPanel">
+                <div class="analysis-hints-header">
+                    <h4>Style &amp; Context</h4>
+                    <button class="analysis-hints-close" id="analysisHintsClose">&times;</button>
+                </div>
+                <div class="analysis-hints-body" id="analysisHintsBody"></div>
+                <div class="analysis-hints-key">
+                    <span class="analysis-hints-key-item">
+                        <span class="analysis-hints-key-dot" style="background:#0066ff;"></span> Style
+                    </span>
+                    <span class="analysis-hints-key-item">
+                        <span class="analysis-hints-key-dot" style="background:#d97706;"></span> Context
+                    </span>
+                </div>
+            </div>
         </div>
 
         <!-- Notes panel -->
@@ -1465,6 +1634,46 @@
                 { lines: ['5'], title: 'Sentence 5' }
             ];
 
+            // === Style & Context Hints ===
+            const sentenceHints = [
+                // Sentence 1: atque interim, omnino tribus comitantibus - tam repens erat solitudo - postquam ivit, per urbem pedibus vehiculo, quo purgamenta hortorum eripiuntur, intrat. Ostiensem viam
+                [
+                    { type: 'style', label: 'Parenthesis', latin: 'tam repens erat solitudo', effect: 'The parenthetical aside \'so sudden was the isolation\' interrupts the narrative, forcing the reader to pause and absorb the shocking speed of Messalina\'s abandonment \u2014 from imperial entourage to near-total desertion.', words: ['01-06', '01-07', '01-08', '01-09'] },
+                    { type: 'style', label: 'Degrading Detail', latin: 'vehiculo, quo purgamenta hortorum eripiuntur', effect: 'Tacitus specifies the cart was for removing garden refuse (purgamenta). The unnecessary detail is deliberately humiliating \u2014 an empress now rides in a vehicle designed for rubbish, drawing an implicit parallel between the refuse and her moral state.', words: ['01-15', '01-16', '01-17', '01-18', '01-19'] },
+                    { type: 'style', label: 'Historic Present', latin: 'intrat', effect: 'intrat (\'she enters\') is present tense amid past-tense narration. The sudden shift creates a vivid, cinematic effect \u2014 the reader watches in real time as the rubbish cart turns onto the Ostian road.', words: ['01-20'] },
+                    { type: 'style', label: 'Contrast', latin: 'omnino tribus comitantibus', effect: 'omnino tribus (\'only three\') \u2014 the tiny number of companions is emphasised to contrast with the huge entourage an empress would normally command. The contrast underscores her total fall from power.', words: ['01-03', '01-04', '01-05'] },
+                    { type: 'context', label: 'Reversal of Fortune', effect: 'Messalina recently celebrated a lavish mock-wedding with Silius surrounded by crowds. Now she walks through Rome with only three companions \u2014 a dramatic reversal that Tacitus forces us to register.' }
+                ],
+                // Sentence 2: commovit nullam misericordiam civibus quia deformitas flagitiorum praevalebat.
+                [
+                    { type: 'style', label: 'Litotes', latin: 'nullam misericordiam', effect: 'nullam misericordiam (\'no pity\') \u2014 the emphatic fronting of nullam creates an absolute negation. Not merely little pity, but none whatsoever. The totality of public indifference is devastating.', words: ['02-02', '02-03'] },
+                    { type: 'style', label: 'Word Choice', latin: 'deformitas', effect: 'deformitas (\'ugliness/hideousness\') \u2014 a powerful word that conveys moral repulsiveness, not just physical appearance. Her scandals are presented as visually grotesque, too repellent to inspire sympathy.', words: ['02-06'] },
+                    { type: 'style', label: 'Word Choice', latin: 'praevalebat', effect: 'praevalebat (\'prevailed/overcame\') \u2014 suggests a contest between natural human compassion and disgust at her crimes. Disgust won. The verb implies the citizens tried to feel pity but could not.', words: ['02-08'] },
+                    { type: 'context', label: 'Public Judgement', effect: 'Roman citizens normally showed sympathy for the fallen. That they feel nothing for Messalina tells us how extreme her behaviour has been \u2014 even basic human compassion has been extinguished.' }
+                ],
+                // Sentence 3: et iam erat in aspectu Claudii clamitabatque ut audiret matrem. Octaviae et Britannici
+                [
+                    { type: 'style', label: 'Emotive Language', latin: 'Octaviae et Britannici matrem', effect: 'Messalina defines herself as \'the mother of Octavia and Britannicus\' rather than as Claudius\'s wife. She invokes motherhood as a last emotional weapon, with matrem placed emphatically at the clause end.', words: ['03-11', '03-12', '03-13', '03-10'] },
+                    { type: 'style', label: 'Word Choice', latin: 'clamitabatque', effect: 'clamitabat (\'kept crying out\') \u2014 the frequentative verb suggests repeated, desperate shouting. Not a single dignified appeal but continuous, increasingly frantic calls that went unanswered.', words: ['03-07'] },
+                    { type: 'style', label: 'Dramatic Irony', latin: 'ut audiret', effect: 'ut audiret (\'that he should hear\') \u2014 the reader knows Narcissus will ensure Claudius never truly \'hears\' her. Her desperate plea is doomed before it begins.', words: ['03-08', '03-09'] },
+                    { type: 'context', label: 'Calculated Appeal', effect: 'Messalina cannot appeal as a faithful wife \u2014 that claim is destroyed. Instead she tries motherhood, the one role that might still carry weight. It is her final, most calculated manipulation.' }
+                ],
+                // Sentence 4: Narcissus tamen obstrepuit, referens; Silium et nuptias simul tradidit, codicillos libidinum indices quibus averteret. visus Caesaris
+                [
+                    { type: 'style', label: 'Word Choice', latin: 'obstrepuit', effect: 'obstrepuit (\'drowned out/shouted over\') \u2014 a violent, aggressive verb. Narcissus does not politely interrupt; he overwhelms her voice entirely. One word captures his ruthless control.', words: ['04-03'] },
+                    { type: 'style', label: 'Pace', latin: 'Silium et nuptias referens; simul codicillos... tradidit', effect: 'The rapid accumulation of Narcissus\'s actions \u2014 bringing up Silius, mentioning the marriage, handing over documents \u2014 creates a breathless pace that mirrors his systematic, relentless blocking of every appeal.', words: ['04-04', '04-05', '04-06', '04-07', '04-08', '04-09', '04-10'] },
+                    { type: 'style', label: 'Irony', latin: 'visus Caesaris averteret', effect: 'visus Caesaris averteret (\'might divert Caesar\'s gaze\') \u2014 literally turning Claudius\'s eyes away from Messalina. Narcissus controls what the emperor sees, exposing how manipulable Claudius is.', words: ['04-14', '04-15', '04-16'] },
+                    { type: 'context', label: 'Freedman Power', effect: 'Narcissus is a freedman (former slave) controlling access to the emperor. That an ex-slave can silence an empress reveals how real power in Claudius\'s court works \u2014 through proximity and manipulation, not rank.' }
+                ],
+                // Sentence 5: nec multo post ingredienti urbem liberi, offerebantur sed Narcissus iussit. eos amoveri
+                [
+                    { type: 'style', label: 'Contrast', latin: 'offerebantur... amoveri', effect: 'The children are \'presented\' (offerebantur) then immediately \'removed\' (amoveri). The sharp contrast between these two verbs captures how swiftly Narcissus neutralises every emotional appeal.', words: ['05-07', '05-12'] },
+                    { type: 'style', label: 'Word Choice', latin: 'amoveri', effect: 'amoveri (\'to be removed\') \u2014 a cold, impersonal verb used for removing objects, not children. The word strips the scene of all emotion, reflecting Narcissus\'s clinical ruthlessness.', words: ['05-12'] },
+                    { type: 'style', label: 'Dramatic Irony', latin: 'liberi', effect: 'liberi (\'children\') \u2014 Octavia and Britannicus are deployed as emotional weapons, but the reader knows this final appeal will also fail. Every weapon in Messalina\'s arsenal has been anticipated and neutralised.', words: ['05-06'] },
+                    { type: 'context', label: 'Systematic Blocking', effect: 'Narcissus blocks every channel: he drowns out her voice, diverts Claudius\'s eyes with documents, and now removes the children. The pattern is complete \u2014 she cannot reach Claudius through any means.' }
+                ]
+            ];
+
             // === Canvas setup ===
             function resizeCanvas(preserveContent) {
                 const rect = workspace.getBoundingClientRect();
@@ -1647,6 +1856,62 @@
             }
             translationBtn.addEventListener('click', toggleTranslation);
 
+            // === Hints panel ===
+            const hintsPanel = document.getElementById('analysisHintsPanel');
+            const hintsBody = document.getElementById('analysisHintsBody');
+            const hintsBtn = document.getElementById('analysisHintsBtn');
+            let hintsOpen = false;
+
+            function toggleHintsPanel() {
+                hintsOpen = !hintsOpen;
+                hintsPanel.classList.toggle('open', hintsOpen);
+                hintsBtn.classList.toggle('active', hintsOpen);
+            }
+
+            function closeHintsPanel() {
+                hintsOpen = false;
+                hintsPanel.classList.remove('open');
+                hintsBtn.classList.remove('active');
+            }
+
+            function clearHintHighlights() {
+                document.querySelectorAll('#analysisLatinLine .hint-highlight').forEach(el => {
+                    el.classList.remove('hint-highlight');
+                });
+            }
+
+            function updateHintsPanel(idx) {
+                hintsBody.innerHTML = '';
+                clearHintHighlights();
+                const hints = sentenceHints[idx] || [];
+                hints.forEach((hint, i) => {
+                    const card = document.createElement('div');
+                    card.className = 'style-hint type-' + hint.type;
+                    card.innerHTML =
+                        '<div class="style-hint-label">' + hint.label + '</div>' +
+                        (hint.latin ? '<div class="style-hint-latin">' + hint.latin + '</div>' : '') +
+                        '<div class="style-hint-effect">' + hint.effect + '</div>';
+                    card.addEventListener('click', () => {
+                        const wasActive = card.classList.contains('active');
+                        hintsBody.querySelectorAll('.style-hint.active').forEach(c => c.classList.remove('active'));
+                        clearHintHighlights();
+                        if (!wasActive) {
+                            card.classList.add('active');
+                            if (hint.words && hint.words.length) {
+                                hint.words.forEach(order => {
+                                    const wg = document.querySelector('#analysisLatinLine .word-group[data-order="' + order + '"]');
+                                    if (wg) wg.classList.add('hint-highlight');
+                                });
+                            }
+                        }
+                    });
+                    hintsBody.appendChild(card);
+                });
+            }
+
+            hintsBtn.addEventListener('click', toggleHintsPanel);
+            document.getElementById('analysisHintsClose').addEventListener('click', closeHintsPanel);
+
             // === Sentence display ===
             function showSentence(idx) {
                 if (analysisActive && currentSentenceIdx !== idx) {
@@ -1689,6 +1954,7 @@
                 });
                 engEl.classList.toggle('hidden-translation', !translationVisible);
 
+                updateHintsPanel(idx);
                 requestAnimationFrame(() => loadAnalysis(idx));
             }
 
@@ -1716,6 +1982,7 @@
 
             function exitAnalysis() {
                 saveAnalysis();
+                closeHintsPanel();
                 analysisActive = false;
                 overlay.classList.remove('active');
                 document.body.style.overflow = '';
@@ -1760,6 +2027,9 @@
                 } else if (e.code === 'KeyS' && (e.ctrlKey || e.metaKey)) {
                     e.preventDefault();
                     saveAnalysis();
+                } else if (e.code === 'KeyH') {
+                    e.preventDefault();
+                    toggleHintsPanel();
                 } else if (e.code === 'KeyT') {
                     e.preventDefault();
                     toggleTranslation();
