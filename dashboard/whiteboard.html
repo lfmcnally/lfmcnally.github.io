@@ -563,6 +563,7 @@
 
     // Broadcast throttle (limit to ~30 updates/sec to avoid overwhelming realtime)
     let lastBroadcastTime = 0;
+    let lastBroadcastPoint = null; // Last point that was actually sent via broadcast
     const BROADCAST_INTERVAL = 33; // ms
 
     // ============================================
@@ -823,6 +824,7 @@
         };
 
         lastPoint = { x: e.offsetX, y: e.offsetY };
+        lastBroadcastPoint = { x: e.offsetX / canvas.width, y: e.offsetY / canvas.height };
     }
 
     function draw(e) {
@@ -840,6 +842,7 @@
         );
 
         // Broadcast the point (throttled to ~30fps)
+        // Use lastBroadcastPoint so the receiver gets connected segments with no gaps
         const now = Date.now();
         if (channel && channelSubscribed && now - lastBroadcastTime >= BROADCAST_INTERVAL) {
             lastBroadcastTime = now;
@@ -847,8 +850,8 @@
                 type: 'broadcast',
                 event: 'draw',
                 payload: {
-                    x1: lastPoint.x / canvas.width,
-                    y1: lastPoint.y / canvas.height,
+                    x1: lastBroadcastPoint.x,
+                    y1: lastBroadcastPoint.y,
                     x2: x,
                     y2: y,
                     tool: currentStroke.tool,
@@ -859,6 +862,7 @@
                     userName: currentStroke.userName
                 }
             }).then(r => { if (r !== 'ok') debugLog(`draw send failed: ${r}`); });
+            lastBroadcastPoint = { x, y };
         }
 
         lastPoint = { x: e.offsetX, y: e.offsetY };
