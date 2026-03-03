@@ -661,6 +661,9 @@
         // Set up canvas
         setupCanvas();
 
+        // Load existing strokes from DB (handles late join / refresh)
+        await loadStrokesFromDB();
+
         // Load students
         await loadClassStudents();
 
@@ -712,6 +715,10 @@
         updateFreezeUI();
 
         setupCanvas();
+
+        // Load existing strokes from DB (handles late join / refresh)
+        await loadStrokesFromDB();
+
         connectToChannel();
     }
 
@@ -862,16 +869,22 @@
         isDrawing = false;
 
         if (currentStroke && currentStroke.points.length > 0) {
-            strokes.push(currentStroke);
+            const completedStroke = currentStroke;
+            strokes.push(completedStroke);
 
-            // Broadcast stroke complete (full stroke for remote redraw + undo tracking)
+            // Save to database (source of truth for late joiners / refresh)
+            saveStrokeToDB(completedStroke).then(dbId => {
+                if (dbId) completedStroke.dbId = dbId;
+            });
+
+            // Broadcast stroke complete (real-time visual update for connected users)
             if (channel && channelSubscribed) {
-                debugLog(`SEND stroke_complete (${currentStroke.points.length} pts)`);
+                debugLog('SEND stroke_complete (' + completedStroke.points.length + ' pts)');
                 channel.send({
                     type: 'broadcast',
                     event: 'stroke_complete',
-                    payload: { stroke: currentStroke }
-                }).then(r => { debugLog(`stroke_complete result: ${r}`); });
+                    payload: { stroke: completedStroke }
+                }).then(r => { debugLog('stroke_complete result: ' + r); });
             }
         }
         currentStroke = null;
@@ -937,6 +950,86 @@
     }
 
     // ============================================
+    // STROKE PERSISTENCE (Database)
+    // ============================================
+    async function loadStrokesFromDB() {
+        if (!sessionId) return;
+        debugLog('Loading strokes from DB...');
+
+        const { data, error } = await supabase
+            .from('whiteboard_strokes')
+            .select('id, stroke_data')
+            .eq('session_id', sessionId)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            debugLog('Error loading strokes: ' + error.message);
+            return;
+        }
+
+        if (data && data.length > 0) {
+            strokes = data.map(row => {
+                const s = row.stroke_data;
+                s.dbId = row.id;
+                return s;
+            });
+            redrawAllStrokes();
+            debugLog('Loaded ' + strokes.length + ' strokes from DB');
+        } else {
+            debugLog('No existing strokes in DB');
+        }
+    }
+
+    async function saveStrokeToDB(stroke) {
+        if (!sessionId) return null;
+
+        const { data, error } = await supabase
+            .from('whiteboard_strokes')
+            .insert({
+                session_id: sessionId,
+                user_id: currentUser.id,
+                stroke_data: {
+                    tool: stroke.tool,
+                    color: stroke.color,
+                    size: stroke.size,
+                    opacity: stroke.opacity,
+                    points: stroke.points,
+                    userId: stroke.userId,
+                    userName: stroke.userName
+                }
+            })
+            .select('id')
+            .single();
+
+        if (error) {
+            debugLog('Error saving stroke: ' + error.message);
+            return null;
+        }
+
+        return data.id;
+    }
+
+    async function deleteAllStrokesFromDB() {
+        if (!sessionId) return;
+        const { error } = await supabase
+            .from('whiteboard_strokes')
+            .delete()
+            .eq('session_id', sessionId);
+
+        if (error) debugLog('Error clearing strokes: ' + error.message);
+    }
+
+    async function deleteStrokeFromDB(dbId) {
+        if (!dbId) return;
+        const { error } = await supabase
+            .from('whiteboard_strokes')
+            .delete()
+            .eq('id', dbId);
+
+        if (error) debugLog('Error deleting stroke: ' + error.message);
+    }
+
+    // ============================================
     // TOOLS
     // ============================================
     function setTool(tool) {
@@ -966,8 +1059,11 @@
         // Only undo own strokes
         for (let i = strokes.length - 1; i >= 0; i--) {
             if (strokes[i].userId === currentUser.id) {
-                strokes.splice(i, 1);
+                const removed = strokes.splice(i, 1)[0];
                 redrawAllStrokes();
+
+                // Remove from DB
+                if (removed.dbId) deleteStrokeFromDB(removed.dbId);
 
                 // Broadcast undo
                 if (channel) {
@@ -988,6 +1084,9 @@
 
         strokes = [];
         redrawAllStrokes();
+
+        // Clear from DB
+        deleteAllStrokesFromDB();
 
         if (channel && channelSubscribed) {
             channel.send({
@@ -1184,23 +1283,21 @@
     // REALTIME CONNECTION
     // ============================================
     function connectToChannel() {
-        const channelName = `whiteboard:${sessionId}`;
-        debugLog(`Joining channel: ${channelName}`);
-        debugLog(`Session ID: ${sessionId}`);
-        debugLog(`User: ${currentUser.id} (${isTeacher ? 'teacher' : 'student'})`);
+        const channelName = 'whiteboard:' + sessionId;
+        debugLog('Joining channel: ' + channelName);
+        debugLog('Session ID: ' + sessionId);
+        debugLog('User: ' + currentUser.id + ' (' + (isTeacher ? 'teacher' : 'student') + ')');
 
         channel = supabase.channel(channelName, {
             config: {
-                broadcast: { self: true },
+                broadcast: { self: false },
                 presence: { key: currentUser.id }
             }
         });
 
-        // Listen for drawing events
+        // Listen for real-time drawing segments (fast visual feedback)
         channel.on('broadcast', { event: 'draw' }, ({ payload }) => {
-            // Skip own messages (self:true is on for diagnostics)
             if (payload.userId === currentUser.id) return;
-            debugLog(`RECV draw from ${payload.userName || payload.userId}`);
             const x1 = payload.x1 * canvas.width;
             const y1 = payload.y1 * canvas.height;
             const x2 = payload.x2 * canvas.width;
@@ -1208,15 +1305,12 @@
             drawSegment(x1, y1, x2, y2, payload);
         });
 
-        // Listen for completed strokes — redraw the full stroke to fill in throttled gaps
+        // Listen for completed strokes — adds to strokes array for persistence
         channel.on('broadcast', { event: 'stroke_complete' }, ({ payload }) => {
-            // Skip own messages (self:true is on for diagnostics)
             if (payload.stroke.userId === currentUser.id) return;
-            debugLog(`RECV stroke_complete from ${payload.stroke.userName || payload.stroke.userId} (${payload.stroke.points.length} pts)`);
+            debugLog('RECV stroke_complete from ' + (payload.stroke.userName || payload.stroke.userId));
             strokes.push(payload.stroke);
-            // Redraw the full stroke so any points skipped by throttle are filled in
             drawFullStroke(payload.stroke);
-            // Store user name for attribution
             if (payload.stroke.userName) {
                 userNames[payload.stroke.userId] = payload.stroke.userName;
             }
@@ -1224,7 +1318,6 @@
 
         // Listen for undo
         channel.on('broadcast', { event: 'undo' }, ({ payload }) => {
-            // Remove last stroke from this user
             for (let i = strokes.length - 1; i >= 0; i--) {
                 if (strokes[i].userId === payload.userId) {
                     strokes.splice(i, 1);
@@ -1269,9 +1362,8 @@
             window.history.back();
         });
 
-        // Presence tracking - sync gives full state
+        // Presence tracking
         channel.on('presence', { event: 'sync' }, () => {
-            debugLog('Presence sync fired');
             const state = channel.presenceState();
             onlineUsers = {};
             Object.values(state).forEach(presences => {
@@ -1282,10 +1374,9 @@
             updateStudentListUI();
         });
 
-        // Presence - join/leave for immediate updates
         channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
             newPresences.forEach(p => {
-                debugLog(`Presence JOIN: ${p.userName} (${p.userId})`);
+                debugLog('Presence JOIN: ' + p.userName);
                 onlineUsers[p.userId] = { name: p.userName };
             });
             updateStudentListUI();
@@ -1298,13 +1389,8 @@
             updateStudentListUI();
         });
 
-        // Listen for test ping (diagnostic)
-        channel.on('broadcast', { event: 'ping' }, ({ payload }) => {
-            debugLog(`RECV ping from ${payload.from} (self=${payload.from === currentUser.id})`);
-        });
-
         channel.subscribe(async (status) => {
-            debugLog(`Channel status: ${status}`);
+            debugLog('Channel status: ' + status);
             if (status === 'SUBSCRIBED') {
                 channelSubscribed = true;
                 updateConnectionBadge('Connected', '#10b981');
@@ -1315,18 +1401,17 @@
                     isTeacher: isTeacher
                 });
                 debugLog('Presence tracked');
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                channelSubscribed = false;
+                updateConnectionBadge(status === 'CHANNEL_ERROR' ? 'Error' : 'Timeout', '#ef4444');
+                debugLog('Channel error/timeout — will reload strokes from DB on reconnect');
 
-                // Send a test ping to verify broadcast works
-                const pingResult = await channel.send({
-                    type: 'broadcast',
-                    event: 'ping',
-                    payload: { from: currentUser.id, name: userProfile.full_name, time: Date.now() }
-                });
-                debugLog(`Test ping sent, result: ${pingResult}`);
-            } else if (status === 'CHANNEL_ERROR') {
-                updateConnectionBadge('Error', '#ef4444');
-            } else if (status === 'TIMED_OUT') {
-                updateConnectionBadge('Timeout', '#ef4444');
+                // Attempt reconnect after delay, then reload state from DB
+                setTimeout(async () => {
+                    debugLog('Attempting reconnect...');
+                    channel.subscribe();
+                    await loadStrokesFromDB();
+                }, 3000);
             } else {
                 updateConnectionBadge(status, '#f59e0b');
             }
