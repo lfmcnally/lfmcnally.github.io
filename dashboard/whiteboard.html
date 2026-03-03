@@ -163,6 +163,112 @@
             background: #94a3b8;
         }
 
+        /* ============ STUDENT COLOR INDICATOR ============ */
+        .color-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0 0.5rem;
+        }
+        .color-indicator-dot {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
+        }
+        .color-indicator-label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Student color dot in teacher panel */
+        .student-color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        /* ============ PAGE NAVIGATION ============ */
+        .page-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.3rem 0.75rem;
+            background: #16213e;
+            border-bottom: 1px solid #0f3460;
+            height: 36px;
+        }
+        .page-btn {
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            border: 1px solid #0f3460;
+            background: none;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .page-btn:hover { background: rgba(255,255,255,0.08); color: white; }
+        .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .page-btn.add-page {
+            color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        .page-btn.add-page:hover { background: rgba(59,130,246,0.15); }
+        .page-info {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 600;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        /* ============ VIEWPORT CONTROLS ============ */
+        .viewport-controls {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            display: flex;
+            gap: 4px;
+            z-index: 10;
+        }
+        .viewport-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #475569;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .viewport-btn:hover { background: #f1f5f9; color: #1e293b; }
+        .viewport-info {
+            height: 32px;
+            padding: 0 8px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            color: #475569;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
         /* ============ CANVAS ============ */
         .canvas-wrapper {
             position: relative;
@@ -391,6 +497,8 @@
             .teacher-panel { width: 100%; position: fixed; bottom: 0; left: 0; right: 0; height: 45vh; z-index: 50; border-left: none; border-top: 1px solid #0f3460; }
             .teacher-panel.hidden { display: none; }
             .toolbar { overflow-x: auto; }
+            .page-nav { gap: 0.3rem; }
+            .page-btn { padding: 0.15rem 0.4rem; font-size: 0.7rem; }
         }
     </style>
 </head>
@@ -439,6 +547,7 @@
                 <button class="tool-btn" data-tool="eraser" onclick="setTool('eraser')" title="Eraser">&#9003;</button>
             </div>
             <div class="tool-divider"></div>
+            <!-- Color swatches (teacher only - hidden for students) -->
             <div class="tool-group" id="colorSwatches">
                 <div class="color-swatch active" data-color="#000000" style="background:#000000;" onclick="setColor('#000000')"></div>
                 <div class="color-swatch" data-color="#ef4444" style="background:#ef4444;" onclick="setColor('#ef4444')"></div>
@@ -448,6 +557,11 @@
                 <div class="color-swatch" data-color="#8b5cf6" style="background:#8b5cf6;" onclick="setColor('#8b5cf6')"></div>
                 <div class="color-swatch" data-color="#ec4899" style="background:#ec4899;" onclick="setColor('#ec4899')"></div>
                 <div class="color-swatch" data-color="#ffffff" style="background:#ffffff; border: 1px solid #ccc;" onclick="setColor('#ffffff')"></div>
+            </div>
+            <!-- Student assigned color indicator (shown instead of swatches for students) -->
+            <div class="color-indicator" id="studentColorIndicator" style="display:none;">
+                <div class="color-indicator-dot" id="studentColorDot"></div>
+                <span class="color-indicator-label">Your colour</span>
             </div>
             <div class="tool-divider"></div>
             <div class="tool-group">
@@ -459,8 +573,16 @@
             <div class="tool-divider"></div>
             <div class="tool-group">
                 <button class="tool-btn" onclick="undoLast()" title="Undo">&#8630;</button>
-                <button class="tool-btn danger" onclick="clearCanvas()" title="Clear all">&#128465;</button>
+                <button class="tool-btn danger" onclick="clearCanvas()" title="Clear page">&#128465;</button>
             </div>
+        </div>
+
+        <!-- Page navigation bar -->
+        <div class="page-nav" id="pageNav">
+            <button class="page-btn" id="prevPageBtn" onclick="prevPage()" disabled>&#x25C0; Prev</button>
+            <span class="page-info" id="pageInfo">Page 1 / 1</span>
+            <button class="page-btn" id="nextPageBtn" onclick="nextPage()" disabled>Next &#x25B6;</button>
+            <button class="page-btn add-page" id="addPageBtn" onclick="addPage()" style="display:none;">+ Add Page</button>
         </div>
 
         <!-- Main drawing area + teacher panel -->
@@ -468,6 +590,13 @@
             <div class="canvas-wrapper" id="canvasWrapper">
                 <canvas id="whiteboard"></canvas>
                 <div class="frozen-overlay" id="frozenOverlay">&#10052; Board is frozen</div>
+                <!-- Viewport controls (teacher only) -->
+                <div class="viewport-controls" id="viewportControls" style="display:none;">
+                    <button class="viewport-btn" onclick="zoomOut()" title="Zoom out">&#x2212;</button>
+                    <span class="viewport-info" id="zoomInfo">100%</span>
+                    <button class="viewport-btn" onclick="zoomIn()" title="Zoom in">+</button>
+                    <button class="viewport-btn" onclick="resetView()" title="Reset view">&#x21BA;</button>
+                </div>
             </div>
             <div class="teacher-panel hidden" id="teacherPanel">
                 <div class="panel-section">
@@ -479,7 +608,7 @@
                         &#9998; Allow All to Draw
                     </button>
                     <button class="panel-btn panel-btn-danger" onclick="clearCanvas()">
-                        &#128465; Clear Board
+                        &#128465; Clear Page
                     </button>
                     <button class="panel-btn panel-btn-danger" onclick="endSession()">
                         &#9632; End Session
@@ -547,7 +676,7 @@
     let currentSize = 2;
     let isFrozen = false;
     let canDraw = false; // Whether this user can currently draw
-    let strokes = []; // All strokes for undo
+    let strokes = []; // All strokes (all pages)
     let currentStroke = null;
     let lastPoint = null;
 
@@ -567,6 +696,123 @@
     let smoothMidPoint = null; // Last midpoint for smooth curve drawing
     let remoteDrawState = {}; // Track remote users' in-progress drawing state for smooth curves
     const BROADCAST_INTERVAL = 33; // ms
+
+    // ============================================
+    // STUDENT COLORS
+    // ============================================
+    const STUDENT_COLORS = [
+        '#ef4444', '#3b82f6', '#10b981', '#f59e0b',
+        '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
+        '#84cc16', '#14b8a6', '#e11d48', '#6366f1',
+        '#a855f7', '#0ea5e9', '#d946ef', '#22c55e'
+    ];
+    let studentColorMap = {}; // studentId -> assigned color
+    let myAssignedColor = null; // This student's assigned color (null for teacher)
+
+    // ============================================
+    // PAGE NAVIGATION
+    // ============================================
+    let currentPage = 1;
+    let totalPages = 1;
+
+    // ============================================
+    // VIEWPORT (infinite canvas)
+    // ============================================
+    const MIN_ZOOM = 0.25;
+    const MAX_ZOOM = 5;
+    let panX = 0, panY = 0, zoom = 1;
+    let isPanning = false;
+    let panStartX = 0, panStartY = 0;
+    let panStartPanX = 0, panStartPanY = 0;
+    let activeTouches = 0;
+    let touchStartDist = null;
+    let touchStartMid = null;
+    let touchStartPan = null;
+    let touchStartZoom = null;
+    let lastViewportBroadcast = 0;
+    let spaceDown = false; // Spacebar held for pan mode
+    let rafPending = false; // requestAnimationFrame guard for pan/zoom redraw
+
+    // ============================================
+    // VIEWPORT HELPERS
+    // ============================================
+    function screenToWorld(sx, sy) {
+        return {
+            x: (sx - panX) / zoom,
+            y: (sy - panY) / zoom
+        };
+    }
+
+    function applyViewport() {
+        ctx.setTransform(zoom, 0, 0, zoom, panX, panY);
+    }
+
+    function resetTransform() {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    function clampZoom(z) {
+        return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
+    }
+
+    function zoomAtPoint(newZoom, cx, cy) {
+        newZoom = clampZoom(newZoom);
+        const worldBefore = screenToWorld(cx, cy);
+        zoom = newZoom;
+        const worldAfter = screenToWorld(cx, cy);
+        panX += (worldAfter.x - worldBefore.x) * zoom;
+        panY += (worldAfter.y - worldBefore.y) * zoom;
+        updateZoomUI();
+        redrawAllStrokes();
+        broadcastViewport();
+    }
+
+    function getDefaultCursor() {
+        return canDraw ? (currentTool === 'eraser' ? 'cell' : 'crosshair') : 'default';
+    }
+
+    function resetViewport() {
+        panX = 0; panY = 0; zoom = 1;
+        updateZoomUI();
+    }
+
+    // ============================================
+    // STUDENT COLOR HELPERS
+    // ============================================
+    function assignStudentColors(memberIds) {
+        studentColorMap = {};
+        memberIds.forEach((id, i) => {
+            studentColorMap[id] = STUDENT_COLORS[i % STUDENT_COLORS.length];
+        });
+
+        // Set own color if student
+        if (!isTeacher && currentUser) {
+            myAssignedColor = studentColorMap[currentUser.id] || STUDENT_COLORS[0];
+            currentColor = myAssignedColor;
+            showStudentColorIndicator();
+        }
+    }
+
+    async function loadStudentColor() {
+        // Lightweight version for students — single query to find own color index
+        const { data: members } = await supabase
+            .from('class_members')
+            .select('student_id')
+            .eq('class_id', classId)
+            .order('created_at', { ascending: true });
+
+        if (!members) return;
+        assignStudentColors(members.map(m => m.student_id));
+    }
+
+    function showStudentColorIndicator() {
+        if (isTeacher || !myAssignedColor) return;
+        // Hide teacher color swatches, show student's assigned color
+        document.getElementById('colorSwatches').style.display = 'none';
+        const indicator = document.getElementById('studentColorIndicator');
+        indicator.style.display = 'flex';
+        document.getElementById('studentColorDot').style.background = myAssignedColor;
+    }
 
     // ============================================
     // INIT
@@ -652,14 +898,18 @@
         sessionId = session.id;
         isFrozen = session.is_frozen;
         canDraw = true; // Teacher can always draw
+        totalPages = session.total_pages || 1;
 
         // Show the UI
         showWhiteboard();
         document.getElementById('sessionTitle').textContent = className + ' - Whiteboard';
         document.getElementById('teacherPanel').classList.remove('hidden');
         document.getElementById('togglePanelBtn').style.display = '';
+        document.getElementById('addPageBtn').style.display = '';
+        document.getElementById('viewportControls').style.display = 'flex';
         updateFreezeUI();
         updateAllowAllUI(session.allow_all_students);
+        updatePageUI();
 
         // Set up canvas
         setupCanvas();
@@ -667,7 +917,7 @@
         // Load existing strokes from DB (handles late join / refresh)
         await loadStrokesFromDB();
 
-        // Load students
+        // Load students (also assigns colors)
         await loadClassStudents();
 
         // Connect to realtime
@@ -699,6 +949,7 @@
         sessionId = session.id;
         isFrozen = session.is_frozen;
         canDraw = session.allow_all_students;
+        totalPages = session.total_pages || 1;
 
         // Check individual permission
         if (!canDraw) {
@@ -716,11 +967,15 @@
         document.getElementById('sessionTitle').textContent = className + ' - Whiteboard';
         updateToolbarVisibility();
         updateFreezeUI();
+        updatePageUI();
 
         setupCanvas();
 
         // Load existing strokes from DB (handles late join / refresh)
         await loadStrokesFromDB();
+
+        // Load student color assignment
+        await loadStudentColor();
 
         connectToChannel();
     }
@@ -763,41 +1018,176 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // Use Pointer Events (works across mouse, touch, pen, trackpad, Chromebook)
-        canvas.addEventListener('pointerdown', handlePointer(startDrawing));
-        canvas.addEventListener('pointermove', handlePointer(draw));
-        canvas.addEventListener('pointerup', handlePointer(stopDrawing));
-        canvas.addEventListener('pointerleave', handlePointer(stopDrawing));
-        canvas.addEventListener('pointercancel', handlePointer(stopDrawing));
+        // Use Pointer Events for drawing (works across mouse, touch, pen, trackpad)
+        canvas.addEventListener('pointerdown', handlePointerDown);
+        canvas.addEventListener('pointermove', handlePointerMove);
+        canvas.addEventListener('pointerup', handlePointerUp);
+        canvas.addEventListener('pointerleave', handlePointerUp);
+        canvas.addEventListener('pointercancel', handlePointerUp);
 
-        // Prevent default touch behaviour (scrolling, zooming) on canvas
-        canvas.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
-        canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+        // Touch handlers for two-finger pan/zoom (teacher) and preventing scroll
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+        canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+        // Wheel zoom (teacher only)
+        canvas.addEventListener('wheel', handleWheel, { passive: false });
+
+        // Spacebar for pan mode (desktop teacher)
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && isTeacher && !e.repeat) {
+                e.preventDefault();
+                spaceDown = true;
+                canvas.style.cursor = 'grab';
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') {
+                spaceDown = false;
+                if (!isPanning) {
+                    canvas.style.cursor = getDefaultCursor();
+                }
+            }
+        });
     }
 
     function resizeCanvas() {
         const wrapper = document.getElementById('canvasWrapper');
         const rect = wrapper.getBoundingClientRect();
-
-        // Save current drawing
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
         canvas.width = rect.width;
         canvas.height = rect.height;
-
-        // Restore drawing
-        ctx.putImageData(imageData, 0, 0);
-
-        // Redraw all strokes to handle any size changes
         redrawAllStrokes();
     }
 
-    function handlePointer(handler) {
-        return function(e) {
-            e.preventDefault();
-            // Pointer events already have offsetX/offsetY, so pass directly
-            handler(e);
-        };
+    // ============================================
+    // POINTER EVENT HANDLERS
+    // ============================================
+    function handlePointerDown(e) {
+        e.preventDefault();
+        // If spacebar held or middle mouse, start panning instead of drawing
+        if (isTeacher && (spaceDown || e.button === 1)) {
+            isPanning = true;
+            panStartX = e.clientX;
+            panStartY = e.clientY;
+            panStartPanX = panX;
+            panStartPanY = panY;
+            canvas.style.cursor = 'grabbing';
+            return;
+        }
+        // Don't start drawing during multi-touch
+        if (activeTouches >= 2) return;
+        if (e.button !== 0) return; // Only left click for drawing
+        startDrawing(e);
+    }
+
+    function handlePointerMove(e) {
+        e.preventDefault();
+        if (isPanning) {
+            panX = panStartPanX + (e.clientX - panStartX);
+            panY = panStartPanY + (e.clientY - panStartY);
+            scheduleRedraw();
+            return;
+        }
+        if (activeTouches >= 2) return;
+        draw(e);
+    }
+
+    function scheduleRedraw() {
+        if (rafPending) return;
+        rafPending = true;
+        requestAnimationFrame(() => {
+            rafPending = false;
+            redrawAllStrokes();
+        });
+    }
+
+    function handlePointerUp(e) {
+        e.preventDefault();
+        if (isPanning && (e.button === 1 || !spaceDown)) {
+            isPanning = false;
+            canvas.style.cursor = spaceDown ? 'grab' : getDefaultCursor();
+            broadcastViewport(true);
+            return;
+        }
+        if (activeTouches >= 2) return;
+        stopDrawing();
+    }
+
+    // ============================================
+    // TOUCH HANDLERS (two-finger pan/zoom)
+    // ============================================
+    function handleTouchStart(e) {
+        e.preventDefault();
+        activeTouches = e.touches.length;
+
+        if (activeTouches >= 2 && isTeacher) {
+            // Cancel any drawing in progress
+            if (isDrawing) {
+                isDrawing = false;
+                currentStroke = null;
+                lastPoint = null;
+                smoothMidPoint = null;
+            }
+            const t1 = e.touches[0], t2 = e.touches[1];
+            touchStartDist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+            touchStartMid = { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+            touchStartPan = { x: panX, y: panY };
+            touchStartZoom = zoom;
+        }
+    }
+
+    function handleTouchMove(e) {
+        e.preventDefault();
+        if (e.touches.length >= 2 && isTeacher && touchStartDist !== null) {
+            const t1 = e.touches[0], t2 = e.touches[1];
+            const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+            const mid = { x: (t1.clientX + t2.clientX) / 2, y: (t1.clientY + t2.clientY) / 2 };
+
+            // Pinch zoom
+            const scale = dist / touchStartDist;
+            const newZoom = clampZoom(touchStartZoom * scale);
+
+            // Pan
+            const dx = mid.x - touchStartMid.x;
+            const dy = mid.y - touchStartMid.y;
+
+            // Zoom toward pinch center
+            const rect = canvas.getBoundingClientRect();
+            const cx = touchStartMid.x - rect.left;
+            const cy = touchStartMid.y - rect.top;
+
+            const worldX = (cx - touchStartPan.x) / touchStartZoom;
+            const worldY = (cy - touchStartPan.y) / touchStartZoom;
+            zoom = newZoom;
+            panX = cx - worldX * zoom + dx;
+            panY = cy - worldY * zoom + dy;
+
+            updateZoomUI();
+            scheduleRedraw();
+
+            broadcastViewport();
+        }
+    }
+
+    function handleTouchEnd(e) {
+        e.preventDefault();
+        const prevTouches = activeTouches;
+        activeTouches = e.touches.length;
+
+        if (prevTouches >= 2 && activeTouches < 2 && touchStartDist !== null) {
+            touchStartDist = null;
+            broadcastViewport(true);
+        }
+    }
+
+    // ============================================
+    // WHEEL ZOOM (teacher only)
+    // ============================================
+    function handleWheel(e) {
+        if (!isTeacher) return;
+        e.preventDefault();
+        const factor = e.deltaY > 0 ? 0.9 : 1.1;
+        zoomAtPoint(zoom * factor, e.offsetX, e.offsetY);
     }
 
     // ============================================
@@ -812,48 +1202,61 @@
         if (!userCanDraw()) return;
 
         isDrawing = true;
-        const x = e.offsetX / canvas.width;
-        const y = e.offsetY / canvas.height;
+        const world = screenToWorld(e.offsetX, e.offsetY);
+        const x = world.x / canvas.width;
+        const y = world.y / canvas.height;
+
+        // Force student color (students must use their assigned colour)
+        let strokeColor;
+        if (currentTool === 'eraser') {
+            strokeColor = '#ffffff';
+        } else if (!isTeacher && myAssignedColor) {
+            strokeColor = myAssignedColor;
+        } else {
+            strokeColor = currentColor;
+        }
 
         currentStroke = {
             tool: currentTool,
-            color: currentTool === 'eraser' ? '#ffffff' : currentColor,
+            color: strokeColor,
             size: currentTool === 'highlighter' ? currentSize * 3 : (currentTool === 'eraser' ? currentSize * 4 : currentSize),
             opacity: currentTool === 'highlighter' ? 0.3 : 1,
             points: [{ x, y }],
+            page: currentPage,
             userId: currentUser.id,
             userName: userProfile.full_name || 'Unknown'
         };
 
-        lastPoint = { x: e.offsetX, y: e.offsetY };
+        lastPoint = { x: world.x, y: world.y };
         smoothMidPoint = null;
-        lastBroadcastPoint = { x: e.offsetX / canvas.width, y: e.offsetY / canvas.height };
+        lastBroadcastPoint = { x, y };
     }
 
     function draw(e) {
         if (!isDrawing || !currentStroke) return;
 
-        const x = e.offsetX / canvas.width;
-        const y = e.offsetY / canvas.height;
+        const world = screenToWorld(e.offsetX, e.offsetY);
+        const x = world.x / canvas.width;
+        const y = world.y / canvas.height;
         currentStroke.points.push({ x, y });
 
-        // Draw locally using smooth curves
-        const px = e.offsetX;
-        const py = e.offsetY;
+        // Draw locally using smooth curves (world pixel coordinates)
+        const px = world.x;
+        const py = world.y;
         const midX = (lastPoint.x + px) / 2;
         const midY = (lastPoint.y + py) / 2;
 
+        // Apply viewport transform for drawing
+        applyViewport();
         if (smoothMidPoint === null) {
-            // 2nd point: line from start to first midpoint
             drawSegment(lastPoint.x, lastPoint.y, midX, midY, currentStroke);
         } else {
-            // 3rd+ point: quadratic curve from previous midpoint through lastPoint to new midpoint
             drawCurveSegment(smoothMidPoint.x, smoothMidPoint.y, lastPoint.x, lastPoint.y, midX, midY, currentStroke);
         }
+        resetTransform();
         smoothMidPoint = { x: midX, y: midY };
 
         // Broadcast the point (throttled to ~30fps)
-        // Use lastBroadcastPoint so the receiver gets connected segments with no gaps
         const now = Date.now();
         if (channel && channelSubscribed && now - lastBroadcastTime >= BROADCAST_INTERVAL) {
             lastBroadcastTime = now;
@@ -869,6 +1272,7 @@
                     color: currentStroke.color,
                     size: currentStroke.size,
                     opacity: currentStroke.opacity,
+                    page: currentPage,
                     userId: currentUser.id,
                     userName: currentStroke.userName
                 }
@@ -876,7 +1280,7 @@
             lastBroadcastPoint = { x, y };
         }
 
-        lastPoint = { x: e.offsetX, y: e.offsetY };
+        lastPoint = { x: world.x, y: world.y };
     }
 
     function stopDrawing() {
@@ -885,7 +1289,9 @@
 
         // Draw final segment from last midpoint to the actual last point
         if (smoothMidPoint && lastPoint) {
+            applyViewport();
             drawSegment(smoothMidPoint.x, smoothMidPoint.y, lastPoint.x, lastPoint.y, currentStroke);
+            resetTransform();
         }
         smoothMidPoint = null;
 
@@ -1001,14 +1407,20 @@
     }
 
     function redrawAllStrokes() {
+        // Clear canvas (no transform)
+        resetTransform();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // Fill white background
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // Apply viewport transform and draw strokes for current page
+        applyViewport();
         for (const stroke of strokes) {
-            drawFullStroke(stroke);
+            if ((stroke.page || 1) === currentPage) {
+                drawFullStroke(stroke);
+            }
         }
+        resetTransform();
     }
 
     // ============================================
@@ -1033,8 +1445,15 @@
             strokes = data.map(row => {
                 const s = row.stroke_data;
                 s.dbId = row.id;
+                if (!s.page) s.page = 1; // Default to page 1 for old strokes
                 return s;
             });
+
+            // Compute totalPages from stroke data (in case it's higher than session record)
+            const maxPage = Math.max(...strokes.map(s => s.page || 1));
+            if (maxPage > totalPages) totalPages = maxPage;
+            updatePageUI();
+
             redrawAllStrokes();
             debugLog('Loaded ' + strokes.length + ' strokes from DB');
         } else {
@@ -1056,6 +1475,7 @@
                     size: stroke.size,
                     opacity: stroke.opacity,
                     points: stroke.points,
+                    page: stroke.page || 1,
                     userId: stroke.userId,
                     userName: stroke.userName
                 }
@@ -1071,16 +1491,6 @@
         return data.id;
     }
 
-    async function deleteAllStrokesFromDB() {
-        if (!sessionId) return;
-        const { error } = await supabase
-            .from('whiteboard_strokes')
-            .delete()
-            .eq('session_id', sessionId);
-
-        if (error) debugLog('Error clearing strokes: ' + error.message);
-    }
-
     async function deleteStrokeFromDB(dbId) {
         if (!dbId) return;
         const { error } = await supabase
@@ -1089,6 +1499,16 @@
             .eq('id', dbId);
 
         if (error) debugLog('Error deleting stroke: ' + error.message);
+    }
+
+    async function deleteStrokesFromDB(dbIds) {
+        if (!dbIds || dbIds.length === 0) return;
+        const { error } = await supabase
+            .from('whiteboard_strokes')
+            .delete()
+            .in('id', dbIds);
+
+        if (error) debugLog('Error batch deleting strokes: ' + error.message);
     }
 
     // ============================================
@@ -1103,6 +1523,8 @@
     }
 
     function setColor(color) {
+        // Students can't change color — they must use their assigned colour
+        if (!isTeacher && myAssignedColor) return;
         currentColor = color;
         if (currentTool === 'eraser') setTool('pen');
         document.querySelectorAll('.color-swatch').forEach(s => {
@@ -1118,9 +1540,9 @@
     }
 
     function undoLast() {
-        // Only undo own strokes
+        // Only undo own strokes on current page
         for (let i = strokes.length - 1; i >= 0; i--) {
-            if (strokes[i].userId === currentUser.id) {
+            if (strokes[i].userId === currentUser.id && (strokes[i].page || 1) === currentPage) {
                 const removed = strokes.splice(i, 1)[0];
                 redrawAllStrokes();
 
@@ -1142,21 +1564,114 @@
 
     function clearCanvas() {
         if (!isTeacher) return;
-        if (!confirm('Clear the entire whiteboard?')) return;
+        if (!confirm('Clear the current page?')) return;
 
-        strokes = [];
+        // Remove strokes for current page only
+        const pageStrokes = strokes.filter(s => (s.page || 1) === currentPage);
+        strokes = strokes.filter(s => (s.page || 1) !== currentPage);
         redrawAllStrokes();
 
-        // Clear from DB
-        deleteAllStrokesFromDB();
+        // Batch delete from DB
+        const dbIds = pageStrokes.map(s => s.dbId).filter(Boolean);
+        if (dbIds.length > 0) deleteStrokesFromDB(dbIds);
 
         if (channel && channelSubscribed) {
             channel.send({
                 type: 'broadcast',
                 event: 'clear',
-                payload: {}
+                payload: { page: currentPage }
             });
         }
+    }
+
+    // ============================================
+    // PAGE NAVIGATION
+    // ============================================
+    function addPage() {
+        if (!isTeacher) return;
+        totalPages++;
+
+        // Save total pages to session
+        supabase.from('whiteboard_sessions')
+            .update({ total_pages: totalPages })
+            .eq('id', sessionId)
+            .then(() => {});
+
+        if (channel && channelSubscribed) {
+            channel.send({
+                type: 'broadcast',
+                event: 'page_added',
+                payload: { totalPages }
+            });
+        }
+
+        goToPage(totalPages);
+    }
+
+    function goToPage(page) {
+        if (page < 1 || page > totalPages) return;
+        currentPage = page;
+        resetViewport();
+        updatePageUI();
+        redrawAllStrokes();
+    }
+
+    function prevPage() { goToPage(currentPage - 1); }
+    function nextPage() { goToPage(currentPage + 1); }
+
+    function updatePageUI() {
+        document.getElementById('pageInfo').textContent = `Page ${currentPage} / ${totalPages}`;
+        document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+        document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+    }
+
+    // ============================================
+    // VIEWPORT CONTROLS
+    // ============================================
+    function zoomIn() {
+        if (!isTeacher) return;
+        zoomAtPoint(zoom * 1.2, canvas.width / 2, canvas.height / 2);
+    }
+
+    function zoomOut() {
+        if (!isTeacher) return;
+        zoomAtPoint(zoom / 1.2, canvas.width / 2, canvas.height / 2);
+    }
+
+    function resetView() {
+        if (!isTeacher) return;
+        resetViewport();
+        redrawAllStrokes();
+        broadcastViewport(true);
+    }
+
+    function updateZoomUI() {
+        const pct = Math.round(zoom * 100);
+        document.getElementById('zoomInfo').textContent = pct + '%';
+    }
+
+    function broadcastViewport(force) {
+        if (!isTeacher || !channel || !channelSubscribed) return;
+        // Throttle to avoid flooding during continuous gestures
+        const now = Date.now();
+        if (!force && now - lastViewportBroadcast < 100) return;
+        lastViewportBroadcast = now;
+        // Send viewport in normalised terms so it works across different screen sizes
+        const centerNormX = (canvas.width / 2 - panX) / zoom / canvas.width;
+        const centerNormY = (canvas.height / 2 - panY) / zoom / canvas.height;
+        channel.send({
+            type: 'broadcast',
+            event: 'viewport',
+            payload: { centerX: centerNormX, centerY: centerNormY, zoom }
+        });
+    }
+
+    function applyReceivedViewport(centerX, centerY, newZoom) {
+        zoom = newZoom;
+        panX = canvas.width / 2 - centerX * canvas.width * zoom;
+        panY = canvas.height / 2 - centerY * canvas.height * zoom;
+        updateZoomUI();
+        redrawAllStrokes();
     }
 
     // ============================================
@@ -1284,7 +1799,8 @@
         const { data: members } = await supabase
             .from('class_members')
             .select('student_id, users(id, full_name)')
-            .eq('class_id', classId);
+            .eq('class_id', classId)
+            .order('created_at', { ascending: true });
 
         if (!members) return;
 
@@ -1295,6 +1811,9 @@
 
         // Cache names for attribution
         classStudents.forEach(s => { userNames[s.id] = s.name; });
+
+        // Assign student colors from roster order (avoids separate DB query)
+        assignStudentColors(members.map(m => m.student_id));
 
         // Load existing permissions
         const { data: perms } = await supabase
@@ -1321,10 +1840,12 @@
         container.innerHTML = classStudents.map(student => {
             const isOnline = !!onlineUsers[student.id];
             const canStudentDraw = studentPermissions[student.id] || false;
+            const assignedColor = studentColorMap[student.id] || '#94a3b8';
             return `
                 <div class="student-item">
                     <div class="student-info">
                         <div class="student-status-dot ${isOnline ? 'online' : 'offline'}"></div>
+                        <div class="student-color-dot" style="background:${assignedColor};" title="Assigned colour"></div>
                         <span class="student-name">${student.name}</span>
                     </div>
                     <button class="student-toggle ${canStudentDraw ? 'on' : 'off'}"
@@ -1360,11 +1881,16 @@
         // Listen for real-time drawing segments (fast visual feedback, with smooth curves)
         channel.on('broadcast', { event: 'draw' }, ({ payload }) => {
             if (payload.userId === currentUser.id) return;
+            // Only render if on the same page
+            if ((payload.page || 1) !== currentPage) return;
+
             const uid = payload.userId;
             const x2 = payload.x2 * canvas.width;
             const y2 = payload.y2 * canvas.height;
 
             let state = remoteDrawState[uid];
+
+            applyViewport();
             if (!state) {
                 // First segment from this user — start tracking
                 const x1 = payload.x1 * canvas.width;
@@ -1386,6 +1912,7 @@
                 state.lastPx = { x: x2, y: y2 };
                 state.lastMidPx = { x: midX, y: midY };
             }
+            resetTransform();
         });
 
         // Listen for completed strokes — adds to strokes array and redraws smoothly
@@ -1393,8 +1920,12 @@
             if (payload.stroke.userId === currentUser.id) return;
             debugLog('RECV stroke_complete from ' + (payload.stroke.userName || payload.stroke.userId));
             delete remoteDrawState[payload.stroke.userId];
+            if (!payload.stroke.page) payload.stroke.page = 1;
             strokes.push(payload.stroke);
-            redrawAllStrokes(); // Full redraw replaces incremental segments with smooth full-point curves
+            // Only redraw if on the same page
+            if ((payload.stroke.page || 1) === currentPage) {
+                redrawAllStrokes();
+            }
             if (payload.stroke.userName) {
                 userNames[payload.stroke.userId] = payload.stroke.userName;
             }
@@ -1404,17 +1935,19 @@
         channel.on('broadcast', { event: 'undo' }, ({ payload }) => {
             for (let i = strokes.length - 1; i >= 0; i--) {
                 if (strokes[i].userId === payload.userId) {
+                    const removedPage = strokes[i].page || 1;
                     strokes.splice(i, 1);
-                    redrawAllStrokes();
+                    if (removedPage === currentPage) redrawAllStrokes();
                     return;
                 }
             }
         });
 
-        // Listen for clear
-        channel.on('broadcast', { event: 'clear' }, () => {
-            strokes = [];
-            redrawAllStrokes();
+        // Listen for clear (per-page)
+        channel.on('broadcast', { event: 'clear' }, ({ payload }) => {
+            const page = payload.page || 1;
+            strokes = strokes.filter(s => (s.page || 1) !== page);
+            if (page === currentPage) redrawAllStrokes();
         });
 
         // Listen for freeze toggle
@@ -1444,6 +1977,19 @@
         channel.on('broadcast', { event: 'session_end' }, () => {
             alert('The teacher has ended this whiteboard session.');
             window.history.back();
+        });
+
+        // Listen for page added
+        channel.on('broadcast', { event: 'page_added' }, ({ payload }) => {
+            totalPages = payload.totalPages;
+            updatePageUI();
+        });
+
+        // Listen for viewport changes (students follow teacher's view)
+        channel.on('broadcast', { event: 'viewport' }, ({ payload }) => {
+            if (!isTeacher) {
+                applyReceivedViewport(payload.centerX, payload.centerY, payload.zoom);
+            }
         });
 
         // Presence tracking
@@ -1509,6 +2055,8 @@
         if (canDraw) {
             toolbar.classList.remove('hidden');
             wrapper.classList.remove('view-only');
+            // Show student color indicator if student
+            if (!isTeacher && myAssignedColor) showStudentColorIndicator();
         } else {
             toolbar.classList.add('hidden');
             wrapper.classList.add('view-only');
