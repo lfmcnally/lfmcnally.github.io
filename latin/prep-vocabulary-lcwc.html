@@ -272,6 +272,119 @@
             opacity: 0.6;
         }
 
+        /* Print Options */
+        .print-options {
+            display: none;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .print-options.active {
+            display: block;
+        }
+
+        .print-options-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .print-options-header h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #374151;
+            margin: 0;
+        }
+
+        .print-options-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #6b7280;
+            padding: 0 4px;
+        }
+
+        .print-chapter-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .print-chapter-grid label {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.85rem;
+            color: #374151;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 0.3rem 0.6rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .print-chapter-grid label:has(input:checked) {
+            background: #eff6ff;
+            border-color: #0066ff;
+            color: #0066ff;
+        }
+
+        .print-chapter-grid input[type="checkbox"] {
+            accent-color: #0066ff;
+            margin: 0;
+        }
+
+        .print-extras {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .print-extras label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+            color: #374151;
+            cursor: pointer;
+        }
+
+        .print-extras input[type="checkbox"] {
+            accent-color: #0066ff;
+        }
+
+        .print-extras .word-limit-group {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+            color: #374151;
+        }
+
+        .print-extras .word-limit-group input[type="number"] {
+            width: 60px;
+            padding: 0.3rem 0.4rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .print-word-count {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 0.75rem;
+        }
+
         /* LCWC Area */
         .lcwc-area {
             display: none;
@@ -1265,8 +1378,28 @@
 
                         <div class="setup-buttons">
                             <button class="start-btn" id="startBtn" disabled onclick="startSession()">Start</button>
-                            <button class="print-sheet-btn" id="printSheetBtn" disabled onclick="printVocabSheet()">Print Vocab Sheet</button>
+                            <button class="print-sheet-btn" id="printSheetBtn" onclick="togglePrintOptions()">Print Vocab Sheet</button>
                         </div>
+                    </div>
+
+                    <div class="print-options" id="printOptions">
+                        <div class="print-options-header">
+                            <h3>Print Options</h3>
+                            <button class="print-options-close" onclick="togglePrintOptions()">&times;</button>
+                        </div>
+                        <div class="print-chapter-grid" id="printChapterGrid">
+                            <!-- Populated by JS -->
+                        </div>
+                        <div class="print-extras">
+                            <label><input type="checkbox" id="printShuffle"> Shuffle words</label>
+                            <div class="word-limit-group">
+                                <label for="printWordLimit">Limit to</label>
+                                <input type="number" id="printWordLimit" min="0" placeholder="All" oninput="updatePrintWordCount()">
+                                <span>words</span>
+                            </div>
+                            <button class="print-sheet-btn" style="padding: 0.5rem 1.25rem; font-size: 0.85rem;" onclick="printVocabSheet()">Print</button>
+                        </div>
+                        <div class="print-word-count" id="printWordCount"></div>
                     </div>
                 </div>
 
@@ -1483,18 +1616,17 @@
             document.getElementById('chapterSelect').addEventListener('change', function() {
                 const ch = this.value;
                 const btn = document.getElementById('startBtn');
-                const printBtn = document.getElementById('printSheetBtn');
                 if (ch) {
                     const count = allWords.filter(w => w.chapter == ch).length;
                     btn.disabled = false;
                     btn.textContent = `Start (${count} words)`;
-                    printBtn.disabled = false;
                 } else {
                     btn.disabled = true;
                     btn.textContent = 'Start';
-                    printBtn.disabled = true;
                 }
             });
+
+            populatePrintChapterGrid();
         });
 
         function populateChapterSelect() {
@@ -1955,16 +2087,68 @@
         }
 
         // ========== PRINT VOCAB SHEET ==========
+        function togglePrintOptions() {
+            const panel = document.getElementById('printOptions');
+            panel.classList.toggle('active');
+            if (panel.classList.contains('active')) {
+                updatePrintWordCount();
+            }
+        }
+
+        function populatePrintChapterGrid() {
+            const grid = document.getElementById('printChapterGrid');
+            const chapters = [...new Set(allWords.map(w => w.chapter))].sort((a, b) => a - b);
+            grid.innerHTML = '';
+            chapters.forEach(ch => {
+                const label = document.createElement('label');
+                const count = allWords.filter(w => w.chapter == ch).length;
+                label.innerHTML = `<input type="checkbox" value="${ch}" onchange="updatePrintWordCount()"> Ch ${ch} <span style="color:#9ca3af">(${count})</span>`;
+                grid.appendChild(label);
+            });
+        }
+
+        function getSelectedPrintChapters() {
+            return [...document.querySelectorAll('#printChapterGrid input:checked')].map(cb => cb.value);
+        }
+
+        function updatePrintWordCount() {
+            const chapters = getSelectedPrintChapters();
+            const total = allWords.filter(w => chapters.includes(String(w.chapter))).length;
+            const limit = parseInt(document.getElementById('printWordLimit').value) || 0;
+            const effective = limit > 0 ? Math.min(limit, total) : total;
+            const el = document.getElementById('printWordCount');
+            if (chapters.length === 0) {
+                el.textContent = 'Select at least one chapter';
+            } else {
+                el.textContent = `${effective} word${effective !== 1 ? 's' : ''} selected` + (limit > 0 && limit < total ? ` (from ${total} available)` : '');
+            }
+        }
+
         function printVocabSheet() {
-            const chapter = document.getElementById('chapterSelect').value;
-            if (!chapter) {
-                alert('Please select a chapter first!');
+            const chapters = getSelectedPrintChapters();
+            if (chapters.length === 0) {
+                alert('Please select at least one chapter!');
                 return;
             }
 
             const dir = document.getElementById('directionSelect').value;
-            const words = allWords.filter(w => w.chapter == chapter);
-            const chapterLabel = `Chapter ${chapter}`;
+            let words = allWords.filter(w => chapters.includes(String(w.chapter)));
+
+            // Shuffle if checked
+            if (document.getElementById('printShuffle').checked) {
+                for (let i = words.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [words[i], words[j]] = [words[j], words[i]];
+                }
+            }
+
+            // Apply word limit
+            const limit = parseInt(document.getElementById('printWordLimit').value) || 0;
+            if (limit > 0 && limit < words.length) {
+                words = words.slice(0, limit);
+            }
+
+            const chapterLabel = chapters.length === 1 ? `Chapter ${chapters[0]}` : `Chapters ${chapters.join(', ')}`;
             const today = new Date().toLocaleDateString('en-GB');
 
             // The "prompt" is what stays visible (Latin by default)
@@ -2074,7 +2258,10 @@
                 </head>
                 <body>
                     <div class="test-header">
-                        <h2>Look, Cover, Write, Check &mdash; Suburani Book 1</h2>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <h2 style="flex:1; text-align:center;">Look, Cover, Write, Check &mdash; Suburani Book 1</h2>
+                            <span style="font-size:8pt; color:#888; white-space:nowrap; margin-left:10px; padding-top:2px;">classicalia.co.uk</span>
+                        </div>
                         <div class="header-row">
                             <span><strong>${chapterLabel}</strong> (${words.length} words)</span>
                             <span><strong>Name:</strong> <span class="field-value">________________________</span></span>
