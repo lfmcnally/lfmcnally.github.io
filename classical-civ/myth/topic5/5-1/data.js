@@ -7,8 +7,6 @@ const lessonData = {
         'Explain how Athena was worshipped at the Panathenaia'
     ],
     foundation: {
-        icon: '\u{1F3DB}',
-        title: 'Foundation of the Festival',
         paragraphs: [
             'The Panathenaia was traditionally said to have been founded by either <strong>Erichthonios</strong> (a mythical early king of Athens born from the earth) or by <strong>Theseus</strong> when he unified the communities of Attica into a single city-state.',
             'The <strong>Greater Panathenaia</strong> was reorganised on a grand scale by the tyrant <strong>Peisistratos</strong> in <strong>566 BC</strong>.',
@@ -18,23 +16,21 @@ const lessonData = {
         ]
     },
     dayByDay: {
-        icon: '\u{1F4C5}',
-        title: 'Day-by-Day Events',
         timeline: [
             {
                 label: 'Days 1\u20132',
                 title: 'Athletic Contests',
-                description: 'Competitions were held at the Panathenaic Stadium: footraces, wrestling, boxing, the pankration and the pentathlon. Victors won <strong>amphorae filled with olive oil</strong> from Athena\'s sacred olive trees.'
+                description: 'Competitions were held at the Panathenaic Stadium: footraces, wrestling, boxing, the pankration and the pentathlon. Victors won <strong>amphorae filled with sacred olive oil</strong> from Athena\'s sacred olive trees.'
             },
             {
                 label: 'Day 3',
-                title: 'Musical and Rhapsodic Contests',
+                title: 'Musical & Rhapsodic Contests',
                 description: 'Poets competed reciting Homer (especially the <em>Iliad</em> and <em>Odyssey</em>). Musicians performed on the <strong>aulos</strong> (double pipe) and <strong>kithara</strong> (lyre). These contests took place in the <strong>Odeon</strong>.'
             },
             {
                 label: 'Day 4',
                 title: 'Tribal Contests',
-                description: 'The ten Athenian tribes competed in team events: a <strong>torch relay race</strong> (<em>lampadedromia</em>), a <strong>boat race</strong> (for coastal tribes), the <strong>pyrrhic dance</strong> (a war dance in armour) and the <strong>euandria</strong> (a contest of manly beauty and fitness).'
+                description: 'The ten Athenian tribes competed in team events: a <strong>torch relay race</strong> (<em>lampadedromia</em>), a <strong>boat race</strong>, the <strong>pyrrhic dance</strong> (a war dance in armour) and the <strong>euandria</strong> (a contest of manly beauty and fitness).'
             },
             {
                 label: 'Day 5',
@@ -43,14 +39,12 @@ const lessonData = {
             },
             {
                 label: 'Day 6',
-                title: 'The Great Procession and Sacrifice',
-                description: 'The climax of the festival. A grand <strong>procession</strong> (<em>pompe</em>) set out from the <strong>Kerameikos</strong> (potters\' quarter), through the Agora, up to the Acropolis. Citizens, metics (resident foreigners) and freed slaves all participated. The sacred <strong>peplos</strong> (a new robe woven for Athena\'s cult statue) was carried or displayed on a ship-cart. At the Acropolis, a <strong>hecatomb</strong> (sacrifice of 100 cattle) was performed. The meat was distributed to the people of Athens for a public feast.'
+                title: 'The Great Procession & Sacrifice',
+                description: 'The climax of the festival. A grand <strong>procession</strong> (<em>pompe</em>) set out from the <strong>Kerameikos</strong> through the Agora up to the Acropolis. Citizens, metics and freed slaves all participated. The sacred <strong>peplos</strong> was carried on a ship-cart. At the Acropolis, a <strong>hecatomb</strong> (sacrifice of 100 cattle) was performed and the meat was distributed for a public feast.'
             }
         ]
     },
     sacrifices: {
-        icon: '\u{1F525}',
-        title: 'Sacrifices',
         paragraphs: [
             'The central sacrifice was the <strong>hecatomb</strong> \u2014 the ritual slaughter of 100 cattle at the great altar of Athena on the Acropolis.',
             'The animals were garlanded and led in procession to the altar.',
@@ -61,8 +55,6 @@ const lessonData = {
         callout: '<strong>Key point:</strong> The hecatomb was an enormous expense and demonstrated the supreme importance of Athena to Athens. One hundred cattle represented a staggering investment for the city.'
     },
     worship: {
-        icon: '\u{1F3FA}',
-        title: 'How Athena Was Worshipped',
         items: [
             {
                 heading: 'The Peplos',
@@ -82,17 +74,11 @@ const lessonData = {
             },
             {
                 heading: 'Prize Amphorae',
-                text: 'The prize amphorae depicted Athena on one side, showing her connection to the contests.'
+                text: 'The prize amphorae depicted Athena on one side, connecting her directly to the contests.'
             }
-        ],
-        quote: {
-            text: 'I sing of Pallas Athena, the glorious goddess, bright-eyed, inventive, unbending of heart, pure virgin, saviour of cities, courageous.',
-            attribution: 'Homeric Hymn 28: To Athena'
-        }
+        ]
     },
     importance: {
-        icon: '\u{2B50}',
-        title: 'Why the Festival Was Important',
         details: [
             {
                 heading: 'Civic Identity',
@@ -120,27 +106,25 @@ const lessonData = {
             }
         ]
     },
+    sourceQuote: {
+        text: 'I sing of Pallas Athena, the glorious goddess, bright-eyed, inventive, unbending of heart, pure virgin, saviour of cities, courageous.',
+        attribution: 'Homeric Hymn 28: To Athena'
+    },
     keyTerms: [
-        'Panathenaia',
-        'Peplos',
-        'Hecatomb',
-        'Pompe (procession)',
-        'Arrephoroi',
-        'Athena Polias',
-        'Erichthonios',
-        'Peisistratos',
-        'Lampadedromia',
-        'Pannychis',
-        'Kerameikos',
-        'Do ut des'
+        'Panathenaia', 'Peplos', 'Hecatomb', 'Pompe', 'Arrephoroi',
+        'Athena Polias', 'Erichthonios', 'Peisistratos', 'Lampadedromia',
+        'Pannychis', 'Kerameikos', 'Do ut des'
+    ],
+    quickFacts: [
+        { label: 'Festival', value: 'Every 4 years (Greater) / annually (Lesser)' },
+        { label: 'When', value: 'Hekatombaion (July/August)' },
+        { label: 'Where', value: 'Athens \u2014 Acropolis' },
+        { label: 'For', value: 'Athena Polias' },
+        { label: 'Key sacrifice', value: 'Hecatomb (100 cattle)' }
     ]
 };
 
 document.addEventListener('DOMContentLoaded', function () {
-    renderLesson();
-});
-
-function renderLesson() {
     renderObjectives();
     renderFoundation();
     renderDayByDay();
@@ -148,36 +132,31 @@ function renderLesson() {
     renderWorship();
     renderImportance();
     renderKeyTerms();
-}
+    renderSourceQuote();
+    renderQuickFacts();
+});
 
 function renderObjectives() {
-    const el = document.getElementById('objectives');
-    const items = lessonData.objectives.map(function (obj) {
+    var el = document.getElementById('objectives');
+    var items = lessonData.objectives.map(function (obj) {
         return '<li>' + obj + '</li>';
     }).join('');
     el.innerHTML =
-        '<div class="objectives-title">\u{1F3AF} Learning Objectives</div>' +
+        '<div class="objectives-title">Learning Objectives</div>' +
         '<ul class="objectives-list">' + items + '</ul>';
 }
 
 function renderFoundation() {
-    var d = lessonData.foundation;
     var el = document.getElementById('foundation');
-    var paras = d.paragraphs.map(function (p) {
+    var paras = lessonData.foundation.paragraphs.map(function (p) {
         return '<p>' + p + '</p>';
     }).join('');
-    el.innerHTML =
-        '<div class="section-header">' +
-            '<div class="section-icon">' + d.icon + '</div>' +
-            '<h2>' + d.title + '</h2>' +
-        '</div>' +
-        paras;
+    el.innerHTML = paras;
 }
 
 function renderDayByDay() {
-    var d = lessonData.dayByDay;
     var el = document.getElementById('day-by-day');
-    var items = d.timeline.map(function (item) {
+    var items = lessonData.dayByDay.timeline.map(function (item) {
         return (
             '<div class="timeline-item">' +
                 '<div class="timeline-marker"></div>' +
@@ -189,51 +168,28 @@ function renderDayByDay() {
             '</div>'
         );
     }).join('');
-    el.innerHTML =
-        '<div class="section-header">' +
-            '<div class="section-icon">' + d.icon + '</div>' +
-            '<h2>' + d.title + '</h2>' +
-        '</div>' +
-        '<div class="timeline">' + items + '</div>';
+    el.innerHTML = '<div class="timeline">' + items + '</div>';
 }
 
 function renderSacrifices() {
-    var d = lessonData.sacrifices;
     var el = document.getElementById('sacrifices');
-    var paras = d.paragraphs.map(function (p) {
+    var paras = lessonData.sacrifices.paragraphs.map(function (p) {
         return '<p>' + p + '</p>';
     }).join('');
-    el.innerHTML =
-        '<div class="section-header">' +
-            '<div class="section-icon">' + d.icon + '</div>' +
-            '<h2>' + d.title + '</h2>' +
-        '</div>' +
-        paras +
-        '<div class="info-callout">' + d.callout + '</div>';
+    el.innerHTML = paras + '<div class="info-callout">' + lessonData.sacrifices.callout + '</div>';
 }
 
 function renderWorship() {
-    var d = lessonData.worship;
     var el = document.getElementById('worship');
-    var items = d.items.map(function (item) {
+    var items = lessonData.worship.items.map(function (item) {
         return '<li><strong>' + item.heading + ':</strong> ' + item.text + '</li>';
     }).join('');
-    el.innerHTML =
-        '<div class="section-header">' +
-            '<div class="section-icon">' + d.icon + '</div>' +
-            '<h2>' + d.title + '</h2>' +
-        '</div>' +
-        '<ul>' + items + '</ul>' +
-        '<div class="source-quote">' +
-            '<p>' + d.quote.text + '</p>' +
-            '<span class="quote-attribution">\u2014 ' + d.quote.attribution + '</span>' +
-        '</div>';
+    el.innerHTML = '<ul>' + items + '</ul>';
 }
 
 function renderImportance() {
-    var d = lessonData.importance;
     var el = document.getElementById('importance');
-    var cards = d.details.map(function (item) {
+    var cards = lessonData.importance.details.map(function (item) {
         return (
             '<div class="detail-card">' +
                 '<h4>' + item.heading + '</h4>' +
@@ -241,12 +197,7 @@ function renderImportance() {
             '</div>'
         );
     }).join('');
-    el.innerHTML =
-        '<div class="section-header">' +
-            '<div class="section-icon">' + d.icon + '</div>' +
-            '<h2>' + d.title + '</h2>' +
-        '</div>' +
-        '<div class="detail-grid">' + cards + '</div>';
+    el.innerHTML = '<div class="detail-grid">' + cards + '</div>';
 }
 
 function renderKeyTerms() {
@@ -254,7 +205,22 @@ function renderKeyTerms() {
     var chips = lessonData.keyTerms.map(function (term) {
         return '<span class="term-chip">' + term + '</span>';
     }).join('');
+    el.innerHTML = '<div class="term-chips">' + chips + '</div>';
+}
+
+function renderSourceQuote() {
+    var el = document.getElementById('source-quote');
     el.innerHTML =
-        '<div class="terms-title">\u{1F4DA} Key Terms</div>' +
-        '<div class="terms-grid">' + chips + '</div>';
+        '<div class="source-quote">' +
+            '<p>' + lessonData.sourceQuote.text + '</p>' +
+            '<span class="quote-attribution">\u2014 ' + lessonData.sourceQuote.attribution + '</span>' +
+        '</div>';
+}
+
+function renderQuickFacts() {
+    var el = document.getElementById('quick-facts');
+    var items = lessonData.quickFacts.map(function (fact) {
+        return '<li><span class="fact-label">' + fact.label + ':</span> ' + fact.value + '</li>';
+    }).join('');
+    el.innerHTML = '<ul class="quick-facts-list">' + items + '</ul>';
 }
