@@ -774,6 +774,158 @@
             border-color: #0066ff;
             box-shadow: 0 0 0 2px rgba(0, 102, 255, 0.1);
         }
+
+        /* Analysis Style & Context Hints Panel */
+        .analysis-hints-panel {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 300px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid #e0e0e0;
+            z-index: 25;
+            transform: translateX(100%);
+            transition: transform 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .analysis-hints-panel.open {
+            transform: translateX(0);
+        }
+
+        .analysis-hints-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .analysis-hints-header h4 {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .analysis-hints-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #999;
+            padding: 0 4px;
+            font-family: inherit;
+            line-height: 1;
+        }
+
+        .analysis-hints-close:hover {
+            color: #333;
+        }
+
+        .analysis-hints-body {
+            padding: 10px 14px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .style-hint {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 3px solid;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .style-hint:last-child {
+            margin-bottom: 0;
+        }
+
+        .style-hint:hover {
+            background: #f0f0f0;
+        }
+
+        .style-hint.active {
+            background: #eef4ff;
+        }
+
+        .style-hint.type-style {
+            border-left-color: #0066ff;
+        }
+
+        .style-hint.type-context {
+            border-left-color: #d97706;
+        }
+
+        .style-hint-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .style-hint.type-style .style-hint-label {
+            color: #0066ff;
+        }
+
+        .style-hint.type-context .style-hint-label {
+            color: #b45309;
+        }
+
+        .style-hint-latin {
+            font-size: 0.75rem;
+            font-style: italic;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .style-hint-effect {
+            font-size: 0.78rem;
+            line-height: 1.5;
+            color: #555;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease, margin-top 0.25s ease;
+            margin-top: 0;
+        }
+
+        .style-hint.active .style-hint-effect {
+            max-height: 200px;
+            margin-top: 6px;
+        }
+
+        .analysis-hints-key {
+            display: flex;
+            gap: 14px;
+            padding: 8px 14px;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .analysis-hints-key-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.7rem;
+            color: #888;
+        }
+
+        .analysis-hints-key-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+        }
+
+        .analysis-sentence-display .word-group.hint-highlight .latin-word {
+            box-shadow: 0 0 0 2px #0066ff;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -1167,6 +1319,7 @@
                 <span class="analysis-nav-label" id="analysisNavLabel">Sentence 1 of 6</span>
                 <button class="analysis-btn" id="analysisNextBtn">&#9654;</button>
                 <button class="analysis-btn" id="analysisTranslationBtn" title="Toggle translation (T)">Translation</button>
+                <button class="analysis-btn" id="analysisHintsBtn" title="Style & Context hints (H)">Hints</button>
             </div>
             <div class="analysis-toolbar-section">
                 <button class="analysis-btn" id="analysisSaveBtn">Save</button>
@@ -1221,6 +1374,22 @@
                 <div class="analysis-english-line" id="analysisEnglishLine"></div>
             </div>
             <canvas id="analysisCanvas"></canvas>
+            <!-- Style & Context Hints Panel -->
+            <div class="analysis-hints-panel" id="analysisHintsPanel">
+                <div class="analysis-hints-header">
+                    <h4>Style &amp; Context</h4>
+                    <button class="analysis-hints-close" id="analysisHintsClose">&times;</button>
+                </div>
+                <div class="analysis-hints-body" id="analysisHintsBody"></div>
+                <div class="analysis-hints-key">
+                    <span class="analysis-hints-key-item">
+                        <span class="analysis-hints-key-dot" style="background:#0066ff;"></span> Style
+                    </span>
+                    <span class="analysis-hints-key-item">
+                        <span class="analysis-hints-key-dot" style="background:#d97706;"></span> Context
+                    </span>
+                </div>
+            </div>
         </div>
 
         <!-- Notes panel -->
@@ -1508,6 +1677,50 @@
                 { lines: ['6'], title: 'Sentence 6' }
             ];
 
+            // === Style & Context Hints ===
+            const sentenceHints = [
+                // Sentence 1: igitur domus principis inhorruit, maximeque ei qui potentiam habebant timuerunt ne res verterentur:
+                [
+                    { type: 'style', label: 'Metaphor', latin: 'inhorruit', effect: 'inhorruit (\'shuddered\') \u2014 Tacitus personifies the entire imperial household as a living thing trembling with fear. Literally means to bristle, like an animal whose fur stands on end.', words: ['01-04'] },
+                    { type: 'style', label: 'Fear Clause', latin: 'ne res verterentur', effect: 'timuerunt ne res verterentur (\'they feared lest the state be overturned\') \u2014 the subjunctive expresses what they dreaded: not just scandal, but full political revolution.', words: ['01-10', '01-11', '01-13'] },
+                    { type: 'style', label: 'Superlative Adverb', latin: 'maximeque', effect: 'maximeque (\'and especially\') \u2014 intensifies the fear, narrowing from the whole household to those with most to lose: the powerful freedmen.', words: ['01-05'] },
+                    { type: 'context', label: 'Imperial Freedmen', effect: 'ei qui potentiam habebant (\'those who had power\') \u2014 Claudius\'s freedmen (Narcissus, Pallas, Callistus) held enormous influence. A change of emperor would sweep them all away.' }
+                ],
+                // Sentence 2: spem tamen habebant, si Claudio de atrocitate sceleris persuasissent, Messalinam posse opprimi sine quaestione damnatam;
+                [
+                    { type: 'style', label: 'Conditional Hope', latin: 'si... persuasissent', effect: 'The pluperfect subjunctive in a conditional clause reveals meticulous planning: step one, convince Claudius; step two, crush Messalina before she can defend herself.', words: ['02-04', '02-05'] },
+                    { type: 'style', label: 'Word Choice', latin: 'opprimi', effect: 'opprimi (\'to be crushed\') \u2014 a violent verb for a political manoeuvre. Not merely removed, but destroyed. Reveals the ruthlessness beneath their careful planning.', words: ['02-12'] },
+                    { type: 'style', label: 'Ablative of Manner', latin: 'sine quaestione', effect: 'sine quaestione damnatam (\'condemned without a trial\') \u2014 the absence of legal process is the whole point. They want execution, not justice.', words: ['02-14', '02-15', '02-13'] },
+                    { type: 'context', label: 'Political Calculation', effect: 'tamen (\'nevertheless\') signals that despite their fear, they see a strategic opportunity. The contrast between fear (sentence 1) and hope (sentence 2) drives the narrative forward.' }
+                ],
+                // Sentence 3: sed periculum esse ne ille defensionem audiret, neve clausae aures etiam confitenti non essent.
+                [
+                    { type: 'style', label: 'Paradox', latin: 'clausae aures... confitenti', effect: 'They feared his ears might NOT be closed even to one confessing \u2014 even an admission of guilt might not be enough to make Claudius act. The double negative creates tortured syntax mirroring their anxiety.', words: ['03-12', '03-14'] },
+                    { type: 'style', label: 'Contrast', latin: 'ne... neve', effect: 'Two parallel fear clauses: ne audiret (\'lest he hear a defence\') and neve... non essent (\'and lest his ears not be closed\'). Double worry \u2014 he might listen too much OR forgive too easily.', words: ['03-04', '03-08'] },
+                    { type: 'context', label: 'Claudius\'s Weakness', effect: 'Claudius\'s emotional susceptibility is the courtiers\' greatest obstacle. His tendency to be swayed by those closest to him makes a straightforward accusation dangerously unreliable.' }
+                ],
+                // Sentence 4: Narcissus, occasiones quaerens, cum Caesar diu apud Ostiam moraretur, duas eius paelices largitione et promissis perpulit delationem subire.
+                [
+                    { type: 'style', label: 'Present Participle', latin: 'quaerens', effect: 'occasiones quaerens (\'seeking opportunities\') \u2014 the participle characterises Narcissus as a schemer, constantly watching and waiting for the right moment to strike.', words: ['04-02'] },
+                    { type: 'style', label: 'Ablative of Means', latin: 'largitione et promissis', effect: 'largitione et promissis (\'by bribery and promises\') \u2014 Narcissus\'s tools are money and words, not loyalty or justice. Two ablatives reveal his methods with brutal honesty.', words: ['04-14', '04-16'] },
+                    { type: 'style', label: 'Word Choice', latin: 'perpulit', effect: 'perpulit (\'drove/compelled\') \u2014 per- prefix intensifies: not merely persuaded but forced through. The concubines are instruments, not willing allies.', words: ['04-10'] },
+                    { type: 'context', label: 'Narcissus\'s Strategy', effect: 'Narcissus uses Claudius\'s own concubines as informants \u2014 the emperor will hear the accusation from women he trusts intimately, making it impossible to dismiss as political scheming.' }
+                ],
+                // Sentence 5: exim Calpurnia (id alteri paelici nomen), ubi datum est secretum, ad genua Caesaris provoluta nupsisse Messalinam Silio exclamat;
+                [
+                    { type: 'style', label: 'Historic Present', latin: 'exclamat', effect: 'exclamat (\'she shouts\') \u2014 sudden switch to present tense after sustained past narration. We\'re yanked into the room, hearing Calpurnia\'s cry as it happens.', words: ['05-14'] },
+                    { type: 'style', label: 'Physical Detail', latin: 'ad genua... provoluta', effect: 'ad genua Caesaris provoluta (\'having fallen at Caesar\'s knees\') \u2014 vivid physical detail dramatises the moment. She doesn\'t merely tell him; she prostrates herself.', words: ['05-10', '05-11', '05-12', '05-13'] },
+                    { type: 'style', label: 'Parenthetical', latin: 'id alteri paelici nomen', effect: 'id alteri paelici nomen (\'that was the other concubine\'s name\') \u2014 a factual aside that momentarily interrupts the dramatic flow, anchoring the narrative in historical precision.', words: ['05-03', '05-04', '05-05', '05-06'] },
+                    { type: 'context', label: 'The Denunciation', effect: 'nupsisse Messalinam Silio (\'that Messalina had married Silius\') \u2014 the indirect statement delivers the bombshell. The perfect infinitive makes clear: the marriage has already happened.' }
+                ],
+                // Sentence 6: altera paelice haec confirmante, Calpurnia cieri Narcissum postulat.
+                [
+                    { type: 'style', label: 'Ablative Absolute', latin: 'altera paelice... confirmante', effect: 'altera paelice haec confirmante (\'with the other concubine confirming\') \u2014 the corroboration is compressed into a subordinate ablative absolute, maintaining narrative pace.', words: ['06-01', '06-02', '06-03'] },
+                    { type: 'style', label: 'Historic Present', latin: 'postulat', effect: 'postulat (\'she demands\') \u2014 the historic present continues from exclamat, sustaining dramatic immediacy. Two present-tense verbs in quick succession create urgency.', words: ['06-06'] },
+                    { type: 'context', label: 'Narcissus Summoned', effect: 'Calpurnia demands that Narcissus be summoned \u2014 the puppet-master is called to take control. The concubines have served their purpose; now the real political operator steps forward.' }
+                ]
+            ];
+
             // === Canvas setup ===
             function resizeCanvas(preserveContent) {
                 const rect = workspace.getBoundingClientRect();
@@ -1690,6 +1903,62 @@
             }
             translationBtn.addEventListener('click', toggleTranslation);
 
+            // === Hints panel ===
+            const hintsPanel = document.getElementById('analysisHintsPanel');
+            const hintsBody = document.getElementById('analysisHintsBody');
+            const hintsBtn = document.getElementById('analysisHintsBtn');
+            let hintsOpen = false;
+
+            function toggleHintsPanel() {
+                hintsOpen = !hintsOpen;
+                hintsPanel.classList.toggle('open', hintsOpen);
+                hintsBtn.classList.toggle('active', hintsOpen);
+            }
+
+            function closeHintsPanel() {
+                hintsOpen = false;
+                hintsPanel.classList.remove('open');
+                hintsBtn.classList.remove('active');
+            }
+
+            function clearHintHighlights() {
+                document.querySelectorAll('#analysisLatinLine .hint-highlight').forEach(el => {
+                    el.classList.remove('hint-highlight');
+                });
+            }
+
+            function updateHintsPanel(idx) {
+                hintsBody.innerHTML = '';
+                clearHintHighlights();
+                const hints = sentenceHints[idx] || [];
+                hints.forEach((hint, i) => {
+                    const card = document.createElement('div');
+                    card.className = 'style-hint type-' + hint.type;
+                    card.innerHTML =
+                        '<div class="style-hint-label">' + hint.label + '</div>' +
+                        (hint.latin ? '<div class="style-hint-latin">' + hint.latin + '</div>' : '') +
+                        '<div class="style-hint-effect">' + hint.effect + '</div>';
+                    card.addEventListener('click', () => {
+                        const wasActive = card.classList.contains('active');
+                        hintsBody.querySelectorAll('.style-hint.active').forEach(c => c.classList.remove('active'));
+                        clearHintHighlights();
+                        if (!wasActive) {
+                            card.classList.add('active');
+                            if (hint.words && hint.words.length) {
+                                hint.words.forEach(order => {
+                                    const wg = document.querySelector('#analysisLatinLine .word-group[data-order="' + order + '"]');
+                                    if (wg) wg.classList.add('hint-highlight');
+                                });
+                            }
+                        }
+                    });
+                    hintsBody.appendChild(card);
+                });
+            }
+
+            hintsBtn.addEventListener('click', toggleHintsPanel);
+            document.getElementById('analysisHintsClose').addEventListener('click', closeHintsPanel);
+
             // === Sentence display ===
             function showSentence(idx) {
                 if (analysisActive && currentSentenceIdx !== idx) {
@@ -1732,6 +2001,7 @@
                 });
                 engEl.classList.toggle('hidden-translation', !translationVisible);
 
+                updateHintsPanel(idx);
                 requestAnimationFrame(() => loadAnalysis(idx));
             }
 
@@ -1803,6 +2073,9 @@
                 } else if (e.code === 'KeyS' && (e.ctrlKey || e.metaKey)) {
                     e.preventDefault();
                     saveAnalysis();
+                } else if (e.code === 'KeyH') {
+                    e.preventDefault();
+                    toggleHintsPanel();
                 } else if (e.code === 'KeyT') {
                     e.preventDefault();
                     toggleTranslation();
