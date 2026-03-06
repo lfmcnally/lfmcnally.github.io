@@ -774,6 +774,158 @@
             border-color: #0066ff;
             box-shadow: 0 0 0 2px rgba(0, 102, 255, 0.1);
         }
+
+        /* Analysis Style & Context Hints Panel */
+        .analysis-hints-panel {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 300px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.97);
+            backdrop-filter: blur(10px);
+            border-left: 1px solid #e0e0e0;
+            z-index: 25;
+            transform: translateX(100%);
+            transition: transform 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .analysis-hints-panel.open {
+            transform: translateX(0);
+        }
+
+        .analysis-hints-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .analysis-hints-header h4 {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .analysis-hints-close {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #999;
+            padding: 0 4px;
+            font-family: inherit;
+            line-height: 1;
+        }
+
+        .analysis-hints-close:hover {
+            color: #333;
+        }
+
+        .analysis-hints-body {
+            padding: 10px 14px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .style-hint {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border-left: 3px solid;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .style-hint:last-child {
+            margin-bottom: 0;
+        }
+
+        .style-hint:hover {
+            background: #f0f0f0;
+        }
+
+        .style-hint.active {
+            background: #eef4ff;
+        }
+
+        .style-hint.type-style {
+            border-left-color: #0066ff;
+        }
+
+        .style-hint.type-context {
+            border-left-color: #d97706;
+        }
+
+        .style-hint-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .style-hint.type-style .style-hint-label {
+            color: #0066ff;
+        }
+
+        .style-hint.type-context .style-hint-label {
+            color: #b45309;
+        }
+
+        .style-hint-latin {
+            font-size: 0.75rem;
+            font-style: italic;
+            color: #999;
+            margin-bottom: 4px;
+        }
+
+        .style-hint-effect {
+            font-size: 0.78rem;
+            line-height: 1.5;
+            color: #555;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.25s ease, margin-top 0.25s ease;
+            margin-top: 0;
+        }
+
+        .style-hint.active .style-hint-effect {
+            max-height: 200px;
+            margin-top: 6px;
+        }
+
+        .analysis-hints-key {
+            display: flex;
+            gap: 14px;
+            padding: 8px 14px;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .analysis-hints-key-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.7rem;
+            color: #888;
+        }
+
+        .analysis-hints-key-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+        }
+
+        .analysis-sentence-display .word-group.hint-highlight .latin-word {
+            box-shadow: 0 0 0 2px #0066ff;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -1162,6 +1314,7 @@
                 <span class="analysis-nav-label" id="analysisNavLabel">Sentence 1 of 6</span>
                 <button class="analysis-btn" id="analysisNextBtn">&#9654;</button>
                 <button class="analysis-btn" id="analysisTranslationBtn" title="Toggle translation (T)">Translation</button>
+                <button class="analysis-btn" id="analysisHintsBtn" title="Style & Context hints (H)">Hints</button>
             </div>
             <div class="analysis-toolbar-section">
                 <button class="analysis-btn" id="analysisSaveBtn">Save</button>
@@ -1216,6 +1369,22 @@
                 <div class="analysis-english-line" id="analysisEnglishLine"></div>
             </div>
             <canvas id="analysisCanvas"></canvas>
+            <!-- Style & Context Hints Panel -->
+            <div class="analysis-hints-panel" id="analysisHintsPanel">
+                <div class="analysis-hints-header">
+                    <h4>Style &amp; Context</h4>
+                    <button class="analysis-hints-close" id="analysisHintsClose">&times;</button>
+                </div>
+                <div class="analysis-hints-body" id="analysisHintsBody"></div>
+                <div class="analysis-hints-key">
+                    <span class="analysis-hints-key-item">
+                        <span class="analysis-hints-key-dot" style="background:#0066ff;"></span> Style
+                    </span>
+                    <span class="analysis-hints-key-item">
+                        <span class="analysis-hints-key-dot" style="background:#d97706;"></span> Context
+                    </span>
+                </div>
+            </div>
         </div>
 
         <!-- Notes panel -->
@@ -1506,6 +1675,66 @@
                 { lines: ['6b'], title: 'Sentence 6b' }
             ];
 
+            // === Style & Context Hints ===
+            const sentenceHints = [
+                // Sentence 1: se caelibem, orbum, nuptiis et adoptando Britannico paratum.
+                [
+                    { type: 'style', label: 'Asyndetic List', latin: 'caelibem, orbum', effect: 'No conjunction between caelibem and orbum \u2014 the asyndeton creates a rapid, list-like pace as Silius rattles off his qualifications like a CV: single, childless, ready.', words: ['01-02', '01-03'] },
+                    { type: 'style', label: 'Gerundive', latin: 'adoptando', effect: 'The gerundive signals purpose and intent \u2014 Silius will adopt Britannicus, Claudius\'s own son. The construction makes treason sound like a reasonable next step.', words: ['01-07'] },
+                    { type: 'context', label: 'Indirect Speech', effect: 'This entire sentence is part of Silius\'s reported speech. He is presenting himself as the ideal replacement for Claudius \u2014 unmarried, childless, and willing to adopt the heir.' },
+                    { type: 'context', label: 'Adoption as Power', effect: 'In Roman politics, adoption was the standard mechanism for succession. By adopting Britannicus, Silius would control the heir and legitimise his seizure of power.' }
+                ],
+                // Sentence 2: eandem Messalinae potentiam mansuram esse, addita securitate, si praevenirent Claudium,
+                [
+                    { type: 'style', label: 'Ablative Absolute', latin: 'addita securitate', effect: 'addita securitate (\'with security added\') \u2014 the ablative absolute tucks a crucial promise into a subordinate phrase, making the addition of security sound almost casual.', words: ['02-05', '02-06'] },
+                    { type: 'style', label: 'Word Choice', latin: 'praevenirent', effect: 'praevenirent (\'forestall\') \u2014 a euphemism for a coup. Not \'kill\' or \'overthrow\' but \'get ahead of\', making treason sound like prudent timing.', words: ['02-08'] },
+                    { type: 'context', label: 'Messalina\'s Power', effect: 'eandem potentiam (\'the same power\') \u2014 Silius promises Messalina will keep her existing influence. The appeal is to her self-interest, not love.' }
+                ],
+                // Sentence 2b: qui insidiis incautus sed ad iram celer esset.
+                [
+                    { type: 'style', label: 'Antithesis', latin: 'incautus... celer', effect: 'Balanced contrast: incautus (\'oblivious\') to plots but celer (\'swift\') to anger. The antithesis captures Claudius\'s paradoxically dangerous nature in just two words.', words: ['02-12', '02-15'] },
+                    { type: 'style', label: 'Relative Clause', latin: 'qui... esset', effect: 'The subjunctive relative clause gives Silius\'s characterisation of Claudius \u2014 this is how the conspirators see the emperor, filtered through reported speech.', words: ['02-10', '02-11'] },
+                    { type: 'context', label: 'Claudius\'s Character', effect: 'Claudius is presented as gullible yet volatile \u2014 he doesn\'t notice plots but reacts with terrifying speed once he does. This justifies the urgency of praevenirent.' }
+                ],
+                // Sentence 3: Messalina, non amore in maritum, sed verita
+                [
+                    { type: 'style', label: 'Litotes', latin: 'non amore in maritum', effect: 'Devastating understatement: \'not out of love for her husband.\' Tacitus doesn\'t say she hated Claudius \u2014 he simply says love played no part. More damning than any direct accusation.', words: ['03-04', '03-05'] },
+                    { type: 'style', label: 'Antithesis', latin: 'non amore... sed verita', effect: 'non... sed structure contrasts what did NOT motivate her (love) with what DID (fear of losing Silius). Even in conspiracy, she\'s calculating.', words: ['03-04', '03-08', '03-09'] },
+                    { type: 'context', label: 'Messalina\'s Motive', effect: 'Her hesitation wasn\'t about loyalty to Claudius \u2014 it was about whether Silius would remain loyal to her. Tacitus strips away any romantic pretence about the marriage.' }
+                ],
+                // Sentence 3b: ne Silius summa adeptus se sperneret, diu haesitavit;
+                [
+                    { type: 'style', label: 'Fear Clause', latin: 'ne... sperneret', effect: 'ne + subjunctive expressing her fear: that Silius, having reached the top, would reject her. The grammar captures her anxiety about being discarded.', words: ['03-10', '03-14'] },
+                    { type: 'style', label: 'Word Choice', latin: 'summa adeptus', effect: 'summa (\'the highest things\') \u2014 deliberately vague, implying supreme power. adeptus (\'having obtained\') is a deponent participle suggesting active achievement.', words: ['03-13', '03-12'] },
+                    { type: 'style', label: 'Word Choice', latin: 'haesitavit', effect: 'haesitavit (\'she hesitated\') \u2014 frequentative verb implies repeated, prolonged wavering. diu (\'for a long time\') intensifies this portrait of indecision.', words: ['03-03'] },
+                    { type: 'context', label: 'Ironic Reversal', effect: 'Messalina fears being spurned by Silius \u2014 exactly what she did to others. The woman who destroyed Junia Silana\'s marriage now fears abandonment herself.' }
+                ],
+                // Sentence 4: sed tandem persuasum.
+                [
+                    { type: 'style', label: 'Brevity', effect: 'After the long, complex sentence 3, this is strikingly short \u2014 just three words. The compression mirrors the finality of the decision: all the wavering collapses into a single fait accompli.', words: [] },
+                    { type: 'style', label: 'Impersonal Passive', latin: 'persuasum', effect: 'persuasum (\'it was persuaded\' / \'she was won over\') \u2014 impersonal passive leaves the agent unnamed. Who persuaded her? Silius? Her own desires? Tacitus refuses to say.', words: ['04-03'] },
+                    { type: 'context', label: 'Narrative Pace', effect: 'sed tandem (\'but finally\') \u2014 after the elaborate analysis of motives, Tacitus cuts to the outcome with devastating brevity. The decision itself barely merits a sentence.' }
+                ],
+                // Sentence 5: nomen enim matrimonii concupivit ob magnitudinem infamiae.
+                [
+                    { type: 'style', label: 'Paradox', latin: 'ob magnitudinem infamiae', effect: 'She desired marriage BECAUSE of the magnitude of the disgrace \u2014 the greater the scandal, the more she wanted it. Tacitus inverts normal moral values completely.', words: ['05-06', '05-07'] },
+                    { type: 'style', label: 'Word Choice', latin: 'concupivit', effect: 'concupivit (\'she desired greedily\') \u2014 a verb of intense, almost lustful desire. Not simply \'wanted\' but craved, with overtones of moral corruption.', words: ['05-04'] },
+                    { type: 'style', label: 'Explanatory Conjunction', latin: 'enim', effect: 'enim (\'for\') signals Tacitus is giving the psychological explanation. After the bare fact (persuasum), he now reveals the deeper, more disturbing motive.', words: ['05-01'] },
+                    { type: 'context', label: 'Transgression as Motive', effect: 'This is Tacitus\'s most penetrating insight: Messalina\'s vice has evolved beyond ordinary motives like love or power. The infamy itself has become the attraction.' }
+                ],
+                // Sentence 6: nec ultra morata quam dum sacrificii gratia
+                [
+                    { type: 'style', label: 'Temporal Compression', latin: 'nec ultra morata quam dum', effect: 'nec ultra... quam dum (\'she waited no longer than until...\') \u2014 the construction emphasises speed. She acts the moment Claudius leaves, as if she\'d been counting the minutes.', words: ['06-01', '06-02', '06-03', '06-04', '06-05'] },
+                    { type: 'context', label: 'Claudius\'s Absence', effect: 'Claudius goes to Ostia for a sacrifice \u2014 a routine religious duty. The mundane reason for his absence heightens the outrage of what happens while he\'s away.' }
+                ],
+                // Sentence 6b: Claudius Ostiam proficisceretur, cuncta nuptiarum sollemnia celebrat.
+                [
+                    { type: 'style', label: 'Historic Present', latin: 'celebrat', effect: 'celebrat (\'she celebrates\') \u2014 sudden switch to present tense after sustained past narration. The historic present yanks the reader into the room as witness to the outrageous ceremony.', words: ['06-11'] },
+                    { type: 'style', label: 'Emphatic Adjective', latin: 'cuncta', effect: 'cuncta (\'all\') \u2014 not a hurried, secret ceremony but a complete, formal, public wedding with every proper ritual. The completeness of the ceremony matches the completeness of the outrage.', words: ['06-12'] },
+                    { type: 'context', label: 'Legal Marriage', effect: 'nuptiarum sollemnia (\'wedding rites\') \u2014 these are the formal legal ceremonies of Roman marriage. Messalina is not merely having an affair; she is publicly, legally marrying another man while still empress.' }
+                ]
+            ];
+
             // === Canvas setup ===
             function resizeCanvas(preserveContent) {
                 const rect = workspace.getBoundingClientRect();
@@ -1688,6 +1917,62 @@
             }
             translationBtn.addEventListener('click', toggleTranslation);
 
+            // === Hints panel ===
+            const hintsPanel = document.getElementById('analysisHintsPanel');
+            const hintsBody = document.getElementById('analysisHintsBody');
+            const hintsBtn = document.getElementById('analysisHintsBtn');
+            let hintsOpen = false;
+
+            function toggleHintsPanel() {
+                hintsOpen = !hintsOpen;
+                hintsPanel.classList.toggle('open', hintsOpen);
+                hintsBtn.classList.toggle('active', hintsOpen);
+            }
+
+            function closeHintsPanel() {
+                hintsOpen = false;
+                hintsPanel.classList.remove('open');
+                hintsBtn.classList.remove('active');
+            }
+
+            function clearHintHighlights() {
+                document.querySelectorAll('#analysisLatinLine .hint-highlight').forEach(el => {
+                    el.classList.remove('hint-highlight');
+                });
+            }
+
+            function updateHintsPanel(idx) {
+                hintsBody.innerHTML = '';
+                clearHintHighlights();
+                const hints = sentenceHints[idx] || [];
+                hints.forEach((hint, i) => {
+                    const card = document.createElement('div');
+                    card.className = 'style-hint type-' + hint.type;
+                    card.innerHTML =
+                        '<div class="style-hint-label">' + hint.label + '</div>' +
+                        (hint.latin ? '<div class="style-hint-latin">' + hint.latin + '</div>' : '') +
+                        '<div class="style-hint-effect">' + hint.effect + '</div>';
+                    card.addEventListener('click', () => {
+                        const wasActive = card.classList.contains('active');
+                        hintsBody.querySelectorAll('.style-hint.active').forEach(c => c.classList.remove('active'));
+                        clearHintHighlights();
+                        if (!wasActive) {
+                            card.classList.add('active');
+                            if (hint.words && hint.words.length) {
+                                hint.words.forEach(order => {
+                                    const wg = document.querySelector('#analysisLatinLine .word-group[data-order="' + order + '"]');
+                                    if (wg) wg.classList.add('hint-highlight');
+                                });
+                            }
+                        }
+                    });
+                    hintsBody.appendChild(card);
+                });
+            }
+
+            hintsBtn.addEventListener('click', toggleHintsPanel);
+            document.getElementById('analysisHintsClose').addEventListener('click', closeHintsPanel);
+
             // === Sentence display ===
             function showSentence(idx) {
                 if (analysisActive && currentSentenceIdx !== idx) {
@@ -1730,6 +2015,7 @@
                 });
                 engEl.classList.toggle('hidden-translation', !translationVisible);
 
+                updateHintsPanel(idx);
                 requestAnimationFrame(() => loadAnalysis(idx));
             }
 
@@ -1801,6 +2087,9 @@
                 } else if (e.code === 'KeyS' && (e.ctrlKey || e.metaKey)) {
                     e.preventDefault();
                     saveAnalysis();
+                } else if (e.code === 'KeyH') {
+                    e.preventDefault();
+                    toggleHintsPanel();
                 } else if (e.code === 'KeyT') {
                     e.preventDefault();
                     toggleTranslation();
