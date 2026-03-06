@@ -1855,12 +1855,17 @@
 
             function saveAnalysis() {
                 try {
-                    const rect = workspace.getBoundingClientRect();
-                    const data = {
-                        canvas: canvas.toDataURL(),
-                        notes: document.getElementById('analysisNotesText').value
-                    };
-                    localStorage.setItem(getStorageKey(currentSentenceIdx), JSON.stringify(data));
+                    const notes = document.getElementById('analysisNotesText').value;
+                    const data = { notes: notes || '' };
+                    try {
+                        data.canvas = canvas.toDataURL();
+                    } catch(e) { /* canvas may be tainted */ }
+                    try {
+                        localStorage.setItem(getStorageKey(currentSentenceIdx), JSON.stringify(data));
+                    } catch(e) {
+                        // Quota exceeded — save notes only (much smaller)
+                        localStorage.setItem(getStorageKey(currentSentenceIdx), JSON.stringify({ notes: notes || '' }));
+                    }
                     const indicator = document.getElementById('analysisSaveIndicator');
                     indicator.classList.add('visible');
                     setTimeout(() => indicator.classList.remove('visible'), 1500);
