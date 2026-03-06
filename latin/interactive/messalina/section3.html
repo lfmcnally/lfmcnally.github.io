@@ -1310,9 +1310,9 @@
         <div class="analysis-toolbar">
             <div class="analysis-toolbar-section">
                 <button class="analysis-btn back-btn" id="analysisBackBtn">Back</button>
-                <button class="analysis-btn" id="analysisPrevBtn">&#9664;</button>
-                <span class="analysis-nav-label" id="analysisNavLabel">Sentence 1 of 6</span>
-                <button class="analysis-btn" id="analysisNextBtn">&#9654;</button>
+                <button class="analysis-btn" id="analysisPrevBtn" onclick="window._analysisPrev && window._analysisPrev()">&#9664; Prev</button>
+                <span class="analysis-nav-label" id="analysisNavLabel">Sentence 1 of 9</span>
+                <button class="analysis-btn" id="analysisNextBtn" onclick="window._analysisNext && window._analysisNext()">Next &#9654;</button>
                 <button class="analysis-btn" id="analysisTranslationBtn" title="Toggle translation (T)">Translation</button>
                 <button class="analysis-btn" id="analysisHintsBtn" title="Style & Context hints (H)">Hints</button>
             </div>
@@ -2037,16 +2037,17 @@
                 requestAnimationFrame(() => loadAnalysis(idx));
             }
 
-            // Nav
-            document.getElementById('analysisPrevBtn').addEventListener('click', () => {
-                console.log('Prev clicked, currentSentenceIdx:', currentSentenceIdx);
+            // Nav — exposed globally for onclick fallback
+            function goPrev() {
                 if (currentSentenceIdx > 0) showSentence(currentSentenceIdx - 1);
-            });
-
-            document.getElementById('analysisNextBtn').addEventListener('click', () => {
-                console.log('Next clicked, currentSentenceIdx:', currentSentenceIdx, 'sentences.length:', sentences.length);
+            }
+            function goNext() {
                 if (currentSentenceIdx < sentences.length - 1) showSentence(currentSentenceIdx + 1);
-            });
+            }
+            window._analysisPrev = goPrev;
+            window._analysisNext = goNext;
+            document.getElementById('analysisPrevBtn').addEventListener('click', goPrev);
+            document.getElementById('analysisNextBtn').addEventListener('click', goNext);
 
             // === Enter / Exit ===
             function enterAnalysis() {
@@ -2085,7 +2086,6 @@
             // Analysis keyboard shortcuts
             document.addEventListener('keydown', (e) => {
                 if (!analysisActive) return;
-                console.log('Analysis keydown:', e.code, 'activeElement:', document.activeElement?.tagName);
                 if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') {
                     if (e.code === 'Escape') {
                         document.activeElement.blur();
@@ -2098,12 +2098,10 @@
                     exitAnalysis();
                 } else if (e.code === 'ArrowLeft') {
                     e.preventDefault();
-                    console.log('ArrowLeft, currentSentenceIdx:', currentSentenceIdx);
-                    if (currentSentenceIdx > 0) showSentence(currentSentenceIdx - 1);
+                    goPrev();
                 } else if (e.code === 'ArrowRight') {
                     e.preventDefault();
-                    console.log('ArrowRight, currentSentenceIdx:', currentSentenceIdx, 'max:', sentences.length - 1);
-                    if (currentSentenceIdx < sentences.length - 1) showSentence(currentSentenceIdx + 1);
+                    goNext();
                 } else if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') {
                     e.preventDefault();
                     undo();
