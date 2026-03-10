@@ -256,44 +256,97 @@ window.pageData = {
     ],
 
     examQuestions: [
+        // --- REAL PAST PAPERS ---
         {
-            id: 'exam-inevitable',
-            question: '\'Was civil war inevitable after 56 BC?\'',
-            type: '30-mark',
+            id: 'exam-1',
+            question: 'What image of Cicero does the letter in Source A (<em>Fam.</em> 2.11) provide?',
+            type: '10-mark source',
             structure: [
-                '<strong>Introduction:</strong> Define "inevitable" &mdash; distinguish between structural preconditions and triggering events. Argue that civil war was highly probable after Luca but not strictly inevitable until the SCU of January 49 BC.',
-                '<strong>For inevitability:</strong> Luca showed the triumvirate could override the Senate entirely. Caesar\'s Gallic command created an army loyal to him personally. The deaths of Julia (54 BC) and Crassus (53 BC) removed the personal bonds holding Caesar and Pompey together. The Republic had no mechanism to resolve the resulting deadlock.',
-                '<strong>Against inevitability:</strong> Caesar offered multiple compromises in 50&ndash;49 BC. Had the Senate accepted any of them, war might have been averted. Pompey was indecisive and might have remained neutral. Different individuals (a less rigid Cato, a more decisive Pompey) might have found a constitutional solution.',
-                '<strong>Conclusion:</strong> The structural conditions made civil war probable, but the specific timing and form of the conflict were determined by individual decisions &mdash; particularly Cato\'s refusal to compromise and Caesar\'s willingness to use force.'
+                '<strong>Point 1 &mdash; Frustration and detachment:</strong> The letter presents Cicero as deeply frustrated with the political situation in Rome. Writing from his provincial governorship in Cilicia, he conveys a sense of distance &mdash; both geographical and emotional &mdash; from the centre of power. He feels sidelined and irrelevant.',
+                '<strong>Point 2 &mdash; Political helplessness:</strong> The letter reveals a Cicero who is unable to influence events. Despite being an ex-consul and one of Rome\'s greatest orators, he is stuck in a provincial backwater while momentous decisions are made without him. This projects an image of powerlessness.',
+                '<strong>Point 3 &mdash; Loyalty to the Republic:</strong> Despite his frustration, Cicero\'s concern for the <em>res publica</em> comes through. He is not indifferent to what is happening &mdash; he is anxious about it. This reveals the image of a man whose identity is bound up with the health of the state.',
+                '<strong>Point 4 &mdash; Self-awareness and wit:</strong> As with many of Cicero\'s letters, there is sardonic humour and self-awareness. He knows his position is absurd. The letter shows the literary, reflective Cicero &mdash; a man who processes political events through writing.',
+                '<strong>Point 5 &mdash; Source evaluation:</strong> This is a private letter to Caelius Rufus, a younger political ally. Cicero is candid but may also be performing &mdash; presenting himself as above the fray while seeking information. The genre (private correspondence) means the image is more honest than a public speech, but not entirely unself-conscious.'
             ],
-            evidence: 'Conference of Luca (56 BC), Caesar\'s Gallic campaigns and personal army, deaths of Julia and Crassus, Pompey\'s sole consulship (52 BC), the failed negotiations of 50&ndash;49 BC, the SCU and expulsion of tribunes. Cicero\'s letters (Fam. 2.4, 2.11) for contemporary perspective.',
-            historiography: 'Syme emphasises structural factors (the Republic was already dead by the 50s). Gruen argues it remained viable until very late. Gelzer focuses on Caesar\'s personal ambition. Consider whether "inevitability" is a useful historical concept at all.'
+            evidence: 'Quote or paraphrase specific details from <em>Fam.</em> 2.11 &mdash; Cicero\'s complaints about Cilicia, his desire for news from Rome, his tone of exasperation. Compare with the more guarded tone of his public speeches (<em>In Verrem</em>, for example) to show how the letter genre reveals a different, more personal image.',
+            historiography: 'Shackleton Bailey\'s commentary notes the importance of audience &mdash; Cicero writes differently to Caelius than to Atticus. Steel argues that Cicero\'s letters are literary performances as well as historical documents. The key point: the "image" in a letter is shaped by the relationship between writer and recipient.'
         },
         {
-            id: 'exam-caesar-threat',
-            question: '\'Caesar was a greater threat to the Republic than Pompey.\' How far do you agree?',
+            id: 'exam-2',
+            question: 'Evaluate how far the key players in Roman politics, between 63 BC and 44 BC, were motivated by ambition rather than ideals. Discuss at least two key players.',
             type: '30-mark',
             structure: [
-                '<strong>Introduction:</strong> Both men held unconstitutional power, but they used it differently. Define "threat" in terms of both intention and structural impact.',
-                '<strong>Caesar as threat:</strong> Built a personally loyal army in Gaul. Used his consulship of 59 BC to bypass the Senate through violence and intimidation. Crossed the Rubicon under arms. His ambition was openly monarchical &mdash; he sought permanent personal power.',
-                '<strong>Pompey as threat:</strong> Received extraordinary commands (pirates, Mithridates) that broke Republican norms. His sole consulship in 52 BC was technically unconstitutional. He represented the precedent that the Republic could only function through personal authority. His threat was structural rather than intentional.',
-                '<strong>Conclusion:</strong> Caesar was the more immediate threat, but Pompey had already normalised the concentration of power that made Caesar possible. The Republic\'s problem was not one man but the system that produced both of them.'
+                '<strong>Introduction:</strong> The distinction between "ambition" and "ideals" is not always clear in Roman politics, where personal <em>dignitas</em> and service to the state were intertwined. Argue that most key players were motivated by both, in varying proportions, and that the two could be mutually reinforcing or contradictory.',
+                '<strong>Caesar &mdash; Ambition dominant:</strong> Caesar\'s career from the consulship of 59 BC to the dictatorship shows relentless personal ambition. He bypassed the Senate, built a personal army in Gaul, and crossed the Rubicon to protect his <em>dignitas</em>. His own justification (<em>De Bello Civili</em> 1.7&ndash;9) frames the civil war as defence of his honour and the rights of the tribunes, but the scale of his ambition &mdash; culminating in a perpetual dictatorship &mdash; suggests personal power was the primary motivation.',
+                '<strong>Caesar &mdash; Some ideals:</strong> However, Caesar did pursue genuine reforms: land redistribution, calendar reform, extension of citizenship. He could claim to be acting in the <em>popularis</em> tradition for the benefit of the people. His <em>clementia</em> suggests he was not purely self-serving.',
+                '<strong>Cicero &mdash; Ideals dominant:</strong> Cicero consistently articulated a vision of <em>concordia ordinum</em> and senatorial government. His letters to Atticus reveal genuine anguish at the Republic\'s decline &mdash; <em>rem publicam funditus amisimus</em> (<em>Att.</em> 2.18). His opposition to the triumvirate, his agonised decision-making in 49 BC, and his return to politics after Caesar\'s assassination all suggest ideological commitment.',
+                '<strong>Cicero &mdash; Some ambition:</strong> Cicero was not free from ambition. He constantly reminded people of his consulship and the Catilinarian affair. His desire for a triumph from Cilicia and his sensitivity to his <em>novus homo</em> status show personal ambition alongside his ideals.',
+                '<strong>Pompey &mdash; Ambition disguised as duty:</strong> Pompey sought extraordinary commands (against the pirates, against Mithridates, the grain commission, the sole consulship) while presenting himself as the reluctant servant of the state. His ambition was enormous but always cloaked in constitutional respectability. Cicero\'s letters show both admiration for and frustration with Pompey\'s combination of power and indecisiveness.',
+                '<strong>Conclusion:</strong> All three men were motivated by a mixture of ambition and ideals, but in different proportions. Caesar\'s ambition increasingly overshadowed any ideals. Cicero\'s ideals were genuine but accompanied by personal vanity. Pompey\'s ambition was the most disguised. The tragedy of the late Republic is that the system could not accommodate any of them.'
             ],
-            evidence: 'Caesar\'s Gallic command, his consulship of 59 BC, the crossing of the Rubicon. Pompey\'s extraordinary commands, sole consulship, alignment with the Senate. Cato\'s argument that both men were threats. Cicero\'s attempts to mediate.',
-            historiography: 'Meier sees Caesar as uniquely destructive. Seager argues Pompey was equally problematic but less self-aware about it. Consider the Marxist interpretation that both men were symptoms of deeper socio-economic transformation.'
+            evidence: 'Cicero <em>Att.</em> 2.18 (<em>rem publicam funditus amisimus</em>) for ideological commitment. Cicero\'s letters during 49 BC for his agonised decision-making. Caesar\'s <em>De Bello Civili</em> 1.7&ndash;9 for his self-justification. Cicero\'s <em>In Verrem</em> speeches show early idealism about justice and the courts. His letters to Atticus trace the evolution from confidence to despair.',
+            historiography: 'Syme argues that ideals were largely a cover for factional competition. Gruen takes Roman political ideals more seriously. Rawson\'s biography of Cicero presents him as genuinely principled. Gelzer\'s Caesar emphasises <em>dignitas</em> as both personal and political. Seager\'s Pompey shows ambition clothed in Republican respectability.'
+        },
+        // --- ADDITIONAL PRACTICE ---
+        {
+            id: 'exam-3',
+            question: 'Explain why Pompey was given the sole consulship in 52 BC.',
+            type: '10-mark',
+            structure: [
+                '<strong>Point 1 &mdash; Anarchy in Rome:</strong> The murder of Clodius by Milo\'s gang in January 52 BC led to rioting in Rome. Clodius\'s supporters burned the Senate house as a funeral pyre. Normal political life was impossible &mdash; the city was in chaos and consular elections could not be held.',
+                '<strong>Point 2 &mdash; No consuls in office:</strong> The year 52 BC began without consuls because the elections for 52 had been repeatedly disrupted by gang violence throughout the previous year. Rome had an unprecedented political vacuum that required an extraordinary solution.',
+                '<strong>Point 3 &mdash; Pompey as strongman:</strong> Pompey was the only man with both the military resources and the political credibility to restore order. His troops were stationed near Rome. The Senate, led by Cato and Bibulus, proposed a sole consulship as a compromise &mdash; granting Pompey emergency power without the stigma of a dictatorship.',
+                '<strong>Point 4 &mdash; Cato\'s calculation:</strong> Even Cato, who distrusted personal power, supported Pompey\'s sole consulship as the lesser evil. He calculated that binding Pompey to the Senate would prevent him from aligning with Caesar. The sole consulship was designed to separate Pompey from the triumvirate.',
+                '<strong>Point 5 &mdash; Pompey\'s legislation:</strong> Pompey used his sole consulship to restore order, pass laws against electoral corruption and political violence, and &mdash; crucially &mdash; pass legislation that threatened Caesar\'s position (requiring personal canvassing for office and not extending Caesar\'s right to stand <em>in absentia</em>).'
+            ],
+            evidence: 'The murder of Clodius and burning of the Senate house (52 BC). Cicero\'s <em>Pro Milone</em> was delivered during the trial of Milo under Pompey\'s new court. Cicero\'s letters record the chaos. Pompey\'s legislation of 52 BC, particularly the law on <em>ratio absentis</em>, had direct implications for Caesar.',
+            historiography: 'Gruen argues the Republic was still capable of adapting &mdash; the sole consulship was a creative constitutional solution. Lintott notes the irony that a sole consulship was functionally identical to a short-term dictatorship. Seager sees the appointment as the moment Pompey definitively aligned with the <em>optimates</em>.'
         },
         {
-            id: 'exam-cato-role',
-            question: 'How far was Cato responsible for the outbreak of civil war in 49 BC?',
+            id: 'exam-4',
+            question: 'Explain the significance of the Conference of Luca (56 BC).',
+            type: '10-mark',
+            structure: [
+                '<strong>Point 1 &mdash; Renewal of the triumvirate:</strong> The meeting at Luca in April 56 BC renewed the alliance between Caesar, Pompey, and Crassus, which had been strained by political developments in Rome. It demonstrated that the three men could still coordinate their power effectively.',
+                '<strong>Point 2 &mdash; Division of power:</strong> At Luca, the triumvirs agreed that Pompey and Crassus would hold the consulship of 55 BC, after which Pompey would receive Spain and Crassus would receive Syria. Caesar\'s Gallic command was extended for a further five years. This was a private carve-up of the Roman state.',
+                '<strong>Point 3 &mdash; Senate bypassed:</strong> The conference demonstrated that the most important political decisions were being made by three private citizens in a provincial town, not by the Senate in Rome. This was a profound humiliation for senatorial authority.',
+                '<strong>Point 4 &mdash; Cicero forced to submit:</strong> After Luca, Cicero was compelled to publicly support the triumvirs\' measures, including Caesar\'s Gallic command. His letters to Atticus reveal his private humiliation at having to abandon his opposition. Cicero described himself as politically dead.',
+                '<strong>Point 5 &mdash; Long-term consequences:</strong> Luca extended Caesar\'s command until 50 BC, giving him the time and resources to conquer Gaul and build the army that would eventually cross the Rubicon. The conference thus directly contributed to the conditions for civil war.'
+            ],
+            evidence: 'Cicero\'s <em>Fam.</em> 2.4 (to Curio) reflects the post-Luca political reality. Cicero\'s letters to Atticus describe his forced accommodation with the triumvirs. The allocation of provinces (Spain, Syria, extended Gallic command) and the consulship of 55 BC for Pompey and Crassus are key factual outcomes.',
+            historiography: 'Syme sees Luca as confirmation that the Republic was already controlled by a dynastic faction. Gruen downplays the conference\'s significance, arguing the triumvirate was already weakening. Gelzer notes that Luca was the last time the three men coordinated effectively.'
+        },
+        {
+            id: 'exam-5',
+            question: '\'Pompey was a defender of the Republic, not an ambitious dynast.\' How far do you agree?',
+            type: '20-mark',
+            structure: [
+                '<strong>Introduction:</strong> Pompey\'s career is deeply ambiguous. He sought extraordinary personal power but consistently presented himself as serving the state. The question is whether his Republican credentials were genuine or merely a useful disguise for ambition.',
+                '<strong>AGREE &mdash; Defender of the Republic:</strong> Pompey disbanded his armies after his Eastern campaigns (62 BC) and sought Senate ratification of his settlements through constitutional channels. He accepted the sole consulship in 52 BC to restore order, not to seize permanent power. He ultimately sided with the Senate against Caesar in 49 BC. Cicero\'s letters show that many senators, including Cicero himself, saw Pompey as the Republic\'s best hope.',
+                '<strong>AGREE &mdash; Constitutional behaviour:</strong> Unlike Caesar, Pompey did not use violence against the Senate or cross the Rubicon. His sole consulship included genuine reforms against corruption and violence. He co-opted a colleague (Metellus Scipio) before the end of 52 BC, respecting the principle of collegiality.',
+                '<strong>DISAGREE &mdash; Ambitious dynast:</strong> Pompey sought and received extraordinary commands that broke Republican precedent &mdash; against the pirates (67 BC), against Mithridates (66 BC), the grain commission (57 BC), the sole consulship (52 BC). Each gave him personal power far beyond normal constitutional limits. He was the Republic\'s most powerful individual for two decades.',
+                '<strong>DISAGREE &mdash; Self-interest masked as duty:</strong> Pompey\'s "defence of the Republic" in 49 BC coincided with defending his own supremacy. Cicero\'s letters reveal frustration with Pompey\'s indecisiveness and self-interest &mdash; Pompey wanted to be the Republic\'s saviour on his own terms. His strategy of retreating from Italy suggests he prioritised his own military position over Rome itself.',
+                '<strong>Conclusion:</strong> Pompey was both &mdash; a man who genuinely believed in the Republic but also wanted to be its dominant figure. His tragedy was that the two goals became incompatible. He defended the Republic\'s forms while embodying the concentration of personal power that was destroying it.'
+            ],
+            evidence: 'Pompey\'s disbanding of his army in 62 BC. His sole consulship of 52 BC and its legislation. Cicero\'s <em>De Lege Manilia</em> (66 BC) supporting Pompey\'s command. Cicero\'s letters during 49 BC expressing both hope in and frustration with Pompey. The contrast between Pompey\'s constitutional behaviour and Caesar\'s willingness to use force.',
+            historiography: 'Seager (<em>Pompey the Great</em>) presents a man of enormous ambition but limited political vision. Gruen argues Pompey was more genuinely Republican than is often acknowledged. Syme dismisses the distinction &mdash; in his view, both Pompey and Caesar were warlords competing for supremacy within a dying system.'
+        },
+        {
+            id: 'exam-6',
+            question: '\'Civil war was inevitable after 56 BC.\' How far do you agree?',
             type: '30-mark',
             structure: [
-                '<strong>Introduction:</strong> Cato\'s insistence on constitutional propriety forced the confrontation with Caesar. But was he defending the Republic or destroying it through inflexibility?',
-                '<strong>Cato\'s responsibility:</strong> Refused every compromise offered by Caesar. Insisted Caesar must lay down his command and return as a private citizen. Led the faction that passed the SCU and drove out the tribunes. His rigidity closed off every peaceful resolution.',
-                '<strong>Limits of Cato\'s responsibility:</strong> He was defending genuine constitutional principles. Caesar\'s behaviour in 59 BC justified suspicion. The structural crisis existed independently of Cato\'s actions. Other senators shared his views.',
-                '<strong>Conclusion:</strong> Cato accelerated a crisis that was probably coming anyway, but his specific role in blocking compromise was significant. The tragedy is that his principles, however admirable, required civil war to enforce.'
+                '<strong>Introduction:</strong> Define "inevitable" &mdash; distinguish between structural preconditions and triggering events. Argue that civil war was highly probable after the Conference of Luca but not strictly inevitable until the <em>senatus consultum ultimum</em> of January 49 BC.',
+                '<strong>AGREE &mdash; Luca entrenched the power imbalance:</strong> The Conference of Luca showed that three private citizens could determine the future of the Roman state. Caesar\'s Gallic command was extended, giving him the army and the resources that would eventually be used against the Republic. The Senate was powerless to resist.',
+                '<strong>AGREE &mdash; The deaths of Julia and Crassus removed the bonds:</strong> Julia\'s death in 54 BC severed the personal connection between Caesar and Pompey. Crassus\'s death at Carrhae in 53 BC reduced the triumvirate to two rivals. Without mediating figures, the relationship between Caesar and Pompey became a zero-sum competition for supremacy.',
+                '<strong>AGREE &mdash; Structural crisis:</strong> The Republic had no constitutional mechanism for resolving a dispute between two men who each commanded personal armies. The Senate could not compel Caesar to disband without risking war, and could not accommodate his demands without surrendering its authority. The system was trapped.',
+                '<strong>DISAGREE &mdash; Caesar offered compromises:</strong> In 50&ndash;49 BC, Caesar proposed several compromises &mdash; retaining two legions and Cisalpine Gaul, standing for the consulship <em>in absentia</em>, mutual disarmament with Pompey. Had the Senate accepted any of these, war might have been averted.',
+                '<strong>DISAGREE &mdash; Pompey\'s indecisiveness left room for peace:</strong> Pompey was not eager for war. Cicero\'s letters show Pompey vacillating between accommodation and confrontation. A more decisive Pompey might have negotiated a settlement. His indecisiveness was contingent, not structural.',
+                '<strong>DISAGREE &mdash; Cato\'s role was contingent:</strong> It was Cato and the hardliners who blocked every compromise and pushed through the SCU. Different individuals in the Senate might have found a constitutional solution. The war was caused by specific political choices, not by inevitable structural forces.',
+                '<strong>Conclusion:</strong> The structural conditions after 56 BC made civil war highly probable, but the specific timing and form of the conflict were determined by individual decisions. The deaths of Julia and Crassus, Cato\'s inflexibility, and Caesar\'s willingness to use force were all contingent factors. "Probable" is more accurate than "inevitable."'
             ],
-            evidence: 'Cato\'s opposition to Caesar\'s consulship (59 BC), his Cyprus mission, his obstruction of compromise in 50&ndash;49 BC, the SCU. Cicero\'s letters show frustration with Cato\'s inflexibility. Caesar\'s own account of the negotiations in <em>De Bello Civili</em>.',
-            historiography: 'Goodman and Morstein-Marx emphasise Cato\'s role in making war inevitable. Beard notes the irony that the Republic\'s most principled defender helped destroy it. Consider whether Cato had any realistic alternative.'
+            evidence: 'The Conference of Luca (56 BC) and its outcomes. The deaths of Julia (54 BC) and Crassus (53 BC). Pompey\'s sole consulship (52 BC). Caesar\'s compromise offers of 50&ndash;49 BC. The SCU and expulsion of the tribunes (January 49 BC). Cicero\'s letters &mdash; <em>Fam.</em> 2.4 and 2.11 for contemporary perspective on the political situation of the 50s.',
+            historiography: 'Syme emphasises structural factors &mdash; the Republic was already dead by the 50s. Gruen (<em>The Last Generation</em>) argues it remained viable until very late. Gelzer focuses on Caesar\'s personal ambition. Consider whether "inevitability" is a useful historical concept at all.'
         }
     ]
 

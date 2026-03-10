@@ -252,46 +252,88 @@ window.pageData = {
 
     examQuestions: [
         {
-            id: 'exam-heroic-reckless',
-            question: '\'Cicero\'s final stand was heroic rather than reckless.\' How far do you agree?',
-            type: '30-mark',
+            id: 'exam-1',
+            question: '\'Cicero\'s political ideals meant that he only felt joy at the assassination of Caesar.\' Explain to what extent you agree with this view.',
+            type: '20-mark',
             structure: [
-                '<strong>Introduction:</strong> Define "heroic" and "reckless" in the Roman political context. The Philippics were both \u2014 the question is which quality predominated.',
-                '<strong>For heroic:</strong> Cicero knew the risks but believed the Republic was worth fighting for. The Philippics show genuine commitment to <em>libertas</em>. His death scene demonstrates Stoic courage. Velleius acknowledges he "died bravely."',
-                '<strong>For reckless:</strong> He fatally misjudged Octavian (<em>laudandum, ornandum, tollendum</em>). He had no military force to back his rhetoric. He gambled the lives of others (the 300 proscribed senators) as well as his own. His strategy depended entirely on others\' loyalty.',
-                '<strong>Nuance:</strong> Perhaps the distinction is false. In a Republic where constitutional means of resistance had been exhausted, was reckless courage the only option left? Cicero\'s oratory was the only weapon he had.',
-                '<strong>Conclusion:</strong> Cicero\'s stand was heroic in intent and reckless in execution. His principles were admirable, but his political judgement was fatally flawed. Use Velleius for a balanced final assessment.'
+                '<strong>Introduction:</strong> Cicero\'s reaction to the Ides of March was far more complex than simple joy. His political ideals shaped his response, but so did pragmatic anxiety about what would follow.',
+                '<strong>AGREE — joy at tyrannicide:</strong> Cicero\'s political ideals centred on <em>libertas</em>, constitutional government, and senatorial authority. Caesar\'s dictatorship violated all three. In <em>Att.</em> 14.4, Cicero\'s approval of the deed (<em>ἔργον</em>) reflects genuine ideological satisfaction — the tyrant is dead, and the Republic has a chance of restoration. His letters in the weeks after the Ides show moments of elation and hope.',
+                '<strong>DISAGREE — anxiety dominated:</strong> The same letter (<em>Att.</em> 14.4) reveals deep frustration: the planning was childish (<em>βουλή</em>). Cicero quickly realised that the assassination solved nothing — Antony seized Caesar\'s papers and funds, the conspirators had no plan, and the political situation was more dangerous than before. His letters show fear, not just joy.',
+                '<strong>DISAGREE — personal complexity:</strong> Cicero had benefited from Caesar\'s clemency after Pharsalus. He had dined with Caesar. His feelings were not purely ideological — there was personal ambivalence about a man who had spared him but destroyed the Republic he loved.',
+                '<strong>Conclusion:</strong> Cicero\'s ideals made him approve of the assassination in principle, but his political judgement made him despair at its execution and consequences. Joy was only one element in a complex emotional response.'
             ],
-            evidence: 'Philippics (especially Second Philippic); the <em>laudandum, ornandum, tollendum</em> quip; Plutarch\'s death scene; Velleius Paterculus\'s assessment; Appian on the proscriptions; Cicero\'s letters to Plancus and Trebonius for his political strategy.',
-            historiography: 'Modern debate between those who see Cicero as the Republic\'s last champion (e.g. Rawson) and those who see him as a self-important politician whose vanity outran his judgement (e.g. Shackleton Bailey\'s more critical reading). Consider whether our sympathy for Cicero is shaped by the fact that he wrote the surviving sources.'
+            evidence: '<em>Att.</em> 14.4: <em>ἔργον / βουλή</em> — approval of the deed, condemnation of the planning. Cicero\'s letters in the weeks after the Ides showing shifting emotions. The Philippics as evidence of Cicero\'s later commitment to the anti-Caesarian cause, suggesting the ideological satisfaction deepened over time.',
+            historiography: 'Rawson emphasises Cicero\'s genuine Republican convictions. Habicht notes the complexity of his emotional response. The ancient accounts of Cicero\'s reaction vary — his own letters are the primary evidence for his state of mind.'
         },
         {
-            id: 'exam-octavian-betrayal',
-            question: '\'Octavian\'s betrayal of Cicero reveals the true nature of late Republican politics.\' Discuss.',
+            id: 'exam-2',
+            question: '\'Cicero\'s attitude to Mark Antony represented his political views which were expressed throughout Cicero\'s career.\' Discuss to what extent you have found this to be the case.',
             type: '30-mark',
             structure: [
-                '<strong>Introduction:</strong> The relationship between Cicero and Octavian encapsulates the Republic\'s final crisis: personal alliances, political calculation, and the ruthless logic of power.',
-                '<strong>What it reveals about alliances:</strong> Cicero championed Octavian in the Senate; Octavian used Cicero\'s support to gain legitimacy; when Cicero was no longer useful, he was expendable. This was the pattern of late Republican politics: alliances of convenience, not principle.',
-                '<strong>What it reveals about power:</strong> Cicero had words; Octavian had legions. The proscriptions showed that military force, not senatorial authority or rhetorical skill, was the ultimate arbiter of Roman politics.',
-                '<strong>Broader context:</strong> Compare with other betrayals (Pompey\'s failure to protect Cicero during his exile; Caesar\'s initial friendship with Cicero). The Republic\'s political culture was built on <em>fides</em> (trust) and <em>amicitia</em> (friendship), but these bonds broke under the pressure of civil war.',
-                '<strong>Conclusion:</strong> Octavian\'s betrayal was not unique but emblematic. It reveals a political system in which personal loyalty was always subordinate to political survival.'
+                '<strong>Introduction:</strong> Cicero\'s opposition to Antony in the Philippics was the final act of a career defined by defending the Republic against those who threatened it. But was his hostility to Antony consistent with his earlier positions, or a departure from them?',
+                '<strong>AGREE — consistent defence of the Republic:</strong> Cicero\'s career is bookended by attacks on men he saw as threats to constitutional order. The Catilinarian orations (63 BC) attack conspiracy against the state; the <em>In Verrem</em> attacks corruption that undermines Roman governance; the Philippics attack Antony\'s unconstitutional seizure of power. The core principle — that the Republic must be defended through speech and law — remains constant.',
+                '<strong>AGREE — consistent use of invective:</strong> Cicero\'s rhetorical strategies against Antony mirror those used against Verres and Catiline: moral character assassination, appeals to traditional values, positioning himself as the Republic\'s champion. The Second Philippic\'s attack on Antony\'s personal character follows the same template as the <em>In Verrem</em>\'s attack on Verres.',
+                '<strong>DISAGREE — the political context had changed:</strong> Earlier in his career, Cicero operated within functioning Republican institutions — courts, Senate, assemblies. By 44-43 BC, these institutions were hollowed out. The Philippics are speeches delivered in a Senate that no longer controlled events. Cicero\'s <em>method</em> is consistent, but the <em>conditions</em> are entirely different.',
+                '<strong>DISAGREE — Cicero had compromised along the way:</strong> Cicero accepted Caesar\'s dictatorship and benefited from his clemency. He had worked with Pompey despite Pompey\'s unconstitutional behaviour. His opposition to Antony was not the inevitable product of lifelong principle — it was a choice made in specific circumstances, partly driven by personal hostility and partly by political calculation.',
+                '<strong>Conclusion:</strong> Cicero\'s attitude to Antony reflects political views expressed throughout his career — particularly his commitment to <em>libertas</em> and constitutional government. But the consistency is rhetorical as much as ideological. Cicero always presented himself as the Republic\'s defender; whether he always acted as one is more debatable.'
             ],
-            evidence: 'Cicero\'s <em>laudandum, ornandum, tollendum</em> quip; Plutarch on Octavian resisting for two days; the proscription lists; Cicero\'s Philippics praising Octavian; Appian\'s account of the triumviral negotiations.',
-            historiography: 'Syme\'s <em>Roman Revolution</em> emphasises the role of personal factions and patronage networks in the Republic\'s collapse. Consider whether Octavian\'s behaviour was exceptional or simply the logical extension of how late Republican politics had always worked.'
+            evidence: 'The Philippics (especially the Second): invective against Antony\'s character and unconstitutional actions. <em>In Verrem</em>: the same rhetorical template applied to Verres decades earlier. Cicero\'s consulship speeches: defence of the Republic against Catiline. Letters to Atticus during 44-43 BC for Cicero\'s private calculations alongside his public rhetoric. <em>Att.</em> 14.4 for his initial post-assassination analysis.',
+            historiography: 'Rawson traces continuity in Cicero\'s political principles across his career. Mitchell is more critical, emphasising the gap between rhetoric and action. Syme argues that Cicero\'s opposition to Antony was as much personal as principled. Steel analyses the rhetorical continuities between the Verrines, Catilinarians, and Philippics.'
         },
         {
-            id: 'exam-republic-last-voice',
-            question: 'How far was Cicero\'s death the death of the Republic?',
+            id: 'exam-3',
+            question: 'Explain why Cicero chose to support Octavian against Antony in 44-43 BC.',
+            type: '10-mark',
+            structure: [
+                '<strong>Political calculation:</strong> Cicero saw Antony as the immediate threat to the Republic. Octavian, as Caesar\'s adopted heir, had the resources (name, money, veterans) to challenge Antony militarily — something the Senate alone could not do.',
+                '<strong>Cicero\'s famous misjudgement:</strong> Cicero believed Octavian could be used and then discarded — the quip <em>laudandum, ornandum, tollendum</em> (to be praised, honoured, and removed) captures his plan to elevate Octavian against Antony and then sideline the young man once the threat had passed.',
+                '<strong>Republican ideals:</strong> Cicero framed his support for Octavian as defence of the Republic in the Philippics. He presented Octavian as acting in the Senate\'s interest, giving constitutional cover to what was essentially a private army.',
+                '<strong>The fatal error:</strong> Cicero underestimated Octavian\'s ambition and overestimated the Senate\'s ability to control him. When Octavian joined the Second Triumvirate with Antony and Lepidus, Cicero was proscribed and killed — the ultimate proof that his political judgement had failed.'
+            ],
+            evidence: 'The <em>laudandum, ornandum, tollendum</em> quip (reported in later sources). The Philippics, in which Cicero publicly champions Octavian. Cicero\'s letters from this period showing his private hopes for the strategy. The formation of the Second Triumvirate and the proscriptions as the outcome of Cicero\'s miscalculation.',
+            historiography: 'Rawson notes Cicero\'s consistent pattern of allying with military strongmen while hoping to control them. Syme emphasises the naivety of Cicero\'s belief that oratory could constrain armed power.'
+        },
+        {
+            id: 'exam-4',
+            question: 'How do the Philippics demonstrate Cicero\'s political ideals?',
+            type: '10-mark',
+            structure: [
+                '<strong>Defence of <em>libertas</em>:</strong> The Philippics are Cicero\'s most sustained argument for Republican freedom against autocratic power. He attacks Antony not just personally but as a threat to the constitutional order — the Senate\'s authority, the rule of law, and the freedom of political debate.',
+                '<strong>The role of the orator:</strong> The Philippics embody Cicero\'s belief that speech is the Republic\'s greatest weapon. He models himself on Demosthenes opposing Philip of Macedon — the orator as the last line of defence against tyranny.',
+                '<strong>Constitutional government:</strong> Cicero appeals to <em>mos maiorum</em> (ancestral custom) and the Senate\'s traditional authority. He frames the conflict as a choice between lawful government and military despotism.',
+                '<strong>Consistency with earlier career:</strong> The same ideals appear in the <em>In Verrem</em> (rule of law against corruption) and the Catilinarian orations (Republic against conspiracy). The Philippics are the final expression of convictions held throughout Cicero\'s public life.'
+            ],
+            evidence: 'The Philippics: direct evidence of Cicero\'s political ideals in their most urgent and uncompromising form. Compare with <em>In Verrem</em> for the consistency of his defence of law and governance. Letters to Atticus from 44-43 BC show the same ideals expressed privately.',
+            historiography: 'Steel analyses the Philippics as the culmination of Cicero\'s rhetorical career. Rawson sees them as evidence of genuine political conviction. Habicht emphasises their courage given the personal risk involved.'
+        },
+        {
+            id: 'exam-5',
+            question: '\'Cicero\'s final stand against Antony was heroic rather than reckless.\' How far do you agree?',
+            type: '20-mark',
+            structure: [
+                '<strong>Introduction:</strong> Define "heroic" and "reckless" in the Roman political context. Cicero\'s Philippics and his championing of Octavian can be read as either — or both simultaneously.',
+                '<strong>AGREE — heroic:</strong> Cicero knew the risks but believed the Republic was worth fighting for. The Philippics show genuine commitment to <em>libertas</em>. He was the only senior senator willing to speak openly against Antony. His death scene — facing his killers with Stoic composure — was admired even by his enemies. He chose principle over survival.',
+                '<strong>DISAGREE — reckless:</strong> Cicero fatally misjudged Octavian (<em>laudandum, ornandum, tollendum</em>). He had no military force to back his rhetoric. He gambled not only his own life but the lives of other senators who followed his lead — many of whom died in the proscriptions. His strategy depended entirely on others\' loyalty and competence, neither of which was forthcoming.',
+                '<strong>Nuance:</strong> Perhaps the distinction is false. In a Republic where constitutional means of resistance had been exhausted, reckless courage may have been the only option. Cicero\'s oratory was the only weapon he had — and the only weapon the Republic had left.',
+                '<strong>Conclusion:</strong> Cicero\'s stand was heroic in intent and reckless in execution. His principles were admirable, but his political judgement — specifically his belief that he could control Octavian — was fatally flawed.'
+            ],
+            evidence: 'The Philippics (especially the Second Philippic as a sustained attack on Antony). The <em>laudandum, ornandum, tollendum</em> quip revealing Cicero\'s strategy. Cicero\'s letters for his private calculations. The proscriptions and Cicero\'s death as the outcome. Velleius Paterculus\'s assessment that Cicero died bravely.',
+            historiography: 'Rawson presents Cicero as the Republic\'s last champion. Shackleton Bailey is more critical of his political judgement. The debate centres on whether Cicero\'s rhetorical courage compensated for his strategic failures.'
+        },
+        {
+            id: 'exam-6',
+            question: '\'Cicero\'s death was the death of the Republic.\' How far do you agree with this statement?',
             type: '30-mark',
             structure: [
-                '<strong>Introduction:</strong> Cicero\'s death on 7 December 43 BC is often treated as a symbolic endpoint for the Republic. But was the Republic already dead before Cicero died?',
-                '<strong>For \u2014 Cicero as the Republic\'s voice:</strong> He was the last major figure who genuinely believed in Republican government. The Philippics were the last great political speeches of the Republic. After him, the Senate became a rubber stamp for military strongmen.',
-                '<strong>Against \u2014 the Republic was already dead:</strong> The crossing of the Rubicon (49 BC), Caesar\'s dictatorship, the Ides of March \u2014 the Republic had been dying for years. Cicero\'s death was a symptom, not a cause.',
-                '<strong>Nuance:</strong> Perhaps the question is what we mean by "the Republic." If we mean the constitutional system, it died gradually over decades. If we mean the idea of government through debate and persuasion, then Cicero\'s death \u2014 and the display of his head on the Rostra \u2014 marks its symbolic end.',
-                '<strong>Conclusion:</strong> Cicero\'s death was not the cause of the Republic\'s fall but its most powerful symbol. The silencing of Rome\'s greatest orator on the platform of free speech was the moment when the Republic\'s last pretence collapsed.'
+                '<strong>Introduction:</strong> Cicero\'s death on 7 December 43 BC is often treated as a symbolic endpoint for the Republic. But was the Republic already dead before Cicero died, or did it die with him?',
+                '<strong>AGREE — Cicero as the Republic\'s voice:</strong> He was the last major figure who genuinely believed in Republican government and had the rhetorical power to defend it. The Philippics were the last great political speeches of the Republic. After Cicero, the Senate became a rubber stamp for military strongmen. The display of his head and hands on the Rostra — the platform of free speech — symbolises the silencing of Republican debate.',
+                '<strong>AGREE — symbolic significance:</strong> The manner of Cicero\'s death mattered. He was killed by the very political system he had tried to defend — proscribed by men he had championed (Octavian) and opposed (Antony). His death demonstrated that rhetoric, law, and constitutional principle had no power against armed force.',
+                '<strong>DISAGREE — the Republic was already dead:</strong> The crossing of the Rubicon (49 BC), Caesar\'s dictatorship, the Ides of March — the Republic had been dying for decades. Cicero\'s death was a symptom, not a cause. The structural conditions that destroyed the Republic — professional armies, concentration of wealth, breakdown of <em>mos maiorum</em> — were established long before 43 BC.',
+                '<strong>DISAGREE — Cicero was not the Republic:</strong> Other Republicans had died before him — Cato at Utica (46 BC), Brutus and Cassius would die at Philippi (42 BC). The Republic was not one man. Cicero\'s self-identification with the Republic (visible throughout his career) should not be taken at face value.',
+                '<strong>Conclusion:</strong> Cicero\'s death was not the cause of the Republic\'s fall but its most powerful symbol. The Republic died over decades, through structural failures and individual ambitions. But the silencing of Rome\'s greatest orator on the platform of free speech was the moment when the Republic\'s last pretence of constitutional government collapsed.'
             ],
-            evidence: 'The display of head and hands on the Rostra; Velleius Paterculus; the Second Triumvirate\'s legal powers overriding senatorial authority; comparison with earlier crises (Gracchi, Sulla, Caesar) to show the Republic\'s gradual decline.',
-            historiography: 'Debate between those who see the Republic\'s fall as a long structural process (Beard, Crawford) and those who emphasise key turning points (Gruen). Cicero\'s death works as evidence for both perspectives.'
+            evidence: 'The display of head and hands on the Rostra. The Second Triumvirate\'s legal powers overriding senatorial authority. The proscriptions — far more destructive to the senatorial class than Caesar\'s dictatorship. Comparison with earlier crises (Gracchi, Sulla, Caesar) to show the Republic\'s gradual decline. Cicero\'s own letters and speeches as evidence for his identification with the Republic.',
+            historiography: 'Beard and Crawford see the Republic\'s fall as a long structural process — Cicero\'s death is one event among many. Syme emphasises the role of faction and military power. Rawson and Habicht give more weight to Cicero\'s individual significance. The debate maps onto the broader question of whether history is driven by structures or individuals.'
         }
     ]
 

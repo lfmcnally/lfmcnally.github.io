@@ -536,59 +536,144 @@ window.pageData = {
 
     examQuestions: [
         {
-            id: "q1",
-            question: "Compare Att. 9.11a with Fam. 10.6 as examples of Cicero deploying rhetoric for political ends.",
-            type: "30-mark",
+            id: "exam-1",
+            question: "Explain how Cicero shows his own desperation in Source A (<em>Letter to Atticus</em> 14.4).",
+            type: "10-mark source",
             structure: [
-                "Introduction: establish that both letters are political interventions — Cicero using rhetoric to achieve specific outcomes with specific audiences.",
-                "Att. 9.11a: analyse the appeal to Caesar — formal register, rhetorical triad (ethos, pathos, logos), appeal to clementia, periodic structure. Note the gap between this polished rhetoric and Cicero's private despair in Att. 8.8.",
-                "Fam. 10.6: analyse the appeal to Plancus — imperative mood, appeal to duty and glory, urgent tone. A different audience requires different rhetorical strategies.",
-                "Compare: both letters show Cicero adapting his rhetoric to his reader. Caesar gets philosophical appeals to greatness; Plancus gets patriotic calls to action. Both are calculated performances.",
-                "Evaluate: how far are these letters 'genuine'? Does Cicero believe in the peace he advocates to Caesar? Does he believe in the Republic he invokes to Plancus? The letters reveal a man who is both sincere and strategic — the two are not mutually exclusive."
+                "<strong>Identify key language:</strong> Pick out specific words and phrases from the source that convey desperation — emotional vocabulary, rhetorical questions, short fragmented sentences.",
+                "<strong>Analyse tone and style:</strong> Cicero's syntax in this letter is broken and agitated. The use of Greek code-switching (<em>ἔργον / βουλή</em>) signals both intellectual frustration and the intimacy of writing to Atticus about dangerous opinions.",
+                "<strong>Link to context:</strong> Cicero is writing in the aftermath of Caesar's assassination. He approves of the deed but is desperate because the conspirators had no plan — Antony is seizing power and the Republic remains in crisis.",
+                "<strong>Explain the effect:</strong> The letter reveals a man caught between hope and despair. His desperation is not just personal but political — he sees the opportunity for Republican restoration slipping away."
             ],
-            evidence: "Att. 9.11a: te oro et obsecro (formal plea to Caesar). Fam. 10.6: rem publicam defende (direct imperative to Plancus). Contrast with Att. 8.8: quid agam? (private despair). The gap between public rhetoric and private anxiety is central to understanding Cicero's letters as political documents.",
-            historiography: "Shackleton Bailey's commentary emphasises the calculated nature of Cicero's correspondence. Rawson argues that Cicero's political rhetoric in the letters is inseparable from genuine conviction — he performs sincerity because he is sincere."
+            evidence: "Att. 14.4: the Greek phrase <em>ἔργον / βουλή</em> — the deed done with manly courage, the planning childish. Cicero's fragmented emotional register contrasts with his polished oratory. The letter's real-time quality — written in the moment, not crafted for publication — intensifies the sense of desperation.",
+            historiography: "Shackleton Bailey's commentary notes the raw emotional quality of this letter. Habicht argues that letters to Atticus reveal Cicero at his most unguarded."
         },
         {
-            id: "q2",
-            question: "How far do the letters to Atticus during the civil war crisis (Att. 8.8, 9.4) reveal a different Cicero from the one we see in his speeches?",
-            type: "30-mark",
+            id: "exam-2",
+            question: "What impression of Cicero's relationship with Pompey does this letter (<em>Fam.</em> 5.7) create?",
+            type: "10-mark source",
             structure: [
-                "Introduction: establish the contrast between Cicero the orator (confident, authoritative, persuasive) and Cicero the letter-writer (anxious, indecisive, vulnerable).",
-                "Att. 8.8: analyse the fragmented syntax, rhetorical questions (quid agam?), emotional volatility. This is not the Cicero of the Catilinarian orations.",
-                "Att. 9.4: trace the deepening crisis — the paralysis intensifies, the self-contradiction becomes more pronounced, the political analysis grows sharper even as the emotional state deteriorates.",
-                "Contrast with the speeches: in his orations, Cicero presents himself as decisive, principled, courageous. The letters reveal the doubt, fear, and calculation behind the public persona.",
-                "Evaluate: which is the 'real' Cicero? Argue that both are real — the letters do not expose the speeches as false but reveal the complexity of a public figure who must project confidence while privately struggling."
+                "<strong>Identify the tone:</strong> The letter's register is formal and deferential but also carries undertones of frustration. Cicero addresses Pompey with respect but pushes for recognition of his own achievements.",
+                "<strong>Analyse the power dynamic:</strong> Cicero positions himself as Pompey's political ally but also as someone who deserves acknowledgement. The relationship is unequal — Pompey has military power; Cicero has rhetorical and political influence.",
+                "<strong>Explain what is revealed:</strong> The letter shows that <em>amicitia</em> in Roman politics was transactional. Cicero seeks Pompey's public endorsement of his consulship; Pompey's lukewarm response (implied by the letter's tone) reveals the limits of their alliance.",
+                "<strong>Consider reliability:</strong> This is Cicero's version of the relationship. He presents himself as the reasonable partner seeking fair recognition. Pompey's perspective is absent."
             ],
-            evidence: "Att. 8.8: quid agam? consilium mihi da — desperate plea. Att. 9.4: nec quid faciendum nec quid scribendum scio — paralysis of action and expression. Epistolary features: elliptical syntax, Greek code-switching, present tense for immediacy. All absent from the controlled rhetoric of the speeches.",
-            historiography: "Habicht argues the letters show the 'human' Cicero behind the public mask. Gildenhard suggests the opposition between 'public' and 'private' Cicero is itself too simple — even the letters are performances, and the speeches contain genuine emotion."
+            evidence: "<em>Fam.</em> 5.7: Cicero's appeal for Pompey to acknowledge his consular achievements. The formal language masks genuine anxiety about his political standing. Compare with Cicero's private complaints to Atticus about Pompey's unreliability.",
+            historiography: "Rawson emphasises the asymmetry of the Cicero-Pompey relationship. Tempest notes that Cicero consistently overestimated his own importance to Pompey's political calculations."
         },
         {
-            id: "q3",
-            question: "Analyse the significance of Greek code-switching in Att. 14.4. What does Cicero's use of Greek reveal about his political judgement and his relationship with Atticus?",
+            id: "exam-3",
+            question: "'In his correspondence with Atticus, Cicero was interested only in politics which took place in Rome.' Explain to what extent you agree with this view, based on the letters which you have read.",
             type: "20-mark",
             structure: [
-                "Introduction: identify the key Greek phrase — \u1F14\u03C1\u03B3\u03BF\u03BD / \u03B2\u03BF\u03C5\u03BB\u03AE — and its context (Cicero's reaction to the assassination of Caesar).",
-                "Analyse why Greek: (1) political sensitivity — a dangerous opinion is safer in Greek; (2) philosophical register — Greek elevates the analysis beyond partisan politics; (3) intimacy — Greek signals the closeness of the relationship with Atticus.",
-                "Discuss what the phrase reveals: Cicero approves of the assassination but condemns the failure to plan. This is sharp political analysis — and it proves prescient.",
-                "Broader significance: Greek code-switching across the letters as a whole — not just decoration but a functional tool of communication. Students should be able to identify and explain it in any letter where it appears."
+                "<strong>Introduction:</strong> Acknowledge that Roman politics is overwhelmingly Cicero's focus, but challenge the word <em>only</em>.",
+                "<strong>AGREE — Rome dominates:</strong> The vast majority of the Atticus correspondence deals with senatorial politics, elections, legislation, and the manoeuvring of key figures in Rome. Even when Cicero writes from exile or from Cilicia, his attention is fixed on what is happening in the capital. Letters like <em>Att.</em> 1.18 and <em>Att.</em> 2.1 focus on Senate debates, Clodius's behaviour, and the political landscape of the Forum.",
+                "<strong>DISAGREE — wider concerns appear:</strong> Cicero discusses provincial governance during his time in Cilicia. He analyses the military situation during the civil war — Caesar's movements, Pompey's strategy, the fate of the provinces. <em>Att.</em> 8.8 engages with the broader strategic picture of the civil war, not just Roman politics. He also discusses personal matters: property, family, finances, and philosophical questions.",
+                "<strong>DISAGREE — 'politics' is too narrow:</strong> Cicero's letters reveal the social networks, cultural values, and personal relationships that underpin Roman political life. His discussions of <em>amicitia</em>, <em>dignitas</em>, and obligation are political even when they do not concern specific Roman events.",
+                "<strong>Conclusion:</strong> Rome is Cicero's centre of gravity, but the letters range more widely than the statement suggests. The claim is broadly true but the word 'only' makes it an overstatement."
             ],
-            evidence: "\u1F14\u03C1\u03B3\u03BF\u03BD / \u03B2\u03BF\u03C5\u03BB\u03AE — the deed done with manly courage, the planning childish. Also note Greek usage in Att. 8.8 (emotional crisis) and Att. 2.18 (political analysis), showing that code-switching serves different functions in different contexts.",
-            historiography: "Adams (2003) on bilingualism in the Roman world provides the linguistic framework. Hutchinson's work on Cicero's letters as literature emphasises that code-switching is a deliberate literary and communicative strategy, not casual bilingualism."
+            evidence: "<em>Att.</em> 1.18: detailed account of senatorial politics. <em>Att.</em> 8.8: analysis of the civil war's military and political dimensions beyond Rome. Letters from Cilicia showing Cicero's provincial concerns. <em>Att.</em> 14.4: post-assassination analysis that encompasses Rome and the wider Roman world.",
+            historiography: "Beard argues that Cicero's Rome-centric perspective reflects the reality of Republican politics — power was concentrated in the capital. Shackleton Bailey's edition reveals the range of topics covered even within politically focused letters."
         },
         {
-            id: "q4",
-            question: "How reliable is Cicero as a source on the politics of the late Republic? Discuss with reference to at least three prescribed letters.",
+            id: "exam-4",
+            question: "'Cicero's letters in no way reflect his true beliefs.' Evaluate how far you agree with this statement. Include reference to Cicero's letters in your answer.",
             type: "30-mark",
             structure: [
-                "Introduction: establish the problem — Cicero is both our best source and an interested party. His letters are invaluable but not objective.",
-                "Reliability strengths: political insider, acute observer, writes in real time. Fam. 2.11 (to Caelius) shows his accurate prediction of civil war. Att. 14.4 shows penetrating analysis of the assassination's aftermath.",
-                "Reliability weaknesses: self-interested, self-dramatising, inconsistent. Fam. 10.28 (to Trebonius) shows misplaced confidence — or deliberate misrepresentation. Compare with Att. letters from the same period for the discrepancy.",
-                "The problem of performance: even private letters shape self-presentation. Cicero's self-pity, his political courage, his despair — all may be genuine and performed simultaneously.",
-                "Conclusion: Cicero is indispensable but must be read critically. The letters are most reliable when cross-referenced against each other and against other sources."
+                "<strong>Introduction:</strong> The statement is deliberately extreme — 'in no way' invites challenge. The key issue is whether private letters to close friends are performances or genuine expressions of belief, and whether these categories are mutually exclusive.",
+                "<strong>AGREE — letters as performance:</strong> Cicero writes differently to different recipients, adjusting his views to his audience. Compare <em>Fam.</em> 5.7 (to Pompey — deferential, seeking approval) with letters to Atticus from the same period (critical of Pompey). His letter to Caesar (<em>Att.</em> 9.11a) flatters and pleads — is this his 'true belief' or political strategy? Even letters to Atticus involve self-presentation: Cicero casts himself as the thoughtful statesman, the anguished patriot.",
+                "<strong>DISAGREE — genuine emotion is visible:</strong> The raw desperation of <em>Att.</em> 8.8 (<em>quid agam?</em>) is difficult to read as pure performance. The fragmented syntax, the Greek code-switching, the mood swings — these suggest genuine emotional turmoil. Similarly, <em>Att.</em> 14.4's frustration with the conspirators' lack of planning reads as authentic political analysis, not a calculated pose.",
+                "<strong>DISAGREE — consistency across letters:</strong> Cicero's core political beliefs — commitment to the Republic, to <em>concordia ordinum</em>, to constitutional government — appear consistently across letters to different recipients over many years. If these were performances, we would expect more variation. His defence of Republican principles in the Philippics matches what he writes privately to Atticus.",
+                "<strong>Nuance:</strong> The distinction between 'true beliefs' and 'performance' is too simple. Cicero is a rhetorician — he shapes all communication for effect. But shaping a message is not the same as lying. His letters reveal beliefs <em>through</em> rhetorical strategies, not instead of them.",
+                "<strong>Conclusion:</strong> The statement is far too extreme. While Cicero's letters are never unmediated windows into his soul, they clearly reflect his beliefs — particularly the letters to Atticus, where the pressure to perform is lowest and the consistency of political conviction is highest."
             ],
-            evidence: "Fam. 2.11: accurate political intelligence from Cilicia. Att. 14.4: penetrating post-Ides analysis. Fam. 10.28: confidence that proved catastrophically wrong. The discrepancies between letters to different recipients are themselves evidence of Cicero shaping his message for his audience.",
-            historiography: "Beard's analysis of Cicero as a self-conscious narrator. Tempest argues we should read the letters as 'ego-documents' — valuable precisely because they are subjective, not despite it."
+            evidence: "<em>Att.</em> 8.8: <em>quid agam? consilium mihi da</em> — raw desperation. <em>Att.</em> 14.4: <em>ἔργον / βουλή</em> — sharp political analysis. <em>Fam.</em> 5.7: careful self-presentation to Pompey. <em>Att.</em> 9.11a: rhetorical appeal to Caesar. The discrepancies between letters to different recipients are evidence of audience-awareness, but the core political convictions remain consistent.",
+            historiography: "Gildenhard argues that even Cicero's most 'private' letters are performances — but that this does not make them insincere. Beard notes that the concept of 'true beliefs' is itself problematic for a Roman rhetorician trained to argue both sides of any question. Hutchinson emphasises the literary artistry of the letters, which does not preclude genuine feeling."
+        },
+        {
+            id: "exam-5",
+            question: "'In both his oratory and correspondence Cicero cared more about the form and style of his writings than about facts and truth.' Discuss to what extent you have found this to be the case.",
+            type: "30-mark",
+            structure: [
+                "<strong>Introduction:</strong> Cicero is Rome's greatest stylist — but does that mean style trumps substance? The question assumes a dichotomy between form and truth that a Roman rhetorician would not recognise.",
+                "<strong>AGREE — style dominates in the speeches:</strong> In the <em>In Verrem</em> speeches, Cicero uses vivid narrative, emotional appeals, and rhetorical exaggeration to devastating effect. The portrayal of Verres is a caricature — every detail is shaped for maximum impact. Cicero selects, arranges, and amplifies evidence to serve his argument, not to present balanced truth. The speeches are forensic performances, not historical documents.",
+                "<strong>AGREE — style shapes the letters too:</strong> Even private correspondence shows Cicero's literary self-consciousness. Letters to Atticus deploy Greek code-switching, rhetorical questions, and carefully crafted self-presentation. <em>Fam.</em> 5.7 to Pompey is a polished political document. The letters were clearly written with an awareness of posterity — or at least of making an impression.",
+                "<strong>DISAGREE — substance underlies the style:</strong> The <em>In Verrem</em> speeches address real corruption that damaged real people. Cicero's rhetorical brilliance does not invalidate the factual basis of his case — Verres was genuinely corrupt. In the letters, the political analysis is substantive: <em>Att.</em> 14.4's assessment of the post-assassination crisis proves accurate. <em>Att.</em> 8.8's anguish reflects a real political dilemma, not mere stylistic exercise.",
+                "<strong>DISAGREE — the letters reveal truth through style:</strong> The informal register, the fragmented syntax of the civil war letters, the mood swings — these stylistic features are themselves evidence of genuine emotional and political truth. Cicero's style in the letters is not an obstacle to truth but a vehicle for it.",
+                "<strong>Conclusion:</strong> Cicero cares intensely about both form and truth. In the speeches, style serves the purpose of persuasion, and truth is subordinated to advocacy. In the letters, style and truth are more closely aligned — particularly in the Atticus correspondence, where the rhetorical polish is lower and the emotional authenticity is higher. The statement is a half-truth at best."
+            ],
+            evidence: "<em>In Verrem</em>: vivid narrative of Verres's crimes — rhetorical exaggeration but based on real corruption. <em>Att.</em> 8.8: fragmented syntax revealing genuine crisis. <em>Att.</em> 14.4: stylish analysis that is also substantively accurate. <em>Fam.</em> 5.7: polished style serving a real political purpose. The contrast between the controlled rhetoric of the speeches and the raw emotion of the civil war letters is itself evidence that Cicero's relationship with 'truth' varies by genre and context.",
+            historiography: "Vasaly analyses how Cicero's rhetorical techniques in the Verrines serve both persuasion and factual argument. Hutchinson emphasises that literary artistry in the letters does not preclude sincerity. Steel argues that for Cicero, <em>eloquentia</em> and <em>sapientia</em> are inseparable — good style is not opposed to truth but is the means of expressing it."
+        },
+        {
+            id: "exam-6",
+            question: "Using Source A (<em>Att.</em> 8.8), explain what this letter reveals about Cicero's state of mind during the civil war.",
+            type: "10-mark source",
+            structure: [
+                "<strong>Identify key language:</strong> Pick out specific phrases that reveal Cicero's emotional state — <em>quid agam?</em> (what am I to do?), the rhetorical questions, the fragmented sentences, the shifts between analysis and despair.",
+                "<strong>Analyse the tone:</strong> The letter oscillates between rational political calculation and emotional paralysis. Cicero weighs his options but cannot commit to a course of action. The syntax mirrors his indecision — short, broken phrases rather than the flowing periods of his speeches.",
+                "<strong>Link to context:</strong> Caesar has crossed the Rubicon; Pompey is retreating south. Cicero is caught between two sides, neither of which he fully supports. His anguish is political as much as personal — the Republic itself is at stake.",
+                "<strong>Explain the effect:</strong> The letter reveals a man in genuine crisis. The contrast with his confident public persona in the speeches makes the private vulnerability all the more striking. Greek code-switching adds a layer of intimacy — this is Cicero at his most unguarded."
+            ],
+            evidence: "<em>Att.</em> 8.8: <em>quid agam? consilium mihi da</em> — direct plea to Atticus for guidance. Fragmented syntax and present tense create immediacy. Greek phrases signal both emotional intensity and the trust of the Atticus relationship.",
+            historiography: "Habicht emphasises the contrast between public and private Cicero. Shackleton Bailey's commentary notes the exceptional emotional intensity of the civil war correspondence."
+        },
+        {
+            id: "exam-7",
+            question: "Explain the significance of Greek code-switching in Cicero's letters to Atticus.",
+            type: "10-mark",
+            structure: [
+                "<strong>Define the practice:</strong> Code-switching is Cicero's habit of inserting Greek words, phrases, or quotations into his Latin letters. It occurs almost exclusively in letters to Atticus, reflecting their shared bilingual education.",
+                "<strong>Explain political function:</strong> Greek can express dangerous opinions more safely — <em>Att.</em> 14.4's <em>ἔργον / βουλή</em> assesses the assassination in Greek, distancing the comment from direct Latin statement. If intercepted, the opinion is partially veiled.",
+                "<strong>Explain intellectual function:</strong> Greek carries philosophical and literary associations. Cicero uses Greek to elevate his analysis, drawing on the shared cultural world of educated Romans. It signals that the discussion operates on an intellectual level above everyday politics.",
+                "<strong>Explain social function:</strong> Greek marks intimacy. It is the language of Cicero and Atticus's shared education and friendship. Its absence from letters to other correspondents (e.g. <em>Fam.</em> 5.7 to Pompey) confirms that it signals a particular kind of relationship."
+            ],
+            evidence: "<em>Att.</em> 14.4: <em>ἔργον / βουλή</em> — political judgement in Greek. <em>Att.</em> 8.8: Greek phrases during the civil war crisis — emotional intensity in the intimate register. Contrast with the absence of Greek in letters to Pompey or other political contacts in the <em>ad Familiares</em> collection.",
+            historiography: "Adams (2003) on bilingualism in the Roman world. Hutchinson argues that code-switching is a deliberate literary and communicative strategy, not casual bilingualism."
+        },
+        {
+            id: "exam-8",
+            question: "'Cicero's letters are a reliable source of evidence for the politics of the late Republic.' How far do you agree with this view?",
+            type: "20-mark",
+            structure: [
+                "<strong>Introduction:</strong> Cicero's letters are our single most important source for late Republican politics — but 'reliable' requires careful definition. They are invaluable but not objective.",
+                "<strong>AGREE — strengths as evidence:</strong> Cicero is a political insider writing in real time, before outcomes are known. <em>Att.</em> 8.8 captures the genuine uncertainty of the civil war crisis. <em>Att.</em> 14.4 provides penetrating analysis of the post-assassination situation that proves accurate. The letters to Atticus are relatively unguarded, offering insights unavailable from any other source.",
+                "<strong>DISAGREE — limitations as evidence:</strong> Cicero is an interested party, not a neutral observer. He writes differently to different recipients — compare letters to Atticus with <em>Fam.</em> 5.7 to Pompey. He is self-dramatising and self-interested. His perspective is that of a senatorial conservative; the views of the populace, soldiers, and provincials are largely absent.",
+                "<strong>Nuance:</strong> The letters are most reliable when cross-referenced against each other. Discrepancies between what Cicero tells Atticus and what he tells Pompey are themselves valuable evidence — they reveal the gap between private calculation and public positioning that characterised Roman politics.",
+                "<strong>Conclusion:</strong> The letters are indispensable but must be read critically. They are reliable as evidence for how one highly informed senator understood and experienced politics; they are less reliable as objective accounts of events."
+            ],
+            evidence: "<em>Att.</em> 8.8: real-time crisis correspondence. <em>Att.</em> 14.4: accurate post-Ides analysis. <em>Fam.</em> 5.7: carefully shaped letter to Pompey revealing audience-awareness. The contrast between the Atticus and <em>Familiares</em> collections demonstrates how recipient affects content and reliability.",
+            historiography: "Beard argues we should read the letters as 'ego-documents' — subjective but invaluable. Tempest notes their unique status as real-time political evidence. Shackleton Bailey's commentary systematically identifies where Cicero's account can be verified or challenged."
+        },
+        {
+            id: "exam-9",
+            question: "'Cicero's public speeches and private letters reveal two entirely different people.' How far do you agree with this statement?",
+            type: "30-mark",
+            structure: [
+                "<strong>Introduction:</strong> The contrast between the confident orator and the anxious letter-writer is striking — but 'entirely different people' is an overstatement that needs testing.",
+                "<strong>AGREE — the contrast is real:</strong> In the <em>In Verrem</em> speeches, Cicero is commanding, authoritative, and rhetorically brilliant. In <em>Att.</em> 8.8, he is paralysed by indecision (<em>quid agam?</em>). The speeches present a man of decisive action; the civil war letters reveal doubt, fear, and vacillation. The register, syntax, and self-presentation differ dramatically between the two genres.",
+                "<strong>AGREE — audience shapes content:</strong> Speeches are public performances designed to persuade courts and assemblies. Letters to Atticus are private communications to a trusted friend. Cicero naturally presents different facets of himself in each context — just as anyone communicates differently in public and private.",
+                "<strong>DISAGREE — core convictions are consistent:</strong> Cicero's commitment to the Republic, to constitutional government, and to the rule of law appears in both speeches and letters. The <em>In Verrem</em>'s defence of provincial subjects against corruption and the letters' anguish over the civil war both stem from the same political principles. The Philippics' public defiance of Antony matches the private hostility expressed in letters to Atticus.",
+                "<strong>DISAGREE — the letters are also performances:</strong> Even letters to Atticus involve self-presentation. Cicero casts himself as the agonised patriot, the intellectual in a world of brutes. This is a role, just as the orator is a role. The 'private' Cicero is no more the 'real' Cicero than the public one.",
+                "<strong>Conclusion:</strong> The speeches and letters reveal different <em>registers</em> of the same person, not different people. The contrast is one of genre and audience, not of identity. Both are genuinely Cicero — the complexity is the point."
+            ],
+            evidence: "<em>In Verrem</em>: confident, controlled rhetoric attacking Verres. <em>Att.</em> 8.8: <em>quid agam? consilium mihi da</em> — vulnerability and indecision. <em>Att.</em> 14.4: sharp political analysis matching the intellectual quality of the speeches. The Philippics as a bridge — public speeches with the passionate conviction visible in the private letters.",
+            historiography: "Gildenhard argues that the opposition between 'public' and 'private' Cicero is too simple — even the letters are performances, and the speeches contain genuine emotion. Habicht sees the letters as revealing the 'human' Cicero behind the public mask. Steel argues that Cicero's rhetorical training means all his communication is shaped, but shaped does not mean false."
+        },
+        {
+            id: "exam-10",
+            question: "'Cicero's letters are our most useful source for understanding the causes and course of the civil war.' How far do you agree?",
+            type: "30-mark",
+            structure: [
+                "<strong>Introduction:</strong> Define 'useful' — the letters offer a unique insider perspective, but usefulness depends on what questions we are asking about the civil war.",
+                "<strong>AGREE — unique real-time perspective:</strong> No other source gives us a senior politician's real-time reactions to the civil war as it unfolds. <em>Att.</em> 8.8 captures the uncertainty, fear, and political calculation of early 49 BC. The letters show how decisions were actually made — through networks of <em>amicitia</em>, rumour, and personal loyalty — rather than through the neat narratives of later historians.",
+                "<strong>AGREE — insight into causes:</strong> The letters illuminate the personal rivalries, broken alliances, and failures of compromise that led to war. Cicero's analysis of the Pompey-Caesar breakdown, his frustration with senatorial inflexibility, and his understanding of the military realities all contribute to our understanding of why war came.",
+                "<strong>DISAGREE — limited perspective:</strong> Cicero is one man, writing from a particular political position. He lacks military expertise and consistently underestimates the importance of armed force relative to rhetoric. His perspective is senatorial and Rome-centric; the experiences of soldiers, provincials, and the urban poor are invisible in his correspondence.",
+                "<strong>DISAGREE — other sources are essential:</strong> Caesar's own <em>Bellum Civile</em> provides the military narrative that Cicero cannot. Later historical accounts provide the broader structural analysis. The letters are most useful when combined with other evidence, not as a standalone source.",
+                "<strong>Conclusion:</strong> The letters are indispensable for understanding the political and personal dimensions of the civil war, but they are not sufficient on their own. Their greatest value lies in the real-time, unedited quality of Cicero's observations — something no other source can match."
+            ],
+            evidence: "<em>Att.</em> 8.8: real-time crisis analysis in February 49 BC. <em>Att.</em> 9.4: deepening despair as the military situation deteriorates. Letters from Cilicia (<em>Fam.</em> 2.11) showing Cicero's earlier predictions about civil war. <em>Att.</em> 14.4 for the aftermath — showing how the civil war's unresolved tensions continued after Caesar's death.",
+            historiography: "Beard emphasises the unique evidential value of real-time correspondence. Shackleton Bailey's commentary cross-references the letters with other sources to assess their accuracy. Tempest argues that the letters' subjectivity is itself valuable — they reveal how the civil war was experienced, not just what happened."
         }
     ]
 
