@@ -46,7 +46,6 @@ Every topic page follows this HTML structure:
             <p class="page-key-question">[Key question in italic]</p>
             <div class="page-tabs">
                 <button class="page-tab active" data-tab="overview">Overview</button>
-                <button class="page-tab" data-tab="events">Events</button>
                 <button class="page-tab" data-tab="sources">Sources</button>
                 <button class="page-tab" data-tab="exam">Exam</button>
             </div>
@@ -56,11 +55,15 @@ Every topic page follows this HTML structure:
     <!-- Main Content -->
     <div class="main-content">
         <div id="tab-overview" class="tab-content active">
+            <div class="view-toggle-bar">
+                <div id="view-toggle" class="view-toggle">
+                    <button class="view-toggle-btn active" data-view="grid" title="Card view">▦</button>
+                    <button class="view-toggle-btn" data-view="list" title="Timeline view">☰</button>
+                </div>
+            </div>
             <div class="context-card">...</div>
             <div class="cards-grid" id="overview-cards"></div>
-        </div>
-        <div id="tab-events" class="tab-content">
-            <div class="events-list" id="events-list"></div>
+            <div class="events-list" id="overview-list"></div>
         </div>
         <div id="tab-sources" class="tab-content">
             <div id="sources-list"></div>

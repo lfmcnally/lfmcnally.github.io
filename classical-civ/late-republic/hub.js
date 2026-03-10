@@ -250,17 +250,54 @@ function toggleQuestion(id) {
     if (el) el.classList.toggle('open');
 }
 
+// ===== VIEW TOGGLE (grid ↔ timeline) =====
+function initViewToggle() {
+    const toggle = document.getElementById('view-toggle');
+    if (!toggle) return;
+    const gridBtn = toggle.querySelector('[data-view="grid"]');
+    const listBtn = toggle.querySelector('[data-view="list"]');
+    const gridContainer = document.getElementById('overview-cards');
+    const listContainer = document.getElementById('overview-list');
+    if (!gridBtn || !listBtn || !gridContainer || !listContainer) return;
+
+    function setView(mode) {
+        if (mode === 'list') {
+            gridContainer.style.display = 'none';
+            listContainer.style.display = '';
+            gridBtn.classList.remove('active');
+            listBtn.classList.add('active');
+        } else {
+            gridContainer.style.display = '';
+            listContainer.style.display = 'none';
+            gridBtn.classList.add('active');
+            listBtn.classList.remove('active');
+        }
+        localStorage.setItem('hub-view-mode', mode);
+    }
+
+    gridBtn.addEventListener('click', () => setView('grid'));
+    listBtn.addEventListener('click', () => setView('list'));
+
+    // Restore preference
+    const saved = localStorage.getItem('hub-view-mode');
+    if (saved === 'list') setView('list');
+}
+
 // ===== RENDER PAGE =====
 function renderPage() {
     const data = window.pageData;
     if (!data) return;
 
-    // Overview tab cards
+    // Overview tab - grid view
     if (data.overviewCards) renderEventCards('overview-cards', data.overviewCards);
 
-    // Events tab
+    // Overview tab - list/timeline view
     const eventCards = data.eventCards || data.overviewCards;
-    if (eventCards) renderEventsList('events-list', eventCards);
+    if (eventCards) {
+        renderEventsList('overview-list', eventCards);
+        const listContainer = document.getElementById('overview-list');
+        if (listContainer) listContainer.style.display = 'none';
+    }
 
     // Sources tab
     if (data.sourceCards) renderSourceCards('sources-list', data.sourceCards);
@@ -280,9 +317,20 @@ function closeInfoModal() {
     if (m) m.classList.remove('open');
 }
 
+// ===== STICKY HEADER SHADOW =====
+function initStickyHeader() {
+    const header = document.querySelector('.page-header');
+    if (!header) return;
+    window.addEventListener('scroll', () => {
+        header.classList.toggle('scrolled', window.scrollY > 10);
+    }, { passive: true });
+}
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
     buildTopicNav();
     initTabs();
     renderPage();
+    initViewToggle();
+    initStickyHeader();
 });
