@@ -299,6 +299,46 @@ function renderPage() {
         if (listContainer) listContainer.style.display = 'none';
     }
 
+    // Analysis components (after overview cards, within overview tab)
+    if (data.argumentGrids) {
+        data.argumentGrids.forEach((grid, i) => {
+            const divId = 'argument-grid-' + i;
+            let div = document.getElementById(divId);
+            if (!div) {
+                div = document.createElement('div');
+                div.id = divId;
+                const overviewTab = document.getElementById('tab-overview');
+                if (overviewTab) overviewTab.appendChild(div);
+            }
+            renderArgumentGrid(divId, grid);
+        });
+    }
+
+    if (data.keyPoints) {
+        let kpDiv = document.getElementById('key-points-container');
+        if (!kpDiv) {
+            kpDiv = document.createElement('div');
+            kpDiv.id = 'key-points-container';
+            const overviewTab = document.getElementById('tab-overview');
+            if (overviewTab) overviewTab.appendChild(kpDiv);
+        }
+        renderKeyPointBoxes('key-points-container', data.keyPoints);
+    }
+
+    if (data.analysisBoxes) {
+        data.analysisBoxes.forEach((box, i) => {
+            const divId = 'analysis-box-' + i;
+            let div = document.getElementById(divId);
+            if (!div) {
+                div = document.createElement('div');
+                div.id = divId;
+                const overviewTab = document.getElementById('tab-overview');
+                if (overviewTab) overviewTab.appendChild(div);
+            }
+            renderAnalysisBox(divId, box);
+        });
+    }
+
     // Sources tab
     if (data.sourceCards) renderSourceCards('sources-list', data.sourceCards);
 
@@ -326,6 +366,323 @@ function initStickyHeader() {
     }, { passive: true });
 }
 
+// ===== ARGUMENT GRID =====
+function renderArgumentGrid(containerId, data) {
+    const container = document.getElementById(containerId);
+    if (!container || !data) return;
+    container.innerHTML = `
+        <div class="argument-grid">
+            <div class="argument-grid-question">${data.question}</div>
+            <div class="argument-grid-columns">
+                <div class="argument-grid-col argument-grid-for">
+                    <div class="argument-grid-col-header argument-grid-for-header">For</div>
+                    <ul class="argument-grid-list">
+                        ${data.forPoints.map(p => '<li>' + p + '</li>').join('')}
+                    </ul>
+                </div>
+                <div class="argument-grid-col argument-grid-against">
+                    <div class="argument-grid-col-header argument-grid-against-header">Against</div>
+                    <ul class="argument-grid-list">
+                        ${data.againstPoints.map(p => '<li>' + p + '</li>').join('')}
+                    </ul>
+                </div>
+            </div>
+            <div class="argument-grid-verdict">
+                <div class="argument-grid-verdict-label">Verdict</div>
+                <p>${data.verdict}</p>
+            </div>
+        </div>
+    `;
+}
+
+// ===== KEY POINT BOXES =====
+function renderKeyPointBoxes(containerId, points) {
+    const container = document.getElementById(containerId);
+    if (!container || !points) return;
+    container.innerHTML = points.map(p => `
+        <div class="key-point-box key-point-${p.accent || 'blue'}">
+            <div class="key-point-label">${p.label}</div>
+            <p class="key-point-text">${p.text}</p>
+        </div>
+    `).join('');
+}
+
+// ===== ANALYSIS BOX =====
+function renderAnalysisBox(containerId, data) {
+    const container = document.getElementById(containerId);
+    if (!container || !data) return;
+    container.innerHTML = `
+        <div class="analysis-box">
+            <div class="analysis-box-title">${data.title || 'Why This Matters'}</div>
+            <div class="analysis-box-sections">
+                <div class="analysis-box-section analysis-box-short-term">
+                    <div class="analysis-box-section-label">Short-term</div>
+                    <p>${data.shortTerm}</p>
+                </div>
+                <div class="analysis-box-section analysis-box-long-term">
+                    <div class="analysis-box-section-label">Long-term</div>
+                    <p>${data.longTerm}</p>
+                </div>
+                <div class="analysis-box-section analysis-box-exam">
+                    <div class="analysis-box-section-label">Exam Relevance</div>
+                    <p>${data.examRelevance}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ===== SEARCH =====
+function initSearch() {
+    const input = document.getElementById('hub-search-input');
+    const clearBtn = document.getElementById('hub-search-clear');
+    if (!input) return;
+
+    input.addEventListener('input', () => {
+        const query = input.value.toLowerCase().trim();
+        clearBtn.style.display = query ? '' : 'none';
+
+        const cards = document.querySelectorAll('.hub-topic-card');
+        cards.forEach(card => {
+            const title = (card.querySelector('.hub-topic-title') || {}).textContent || '';
+            const desc = (card.querySelector('.hub-topic-desc') || {}).textContent || '';
+            const chips = (card.querySelector('.hub-topic-letters') || {}).textContent || '';
+            const text = (title + ' ' + desc + ' ' + chips).toLowerCase();
+            card.classList.toggle('search-hidden', query !== '' && !text.includes(query));
+        });
+
+        // Hide section titles if all their cards are hidden
+        document.querySelectorAll('.hub-topics-grid').forEach(grid => {
+            const visibleCards = grid.querySelectorAll('.hub-topic-card:not(.search-hidden)');
+            const sectionTitle = grid.previousElementSibling;
+            if (sectionTitle && sectionTitle.classList.contains('hub-section-title')) {
+                sectionTitle.classList.toggle('search-hidden', visibleCards.length === 0 && query !== '');
+            }
+        });
+    });
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            input.value = '';
+            input.dispatchEvent(new Event('input'));
+            input.focus();
+        });
+    }
+}
+
+// ===== TIMELINE =====
+const timelineEvents = [
+    { year: 133, label: 'Gracchi begin land reform', color: 'var(--red)', page: 'gracchi' },
+    { year: 107, label: 'Marius reforms the army', color: 'var(--red)', page: 'marius-sulla' },
+    { year: 88, label: 'Sulla marches on Rome', color: 'var(--purple)', page: 'marius-sulla' },
+    { year: 63, label: 'Catilinarian conspiracy', color: 'var(--blue)', page: 'cicero-early' },
+    { year: 60, label: 'First Triumvirate formed', color: 'var(--red)', page: 'triumvirate' },
+    { year: 58, label: 'Cicero exiled by Clodius', color: 'var(--yellow)', page: 'clodius-exile' },
+    { year: 56, label: 'Conference at Luca', color: 'var(--purple)', page: 'fifties' },
+    { year: 53, label: 'Crassus dies at Carrhae', color: 'var(--red)', page: 'fifties' },
+    { year: 49, label: 'Caesar crosses the Rubicon', color: 'var(--red)', page: 'civil-war' },
+    { year: 44, label: 'Ides of March', color: 'var(--red)', page: 'ides' },
+    { year: 43, label: 'Cicero killed (proscriptions)', color: 'var(--blue)', page: 'aftermath' }
+];
+
+function initTimeline() {
+    const line = document.getElementById('hub-timeline-line');
+    if (!line) return;
+
+    const minYear = 133;
+    const maxYear = 43;
+    const range = minYear - maxYear; // 90 years
+
+    timelineEvents.forEach(evt => {
+        const pct = ((minYear - evt.year) / range) * 100;
+        const marker = document.createElement('div');
+        marker.className = 'timeline-marker';
+        marker.style.left = pct + '%';
+
+        marker.innerHTML = `
+            <div class="timeline-tooltip">${evt.label} (${evt.year} BC)</div>
+            <div class="timeline-dot" style="background:${evt.color};"></div>
+            <div class="timeline-year">${evt.year} BC</div>
+        `;
+
+        marker.addEventListener('click', () => {
+            window.location.href = evt.page + '.html';
+        });
+
+        line.appendChild(marker);
+    });
+}
+
+function toggleTimelineCollapse() {
+    const section = document.getElementById('hub-timeline');
+    if (section) section.classList.toggle('collapsed');
+}
+
+// ===== KEY FIGURES =====
+const keyFigures = [
+    { id: 'cicero', initials: 'CI', name: 'Cicero', color: 'var(--blue)', desc: 'Novus homo, Rome\'s greatest orator. Advocate of concordia ordinum; consul 63 BC who crushed the Catilinarian conspiracy. Exiled, recalled, and ultimately murdered in the proscriptions of 43 BC.', pages: ['cicero-early', 'clodius-exile', 'triumvirate', 'fifties', 'civil-war', 'aftermath', 'letters'] },
+    { id: 'caesar', initials: 'CA', name: 'Caesar', color: 'var(--red)', desc: 'Military genius and popularis politician. Conquered Gaul, crossed the Rubicon, became dictator perpetuo. Assassinated on the Ides of March 44 BC.', pages: ['triumvirate', 'fifties', 'civil-war', 'dictatorship', 'ides'] },
+    { id: 'pompey', initials: 'PO', name: 'Pompey', color: 'var(--purple)', desc: 'Magnus - outstanding military commander. Sole consul 52 BC. Initially allied with Caesar in the Triumvirate, then sided with the Senate. Defeated at Pharsalus and killed in Egypt.', pages: ['triumvirate', 'fifties', 'civil-war'] },
+    { id: 'cato', initials: 'CT', name: 'Cato', color: 'var(--green)', desc: 'Stoic philosopher and defender of mos maiorum. Obstructed Caesar and the triumvirs. Chose suicide at Utica rather than accept Caesar\'s clementia.', pages: ['cato', 'civil-war', 'dictatorship'] },
+    { id: 'clodius', initials: 'CL', name: 'Clodius', color: 'var(--yellow)', desc: 'Tribune of the plebs 58 BC. Weaponised popular politics and the tribunate. Engineered Cicero\'s exile. Killed by Milo\'s gang in 52 BC.', pages: ['clodius-exile', 'fifties'] },
+    { id: 'gracchi', initials: 'GR', name: 'The Gracchi', color: 'var(--red)', desc: 'Tiberius (tribune 133 BC) and Gaius (tribune 123-122 BC). Pushed land reform and challenged senatorial power. Both murdered - setting the precedent for political violence.', pages: ['gracchi', 'republic'] },
+    { id: 'marius', initials: 'MA', name: 'Marius', color: 'var(--red)', desc: 'Seven-time consul. Reformed the army by recruiting capite censi (landless poor), creating soldiers loyal to their commander rather than the state.', pages: ['marius-sulla'] },
+    { id: 'sulla', initials: 'SU', name: 'Sulla', color: 'var(--purple)', desc: 'First man to march a Roman army on Rome (88 BC). As dictator, he carried out proscriptions and reformed the constitution - then retired. Template for Caesar.', pages: ['marius-sulla'] }
+];
+
+function initFigures() {
+    const grid = document.getElementById('hub-figures-grid');
+    const bioPanel = document.getElementById('hub-figure-bio');
+    if (!grid) return;
+
+    grid.innerHTML = keyFigures.map(f => `
+        <div class="hub-figure-item" data-figure="${f.id}" onclick="selectFigure('${f.id}')">
+            <div class="hub-figure-avatar" style="background:${f.color};">${f.initials}</div>
+            <div class="hub-figure-name">${f.name}</div>
+        </div>
+    `).join('');
+}
+
+function selectFigure(figureId) {
+    const figure = keyFigures.find(f => f.id === figureId);
+    if (!figure) return;
+
+    // Toggle active state
+    const items = document.querySelectorAll('.hub-figure-item');
+    const bioPanel = document.getElementById('hub-figure-bio');
+    const clickedItem = document.querySelector(`.hub-figure-item[data-figure="${figureId}"]`);
+    const wasActive = clickedItem && clickedItem.classList.contains('active');
+
+    items.forEach(i => i.classList.remove('active'));
+
+    // Clear all highlights
+    document.querySelectorAll('.hub-topic-card').forEach(c => c.classList.remove('figure-highlight'));
+
+    if (wasActive) {
+        // Deselect
+        if (bioPanel) {
+            bioPanel.classList.remove('open');
+            bioPanel.innerHTML = '';
+        }
+        return;
+    }
+
+    clickedItem.classList.add('active');
+
+    // Show bio
+    if (bioPanel) {
+        bioPanel.innerHTML = `
+            <div class="hub-figure-bio-inner">
+                <div class="hub-figure-bio-avatar" style="background:${figure.color};">${figure.initials}</div>
+                <div class="hub-figure-bio-text">
+                    <div class="hub-figure-bio-name">${figure.name}</div>
+                    <div class="hub-figure-bio-desc">${figure.desc}</div>
+                </div>
+            </div>
+        `;
+        bioPanel.classList.add('open');
+    }
+
+    // Highlight related cards
+    document.querySelectorAll('.hub-topic-card').forEach(card => {
+        const href = card.getAttribute('href') || '';
+        const slug = href.replace('.html', '');
+        if (figure.pages.includes(slug)) {
+            card.classList.add('figure-highlight');
+        }
+    });
+}
+
+function toggleFiguresCollapse() {
+    const section = document.getElementById('hub-figures');
+    if (section) section.classList.toggle('collapsed');
+}
+
+// ===== PROGRESS TRACKER =====
+function initProgress() {
+    const STORAGE_KEY = 'classicalia-visited-pages';
+    const currentFile = window.location.pathname.split('/').pop().replace('.html', '') || 'index';
+
+    // Get visited pages
+    let visited = [];
+    try {
+        visited = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    } catch (e) {
+        visited = [];
+    }
+
+    // Mark current page as visited
+    if (!visited.includes(currentFile)) {
+        visited.push(currentFile);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(visited));
+    }
+
+    // Update progress bar (only on hub page)
+    const fill = document.getElementById('hub-progress-fill');
+    const label = document.getElementById('hub-progress-label');
+    if (fill && label) {
+        // Count only topic pages (not index)
+        const topicSlugs = topicPages.filter(p => p.slug !== 'index').map(p => p.slug);
+        const visitedTopics = topicSlugs.filter(s => visited.includes(s));
+        const count = visitedTopics.length;
+        const total = topicSlugs.length;
+        const pct = total > 0 ? (count / total) * 100 : 0;
+
+        fill.style.width = pct + '%';
+        label.textContent = count + ' of ' + total + ' pages visited';
+    }
+
+    // Add visited badges to hub cards
+    document.querySelectorAll('.hub-topic-card').forEach(card => {
+        const href = card.getAttribute('href') || '';
+        const slug = href.replace('.html', '');
+        if (visited.includes(slug)) {
+            card.classList.add('visited');
+        }
+        // Add badge element if not already present
+        if (!card.querySelector('.hub-visited-badge')) {
+            const badge = document.createElement('span');
+            badge.className = 'hub-visited-badge';
+            badge.textContent = '\u2713';
+            badge.title = 'Visited';
+            card.appendChild(badge);
+        }
+    });
+}
+
+// ===== CONNECTIONS MAP =====
+const connectionData = [
+    { from: 'Gracchi', fromPage: 'gracchi', fromColor: 'conn-red', to: 'Marius & Sulla', toPage: 'marius-sulla', toColor: 'conn-red', reason: 'Landless recruits created by agrarian crisis' },
+    { from: 'Gracchi', fromPage: 'gracchi', fromColor: 'conn-red', to: 'Republic', toPage: 'republic', toColor: 'conn-teal', reason: 'Challenged cursus honorum and senatorial control' },
+    { from: 'Gracchi', fromPage: 'gracchi', fromColor: 'conn-red', to: 'Clodius & Exile', toPage: 'clodius-exile', toColor: 'conn-yellow', reason: 'Tribunate weaponised as political tool' },
+    { from: 'Gracchi', fromPage: 'gracchi', fromColor: 'conn-red', to: 'Dictatorship', toPage: 'dictatorship', toColor: 'conn-red', reason: 'Caesar later removes tribunes\' power' },
+    { from: 'Cato', fromPage: 'cato', fromColor: 'conn-green', to: 'Civil War', toPage: 'civil-war', toColor: 'conn-red', reason: 'Principled resistance forced Caesar\'s hand' },
+    { from: 'Cato', fromPage: 'cato', fromColor: 'conn-green', to: 'Dictatorship', toPage: 'dictatorship', toColor: 'conn-red', reason: 'Suicide at Utica rather than accept clementia' },
+    { from: 'Triumvirate', fromPage: 'triumvirate', fromColor: 'conn-red', to: 'The Fifties', toPage: 'fifties', toColor: 'conn-purple', reason: 'Triumvirate fractures through the 50s' },
+    { from: 'Triumvirate', fromPage: 'triumvirate', fromColor: 'conn-red', to: 'Civil War', toPage: 'civil-war', toColor: 'conn-red', reason: 'Collapse of power-sharing leads to war' },
+    { from: 'Cicero: Early', fromPage: 'cicero-early', fromColor: 'conn-blue', to: 'Clodius & Exile', toPage: 'clodius-exile', toColor: 'conn-yellow', reason: 'Catiline executions used against Cicero' },
+    { from: 'Ides of March', fromPage: 'ides', fromColor: 'conn-red', to: 'Aftermath', toPage: 'aftermath', toColor: 'conn-blue', reason: 'Assassination without a plan for what followed' }
+];
+
+function initConnections() {
+    const canvas = document.getElementById('hub-connections-canvas');
+    if (!canvas) return;
+
+    let html = '<div class="connections-grid">';
+    connectionData.forEach(conn => {
+        html += `
+            <div class="connection-row">
+                <a href="${conn.fromPage}.html" class="connection-from ${conn.fromColor}">${conn.from}</a>
+                <span class="connection-arrow">&rarr;</span>
+                <a href="${conn.toPage}.html" class="connection-to ${conn.toColor}">${conn.to}</a>
+                <span class="connection-reason">${conn.reason}</span>
+            </div>
+        `;
+    });
+    html += '</div>';
+    canvas.innerHTML = html;
+}
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
     buildTopicNav();
@@ -333,4 +690,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPage();
     initViewToggle();
     initStickyHeader();
+    initSearch();
+    initTimeline();
+    initFigures();
+    initProgress();
+    initConnections();
 });

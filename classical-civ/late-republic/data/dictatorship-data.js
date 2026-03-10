@@ -350,6 +350,47 @@ window.pageData = {
             evidence: 'The <em>dictator perpetuo</em> title; divine honours and coins; the Lupercalia incident; the <em>clementia</em> policy (pardoning Brutus, Cassius, Cicero); the practical reforms; the Senate expansion; the removal of tribunes; the conspirators as <em>liberatores</em>; Cicero\'s letters to Atticus on the meaninglessness of political life under the dictatorship.',
             historiography: 'The tyranny question depends on definition. Roman concepts of <em>libertas</em> and <em>regnum</em> are essential. Some historians argue Caesar was a benevolent autocrat who transcended the broken Republic; others insist that any permanent concentration of power in one man was tyrannical by Roman standards, regardless of how it was exercised.'
         }
+    ],
+
+    argumentGrids: [
+        {
+            question: 'Was Caesar a tyrant or a necessary reformer?',
+            forPoints: [
+                'Calendar reform endured for 1,600 years — objectively brilliant and needed',
+                'Addressed genuine crises: debt relief, veteran settlement, grain dole reform',
+                'Extended citizenship to provincials — more inclusive than the Senate ever was',
+                'Enjoyed genuine popular support; reforms benefited ordinary Romans'
+            ],
+            againstPoints: [
+                'Concentrated all power in one person — dictator perpetuo had no precedent or time limit',
+                'His image on coins was unprecedented for a living Roman — a monarchical signal',
+                'Removed tribunes who opposed him — destroying the very office that protected citizens',
+                'Senate reduced to rubber stamp; magistracies became his appointments'
+            ],
+            verdict: 'His reforms were often sensible; his methods were incompatible with the Republic. The form of the Republic survived under Caesar — the Senate met, magistrates were elected, laws were passed. But the substance was dead. One man decided everything.'
+        }
+    ],
+
+    keyPoints: [
+        {
+            label: 'Dictator Perpetuo',
+            text: 'The crucial distinction between Caesar and Sulla. Sulla held the dictatorship as an emergency measure and resigned it. Caesar held it in perpetuity — transforming an emergency office into permanent autocracy. This single difference is what made tyrannicide thinkable.',
+            accent: 'red'
+        },
+        {
+            label: 'The Coin Test',
+            text: 'No living Roman had ever appeared on coins before Caesar. Roman coinage traditionally showed gods, ancestors, or symbolic images. Putting his own face on money communicated monarchical power more clearly than any title or office could. It told every citizen who held a coin: this is no longer a republic.',
+            accent: 'teal'
+        }
+    ],
+
+    analysisBoxes: [
+        {
+            title: 'Why the Dictatorship Matters',
+            shortTerm: 'Caesar\'s reforms address real problems but depend entirely on his personal authority. Remove him, and the system has no mechanism to continue — which is exactly what happens on the Ides of March.',
+            longTerm: 'The dictatorship demonstrates that the Republic\'s forms can survive while its substance dies. Augustus will learn from this: keep the forms, control the substance. Caesar\'s mistake was being too obvious about his power.',
+            examRelevance: 'The distinction between constitutional form and substantive power is one of the most sophisticated analytical points you can make. Use Caesar\'s dictatorship to show the examiner you understand that institutions can be hollow.'
+        }
     ]
 
 };

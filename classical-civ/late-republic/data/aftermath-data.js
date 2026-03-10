@@ -335,6 +335,45 @@ window.pageData = {
             evidence: 'The display of head and hands on the Rostra. The Second Triumvirate\'s legal powers overriding senatorial authority. The proscriptions — far more destructive to the senatorial class than Caesar\'s dictatorship. Comparison with earlier crises (Gracchi, Sulla, Caesar) to show the Republic\'s gradual decline. Cicero\'s own letters and speeches as evidence for his identification with the Republic.',
             historiography: 'Beard and Crawford see the Republic\'s fall as a long structural process — Cicero\'s death is one event among many. Syme emphasises the role of faction and military power. Rawson and Habicht give more weight to Cicero\'s individual significance. The debate maps onto the broader question of whether history is driven by structures or individuals.'
         }
+    ],
+
+    // ===== ARGUMENT GRIDS =====
+    argumentGrids: [
+        {
+            question: 'Did Cicero\'s Philippics achieve anything?',
+            forPoints: [
+                'Rallied Senate resistance against Antony at a moment when most senators were paralysed by fear',
+                'Defined Antony as a public enemy (<em>hostis</em>), giving the Senate\'s opposition a constitutional framework',
+                'Bought time for the Republican cause and demonstrated the enduring power of oratory in Roman politics',
+                'The speeches remain among the greatest works of Latin prose \u2014 an intellectual legacy that outlasted the political failure'
+            ],
+            againstPoints: [
+                'Cicero gambled on Octavian and lost catastrophically \u2014 the young man he hoped to use (<em>laudandum, ornandum, tollendum</em>) used him instead',
+                'The speeches changed nothing structurally: military force, not oratory, decided the outcome',
+                'Cicero\'s strategy depended entirely on others\' loyalty, which was not forthcoming',
+                'The Philippics made reconciliation with Antony impossible, sealing Cicero\'s death warrant when the triumvirate formed'
+            ],
+            verdict: 'The Philippics are Cicero\'s greatest achievement and his death warrant. They prove both the power and the limits of Republican oratory.'
+        }
+    ],
+
+    // ===== KEY POINTS =====
+    keyPoints: [
+        {
+            label: 'What Died on the Rostra',
+            text: 'When Cicero\'s head and hands were displayed on the speakers\' platform, it symbolised the death not just of a man but of the principle that words could defend liberty. The Republic\'s most powerful weapon \u2014 oratory \u2014 was literally silenced. After Cicero, the Rostra stood, but no one would ever again use it to challenge a man with legions.',
+            accent: 'red'
+        }
+    ],
+
+    // ===== ANALYSIS BOXES =====
+    analysisBoxes: [
+        {
+            title: 'Why the Aftermath Matters',
+            shortTerm: 'The Second Triumvirate\'s proscriptions were worse than anything Caesar had done. Approximately 300 senators and 2,000 equites were killed. The mechanism Sulla had invented forty years earlier was deployed on a larger scale, proving that the precedent of political mass murder was now a permanent feature of Roman politics.',
+            longTerm: 'Cicero\'s death marked the end of the Republic as a functioning political system. The Principate that followed under Augustus preserved Republican forms \u2014 the Senate, elections, magistracies \u2014 but stripped them of real power. The age of oratory gave way to the age of the sword. What Augustus built was partly a response to the failures demonstrated in 44\u201343 BC.',
+            examRelevance: 'The aftermath ties together every theme in the course: the precedent of violence (from the Gracchi), the power of the army (from Marius), the failure of constitutional solutions (from Sulla), and the limits of individual action (from Caesar and Cicero). Use it as your conclusion material for any essay on the Republic\'s fall.'
+        }
     ]
 
 };

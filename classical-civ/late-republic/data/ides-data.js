@@ -313,6 +313,45 @@ window.pageData = {
             evidence: 'Cicero, <em>ad Atticum</em> 14.4 (<em>ergon</em>/<em>boul\u0113</em>); the conspirators\' lack of planning; Antony\'s funeral and seizure of power; the Second Triumvirate and proscriptions; Cicero\'s death in 43 BC; the precedents of Sulla, Marius, and Pompey; Cicero\'s letters under the dictatorship showing the Senate\'s irrelevance; the eventual establishment of the Principate under Augustus.',
             historiography: 'This question directly engages the major historiographical debate. Structural historians (e.g. Beard, Hopkins) argue the Republic was doomed by systemic forces. Traditional narrative historians emphasise individual choices and contingency. The best answers synthesise both: structural problems created the conditions, but individual decisions \u2014 including the conspirators\' failures \u2014 determined the form of the Republic\'s end.'
         }
+    ],
+
+    // ===== ARGUMENT GRIDS =====
+    argumentGrids: [
+        {
+            question: 'Was the assassination justified?',
+            forPoints: [
+                'Defending <em>libertas</em> \u2014 the foundational principle of the Republic \u2014 against permanent one-man rule',
+                'Removing a tyrant followed the tradition of Brutus\'s ancestor, who expelled the last king in 509 BC',
+                'Caesar\'s powers (<em>dictator perpetuo</em>, divine honours, coins) were incompatible with the Republic by any constitutional reading',
+                'The conspirators were <em>liberatores</em>, acting within a recognised Roman tradition of justified tyrannicide'
+            ],
+            againstPoints: [
+                'The conspirators had no plan for what came after \u2014 removing the tyrant without restoring the system achieved nothing',
+                'Caesar was genuinely popular with the people; his funeral proved the assassins had misjudged public opinion',
+                'His <em>clementia</em> showed mercy, not cruelty \u2014 he pardoned the very men who killed him',
+                'The Republic may already have been dead; killing Caesar could not reverse a century of structural decay'
+            ],
+            verdict: 'Cicero\'s judgement captures it: accomplished with the courage of men but the planning of children. The moral case was strong; the political execution was catastrophic.'
+        }
+    ],
+
+    // ===== KEY POINTS =====
+    keyPoints: [
+        {
+            label: 'The Deed Without a Plan',
+            text: 'Cicero\'s <em>\u1f14\u03c1\u03b3\u03bf\u03bd</em>/<em>\u03b2\u03bf\u03c5\u03bb\u03ae</em> distinction is the single most important analytical framework for the assassination. The conspirators assumed killing the tyrant would automatically restore the Republic. It did not. Antony seized Caesar\'s papers, treasury, and political legacy within hours. The <em>liberatores</em> had freed Rome from Caesar but had no idea what to do with their freedom.',
+            accent: 'red'
+        }
+    ],
+
+    // ===== ANALYSIS BOXES =====
+    analysisBoxes: [
+        {
+            title: 'Why the Ides Matter',
+            shortTerm: 'Caesar was dead, but the power vacuum was immediately filled by Antony (as surviving consul) and then contested by Octavian (as Caesar\'s adopted heir). The conspirators fled Rome within days. The Senate, which they had hoped to restore, proved incapable of governing without a strongman.',
+            longTerm: 'The assassination proved that the Republic\'s crisis was structural, not personal. Removing one man changed nothing because the underlying problems \u2014 professional armies, dysfunctional institutions, the impossibility of governing an empire through city-state politics \u2014 remained. The Republic could not be restored because the Republic no longer worked.',
+            examRelevance: 'The Ides of March is the pivot point of the entire course. Every earlier topic leads to it; every later topic flows from it. The strongest essays use the assassination to test the structural vs individual causation debate: was the Republic killed by Caesar, by his assassins, or by forces beyond any individual\'s control?'
+        }
     ]
 
 };
