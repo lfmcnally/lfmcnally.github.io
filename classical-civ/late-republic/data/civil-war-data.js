@@ -34,7 +34,8 @@ window.pageData = {
                         analysis: 'From Caesar\'s <em>De Bello Civili</em> 1.9. This is Caesar\'s own framing of why he went to war — not for power but for the honour and status he had earned. The word <em>dignitas</em> carries enormous weight: it means rank, prestige, the recognition owed to a man of his achievements.'
                     }
                 ],
-                examTip: '<p>The Rubicon is the single most important moment in the entire late Republic. Every essay about the Republic\'s fall must engage with it. The key debate: was Caesar forced into this by his enemies, or did he manufacture the crisis to seize power? The best answers will note that both can be partially true — his enemies did threaten his position, but he also chose the most extreme response available.</p>'
+                examTip: '<p>The Rubicon is the single most important moment in the entire late Republic. Every essay about the Republic\'s fall must engage with it. The key debate: was Caesar forced into this by his enemies, or did he manufacture the crisis to seize power? The best answers will note that both can be partially true — his enemies did threaten his position, but he also chose the most extreme response available.</p>',
+                seeAlso: [{ page: 'marius-sulla', label: 'Sulla\'s first march — the precedent' }, { page: 'gracchi', label: 'The SCU that triggered the crisis' }]
             }
         },
         {
@@ -69,7 +70,8 @@ window.pageData = {
                         analysis: 'The simplest and most devastating question in Cicero\'s correspondence. Three syllables that capture the paralysis of a man whose entire career was built on rhetorical certainty, now utterly unable to decide.'
                     }
                 ],
-                examTip: '<p>This letter is essential for any question about Cicero\'s role in the civil war. It shows him not as a heroic Republican but as a deeply conflicted human being. Use it to complicate any argument that portrays the civil war as a simple contest between tyranny and liberty — Cicero\'s agony shows that the choices were far more ambiguous than later tradition suggests.</p>'
+                examTip: '<p>This letter is essential for any question about Cicero\'s role in the civil war. It shows him not as a heroic Republican but as a deeply conflicted human being. Use it to complicate any argument that portrays the civil war as a simple contest between tyranny and liberty — Cicero\'s agony shows that the choices were far more ambiguous than later tradition suggests.</p>',
+                seeAlso: [{ page: 'clodius-exile', label: 'Cicero\'s earlier crisis of exile' }, { page: 'letters', label: 'Epistolary style analysis' }]
             }
         },
         {
@@ -97,7 +99,8 @@ window.pageData = {
                         body: '<p>The tone is darker than <em>Att.</em> 8.8. The rhetorical questions have given way to flat statements of hopelessness. Cicero is no longer asking <em>quid agam?</em> — he has passed beyond even the energy required for a question. The prose style mirrors his psychological state: heavy, repetitive, circling the same problems without resolution.</p>'
                     }
                 ],
-                examTip: '<p>Use this letter alongside <em>Att.</em> 8.8 to show the progression of Cicero\'s crisis. Together they demonstrate that the civil war was not experienced as a clear moral choice but as an agonising process of disintegration — of certainties, loyalties, and the political framework Cicero had spent his life defending.</p>'
+                examTip: '<p>Use this letter alongside <em>Att.</em> 8.8 to show the progression of Cicero\'s crisis. Together they demonstrate that the civil war was not experienced as a clear moral choice but as an agonising process of disintegration — of certainties, loyalties, and the political framework Cicero had spent his life defending.</p>',
+                seeAlso: [{ page: 'civil-war', label: 'Att. 8.8 — the dilemma begins' }, { page: 'fifties', label: 'The breakdown that led here' }]
             }
         },
         {
@@ -132,7 +135,8 @@ window.pageData = {
                         analysis: 'A direct, personal appeal from one of Rome\'s greatest orators to the man who holds his fate in his hands. The simplicity of the phrase is itself rhetorical — by stripping away ornament, Cicero presents himself as sincere, even vulnerable. But this vulnerability is carefully crafted.'
                     }
                 ],
-                examTip: '<p>This letter is invaluable for showing Cicero\'s rhetorical skill under extreme pressure. Compare it with the Atticus letters to demonstrate the difference between private anguish and public performance. It is also key evidence for Caesar\'s policy of <em>clementia</em> — the fact that Cicero feels able to write such a letter tells us something about how Caesar wished to be perceived.</p>'
+                examTip: '<p>This letter is invaluable for showing Cicero\'s rhetorical skill under extreme pressure. Compare it with the Atticus letters to demonstrate the difference between private anguish and public performance. It is also key evidence for Caesar\'s policy of <em>clementia</em> — the fact that Cicero feels able to write such a letter tells us something about how Caesar wished to be perceived.</p>',
+                seeAlso: [{ page: 'dictatorship', label: 'Caesar\'s clementia policy' }, { page: 'letters', label: 'Public vs private voice in letters' }]
             }
         },
         {
@@ -155,7 +159,8 @@ window.pageData = {
                         body: '<p>Cicero\'s experience in the Pompeian camp is devastating evidence against any simple narrative of the civil war as "Republic vs tyranny." The Pompeian side was not a unified defence of Republican values — it was a messy coalition, just as compromised in its own way as Caesar\'s faction. Cicero sees this clearly, which makes his decision to stay all the more poignant.</p>'
                     }
                 ],
-                examTip: '<p>Cicero\'s disillusionment with the Pompeian camp is excellent evidence for complicating the "Republic vs tyranny" narrative. Use it to show that the Republic\'s defenders were themselves deeply flawed — which raises the question of whether the Republic they claimed to be defending still meaningfully existed.</p>'
+                examTip: '<p>Cicero\'s disillusionment with the Pompeian camp is excellent evidence for complicating the "Republic vs tyranny" narrative. Use it to show that the Republic\'s defenders were themselves deeply flawed — which raises the question of whether the Republic they claimed to be defending still meaningfully existed.</p>',
+                seeAlso: [{ page: 'cato', label: 'Cato in the Pompeian camp' }, { page: 'aftermath', label: 'Cicero\'s return after pardon' }]
             }
         },
         {
@@ -186,7 +191,8 @@ window.pageData = {
                         analysis: 'Caesar\'s reported words as he surveys the Pompeian dead at Pharsalus (Suetonius, <em>Divus Iulius</em> 30). A chilling statement — Caesar deflects responsibility for the carnage onto his opponents, who (he claims) forced this war upon him. Whether this is genuine regret or cold political calculation remains an open question.'
                     }
                 ],
-                examTip: '<p>Pharsalus matters less as a military event and more for its political consequences. The key question: once Caesar has won militarily, can the Republic survive? The answer — as Cato\'s suicide will show — is no. Use Pharsalus to mark the point where the Republic\'s fate is sealed, even if its institutions technically survive for a few more years.</p>'
+                examTip: '<p>Pharsalus matters less as a military event and more for its political consequences. The key question: once Caesar has won militarily, can the Republic survive? The answer — as Cato\'s suicide will show — is no. Use Pharsalus to mark the point where the Republic\'s fate is sealed, even if its institutions technically survive for a few more years.</p>',
+                seeAlso: [{ page: 'dictatorship', label: 'Caesar\'s power after victory' }, { page: 'civil-war', label: 'Cato at Utica — the aftermath' }]
             }
         },
         {
@@ -221,7 +227,8 @@ window.pageData = {
                         analysis: 'Lucan, <em>Pharsalia</em> 1.128. Written a century later, this line captures the extraordinary status Cato achieved through his death. He is placed above the gods themselves in moral authority — a remarkable claim that shows how completely Cato\'s suicide transformed him from a politician into a symbol.'
                     }
                 ],
-                examTip: '<p>Cato\'s death at Utica is one of the most important events on the entire syllabus. It connects themes of Stoic philosophy, Republican ideology, the nature of <em>clementia</em>, and the question of individual agency. Any essay about the Republic\'s fall should engage with it. The key insight: Cato\'s refusal of <em>clementia</em> shows that Caesar\'s mercy was itself a form of power — to pardon is to assert superiority, which is why a true Republican could not accept it.</p>'
+                examTip: '<p>Cato\'s death at Utica is one of the most important events on the entire syllabus. It connects themes of Stoic philosophy, Republican ideology, the nature of <em>clementia</em>, and the question of individual agency. Any essay about the Republic\'s fall should engage with it. The key insight: Cato\'s refusal of <em>clementia</em> shows that Caesar\'s mercy was itself a form of power — to pardon is to assert superiority, which is why a true Republican could not accept it.</p>',
+                seeAlso: [{ page: 'cato', label: 'Cato\'s Stoic principles' }, { page: 'dictatorship', label: 'Why clementia was a provocation' }]
             }
         },
         {
@@ -244,7 +251,8 @@ window.pageData = {
                         body: '<p>Consider the fate of the three great opponents of one-man rule:</p><ul><li><strong>Cato:</strong> Dead by his own hand at Utica. A martyr.</li><li><strong>Pompey:</strong> Murdered in Egypt. A failure.</li><li><strong>Cicero:</strong> Pardoned, diminished, writing philosophy in his villa. A survivor, for now.</li></ul><p>None of these outcomes suggests that the Republic can be saved. The system that was supposed to prevent any one man from gaining supreme power has failed completely. The question now is not whether the Republic will survive, but what will replace it.</p>'
                     }
                 ],
-                examTip: '<p>This is your conclusion card for any civil war essay. The key argument: the civil war did not destroy the Republic — it revealed that the Republic had already been destroyed by decades of institutional failure. Caesar\'s victory was a symptom, not a cause. The strongest essays will trace the structural weaknesses (violence, clientela, provincial commands) back through the entire course and show that by 49 BC, the Republic was a system waiting to collapse.</p>'
+                examTip: '<p>This is your conclusion card for any civil war essay. The key argument: the civil war did not destroy the Republic — it revealed that the Republic had already been destroyed by decades of institutional failure. Caesar\'s victory was a symptom, not a cause. The strongest essays will trace the structural weaknesses (violence, clientela, provincial commands) back through the entire course and show that by 49 BC, the Republic was a system waiting to collapse.</p>',
+                seeAlso: [{ page: 'dictatorship', label: 'Caesar\'s impossible position' }, { page: 'themes', label: 'Was the Republic already dead?' }]
             }
         }
     ],

@@ -109,6 +109,19 @@ function openModal(cardId) {
         });
     }
 
+    // See Also cross-references
+    if (m.seeAlso && m.seeAlso.length) {
+        html += '<div class="see-also">';
+        html += '<div class="see-also-label">See Also</div>';
+        html += '<div class="see-also-links">';
+        m.seeAlso.forEach(ref => {
+            html += '<a href="' + ref.page + '.html" class="see-also-chip">';
+            html += '<span class="see-also-arrow">→</span> ' + ref.label;
+            html += '</a>';
+        });
+        html += '</div></div>';
+    }
+
     // Exam tip
     if (m.examTip) {
         html += '<div class="exam-tip">';
@@ -226,6 +239,7 @@ function renderExamQuestions(containerId, questions) {
                     <p>${q.evidence}</p>
                 </div>
                 ${q.historiography ? '<div class="key-evidence"><h5>Historiographical Angle</h5><p>' + q.historiography + '</p></div>' : ''}
+                ${q.modelParagraph ? '<div class="model-paragraph"><h5>Model Paragraph</h5><div class="model-paragraph-text">' + q.modelParagraph + '</div></div>' : ''}
             </div>
         </div>
     `).join('');

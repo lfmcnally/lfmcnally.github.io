@@ -24,7 +24,8 @@ window.pageData = {
                         body: '<p>Cato attempted to resist but was systematically outmanoeuvred. He stood for the praetorship of 55 BC and was defeated through bribery. The Senate as a body was reduced to impotence &mdash; it could not prevent two of its most powerful members from seizing the consulship by force.</p>'
                     }
                 ],
-                examTip: '<p>Luca is an excellent case study for whether the Republic\'s collapse was caused by individuals or structural failure. The fact that three private citizens could effectively dictate Roman policy suggests the system was already broken.</p>'
+                examTip: '<p>Luca is an excellent case study for whether the Republic\'s collapse was caused by individuals or structural failure. The fact that three private citizens could effectively dictate Roman policy suggests the system was already broken.</p>',
+                seeAlso: [{ page: 'triumvirate', label: 'The original deal' }]
             }
         },
         {
@@ -55,7 +56,8 @@ window.pageData = {
                         analysis: 'The verb <em>versari</em> (to move about, to conduct oneself) reveals Cicero\'s sense of politics as navigation rather than leadership &mdash; he is trying to survive, not to govern.'
                     }
                 ],
-                examTip: '<p>This letter is excellent evidence for Cicero\'s post-Luca compromise. Use the concept of "studied neutrality" to show how the triumvirate silenced opposition without formal censorship.</p>'
+                examTip: '<p>This letter is excellent evidence for Cicero\'s post-Luca compromise. Use the concept of "studied neutrality" to show how the triumvirate silenced opposition without formal censorship.</p>',
+                seeAlso: [{ page: 'letters', label: 'Cicero\'s political commentary in letters' }]
             }
         },
         {
@@ -79,7 +81,8 @@ window.pageData = {
                         body: '<p>Caesar published his account of the wars annually, ensuring that Romans at home followed his campaigns in something close to real time. The <em>De Bello Gallico</em> is simultaneously a military report, a work of literary genius, and a piece of political propaganda &mdash; presenting Caesar as a decisive, merciful, and indispensable leader.</p>'
                     }
                 ],
-                examTip: '<p>Caesar\'s Gallic command illustrates the fundamental problem: the Republic gave individuals enough power to become threats to the state itself. The question is whether the system was flawed or whether Caesar exploited it uniquely.</p>'
+                examTip: '<p>Caesar\'s Gallic command illustrates the fundamental problem: the Republic gave individuals enough power to become threats to the state itself. The question is whether the system was flawed or whether Caesar exploited it uniquely.</p>',
+                seeAlso: [{ page: 'civil-war', label: 'The army that would cross the Rubicon' }]
             }
         },
         {
@@ -99,7 +102,8 @@ window.pageData = {
                         body: '<p>Crassus\'s death removed the third vertex of the triumvirate. He had served as a mediator and balance between Caesar and Pompey &mdash; not because he was peacemaker by temperament, but because his presence prevented the alliance from becoming a simple binary rivalry. With Crassus gone, there was no buffer. Caesar and Pompey faced each other directly, and the Republic had to choose between them.</p>'
                     }
                 ],
-                examTip: '<p>The death of Crassus is often cited as a turning point, but consider whether the real turning point was earlier (Luca) or later (the SCU of 49 BC). Was Crassus genuinely stabilising the triumvirate, or was the collapse already inevitable?</p>'
+                examTip: '<p>The death of Crassus is often cited as a turning point, but consider whether the real turning point was earlier (Luca) or later (the SCU of 49 BC). Was Crassus genuinely stabilising the triumvirate, or was the collapse already inevitable?</p>',
+                seeAlso: [{ page: 'triumvirate', label: 'The original deal' }, { page: 'civil-war', label: 'The Rubicon crisis' }]
             }
         },
         {
@@ -118,7 +122,8 @@ window.pageData = {
                         body: '<p>When the murder of Clodius by Milo\'s gang in 52 BC plunged Rome into chaos &mdash; the Senate House was burned down by Clodius\'s supporters &mdash; the Senate appointed Pompey sole consul. This was unprecedented and technically unconstitutional, but it demonstrated both the Senate\'s desperation and Pompey\'s unique position.</p><p>Pompey restored order efficiently. But the sole consulship revealed a deeper truth: the Republic could no longer function through its normal institutions. It needed a strongman. The question was which strongman it would get.</p>'
                     }
                 ],
-                examTip: '<p>Pompey\'s sole consulship is a powerful example of the Republic\'s structural failure. The Senate had to break its own rules to maintain order &mdash; and in doing so, it legitimised the very principle of personal power that Caesar would use to destroy it.</p>'
+                examTip: '<p>Pompey\'s sole consulship is a powerful example of the Republic\'s structural failure. The Senate had to break its own rules to maintain order &mdash; and in doing so, it legitimised the very principle of personal power that Caesar would use to destroy it.</p>',
+                seeAlso: [{ page: 'marius-sulla', label: 'Sulla\'s conservative reforms' }]
             }
         },
         {
@@ -141,7 +146,8 @@ window.pageData = {
                         body: '<p>Cato\'s position reveals the Republic\'s deepest dilemma. The constitution could not accommodate an overmighty citizen who had outgrown its constraints. Cato\'s solution &mdash; force Caesar to submit to the law &mdash; was logically correct but practically impossible without war. Cato\'s principles were admirable; but principles that can only be enforced through civil war are no longer functioning as a constitution.</p>'
                     }
                 ],
-                examTip: '<p>Cato is essential for any essay on individual vs structural causation. Did his inflexibility cause the civil war, or was he simply insisting on rules that any functioning republic would have to enforce?</p>'
+                examTip: '<p>Cato is essential for any essay on individual vs structural causation. Did his inflexibility cause the civil war, or was he simply insisting on rules that any functioning republic would have to enforce?</p>',
+                seeAlso: [{ page: 'cato', label: 'Cato\'s Stoicism and obstruction' }, { page: 'civil-war', label: 'The Rubicon crisis' }]
             }
         },
         {
@@ -172,7 +178,8 @@ window.pageData = {
                         analysis: 'Though Cicero is quoting Horace\'s later sentiment avant la lettre, the phrase captures his mood &mdash; a refusal to contemplate a future he cannot control. The use of the imperative <em>fuge</em> (flee, avoid) suggests active dread rather than mere uncertainty.'
                     }
                 ],
-                examTip: '<p>This letter is valuable evidence for Cicero\'s political marginalisation in the late 50s. Use it alongside Fam. 2.4 to trace the arc of his decline from active politician to anxious observer.</p>'
+                examTip: '<p>This letter is valuable evidence for Cicero\'s political marginalisation in the late 50s. Use it alongside Fam. 2.4 to trace the arc of his decline from active politician to anxious observer.</p>',
+                seeAlso: [{ page: 'letters', label: 'Cicero\'s political commentary in letters' }]
             }
         },
         {
@@ -203,7 +210,8 @@ window.pageData = {
                         analysis: 'Caesar\'s famous words at the Rubicon. The metaphor of gambling is significant: Caesar presents his decision not as aggression but as a risk forced upon him by circumstances. The passive construction (<em>iacta est</em>) implies the die was cast by fate, not by choice.'
                     }
                 ],
-                examTip: '<p>The ultimatum sequence is crucial for the "inevitability" question. Note that Caesar offered compromises that were rejected. Was the Senate right to insist on unconditional compliance, or did its rigidity (driven by Cato) make war inevitable?</p>'
+                examTip: '<p>The ultimatum sequence is crucial for the "inevitability" question. Note that Caesar offered compromises that were rejected. Was the Senate right to insist on unconditional compliance, or did its rigidity (driven by Cato) make war inevitable?</p>',
+                seeAlso: [{ page: 'civil-war', label: 'The Rubicon crisis' }]
             }
         },
         {
@@ -226,7 +234,8 @@ window.pageData = {
                         body: '<p>The central historiographical question is whether this failure was caused by individuals &mdash; Caesar\'s ambition, Cato\'s rigidity, Pompey\'s indecisiveness &mdash; or by structural factors that made civil war inevitable regardless of who held power. The answer is almost certainly both: the Republic\'s structures created opportunities for ambitious men, and ambitious men exploited those structures to their breaking point.</p>'
                     }
                 ],
-                examTip: '<p>This is the core analytical framework for any essay on the fall of the Republic. Always connect specific events to the structural question: could <em>any</em> constitutional system have survived these pressures, or was the Roman Republican system uniquely vulnerable?</p>'
+                examTip: '<p>This is the core analytical framework for any essay on the fall of the Republic. Always connect specific events to the structural question: could <em>any</em> constitutional system have survived these pressures, or was the Roman Republican system uniquely vulnerable?</p>',
+                seeAlso: [{ page: 'civil-war', label: 'The Rubicon crisis' }, { page: 'marius-sulla', label: 'Sulla\'s conservative reforms' }]
             }
         }
     ],

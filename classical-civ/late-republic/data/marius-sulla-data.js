@@ -29,7 +29,11 @@ window.pageData = {
                         analysis: 'This observation, drawn from the tradition preserved in later sources, captures the fundamental shift: the army becomes a personal instrument. The verb <em>credebant</em> (they believed) is key — this is a change in mentality, not merely in organisation.'
                     }
                 ],
-                examTip: '<p>When discussing the fall of the Republic, always distinguish between <strong>structural causes</strong> (the land crisis, the failure of the Gracchi) and <strong>mechanisms</strong> (the professional army, client armies). Marius\'s reforms are a mechanism, not a root cause. The best essays show how structural problems created the conditions that made the reforms both necessary and dangerous.</p>'
+                examTip: '<p>When discussing the fall of the Republic, always distinguish between <strong>structural causes</strong> (the land crisis, the failure of the Gracchi) and <strong>mechanisms</strong> (the professional army, client armies). Marius\'s reforms are a mechanism, not a root cause. The best essays show how structural problems created the conditions that made the reforms both necessary and dangerous.</p><p>A strong argumentative move: <em>"Marius did not invent the problem — he inherited a crisis the Gracchi had identified but the Senate had refused to solve. His solution to the military recruitment crisis inadvertently created the political weapon that would destroy the Republic."</em></p>',
+                seeAlso: [
+                    { page: 'gracchi', label: 'The land crisis that created landless soldiers' },
+                    { page: 'civil-war', label: 'Caesar\'s veterans cross the Rubicon' }
+                ]
             }
         },
         {
@@ -65,7 +69,11 @@ window.pageData = {
                         analysis: 'Attributed to Marius by Sallust (<em>Bellum Iugurthinum</em> 85). The <em>imagines</em> were the wax masks of ancestors displayed in aristocratic homes — symbols of inherited status that Marius, as a <em>novus homo</em>, did not possess.'
                     }
                 ],
-                examTip: '<p>Marius\'s consulships are excellent evidence for the argument that the Republic\'s constitution depended on <em>mos maiorum</em> (ancestral custom) rather than enforceable law. When custom is broken and no legal mechanism exists to restore it, the system begins to fail. Compare with Caesar\'s later disregard for constitutional norms.</p>'
+                examTip: '<p>Marius\'s consulships are excellent evidence for the argument that the Republic\'s constitution depended on <em>mos maiorum</em> (ancestral custom) rather than enforceable law. When custom is broken and no legal mechanism exists to restore it, the system begins to fail. Compare with Caesar\'s later disregard for constitutional norms.</p>',
+                seeAlso: [
+                    { page: 'republic', label: 'The cursus honorum rules' },
+                    { page: 'dictatorship', label: 'Caesar as dictator perpetuo' }
+                ]
             }
         },
         {
@@ -96,7 +104,11 @@ window.pageData = {
                         analysis: 'This formula, used in official Roman documents, captures the ambiguity of the allies\' position: they were bound to Rome by treaty but excluded from its political life. The word <em>socii</em> (allies, partners) implies equality, but the reality was subordination.'
                     }
                 ],
-                examTip: '<p>The Social War is essential context for understanding both Marius and Sulla. It destabilises Rome at a critical moment, provides the military context for Sulla\'s rise, and demonstrates that the Republic\'s failure to reform — visible since the Gracchi — has real consequences. Always mention it when discussing the background to Sulla\'s march on Rome.</p>'
+                examTip: '<p>The Social War is essential context for understanding both Marius and Sulla. It destabilises Rome at a critical moment, provides the military context for Sulla\'s rise, and demonstrates that the Republic\'s failure to reform — visible since the Gracchi — has real consequences. Always mention it when discussing the background to Sulla\'s march on Rome.</p>',
+                seeAlso: [
+                    { page: 'gracchi', label: 'Gaius\'s failed citizenship proposal' },
+                    { page: 'republic', label: 'Who counted as a Roman citizen' }
+                ]
             }
         },
         {
@@ -132,7 +144,11 @@ window.pageData = {
                         analysis: 'Though this phrase is famously associated with Caesar\'s crossing of the Rubicon in 49 BC, the concept applies equally to Sulla\'s march. Both men faced the same choice: accept political defeat or use military force. Sulla chose force first.'
                     }
                 ],
-                examTip: '<p>In any essay on the fall of the Republic, Sulla\'s march on Rome in 88 BC should be treated as a <strong>turning point</strong>. Before 88 BC, political violence existed (the Gracchi were murdered) but the army had never been used as a political tool within Rome itself. After 88 BC, the question is not <em>whether</em> the army will intervene in politics but <em>when</em> and <em>by whom</em>.</p>'
+                examTip: '<p>In any essay on the fall of the Republic, Sulla\'s march on Rome in 88 BC should be treated as a <strong>turning point</strong>. Before 88 BC, political violence existed (the Gracchi were murdered) but the army had never been used as a political tool within Rome itself. After 88 BC, the question is not <em>whether</em> the army will intervene in politics but <em>when</em> and <em>by whom</em>.</p>',
+                seeAlso: [
+                    { page: 'civil-war', label: 'Caesar crosses the Rubicon' },
+                    { page: 'gracchi', label: 'The first political murder' }
+                ]
             }
         },
         {
@@ -168,7 +184,11 @@ window.pageData = {
                         analysis: 'Attributed to Sulla by Suetonius (<em>Divus Iulius</em> 1). Sulla reportedly recognised the danger in the young Caesar — seeing in him the potential to surpass even Marius. This anecdote, whether historical or not, captures the through-line from Marius to Caesar that the ancient sources consistently emphasise.'
                     }
                 ],
-                examTip: '<p>The proscriptions are powerful evidence for essays on political violence, but do not treat them in isolation. Connect them to the murders of the Gracchi and to Caesar\'s later policy of <em>clementia</em> — Caesar explicitly rejected the Sullan method, but this made him vulnerable because his enemies survived. The contrast between Sulla\'s ruthless efficiency and Caesar\'s dangerous mercy is a key theme.</p>'
+                examTip: '<p>The proscriptions are powerful evidence for essays on political violence, but do not treat them in isolation. Connect them to the murders of the Gracchi and to Caesar\'s later policy of <em>clementia</em> — Caesar explicitly rejected the Sullan method, but this made him vulnerable because his enemies survived. The contrast between Sulla\'s ruthless efficiency and Caesar\'s dangerous mercy is a key theme.</p>',
+                seeAlso: [
+                    { page: 'dictatorship', label: 'Caesar\'s dictatorship compared' },
+                    { page: 'aftermath', label: 'The Second Triumvirate\'s proscriptions' }
+                ]
             }
         },
         {
@@ -199,7 +219,11 @@ window.pageData = {
                         analysis: 'This sentiment, attributed to Caesar in various forms, captures how Sulla\'s precedent functioned: as both permission and challenge. If Sulla could seize power, so could others. But if Sulla could also give it up, those who did not would face harsher judgement.'
                     }
                 ],
-                examTip: '<p>Sulla\'s retirement is a crucial piece of evidence for essays about Caesar\'s dictatorship. It lets you argue that Caesar had a choice — he could have followed Sulla\'s example — and that his refusal to do so was a conscious decision with fatal consequences. The comparison also illuminates the limits of constitutional reform: Sulla had absolute power and still could not fix the Republic.</p>'
+                examTip: '<p>Sulla\'s retirement is a crucial piece of evidence for essays about Caesar\'s dictatorship. It lets you argue that Caesar had a choice — he could have followed Sulla\'s example — and that his refusal to do so was a conscious decision with fatal consequences. The comparison also illuminates the limits of constitutional reform: Sulla had absolute power and still could not fix the Republic.</p>',
+                seeAlso: [
+                    { page: 'dictatorship', label: 'Why Caesar refused to retire' },
+                    { page: 'cato', label: 'Cato and the Sullan legacy' }
+                ]
             }
         },
         {
@@ -230,7 +254,11 @@ window.pageData = {
                         analysis: 'The concept of <em>exemplum</em> is central to Roman political thought. Romans governed by precedent: what had been done could be done again. Sulla\'s march created an <em>exemplum</em> that could never be unlearned. Every future general knew it was possible.'
                     }
                 ],
-                examTip: '<p>This card is your essay conclusion in miniature. In any question about the fall of the Republic, you can argue that Marius and Sulla created the <strong>template</strong> — the army, the proscriptions, the march on Rome — and that subsequent figures (Pompey, Caesar, Octavian) merely followed the pattern with greater skill and fewer scruples. This gives your essay a strong structural argument rather than a simple narrative.</p>'
+                examTip: '<p>This card is your essay conclusion in miniature. In any question about the fall of the Republic, you can argue that Marius and Sulla created the <strong>template</strong> — the army, the proscriptions, the march on Rome — and that subsequent figures (Pompey, Caesar, Octavian) merely followed the pattern with greater skill and fewer scruples. This gives your essay a strong structural argument rather than a simple narrative.</p>',
+                seeAlso: [
+                    { page: 'themes', label: 'Military power as political tool' },
+                    { page: 'civil-war', label: 'The civil war template in action' }
+                ]
             }
         }
     ],

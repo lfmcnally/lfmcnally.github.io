@@ -32,7 +32,8 @@ window.pageData = {
                         analysis: 'The title itself was the provocation. <em>Perpetuo</em> removed the one safeguard that made dictatorship compatible with Republican government: its time limit.'
                     }
                 ],
-                examTip: `<p>When discussing Caesar's powers, avoid simply listing them. The examiner wants you to analyse what they <em>mean</em> constitutionally. The key point: each power was individually Republican, but their combination in one man was monarchical in effect if not in name.</p>`
+                examTip: `<p>When discussing Caesar's powers, avoid simply listing them. The examiner wants you to analyse what they <em>mean</em> constitutionally. The key point: each power was individually Republican, but their combination in one man was monarchical in effect if not in name.</p>`,
+                seeAlso: [{ page: 'marius-sulla', label: 'Sulla\'s time-limited dictatorship' }, { page: 'republic', label: 'How the dictatorship was supposed to work' }]
             }
         },
         {
@@ -58,7 +59,8 @@ window.pageData = {
                         <p>Good government by a single ruler is still single-man rule. The Senate's expansion, in particular, was perceived as an insult — Caesar was packing the house with his own supporters and men the traditional aristocracy considered beneath them.</p>`
                     }
                 ],
-                examTip: `<p>Caesar's reforms are useful evidence for <em>both</em> sides of the 'replace or reform' debate. If he wanted to destroy the Republic, why bother with practical reforms? If he wanted to save it, why not restore normal government once the reforms were in place? The best essays acknowledge this genuine ambiguity.</p>`
+                examTip: `<p>Caesar's reforms are useful evidence for <em>both</em> sides of the 'replace or reform' debate. If he wanted to destroy the Republic, why bother with practical reforms? If he wanted to save it, why not restore normal government once the reforms were in place? The best essays acknowledge this genuine ambiguity.</p>`,
+                seeAlso: [{ page: 'gracchi', label: 'The reforms the Republic couldn\'t pass' }, { page: 'marius-sulla', label: 'Sulla\'s failed conservative reforms' }]
             }
         },
         {
@@ -91,7 +93,8 @@ window.pageData = {
                         analysis: 'A virtue that contains a power dynamic. You can only show <em>clementia</em> from a position of superiority — which is why it was so politically charged when directed at fellow senators.'
                     }
                 ],
-                examTip: `<p>Clementia is one of the richest topics for analysis. It connects to questions about Caesar's character, his political judgement, the nature of Republican <span style="font-family:'Roboto Mono',monospace;font-style:italic">dignitas</span>, and the motivations of the assassins. Use it as evidence for multiple arguments.</p>`
+                examTip: `<p>Clementia is one of the richest topics for analysis. It connects to questions about Caesar's character, his political judgement, the nature of Republican <span style="font-family:'Roboto Mono',monospace;font-style:italic">dignitas</span>, and the motivations of the assassins. Use it as evidence for multiple arguments.</p>`,
+                seeAlso: [{ page: 'civil-war', label: 'Cato refuses clementia at Utica' }, { page: 'ides', label: 'The pardoned men who killed him' }]
             }
         },
         {
@@ -124,7 +127,8 @@ window.pageData = {
                         analysis: 'The most toxic word in Roman politics. The entire Republican system was built on the rejection of <em>regnum</em>. To be called <em>rex</em> was not merely an insult — it was a justification for political murder.'
                     }
                 ],
-                examTip: `<p>The <em>rex</em> question is central to any essay about Caesar's intentions. Be careful not to oversimplify. The best approach acknowledges that Caesar may not have wanted the <em>title</em> of king while effectively exercising the <em>power</em> of one — and that for his opponents, the distinction was meaningless.</p>`
+                examTip: `<p>The <em>rex</em> question is central to any essay about Caesar's intentions. Be careful not to oversimplify. The best approach acknowledges that Caesar may not have wanted the <em>title</em> of king while effectively exercising the <em>power</em> of one — and that for his opponents, the distinction was meaningless.</p>`,
+                seeAlso: [{ page: 'republic', label: 'Rome\'s hatred of kingship' }, { page: 'ides', label: 'The conspiracy forms' }]
             }
         },
         {
@@ -157,7 +161,8 @@ window.pageData = {
                         analysis: 'The conspirators\' chosen name for themselves. The word frames assassination as liberation — a political and moral claim that the people of Rome ultimately rejected.'
                     }
                 ],
-                examTip: `<p>When discussing the conspiracy, avoid treating the assassins as a monolithic group. The examiner will reward you for recognising the range of motivations — and for asking whether tyrannicide can be justified when the 'tyrant' was voted his powers by the institutions he supposedly subverted.</p>`
+                examTip: `<p>When discussing the conspiracy, avoid treating the assassins as a monolithic group. The examiner will reward you for recognising the range of motivations — and for asking whether tyrannicide can be justified when the 'tyrant' was voted his powers by the institutions he supposedly subverted.</p>`,
+                seeAlso: [{ page: 'ides', label: 'The assassination' }, { page: 'cato', label: 'Brutus and Republican ideology' }]
             }
         },
         {
@@ -194,7 +199,8 @@ window.pageData = {
                         analysis: 'Cicero\'s ideal — but under the dictatorship, his <em>otium</em> is forced, not chosen, and his <em>dignitas</em> depends entirely on Caesar\'s goodwill.'
                     }
                 ],
-                examTip: `<p>This letter is excellent evidence for questions about Cicero's response to the dictatorship and the broader theme of intellectual resistance. Note the contrast between Cicero's public silence and his private literary output — the letters reveal what the speeches cannot.</p>`
+                examTip: `<p>This letter is excellent evidence for questions about Cicero's response to the dictatorship and the broader theme of intellectual resistance. Note the contrast between Cicero's public silence and his private literary output — the letters reveal what the speeches cannot.</p>`,
+                seeAlso: [{ page: 'clodius-exile', label: 'Cicero\'s earlier political marginalisation' }, { page: 'letters', label: 'Philosophical retreat in the letters' }]
             }
         },
         {
@@ -219,7 +225,8 @@ window.pageData = {
                         <p>This is the tragedy of Caesar's position: his virtues were as dangerous as his vices. His reforms were needed but imposed. His clemency was humane but humiliating. His power was effective but unconstitutional. The Republic could not live with him. As events would show, it could not live without him either.</p>`
                     }
                 ],
-                examTip: `<p>The significance card gives you your essay conclusion. The strongest answers on Caesar's dictatorship recognise the structural impossibility of his position: not that he was a bad ruler, but that any ruler in his position was incompatible with the Republican system as Romans understood it.</p>`
+                examTip: `<p>The significance card gives you your essay conclusion. The strongest answers on Caesar's dictatorship recognise the structural impossibility of his position: not that he was a bad ruler, but that any ruler in his position was incompatible with the Republican system as Romans understood it.</p>`,
+                seeAlso: [{ page: 'ides', label: 'The assassination as consequence' }, { page: 'marius-sulla', label: 'Sulla\'s exit strategy worked — briefly' }]
             }
         }
     ],
