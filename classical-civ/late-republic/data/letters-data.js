@@ -80,7 +80,8 @@ window.pageData = {
                         body: "<p>Identifying features is not enough. You must explain what they reveal. Elliptical syntax in <em>Att.</em> 8.8 is not just a stylistic choice — it is evidence of Cicero's genuine psychological distress during the Rubicon crisis. Greek code-switching in <em>Att.</em> 14.4 is not decoration — it allows Cicero to express a politically dangerous judgement about the assassination in a language that servants and interceptors might not fully follow.</p>"
                     }
                 ],
-                examTip: "<p>In source-based questions, always name the epistolary feature, quote or closely paraphrase the example, and then explain what it reveals about Cicero's state of mind, political position, or relationship with the recipient.</p>"
+                examTip: "<p>In source-based questions, always name the epistolary feature, quote or closely paraphrase the example, and then explain what it reveals about Cicero's state of mind, political position, or relationship with the recipient.</p>",
+                seeAlso: [{ page: 'ides', label: "Att. 14.4 and the ergon/boul\u0113 distinction" }]
             }
         },
         {
@@ -99,7 +100,8 @@ window.pageData = {
                         body: "<p>Letters were not just commentary on politics — they were themselves political acts. Cicero used letters to build and maintain alliances, to test political ideas before committing to them publicly, to seek intelligence from correspondents across the Roman world, and to process political setbacks. The letter to Caesar (<em>Att.</em> 9.11a) is a direct political intervention — a carefully crafted appeal for peace that uses every rhetorical tool at Cicero's disposal.</p>"
                     }
                 ],
-                examTip: "<p>Never treat the letters as simple, transparent evidence. Always consider Cicero's purpose in writing and the effect he intends on his reader. Even despair can be strategic if it elicits sympathy or advice.</p>"
+                examTip: "<p>Never treat the letters as simple, transparent evidence. Always consider Cicero's purpose in writing and the effect he intends on his reader. Even despair can be strategic if it elicits sympathy or advice.</p>",
+                seeAlso: [{ page: 'aftermath', label: "The Philippics \u2014 Cicero's public voice" }]
             }
         },
         {
