@@ -21,7 +21,8 @@ window.pageData = {
                         body: '<p>Despite being the Senate\'s most prominent defender of Republican government, Cicero was deliberately excluded from the conspiracy. The conspirators feared he would talk — his love of oratory and self-promotion made him a security risk. They also judged him too cautious: Cicero was a man of words, not of daggers. He would have counselled delay, sought compromise, or simply lost his nerve.</p><p>Cicero\'s exclusion would later become a source of wounded pride, though he acknowledged the deed\'s justice.</p>'
                     }
                 ],
-                examTip: '<p>When discussing the conspiracy, emphasise the ideological dimension. Brutus\'s ancestral claim is not mere vanity — it reflects a genuine Roman belief that the Republic\'s founding act of tyrannicide created a permanent obligation. This connects to broader themes about <em>mos maiorum</em> and the authority of precedent.</p>'
+                examTip: '<p>When discussing the conspiracy, emphasise the ideological dimension. Brutus\'s ancestral claim is not mere vanity — it reflects a genuine Roman belief that the Republic\'s founding act of tyrannicide created a permanent obligation. This connects to broader themes about <em>mos maiorum</em> and the authority of precedent.</p>',
+                seeAlso: [{ page: 'dictatorship', label: 'The powers that provoked them' }, { page: 'republic', label: 'The tyrannicide tradition' }]
             }
         },
         {
@@ -52,7 +53,8 @@ window.pageData = {
                         analysis: 'The use of Greek rather than Latin may suggest intimacy or education — Greek was the language of private emotion among the Roman elite. The word <em>τέκνον</em> (teknon, "child") implies either paternal affection or a patron-client bond.'
                     }
                 ],
-                examTip: '<p>Note that Caesar\'s last words are in Greek, not Latin. This is a useful detail for source analysis: it reminds us that our accounts are literary constructions. Suetonius himself flags uncertainty about what Caesar actually said.</p>'
+                examTip: '<p>Note that Caesar\'s last words are in Greek, not Latin. This is a useful detail for source analysis: it reminds us that our accounts are literary constructions. Suetonius himself flags uncertainty about what Caesar actually said.</p>',
+                seeAlso: [{ page: 'gracchi', label: 'The first political murder — 133 BC' }, { page: 'aftermath', label: 'The chaos that followed' }]
             }
         },
         {
@@ -75,7 +77,8 @@ window.pageData = {
                         body: '<p>Mark Antony, as surviving consul, moved quickly. He secured Caesar\'s papers and treasury from Calpurnia, Caesar\'s widow. This gave him control of Caesar\'s political programme, his finances, and crucially, knowledge of Caesar\'s plans and promises. The balance of power shifted immediately and decisively away from the conspirators.</p>'
                     }
                 ],
-                examTip: '<p>The absence of a plan is the single most important point about the assassination. It transforms the act from tyrannicide into political disaster. Use Cicero\'s <em>ergon</em>/<em>boulē</em> distinction to frame this argument.</p>'
+                examTip: '<p>The absence of a plan is the single most important point about the assassination. It transforms the act from tyrannicide into political disaster. Use Cicero\'s <em>ergon</em>/<em>boulē</em> distinction to frame this argument.</p>',
+                seeAlso: [{ page: 'aftermath', label: 'Antony and Octavian\'s power struggle' }, { page: 'dictatorship', label: 'Caesar\'s clementia — the fatal error' }]
             }
         },
         {
@@ -98,7 +101,8 @@ window.pageData = {
                         body: '<p>The crowd was inflamed. Caesar\'s body was burned on an improvised pyre in the Forum. Rioters attacked the houses of the conspirators. Brutus and Cassius, who had expected to be hailed as liberators, were forced to flee Rome. They would never return.</p><p>The funeral marks the moment when the conspirators lost any chance of controlling events. From this point on, the initiative belongs to Antony — and soon to Octavian.</p>'
                     }
                 ],
-                examTip: '<p>Be careful to distinguish Shakespeare\'s version of Antony\'s speech from the historical event. You can note that Shakespeare captures the <em>effect</em> ancient sources describe, but the words are his invention. This shows good source awareness.</p>'
+                examTip: '<p>Be careful to distinguish Shakespeare\'s version of Antony\'s speech from the historical event. You can note that Shakespeare captures the <em>effect</em> ancient sources describe, but the words are his invention. This shows good source awareness.</p>',
+                seeAlso: [{ page: 'aftermath', label: 'The Philippics against Antony' }, { page: 'civil-war', label: 'Pompey\'s death — another political funeral' }]
             }
         },
         {
@@ -137,7 +141,8 @@ window.pageData = {
                         analysis: 'Cicero\'s use of Greek terms draws on a philosophical distinction between action (<em>ergon</em>) and rational deliberation (<em>boulē</em>). The word <em>boulē</em> can also mean "council" — a pointed pun, since the conspirators formed no governing council after the act. The Greek provides both intellectual precision and emotional distance.'
                     }
                 ],
-                examTip: '<p>This letter is one of the most quotable sources for the assassination. Learn the Greek terms with transliteration. In an exam, you can use this to show that even those who supported the assassination recognised it as a political failure. The code-switching to Greek is also excellent evidence for epistolary conventions.</p>'
+                examTip: '<p>This letter is one of the most quotable sources for the assassination. Learn the Greek terms with transliteration. In an exam, you can use this to show that even those who supported the assassination recognised it as a political failure. The code-switching to Greek is also excellent evidence for epistolary conventions.</p>',
+                seeAlso: [{ page: 'civil-war', label: 'Att. 8.8 — Cicero\'s earlier paralysis' }, { page: 'letters', label: 'Greek code-switching in the letters' }]
             }
         },
         {
@@ -160,7 +165,8 @@ window.pageData = {
                         body: '<p>Cicero\'s relationship with Brutus after the assassination is marked by admiration and exasperation in roughly equal measure. He admires Brutus\'s principles and his courage. But he finds Brutus politically naive — a man who believed that killing a tyrant was sufficient, without understanding that power does not simply return to the Senate because a dictator has been removed.</p><p>Brutus\'s insistence on sparing Antony at the assassination is, for Cicero, the supreme example of this naivety. Brutus wanted a clean, principled act of tyrannicide. The result was that the most dangerous man in Rome was left alive and angry.</p>'
                     }
                 ],
-                examTip: '<p>Cicero\'s ambivalence is excellent material for evaluating the assassination. He allows you to argue simultaneously that it was morally justified <em>and</em> politically catastrophic — a nuanced position that examiners reward. Use his frustration with Brutus to show the gap between Republican ideals and political reality.</p>'
+                examTip: '<p>Cicero\'s ambivalence is excellent material for evaluating the assassination. He allows you to argue simultaneously that it was morally justified <em>and</em> politically catastrophic — a nuanced position that examiners reward. Use his frustration with Brutus to show the gap between Republican ideals and political reality.</p>',
+                seeAlso: [{ page: 'aftermath', label: 'Cicero\'s return to active politics' }, { page: 'cato', label: 'Principled resistance and its costs' }]
             }
         },
         {
@@ -183,7 +189,8 @@ window.pageData = {
                         body: '<p>The assassination led directly to the war of the Liberators, the formation of the Second Triumvirate (Antony, Octavian, Lepidus), the proscriptions (in which Cicero was killed in December 43 BC), and ultimately to the final civil wars that ended with Octavian\'s victory at Actium in 31 BC. The Republic the conspirators died for was replaced not by restored senatorial government but by the Principate — the rule of Augustus.</p><p>The Ides of March is thus the pivotal moment of the late Republic: not because it ended the Republic (which was already dying) but because it demonstrated, with terrible clarity, that the Republic could not be saved by a single act of violence.</p>'
                     }
                 ],
-                examTip: '<p>This is the key evaluative point for any essay on the assassination. The argument that "the Republic was already dead" is powerful but must be supported with evidence from across the course — the Gracchi, Sulla\'s dictatorship, the triumvirate, Caesar\'s own rise. The assassination is the culmination of a century of crisis, not an isolated event.</p>'
+                examTip: '<p>This is the key evaluative point for any essay on the assassination. The argument that "the Republic was already dead" is powerful but must be supported with evidence from across the course — the Gracchi, Sulla\'s dictatorship, the triumvirate, Caesar\'s own rise. The assassination is the culmination of a century of crisis, not an isolated event.</p>',
+                seeAlso: [{ page: 'aftermath', label: 'What came next' }, { page: 'themes', label: 'The Republic was already dead' }]
             }
         }
     ],

@@ -31,7 +31,8 @@ window.pageData = {
                         analysis: 'Cicero\'s claim reflects the Roman conviction that their mixed constitution was uniquely stable. This confidence made its eventual failure all the more traumatic for men like Cicero who had devoted their lives to defending it.'
                     }
                 ],
-                examTip: '<p><ul><li>When discussing constitutional breakdown, always show you understand what the <em>normal</em> system looked like. Examiners reward candidates who can explain what was being violated, not just that violations occurred.</li><li>Link the principle of collegiality to specific failures: e.g. Caesar holding sole consulship, or Pompey\'s sole consulship in 52 BC.</li></ul></p>'
+                examTip: '<p><ul><li>When discussing constitutional breakdown, always show you understand what the <em>normal</em> system looked like. Examiners reward candidates who can explain what was being violated, not just that violations occurred.</li><li>Link the principle of collegiality to specific failures: e.g. Caesar holding sole consulship, or Pompey\'s sole consulship in 52 BC.</li></ul></p>',
+                seeAlso: [{ page: 'gracchi', label: 'When the constitution breaks' }, { page: 'marius-sulla', label: 'When the army overrides the constitution' }]
             }
         },
         {
@@ -61,7 +62,8 @@ window.pageData = {
                         analysis: 'The idea that political office is a reward earned through service \u2014 not an entitlement of birth \u2014 underpins the cursus honorum. Even within a rigid aristocracy, Romans insisted on the fiction that magistracies were merit-based.'
                     }
                 ],
-                examTip: '<p><ul><li>Be precise about ages and intervals. Examiners notice when candidates can cite the Lex Villia Annalis and give specific minimum ages.</li><li>Connect the cursus to individual case studies: Cicero reaches the consulship <em>suo anno</em> (at the earliest legal age), while Pompey holds it before the legal age. What does each case reveal about the system?</li></ul></p>'
+                examTip: '<p><ul><li>Be precise about ages and intervals. Examiners notice when candidates can cite the Lex Villia Annalis and give specific minimum ages.</li><li>Connect the cursus to individual case studies: Cicero reaches the consulship <em>suo anno</em> (at the earliest legal age), while Pompey holds it before the legal age. What does each case reveal about the system?</li></ul></p>',
+                seeAlso: [{ page: 'marius-sulla', label: 'Marius breaks the iteration rules' }, { page: 'dictatorship', label: 'Caesar accumulates every office' }]
             }
         },
         {
@@ -87,7 +89,8 @@ window.pageData = {
                         analysis: 'Cicero\'s own definition, from his defence of Sestius in 56 BC, is the most important ancient source for this distinction. Note that Cicero presents it as a choice of method and reputation, not a fixed identity.'
                     }
                 ],
-                examTip: '<p><ul><li>Never describe optimates and populares as \'parties\'. This is the most common error at A-Level and examiners penalise it.</li><li>Show that both groups are elite: give examples of populares who are aristocrats (Caesar, Clodius, the Gracchi) to demonstrate the point.</li><li>Use Cicero\'s definition from Pro Sestio 96 as your anchor quotation for this topic.</li></ul></p>'
+                examTip: '<p><ul><li>Never describe optimates and populares as \'parties\'. This is the most common error at A-Level and examiners penalise it.</li><li>Show that both groups are elite: give examples of populares who are aristocrats (Caesar, Clodius, the Gracchi) to demonstrate the point.</li><li>Use Cicero\'s definition from Pro Sestio 96 as your anchor quotation for this topic.</li></ul></p>',
+                seeAlso: [{ page: 'cato', label: 'Cato and ancestral custom' }, { page: 'themes', label: 'Mos maiorum as structural weakness' }]
             }
         },
         {

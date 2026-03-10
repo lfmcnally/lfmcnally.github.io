@@ -29,7 +29,8 @@ window.pageData = {
                         analysis: 'The technical term for a patrician\'s legal transfer to plebeian status — a rare procedure that Clodius exploited with Caesar\'s active assistance.'
                     }
                 ],
-                examTip: '<p>In essays about Caesar\'s political methods, the <em>transitio ad plebem</em> is excellent evidence that Caesar operated through proxies and intermediaries. He did not need to attack Cicero himself — he enabled others to do it for him.</p>'
+                examTip: '<p>In essays about Caesar\'s political methods, the <em>transitio ad plebem</em> is excellent evidence that Caesar operated through proxies and intermediaries. He did not need to attack Cicero himself — he enabled others to do it for him.</p>',
+                seeAlso: [{ page: 'gracchi', label: 'The tribunate as weapon' }]
             }
         },
         {
@@ -56,7 +57,8 @@ window.pageData = {
                         analysis: 'Neighbourhood organisations that combined social, religious, and political functions. Their restoration gave Clodius an organisational base among the urban poor that persisted long after his tribunate ended.'
                     }
                 ],
-                examTip: '<p>Clodius\'s tribunate is useful evidence for essays about popularis politics. Unlike many populares, Clodius built a lasting political organisation among the urban poor — not just temporary electoral support.</p>'
+                examTip: '<p>Clodius\'s tribunate is useful evidence for essays about popularis politics. Unlike many populares, Clodius built a lasting political organisation among the urban poor — not just temporary electoral support.</p>',
+                seeAlso: [{ page: 'gracchi', label: 'Gaius\'s lex frumentaria' }]
             }
         },
         {
@@ -82,7 +84,8 @@ window.pageData = {
                         analysis: 'The formula of Clodius\'s bill. By using the general term "whoever" rather than naming Cicero, Clodius presented the measure as a defence of citizens\' rights rather than a personal vendetta.'
                     }
                 ],
-                examTip: '<p>This bill is outstanding evidence for essays about the weakness of Republican institutions. Cicero\'s execution of the Catilinarians was authorised by the Senate, yet a tribune could still use it to destroy him years later. The Republic had no settled law on the limits of emergency power.</p>'
+                examTip: '<p>This bill is outstanding evidence for essays about the weakness of Republican institutions. Cicero\'s execution of the Catilinarians was authorised by the Senate, yet a tribune could still use it to destroy him years later. The Republic had no settled law on the limits of emergency power.</p>',
+                seeAlso: [{ page: 'gracchi', label: 'The tribunate as weapon' }, { page: 'gracchi', label: 'The first SCU \u2014 121 BC' }]
             }
         },
         {
@@ -117,7 +120,8 @@ window.pageData = {
                         analysis: 'The title the Senate bestowed on Cicero after the Catilinarian conspiracy. Its irony during exile was devastating — the "father" had been cast out by his own "fatherland".'
                     }
                 ],
-                examTip: '<p>Cicero\'s exile letters are invaluable primary evidence for the emotional dimension of Roman politics. They show that political failure was experienced as total personal destruction — not just loss of office, but loss of identity, home, and dignity.</p>'
+                examTip: '<p>Cicero\'s exile letters are invaluable primary evidence for the emotional dimension of Roman politics. They show that political failure was experienced as total personal destruction — not just loss of office, but loss of identity, home, and dignity.</p>',
+                seeAlso: [{ page: 'civil-war', label: 'Cicero\'s later crisis \u2014 choosing sides' }]
             }
         },
         {
@@ -152,7 +156,8 @@ window.pageData = {
                         analysis: 'A masterful diplomatic distinction. Cicero avoids the accusation of deliberate betrayal ("desertion") while still making clear that Pompey failed him ("left without support"). The careful word choice reveals both Cicero\'s resentment and his need to maintain the relationship.'
                     }
                 ],
-                examTip: '<p>When analysing Cicero\'s letters, always consider the gap between surface tone and underlying emotion. Fam. 5.7 is excellent evidence for how the epistolary form could be used strategically — to rebuild alliances, manage power dynamics, and express criticism without giving offence.</p>'
+                examTip: '<p>When analysing Cicero\'s letters, always consider the gap between surface tone and underlying emotion. Fam. 5.7 is excellent evidence for how the epistolary form could be used strategically — to rebuild alliances, manage power dynamics, and express criticism without giving offence.</p>',
+                seeAlso: [{ page: 'letters', label: 'Cicero\'s political commentary in letters' }]
             }
         },
         {
@@ -183,7 +188,8 @@ window.pageData = {
                         analysis: 'The formal name of the law that banished Cicero. Its overturn in 57 BC was presented as a restoration of justice, though in reality it was a product of shifting power dynamics within the triumvirate.'
                     }
                 ],
-                examTip: '<p>Cicero\'s return is important for essays about political independence in the late Republic. Use it to argue that even the Republic\'s most articulate defender could not sustain an independent political position without the backing of men with armies.</p>'
+                examTip: '<p>Cicero\'s return is important for essays about political independence in the late Republic. Use it to argue that even the Republic\'s most articulate defender could not sustain an independent political position without the backing of men with armies.</p>',
+                seeAlso: [{ page: 'aftermath', label: 'Cicero\'s final return to politics' }]
             }
         },
         {
@@ -206,7 +212,8 @@ window.pageData = {
                         body: '<p>The episode crystallises several themes central to the late Republic: the inadequacy of constitutional norms against organised political violence; the dominance of personal alliances over institutional loyalty; the gap between public rhetoric and private power; and the psychological toll of political life in a system where failure meant not just loss of office but total personal destruction.</p>'
                     }
                 ],
-                examTip: '<p>The exile is one of the best case studies for answering broad questions about the fall of the Republic. It combines constitutional, personal, and emotional dimensions in a single episode, and provides evidence for almost any argument about why Republican government failed.</p>'
+                examTip: '<p>The exile is one of the best case studies for answering broad questions about the fall of the Republic. It combines constitutional, personal, and emotional dimensions in a single episode, and provides evidence for almost any argument about why Republican government failed.</p>',
+                seeAlso: [{ page: 'civil-war', label: 'Cicero\'s later crisis \u2014 choosing sides' }, { page: 'aftermath', label: 'Cicero\'s final return to politics' }]
             }
         }
     ],

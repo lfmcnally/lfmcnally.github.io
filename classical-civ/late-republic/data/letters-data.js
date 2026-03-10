@@ -17,7 +17,11 @@ window.pageData = {
                         body: "<p>Titus Pomponius Atticus was Cicero's closest friend for over forty years. An equestrian who deliberately stayed out of politics, Atticus was the ideal confidant: discreet, wealthy, well-connected, and politically neutral. Cicero wrote to him with a candour he showed no one else. The <em>ad Atticum</em> letters are the closest we get to hearing Cicero think aloud.</p>"
                     }
                 ],
-                examTip: "<p>Always distinguish between what Cicero says in public (speeches) and what he says in private (letters). The gap between the two is itself evidence — it tells us about the constraints of Roman political communication and Cicero's strategic self-presentation.</p>"
+                examTip: "<p>Always distinguish between what Cicero says in public (speeches) and what he says in private (letters). The gap between the two is itself evidence — it tells us about the constraints of Roman political communication and Cicero's strategic self-presentation.</p>",
+                seeAlso: [
+                    { page: 'civil-war', label: "The letters as evidence for civil war" },
+                    { page: 'aftermath', label: "The Philippics — Cicero's public voice" }
+                ]
             }
         },
         {
@@ -36,7 +40,8 @@ window.pageData = {
                         body: "<p>The shift in register between the two collections is not just a stylistic observation — it is historical evidence. When Cicero writes one thing to Atticus and another to Pompey about the same event, the discrepancy reveals the gap between his private judgement and his public positioning. This is gold for exam answers.</p>"
                     }
                 ],
-                examTip: "<p>If asked to compare letters, always comment on how the identity of the recipient shapes what Cicero says and how he says it. A letter to Atticus about Pompey will be far more honest than a letter to Pompey himself.</p>"
+                examTip: "<p>If asked to compare letters, always comment on how the identity of the recipient shapes what Cicero says and how he says it. A letter to Atticus about Pompey will be far more honest than a letter to Pompey himself.</p>",
+                seeAlso: [{ page: 'civil-war', label: 'The letters as evidence for the civil war' }]
             }
         },
         {
@@ -55,7 +60,8 @@ window.pageData = {
                         body: "<p>Cicero's tone ranges from the formally diplomatic (letters to Pompey or Caesar, with careful <em>salutatio</em> and measured prose) to the frantically emotional (letters to Atticus during the civil war crisis, with broken syntax and agonised questions). Self-deprecating humour appears frequently — Cicero mocks his own vanity, his indecision, his political miscalculations. This self-awareness is both genuine and strategic: it disarms criticism by anticipating it.</p>"
                     }
                 ],
-                examTip: "<p>When analysing tone, always ask: who is the audience, and what does Cicero want from them? Even emotional outpourings to Atticus have a purpose — Cicero is processing, seeking validation, testing ideas. Tone is never accidental.</p>"
+                examTip: "<p>When analysing tone, always ask: who is the audience, and what does Cicero want from them? Even emotional outpourings to Atticus have a purpose — Cicero is processing, seeking validation, testing ideas. Tone is never accidental.</p>",
+                seeAlso: [{ page: 'ides', label: "Att. 14.4 and the ergon/boul\u0113 distinction" }]
             }
         },
         {
@@ -74,7 +80,8 @@ window.pageData = {
                         body: "<p>Identifying features is not enough. You must explain what they reveal. Elliptical syntax in <em>Att.</em> 8.8 is not just a stylistic choice — it is evidence of Cicero's genuine psychological distress during the Rubicon crisis. Greek code-switching in <em>Att.</em> 14.4 is not decoration — it allows Cicero to express a politically dangerous judgement about the assassination in a language that servants and interceptors might not fully follow.</p>"
                     }
                 ],
-                examTip: "<p>In source-based questions, always name the epistolary feature, quote or closely paraphrase the example, and then explain what it reveals about Cicero's state of mind, political position, or relationship with the recipient.</p>"
+                examTip: "<p>In source-based questions, always name the epistolary feature, quote or closely paraphrase the example, and then explain what it reveals about Cicero's state of mind, political position, or relationship with the recipient.</p>",
+                seeAlso: [{ page: 'ides', label: "Att. 14.4 and the ergon/boul\u0113 distinction" }]
             }
         },
         {
@@ -93,7 +100,8 @@ window.pageData = {
                         body: "<p>Letters were not just commentary on politics — they were themselves political acts. Cicero used letters to build and maintain alliances, to test political ideas before committing to them publicly, to seek intelligence from correspondents across the Roman world, and to process political setbacks. The letter to Caesar (<em>Att.</em> 9.11a) is a direct political intervention — a carefully crafted appeal for peace that uses every rhetorical tool at Cicero's disposal.</p>"
                     }
                 ],
-                examTip: "<p>Never treat the letters as simple, transparent evidence. Always consider Cicero's purpose in writing and the effect he intends on his reader. Even despair can be strategic if it elicits sympathy or advice.</p>"
+                examTip: "<p>Never treat the letters as simple, transparent evidence. Always consider Cicero's purpose in writing and the effect he intends on his reader. Even despair can be strategic if it elicits sympathy or advice.</p>",
+                seeAlso: [{ page: 'aftermath', label: "The Philippics \u2014 Cicero's public voice" }]
             }
         },
         {

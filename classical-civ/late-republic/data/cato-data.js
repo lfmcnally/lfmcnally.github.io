@@ -27,7 +27,8 @@ window.pageData = {
                         analysis: 'Lucan\'s famous line (Pharsalia 1.128) captures how later Romans saw Cato: someone who chose the morally right side even when it was the losing side. It became a motto for principled resistance.'
                     }
                 ],
-                examTip: '<p>When writing about Cato, always connect his actions to his philosophy. Examiners reward candidates who can explain <em>why</em> Cato behaves as he does, not just <em>what</em> he does. His Stoicism is not background detail \u2014 it is the engine of every decision.</p>'
+                examTip: '<p>When writing about Cato, always connect his actions to his philosophy. Examiners reward candidates who can explain <em>why</em> Cato behaves as he does, not just <em>what</em> he does. His Stoicism is not background detail \u2014 it is the engine of every decision.</p>',
+                seeAlso: [{ page: 'civil-war', label: 'Cato\'s death at Utica' }]
             }
         },
         {
@@ -53,7 +54,8 @@ window.pageData = {
                         analysis: 'Attributed to Cato by later sources, this encapsulates his fusion of Stoic ethics with Roman political values. <em>Dignitas</em> here means not just personal honour but the dignity of the Republic itself.'
                     }
                 ],
-                examTip: '<p>A strong essay will acknowledge the paradox in Cato\'s position: he defends a system that has already been undermined by the very forces he opposes. This is not a weakness in your argument \u2014 it is the central tension that makes Cato interesting. Show the examiner you understand both sides.</p>'
+                examTip: '<p>A strong essay will acknowledge the paradox in Cato\'s position: he defends a system that has already been undermined by the very forces he opposes. This is not a weakness in your argument \u2014 it is the central tension that makes Cato interesting. Show the examiner you understand both sides.</p>',
+                seeAlso: [{ page: 'republic', label: 'Mos maiorum and the ancestral constitution' }]
             }
         },
         {
@@ -76,7 +78,8 @@ window.pageData = {
                         body: '<p>Did Cato\'s tactics actually work? In the short term, sometimes: he delayed legislation, embarrassed opponents, and rallied conservative opinion. But in the longer term, his obstruction arguably made the Republic\'s problems worse. By making legal reform impossible, he ensured that ambitious men would seek extra-legal solutions. By refusing to accommodate Pompey\'s reasonable requests (land for his veterans, ratification of his eastern settlement), Cato helped drive Pompey into alliance with Caesar \u2014 creating the First Triumvirate, the very concentration of power Cato most feared.</p>'
                     }
                 ],
-                examTip: '<p>This is one of the most productive areas for essay argument. You can argue that Cato\'s obstruction was principled but counterproductive \u2014 that by making the system rigid, he made it brittle. Always give specific examples: the blocking of Pompey\'s requests in 60 BC, the obstruction of Caesar\'s legislation in 59 BC, and the consequences each time.</p>'
+                examTip: '<p>This is one of the most productive areas for essay argument. You can argue that Cato\'s obstruction was principled but counterproductive \u2014 that by making the system rigid, he made it brittle. Always give specific examples: the blocking of Pompey\'s requests in 60 BC, the obstruction of Caesar\'s legislation in 59 BC, and the consequences each time.</p>',
+                seeAlso: [{ page: 'triumvirate', label: 'Cato blocks Caesar\'s legislation' }]
             }
         },
         {
@@ -107,7 +110,8 @@ window.pageData = {
                         analysis: 'Sallust, Bellum Catilinae 54. <em>Mansuetudo</em> (gentleness) vs <em>severitas</em> (severity): these are not just personal qualities but political programmes. Caesar wins people over; Cato holds them to account.'
                     }
                 ],
-                examTip: '<p>Sallust\'s comparison (BC 53\u201354) is essential evidence for any essay on Cato, Caesar, or the causes of the civil war. Learn the key phrases in Latin \u2014 even short quotations show the examiner you have engaged with the primary source. Always explain what Sallust\'s balance implies: that neither man alone could have saved the Republic.</p>'
+                examTip: '<p>Sallust\'s comparison (BC 53\u201354) is essential evidence for any essay on Cato, Caesar, or the causes of the civil war. Learn the key phrases in Latin \u2014 even short quotations show the examiner you have engaged with the primary source. Always explain what Sallust\'s balance implies: that neither man alone could have saved the Republic.</p>',
+                seeAlso: [{ page: 'civil-war', label: 'Cato\'s death at Utica' }, { page: 'ides', label: 'Brutus and Republican ideology' }]
             }
         },
         {
@@ -137,7 +141,8 @@ window.pageData = {
                         analysis: 'Cicero, ad Atticum 2.1.8. This is Cicero\'s most famous criticism of Cato. The contrast between the ideal (<em>Platonis politeia</em>) and the real (<em>Romuli faece</em>) captures the fundamental problem with Cato\'s approach to politics.'
                     }
                 ],
-                examTip: '<p>The Cato-Cicero comparison is extremely useful for essays about political methods in the late Republic. Cicero\'s letter to Atticus (2.1.8) is a key source \u2014 quote it if you can. The comparison allows you to argue that the Republic needed both pragmatism and principle, and that the failure of either alone demonstrates the depth of the crisis.</p>'
+                examTip: '<p>The Cato-Cicero comparison is extremely useful for essays about political methods in the late Republic. Cicero\'s letter to Atticus (2.1.8) is a key source \u2014 quote it if you can. The comparison allows you to argue that the Republic needed both pragmatism and principle, and that the failure of either alone demonstrates the depth of the crisis.</p>',
+                seeAlso: [{ page: 'republic', label: 'Mos maiorum and the ancestral constitution' }, { page: 'ides', label: 'Brutus and Republican ideology' }]
             }
         },
         {
@@ -167,7 +172,8 @@ window.pageData = {
                         analysis: 'Lucan, Pharsalia 1.128. This became Cato\'s epitaph in the literary tradition. It implies that Cato\'s moral judgement was superior to the gods\' \u2014 a remarkable claim that shows how deeply Roman culture revered his stand.'
                     }
                 ],
-                examTip: '<p>Cato\'s suicide is essential evidence for essays about the end of the Republic, the nature of <em>libertas</em>, and individual vs structural causes of the Republic\'s fall. Connect it to Stoic philosophy (death as an <em>indifferens</em>), to the political context (what accepting Caesar\'s <em>clementia</em> would have meant), and to the aftermath (how Cato\'s memory influenced the Ides of March). That three-way connection \u2014 philosophy, politics, legacy \u2014 demonstrates real depth of understanding.</p>'
+                examTip: '<p>Cato\'s suicide is essential evidence for essays about the end of the Republic, the nature of <em>libertas</em>, and individual vs structural causes of the Republic\'s fall. Connect it to Stoic philosophy (death as an <em>indifferens</em>), to the political context (what accepting Caesar\'s <em>clementia</em> would have meant), and to the aftermath (how Cato\'s memory influenced the Ides of March). That three-way connection \u2014 philosophy, politics, legacy \u2014 demonstrates real depth of understanding.</p>',
+                seeAlso: [{ page: 'civil-war', label: 'Cato\'s death at Utica' }, { page: 'ides', label: 'Brutus and Republican ideology' }]
             }
         }
     ],

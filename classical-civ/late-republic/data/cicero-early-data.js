@@ -28,7 +28,8 @@ window.pageData = {
                         analysis: 'Cicero frequently drew attention to his status as novus homo — partly out of pride, partly to pre-empt the sneering of the nobility. His openness about it was itself a rhetorical strategy.'
                     }
                 ],
-                examTip: '<p>When discussing Cicero\'s political position, always note that his <em>novus homo</em> status shaped his entire worldview. He needed the Senate\'s system to work because he had no dynastic safety net. This is why he became the Republic\'s most passionate defender — and why its collapse was personally devastating.</p>'
+                examTip: '<p>When discussing Cicero\'s political position, always note that his <em>novus homo</em> status shaped his entire worldview. He needed the Senate\'s system to work because he had no dynastic safety net. This is why he became the Republic\'s most passionate defender — and why its collapse was personally devastating.</p>',
+                seeAlso: [{ page: 'marius-sulla', label: 'Marius as novus homo' }]
             }
         },
         {
@@ -51,7 +52,8 @@ window.pageData = {
                         body: '<p>The Verres case is often taught earlier in the course, so at this stage the focus should be on its significance for Cicero\'s political trajectory rather than its narrative detail. It demonstrates how the courts functioned as a political arena, how oratory was a path to power, and how Cicero\'s career was built on advocacy rather than military command — a crucial distinction from figures like Marius, Sulla, and Pompey.</p>'
                     }
                 ],
-                examTip: '<p>If an exam question asks about Cicero\'s rise, the Verres trial is the turning point. But don\'t retell the story — focus on what it reveals about Roman politics: that courts were political battlegrounds, that oratory could substitute for military glory, and that Cicero was building his career on a fundamentally different model from the great generals.</p>'
+                examTip: '<p>If an exam question asks about Cicero\'s rise, the Verres trial is the turning point. But don\'t retell the story — focus on what it reveals about Roman politics: that courts were political battlegrounds, that oratory could substitute for military glory, and that Cicero was building his career on a fundamentally different model from the great generals.</p>',
+                seeAlso: [{ page: 'gracchi', label: 'Gaius\'s jury reform' }]
             }
         },
         {
@@ -86,7 +88,8 @@ window.pageData = {
                         analysis: 'The cooperation between Senate and equestrians that Cicero saw as the foundation of Republican stability. He later expanded this to consensus omnium bonorum — the agreement of all good men.'
                     }
                 ],
-                examTip: '<p>Cicero\'s political thought is essential for any essay on the Republic\'s collapse. His ideas represent what the Republic <em>could</em> have been — and explaining why they failed is explaining why the Republic fell. Always connect <em>concordia ordinum</em> to specific failures: the split over the publicani in Asia, the Senate\'s refusal to compromise with Pompey, Caesar\'s resort to force.</p>'
+                examTip: '<p>Cicero\'s political thought is essential for any essay on the Republic\'s collapse. His ideas represent what the Republic <em>could</em> have been — and explaining why they failed is explaining why the Republic fell. Always connect <em>concordia ordinum</em> to specific failures: the split over the publicani in Asia, the Senate\'s refusal to compromise with Pompey, Caesar\'s resort to force.</p>',
+                seeAlso: [{ page: 'aftermath', label: 'The Philippics and Cicero\'s death' }]
             }
         },
         {
@@ -122,7 +125,8 @@ window.pageData = {
                         analysis: 'Cicero\'s exclamation of outrage at the moral decay that allows a conspirator to sit openly in the Senate. The phrase became proverbial and is still used today to lament declining standards.'
                     }
                 ],
-                examTip: '<p>The Catilinarian conspiracy is Cicero\'s defining moment. In essays, use it to show both his strengths (courage, intelligence, rhetorical brilliance) and the Republic\'s weaknesses (that a debt crisis could produce an armed insurrection, that the Senate\'s response raised as many constitutional questions as it answered). Always connect forward to the execution debate and its consequences.</p>'
+                examTip: '<p>The Catilinarian conspiracy is Cicero\'s defining moment. In essays, use it to show both his strengths (courage, intelligence, rhetorical brilliance) and the Republic\'s weaknesses (that a debt crisis could produce an armed insurrection, that the Senate\'s response raised as many constitutional questions as it answered). Always connect forward to the execution debate and its consequences.</p>',
+                seeAlso: [{ page: 'gracchi', label: 'The first SCU \u2014 121 BC' }]
             }
         },
         {
@@ -153,7 +157,8 @@ window.pageData = {
                         analysis: 'Cicero\'s single-word announcement to the crowd after the executions. The euphemism avoids the ill-omened direct statement of death. It is also characteristically concise — a moment of restraint from Rome\'s most verbose orator.'
                     }
                 ],
-                examTip: '<p>The execution debate is one of the richest topics for exam essays. You can use it to discuss: the limits of the <em>senatus consultum ultimum</em>, the tension between security and liberty, the contrast between Cato and Caesar (principle vs. pragmatism), and the long-term consequences for Cicero personally. Always note that Caesar\'s position, though self-interested, was constitutionally sound — and that history proved him right about the dangers of the precedent.</p>'
+                examTip: '<p>The execution debate is one of the richest topics for exam essays. You can use it to discuss: the limits of the <em>senatus consultum ultimum</em>, the tension between security and liberty, the contrast between Cato and Caesar (principle vs. pragmatism), and the long-term consequences for Cicero personally. Always note that Caesar\'s position, though self-interested, was constitutionally sound — and that history proved him right about the dangers of the precedent.</p>',
+                seeAlso: [{ page: 'gracchi', label: 'The first SCU \u2014 121 BC' }, { page: 'clodius-exile', label: 'The exile that followed' }]
             }
         },
         {
@@ -176,7 +181,8 @@ window.pageData = {
                         body: '<p>The consulship of 63 BC is a microcosm of the late Republic\'s central problem. The constitutional system could still function in a crisis — but only by bending its own rules. And bending the rules, however justified in the moment, created precedents that weakened the system for the future. Cicero saved the Republic by acting unconstitutionally; the Republic then punished him for it; and the lesson for ambitious men like Caesar was clear: if the Republic could not protect even its saviour, it was not worth saving through legitimate means.</p>'
                     }
                 ],
-                examTip: '<p>Use the consulship as a pivot point in any essay about the Republic\'s decline. It represents both the best the senatorial system could achieve and the reasons why that system was doomed. Cicero\'s tragedy — that his finest hour was also the source of his destruction — mirrors the Republic\'s own tragedy perfectly.</p>'
+                examTip: '<p>Use the consulship as a pivot point in any essay about the Republic\'s decline. It represents both the best the senatorial system could achieve and the reasons why that system was doomed. Cicero\'s tragedy — that his finest hour was also the source of his destruction — mirrors the Republic\'s own tragedy perfectly.</p>',
+                seeAlso: [{ page: 'clodius-exile', label: 'The exile that followed' }, { page: 'aftermath', label: 'The Philippics and Cicero\'s death' }]
             }
         }
     ],

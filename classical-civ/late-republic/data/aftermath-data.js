@@ -27,7 +27,8 @@ window.pageData = {
                         analysis: 'Cicero\'s famous quip about Octavian, reported by various sources. The deliberate ambiguity of <em>tollendum</em> reveals Cicero\'s plan: use Octavian against Antony, then discard him. It was a catastrophic miscalculation.'
                     }
                 ],
-                examTip: '<p>The period after the Ides is essential for understanding why the Republic could not be restored. The assassins had no plan beyond the killing; Antony filled the vacuum; and Octavian\'s arrival introduced a new and unpredictable factor. Use this to argue that structural problems, not individual failures, doomed the Republic.</p>'
+                examTip: '<p>The period after the Ides is essential for understanding why the Republic could not be restored. The assassins had no plan beyond the killing; Antony filled the vacuum; and Octavian\'s arrival introduced a new and unpredictable factor. Use this to argue that structural problems, not individual failures, doomed the Republic.</p>',
+                seeAlso: [{ page: 'ides', label: 'The conspirators\' failure to plan' }, { page: 'dictatorship', label: 'Caesar\'s acta and legacy' }]
             }
         },
         {
@@ -54,7 +55,8 @@ window.pageData = {
                         analysis: 'From the Second Philippic, where Cicero describes Antony\'s alleged vomiting at a public assembly. The rhetorical strategy is deliberate degradation: reducing Antony from a political figure to a grotesque spectacle. Note the balanced structure (<em>non modo... sed etiam</em>) that gives the insult rhetorical elegance.'
                     }
                 ],
-                examTip: '<p>The Philippics are key prescribed material. When analysing them, consider both their literary quality (rhetorical devices, structure, invective technique) and their political context (Cicero\'s strategy, his audience, his aims). Always connect the oratory to the political situation.</p>'
+                examTip: '<p>The Philippics are key prescribed material. When analysing them, consider both their literary quality (rhetorical devices, structure, invective technique) and their political context (Cicero\'s strategy, his audience, his aims). Always connect the oratory to the political situation.</p>',
+                seeAlso: [{ page: 'cicero-early', label: 'The Catilinarian orations — Cicero\'s earlier peak' }, { page: 'themes', label: 'Oratory vs military force' }]
             }
         },
         {
@@ -81,7 +83,8 @@ window.pageData = {
                         analysis: 'The official title of the Second Triumvirate. Unlike the First Triumvirate (an informal, private arrangement), this was a legally constituted office with extraordinary powers. The title\'s claim to be "restoring" the Republic while actually destroying it is a masterpiece of political euphemism.'
                     }
                 ],
-                examTip: '<p>Compare and contrast the First and Second Triumvirates. The First was informal and unofficial; the Second had legal authority. Both show how the Republican constitution could be bent or broken by powerful individuals. This is excellent evidence for essays on the structural weaknesses of the Republic.</p>'
+                examTip: '<p>Compare and contrast the First and Second Triumvirates. The First was informal and unofficial; the Second had legal authority. Both show how the Republican constitution could be bent or broken by powerful individuals. This is excellent evidence for essays on the structural weaknesses of the Republic.</p>',
+                seeAlso: [{ page: 'triumvirate', label: 'The First Triumvirate compared' }, { page: 'marius-sulla', label: 'Sulla\'s proscriptions — the original model' }]
             }
         },
         {
@@ -112,7 +115,8 @@ window.pageData = {
                         analysis: 'Cicero\'s appeal to urgency. The brevity and directness are deliberate \u2014 there is no time for elaborate rhetoric. The word <em>necessitas</em> carries weight: this is not choice but obligation.'
                     }
                 ],
-                examTip: '<p>When analysing Cicero\'s letters as a source, always consider the intended audience and purpose. Letters to provincial governors are carefully crafted persuasion pieces, not private correspondence. Discuss tone, rhetorical strategy, and what the letter reveals about Cicero\'s political position.</p>'
+                examTip: '<p>When analysing Cicero\'s letters as a source, always consider the intended audience and purpose. Letters to provincial governors are carefully crafted persuasion pieces, not private correspondence. Discuss tone, rhetorical strategy, and what the letter reveals about Cicero\'s political position.</p>',
+                seeAlso: [{ page: 'letters', label: 'Persuasion in Cicero\'s correspondence' }, { page: 'fifties', label: 'Provincial governors and their armies' }]
             }
         },
         {
@@ -136,7 +140,8 @@ window.pageData = {
                         body: '<p>The central question for any reader of this letter is whether Cicero\'s confidence is genuine or performed. Is he trying to encourage Trebonius by presenting an optimistic picture? Does he actually believe the Republic has a future? Or is this the self-deception of a man who has staked everything on one last gamble and cannot afford to admit it might fail?</p><p>The answer matters for our assessment of Cicero\'s character: a man who genuinely believed he could save the Republic is tragic; a man who knew it was hopeless but fought anyway is heroic; a man who deceived himself is something else entirely.</p>'
                     }
                 ],
-                examTip: '<p>This letter is excellent for discussing Cicero\'s judgement. Was his confidence in the Republic\'s survival justified by the evidence, or was it wishful thinking? Use it alongside the Philippics to build a picture of Cicero\'s final political stance. Consider what "heroism" and "recklessness" mean in this context.</p>'
+                examTip: '<p>This letter is excellent for discussing Cicero\'s judgement. Was his confidence in the Republic\'s survival justified by the evidence, or was it wishful thinking? Use it alongside the Philippics to build a picture of Cicero\'s final political stance. Consider what "heroism" and "recklessness" mean in this context.</p>',
+                seeAlso: [{ page: 'ides', label: 'Trebonius\'s role in the conspiracy' }, { page: 'letters', label: 'Confidence and self-deception in letters' }]
             }
         },
         {
@@ -156,7 +161,8 @@ window.pageData = {
                         body: '<p>Antony insisted on Cicero\'s inclusion. After the Philippics, there could be no reconciliation between them. The speeches had been too savage, too personal, too public. Antony would not feel safe while Cicero lived.</p><p>Octavian\'s acquiescence is the more damning act. Cicero had championed the young man in the Senate, had used his influence to legitimise Octavian\'s irregular military command, had staked his political reputation on Octavian\'s loyalty. According to Plutarch, Octavian resisted for two days before yielding. Whether this detail is true or not, the outcome was the same: Cicero was sacrificed.</p><p>The betrayal confirmed what Cicero\'s enemies had always argued: that relying on individuals rather than institutions was the Republic\'s fatal weakness.</p>'
                     }
                 ],
-                examTip: '<p>The proscriptions are crucial evidence for the collapse of Republican norms. Compare them with Sulla\'s proscriptions to show the escalation of political violence. Octavian\'s betrayal of Cicero is also essential for any assessment of Octavian\'s character and political methods.</p>'
+                examTip: '<p>The proscriptions are crucial evidence for the collapse of Republican norms. Compare them with Sulla\'s proscriptions to show the escalation of political violence. Octavian\'s betrayal of Cicero is also essential for any assessment of Octavian\'s character and political methods.</p>',
+                seeAlso: [{ page: 'marius-sulla', label: 'Sulla invents the proscription mechanism' }, { page: 'gracchi', label: 'The first political killings — where it began' }]
             }
         },
         {
@@ -187,7 +193,8 @@ window.pageData = {
                         analysis: 'Velleius Paterculus\'s assessment of Cicero. It is both a tribute and a criticism: Cicero\'s bravery in death was admirable, but his political strategy ultimately achieved nothing. The sentence structure balances <em>nihil</em> (nothing) against <em>fortiter mortuus es</em> (you died bravely), suggesting that courage alone was not enough.'
                     }
                 ],
-                examTip: '<p>Cicero\'s death scene is one of the most examined episodes in the specification. Make sure you can discuss Plutarch\'s account critically: what details might be embellished? What does the story\'s construction tell us about how Romans understood political martyrdom? Always connect the death to larger themes about the Republic\'s fall.</p>'
+                examTip: '<p>Cicero\'s death scene is one of the most examined episodes in the specification. Make sure you can discuss Plutarch\'s account critically: what details might be embellished? What does the story\'s construction tell us about how Romans understood political martyrdom? Always connect the death to larger themes about the Republic\'s fall.</p>',
+                seeAlso: [{ page: 'cicero-early', label: 'The career that began with words' }, { page: 'themes', label: 'The death of Republican oratory' }]
             }
         },
         {
@@ -210,7 +217,8 @@ window.pageData = {
                         body: '<p>Cicero\'s death in 43 BC did not, of course, end the Roman state. But it ended something: the idea that the Republic could be governed through debate, persuasion, and constitutional process rather than through military force and personal power. After Cicero, no one seriously argued that words alone could preserve political liberty.</p><p>In this sense, the display of his head and hands on the Rostra was not just an act of revenge but a statement about the nature of power. The platform for free speech had become a trophy stand for tyranny.</p>'
                     }
                 ],
-                examTip: '<p>The significance card is your conclusion material. In any essay on the fall of the Republic, Cicero\'s death can serve as a powerful endpoint. Frame it as the death of an idea (Republican government through persuasion) as much as the death of an individual. Use Velleius Paterculus for a balanced, nuanced conclusion.</p>'
+                examTip: '<p>The significance card is your conclusion material. In any essay on the fall of the Republic, Cicero\'s death can serve as a powerful endpoint. Frame it as the death of an idea (Republican government through persuasion) as much as the death of an individual. Use Velleius Paterculus for a balanced, nuanced conclusion.</p>',
+                seeAlso: [{ page: 'themes', label: 'What died with Cicero?' }, { page: 'gracchi', label: 'Where it all began' }]
             }
         }
     ],

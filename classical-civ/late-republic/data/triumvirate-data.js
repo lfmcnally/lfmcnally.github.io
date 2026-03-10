@@ -20,7 +20,8 @@ window.pageData = {
                             + '<p>The three men combine their resources: Caesar\'s political talent and upcoming consulship, Pompey\'s military prestige and veteran network, Crassus\'s enormous wealth. Together they form what modern historians call the First Triumvirate — though the Romans themselves had no name for it except a <em>privata amicitia</em>, a private understanding.</p>'
                     }
                 ],
-                examTip: '<p>The triumvirate is not a magistracy or a constitutional body. It is an informal, secret agreement. This matters for exam questions: it shows that real power in Rome now operates outside the constitutional framework.</p>'
+                examTip: '<p>The triumvirate is not a magistracy or a constitutional body. It is an informal, secret agreement. This matters for exam questions: it shows that real power in Rome now operates outside the constitutional framework.</p>',
+                seeAlso: [{ page: 'marius-sulla', label: 'Pompey\'s earlier extraordinary commands' }]
             }
         },
         {
@@ -48,7 +49,8 @@ window.pageData = {
                             + '<p>The legality of all this legislation is questionable, since Bibulus\'s <em>obnuntiatio</em> should technically invalidate it. This creates a political time-bomb: Caesar\'s enemies can argue that everything he did in 59 is void.</p>'
                     }
                 ],
-                examTip: '<p>Bibulus\'s obstruction is a key example of constitutional machinery being used as a political weapon — and of what happens when someone simply ignores it. Link this to Tiberius Gracchus\'s deposition of Octavius: the constitution only works if everyone agrees to play by the rules.</p>'
+                examTip: '<p>Bibulus\'s obstruction is a key example of constitutional machinery being used as a political weapon — and of what happens when someone simply ignores it. Link this to Tiberius Gracchus\'s deposition of Octavius: the constitution only works if everyone agrees to play by the rules.</p>',
+                seeAlso: [{ page: 'gracchi', label: 'The land reform tradition' }]
             }
         },
         {
@@ -70,7 +72,8 @@ window.pageData = {
                             + '<p>This is one of the great ironies of the late Republic: the man most devoted to preserving the <em>res publica</em> may have done more than anyone to destroy it.</p>'
                     }
                 ],
-                examTip: '<p>Cato is excellent for "assess this view" questions. He can be presented as a principled defender of the Republic <em>or</em> as a rigid obstructionist whose tactics backfired. The best answers will argue both and reach a nuanced conclusion.</p>'
+                examTip: '<p>Cato is excellent for "assess this view" questions. He can be presented as a principled defender of the Republic <em>or</em> as a rigid obstructionist whose tactics backfired. The best answers will argue both and reach a nuanced conclusion.</p>',
+                seeAlso: [{ page: 'cato', label: 'Cato\'s Stoicism and obstruction' }, { page: 'fifties', label: 'The triumvirate fractures' }]
             }
         },
         {
@@ -92,7 +95,8 @@ window.pageData = {
                             + '<p>Cicero\'s letters from 59 BC show a man watching the Republic collapse around him, unable to stop it, unwilling to join those responsible. It is one of the most poignant moments in the Ciceronian correspondence.</p>'
                     }
                 ],
-                examTip: '<p>Use Cicero\'s refusal to explore the theme of individual agency vs. structural forces. Could Cicero have changed anything by joining? Or was the Republic already doomed regardless of what any individual did?</p>'
+                examTip: '<p>Use Cicero\'s refusal to explore the theme of individual agency vs. structural forces. Could Cicero have changed anything by joining? Or was the Republic already doomed regardless of what any individual did?</p>',
+                seeAlso: [{ page: 'clodius-exile', label: 'The exile that followed Cicero\'s refusal' }]
             }
         },
         {
@@ -154,7 +158,8 @@ window.pageData = {
                         analysis: 'The word <em>cura</em> carries multiple meanings — care, anxiety, responsibility. Cicero feels all three. The juxtaposition of <em>cura</em> and <em>nusquam discedo</em> links his emotional distress to his political resolve.'
                     }
                 ],
-                examTip: '<p>When quoting this letter in an exam, always identify the genre (private letter), the audience (Atticus, a close friend), and the context (Caesar\'s consulship, 59 BC). Note how the private, candid tone makes this a uniquely valuable source for understanding what senatorial politicians really thought — as opposed to what they said in public.</p>'
+                examTip: '<p>When quoting this letter in an exam, always identify the genre (private letter), the audience (Atticus, a close friend), and the context (Caesar\'s consulship, 59 BC). Note how the private, candid tone makes this a uniquely valuable source for understanding what senatorial politicians really thought — as opposed to what they said in public.</p>',
+                seeAlso: [{ page: 'letters', label: 'Cicero\'s political commentary in letters' }]
             }
         },
         {
@@ -181,7 +186,8 @@ window.pageData = {
                             + '<p>The next seven years will see their relationship deteriorate until Caesar crosses the Rubicon in January 49 BC.</p>'
                     }
                 ],
-                examTip: '<p>The deaths of Julia and Crassus are often cited as turning points. Consider whether they <em>caused</em> the breakdown of the triumvirate or merely accelerated a process already under way. Were personal bonds ever strong enough to hold three ambitious men together permanently?</p>'
+                examTip: '<p>The deaths of Julia and Crassus are often cited as turning points. Consider whether they <em>caused</em> the breakdown of the triumvirate or merely accelerated a process already under way. Were personal bonds ever strong enough to hold three ambitious men together permanently?</p>',
+                seeAlso: [{ page: 'fifties', label: 'The triumvirate fractures' }]
             }
         },
         {
@@ -209,7 +215,8 @@ window.pageData = {
                             + '<p>The best answer, as always, lies somewhere between the two: the triumvirate was a product of existing failures, but it accelerated the collapse and created new, irreversible damage.</p>'
                     }
                 ],
-                examTip: '<p>This is the key analytical framework for the entire topic. Every exam question about the triumvirate ultimately comes back to this: cause or symptom? Structure your essays around this debate and you will always have a clear argument.</p>'
+                examTip: '<p>This is the key analytical framework for the entire topic. Every exam question about the triumvirate ultimately comes back to this: cause or symptom? Structure your essays around this debate and you will always have a clear argument.</p>',
+                seeAlso: [{ page: 'gracchi', label: 'The land reform tradition' }, { page: 'marius-sulla', label: 'Pompey\'s earlier extraordinary commands' }]
             }
         }
     ],

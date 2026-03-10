@@ -208,6 +208,154 @@ window.pageData = {
                 ],
                 examTip: '<p>Source evaluation is a core skill at A-Level. When discussing Cicero, always address: (1) the genre — is this a speech, a letter, or a treatise? (2) the audience — who is he trying to persuade? (3) the purpose — what political goal does this text serve? (4) the bias — how does his self-presentation shape the account? This four-part framework works for any Ciceronian source and shows the examiner that you are evaluating, not just quoting.</p>'
             }
+        },
+        {
+            id: 'theme-economics',
+            title: 'Wealth, Debt, and Provincial Exploitation',
+            accent: 'red',
+            summary: 'The economic engine of collapse: how conquest enriched the few, impoverished the many, and made political power purchasable.',
+            modal: {
+                sections: [
+                    {
+                        heading: 'Conquest and Wealth Concentration',
+                        body: '<p>Rome\'s imperial expansion flooded the elite with wealth on an unprecedented scale. Victorious commanders brought back treasure, slaves, and tribute. Provincial governors extracted vast sums through taxation, requisitions, and outright extortion. The <em>publicani</em> (tax-farming companies, dominated by equestrians) bid for the right to collect taxes in the provinces and kept anything above the contracted amount.</p><p>This wealth transformed Roman politics. Elections became ruinously expensive: candidates were expected to fund public games, distribute gifts, and maintain networks of clients. Crassus, reputedly the richest man in Rome, used his fortune to buy political influence wholesale. Caesar accumulated massive debts funding his early career and repaid them with Gallic plunder. The connection between wealth and political power was not new, but its scale was unprecedented.</p>'
+                    },
+                    {
+                        heading: 'Debt as a Political Weapon',
+                        body: '<p>Debt pervaded Roman political life at every level. Ambitious young aristocrats borrowed heavily to finance their careers, betting that a lucrative provincial command would allow them to repay. Those who failed were ruined — and desperate. Catiline\'s conspiracy in 63 BC drew its recruits from the debt-ridden: men who had gambled and lost, and who saw revolutionary violence as their only way out.</p><p>Debt relief was a standard popularis demand: Caesar\'s legislation as consul in 59 BC included measures to ease the debt burden. As dictator, he implemented a more comprehensive settlement. But debt relief threatened creditors — often senators and equites — making it politically explosive. The issue connected social grievance directly to political conflict.</p>'
+                    },
+                    {
+                        heading: 'Provincial Corruption and the Courts',
+                        body: '<p>Provincial exploitation destabilised the Republic in multiple ways. Governors who plundered their provinces returned to Rome with the wealth to dominate politics. Cicero\'s prosecution of Verres (70 BC) exposed systematic looting of Sicily — artworks, grain, money — on a staggering scale. But Verres was not unusual; he was merely unlucky enough to face a brilliant prosecutor.</p><p>Gaius Gracchus\'s transfer of jury service from senators to equites (the <em>quaestiones perpetuae</em>) was supposed to curb senatorial corruption in the provinces. In practice, equestrian jurors had their own conflicts of interest: as tax-farmers, they profited from the same provincial exploitation they were supposed to police. The courts became a battleground for competing economic interests, not a mechanism for justice.</p>'
+                    },
+                    {
+                        heading: 'The Economic Dimension in Essays',
+                        body: '<p>Economic factors are often underweighted in essays about the Republic\'s fall. Students focus on political events and individual decisions, neglecting the material base. But the land crisis that drives the Gracchi, the army reforms that depend on landless recruits, the provincial commands that create private fortunes and private armies — all of these are economic phenomena with political consequences. The strongest essays will integrate economic analysis alongside political narrative.</p>'
+                    }
+                ],
+                latinQuotes: [
+                    {
+                        latin: '<span style="font-family:\'Roboto Mono\',monospace;font-style:italic">publicani</span>',
+                        translation: '"Tax-farmers" — private contractors who purchased the right to collect taxes in the provinces.',
+                        analysis: 'The <em>publicani</em> represent the intersection of economics and politics in the late Republic. They were equestrians whose wealth gave them political influence, and whose business interests shaped foreign policy. Crassus\'s support for the publicani\'s interests in Asia was one motive for his involvement in the First Triumvirate. The system created a class with enormous financial power but no constitutional role — a structural instability the Republic never resolved.'
+                    }
+                ],
+                examTip: '<p>When discussing any major political event, ask: <em>who benefits financially?</em> Sulla\'s proscriptions confiscated vast estates. Caesar\'s Gallic campaigns enriched him and his officers. The triumviral proscriptions of 43 BC were partly motivated by the need to fund armies. Economic self-interest does not replace political ideology as an explanation, but it operates alongside it — and examiners reward students who recognise this.</p>'
+            }
+        },
+        {
+            id: 'theme-mos-maiorum',
+            title: 'Mos Maiorum: The Through-Line',
+            accent: 'teal',
+            summary: 'The Republic\'s dependence on unwritten custom rather than enforceable law is its structural Achilles heel — the single weakness that connects every crisis.',
+            modal: {
+                sections: [
+                    {
+                        heading: 'Custom, Not Law',
+                        body: '<p>The Roman Republic has no written constitution. It has laws (<em>leges</em>), precedents, and above all <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">mos maiorum</span> — "the custom of the ancestors." This unwritten code governs everything from the <em>cursus honorum</em> (the sequence of magistracies) to the conduct of debate in the Senate. It is enforced not by courts but by social pressure: the expectation that ambitious men will respect the same rules their fathers and grandfathers respected.</p><p>The system works brilliantly — as long as everyone agrees to be bound by it. The moment someone with sufficient power decides that the rules no longer apply to them, there is no enforcement mechanism. No supreme court. No constitutional police. No formal process of amendment. Custom depends on consensus, and consensus depends on everyone believing the system serves their interests.</p>'
+                    },
+                    {
+                        heading: 'The Cascade of Violations',
+                        body: '<p>Every crisis of the late Republic is, at root, a failure of <em>mos maiorum</em>:</p><ul><li><strong>133 BC:</strong> Tiberius Gracchus bypasses the Senate and deposes a fellow tribune — violating custom but not, arguably, law.</li><li><strong>121 BC:</strong> The Senate invents the SCU — a decree with no legal basis, enforced by custom\'s authority alone.</li><li><strong>107–100 BC:</strong> Marius holds seven consulships, shattering the iteration rules — custom says no, but no law prevents it.</li><li><strong>88 BC:</strong> Sulla marches on Rome — violating the most fundamental of all unwritten rules: that armed force stays outside the <em>pomerium</em>.</li><li><strong>60 BC:</strong> The Triumvirate is a private pact that overrides senatorial authority — technically legal, practically destructive.</li><li><strong>49 BC:</strong> Caesar crosses the Rubicon — the final, irreversible break.</li></ul><p>Each violation makes the next one easier. This ratchet effect is the mechanism of the Republic\'s destruction.</p>'
+                    },
+                    {
+                        heading: 'Why It Cannot Be Repaired',
+                        body: '<p>Sulla tries to repair <em>mos maiorum</em> through legislation — codifying custom into law. He fails because the fundamental problem is not which rules exist but whether anyone can be forced to obey them. His own career proves the point: he used military force to seize power, then used that power to pass laws against using military force to seize power. The paradox is unsolvable.</p><p>Caesar\'s dictatorship represents the complete abandonment of <em>mos maiorum</em>. He holds power without precedent, without time limit, without constitutional basis. The forms of the Republic survive — the Senate meets, magistrates are elected — but they are hollowed out. <em>Mos maiorum</em> requires voluntary compliance by the powerful. Caesar has no incentive to comply, and no one can compel him.</p>'
+                    },
+                    {
+                        heading: 'The Thesis for Your Essay',
+                        body: '<p>Here is a thesis you can use in almost any essay on the Republic\'s fall: <em>"The Republic collapsed because its political system depended on unwritten custom rather than enforceable law. Once men powerful enough to ignore custom emerged, there was no mechanism to stop them."</em></p><p>This thesis works because it connects every topic: the Gracchi violate custom, Sulla proves custom can be overridden by force, and Caesar demonstrates that custom cannot restrain a man with an army. It gives your essay structural coherence and analytical depth.</p>'
+                    }
+                ],
+                latinQuotes: [
+                    {
+                        latin: '<span style="font-family:\'Roboto Mono\',monospace;font-style:italic">pomerium</span>',
+                        translation: 'The sacred boundary of Rome, within which armed men may not enter.',
+                        analysis: 'The <em>pomerium</em> is the physical expression of <em>mos maiorum</em>: an invisible line that separates civic space from military space, politics from war. Sulla\'s crossing of it in 88 BC is not merely a political act but a violation of religious law. Yet the <em>pomerium</em> has no physical barrier — it depends entirely on voluntary respect. When that respect fails, the boundary is meaningless.'
+                    }
+                ],
+                examTip: '<p>Use <em>mos maiorum</em> as a connecting thread in any essay. It signals to the examiner that you understand the Republic as a <em>system</em>, not just a series of events. The phrase itself is worth learning and deploying precisely — it carries more analytical weight than vague references to "traditions" or "customs."</p>'
+            }
+        },
+        {
+            id: 'theme-comparison-dictatorships',
+            title: 'Comparison: Sulla vs Caesar',
+            accent: 'red',
+            summary: 'Two dictators, two approaches, two outcomes. Comparing their methods reveals what the Republic could and could not survive.',
+            modal: {
+                sections: [
+                    {
+                        heading: 'The Route to Power',
+                        body: '<p><strong>Sulla</strong> seizes power through military force (march on Rome, 88 BC; civil war, 83–82 BC) after his command is transferred to Marius by political manoeuvre. His grievance is personal — his <em>dignitas</em> is attacked — but he frames his action as defending the Republic against factional tyranny.</p><p><strong>Caesar</strong> seizes power through military force (Rubicon crossing, 49 BC; civil war, 49–45 BC) after the Senate moves to strip his command and prosecute him. His grievance is also personal — <em>dignitas</em> again — but he too frames his action as defending constitutional rights (tribunician sacrosanctity) against a corrupt oligarchy.</p><p><strong>The parallel:</strong> Both men face the same basic choice: accept political destruction or use the army. Both choose the army. The difference is not in the decision but in the aftermath.</p>'
+                    },
+                    {
+                        heading: 'Dealing with Enemies',
+                        body: '<p><strong>Sulla:</strong> Proscriptions. Systematic, public, bureaucratic killing. Published lists. Confiscation of property. Rewards for informers. Approximately 1,500 equites and 40 senators killed. The sons and grandsons of the proscribed barred from office. Brutally effective: Sulla\'s enemies are eliminated.</p><p><strong>Caesar:</strong> <em>Clementia</em>. Systematic, public pardoning. Brutus pardoned after Pharsalus. Cassius pardoned. Cicero pardoned and treated with respect. No proscriptions. No confiscations. Politically admirable but tactically catastrophic: Caesar\'s enemies survive to kill him.</p><p><strong>The lesson:</strong> Sulla\'s cruelty preserved his life; Caesar\'s mercy cost him his. But Sulla\'s method made him hated, while Caesar\'s made him admired — at least until the conspirators reframed clemency as condescension.</p>'
+                    },
+                    {
+                        heading: 'Constitutional Reform',
+                        body: '<p><strong>Sulla:</strong> Conservative restoration. Strengthens the Senate (600 members). Weakens tribunes (no legislation without Senate approval; tribunate bars further office). Regulates the <em>cursus honorum</em> strictly. Aims to restore the pre-Gracchan order.</p><p><strong>Caesar:</strong> Pragmatic reform. Expands the Senate (900 members, including provincials). Implements practical reforms (calendar, colonies, debt relief, citizenship). Does not restore traditional senatorial authority — exercises power personally while maintaining Republican forms.</p><p><strong>The lesson:</strong> Sulla\'s reforms address institutional mechanisms but not underlying causes. They collapse within a decade. Caesar\'s reforms address practical problems but create a new one: the Republic cannot function when one man holds all effective power, however good his reforms.</p>'
+                    },
+                    {
+                        heading: 'The Exit',
+                        body: '<p><strong>Sulla:</strong> Voluntary retirement (79 BC). Lays down the dictatorship. Returns to private life. Dies the following year. His reforms collapse within twenty years.</p><p><strong>Caesar:</strong> <em>Dictator perpetuo</em> — no exit planned. Assassinated (44 BC). His death produces worse chaos than his rule. The Republic dies completely within fifteen years.</p><p><strong>The lesson:</strong> Sulla proves that a dictator can retire. Caesar proves that a dictator who retires watches his work undone. Neither option saves the Republic. This is the structural impossibility: the system cannot accommodate a strong man, but it cannot survive without one.</p>'
+                    }
+                ],
+                examTip: '<p>This comparison is exam gold. Any essay about Sulla or Caesar benefits from the contrast. Use it to show: (1) that the Republic faced the same crisis twice, proving it was structural not personal; (2) that neither ruthlessness nor mercy solved the underlying problem; (3) that the Republic\'s constitution could not accommodate extraordinary individuals regardless of their methods. Frame it as: <em>"Sulla\'s cruelty and Caesar\'s mercy both failed — not because either approach was wrong, but because the Republic\'s structural weakness made any form of one-man rule unsustainable."</em></p>'
+            }
+        },
+        {
+            id: 'theme-comparison-proscriptions',
+            title: 'Comparison: Two Proscriptions',
+            accent: 'red',
+            summary: 'Sulla\'s proscriptions (82 BC) vs the Triumvirs\' (43 BC): how political murder became industrialised across a generation.',
+            modal: {
+                sections: [
+                    {
+                        heading: 'Sulla\'s Proscriptions (82 BC)',
+                        body: '<p>Sulla invents the mechanism: published lists of enemies, their property confiscated, killers rewarded. Approximately 1,500 equites and 40 senators. The innovation is bureaucratic: violence is no longer mob action (as with the Gracchi) or battlefield killing but <em>state-sanctioned, systematic elimination</em>. Sulla claims to be restoring the Republic — the proscriptions are supposed to be temporary, a purge that enables reform.</p><p>Yet the proscriptions are also exploited for private gain. Wealthy men are added to the lists by informers who covet their property. Sulla\'s ally Crassus allegedly enriches himself through the proscription mechanism. The line between political purge and economic opportunity blurs immediately.</p>'
+                    },
+                    {
+                        heading: 'The Triumvirs\' Proscriptions (43 BC)',
+                        body: '<p>The Second Triumvirate (Antony, Octavian, Lepidus) revives Sulla\'s mechanism on a larger scale: 300 senators and 2,000 equites. The negotiations at Bononia reveal the cold calculus: each triumvir sacrifices some of his own allies to satisfy the others\' vendettas. Lepidus allows his brother to be proscribed. Octavian yields Cicero to Antony.</p><p>The financial motive is even more naked: the triumvirs need money to pay their armies. The proscriptions are as much about funding civil war as about eliminating political enemies. Wealthy men with no political involvement are added to the lists purely for their estates.</p>'
+                    },
+                    {
+                        heading: 'What the Comparison Shows',
+                        body: '<p>The escalation from Sulla to the Triumvirs reveals the normalisation of political violence across a generation:</p><ul><li><strong>Scale:</strong> The Triumvirs proscribe far more people than Sulla.</li><li><strong>Motive:</strong> Sulla\'s proscriptions are primarily political; the Triumvirs\' are as much financial.</li><li><strong>Personal cost:</strong> Sulla proscribes enemies; the Triumvirs proscribe even their own allies.</li><li><strong>Constitutional pretence:</strong> Sulla is dictator; the Triumvirs hold a legally created office (<em>tresviri rei publicae constituendae</em>). The violence becomes <em>more</em> formalised even as it becomes more arbitrary.</li></ul><p>The key analytical point: once Sulla establishes the mechanism, it is available for reuse. The Republic cannot uninvent the proscription list.</p>'
+                    }
+                ],
+                examTip: '<p>Use this comparison in any essay about political violence or the Republic\'s decline. The escalation from Sulla to the Triumvirs demonstrates the "ratchet effect" of precedent: each act of violence makes the next one larger, more systematic, and more deeply embedded in Roman political culture. The specific detail that Octavian sacrifices Cicero — his own ally — is devastating evidence for the argument that personal loyalty had become meaningless in late Republican politics.</p>'
+            }
+        },
+        {
+            id: 'theme-religion-auspices',
+            title: 'Religion, Omens, and Political Manipulation',
+            accent: 'green',
+            summary: 'The auspices, religious authority, and the manipulation of divine signs as political tools — an under-examined dimension of the Republic\'s collapse.',
+            modal: {
+                sections: [
+                    {
+                        heading: 'Religion and the State',
+                        body: '<p>Roman political life was inseparable from religion. No assembly could meet, no law could be passed, no army could march without the <em>auspicia</em> — divine signs (usually from the flight of birds or the feeding of sacred chickens) confirming the gods\' approval. The <em>augures</em> (augurs) who interpreted these signs were not priests in a modern sense but senior politicians who held religious authority alongside their political roles.</p><p>This integration of religion and politics gave religious objections enormous political power. A magistrate could halt proceedings by declaring that he was "watching the sky" (<em>servare de caelo</em>) — effectively a religious veto. Bad omens could invalidate elections, laws, or military campaigns. Religious authority was a political tool as potent as the tribunician veto.</p>'
+                    },
+                    {
+                        heading: 'Manipulation and Abuse',
+                        body: '<p>By the late Republic, the religious system was routinely manipulated for political purposes. In 59 BC, Bibulus (Caesar\'s co-consul) attempted to block Caesar\'s legislation by declaring that he was "watching the sky" — a religious obstruction designed to invalidate any assembly. Caesar simply ignored him, creating a constitutional crisis: were the laws valid if passed despite religious objections?</p><p>Clodius\'s adoption into a plebeian family (to qualify for the tribunate) required a religious procedure — an act of the <em>comitia curiata</em> — that was almost certainly irregular. Cicero attacked the adoption\'s religious validity. The dispute shows how religious forms were stretched to serve political ends.</p><p>Even Caesar\'s assassination was entangled with religion. The conspiracy chose the Ides of March partly because it was a Senate meeting day, but the date also had religious significance. Caesar\'s deification after death (<em>Divus Iulius</em>) shows how religion could be used to legitimise posthumous political claims.</p>'
+                    },
+                    {
+                        heading: 'The Erosion of Religious Authority',
+                        body: '<p>The cynical manipulation of religious forms by the late Republic\'s politicians eroded the very authority they exploited. When Bibulus "watches the sky" to block Caesar, everyone knows it is a political tactic, not a genuine religious observation. When the augurs declare omens unfavourable, everyone suspects political motivation. The system depends on belief — or at least the pretence of belief — and that pretence becomes increasingly threadbare.</p><p>This erosion matters because it removes one of the Republic\'s informal checks on power. If religious objections can be ignored (as Caesar ignores Bibulus), then one more constraint on ambitious men has been eliminated. The collapse of religious authority parallels the collapse of <em>mos maiorum</em> — both are systems of voluntary restraint that fail when the powerful refuse to comply.</p>'
+                    }
+                ],
+                latinQuotes: [
+                    {
+                        latin: '<span style="font-family:\'Roboto Mono\',monospace;font-style:italic">auspicia</span>',
+                        translation: '"Auspices" — divine signs, especially from birds, consulted before any public business.',
+                        analysis: 'The <em>auspicia</em> represent the fusion of religion and politics that characterises the Roman state. The right to take auspices (<em>ius auspiciorum</em>) belongs to magistrates, not to priests — it is a political power expressed in religious form. When this power is abused for political obstruction, it delegitimises both the religious system and the political system simultaneously.'
+                    }
+                ],
+                examTip: '<p>Religious manipulation is often overlooked in essays, which means mentioning it distinguishes your work. Use Bibulus\'s "watching the sky" against Caesar in 59 BC as a specific example. The key argument: the Republic\'s informal checks on power included religious authority, and when that authority was cynically exploited and then ignored, the system lost another restraint on ambitious individuals. This connects to the broader theme of <em>mos maiorum</em> failure.</p>'
+            }
         }
     ],
 
@@ -224,7 +372,8 @@ window.pageData = {
                 'Conclusion: the Gracchi are catalysts, not causes. They accelerate a process already underway and provide the specific mechanisms through which structural contradictions express themselves politically.'
             ],
             evidence: 'Plutarch\'s Lives of Tiberius and Gaius Gracchus provide the narrative framework. Key moments: the deposition of Octavius (Plut. TG 11-13), the assassination of Tiberius (Plut. TG 19-20), and the SCU against Gaius (Plut. CG 14). Appian BC 1 offers structural analysis of the agrarian crisis. Sallust BJ 41-42 dates Rome\'s moral decline to the destruction of Carthage (146 BC).',
-            historiography: 'Beard (2015) argues that the Republic\'s political culture, built on consensus and custom, had no mechanism for managing the conflicts that empire produced. Brunt (1971) emphasises socio-economic causes. Scullard (1982) gives more weight to individuals. The question maps onto the broader debate between structural and individual explanations.'
+            historiography: 'Beard (2015) argues that the Republic\'s political culture, built on consensus and custom, had no mechanism for managing the conflicts that empire produced. Brunt (1971) emphasises socio-economic causes. Scullard (1982) gives more weight to individuals. The question maps onto the broader debate between structural and individual explanations.',
+            modelParagraph: '<p>The Gracchi did not break the Republic; they revealed that it was already broken. The <em>lex Sempronia agraria</em> of 133 BC was not revolutionary in content — it sought to enforce an existing limit on holdings of <em>ager publicus</em>. What was revolutionary was the method: Tiberius\'s decision to bypass the Senate and legislate directly through the <em>concilium plebis</em>, and his unprecedented deposition of the tribune Octavius. Yet even these radical methods were forced upon him by senatorial obstruction. As Brunt argues, the structural causes — an impoverished peasantry, an economy dependent on slave labour, an oligarchy unable to reform itself — predated the Gracchi and would have produced crisis regardless. The Gracchi are best understood not as causes of the Republic\'s fall but as catalysts who accelerated a process already underway, providing the specific precedents — political murder, the SCU, the bypassing of senatorial authority — through which the Republic\'s structural contradictions expressed themselves as political violence.</p>'
         },
         {
             id: 'teq2',
@@ -238,7 +387,8 @@ window.pageData = {
                 'Conclusion: Cicero is the Republic\'s most articulate defender but not its most effective one. His real significance is as a source — he preserves the Republic\'s political culture in his writings, even as he fails to preserve the Republic itself.'
             ],
             evidence: 'Cicero\'s consulship speeches (In Catilinam 1-4) for his self-presentation as saviour. Letters to Atticus during the civil war (esp. Att. 7-9) for his private doubts. The Philippics for his final political stand. Compare with Cato\'s suicide at Utica (Plutarch, Cato Minor 66-70) as an alternative model of Republican defence.',
-            historiography: 'Rawson (1975) presents Cicero as a genuine statesman limited by circumstances. Habicht (1990) emphasises his political skill. Mitchell (1979) is more critical of his political judgement. The question invites you to distinguish between rhetorical and practical defence of the Republic.'
+            historiography: 'Rawson (1975) presents Cicero as a genuine statesman limited by circumstances. Habicht (1990) emphasises his political skill. Mitchell (1979) is more critical of his political judgement. The question invites you to distinguish between rhetorical and practical defence of the Republic.',
+            modelParagraph: '<p>Cicero\'s claim to be the Republic\'s defender rests on rhetoric, not results. His consulship in 63 BC — in which he suppressed the Catilinarian conspiracy and executed Roman citizens without trial under the SCU — is the high point of his political career, and he never stopped reminding Rome of it. But the Catilinarian executions also exposed his fundamental vulnerability: a <em>novus homo</em> who lacked military power and relied on senatorial goodwill was always one political reversal away from disaster. When Clodius exiled him in 58 BC for those same executions, Cicero\'s self-proclaimed salvation of the Republic became the instrument of his downfall. His letters to Atticus during the civil war (<em>Att.</em> 8.8: <em>quid agam?</em>) reveal a man paralysed by the gap between his principles and his powerlessness. Cato, by contrast, dies at Utica rather than accept Caesar\'s clemency — a more decisive, if more destructive, form of Republican defence. Cicero\'s real legacy is not political but literary: his speeches, letters, and philosophical works preserve the Republic\'s political culture in written form, ensuring that the values he could not defend in life survived his death.</p>'
         },
         {
             id: 'teq3',
@@ -266,7 +416,8 @@ window.pageData = {
                 'Conclusion: Cato\'s inflexibility accelerates the Republic\'s fall but does not cause it. The structural pressures would have produced crisis regardless. However, a more flexible Senate leadership might have delayed or managed the crisis differently.'
             ],
             evidence: 'Cato\'s filibuster against Caesar\'s land bill (Plutarch, Cato Minor 31-33). His opposition to Pompey\'s settlement (Plut. Cat. Min. 30). His role in the Senate\'s ultimatum to Caesar in 49 BC. His suicide at Utica (Plut. Cat. Min. 66-70) as the ultimate expression of Stoic principle. Cicero\'s letters for a more critical view of Cato\'s political judgement (Att. 1.18, 2.1).',
-            historiography: 'Goodman (2012) presents Cato as a genuine principled conservative. Beard (2015) notes that Cato\'s defence of the Republic is also a defence of senatorial privilege. The ancient tradition is divided: Sallust praises Cato\'s virtue; Cicero privately criticises his political naivety.'
+            historiography: 'Goodman (2012) presents Cato as a genuine principled conservative. Beard (2015) notes that Cato\'s defence of the Republic is also a defence of senatorial privilege. The ancient tradition is divided: Sallust praises Cato\'s virtue; Cicero privately criticises his political naivety.',
+            modelParagraph: '<p>Cato\'s obstruction of Caesar\'s agrarian legislation in 59 BC illustrates the paradox at the heart of his political career. His filibuster — Plutarch records that he spoke until dragged from the Senate by Caesar\'s lictors (<em>Cat. Min.</em> 33) — was constitutionally legitimate: the Senate had the right to debate legislation, and a senator had the right to speak at length. Yet its practical effect was to drive Caesar, Pompey, and Crassus into the informal alliance that would bypass the Senate entirely. Cato\'s defence of the constitution accelerated the constitution\'s destruction. From a Stoic perspective, this is irrelevant: <em>virtus</em> demands that one do what is right regardless of consequences, and opposing Caesar\'s unconstitutional methods was right. But from a political perspective, Cato\'s inflexibility narrowed the Republic\'s options at every critical juncture. As Beard observes, Cato\'s defence of the Republic was simultaneously a defence of senatorial privilege — and a system that could only survive by accommodating powerful men was doomed by a defender who refused to accommodate anyone.</p>'
         },
         {
             id: 'teq5',
@@ -294,7 +445,8 @@ window.pageData = {
                 'Conclusion: the assassination is a political failure in its immediate consequences but reveals a deeper truth about the Republic: it cannot be saved by individual action because its problems are structural, not personal.'
             ],
             evidence: 'The assassination itself (Suetonius DJ 81-82, Plutarch Brut. 14-18, Caes. 63-66). The Senate meeting on 17 March 44 BC (amnesty for the assassins, ratification of Caesar\'s acts). Antony\'s funeral speech and the mob violence that follows. Cicero\'s letters (esp. Att. 14.1-4) for the conspirators\' failure to plan. The formation of the Second Triumvirate and the proscriptions (43 BC).',
-            historiography: 'Woolf (2007) analyses the assassination as a cultural event as much as a political one. Strauss (2015) examines the planning and execution in detail. The ancient tradition is divided: Cicero praises the act but criticises the execution; later imperial writers tend to see the conspirators as naive idealists.'
+            historiography: 'Woolf (2007) analyses the assassination as a cultural event as much as a political one. Strauss (2015) examines the planning and execution in detail. The ancient tradition is divided: Cicero praises the act but criticises the execution; later imperial writers tend to see the conspirators as naive idealists.',
+            modelParagraph: '<p>The assassination of Caesar was a political failure not because the act itself was wrong — by Roman standards of tyrannicide, it was defensible — but because it rested on a catastrophic misdiagnosis. Brutus and Cassius assumed that the Republic\'s crisis was caused by one man, and that removing him would restore normal constitutional government. Cicero\'s devastating assessment in <em>Att.</em> 14.4 — the ἔργον (<em>ergon</em>, deed) was accomplished but without βουλή (<em>boulē</em>, planning) — captures only the immediate failure. The deeper failure was structural: the conditions that produced Caesar — professional armies loyal to their commanders, the concentration of wealth in military hands, the breakdown of <em>mos maiorum</em> over the preceding century — survived his death entirely unchanged. Antony\'s immediate seizure of Caesar\'s papers and treasury, and the crowd\'s fury at the funeral, demonstrated that removing the dictator did not remove the dictatorship\'s causes. The Republic that the conspirators sought to restore had been dying since the Gracchi. Their tragedy was not that they struck too late, but that no act of individual courage could reverse a century of institutional decay.</p>'
         },
         {
             id: 'teq7',
