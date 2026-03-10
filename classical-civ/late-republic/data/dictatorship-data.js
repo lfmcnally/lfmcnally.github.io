@@ -262,46 +262,93 @@ window.pageData = {
     // ===== EXAM QUESTIONS =====
     examQuestions: [
         {
-            id: 'exam-dignitas',
+            id: 'exam-1',
+            question: "In 48 BC Julius Caesar proclaimed himself dictator with no fixed term of office, ignoring the political constitution of the time. Explain how Caesar's actions after the civil war may have resulted in his assassination.",
+            type: '10-mark',
+            year: '2023',
+            structure: [
+                '<strong>Point 1:</strong> Caesar was declared <em>dictator perpetuo</em> in February 44 BC \u2014 dictator without time limit. The Roman dictatorship was designed as a temporary emergency office; making it permanent destroyed the constitutional safeguard that distinguished it from monarchy.',
+                '<strong>Point 2:</strong> He accumulated overlapping powers: the consulship, tribunician sacrosanctity, control of the treasury, the right to nominate magistrates. Individually Republican, collectively these made the Senate decorative rather than functional, destroying senators\' <em>dignitas</em>.',
+                '<strong>Point 3:</strong> His <em>clementia</em> (policy of pardoning enemies) humiliated proud aristocrats like Brutus and Cassius. To be pardoned implied Caesar stood above them \u2014 the pardoner is superior to the pardoned. This created resentment among the very men he spared.',
+                '<strong>Point 4:</strong> He accepted divine honours, placed his image on coins (unprecedented for a living Roman), and at the Lupercalia in February 44 BC, Antony offered him a diadem. Whether Caesar sought kingship or not, his behaviour confirmed the <em>rex</em> accusation that was politically fatal in Roman culture.',
+                '<strong>Point 5:</strong> He expanded the Senate from 600 to 900 with his own supporters, including provincials and sons of freedmen, which the traditional aristocracy saw as a deliberate insult to senatorial prestige. Combined with his removal of tribunes who opposed him, this convinced over 60 senators that the Republic could only be restored by assassination.'
+            ],
+            evidence: 'The <em>dictator perpetuo</em> title; the Lupercalia incident (February 44 BC); Caesar\'s image on coins; the Senate expansion; his pardoning of Brutus, Cassius, and Cicero; Cicero\'s letters to Atticus revealing life under the dictatorship \u2014 his forced withdrawal from politics and philosophical retreat; the conspirators\' self-identification as <em>liberatores</em>.'
+        },
+        {
+            id: 'exam-2',
+            question: "Explain whether Caesar's reforms as dictator were genuinely beneficial to Rome.",
+            type: '10-mark',
+            structure: [
+                '<strong>Point 1 \u2014 beneficial:</strong> The Julian calendar reform (advised by Sosigenes) solved the chronic misalignment between the Roman calendar and the solar year. It was so effective that, with minor adjustment, it remains the basis of the calendar used today.',
+                '<strong>Point 2 \u2014 beneficial:</strong> Caesar founded colonies across the Mediterranean, settling veterans and Rome\'s urban poor on land. He reduced the grain dole from 320,000 to 150,000 recipients by resettlement, addressing urban overcrowding and economic dependency simultaneously.',
+                '<strong>Point 3 \u2014 beneficial:</strong> His debt reform \u2014 cancelling interest payments and allowing settlement at pre-war valuations \u2014 addressed a crisis that had destabilised Roman politics for decades. The extension of citizenship to communities in Cisalpine Gaul integrated provincial populations.',
+                '<strong>Point 4 \u2014 problematic:</strong> All reforms were imposed by one man\'s authority, not debated and voted on by the Senate and assemblies. Good governance by an autocrat is still autocracy. The Senate expansion (600 to 900) was perceived as packing the house with loyalists.',
+                '<strong>Point 5 \u2014 evaluation:</strong> Cicero\'s letters from this period reveal a man forced into philosophical retreat, writing <em>De Officiis</em> and <em>De Re Publica</em> because political action had become meaningless. The reforms\' genuine benefits cannot be separated from the unconstitutional manner of their imposition.'
+            ],
+            evidence: 'The Julian calendar reform; colonial foundations; debt relief legislation; Senate expansion; reduction of the grain dole; extension of citizenship; Cicero\'s correspondence with Atticus during 46\u201344 BC showing his withdrawal from public life under the dictatorship.'
+        },
+        {
+            id: 'exam-3',
+            question: "'Caesar was trying to replace the Republic, not reform it.' How far do you agree?",
+            type: '20-mark',
+            structure: [
+                '<strong>Introduction:</strong> Frame the question as the central ambiguity of Caesar\'s dictatorship. Acknowledge that evidence supports both readings.',
+                '<strong>Agree \u2014 replacement:</strong> The <em>dictator perpetuo</em> title removed the time limit that made dictatorship compatible with Republican government. Divine honours, his image on coins, the Lupercalia diadem incident, and the removal of tribunes who opposed him all pointed towards monarchy in all but name. He expanded the Senate with his own supporters, making it a rubber-stamp body rather than a deliberative assembly.',
+                '<strong>Disagree \u2014 reform:</strong> Caesar\'s practical reforms (calendar, colonies, debt relief, grain dole, citizenship extension) addressed real problems the Republic had failed to solve for decades. He maintained Republican forms \u2014 the Senate met, magistrates were elected, laws were passed. He never formally abolished the Republic or declared himself king.',
+                '<strong>Evaluation:</strong> Caesar may have been improvising rather than following a plan. Cicero\'s letters from this period (e.g. Att. 13.40) reveal a man who sees the Republic as effectively dead, regardless of Caesar\'s intentions. The structural argument is powerful: the Republic\'s inability to accommodate Caesar\'s position meant that reform and replacement amounted to the same thing in practice.',
+                '<strong>Conclusion:</strong> The question may be unanswerable, but the answer matters less than the consequence: whether Caesar intended reform or replacement, the result was that the Republic\'s checks and balances became meaningless under one man\'s permanent authority.'
+            ],
+            evidence: 'The <em>dictator perpetuo</em> title; the Lupercalia incident; Caesar\'s coins; Senate expansion; divine honours; the full range of practical reforms (calendar, colonies, debt, citizenship); Cicero\'s letters to Atticus showing the political irrelevance of the Senate under the dictatorship; the removal of tribunes who removed a diadem from Caesar\'s statue.',
+            historiography: 'Gelzer sees Caesar as a would-be monarch. Meier argues he was a pragmatic reformer trapped by circumstances. The best essays note that our sources are written either by Caesar\'s opponents (Cicero\'s letters) or by later writers in an imperial context, and that our inability to resolve the question may itself be significant.'
+        },
+        {
+            id: 'exam-4',
+            question: "'Caesar's clementia was his greatest political mistake.' How far do you agree?",
+            type: '30-mark',
+            structure: [
+                '<strong>Introduction:</strong> Define <em>clementia</em> as a Roman virtue with an inherent power dynamic: the pardoner stands above the pardoned. Frame the question as one about whether mercy or severity would have better served Caesar\'s position.',
+                '<strong>Agree \u2014 clementia was fatal:</strong> Caesar pardoned the very men who killed him. Brutus was pardoned after Pharsalus; Cassius was pardoned; Cicero was pardoned. Over 60 senators joined the conspiracy, many of them former enemies Caesar had spared. If he had proscribed his enemies like Sulla, they would not have been alive to assassinate him.',
+                '<strong>Agree \u2014 clementia humiliated:</strong> For proud aristocrats, being pardoned was degrading. It reminded them daily that their lives depended on one man\'s goodwill. Cicero\'s letters reveal this tension \u2014 grateful to be alive but humiliated by the gratitude. The pardoned men did not want Caesar\'s mercy; they wanted their Republic back.',
+                '<strong>Disagree \u2014 proscription would have been worse:</strong> Sulla\'s proscriptions created a generation of enemies and poisoned Roman politics. Caesar\'s clemency won genuine support and made the transition to one-man rule smoother. It distinguished him from Sulla and deprived opponents of the argument that resistance was necessary for survival.',
+                '<strong>Disagree \u2014 the real problem was not clementia:</strong> The assassination was motivated by Caesar\'s accumulation of powers and honours \u2014 <em>dictator perpetuo</em>, divine cult, the Lupercalia incident \u2014 not by his pardons. Republican traditionalists could not tolerate permanent one-man rule regardless of whether the ruler was merciful or cruel.',
+                '<strong>Evaluation:</strong> The irony is that Caesar\'s virtue and his vice pointed to the same problem. His clemency left enemies alive; his power gave them a reason to act. No policy of mercy or severity could resolve the fundamental constitutional impossibility of one man holding permanent supreme power in a Republic.',
+                '<strong>Conclusion:</strong> <em>Clementia</em> was simultaneously Caesar\'s most admirable quality and a contributing factor in his death. But calling it his "greatest mistake" implies that proscription would have saved him \u2014 which assumes the Republic\'s structural crisis could have been resolved by eliminating individuals. The deeper mistake was the position itself, not how Caesar occupied it.'
+            ],
+            evidence: 'Specific pardons: Brutus after Pharsalus, Cassius, Cicero. Contrast with Sulla\'s proscriptions and their consequences. Cicero\'s letters to Atticus revealing his ambivalent gratitude and humiliation under the dictatorship. The conspirators\' self-identification as <em>liberatores</em>. The accumulation of honours and the <em>dictator perpetuo</em> title as the deeper provocation.',
+            historiography: 'The <em>clementia</em> debate connects to broader questions about whether individuals or structures drive historical change. Some historians emphasise Caesar\'s personal misjudgement; others argue that no individual policy could have resolved the structural impossibility of his position within the Republican system.'
+        },
+        {
+            id: 'exam-5',
             question: "'Caesar was more interested in personal dignitas than in political reform.' How far do you agree?",
             type: '30-mark',
             structure: [
-                'Define <em>dignitas</em> and explain why it mattered so much in Roman aristocratic culture — it is not vanity but a core political value.',
-                'Argue FOR: Caesar went to war in 49 BC explicitly to defend his <em>dignitas</em>; his accumulation of honours (coins, statues, divine cult) suggests personal glorification; his refusal to lay down power prioritises his own position over the Republic.',
-                'Argue AGAINST: His reforms (calendar, colonies, debt relief, citizenship) are practical and benefit the wider population; many address problems the Senate had failed to solve for decades; if he only cared about <em>dignitas</em>, why bother reforming the grain supply?',
-                'Synthesise: Caesar probably cared about both, and in his mind they were not contradictory. Reforming Rome <em>enhanced</em> his <em>dignitas</em>. The problem was that his <em>dignitas</em> had become incompatible with the Republic&rsquo;s survival.',
-                'Conclude with the structural argument: the question is not really about Caesar\'s character but about whether the Republic could survive any individual whose <em>dignitas</em> exceeded the system\'s capacity to contain it.'
+                '<strong>Introduction:</strong> Define <em>dignitas</em> \u2014 not vanity but a core Roman aristocratic value encompassing honour, reputation, and political standing. Frame the question as asking whether Caesar\'s dictatorship served himself or Rome.',
+                '<strong>Agree \u2014 dignitas drove Caesar:</strong> Caesar went to war in 49 BC explicitly to defend his <em>dignitas</em> when the Senate tried to strip his command. His accumulation of honours \u2014 coins bearing his image, divine cult, statues in temples, the month of July renamed after him \u2014 suggests personal glorification. The <em>dictator perpetuo</em> title prioritised his own position over the Republic\'s constitutional health.',
+                '<strong>Agree \u2014 reforms served dignitas:</strong> Caesar\'s reforms enhanced his personal reputation: the calendar bore his name, the colonies settled his veterans, the Senate expansion filled the house with his supporters. Reforming Rome was not separate from advancing his <em>dignitas</em> \u2014 it was part of it.',
+                '<strong>Disagree \u2014 genuine reform:</strong> The calendar reform, debt relief, colonial foundations, and citizenship extension addressed real problems the Republic had failed to solve for decades. If Caesar only cared about <em>dignitas</em>, why reform the grain supply or settle the urban poor? These were practical measures with lasting benefit.',
+                '<strong>Disagree \u2014 structural context:</strong> Cicero\'s letters from the dictatorship period reveal that the Senate had become incapable of reform. Someone had to act. Caesar may have been the only man with enough power to impose necessary changes. The question is not whether he sought <em>dignitas</em> but whether reform was possible without it.',
+                '<strong>Evaluation:</strong> In Caesar\'s mind, <em>dignitas</em> and reform were probably not contradictory. The problem was that his <em>dignitas</em> had become incompatible with the Republic\'s survival. No amount of beneficial reform could make permanent one-man rule acceptable to a political culture built on the rejection of <em>regnum</em>.',
+                '<strong>Conclusion:</strong> The question is ultimately not about Caesar\'s character but about whether the Republic could survive any individual whose <em>dignitas</em> exceeded the system\'s capacity to contain it. The answer, demonstrated by the Ides of March, was no.'
             ],
-            evidence: "Caesar's civil war justification (Suetonius, <em>Divus Iulius</em> 30&ndash;33); his reform programme (calendar, colonies, Senate expansion); the <em>dictator perpetuo</em> title; Cicero's letters on life under the dictatorship; the Lupercalia incident; Caesar's coins bearing his image.",
-            historiography: "Modern debate between those who see Caesar as a would-be monarch (e.g. Gelzer) and those who argue he was a pragmatic reformer trapped by circumstances (e.g. Meier). The best essays note that our sources are written either by Caesar's enemies (Cicero) or by later writers in an imperial context (Suetonius, Plutarch)."
+            evidence: 'Caesar\'s civil war justification (defending his <em>dignitas</em>); the reform programme (calendar, colonies, debt, grain, citizenship); the <em>dictator perpetuo</em> title; divine honours; coins bearing his image; the Lupercalia incident; Cicero\'s letters to Atticus on life under the dictatorship; the Senate expansion.',
+            historiography: 'Gelzer sees Caesar as driven primarily by <em>dignitas</em> and ambition. Meier argues he was a pragmatic reformer trapped by circumstances. The best essays note that our sources are written by Caesar\'s opponents (Cicero) or later imperial writers, making Caesar\'s true motivations difficult to recover.'
         },
         {
-            id: 'exam-clementia',
-            question: "'Caesar's clementia was his greatest political mistake.' Discuss.",
+            id: 'exam-6',
+            question: "'Caesar was a tyrant.' How far do you agree with this assessment?",
             type: '30-mark',
             structure: [
-                'Define <em>clementia</em> as a Roman virtue and explain its power dynamic: the pardoner is superior to the pardoned.',
-                'Argue FOR: Caesar pardoned the very men who killed him — Brutus, Cassius, and others. If he had proscribed his enemies like Sulla, he would have survived. Clemency left alive men who could not tolerate his supremacy.',
-                'Argue AGAINST: Proscription would have made Caesar another Sulla — hated and feared. His clemency won genuine support and made the transition to one-man rule smoother. The problem was not clemency itself but the failure to create a constitutional framework that made clemency unnecessary.',
-                'Consider: was the assassination really caused by clemency, or by the accumulation of powers and honours that no amount of bloodshed or mercy could have made acceptable to Republican traditionalists?',
-                'Conclude: clemency was simultaneously Caesar\'s most admirable quality and a fatal miscalculation — but only because the underlying political problem (one man holding permanent supreme power) had no solution within the Republican system.'
+                '<strong>Introduction:</strong> Define tyranny in the Roman context: not merely cruel rule, but unconstitutional concentration of power by one individual. The Roman Republic was founded on the expulsion of kings; <em>rex</em> and <em>tyrannus</em> were the most dangerous accusations in Roman politics.',
+                '<strong>Agree \u2014 constitutional tyranny:</strong> Caesar held the dictatorship in perpetuity, controlled elections, nominated magistrates, and held tribunician sacrosanctity permanently. The Senate\'s checks and balances became meaningless. In Roman constitutional terms, this was precisely what tyranny meant \u2014 the concentration of power that the Republic was designed to prevent.',
+                '<strong>Agree \u2014 symbols of autocracy:</strong> His image on coins (unprecedented for a living Roman), divine honours, the Lupercalia diadem incident, and the removal of tribunes who opposed him all confirmed the <em>rex</em> accusation. The conspirators identified themselves as <em>liberatores</em>, explicitly framing the assassination as tyrannicide.',
+                '<strong>Disagree \u2014 benevolent rule:</strong> Caesar pardoned defeated enemies rather than proscribing them. His reforms (calendar, colonies, debt relief, citizenship) were genuinely beneficial. He did not formally abolish Republican institutions \u2014 the Senate met, laws were passed, magistrates were elected. Tyranny typically involves cruelty; Caesar\'s <em>clementia</em> was its opposite.',
+                '<strong>Disagree \u2014 voted his powers:</strong> Caesar\'s powers were voted to him by the Senate itself. He did not seize them by force (after the civil war). If the legal institutions of the state grant a man authority, is that man a tyrant? The conspirators had to argue that the concentration of power <em>itself</em> constituted tyranny, regardless of how it was exercised \u2014 a sophisticated but contested argument.',
+                '<strong>Evaluation:</strong> Cicero\'s letters reveal the reality behind the constitutional forms: the Senate was irrelevant, political life was meaningless, and every senator\'s fate depended on one man\'s goodwill. Whether this meets the definition of "tyranny" depends on whether you define tyranny by methods (cruel and illegal) or by structure (unconstitutional concentration of power). By the structural definition, Caesar was a tyrant; by the behavioural definition, he was not.',
+                '<strong>Conclusion:</strong> Caesar was a tyrant in the Roman constitutional sense \u2014 one man held permanent supreme power in a system built to prevent exactly that. His benevolence does not change the structural reality. The Republic\'s tragedy was that it produced a "tyrant" whose rule was in many ways better than the dysfunction it replaced.'
             ],
-            evidence: "Specific pardons: Brutus after Pharsalus, Cassius, Cicero. Contrast with Sulla's proscriptions. Cicero's ambivalent gratitude in his letters. The conspirators' self-identification as <em>liberatores</em>. Suetonius and Plutarch on Caesar's character.",
-            historiography: "The clementia debate connects to broader questions about whether individuals or structures drive historical change. Caesar's personal qualities (mercy, ambition, intelligence) are important, but the structural impossibility of his position may matter more."
-        },
-        {
-            id: 'exam-replace-reform',
-            question: "Was Caesar trying to replace the Republic or reform it?",
-            type: '30-mark',
-            structure: [
-                'Frame the question: this is the central ambiguity of Caesar\'s dictatorship, and honest analysis must acknowledge that the evidence supports both readings.',
-                'Evidence for REFORM: practical reforms (calendar, colonies, debt, grain supply); continued use of Republican institutions (Senate, elections, laws); no formal abolition of Republican government; no declaration of monarchy.',
-                'Evidence for REPLACEMENT: <em>dictator perpetuo</em> title; refusal to restore normal government; divine honours; image on coins; expansion of Senate with loyalists; removal of tribunes who opposed him.',
-                'Consider the possibility that Caesar himself did not know — that he was improvising, dealing with immediate problems without a long-term constitutional plan.',
-                'Conclude: the question may be unanswerable, but the Republic\'s inability to accommodate Caesar\'s position meant that reform and replacement amounted to the same thing in practice.'
-            ],
-            evidence: "The full range of Caesar's reforms and honours. The Lupercalia incident. Cicero's philosophical works as indirect commentary. The conspirators' justification. Caesar's own <em>Commentarii</em> (though these predate the dictatorship). Suetonius on Caesar's final months.",
-            historiography: "This is one of the great unresolved questions in Roman history. Note that our inability to answer it definitively is itself significant: it suggests that Caesar's position was genuinely ambiguous, not merely that our sources are inadequate."
+            evidence: 'The <em>dictator perpetuo</em> title; divine honours and coins; the Lupercalia incident; the <em>clementia</em> policy (pardoning Brutus, Cassius, Cicero); the practical reforms; the Senate expansion; the removal of tribunes; the conspirators as <em>liberatores</em>; Cicero\'s letters to Atticus on the meaninglessness of political life under the dictatorship.',
+            historiography: 'The tyranny question depends on definition. Roman concepts of <em>libertas</em> and <em>regnum</em> are essential. Some historians argue Caesar was a benevolent autocrat who transcended the broken Republic; others insist that any permanent concentration of power in one man was tyrannical by Roman standards, regardless of how it was exercised.'
         }
     ]
 
