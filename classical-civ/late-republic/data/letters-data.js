@@ -675,6 +675,45 @@ window.pageData = {
             evidence: "<em>Att.</em> 8.8: real-time crisis analysis in February 49 BC. <em>Att.</em> 9.4: deepening despair as the military situation deteriorates. Letters from Cilicia (<em>Fam.</em> 2.11) showing Cicero's earlier predictions about civil war. <em>Att.</em> 14.4 for the aftermath — showing how the civil war's unresolved tensions continued after Caesar's death.",
             historiography: "Beard emphasises the unique evidential value of real-time correspondence. Shackleton Bailey's commentary cross-references the letters with other sources to assess their accuracy. Tempest argues that the letters' subjectivity is itself valuable — they reveal how the civil war was experienced, not just what happened."
         }
+    ],
+
+    argumentGrids: [
+        {
+            question: 'How reliable are Cicero\'s letters as historical evidence?',
+            forPoints: [
+                'The letters were private correspondence, not written for publication. Unlike Cicero\'s speeches or philosophical works, they were not composed with a public audience in mind, which means they lack the deliberate rhetorical shaping that characterises his other writings.',
+                'They provide real-time reactions to events as they unfold. Letters like <em>Att.</em> 8.8 capture genuine uncertainty during the civil war crisis — Cicero does not know how events will turn out, so his analysis is free from the distortions of hindsight that affect all later historical accounts.',
+                'They reveal political calculations and negotiations that no other source preserves. The mechanics of <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">amicitia</span>, the brokering of alliances, the weighing of loyalties — these processes are invisible in public speeches and narrative histories but central to the letters.'
+            ],
+            againstPoints: [
+                'Cicero is always performing, even in his letters. His self-presentation as the agonised patriot, the intellectual trapped among lesser men, is itself a carefully crafted persona. The letters to Atticus are more candid than the speeches, but they are not unmediated truth.',
+                'He exaggerates and distorts to suit his audience. Cicero\'s accounts of his own role in events are consistently self-serving — he inflates his importance, minimises his mistakes, and casts himself as the indispensable defender of the Republic.',
+                'Letters to Atticus differ significantly from letters to political allies such as Pompey (<em>Fam.</em> 5.7), showing that self-presentation is always at work. The gap between what Cicero tells his closest friend and what he tells political contacts demonstrates that even the most \'private\' letters involve strategic communication.'
+            ],
+            verdict: 'The letters are uniquely valuable precisely because they are subjective. Their bias is itself historical evidence about how the crisis of the late Republic was experienced by a politically engaged senator. The key is not to treat them as objective reportage but to read them critically — recognising that Cicero\'s distortions, anxieties, and self-justifications reveal as much about the period as his factual observations do.'
+        }
+    ],
+
+    keyPoints: [
+        {
+            label: 'Letters as Real-Time Evidence',
+            text: 'Cicero\'s letters to Atticus are the closest thing we have to a diary of the Republic\'s collapse. Written without the hindsight that shapes all other ancient sources — from Caesar\'s <em>Bellum Civile</em> to the later histories of Appian and Cassius Dio — they capture the genuine uncertainty, fear, and political calculation of a senior senator navigating an unprecedented constitutional crisis. This real-time quality makes them indispensable for understanding not just what happened, but how events were experienced and interpreted as they unfolded.',
+            accent: 'blue'
+        },
+        {
+            label: 'The Gap Between Public and Private',
+            text: 'Comparing Cicero\'s public speeches with his private letters reveals the gap between Roman political rhetoric and political reality. The confident, commanding orator of the <em>In Verrem</em> and the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">Philippicae</span> becomes the anxious, indecisive correspondent of <em>Att.</em> 8.8. This contrast matters for source evaluation because it demonstrates that no single genre gives us the whole picture — and that understanding Roman politics requires reading public and private sources against each other.',
+            accent: 'teal'
+        }
+    ],
+
+    analysisBoxes: [
+        {
+            title: 'Why Cicero\'s Letters Matter',
+            shortTerm: 'The letters illuminate specific crises with details no other source preserves. During Cicero\'s exile in 58\u201357 BC, they reveal his emotional collapse and desperate political manoeuvring. During the civil war of 49\u201345 BC, they capture day-by-day shifts in loyalty, rumour, and strategy. After Caesar\'s assassination in 44 BC, <em>Att.</em> 14.4 provides immediate, penetrating analysis of the conspirators\' failure to plan beyond the act itself.',
+            longTerm: 'The letters provide the only sustained first-person perspective on the Republic\'s collapse, spanning from the 60s BC to Cicero\'s death in 43 BC. This makes them essential for any assessment of individual agency versus structural forces in the fall of the Republic. They show how one politically engaged senator understood, responded to, and was ultimately overwhelmed by the transformation of Roman politics — evidence that is simply unavailable from any other source.',
+            examRelevance: 'In source evaluation questions, examiners reward students who can discuss the letters\' strengths and limitations together rather than treating them in isolation. The strongest answers will acknowledge the letters\' unique evidential value — their real-time quality, their private register, their preservation of political detail — while also recognising that Cicero is never a neutral observer. Using specific letter references (e.g. <em>Att.</em> 8.8 for the civil war crisis, <em>Fam.</em> 5.7 for audience-awareness) demonstrates the kind of precise engagement with primary evidence that distinguishes top-level responses.'
+        }
     ]
 
 };

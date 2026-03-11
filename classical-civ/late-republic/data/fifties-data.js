@@ -348,6 +348,45 @@ window.pageData = {
             evidence: 'The Conference of Luca (56 BC) and its outcomes. The deaths of Julia (54 BC) and Crassus (53 BC). Pompey\'s sole consulship (52 BC). Caesar\'s compromise offers of 50&ndash;49 BC. The SCU and expulsion of the tribunes (January 49 BC). Cicero\'s letters &mdash; <em>Fam.</em> 2.4 and 2.11 for contemporary perspective on the political situation of the 50s.',
             historiography: 'Syme emphasises structural factors &mdash; the Republic was already dead by the 50s. Gruen (<em>The Last Generation</em>) argues it remained viable until very late. Gelzer focuses on Caesar\'s personal ambition. Consider whether "inevitability" is a useful historical concept at all.'
         }
+    ],
+
+    argumentGrids: [
+        {
+            question: 'Was civil war inevitable by 50 BC?',
+            forPoints: [
+                'The triumvirate had already bypassed normal Republican politics &mdash; the Conference of Luca showed that three private citizens could redistribute provinces, consulships, and commands among themselves, rendering the Senate irrelevant to actual decision-making.',
+                'Crassus\'s death at Carrhae in 53 BC removed the stabilising third force in the triumvirate. Without a mediating figure, the alliance collapsed into a direct binary rivalry between Caesar and Pompey that the Republic\'s institutions could not resolve.',
+                'Both Caesar and Pompey commanded armies loyal to them personally rather than to the Roman state. Caesar\'s veteran legions in Gaul and Pompey\'s forces in Spain meant that any political dispute could &mdash; and ultimately would &mdash; be settled by military force rather than constitutional procedure.'
+            ],
+            againstPoints: [
+                'Negotiations between Caesar and the Senate continued until very late &mdash; as late as January 49 BC, proposals and counter-proposals were still being exchanged. The fact that diplomacy persisted suggests that neither side regarded war as a foregone conclusion.',
+                'The tribune Curio\'s compromise proposal &mdash; that both Caesar and Pompey should lay down their commands simultaneously &mdash; was viable and commanded broad support. It was defeated by the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">boni</span> hardliners, not by any structural impossibility.',
+                'The Senate could have granted Caesar\'s reasonable demands: the right to stand for the consulship <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">in absentia</span>, or retention of a reduced command until his consulship began. These concessions would have cost the Senate little and averted war entirely.'
+            ],
+            verdict: 'The fifties created powerful structural pressures toward civil war &mdash; the concentration of military power, the collapse of mediating institutions, the personal stakes involved for both Caesar and Pompey. But structural pressures are not the same as inevitability. Specific decisions by specific individuals &mdash; Cato\'s refusal to compromise, the Senate\'s rejection of Curio\'s proposal, the passage of the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">senatus consultum ultimum</span> &mdash; were required to turn probability into reality. The fifties narrowed the range of possible outcomes, but they did not make war a certainty.'
+        }
+    ],
+
+    keyPoints: [
+        {
+            label: 'The Conference of Luca (56 BC)',
+            text: 'At Luca, three private citizens &mdash; Caesar, Pompey, and Crassus &mdash; met and redistributed provinces, consulships, and military commands among themselves. Pompey and Crassus would hold the consulship of 55 BC; Caesar\'s Gallic command would be extended for five more years; Crassus would receive Syria. The Senate was not consulted. The assemblies merely ratified decisions already made. The Conference of Luca demonstrated that the Republic\'s institutions had become irrelevant to actual power &mdash; the real government of Rome was a private arrangement between three men with armies.',
+            accent: 'purple'
+        },
+        {
+            label: 'Death of Crassus at Carrhae (53 BC)',
+            text: 'Crassus\'s catastrophic defeat and death at Carrhae destroyed the triangular balance of the triumvirate. Crassus had served not as a peacemaker but as a structural counterweight &mdash; his presence prevented the alliance from becoming a simple rivalry between two men. With Crassus gone, Caesar and Pompey faced each other directly, and the Republic was forced to choose between them. There was no longer a mediating force capable of brokering compromises or preventing the relationship from deteriorating into open conflict.',
+            accent: 'teal'
+        }
+    ],
+
+    analysisBoxes: [
+        {
+            title: 'Why the Fifties Matter',
+            shortTerm: 'The renewal of the triumvirate at Luca and the distribution of extraordinary commands &mdash; Gaul for Caesar, Spain for Pompey, Syria for Crassus &mdash; hollowed out Republican government. Real power was exercised through private agreements between military strongmen, while the Senate, the assemblies, and the courts were reduced to rubber-stamping decisions made elsewhere. Pompey\'s sole consulship of 52 BC confirmed that the Republic could no longer function through its normal institutions.',
+            longTerm: 'The fifties created the conditions for civil war by concentrating military resources in the hands of two men whose political survival depended on defeating each other. Caesar could not return to Rome without his army without facing prosecution; Pompey could not allow Caesar to return with his army without surrendering his own supremacy. The Republic\'s constitutional machinery &mdash; designed for a city-state governed by a relatively equal oligarchy &mdash; had no mechanism for resolving this deadlock peacefully.',
+            examRelevance: 'The fifties are essential for essays on whether the Republic\'s collapse was gradual or sudden. Use the Conference of Luca (56 BC) and Crassus\'s death (53 BC) as evidence that the structural preconditions for civil war were established well before the Rubicon crisis of 49 BC. Gruen\'s argument in <em>The Last Generation of the Roman Republic</em> that the Republic remained viable until very late is particularly important for this period &mdash; engage with it by asking whether the compromises of 50&ndash;49 BC represented genuine constitutional flexibility or merely the last spasms of a dying system.'
+        }
     ]
 
 };

@@ -318,5 +318,48 @@ window.pageData = {
             evidence: 'The suicide at Utica (46 BC) and Cato\'s reading of Plato\'s <em>Phaedo</em>; Caesar\'s <em>Anti-Cato</em> as evidence of the suicide\'s impact; Cicero\'s and Brutus\'s <em>Cato</em> pamphlets; Brutus\'s role in the conspiracy of 44 BC; Lucan, <em>Pharsalia</em> 1.128 (<em>Victrix causa deis placuit sed victa Catoni</em>); Sallust BC 53\u201354 for Cato\'s character.',
             historiography: 'The significance of Cato\'s suicide has been debated since antiquity. Some modern historians see it as a self-indulgent gesture by a man who could have continued the fight. Others (e.g. Goodman) argue it was the most politically astute act of Cato\'s career \u2014 transforming a military defeat into a moral victory that outlived Caesar himself.'
         }
+    ],
+
+    // ===== ARGUMENT GRIDS =====
+    argumentGrids: [
+        {
+            question: 'Was Cato a defender of the Republic or an obstacle to its survival?',
+            forPoints: [
+                'His Stoic integrity made him incorruptible in an age of systematic bribery and self-dealing \u2014 he was one of the few senators who could not be bought, and his moral authority gave the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">optimates</span> a credible figurehead',
+                'His opposition to corruption was consistent and principled: he prosecuted electoral bribery, resisted the concentration of power in the Triumvirate, and refused to tolerate unconstitutional arrangements even when they were politically convenient',
+                'His willingness to die for principle at Utica in 46 BC \u2014 choosing suicide over Caesar\'s <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">clementia</span> \u2014 was the ultimate assertion that the Republic\'s values mattered more than any individual\'s survival'
+            ],
+            againstPoints: [
+                'His inflexibility pushed Caesar towards civil war: by blocking every compromise and making reconciliation impossible, Cato helped create the very crisis he claimed to be preventing',
+                'His refusal to accommodate Pompey\'s reasonable requests in 60 BC drove Pompey into alliance with Caesar and Crassus, forming the First Triumvirate \u2014 the concentration of power Cato most feared (Cicero, <em>ad Atticum</em> 2.1.8)',
+                'His procedural obstruction \u2014 filibustering legislation, exploiting technicalities \u2014 was itself a form of unconstitutional behaviour that undermined the very republican norms he claimed to defend'
+            ],
+            verdict: 'Cato was both a genuine defender of Republican principles and, through his rigidity, an accelerant of the Republic\'s collapse. The strongest exam answers recognise that his defence of the constitution paradoxically helped destroy it \u2014 not because his diagnosis was wrong, but because his methods were inadequate to the structural crisis the Republic faced.'
+        }
+    ],
+
+    // ===== KEY POINTS =====
+    keyPoints: [
+        {
+            label: 'Cato and the Filibuster',
+            text: 'Cato pioneered the use of procedural obstruction as a political weapon, most famously talking out Caesar\'s land bill in 59 BC until Caesar had him physically removed from the Senate. This tactic both preserved and undermined republican norms: it allowed a single senator to block legislation without violence, but it also paralysed the legislative process and demonstrated that the Republic\'s procedures could be weaponised to prevent any reform. Caesar\'s response \u2014 bypassing the Senate entirely and passing legislation through the popular assembly by force \u2014 showed that obstruction without the power to enforce it merely invited more radical breaches of the constitution.',
+            accent: 'green'
+        },
+        {
+            label: 'The Utica Suicide',
+            text: 'Cato\'s suicide at Utica in 46 BC, after Caesar\'s victory at Thapsus, transformed a military defeat into a moral victory that outlived Caesar himself. By reading Plato\'s <em>Phaedo</em> (on the immortality of the soul) before taking his own life, Cato staged his death as a philosophical act: a free man\'s refusal to live under tyranny. The impact was immediate and profound. Brutus \u2014 Cato\'s nephew and son-in-law \u2014 was directly inspired to lead the conspiracy that killed Caesar on the Ides of March in 44 BC. Caesar himself recognised the threat of Cato\'s martyrdom, writing an <em>Anti-Cato</em> to counter the cult of the dead man. Lucan later captured Cato\'s legacy in a single line: <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">Victrix causa deis placuit sed victa Catoni</span> \u2014 "The winning cause pleased the gods, but the losing cause pleased Cato."',
+            accent: 'purple'
+        }
+    ],
+
+    // ===== ANALYSIS BOXES =====
+    analysisBoxes: [
+        {
+            title: 'Why Cato Matters',
+            shortTerm: 'Cato\'s immediate impact was to obstruct and delay: he blocked Pompey\'s eastern settlement and veteran land grants, filibustered Caesar\'s agrarian legislation in 59 BC, and used every procedural tool available to prevent the concentration of power. But this obstruction repeatedly backfired, driving his opponents into the very alliances and unconstitutional actions he sought to prevent \u2014 most critically the formation of the First Triumvirate in 60 BC.',
+            longTerm: 'Cato\'s martyrdom at Utica created the most powerful symbol of Republican <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">libertas</span> in Roman history. His example directly inspired Brutus and the Liberators to assassinate Caesar in 44 BC, and the enduring myth of Cato as the incorruptible defender of freedom shaped Roman political culture for centuries. Under the Empire, invoking Cato became a coded act of resistance to autocracy.',
+            examRelevance: 'Cato is essential for essays on individual vs structural causes of the Republic\'s fall. He can be used to argue <em>both</em> sides: as evidence that individuals mattered (his obstruction demonstrably shaped events) and as evidence that structural forces were decisive (even the most principled individual could not save a system whose institutions had ceased to function). Link him to Cicero for a comparison of different approaches to defending the Republic, and to Caesar for the question of whether compromise or resistance was the appropriate response to the crisis.'
+        }
     ]
+
 };

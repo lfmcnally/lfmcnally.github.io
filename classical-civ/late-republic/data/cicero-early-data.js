@@ -465,6 +465,45 @@ window.pageData = {
             evidence: '<em>Pro Roscio Amerino</em> (80 BC): Cicero risks Sulla\'s displeasure to defend an innocent man — but also makes his name as an advocate. <em>In Verrem</em> (70 BC): Cicero champions provincial justice — but also defeats Hortensius and advances his career. The <em>In Catilinam</em> orations: Cicero positions himself as the Republic\'s sole saviour — but the danger was real. Cicero\'s letters to Atticus show both genuine political conviction and careful calculation of advantage. His concept of <em>concordia ordinum</em> (articulated in <em>Pro Sestio</em>, 56 BC) reflects both idealism and the practical needs of a <em>novus homo</em> who depended on cross-class alliances.',
             historiography: 'Stockton sees Cicero as more ambitious than principled. Mitchell argues for Cicero\'s genuine political vision. Wiseman emphasises that the <em>novus homo</em>\'s self-promotion was a necessary survival strategy, not evidence of insincerity. Steel notes that Cicero\'s published speeches were always both political arguments and career advertisements.'
         }
+    ],
+
+    argumentGrids: [
+        {
+            question: 'Was Cicero\'s execution of the Catilinarian conspirators justified?',
+            forPoints: [
+                'The conspiracy posed an imminent armed threat to Rome — Catiline had raised an army in Etruria and agents within the city were planning arson and assassination, making swift action a matter of state survival.',
+                'The Senate had passed the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">senatus consultum ultimum</span> (SCU), which Roman tradition held gave the consuls authority to take whatever measures were necessary to defend the state, including the use of lethal force.',
+                'The conspirators had confessed their guilt before the Senate — the Allobroges\' evidence and the intercepted letters left no reasonable doubt about the plot, removing any question of innocence.'
+            ],
+            againstPoints: [
+                'Roman citizens were executed without trial, violating the fundamental right of <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">provocatio</span> — the right of any citizen to appeal a capital sentence to the people, a principle embedded in Roman law since the earliest Republic.',
+                'The legal authority of the SCU was contested: Caesar argued in the Senate debate that no decree could override a citizen\'s legal rights, and that the Senate was not a court of law empowered to pass death sentences.',
+                'The executions set a dangerous precedent for extrajudicial killing of political opponents — as Caesar warned, the same emergency powers could be turned against senators themselves in future crises, which is precisely what happened.'
+            ],
+            verdict: 'The executions were legally questionable but politically understandable. Cicero faced a genuine emergency with armed forces in the field and conspirators in the city, and the Senate overwhelmingly supported his decision. However, the bypassing of <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">provocatio</span> created a constitutional wound that never healed. The precedent haunted Cicero for the rest of his career — Clodius used it to drive him into exile in 58 BC, and the episode became a permanent exhibit in the argument that the Republic\'s emergency procedures were incompatible with its own legal principles. In an exam, acknowledge both the reality of the threat and the seriousness of the constitutional violation.'
+        }
+    ],
+
+    keyPoints: [
+        {
+            label: 'Novus Homo',
+            text: 'Cicero was the first <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">novus homo</span> to reach the consulship in thirty years — the last had been Gaius Coelius Caldus in 94 BC. In a political culture dominated by a tiny circle of noble families who passed the consulship between themselves like a family heirloom, this was an extraordinary achievement. Without ancestral <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">imagines</span>, military glory, or inherited networks of <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">clientela</span>, Cicero built his career entirely on rhetorical brilliance and legal advocacy. His outsider status shaped his political philosophy: <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">concordia ordinum</span> — the harmony of the senatorial and equestrian orders — was the vision of a man who straddled both worlds and needed their cooperation to survive politically. He believed the Republic worked when it rewarded merit, because it had rewarded his.',
+            accent: 'blue'
+        },
+        {
+            label: 'The SCU and Citizens\' Rights',
+            text: 'The execution of Roman citizens without trial under the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">senatus consultum ultimum</span> was not a problem unique to 63 BC — it was <em>the</em> key constitutional question running through the late Republic. The Gracchi were killed under or alongside emergency decrees; Saturninus was lynched after surrendering under the SCU in 100 BC; and Cicero\'s executions in 63 BC raised the same unresolved issue: could the Senate authorise the killing of citizens who had not been convicted in a court of law? Caesar\'s opposition in the December debate was not mere political manoeuvring — it articulated a genuine legal principle (<span style="font-family:\'Roboto Mono\',monospace;font-style:italic">provocatio</span>) that the Republic claimed to uphold but repeatedly violated in emergencies. The thread connecting the Gracchi to Cicero to Caesar\'s crossing of the Rubicon is precisely this: the Republic never found a way to handle internal crises without breaking its own rules.',
+            accent: 'purple'
+        }
+    ],
+
+    analysisBoxes: [
+        {
+            title: 'Why Cicero\'s Early Career Matters',
+            shortTerm: 'The consulship of 63 BC established Cicero as one of the most prominent men in Rome — hailed as <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">pater patriae</span>, celebrated as the saviour of the state, and recognised as the Republic\'s greatest orator. But the very act that secured his reputation — the execution of the conspirators — created the vulnerability that Clodius would exploit in 58 BC. Cicero\'s triumph and his downfall were two sides of the same decision, and the speed with which his political position collapsed after 63 BC reveals how fragile the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">concordia ordinum</span> truly was.',
+            longTerm: 'The Catilinarian precedent shaped every subsequent debate about emergency powers, citizens\' rights, and senatorial authority. It demonstrated that the SCU could be used to bypass fundamental legal protections — and that those who used it would face political consequences. The episode fed directly into the crisis of the 50s BC: Caesar\'s enemies threatened him with prosecution for actions during his consulship, and Caesar\'s refusal to submit to trial was one cause of the civil war. The question Cicero faced in 63 BC — whether the state could kill its own citizens to save itself — was never answered, and the Republic destroyed itself partly because it could not resolve this contradiction.',
+            examRelevance: 'Cicero\'s consulship is essential material for essays on political violence in the late Republic, the constitutional role of the SCU, and whether the Republic was capable of reforming itself. Use it to show that violence was not just the weapon of populist demagogues — even the Senate\'s greatest defender resorted to extrajudicial killing when he judged the crisis severe enough. The episode also works as evidence in essays about the failure of <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">concordia ordinum</span>: if Cicero\'s ideal coalition could not survive more than a few months after 63 BC, the concept was arguably never viable as a long-term political programme.'
+        }
     ]
 
 };

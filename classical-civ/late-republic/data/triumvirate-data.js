@@ -373,5 +373,47 @@ window.pageData = {
             evidence: 'Cicero <em>Att.</em> 2.18 (<em>rem publicam funditus amisimus</em>) — a contemporary verdict on the consulship. The <em>lex Iulia agraria</em>, <em>lex Vatinia</em>, and other legislation of 59 BC. Bibulus\'s retreat to his house and reliance on <em>obnuntiatio</em>. Cicero\'s exile (58 BC) as a direct consequence of the triumvirate\'s dominance. The broader context of crisis stretching back to the Gracchi.',
             historiography: 'Meier (<em>Caesar</em>) argues that Caesar\'s consulship was the decisive break. Gruen (<em>The Last Generation</em>) maintains the Republic was still viable after 59 BC. Syme sees 59 BC as one stage in a long revolution. The historiographical debate mirrors the question\'s central tension between "turning point" and "gradual decline" models of the Republic\'s fall.'
         }
+    ],
+
+    // ===== ARGUMENT GRIDS =====
+    argumentGrids: [
+        {
+            question: 'Was the First Triumvirate the death of the Republic?',
+            forPoints: [
+                'Three private citizens — Caesar, Pompey and Crassus — effectively controlled the state through a <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">privata amicitia</span>, bypassing both the Senate and the assemblies as independent decision-making bodies.',
+                'Caesar\'s consulship of 59 BC demonstrated that normal politics had broken down: legislation was forced through by violence, the co-consul Bibulus was driven from the Forum, and the Senate was rendered irrelevant.',
+                'The triumvirate made military commands the basis of political power. Caesar\'s Gallic command, Pompey\'s Spanish provinces, and Crassus\'s Parthian campaign all showed that armed force, not constitutional authority, determined who ruled.'
+            ],
+            againstPoints: [
+                'The triumvirate was a temporary alliance of convenience that nearly collapsed multiple times — tensions between Pompey and Crassus required constant management, and the Conference of Luca (56 BC) was needed to hold it together.',
+                'The Senate continued to function and to resist the triumvirs. Cato\'s opposition, Cicero\'s recall from exile, and persistent attempts to undermine Caesar\'s position show that republican institutions were weakened but not destroyed.',
+                'Gruen (<em>The Last Generation</em>) argues that the Republic remained viable well into the 50s BC. The triumvirate was a response to specific political blockages, not a permanent restructuring of the state.'
+            ],
+            verdict: 'The triumvirate did not kill the Republic, but it demonstrated that the Republic\'s institutions could be rendered irrelevant by men with armies and money. It was less a death blow than a diagnosis — proof that the constitutional system could no longer contain the ambitions it had created.'
+        }
+    ],
+
+    // ===== KEY POINTS =====
+    keyPoints: [
+        {
+            label: 'Caesar\'s Consulship of 59 BC',
+            text: 'Caesar\'s use of violence, bribery, and the popular assembly to pass legislation over the Senate\'s objections represented a qualitative escalation in the breakdown of republican norms. His co-consul Bibulus was physically driven from the Forum and reduced to issuing <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">obnuntiationes</span> from his house. Armed men enforced the passage of the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">lex Iulia agraria</span> and the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">lex Vatinia</span>. This was not merely bending the rules — it was demonstrating that the rules no longer applied to those with sufficient power.',
+            accent: 'red'
+        },
+        {
+            label: 'The Private Alliance',
+            text: 'Three men — Caesar, Pompey and Crassus — formed a <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">privata amicitia</span>, a private compact to divide the state\'s resources among themselves. The alliance was cemented by Julia\'s marriage to Pompey, binding Rome\'s two most powerful men through a personal dynastic tie rather than any constitutional arrangement. This was the replacement of institutional politics by personal politics: decisions about provinces, commands, and legislation were made not in the Senate house but in private meetings between three men.',
+            accent: 'purple'
+        }
+    ],
+
+    // ===== ANALYSIS BOXES =====
+    analysisBoxes: [
+        {
+            title: 'Why the Triumvirate Matters',
+            shortTerm: 'Caesar got his land law and Gallic command, Pompey got his eastern settlement ratified, Crassus got his tax contracts — each man got what the Senate had refused him, proving that extra-senatorial alliances were more effective than working within the system.',
+            longTerm: 'The triumvirate established the principle that military power was the real currency of Roman politics. Once Caesar had Gaul, the question was no longer <em>whether</em> the Republic would face a military crisis, but <em>when</em>.',
+            examRelevance: 'The triumvirate is essential for essays about the role of individuals vs structures. Was it the specific ambitions of these three men, or would any powerful commanders have formed similar alliances? Link to Marius and Sulla for the structural argument, to Caesar\'s specific choices for the individual argument.'
+        }
     ]
 };
