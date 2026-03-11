@@ -491,6 +491,45 @@ window.pageData = {
             evidence: 'Cicero\'s letters (<em>Att.</em> 8.8 for political paralysis; <em>Att.</em> 14.4 for sharp analysis). The <em>In Verrem</em> and the Philippics for Cicero\'s rhetorical approach. Cato\'s filibuster against Caesar\'s land bill. Cato\'s role in the Senate\'s ultimatum to Caesar (49 BC). Cato\'s suicide at Utica. Cicero\'s private criticism of Cato\'s political judgement (<em>Att.</em> 1.18, 2.1). The <em>laudandum, ornandum, tollendum</em> quip showing Cicero\'s fatally flexible strategy.',
             historiography: 'Rawson and Habicht on Cicero\'s political approach. Goodman on Cato\'s principled conservatism. Beard argues that the Republic\'s informal political culture could not survive regardless of individual strategies. The comparison illuminates the broader debate about whether the Republic\'s fall was determined by structural forces or shaped by individual choices.'
         }
+    ],
+
+    argumentGrids: [
+        {
+            question: 'Was the fall of the Roman Republic caused by structural forces or individual ambition?',
+            forPoints: [
+                'The army reforms of Marius created client armies loyal to their generals rather than the state, making military coups structurally possible.',
+                'Imperial expansion outgrew the city-state institutions of the Republic — a constitution designed for a single city could not govern a Mediterranean empire.',
+                'Economic inequality and land dispossession made the urban poor available for political mobilisation, giving populist politicians a power base outside the Senate.'
+            ],
+            againstPoints: [
+                'Without Caesar\'s specific decision to cross the Rubicon in 49 BC, civil war might not have come when it did or in the form it took.',
+                'Cato\'s inflexibility blocked compromise solutions that might have preserved the Republic — his filibuster and refusal to negotiate with Caesar narrowed the options fatally.',
+                'The First Triumvirate was a choice by three men — Caesar, Pompey, and Crassus — not a structural necessity; different individuals might have made different alliances.'
+            ],
+            verdict: 'The strongest essays combine both approaches, arguing that structural pressures — military clientship, imperial overstretch, economic crisis — created the conditions for the Republic\'s collapse, but individual decisions determined the timing and form of that collapse. Structure explains why the Republic <em>could</em> fall; agency explains why it fell <em>when and how</em> it did.'
+        }
+    ],
+
+    keyPoints: [
+        {
+            label: 'Violence as a Political Tool',
+            text: 'Political violence escalated in a clear structural pattern across the late Republic: Tiberius Gracchus was murdered in 133 BC for pushing land reform, establishing the precedent that political disputes could be settled by force. Gaius Gracchus was killed in 121 BC under the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">senatus consultum ultimum</span>. Sulla\'s proscriptions (82 BC) industrialised political killing. Cicero\'s execution of the Catilinarian conspirators (63 BC) showed even a civilian consul would bypass legal protections. Clodius\'s gangs and Milo\'s counter-gangs made street violence routine in the 50s BC. Caesar\'s civil war was the final escalation. This was not a series of isolated incidents but a structural pattern in which each act of violence lowered the threshold for the next.',
+            accent: 'red'
+        },
+        {
+            label: 'The Role of Personality',
+            text: 'The Republic\'s reliance on <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">mos maiorum</span> — unwritten custom rather than enforceable law — meant that the character of individual politicians had outsized effects on political outcomes. Cato\'s rigid Stoic commitment to principle blocked compromises that might have preserved peace. Caesar\'s boundless ambition and refusal to accept a subordinate position drove him to civil war. Cicero\'s vanity and need for recognition led him to overestimate his own influence and fatally misjudge Octavian. Pompey\'s indecision — his inability to commit fully to either the Senate or personal autocracy — left him without reliable allies when the crisis came. In a system with formal checks and balances, these personality traits would have mattered less; in the Republic\'s informal political culture, they were decisive.',
+            accent: 'blue'
+        }
+    ],
+
+    analysisBoxes: [
+        {
+            title: 'Approaching the Exam',
+            shortTerm: 'Focus on mastering the key debates: structural versus individual causation, the role of violence as a political tool, the significance of the tribunate as a vehicle for reform and disruption, and the reliability of ancient sources (particularly Cicero\'s letters, which are invaluable but self-serving).',
+            longTerm: 'The best essays are those that can move between specific evidence and broader analytical arguments — use the thematic connections between topics to build sophisticated, cross-referencing answers. A discussion of Caesar\'s crossing of the Rubicon should connect to Sulla\'s earlier march on Rome; an analysis of Cicero\'s consulship should connect to the wider pattern of political violence.',
+            examRelevance: 'Every 30-mark essay should engage with at least two historiographical positions. Name the historians — Syme on the Roman revolution as an aristocratic power struggle, Gruen on the Republic\'s residual strength, Beard on structural dysfunction, Goodman on conservative resistance, Tatum on popular politics, Gelzer on personal clientship — and explain <em>why</em> their interpretations differ. This is what distinguishes top-band answers from competent but generic responses.'
+        }
     ]
 
 };

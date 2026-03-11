@@ -422,5 +422,44 @@ window.pageData = {
             evidence: 'Bibulus\u2019s obstruction of Caesar\u2019s consulship in 59 BC through continuous <em>obnuntiatio</em> is the clearest example of religious forms being used for political ends. Clodius\u2019s <em>lex Clodia de obnuntiatione</em> (58 BC) attempted to limit this abuse, showing that Romans themselves recognised the problem. Cicero\u2019s membership of the augural college and his discussion of augury in <em>De Legibus</em> reveal the intersection of religion and politics. Cicero\u2019s <em>In Verrem</em> speeches criticise Verres partly for his impiety, suggesting that religious transgression was still a powerful accusation. Caesar\u2019s role as <em>pontifex maximus</em> from 63 BC shows how religious office served political ambition \u2014 yet Caesar also took his religious duties seriously enough to reform the calendar.',
             modelParagraph: '<p>The claim that religion was \u201cnothing more\u201d than a political tool misunderstands the nature of Roman religion, which was always inseparable from politics by design, not by corruption. Bibulus\u2019s decision to retire to his house and declare unfavourable auspices for every remaining day of Caesar\u2019s consulship in 59 BC is often cited as evidence of cynical manipulation \u2014 and it is certainly that. But the fact that Bibulus <em>could</em> obstruct legislation through religious means shows that the auspices still carried constitutional weight: if religion were truly meaningless, no one would have bothered. Cicero\u2019s position is instructive: as an augur, he defends the political utility of augury in <em>De Legibus</em>, arguing that the power to dissolve assemblies on religious grounds is a necessary check on popular recklessness. Yet in <em>De Divinatione</em>, he expresses deep scepticism about whether the gods actually communicate through bird-signs. This is not contradictory but characteristically Roman: religion\u2019s value lies in its social and political function, not in private conviction. The auspices were political tools, but they were also the framework within which Roman political life had meaning. To strip away the religion is to strip away the legitimacy of the state itself.</p>'
         }
+    ],
+
+    argumentGrids: [
+        {
+            question: 'Was the Roman Republic a democracy?',
+            forPoints: [
+                'Popular assemblies (<span style="font-family:\'Roboto Mono\',monospace;font-style:italic">comitia</span>) passed all legislation \u2014 no law could take effect without a vote of the citizen body, giving the people formal sovereignty over the legal framework of the state.',
+                'The tribunes of the plebs could veto any action by any magistrate, including consuls, and could halt Senate business \u2014 a power that gave ordinary citizens\u2019 elected representatives an absolute check on elite authority.',
+                'Citizens voted in elections for all magistracies, from quaestor to consul, and no one could hold office without winning a popular vote \u2014 making political power formally dependent on public approval.'
+            ],
+            againstPoints: [
+                'The Senate controlled state finances, foreign policy, provincial assignments, and military commands \u2014 the most consequential decisions were made by an unelected body of ex-magistrates drawn almost entirely from the aristocracy.',
+                'Voting in the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">comitia centuriata</span> was weighted by wealth: the richest centuries voted first and held enough votes to decide the outcome before the poorest citizens were even called, making elections structurally biased toward the elite.',
+                'Patronage networks meant that the elite controlled popular votes in practice \u2014 clients were expected to vote as their patrons directed, and candidates relied on networks of obligation, bribery, and social pressure rather than genuine popular choice.'
+            ],
+            verdict: 'The Republic was an aristocratic oligarchy with democratic elements. The people had real but limited power: they could vote, but the system was designed to ensure that wealth and social status determined outcomes. Understanding this tension \u2014 between the <em>formal</em> sovereignty of the people and the <em>practical</em> dominance of the elite \u2014 is essential for every essay on the late Republic.'
+        }
+    ],
+
+    keyPoints: [
+        {
+            label: 'Mos Maiorum',
+            text: 'The Republic ran on <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">mos maiorum</span> \u2014 the \u2018custom of the ancestors\u2019 \u2014 rather than a written constitution. There was no single document setting out the rules of government; instead, Romans relied on precedent, tradition, and the accumulated practice of centuries. This made the system both flexible and fragile. Flexible, because customs could adapt to new circumstances without the rigidity of codified law. Fragile, because anyone who chose to ignore them could not be stopped by legal means \u2014 there was no constitutional court, no supreme law to appeal to. When <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">mos maiorum</span> held, the Republic functioned; when ambitious individuals decided that custom no longer bound them, there was no mechanism to enforce compliance.',
+            accent: 'teal'
+        },
+        {
+            label: 'The Cursus Honorum',
+            text: 'The <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">cursus honorum</span> \u2014 the fixed career path of Roman public life \u2014 required aspiring politicians to hold offices in a set sequence: quaestor, aedile, praetor, consul. Minimum ages and mandatory intervals between offices regulated the pace of advancement, ensuring that no one could rise too fast. This system channelled aristocratic competition into orderly, predictable patterns and prevented young men from seizing supreme power before they had proved themselves. But it also created intense pressure to achieve distinction at each stage: a man who failed to win the praetorship at the earliest legal age fell behind his rivals, and a man who never reached the consulship had, by Roman standards, failed entirely. This competitive pressure \u2014 the relentless drive for <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">gloria</span>, <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">dignitas</span>, and <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">auctoritas</span> \u2014 was the engine of Roman public life, but it was also the force that eventually destroyed the system it was meant to regulate.',
+            accent: 'blue'
+        }
+    ],
+
+    analysisBoxes: [
+        {
+            title: 'Why Understanding the Republic Matters',
+            shortTerm: 'Every crisis in the late Republic involves someone breaking, bending, or defending constitutional norms \u2014 you cannot assess these actions without understanding what the norms were. Whether it is Tiberius Gracchus deposing a tribune, Sulla marching on Rome, or Caesar crossing the Rubicon, the significance of each act depends entirely on knowing the rules it violated.',
+            longTerm: 'The Republic\u2019s reliance on custom rather than law meant it had no mechanism for resolving deadlock except social pressure \u2014 and when the stakes were high enough, social pressure failed every time. This structural weakness explains why the Republic could survive external threats that would have destroyed other states, yet proved incapable of managing its own internal political conflicts.',
+            examRelevance: 'This is your reference page \u2014 return to it whenever you need to explain why a particular action was unprecedented, why the Senate reacted as it did, or why <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">mos maiorum</span> matters for the structural vs individual causation debate.'
+        }
     ]
 };

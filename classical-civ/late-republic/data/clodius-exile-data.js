@@ -302,5 +302,44 @@ window.pageData = {
             evidence: 'The <em>transitio ad plebem</em>: Caesar\'s facilitation reveals how the triumvirs used constitutional procedures instrumentally. Clodius\'s legislation of 58 BC: the <em>lex frumentaria</em>, restoration of <em>collegia</em>, restrictions on <em>obnuntiatio</em> — a coherent popular programme, not random demagogy. The exile of Cicero: proof that a tribune could destroy a former consul when backed by dynastic power. Clodius\'s conflict with Pompey after 58 BC: evidence he was not merely a triumviral puppet. Cicero\'s letters documenting both his personal hatred of Clodius and his grudging recognition of Clodius\'s political effectiveness. The murder of Clodius by Milo (52 BC) and the subsequent riots leading to Pompey\'s sole consulship — showing that Clodius\'s death was as destabilising as his life.',
             historiography: 'Tatum\'s <em>The Patrician Tribune</em> argues that Clodius was a sophisticated and genuinely popular politician, not a mere thug. Lintott emphasises the constitutional dimensions of Clodius\'s career. Wiseman highlights the popular base that made Clodius\'s politics possible and gave them genuine democratic content.'
         }
+    ],
+
+    argumentGrids: [
+        {
+            question: 'Was Clodius a genuine popular politician or merely a tool of the triumvirs?',
+            forPoints: [
+                'His legislation genuinely benefited the plebs: the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">lex Clodia frumentaria</span> provided free grain, and the restoration of the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">collegia</span> gave ordinary Romans organisational power and community structures.',
+                'He built an independent power base among the urban poor that no previous Roman politician had achieved \u2014 a permanent, organised following that could be mobilised for political action long after his tribunate ended.',
+                'He clashed openly with Pompey after 58 BC, proving he was no obedient instrument of the triumvirate. His gangs attacked Pompey\'s supporters and even threatened Pompey personally, forcing Pompey to seek new allies.'
+            ],
+            againstPoints: [
+                'His <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">transitio ad plebem</span> was facilitated by Caesar as <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">pontifex maximus</span>, who presided over the religious formalities specifically to deploy Clodius against Cicero.',
+                'Exiling Cicero served the triumvirs\' interests directly: it removed one of the most vocal potential critics of the triumvirate\'s arrangements from the political stage, exactly as Caesar had calculated.',
+                'His early career depended on dynastic patronage \u2014 without the triumvirs\' backing, a patrician seeking the tribunate would have faced insurmountable constitutional and political obstacles.'
+            ],
+            verdict: 'The truth lies in the middle: Clodius used the triumvirs as much as they used him. As Tatum argues in <em>The Patrician Tribune</em>, Clodius was a sophisticated politician in his own right who pursued a coherent <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">popularis</span> programme. He needed Caesar\'s help to access the tribunate, but once in office he built something genuinely new \u2014 an organised urban political movement that outlasted any single alliance.'
+        }
+    ],
+
+    keyPoints: [
+        {
+            label: 'The Transitio ad Plebem',
+            text: 'Clodius, a patrician, had himself adopted into a plebeian family through the procedure of <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">transitio ad plebem</span> to become eligible for the tribunate \u2014 a rare constitutional manoeuvre facilitated by Caesar as <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">pontifex maximus</span>. This manipulation of ancient religious and legal procedures reveals the late Republic\'s fundamental instability: its constitutional forms could be exploited by anyone with enough political backing, turning mechanisms designed to protect the social order into weapons for personal advancement.',
+            accent: 'yellow'
+        },
+        {
+            label: 'Cicero\'s Exile and Return',
+            text: 'Cicero\'s exile (58\u201357 BC) demonstrated both the power of the tribunate and the limits of senatorial solidarity. The Senate, which had authorised the very executions Cicero was being punished for, offered sympathy but no practical protection \u2014 they let him fall when Clodius and the triumvirs demanded it, then recalled him in 57 BC when Pompey\'s political calculations changed. Cicero\'s fate was determined not by constitutional process but by the shifting interests of men with real power.',
+            accent: 'blue'
+        }
+    ],
+
+    analysisBoxes: [
+        {
+            title: 'Why Clodius and the Exile Matter',
+            shortTerm: 'Clodius\'s tribunate of 58 BC transformed urban politics by demonstrating that the tribunate could be used to destroy even a former consul\'s career. His popular legislation \u2014 free grain, restored <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">collegia</span>, restrictions on <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">obnuntiatio</span> \u2014 built an organised mass following in Rome, while his exile of Cicero proved that senatorial prestige and past service counted for nothing against a tribune backed by the triumvirate.',
+            longTerm: 'Clodius\'s methods \u2014 street violence through repurposed <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">collegia</span>, popular legislation to build a loyal base, and manipulation of assemblies \u2014 became standard political tools in the late Republic. His murder by Milo\'s gang on the <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">Via Appia</span> in 52 BC provoked riots so severe that the Senate appointed Pompey as sole consul (<span style="font-family:\'Roboto Mono\',monospace;font-style:italic">consul sine collega</span>) to restore order, an extraordinary step that further concentrated power in the hands of military dynasts and accelerated the Republic\'s collapse.',
+            examRelevance: 'Clodius and Cicero\'s exile are essential material for essays on the tribunate as a political weapon, <span style="font-family:\'Roboto Mono\',monospace;font-style:italic">popularis</span> politics and its relationship to genuine popular grievances, and the connection between violence and political power in the late Republic. Use Clodius to argue that political violence was not an aberration but a structural feature of a system where constitutional norms could not constrain men with organised followings and dynastic backing.'
+        }
     ]
 };
