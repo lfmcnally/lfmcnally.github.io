@@ -313,6 +313,42 @@ window.pageData = {
             evidence: 'Cicero, <em>ad Atticum</em> 14.4 (<em>ergon</em>/<em>boul\u0113</em>); the conspirators\' lack of planning; Antony\'s funeral and seizure of power; the Second Triumvirate and proscriptions; Cicero\'s death in 43 BC; the precedents of Sulla, Marius, and Pompey; Cicero\'s letters under the dictatorship showing the Senate\'s irrelevance; the eventual establishment of the Principate under Augustus.',
             historiography: 'This question directly engages the major historiographical debate. Structural historians (e.g. Beard, Hopkins) argue the Republic was doomed by systemic forces. Traditional narrative historians emphasise individual choices and contingency. The best answers synthesise both: structural problems created the conditions, but individual decisions \u2014 including the conspirators\' failures \u2014 determined the form of the Republic\'s end.'
         }
+    ],
+
+    argumentGrids: [
+        {
+            question: 'Was the assassination of Caesar justified?',
+            forPoints: [
+                'Caesar held power incompatible with the Republic — dictator perpetuo was permanent autocracy',
+                'Defended libertas, the core Republican value: freedom from one-man rule',
+                'Followed the tradition of Brutus\'s ancestor, who expelled the last king',
+                'Constitutional opposition was impossible — Caesar controlled all levers of power'
+            ],
+            againstPoints: [
+                'The conspirators had no plan for what came after — the deed without a plan',
+                'Caesar was genuinely popular with the Roman people; the conspirators were not',
+                'Clementia showed mercy, not cruelty — this was not a bloodthirsty tyrant',
+                'The Republic may already have been dead; killing one man could not restore it'
+            ],
+            verdict: 'Cicero\'s judgement captures it perfectly: accomplished with the courage of men but the planning of children. The moral case for tyrannicide was strong; the political execution was catastrophic. They killed Caesar but could not resurrect the Republic.'
+        }
+    ],
+
+    keyPoints: [
+        {
+            label: 'The Deed Without a Plan',
+            text: 'Cicero\'s distinction between \u1f14\u03c1\u03b3\u03bf\u03bd (the deed) and \u03b2\u03bf\u03c5\u03bb\u03ae (the plan) is the single most important analytical framework for the assassination. The conspirators assumed that killing the tyrant would automatically restore the Republic. It did not — because the Republic\'s problems were structural, not personal. Removing one man changed nothing about the armies, the landless poor, or the failure of constitutional mechanisms.',
+            accent: 'teal'
+        }
+    ],
+
+    analysisBoxes: [
+        {
+            title: 'Why the Ides of March Matters',
+            shortTerm: 'Caesar is dead, but his supporters control Rome. Antony seizes the treasury and Caesar\'s papers. The conspirators are driven from the city within weeks. The assassination achieves the opposite of its intention.',
+            longTerm: 'The Ides proves that the Republic cannot be restored by removing individuals. The structural conditions that enabled Caesar — professional armies, dysfunctional constitution, extreme inequality — remain unchanged. Within a year, a new triumvirate rules Rome.',
+            examRelevance: 'The \u1f14\u03c1\u03b3\u03bf\u03bd/\u03b2\u03bf\u03c5\u03bb\u03ae framework from Att. 14.4 is essential. Use it to show the examiner you can distinguish between moral justification and political effectiveness — which is exactly what 30-mark questions demand.'
+        }
     ]
 
 };

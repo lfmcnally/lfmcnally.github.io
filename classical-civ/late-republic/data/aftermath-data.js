@@ -335,6 +335,47 @@ window.pageData = {
             evidence: 'The display of head and hands on the Rostra. The Second Triumvirate\'s legal powers overriding senatorial authority. The proscriptions — far more destructive to the senatorial class than Caesar\'s dictatorship. Comparison with earlier crises (Gracchi, Sulla, Caesar) to show the Republic\'s gradual decline. Cicero\'s own letters and speeches as evidence for his identification with the Republic.',
             historiography: 'Beard and Crawford see the Republic\'s fall as a long structural process — Cicero\'s death is one event among many. Syme emphasises the role of faction and military power. Rawson and Habicht give more weight to Cicero\'s individual significance. The debate maps onto the broader question of whether history is driven by structures or individuals.'
         }
+    ],
+
+    argumentGrids: [
+        {
+            question: 'Did Cicero\'s Philippics achieve anything?',
+            forPoints: [
+                'Rallied the Senate to declare Antony a public enemy — a genuine political achievement',
+                'Defined the terms of the debate: Republic vs tyranny, liberty vs servitude',
+                'Bought time for the Republican cause — delayed Antony\'s consolidation',
+                'Demonstrated that oratory still had power to shape political outcomes, even briefly'
+            ],
+            againstPoints: [
+                'Cicero\'s alliance with Octavian was fatally naive — laudandum, ornandum, tollendum backfired completely',
+                'Military force, not speeches, decided the outcome — Mutina was a battle, not a debate',
+                'The Philippics changed nothing structurally; the same power dynamics continued',
+                'The speeches became Cicero\'s death warrant when Antony demanded his head as the price of alliance'
+            ],
+            verdict: 'The Philippics are Cicero\'s greatest achievement and his death warrant. They prove both the power and the limits of Republican oratory: powerful enough to shame a Senate into action, but powerless against three men with armies.'
+        }
+    ],
+
+    keyPoints: [
+        {
+            label: 'What Died on the Rostra',
+            text: 'When Cicero\'s head and hands were displayed on the speakers\' platform — the Rostra where he had delivered his greatest speeches — it symbolised the death not just of a man but of a principle. The idea that words could defend liberty, that oratory could restrain power, that the Republic\'s greatest weapon was persuasion, not force: all of this died with Cicero. The display was Antony\'s final argument: swords beat words.',
+            accent: 'blue'
+        },
+        {
+            label: 'Octavian\'s Betrayal',
+            text: 'Cicero championed the eighteen-year-old Octavian as a tool against Antony — "to be praised, honoured, and removed." But Octavian removed Cicero instead. The betrayal revealed a truth the Republic\'s defenders never grasped: alliances with military strongmen are inherently unstable. Power, not loyalty, determines outcomes.',
+            accent: 'red'
+        }
+    ],
+
+    analysisBoxes: [
+        {
+            title: 'Why the Aftermath Matters',
+            shortTerm: 'The Second Triumvirate\'s proscriptions eliminate the last Republican voices. Three hundred senators and two thousand equestrians are killed. The political class that ran the Republic for centuries is decimated in weeks.',
+            longTerm: 'Cicero\'s death marks the end of an era. After 43 BC, there is no one left to argue for the Republic. The next generation — Augustan Rome — will speak of libertas as a historical concept, not a living political reality.',
+            examRelevance: 'Cicero\'s death is the natural endpoint for any essay on the Republic\'s fall. Use it to bring together the themes of oratory vs force, individual vs structure, and constitutional form vs substantive power. The best conclusions connect Cicero\'s death to the broader question of whether the Republic was saveable.'
+        }
     ]
 
 };

@@ -420,6 +420,50 @@ window.pageData = {
             evidence: 'The proscription lists posted publicly in 82 BC; approximately 1,500 equestrians and 40 senators killed; sons and grandsons of the proscribed barred from public office; confiscated property enriching Sulla\'s supporters (Crassus\'s wealth); the Second Triumvirate\'s proscriptions of 43 BC following the same model; Cicero\'s death in the 43 BC proscriptions; Caesar\'s policy of <em>clementia</em> as deliberate contrast with Sulla; <em>Cicero\'s In Verrem as evidence of the post-Sullan political world</em>; the <em>senatus consultum ultimum</em> against Saturninus (100 BC) as earlier precedent for political violence; <em>Cicero\'s letters expressing anxiety about the potential for proscription-style violence in the 40s BC</em>.',
             historiography: 'Flower argues that the proscriptions fundamentally altered Roman political culture by normalising organised state violence against citizens. Beard emphasises the economic dimension — the redistribution of wealth through proscription created new power structures that outlasted Sulla himself. Keaveney defends the proscriptions as a rational (if brutal) response to the genuine problem of political enemies who would otherwise seek revenge, noting that Sulla\'s retirement was only possible because he had eliminated potential challengers.'
         }
+    ],
+
+    // ===== ARGUMENT GRIDS =====
+    argumentGrids: [
+        {
+            question: 'Did Marius\'s army reforms make civil war inevitable?',
+            forPoints: [
+                'Soldiers now loyal to commander, not state — dependent on general for land grants after service',
+                'Landless recruits (capite censi) had no stake in Republic; army became personal instrument',
+                'Created template: Sulla, Pompey, Caesar, Octavian all exploited same dynamic',
+                'State had no mechanism to settle veterans — only individual commanders could deliver'
+            ],
+            againstPoints: [
+                'Structural problems (landless poor, senatorial oligarchy) predated reforms',
+                'Reforms addressed genuine military need — citizen-militia couldn\'t fight prolonged wars',
+                'Political choices still mattered: Sulla chose to march, others could have chosen differently',
+                'Republic survived 40 years after reforms — not an immediate trigger'
+            ],
+            verdict: 'The reforms created the conditions for civil war; they did not cause it. Individual decisions — Sulla\'s march, Caesar\'s crossing — were still choices, not inevitabilities.'
+        }
+    ],
+
+    // ===== KEY POINTS =====
+    keyPoints: [
+        {
+            label: 'The First March on Rome',
+            text: 'Sulla marching legions into Rome in 88 BC shattered the most fundamental taboo of Roman politics. The city\'s sacred boundary (pomerium) meant nothing against armed force. Every subsequent march — Caesar in 49 BC, Octavian in 43 BC — follows this precedent.',
+            accent: 'red'
+        },
+        {
+            label: 'Proscriptions as Political Tool',
+            text: 'Sulla\'s proscription lists normalised the systematic murder of political opponents and confiscation of their property. The Second Triumvirate\'s proscriptions in 43 BC — which killed Cicero — are a direct echo of Sulla\'s innovation.',
+            accent: 'purple'
+        }
+    ],
+
+    // ===== ANALYSIS BOXES =====
+    analysisBoxes: [
+        {
+            title: 'Why Marius and Sulla Matter',
+            shortTerm: 'Sulla\'s constitutional reforms temporarily restored Senate authority — tribunician power curtailed, proscriptions eliminated opposition. But reforms depended on fear, not consent.',
+            longTerm: 'The professional army template was used by every subsequent strongman. Pompey, Caesar, and Octavian all built personal armies that owed loyalty to them, not to the Republic. The cycle Sulla started could not be stopped.',
+            examRelevance: 'This period connects military reform to political collapse. Examiners reward essays that show how army reforms bridge the gap between structural and individual explanations for the Republic\'s fall.'
+        }
     ]
 
 };

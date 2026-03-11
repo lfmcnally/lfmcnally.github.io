@@ -380,6 +380,50 @@ window.pageData = {
             evidence: 'Cato\'s opposition to Caesar\'s consulship (59 BC). His obstruction of compromise in 50–49 BC. The SCU and expulsion of the tribunes. Cicero\'s letters expressing frustration with Cato\'s inflexibility. Caesar\'s <em>De Bello Civili</em> 1.7–9 for the argument that the Senate (meaning Cato\'s faction) was the aggressor. The broader pattern of senatorial obstruction going back to 60 BC.',
             historiography: 'Morstein-Marx emphasises Cato\'s role in making war inevitable. Beard notes the irony that the Republic\'s most principled defender helped destroy it. Goodman argues Cato had no realistic alternative given Caesar\'s track record. Gruen maintains the Republic was still functional and Cato was defending a viable system. The key question: was Cato\'s inflexibility a cause of the war or a symptom of the Republic\'s deeper dysfunction?'
         }
+    ],
+
+    // ===== ARGUMENT GRIDS =====
+    argumentGrids: [
+        {
+            question: 'Was Caesar justified in crossing the Rubicon?',
+            forPoints: [
+                'His dignitas was deliberately violated — Senate refused to allow him to stand for consulship in absentia',
+                'Tribunes Antony and Curio were expelled from Rome — an attack on tribunician sacrosanctity',
+                'Pompey had been granted extraordinary commands (sole consulship 52 BC) without comparable outcry',
+                'Senate refused every compromise Caesar offered — negotiated settlement was blocked by hardliners'
+            ],
+            againstPoints: [
+                'Constitutional means were still available — he could have returned as a private citizen and stood for election',
+                'Other politicians suffered setbacks without marching armies on Rome',
+                'Personal ambition, not constitutional principle, was the primary motive',
+                'Crossing the Rubicon with armed legions was treason (perduellio) by any definition'
+            ],
+            verdict: 'Caesar had legitimate grievances but chose the most destructive possible response. The question is whether any constitutional solution remained viable — or whether Cato and the Senate had already made peaceful resolution impossible.'
+        }
+    ],
+
+    // ===== KEY POINTS =====
+    keyPoints: [
+        {
+            label: 'Clementia: Strength or Weakness?',
+            text: 'Caesar\'s policy of pardoning defeated enemies was politically brilliant and personally fatal. It kept alive the very men who would assassinate him — Brutus, Cassius, and others he had pardoned. The paradox of clementia is that it implies superiority: the pardoner stands above the pardoned, which humiliated proud senators even as it spared their lives.',
+            accent: 'red'
+        },
+        {
+            label: 'Pompey\'s Miscalculation',
+            text: 'Pompey\'s retreat from Italy was strategically rational — he planned to raise Eastern legions and starve Caesar out. But it was politically devastating. Abandoning Rome conceded the moral authority of the capital and made Caesar look like the legitimate power.',
+            accent: 'purple'
+        }
+    ],
+
+    // ===== ANALYSIS BOXES =====
+    analysisBoxes: [
+        {
+            title: 'Why the Civil War Matters',
+            shortTerm: 'Caesar\'s victory eliminates the last military opposition to one-man rule. Pompey dead, Cato dead, Republican armies scattered. The Senate survives as an institution but has no independent power.',
+            longTerm: 'The civil war proves that the Republic\'s constitutional mechanisms cannot resolve disputes between powerful individuals. When negotiation fails, only military force remains. This lesson is repeated in 43 BC and again in 31 BC.',
+            examRelevance: 'The Rubicon crossing is the single most dramatic moment in the syllabus. Link it backward to Sulla\'s march (the precedent) and forward to Caesar\'s dictatorship (the consequence). Best essays address whether the crossing was a choice or an inevitability.'
+        }
     ]
 
 };

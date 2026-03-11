@@ -310,6 +310,48 @@ window.pageData = {
             evidence: 'The SCU was first passed against Gaius Gracchus in 121 BC, authorising Opimius to kill Gaius and approximately 3,000 supporters. It was used against Saturninus in 100 BC and against the Catilinarian conspirators in 63 BC. Cicero\u2019s defence of his actions in 63 BC and his subsequent exile by Clodius in 58 BC demonstrate that the legality of the SCU was never settled. The SCU passed against Caesar in 49 BC failed entirely: Caesar crossed the Rubicon and the Senate could not enforce its decree. Cicero\u2019s letters reveal his own uncertainty about the SCU\u2019s legality \u2014 he knew his execution of the Catilinarians was legally vulnerable, which is why Clodius was able to exploit it.',
             modelParagraph: '<p>The <em>senatus consultum ultimum</em> was not so much a weapon for defending the Republic as a symptom of the Republic\u2019s inability to defend itself. When the Senate first passed the decree in 121 BC, authorising consul Opimius to use force against Gaius Gracchus, it was responding to a problem the constitution had no mechanism to solve: a popular leader with mass support whom normal legal processes could not restrain. But the SCU\u2019s formula \u2014 <em>videant consules ne quid res publica detrimenti capiat</em> \u2014 was deliberately vague, providing no legal definition of the threat, no limits on the response, and no accountability for the consul\u2019s actions. It was, in effect, a blank cheque for state violence. Cicero relied on this blank cheque to execute the Catilinarian conspirators in 63 BC, and his subsequent exile by Clodius proved the decree\u2019s fatal weakness: if even Rome\u2019s greatest orator could be prosecuted for acting on the SCU, then the decree offered no reliable protection. Most damning of all, when the Senate passed the SCU against Caesar in 49 BC, it achieved nothing: Caesar simply crossed the Rubicon with his legions. The Senate\u2019s \u201cmost important weapon\u201d was powerless against precisely the threat it was designed to counter \u2014 a popular commander with a loyal army. The SCU did not defend the Republic; it accelerated the Republic\u2019s destruction by normalising violence and raising the stakes of political failure to the point where ambitious men felt they had no choice but to seek military power.</p>'
         }
+    ],
+
+    // ===== ARGUMENT GRIDS =====
+    argumentGrids: [
+        {
+            question: 'Were the Gracchi revolutionaries or reformers?',
+            forPoints: [
+                'Enforcing existing laws on <em>ager publicus</em> limits — the 500-<em>iugera</em> cap was already on the statute books',
+                'Addressing a genuine crisis of landless citizens who could no longer qualify for military service',
+                'Working within the framework of the tribunate — a constitutional office designed to protect plebeian interests'
+            ],
+            againstPoints: [
+                'Deposing a fellow tribune (Octavius) was completely unprecedented and destroyed the principle of collegial veto',
+                'Seeking re-election to the tribunate broke deep-rooted convention, suggesting a desire for ongoing personal power',
+                'Bypassing the Senate to take legislation directly to the assembly set a dangerous precedent for future populists'
+            ],
+            verdict: 'The content of their reforms was conservative; their methods were revolutionary. This distinction matters for exam essays.'
+        }
+    ],
+
+    // ===== KEY POINTS =====
+    keyPoints: [
+        {
+            label: 'First Political Murder',
+            text: 'Nasica\'s killing of Tiberius in 133 BC established that violence was an available political tool. Every subsequent political killing \u2014 from Gaius in 121 BC to Cicero in 43 BC \u2014 traces back to this precedent. Once the taboo was broken, it could never be restored.',
+            accent: 'red'
+        },
+        {
+            label: 'The SCU Precedent',
+            text: 'The <em>senatus consultum ultimum</em> used against Gaius in 121 BC created a legal fiction: an emergency power with no constitutional basis that the Senate would use repeatedly to justify extrajudicial killing. It was invoked against Saturninus, against the Catilinarian conspirators, and against Caesar himself \u2014 each time stretching the Republic\'s norms further towards breaking point.',
+            accent: 'purple'
+        }
+    ],
+
+    // ===== ANALYSIS BOXES =====
+    analysisBoxes: [
+        {
+            title: 'Why the Gracchi Matter',
+            shortTerm: 'The land commission continued its work after Tiberius\'s death, and real redistribution occurred. But the reformer himself was dead \u2014 killed by senators wielding chair legs in a sacred precinct. The message was clear: reform through the tribunate would be met with lethal force.',
+            longTerm: 'The Gracchi set every precedent that destroyed the Republic: political violence, the weaponisation of the tribunate, the bypass of senatorial authority, and the use of emergency powers to kill citizens without trial. Sulla, Caesar, and the triumvirs all walked through doors the Gracchi opened.',
+            examRelevance: 'Link the Gracchi directly to Clodius (tribunate as weapon), Caesar (bypassing the Senate), and the structural vs individual causation debate. The strongest essays treat 133 BC not as a standalone event but as the first domino in a chain that ends with the Republic\'s fall.'
+        }
     ]
 
 };
