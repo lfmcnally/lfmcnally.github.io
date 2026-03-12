@@ -43,7 +43,7 @@ export interface QuoteBlock extends BaseBlock {
   type: 'quote';
   text: string;
   attribution: string;
-  style: 'blood' | 'gold';
+  style: 'primary' | 'secondary';
 }
 
 export interface KeyPointBlock extends BaseBlock {
@@ -122,6 +122,7 @@ export type Block =
 export interface Project {
   id: string;
   name: string;
+  theme: string;
   blocks: Block[];
   updatedAt: number;
 }

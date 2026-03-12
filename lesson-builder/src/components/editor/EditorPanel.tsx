@@ -10,7 +10,7 @@ function createDefaultBlock(type: BlockType): Block {
     case 'title': return { id, type, title: '', subtitle: '', dateLine: '', showEmbers: true };
     case 'scene': return { id, type, countdown: '', marker: '', title: '', body: '' };
     case 'reveal': return { id, type, triggerLabel: 'Click to reveal', hiddenContent: '' };
-    case 'quote': return { id, type, text: '', attribution: '', style: 'blood' };
+    case 'quote': return { id, type, text: '', attribution: '', style: 'primary' };
     case 'keypoint': return { id, type, text: '' };
     case 'cardgrid': return { id, type, cards: [{ id: genId(), name: '', subtitle: '', body: '', detail: '' }] };
     case 'numberedlist': return { id, type, items: [{ id: genId(), title: '', details: '' }] };
