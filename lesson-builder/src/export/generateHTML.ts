@@ -760,7 +760,8 @@ function startLesson() {
   return js;
 }
 
-export function generateHTML(project: Project): string {
+export function generateHTML(project: Project, options?: { preview?: boolean }): string {
+  const isPreview = options?.preview ?? false;
   const themeId = (project.theme || 'clean') as ThemeId;
   const theme = THEMES[themeId] || THEMES.clean;
 
@@ -771,8 +772,17 @@ export function generateHTML(project: Project): string {
 
   const fontImport = `https://fonts.googleapis.com/css2?${theme.headingFontImport}&${theme.bodyFontImport}&display=swap`;
 
-  const showGrain = theme.grain;
-  const showEmberCanvas = showEmbers && theme.embers;
+  const showGrain = theme.grain && !isPreview;
+  const showEmberCanvas = showEmbers && theme.embers && !isPreview;
+
+  // In preview mode: make everything visible immediately, skip title animation
+  const previewCSS = isPreview ? `
+.reveal-on-scroll { opacity: 1 !important; transform: none !important; }
+.main-title { opacity: 1 !important; }
+.subtitle, .date-line { opacity: 1 !important; transition: none !important; }
+.title-screen { min-height: auto; padding: 4rem 2rem; }
+.start-btn { display: none; }
+` : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -783,6 +793,7 @@ export function generateHTML(project: Project): string {
 <style>
 @import url('${fontImport}');
 ${buildCSS(theme)}
+${previewCSS}
 </style>
 </head>
 <body>
@@ -802,9 +813,9 @@ ${showEmberCanvas ? '<canvas id="ember-canvas"></canvas>' : ''}
 ${blocksHtml}
 </div>
 
-<script>
+${!isPreview ? `<script>
 ${buildJS(theme, showEmbers)}
-</script>
+</script>` : ''}
 </body>
 </html>`;
 }
