@@ -1588,20 +1588,27 @@
                             
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>Chapter</label>
-                                    <select class="form-input" id="taskChapter" required>
+                                    <label>From Chapter</label>
+                                    <select class="form-input" id="taskFromChapter" required>
                                         <option value="">Select...</option>
                                         <!-- Populated dynamically based on class type -->
                                     </select>
                                 </div>
-                                
+
+                                <div class="form-group">
+                                    <label>To Chapter</label>
+                                    <select class="form-input" id="taskToChapter" required disabled>
+                                        <option value="">Select from chapter first</option>
+                                    </select>
+                                </div>
+
                                 <div class="form-group">
                                     <label>From Word</label>
                                     <select class="form-input" id="taskFromWord" required disabled>
-                                        <option value="">Select chapter first</option>
+                                        <option value="">Select chapters first</option>
                                     </select>
                                 </div>
-                                
+
                                 <div class="form-group">
                                     <label>To Word</label>
                                     <select class="form-input" id="taskToWord" required disabled>
@@ -2175,12 +2182,13 @@
         }
         
         // Get vocab practice URL based on class type
-        function getVocabPracticeUrl(chapter, from, to) {
+        function getVocabPracticeUrl(fromChapter, toChapter, from, to) {
             const type = currentClass?.type;
-            if (type === 'latin') return `/latin/vocabulary-practice.html?chapter=${chapter}&from=${from}&to=${to}`;
-            if (type === 'greek') return `/greek/vocabulary-practice.html?chapter=${chapter}&from=${from}&to=${to}`;
-            if (type === 'prep-latin') return `/latin/prep-vocabulary-practice.html?chapter=${chapter}&from=${from}&to=${to}`;
-            return `/latin/vocabulary-practice.html?chapter=${chapter}&from=${from}&to=${to}`;
+            const params = `fromChapter=${fromChapter}&toChapter=${toChapter}&from=${from}&to=${to}`;
+            if (type === 'latin') return `/latin/vocabulary-practice.html?${params}`;
+            if (type === 'greek') return `/greek/vocabulary-practice.html?${params}`;
+            if (type === 'prep-latin') return `/latin/prep-vocabulary-practice.html?${params}`;
+            return `/latin/vocabulary-practice.html?${params}`;
         }
         
         // Get word display property based on class type
@@ -2191,18 +2199,23 @@
         
         // Populate chapter dropdown based on class type
         function populateChapterDropdown() {
-            const select = document.getElementById('taskChapter');
+            const select = document.getElementById('taskFromChapter');
             select.innerHTML = '<option value="">Select...</option>';
-            
+
             const type = currentClass?.type;
             const maxChapter = (type === 'prep-latin') ? 16 : 10;
-            
+
             for (let i = 1; i <= maxChapter; i++) {
                 const option = document.createElement('option');
                 option.value = i;
                 option.textContent = `Chapter ${i}`;
                 select.appendChild(option);
             }
+
+            // Reset dependent dropdowns
+            const toSelect = document.getElementById('taskToChapter');
+            toSelect.innerHTML = '<option value="">Select from chapter first</option>';
+            toSelect.disabled = true;
         }
         
         function showMessage(elementId, text, type) {
@@ -4235,55 +4248,93 @@
             });
         }
         
-        async function handleChapterChange() {
+        // Cache for words across selected chapter range
+        let taskChapterWordsCache = [];
+
+        async function handleFromChapterChange() {
             await waitForVocabularyData();
-            
-            const chapter = document.getElementById('taskChapter').value;
-            const fromSelect = document.getElementById('taskFromWord');
-            const toSelect = document.getElementById('taskToWord');
-            
-            if (!chapter) {
-                fromSelect.disabled = true;
-                fromSelect.innerHTML = '<option value="">Select chapter first</option>';
-                toSelect.disabled = true;
-                toSelect.innerHTML = '<option value="">Select from word first</option>';
+
+            const fromChapter = document.getElementById('taskFromChapter').value;
+            const toChapterSelect = document.getElementById('taskToChapter');
+            const fromWordSelect = document.getElementById('taskFromWord');
+            const toWordSelect = document.getElementById('taskToWord');
+
+            // Reset downstream selects
+            fromWordSelect.disabled = true;
+            fromWordSelect.innerHTML = '<option value="">Select chapters first</option>';
+            toWordSelect.disabled = true;
+            toWordSelect.innerHTML = '<option value="">Select from word first</option>';
+
+            if (!fromChapter) {
+                toChapterSelect.disabled = true;
+                toChapterSelect.innerHTML = '<option value="">Select from chapter first</option>';
                 return;
             }
-            
-            const vocabData = getVocabData();
-            const chapterWords = vocabData.filter(word => word.chapter == chapter);
-            
-            fromSelect.innerHTML = '<option value="">Select start word</option>';
-            chapterWords.forEach((word, index) => {
-                const wordText = getWordProperty(word);
-                fromSelect.innerHTML += `<option value="${index}">${wordText}</option>`;
-            });
-            fromSelect.disabled = false;
-            
-            toSelect.innerHTML = '<option value="">Select from word first</option>';
-            toSelect.disabled = true;
+
+            // Populate "To Chapter" with chapters >= fromChapter
+            const fromNum = parseInt(fromChapter);
+            const type = currentClass?.type;
+            const maxChapter = (type === 'prep-latin') ? 16 : 10;
+            toChapterSelect.innerHTML = '<option value="">Select end chapter</option>';
+            for (let i = fromNum; i <= maxChapter; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Chapter ${i}`;
+                toChapterSelect.appendChild(option);
+            }
+            toChapterSelect.disabled = false;
         }
-        
+
+        async function handleToChapterChange() {
+            await waitForVocabularyData();
+
+            const fromChapter = parseInt(document.getElementById('taskFromChapter').value);
+            const toChapter = parseInt(document.getElementById('taskToChapter').value);
+            const fromWordSelect = document.getElementById('taskFromWord');
+            const toWordSelect = document.getElementById('taskToWord');
+
+            // Reset word selects
+            fromWordSelect.disabled = true;
+            fromWordSelect.innerHTML = '<option value="">Select chapters first</option>';
+            toWordSelect.disabled = true;
+            toWordSelect.innerHTML = '<option value="">Select from word first</option>';
+
+            if (isNaN(toChapter)) return;
+
+            // Get words across the selected chapter range
+            const vocabData = getVocabData();
+            taskChapterWordsCache = vocabData.filter(word => word.chapter >= fromChapter && word.chapter <= toChapter);
+
+            fromWordSelect.innerHTML = '<option value="">Select start word</option>';
+            taskChapterWordsCache.forEach((word, index) => {
+                const wordText = getWordProperty(word);
+                const chapterLabel = fromChapter !== toChapter ? ` (Ch ${word.chapter})` : '';
+                fromWordSelect.innerHTML += `<option value="${index}">${wordText}${chapterLabel}</option>`;
+            });
+            fromWordSelect.disabled = false;
+        }
+
         async function handleFromWordChange() {
             await waitForVocabularyData();
-            
-            const chapter = document.getElementById('taskChapter').value;
+
+            const fromChapter = parseInt(document.getElementById('taskFromChapter').value);
+            const toChapter = parseInt(document.getElementById('taskToChapter').value);
             const fromIndex = parseInt(document.getElementById('taskFromWord').value);
             const toSelect = document.getElementById('taskToWord');
-            
+
             if (isNaN(fromIndex)) {
                 toSelect.disabled = true;
                 toSelect.innerHTML = '<option value="">Select from word first</option>';
                 return;
             }
-            
-            const vocabData = getVocabData();
-            const chapterWords = vocabData.filter(word => word.chapter == chapter);
-            
+
+            const showChapter = fromChapter !== toChapter;
             toSelect.innerHTML = '<option value="">Select end word</option>';
-            for (let i = fromIndex; i < chapterWords.length; i++) {
-                const wordText = getWordProperty(chapterWords[i]);
-                toSelect.innerHTML += `<option value="${i}">${wordText}</option>`;
+            for (let i = fromIndex; i < taskChapterWordsCache.length; i++) {
+                const word = taskChapterWordsCache[i];
+                const wordText = getWordProperty(word);
+                const chapterLabel = showChapter ? ` (Ch ${word.chapter})` : '';
+                toSelect.innerHTML += `<option value="${i}">${wordText}${chapterLabel}</option>`;
             }
             toSelect.disabled = false;
         }
@@ -4343,7 +4394,8 @@
             applySectionToggles();
             try { await loadClassActivityHeatmap(); } catch (e) { console.error('Error loading heatmap:', e); }
 
-            document.getElementById('taskChapter').addEventListener('change', handleChapterChange);
+            document.getElementById('taskFromChapter').addEventListener('change', handleFromChapterChange);
+            document.getElementById('taskToChapter').addEventListener('change', handleToChapterChange);
             document.getElementById('taskFromWord').addEventListener('change', handleFromWordChange);
         }
 
@@ -4540,25 +4592,27 @@
         
         document.getElementById('setVocabTaskForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const title = document.getElementById('vocabTitle').value.trim();
-            const chapter = document.getElementById('taskChapter').value;
+            const fromChapter = document.getElementById('taskFromChapter').value;
+            const toChapter = document.getElementById('taskToChapter').value;
             const fromWord = document.getElementById('taskFromWord').value;
             const toWord = document.getElementById('taskToWord').value;
             const dueDate = document.getElementById('vocabDueDate').value;
-            
-            if (!chapter || fromWord === '' || toWord === '') {
-                showMessage('taskMessage', 'Please select chapter and word range.', 'error');
+
+            if (!fromChapter || !toChapter || fromWord === '' || toWord === '') {
+                showMessage('taskMessage', 'Please select chapter range and word range.', 'error');
                 return;
             }
-            
-            const contentPath = getVocabPracticeUrl(chapter, fromWord, toWord);
-            
+
+            const contentPath = getVocabPracticeUrl(fromChapter, toChapter, fromWord, toWord);
+
             const result = await setTask(title, contentPath, dueDate);
-            
+
             if (result.success) {
                 showMessage('taskMessage', 'Task created successfully!', 'success');
                 document.getElementById('setVocabTaskForm').reset();
+                document.getElementById('taskToChapter').disabled = true;
                 document.getElementById('taskFromWord').disabled = true;
                 document.getElementById('taskToWord').disabled = true;
                 await loadTasks();

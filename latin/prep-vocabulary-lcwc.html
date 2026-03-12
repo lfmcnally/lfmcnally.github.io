@@ -1589,6 +1589,10 @@
     </div>
 
     <!-- Load vocabulary data -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../auth/config.js"></script>
+    <script src="../shared/xp-system.js"></script>
+    <script src="../shared/task-tracker.js"></script>
     <script src="data/suburani-vocab.js"></script>
 
     <script>
@@ -1606,6 +1610,9 @@
         let isRandomised = false;
         let displayOrder = [];
         let direction = 'latin-to-english';
+        let isTaskMode = false;
+        let currentTaskId = null;
+        let sessionLabel = '';
 
         // ========== INITIALISATION ==========
         document.addEventListener('DOMContentLoaded', function() {
@@ -1614,21 +1621,86 @@
             }
             populateChapterSelect();
 
-            document.getElementById('chapterSelect').addEventListener('change', function() {
-                const ch = this.value;
-                const btn = document.getElementById('startBtn');
-                if (ch) {
-                    const count = allWords.filter(w => w.chapter == ch).length;
-                    btn.disabled = false;
-                    btn.textContent = `Start (${count} words)`;
-                } else {
-                    btn.disabled = true;
-                    btn.textContent = 'Start';
-                }
-            });
+            document.getElementById('chapterSelect').addEventListener('change', updateStartButton);
 
             populatePrintChapterGrid();
+
+            // Handle URL params for task mode
+            const urlParams = new URLSearchParams(window.location.search);
+            currentTaskId = urlParams.get('task_id');
+
+            if (currentTaskId) {
+                isTaskMode = true;
+            }
+
+            // Auto-set chapters from URL params
+            const urlFromChapter = urlParams.get('fromChapter') || urlParams.get('chapter');
+            const urlToChapter = urlParams.get('toChapter') || urlParams.get('chapter');
+            const urlFromWord = urlParams.get('from');
+            const urlToWord = urlParams.get('to');
+
+            if (urlFromChapter) {
+                const select = document.getElementById('chapterSelect');
+                if (urlFromChapter === urlToChapter) {
+                    // Single chapter - select it
+                    select.value = urlFromChapter;
+                } else {
+                    // Multi-chapter range - filter words and auto-start
+                    const fromNum = parseInt(urlFromChapter);
+                    const toNum = parseInt(urlToChapter);
+                    let words = allWords.filter(w => w.chapter >= fromNum && w.chapter <= toNum);
+
+                    // Apply word range if specified
+                    if (urlFromWord !== null && urlToWord !== null) {
+                        const from = parseInt(urlFromWord);
+                        const to = parseInt(urlToWord);
+                        words = words.slice(from, to + 1);
+                    }
+
+                    if (words.length > 0) {
+                        currentChapter = `${fromNum}-${toNum}`;
+                        direction = document.getElementById('directionSelect').value;
+                        chunkSize = parseInt(document.getElementById('chunkSize').value) || 0;
+                        startSessionWithWords(words, `Chapters ${fromNum}-${toNum}`);
+                        return;
+                    }
+                }
+
+                updateStartButton();
+
+                // For single chapter with word range, auto-start in task mode
+                if (isTaskMode && urlFromChapter === urlToChapter) {
+                    // Auto-start with word range
+                    const chapter = parseInt(urlFromChapter);
+                    let words = allWords.filter(w => w.chapter == chapter);
+                    if (urlFromWord !== null && urlToWord !== null) {
+                        const from = parseInt(urlFromWord);
+                        const to = parseInt(urlToWord);
+                        words = words.slice(from, to + 1);
+                    }
+                    if (words.length > 0) {
+                        currentChapter = chapter;
+                        direction = document.getElementById('directionSelect').value;
+                        chunkSize = parseInt(document.getElementById('chunkSize').value) || 0;
+                        startSessionWithWords(words, `Chapter ${chapter}`);
+                        return;
+                    }
+                }
+            }
         });
+
+        function updateStartButton() {
+            const ch = document.getElementById('chapterSelect').value;
+            const btn = document.getElementById('startBtn');
+            if (ch) {
+                const count = allWords.filter(w => w.chapter == ch).length;
+                btn.disabled = false;
+                btn.textContent = `Start (${count} words)`;
+            } else {
+                btn.disabled = true;
+                btn.textContent = 'Start';
+            }
+        }
 
         function populateChapterSelect() {
             const select = document.getElementById('chapterSelect');
@@ -1642,14 +1714,16 @@
         }
 
         // ========== SESSION START ==========
-        function startSession() {
-            currentChapter = document.getElementById('chapterSelect').value;
-            if (!currentChapter) return;
+        async function startSessionWithWords(words, label) {
+            sessionLabel = label;
 
-            direction = document.getElementById('directionSelect').value;
-            chunkSize = parseInt(document.getElementById('chunkSize').value) || 0;
+            // Start task tracking
+            if (typeof taskTracker !== 'undefined') {
+                taskTracker.setLanguage('prep-latin');
+                await taskTracker.start();
+            }
 
-            sessionWords = allWords.filter(w => w.chapter == currentChapter);
+            sessionWords = words;
             roundNumber = 0;
             attemptHistory = [];
             wordTrends = {};
@@ -1675,6 +1749,17 @@
 
             updateChunkProgress();
             enterPhase('look');
+        }
+
+        function startSession() {
+            currentChapter = document.getElementById('chapterSelect').value;
+            if (!currentChapter) return;
+
+            direction = document.getElementById('directionSelect').value;
+            chunkSize = parseInt(document.getElementById('chunkSize').value) || 0;
+
+            const words = allWords.filter(w => w.chapter == currentChapter);
+            startSessionWithWords(words, `Chapter ${currentChapter}`);
         }
 
         // ========== PHASE MANAGEMENT ==========
@@ -1730,7 +1815,7 @@
             const title = document.getElementById('wordListTitle');
             const badge = document.getElementById('wordCountBadge');
 
-            title.textContent = `Chapter ${currentChapter} Vocabulary`;
+            title.textContent = `${sessionLabel || 'Chapter ' + currentChapter} Vocabulary`;
             badge.textContent = `${activeWords.length} of ${sessionWords.length} words`;
 
             const promptLabel = direction === 'latin-to-english' ? 'Latin' : 'English';
@@ -1870,7 +1955,7 @@
         }
 
         // ========== CHECK ANSWERS ==========
-        function checkAnswers() {
+        async function checkAnswers() {
             roundNumber++;
             const inputs = document.querySelectorAll('.word-input');
             const roundAttempts = [];
@@ -1898,6 +1983,18 @@
             });
 
             attemptHistory.push(roundAttempts);
+
+            // Record word answers through task tracker for prep learning time
+            if (typeof taskTracker !== 'undefined') {
+                for (const attempt of roundAttempts) {
+                    const wordData = {
+                        latin: attempt.latin,
+                        english: attempt.english,
+                        chapter: activeWords[attempt.wordIndex].chapter
+                    };
+                    await taskTracker.recordWordAnswer(wordData, attempt.isCorrect);
+                }
+            }
 
             enterPhase('check');
             renderHistorySection();
