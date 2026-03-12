@@ -1,12 +1,17 @@
 import { useEffect, useRef, useMemo } from 'react';
 import { useProject } from '../../store/useProject';
 import { generateHTML } from '../../export/generateHTML';
+import { THEMES } from '../../types/themes';
+import type { ThemeId } from '../../types/themes';
 
 export function PreviewFrame() {
   const project = useProject((s) => s.project);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const html = useMemo(() => generateHTML(project), [project]);
+  const themeId = (project.theme || 'clean') as ThemeId;
+  const theme = THEMES[themeId] || THEMES.clean;
+
+  const html = useMemo(() => generateHTML(project, { preview: true }), [project]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -17,16 +22,15 @@ export function PreviewFrame() {
     doc.open();
     doc.write(html);
     doc.close();
-    // Restore scroll position
     requestAnimationFrame(() => {
       if (doc.documentElement) doc.documentElement.scrollTop = scrollTop;
     });
   }, [html]);
 
   return (
-    <div className="flex-1 flex flex-col bg-[#06060a] overflow-hidden">
-      <div className="px-3 py-1.5 bg-[#0b0b12] border-b border-[#1a1520] flex items-center">
-        <span className="text-[10px] text-[#4a4440] font-mono">PREVIEW</span>
+    <div className="flex-1 flex flex-col overflow-hidden" style={{ background: theme.colors.bg }}>
+      <div className="px-3 py-1.5 flex items-center border-b" style={{ background: theme.colors.bgSection, borderColor: theme.colors.border }}>
+        <span className="text-[10px] font-mono" style={{ color: theme.colors.textDim }}>PREVIEW</span>
       </div>
       <iframe
         ref={iframeRef}
