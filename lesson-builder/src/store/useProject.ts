@@ -14,6 +14,7 @@ interface ProjectStore {
   savedProjects: Project[];
 
   setProjectName: (name: string) => void;
+  setTheme: (theme: string) => void;
   addBlock: (block: Block, index?: number) => void;
   updateBlock: (id: string, updates: Partial<Block>) => void;
   removeBlock: (id: string) => void;
@@ -31,6 +32,7 @@ function createEmptyProject(): Project {
   return {
     id: `p${Date.now()}`,
     name: 'Untitled Presentation',
+    theme: 'clean',
     blocks: [],
     updatedAt: Date.now(),
   };
@@ -44,6 +46,9 @@ export const useProject = create<ProjectStore>()(
 
       setProjectName: (name) =>
         set((s) => ({ project: { ...s.project, name, updatedAt: Date.now() } })),
+
+      setTheme: (theme) =>
+        set((s) => ({ project: { ...s.project, theme, updatedAt: Date.now() } })),
 
       addBlock: (block, index) =>
         set((s) => {

@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { useProject } from '../../store/useProject';
 import { generateHTML } from '../../export/generateHTML';
+import { THEMES } from '../../types/themes';
+import type { ThemeId } from '../../types/themes';
+
+const THEME_LIST = Object.values(THEMES);
 
 export function Toolbar() {
-  const { project, setProjectName, saveProject, newProject, loadProject, deleteProject, savedProjects } = useProject();
+  const { project, setProjectName, setTheme, saveProject, newProject, loadProject, deleteProject, savedProjects } = useProject();
   const [showSaved, setShowSaved] = useState(false);
+  const [showThemes, setShowThemes] = useState(false);
 
   const handleExport = () => {
     const html = generateHTML(project);
@@ -32,6 +37,34 @@ export function Toolbar() {
         onChange={(e) => setProjectName(e.target.value)}
         className="text-sm border border-gray-200 rounded px-2 py-1 flex-1 max-w-xs focus:outline-none focus:border-blue-400"
       />
+      <div className="relative">
+        <button
+          onClick={() => setShowThemes(!showThemes)}
+          className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-gray-700 flex items-center gap-1.5"
+        >
+          <span className="w-3 h-3 rounded-full border border-gray-300" style={{ background: THEMES[(project.theme || 'clean') as ThemeId]?.colors.accent || '#1a73e8' }} />
+          {THEMES[(project.theme || 'clean') as ThemeId]?.name || 'Clean'}
+        </button>
+        {showThemes && (
+          <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-56">
+            {THEME_LIST.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => { setTheme(t.id); setShowThemes(false); }}
+                className={`w-full text-left px-3 py-2 hover:bg-gray-50 border-b border-gray-100 last:border-0 flex items-center gap-2 ${project.theme === t.id ? 'bg-blue-50' : ''}`}
+              >
+                <span className="w-4 h-4 rounded-full border border-gray-200 flex-shrink-0" style={{ background: t.colors.bg }}>
+                  <span className="block w-2 h-2 rounded-full mt-1 ml-1" style={{ background: t.colors.accent }} />
+                </span>
+                <div>
+                  <div className="text-xs font-medium text-gray-700">{t.name}</div>
+                  <div className="text-[10px] text-gray-400">{t.description}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <div className="flex items-center gap-1.5 ml-auto">
         <button onClick={handleNew} className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded text-gray-700">
           New

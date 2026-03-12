@@ -88,11 +88,11 @@ function QuoteEditor({ block }: { block: QuoteBlock }) {
         <label className="block text-xs font-medium text-gray-500 mb-1">Style</label>
         <select
           value={block.style}
-          onChange={(e) => u({ style: e.target.value as 'blood' | 'gold' })}
+          onChange={(e) => u({ style: e.target.value as 'primary' | 'secondary' })}
           className="text-sm border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:border-blue-400"
         >
-          <option value="blood">Blood (dramatic, red)</option>
-          <option value="gold">Gold (source quote)</option>
+          <option value="primary">Primary (accent colour)</option>
+          <option value="secondary">Secondary (alt colour)</option>
         </select>
       </div>
     </>

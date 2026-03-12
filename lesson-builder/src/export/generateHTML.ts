@@ -1,15 +1,16 @@
 import type { Project, Block, TitleBlock, SceneBlock, RevealBlock, QuoteBlock, KeyPointBlock, CardGridBlock, NumberedListBlock, ImageBlock, BlackoutBlock, TwoColumnBlock, FooterBlock } from '../types/blocks';
+import type { ThemeConfig, ThemeId } from '../types/themes';
+import { THEMES } from '../types/themes';
 
 function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// Allow safe HTML tags in body content
 function safeHtml(s: string): string {
   return s;
 }
 
-function renderBlock(block: Block, index: number): string {
+function renderBlock(block: Block): string {
   switch (block.type) {
     case 'title': return renderTitle(block);
     case 'scene': return renderScene(block);
@@ -55,14 +56,14 @@ function renderReveal(b: RevealBlock): string {
   <div class="reveal-block reveal-on-scroll">
     <button class="reveal-trigger" onclick="this.parentElement.classList.toggle('open')">
       <span class="reveal-label">${esc(b.triggerLabel)}</span>
-      <span class="reveal-arrow">▸</span>
+      <span class="reveal-arrow">&#9656;</span>
     </button>
     <div class="reveal-content">${safeHtml(b.hiddenContent)}</div>
   </div>`;
 }
 
 function renderQuote(b: QuoteBlock): string {
-  const cls = b.style === 'gold' ? 'quote-gold' : 'quote-blood';
+  const cls = b.style === 'secondary' ? 'quote-secondary' : 'quote-primary';
   return `
   <blockquote class="quote-block ${cls} reveal-on-scroll">
     <p class="quote-text">${safeHtml(b.text)}</p>
@@ -78,7 +79,7 @@ function renderKeyPoint(b: KeyPointBlock): string {
 }
 
 function renderCardGrid(b: CardGridBlock): string {
-  const cards = b.cards.map((c, i) => `
+  const cards = b.cards.map((c) => `
     <div class="card" onclick="this.classList.toggle('expanded')">
       <div class="card-front">
         <h3 class="card-name">${esc(c.name)}</h3>
@@ -99,7 +100,7 @@ function renderNumberedList(b: NumberedListBlock): string {
       <div class="num-item-header">
         <span class="num-badge">${i + 1}</span>
         <span class="num-title">${esc(it.title)}</span>
-        <span class="num-arrow">▸</span>
+        <span class="num-arrow">&#9656;</span>
       </div>
       <div class="num-detail">${safeHtml(it.details)}</div>
     </div>`).join('');
@@ -149,20 +150,25 @@ function renderFooter(b: FooterBlock): string {
   return `<footer class="lesson-footer reveal-on-scroll"><p>${esc(b.text)}</p></footer>`;
 }
 
-const CSS = `
+function buildCSS(theme: ThemeConfig): string {
+  const c = theme.colors;
+  const isDark = c.bg.startsWith('#0') || c.bg.startsWith('#1') || c.bg === '#000000';
+  const shadowAlpha = isDark ? '0.4' : '0.1';
+
+  return `
 :root {
-  --bg: #06060a;
-  --bg-section: #0b0b12;
-  --bg-reveal: #0e0e18;
-  --border: #1a1520;
-  --border-active: #6b2020;
-  --text: #b0a89e;
-  --text-head: #d4cdc4;
-  --text-dim: #4a4440;
-  --text-blood: #8a2a2a;
-  --text-blood-bright: #c44030;
-  --text-gold: #a08848;
-  --text-ash: #606870;
+  --bg: ${c.bg};
+  --bg-section: ${c.bgSection};
+  --bg-reveal: ${c.bgReveal};
+  --border: ${c.border};
+  --border-active: ${c.borderActive};
+  --text: ${c.text};
+  --text-head: ${c.textHead};
+  --text-dim: ${c.textDim};
+  --accent: ${c.accent};
+  --accent-bright: ${c.accentBright};
+  --secondary: ${c.secondary};
+  --text-ash: ${c.textAsh};
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -175,7 +181,7 @@ html {
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: ${theme.bodyFont};
   font-size: 18px;
   line-height: 1.8;
   -webkit-font-smoothing: antialiased;
@@ -236,7 +242,7 @@ body {
 }
 .title-content { max-width: 720px; }
 .main-title {
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: clamp(2rem, 5vw, 3.5rem);
   font-weight: 700;
   color: var(--text-head);
@@ -249,12 +255,12 @@ body {
 .main-title.visible { opacity: 1; }
 .main-title.typewriting {
   opacity: 1;
-  border-right: 2px solid var(--text-blood);
+  border-right: 2px solid var(--accent);
   animation: blink-cursor 0.7s step-end infinite;
 }
 @keyframes blink-cursor { 50% { border-color: transparent; } }
 .subtitle {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: ${theme.bodyFont};
   font-size: 1.15rem;
   color: var(--text-dim);
   font-style: italic;
@@ -264,9 +270,9 @@ body {
   transition: opacity 1s 0.5s;
 }
 .date-line {
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: 0.8rem;
-  color: var(--text-blood);
+  color: var(--accent);
   letter-spacing: 0.15em;
   text-transform: uppercase;
   opacity: 0;
@@ -276,18 +282,19 @@ body {
   display: inline-block;
   margin-top: 2rem;
   padding: 0.6rem 2.5rem;
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: 0.85rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-blood);
+  color: var(--accent);
   background: transparent;
-  border: 1px solid var(--text-blood);
+  border: 1px solid var(--accent);
   cursor: pointer;
   transition: all 0.3s;
+  border-radius: 2px;
 }
 .start-btn:hover {
-  background: var(--text-blood);
+  background: var(--accent);
   color: var(--bg);
 }
 .title-screen.started .subtitle,
@@ -301,11 +308,11 @@ body {
   margin: 0 auto;
 }
 .countdown-stamp {
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: 0.7rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--text-blood);
+  color: var(--accent);
   text-align: center;
   margin-bottom: 1.5rem;
   opacity: 0.7;
@@ -313,12 +320,12 @@ body {
 .scene-line {
   width: 1px;
   height: 60px;
-  background: var(--text-blood);
+  background: var(--accent);
   margin: 0 auto 1.5rem;
   opacity: 0.4;
 }
 .scene-marker {
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: 0.65rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
@@ -327,7 +334,7 @@ body {
   margin-bottom: 0.75rem;
 }
 .scene-title {
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: clamp(1.3rem, 3vw, 1.8rem);
   font-weight: 600;
   color: var(--text-head);
@@ -360,7 +367,7 @@ body {
   background: transparent;
   border: none;
   color: var(--text-head);
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: 0.85rem;
   letter-spacing: 0.06em;
   cursor: pointer;
@@ -369,7 +376,7 @@ body {
 .reveal-trigger:hover { background: var(--bg-reveal); }
 .reveal-arrow {
   transition: transform 0.3s;
-  color: var(--text-blood);
+  color: var(--accent);
   font-size: 0.9rem;
 }
 .reveal-block.open .reveal-arrow { transform: rotate(90deg); }
@@ -392,10 +399,10 @@ body {
   margin: 2rem auto;
   max-width: 720px;
   padding: 1.5rem 1.5rem 1.5rem 2rem;
-  border-left: 3px solid var(--text-blood);
+  border-left: 3px solid var(--accent);
   background: var(--bg-section);
 }
-.quote-gold { border-left-color: var(--text-gold); }
+.quote-secondary { border-left-color: var(--secondary); }
 .quote-text {
   font-size: 1.1rem;
   font-style: italic;
@@ -403,12 +410,12 @@ body {
   line-height: 1.8;
   color: var(--text-head);
 }
-.quote-gold .quote-text { color: var(--text-gold); }
-.quote-blood .quote-text { color: var(--text-blood-bright); }
+.quote-secondary .quote-text { color: var(--secondary); }
+.quote-primary .quote-text { color: var(--accent-bright); }
 .quote-attr {
   display: block;
   margin-top: 0.75rem;
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -421,12 +428,12 @@ body {
   margin: 2.5rem auto;
   max-width: 720px;
   padding: 1.5rem 2rem;
-  border-top: 1px solid var(--text-blood);
-  border-bottom: 1px solid var(--text-blood);
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
   text-align: center;
 }
 .key-point p {
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--text-head);
@@ -454,7 +461,7 @@ body {
 }
 .card:hover { border-color: var(--border-active); }
 .card-name {
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-head);
@@ -462,8 +469,8 @@ body {
 }
 .card-subtitle {
   font-size: 0.75rem;
-  color: var(--text-blood);
-  font-family: 'Cinzel', serif;
+  color: var(--accent);
+  font-family: ${theme.headingFont};
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 0.5rem;
@@ -514,9 +521,9 @@ body {
 .num-badge {
   width: 24px; height: 24px;
   border-radius: 50%;
-  background: var(--text-blood);
+  background: var(--accent);
   color: var(--bg);
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: 0.7rem;
   font-weight: 700;
   display: flex;
@@ -525,13 +532,13 @@ body {
   flex-shrink: 0;
 }
 .num-title {
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: 0.85rem;
   color: var(--text-head);
   flex: 1;
 }
 .num-arrow {
-  color: var(--text-blood);
+  color: var(--accent);
   transition: transform 0.3s;
   font-size: 0.8rem;
 }
@@ -560,7 +567,7 @@ body {
   max-width: 100%;
   border: 1px solid var(--border);
   border-radius: 4px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 24px rgba(0,0,0,${shadowAlpha});
 }
 .image-block figcaption {
   margin-top: 0.75rem;
@@ -579,10 +586,10 @@ body {
   padding: 2rem;
 }
 .blackout p {
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: clamp(1rem, 2.5vw, 1.4rem);
   font-weight: 400;
-  color: var(--text-blood-bright);
+  color: var(--accent-bright);
   letter-spacing: 0.06em;
   line-height: 1.6;
 }
@@ -596,7 +603,7 @@ body {
 .divider-line {
   width: 1px;
   height: 80px;
-  background: var(--text-blood);
+  background: var(--accent);
   opacity: 0.3;
 }
 
@@ -612,16 +619,15 @@ body {
   border-radius: 4px;
   overflow: hidden;
 }
-.two-col-side { }
 .two-col-side:first-child { border-right: 1px solid var(--border); }
 .two-col-header {
   padding: 0.6rem 1rem;
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #d4cdc4;
+  color: ${isDark ? '#d4cdc4' : '#ffffff'};
   text-align: center;
 }
 .two-col-body {
@@ -637,7 +643,7 @@ body {
   text-align: center;
 }
 .lesson-footer p {
-  font-family: 'Cinzel', serif;
+  font-family: ${theme.headingFont};
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -669,8 +675,10 @@ body {
   }
 }
 `;
+}
 
-const JS = `
+function buildJS(theme: ThemeConfig, showEmbers: boolean): string {
+  let js = `
 // Scroll reveal
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(e => {
@@ -702,9 +710,13 @@ function startLesson() {
     }
   }, 60);
 }
+`;
 
+  if (showEmbers && theme.embers) {
+    const ec = theme.emberColors || { r: [200, 255], g: [60, 100], b: 20 };
+    js += `
 // Ember particles
-function initEmbers() {
+(function() {
   const canvas = document.getElementById('ember-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
@@ -712,56 +724,55 @@ function initEmbers() {
   function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
   resize();
   window.addEventListener('resize', resize);
-
   const embers = [];
   for (let i = 0; i < 35; i++) {
     embers.push({
-      x: Math.random() * W,
-      y: Math.random() * H,
+      x: Math.random() * W, y: Math.random() * H,
       r: Math.random() * 1.5 + 0.5,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: -(Math.random() * 0.5 + 0.2),
+      vx: (Math.random() - 0.5) * 0.3, vy: -(Math.random() * 0.5 + 0.2),
       o: Math.random() * 0.5 + 0.1,
-      life: Math.random() * 200 + 100,
-      age: 0,
+      life: Math.random() * 200 + 100, age: 0,
     });
   }
-
   function draw() {
     ctx.clearRect(0, 0, W, H);
     embers.forEach(e => {
-      e.x += e.vx;
-      e.y += e.vy;
-      e.age++;
+      e.x += e.vx; e.y += e.vy; e.age++;
       if (e.age > e.life || e.y < -10) {
-        e.x = Math.random() * W;
-        e.y = H + 10;
-        e.age = 0;
+        e.x = Math.random() * W; e.y = H + 10; e.age = 0;
         e.life = Math.random() * 200 + 100;
       }
       const fade = e.age < 20 ? e.age / 20 : e.age > e.life - 20 ? (e.life - e.age) / 20 : 1;
       ctx.beginPath();
       ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
-      const r = 200 + Math.random() * 55;
-      const g = 60 + Math.random() * 40;
-      const b = 20;
-      ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + (e.o * fade) + ')';
+      const r = ${ec.r[0]} + Math.random() * ${ec.r[1] - ec.r[0]};
+      const g = ${ec.g[0]} + Math.random() * ${ec.g[1] - ec.g[0]};
+      ctx.fillStyle = 'rgba(' + r + ',' + g + ',${ec.b},' + (e.o * fade) + ')';
       ctx.fill();
     });
     requestAnimationFrame(draw);
   }
   draw();
+})();
+`;
+  }
+
+  return js;
 }
 
-initEmbers();
-`;
-
 export function generateHTML(project: Project): string {
-  const hasTitle = project.blocks.some(b => b.type === 'title');
-  const titleBlock = project.blocks.find(b => b.type === 'title') as TitleBlock | undefined;
-  const showEmbers = titleBlock ? titleBlock.showEmbers : true;
+  const themeId = (project.theme || 'clean') as ThemeId;
+  const theme = THEMES[themeId] || THEMES.clean;
 
-  const blocksHtml = project.blocks.map((b, i) => renderBlock(b, i)).join('\n');
+  const titleBlock = project.blocks.find(b => b.type === 'title') as TitleBlock | undefined;
+  const showEmbers = titleBlock ? titleBlock.showEmbers : false;
+
+  const blocksHtml = project.blocks.map((b) => renderBlock(b)).join('\n');
+
+  const fontImport = `https://fonts.googleapis.com/css2?${theme.headingFontImport}&${theme.bodyFontImport}&display=swap`;
+
+  const showGrain = theme.grain;
+  const showEmberCanvas = showEmbers && theme.embers;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -770,29 +781,29 @@ export function generateHTML(project: Project): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${esc(project.name)}</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600;1,700&display=swap');
-${CSS}
+@import url('${fontImport}');
+${buildCSS(theme)}
 </style>
 </head>
 <body>
 
-<div class="grain">
+${showGrain ? `<div class="grain">
   <svg viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
     <filter id="noise">
       <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch"/>
     </filter>
     <rect width="100%" height="100%" filter="url(#noise)" opacity="1"/>
   </svg>
-</div>
+</div>` : ''}
 
-${showEmbers ? '<canvas id="ember-canvas"></canvas>' : ''}
+${showEmberCanvas ? '<canvas id="ember-canvas"></canvas>' : ''}
 
 <div class="content">
 ${blocksHtml}
 </div>
 
 <script>
-${JS}
+${buildJS(theme, showEmbers)}
 </script>
 </body>
 </html>`;
