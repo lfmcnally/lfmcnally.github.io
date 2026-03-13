@@ -309,23 +309,34 @@ class StudentTracking {
                     </div>
                 </div>
 
-                <!-- Action Button -->
-                <a href="${task.content_path}${task.content_path.includes('?') ? '&' : '?'}task_id=${task.id}"
-                   style="
-                        padding: 0.6rem 1.25rem;
-                        background: ${task.isCompleted ? '#f3f4f6' : 'linear-gradient(135deg, #0066ff 0%, #0052cc 100%)'};
-                        color: ${task.isCompleted ? '#6b7280' : 'white'};
-                        border-radius: 10px;
-                        font-weight: 600;
-                        font-size: 0.85rem;
-                        text-decoration: none;
-                        white-space: nowrap;
-                        transition: all 0.2s;
-                   "
-                   onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0, 102, 255, 0.3)';"
-                   onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                    ${task.isCompleted ? 'Review' : 'Start'}
-                </a>
+                <!-- Action Button(s) -->
+                ${(() => {
+                    const sep = task.content_path.includes('?') ? '&' : '?';
+                    const isVocab = task.content_path.includes('vocabulary-practice');
+                    const btnStyle = `padding: 0.6rem 1.25rem; border-radius: 10px; font-weight: 600; font-size: 0.85rem; text-decoration: none; white-space: nowrap; transition: all 0.2s;`;
+                    if (isVocab) {
+                        const lcwcPath = task.content_path.replace(/vocabulary-practice\.html/, 'vocabulary-lcwc.html');
+                        return `<div style="display: flex; gap: 0.4rem; flex-shrink: 0;">
+                            <a href="${task.content_path}${sep}task_id=${task.id}"
+                               style="${btnStyle} background: ${task.isCompleted ? '#f3f4f6' : 'linear-gradient(135deg, #0066ff 0%, #0052cc 100%)'}; color: ${task.isCompleted ? '#6b7280' : 'white'};"
+                               onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                ${task.isCompleted ? 'Tester' : 'Vocab Tester'}
+                            </a>
+                            <a href="${lcwcPath}${sep}task_id=${task.id}"
+                               style="${btnStyle} background: ${task.isCompleted ? '#f3f4f6' : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)'}; color: ${task.isCompleted ? '#6b7280' : 'white'};"
+                               onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                                ${task.isCompleted ? 'LCWC' : 'LCWC'}
+                            </a>
+                        </div>`;
+                    } else {
+                        return `<a href="${task.content_path}${sep}task_id=${task.id}"
+                           style="${btnStyle} background: ${task.isCompleted ? '#f3f4f6' : 'linear-gradient(135deg, #0066ff 0%, #0052cc 100%)'}; color: ${task.isCompleted ? '#6b7280' : 'white'};"
+                           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0, 102, 255, 0.3)';"
+                           onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                            ${task.isCompleted ? 'Review' : 'Start'}
+                        </a>`;
+                    }
+                })()}
             </div>
         `;
     }
