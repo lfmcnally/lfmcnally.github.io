@@ -109,7 +109,7 @@
         /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 1rem;
             margin-bottom: 2rem;
         }
@@ -374,7 +374,7 @@
         @media (max-width: 768px) {
             body { padding: 1rem; }
             .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(2, 1fr) !important;
             }
             .header-content {
                 flex-direction: column;
@@ -431,6 +431,11 @@
                 <div class="stat-value" id="statClasses">0</div>
                 <div class="stat-label">Classes</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-icon">🏫</div>
+                <div class="stat-value" id="statSchools">0</div>
+                <div class="stat-label">Schools</div>
+            </div>
         </div>
 
         <!-- Quick Actions -->
@@ -479,6 +484,7 @@
             <button class="tab-btn" onclick="showTab('classes', this)">All Classes</button>
             <button class="tab-btn" onclick="showTab('teachers', this)">Teachers</button>
             <button class="tab-btn" onclick="showTab('students', this)">Students</button>
+            <button class="tab-btn" onclick="showTab('schools', this)">Schools</button>
         </div>
 
         <!-- Announcements Tab -->
@@ -566,6 +572,18 @@
                 </div>
             </div>
         </div>
+
+        <!-- Schools Tab -->
+        <div id="schoolsTab" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Schools Overview</span>
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <div id="schoolsTable" class="loading">Loading schools...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="../auth/config.js"></script>
@@ -603,20 +621,25 @@
             await loadClasses();
             await loadTeachers();
             await loadStudents();
+            await loadSchools();
         }
 
         async function loadStats() {
             // Get all users
             const { data: users } = await supabase
                 .from('users')
-                .select('role');
+                .select('role, school');
 
             const teachers = users?.filter(u => u.role === 'teacher') || [];
             const students = users?.filter(u => u.role === 'student') || [];
 
+            // Count unique schools
+            const schools = new Set(users?.map(u => u.school).filter(Boolean));
+
             document.getElementById('statUsers').textContent = users?.length || 0;
             document.getElementById('statTeachers').textContent = teachers.length;
             document.getElementById('statStudents').textContent = students.length;
+            document.getElementById('statSchools').textContent = schools.size;
 
             // Get classes count
             const { data: classes } = await supabase
@@ -968,6 +991,7 @@
                         <tr>
                             <th>Name</th>
                             <th>Email</th>
+                            <th>School</th>
                             <th>Classes</th>
                             <th>Joined</th>
                             <th>Actions</th>
@@ -980,6 +1004,7 @@
                                 <tr>
                                     <td><strong>${s.full_name || 'Unknown'}</strong></td>
                                     <td>${s.email}</td>
+                                    <td>${s.school || '<span style="color: #9ca3af;">Not set</span>'}</td>
                                     <td>${classNames.length > 0 ? classNames.join(', ') : '<span style="color: #9ca3af;">No classes</span>'}</td>
                                     <td>${new Date(s.created_at).toLocaleDateString('en-GB')}</td>
                                     <td>
@@ -988,6 +1013,59 @@
                                 </tr>
                             `;
                         }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Schools
+        async function loadSchools() {
+            const { data: users, error } = await supabase
+                .from('users')
+                .select('school, role')
+                .not('school', 'is', null);
+
+            const container = document.getElementById('schoolsTable');
+
+            if (error || !users || users.length === 0) {
+                container.innerHTML = '<div class="empty-state">No schools recorded yet</div>';
+                return;
+            }
+
+            // Group by school
+            const schoolMap = {};
+            users.forEach(u => {
+                const name = u.school.trim();
+                if (!name) return;
+                if (!schoolMap[name]) schoolMap[name] = { teachers: 0, students: 0 };
+                if (u.role === 'teacher') schoolMap[name].teachers++;
+                else schoolMap[name].students++;
+            });
+
+            // Sort by total users descending
+            const sorted = Object.entries(schoolMap).sort((a, b) =>
+                (b[1].teachers + b[1].students) - (a[1].teachers + a[1].students)
+            );
+
+            container.innerHTML = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>School</th>
+                            <th>Teachers</th>
+                            <th>Students</th>
+                            <th>Total Users</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sorted.map(([name, counts]) => `
+                            <tr>
+                                <td><strong>${name}</strong></td>
+                                <td>${counts.teachers}</td>
+                                <td>${counts.students}</td>
+                                <td>${counts.teachers + counts.students}</td>
+                            </tr>
+                        `).join('')}
                     </tbody>
                 </table>
             `;
