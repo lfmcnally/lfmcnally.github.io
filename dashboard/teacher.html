@@ -568,9 +568,11 @@
                 document.getElementById('adminLink').style.display = 'inline-flex';
             }
 
-            // Load school name if set
+            // Load school name if set, or prompt for it
             if (profile.school) {
                 document.getElementById('schoolInput').value = profile.school;
+            } else {
+                showSchoolPrompt(currentUser.id);
             }
 
             // Load data
@@ -887,6 +889,43 @@
             if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
             
             return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        }
+
+        // School prompt modal for users who haven't set their school
+        function showSchoolPrompt(userId) {
+            const overlay = document.createElement('div');
+            overlay.id = 'schoolPromptOverlay';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+            overlay.innerHTML = `
+                <div style="background:white;border-radius:16px;padding:2rem;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                    <h2 style="margin-bottom:0.5rem;font-size:1.25rem;">What school are you from?</h2>
+                    <p style="color:#6b7280;font-size:0.9rem;margin-bottom:1.25rem;">This helps us understand how Classicalia is being used across schools.</p>
+                    <input type="text" id="schoolPromptInput" placeholder="Enter your school name" style="width:100%;padding:0.75rem 1rem;border:2px solid #e0e0e0;border-radius:8px;font-size:1rem;margin-bottom:1rem;">
+                    <button id="schoolPromptBtn" style="width:100%;padding:0.75rem;background:#0066ff;color:white;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;">Save</button>
+                    <p id="schoolPromptError" style="color:#dc2626;font-size:0.85rem;margin-top:0.5rem;display:none;"></p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            document.getElementById('schoolPromptBtn').addEventListener('click', async () => {
+                const school = document.getElementById('schoolPromptInput').value.trim();
+                if (!school) {
+                    const errEl = document.getElementById('schoolPromptError');
+                    errEl.textContent = 'Please enter your school name';
+                    errEl.style.display = 'block';
+                    return;
+                }
+                const { error } = await supabase.from('users').update({ school }).eq('id', userId);
+                if (error) {
+                    const errEl = document.getElementById('schoolPromptError');
+                    errEl.textContent = 'Error saving school. Please try again.';
+                    errEl.style.display = 'block';
+                    return;
+                }
+                currentUser.school = school;
+                document.getElementById('schoolInput').value = school;
+                overlay.remove();
+            });
         }
 
         // Start

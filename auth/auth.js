@@ -38,18 +38,19 @@ async function getUserProfile() {
 // SIGN UP A NEW USER
 // ============================================
 // Creates a new account with email, password, name, and role
-async function signUp(email, password, fullName, role) {
+async function signUp(email, password, fullName, role, school) {
     const { data, error } = await supabase.auth.signUp({
         email: email,
         password: password,
         options: {
             data: {
                 full_name: fullName,
-                role: role
+                role: role,
+                school: school
             }
         }
     });
-    
+
     if (error) {
         return { success: false, error: error.message };
     }
