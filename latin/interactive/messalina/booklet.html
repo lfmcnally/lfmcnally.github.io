@@ -315,7 +315,7 @@
                 <label><input type="checkbox" id="optHeaders" checked> Include section headers</label>
                 <label><input type="checkbox" id="optLineNums" checked> Include line numbers</label>
                 <div class="download-actions">
-                    <button class="dl-btn" onclick="downloadEnglishText()">Download .txt</button>
+                    <button class="dl-btn" onclick="downloadEnglishText()">Download</button>
                 </div>
             </div>
         </div>
@@ -2054,36 +2054,79 @@
         function downloadEnglishText() {
             const includeHeaders = document.getElementById('optHeaders').checked;
             const includeLineNums = document.getElementById('optLineNums').checked;
-            let output = '';
+
+            let bodyContent = '';
 
             if (includeHeaders) {
-                output += 'MESSALINA \u2013 ENGLISH TRANSLATION\nTacitus, Annals XI.26\u201338\n\n';
+                bodyContent += '<h1>Messalina &ndash; English Translation</h1>\n';
+                bodyContent += '<p class="subtitle">Tacitus, <em>Annals</em> XI.26&ndash;38</p>\n';
             }
 
             sections.forEach((section, i) => {
                 if (includeHeaders) {
-                    output += section.title + '\n\n';
+                    bodyContent += '<h2>' + section.title + '</h2>\n';
                 }
 
-                if (includeLineNums) {
-                    const lineNum = includeHeaders ? (i + 1) : (i + 1);
-                    output += lineNum + '. ' + section.text + '\n';
-                } else {
-                    output += section.text + '\n';
-                }
-
-                if (includeHeaders) {
-                    output += '\n';
-                } else if (i < sections.length - 1) {
-                    output += ' ';
-                }
+                const text = includeLineNums
+                    ? (i + 1) + '. ' + section.text
+                    : section.text;
+                bodyContent += '<p>' + text + '</p>\n';
             });
 
-            const blob = new Blob([output.trim()], { type: 'text/plain' });
+            const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Messalina – English Translation</title>
+<style>
+@page {
+    size: A4;
+    margin: 2.5cm 2cm;
+}
+body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 12pt;
+    line-height: 1.6;
+    color: #1a1a1a;
+    max-width: 21cm;
+    margin: 0 auto;
+    padding: 2.5cm 2cm;
+}
+h1 {
+    font-size: 20pt;
+    text-align: center;
+    margin-bottom: 0.2em;
+}
+.subtitle {
+    text-align: center;
+    font-size: 13pt;
+    color: #555;
+    margin-top: 0;
+    margin-bottom: 2em;
+}
+h2 {
+    font-size: 14pt;
+    margin-top: 1.8em;
+    margin-bottom: 0.5em;
+    color: #333;
+}
+p {
+    text-align: justify;
+    margin-bottom: 0.8em;
+    text-indent: ${includeHeaders ? '0' : '1.5em'};
+}
+</style>
+</head>
+<body>
+${bodyContent}
+</body>
+</html>`;
+
+            const blob = new Blob([html], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'messalina-english-translation.txt';
+            a.download = 'messalina-english-translation.html';
             a.click();
             URL.revokeObjectURL(url);
             document.getElementById('downloadDropdown').classList.remove('open');
