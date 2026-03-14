@@ -7,6 +7,9 @@
     <link rel="icon" type="image/png" href="/images/favicon.png">
     <meta property="og:title" content="Cover Write Check - Classicalia">
     <meta property="og:description" content="Create and print custom look-cover-write-check worksheets for vocabulary practice">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../auth/config.js"></script>
+    <script src="../auth/auth.js"></script>
     <style>
         * {
             margin: 0;
@@ -627,6 +630,166 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Question Bank */
+        .bank-controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .bank-controls select {
+            flex: 1;
+            min-width: 120px;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            background: white;
+            color: #1f2937;
+            transition: all 0.2s ease;
+        }
+
+        .bank-controls select:focus {
+            outline: none;
+            border-color: #0066ff;
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+        }
+
+        .bank-btn {
+            padding: 0.6rem 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: white;
+            color: #1f2937;
+            white-space: nowrap;
+        }
+
+        .bank-btn:hover {
+            border-color: #0066ff;
+            color: #0066ff;
+            background: rgba(0, 102, 255, 0.04);
+        }
+
+        .bank-btn.primary {
+            background: #0ea5e9;
+            color: white;
+            border-color: #0ea5e9;
+        }
+
+        .bank-btn.primary:hover {
+            background: #0284c7;
+            border-color: #0284c7;
+        }
+
+        .bank-btn.danger {
+            color: #ef4444;
+            border-color: #fecaca;
+        }
+
+        .bank-btn.danger:hover {
+            background: #fee2e2;
+            border-color: #ef4444;
+        }
+
+        .bank-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .bank-question-list {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-top: 0.75rem;
+        }
+
+        .bank-question-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.9rem;
+            color: #1f2937;
+        }
+
+        .bank-question-item:last-child {
+            border-bottom: none;
+        }
+
+        .bank-question-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #0066ff;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .bank-question-item span {
+            flex: 1;
+        }
+
+        .bank-load-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .bank-empty {
+            padding: 2rem;
+            text-align: center;
+            color: #9ca3af;
+            font-size: 0.9rem;
+        }
+
+        /* Save modal */
+        .save-modal {
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+        }
+
+        .save-modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .save-modal-content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+        }
+
+        .save-modal-content .control-group {
+            margin-bottom: 1rem;
+        }
+
+        .save-modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
     </style>
 </head>
 <body>
@@ -701,6 +864,31 @@
                                 </label>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Vocab Bank Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Vocabulary Bank</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="bank-controls">
+                            <select id="bankCourse" onchange="onCourseChange()">
+                                <option value="">-- Course --</option>
+                            </select>
+                            <select id="bankTopic" onchange="onTopicChange()" disabled>
+                                <option value="">-- Topic --</option>
+                            </select>
+                            <select id="bankSet" onchange="onSetChange()" disabled>
+                                <option value="">-- Vocab Set --</option>
+                            </select>
+                        </div>
+                        <div class="bank-actions">
+                            <button class="bank-btn primary" onclick="showSaveModal()">Save Current Vocab</button>
+                            <button class="bank-btn" onclick="manageBanks()">Manage Banks</button>
+                        </div>
+                        <div id="bankVocabList"></div>
                     </div>
                 </div>
 
@@ -831,6 +1019,42 @@
                     <p>An open-source project made with &#10084;&#65039;</p>
                     <p><strong>-Lawrence</strong></p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save to Bank Modal -->
+    <div id="saveModal" class="save-modal">
+        <div class="save-modal-content">
+            <h3>Save Vocabulary to Bank</h3>
+            <div class="control-group">
+                <label for="saveCourse">Course</label>
+                <input type="text" id="saveCourse" placeholder="e.g. GCSE Latin" list="courseList">
+                <datalist id="courseList"></datalist>
+            </div>
+            <div class="control-group">
+                <label for="saveTopic">Topic</label>
+                <input type="text" id="saveTopic" placeholder="e.g. Suburani Book 1" list="topicList">
+                <datalist id="topicList"></datalist>
+            </div>
+            <div class="control-group">
+                <label for="saveSet">Vocab Set</label>
+                <input type="text" id="saveSet" placeholder="e.g. Chapter 5 - Food & Drink">
+            </div>
+            <div class="save-modal-actions">
+                <button class="bank-btn" onclick="closeSaveModal()">Cancel</button>
+                <button class="bank-btn primary" onclick="saveToBank()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Banks Modal -->
+    <div id="manageModal" class="save-modal">
+        <div class="save-modal-content" style="max-width: 600px;">
+            <h3>Manage Vocabulary Banks</h3>
+            <div id="manageContent"></div>
+            <div class="save-modal-actions">
+                <button class="bank-btn" onclick="closeManageModal()">Close</button>
             </div>
         </div>
     </div>
@@ -1129,10 +1353,12 @@
         }
 
         window.onclick = function(event) {
-            const modal = document.getElementById('infoModal');
-            if (event.target === modal) {
-                closeInfoModal();
-            }
+            const infoModal = document.getElementById('infoModal');
+            if (event.target === infoModal) closeInfoModal();
+            const saveModal = document.getElementById('saveModal');
+            if (event.target === saveModal) closeSaveModal();
+            const manageModal = document.getElementById('manageModal');
+            if (event.target === manageModal) closeManageModal();
         }
 
         // Event listeners
@@ -1145,6 +1371,370 @@
         }
         // Clear focus from last row
         document.activeElement.blur();
+
+        // ==========================================
+        // Vocabulary Bank System (Supabase + localStorage fallback)
+        // ==========================================
+
+        const BANK_KEY = 'classicalia_vocab_banks';
+        let currentUser = null;
+        let banksCache = null;
+
+        async function initBankAuth() {
+            try {
+                currentUser = await getCurrentUser();
+                if (currentUser) {
+                    await migrateLocalToSupabase();
+                }
+            } catch (e) {
+                console.warn('Auth not available, using localStorage:', e.message);
+                currentUser = null;
+            }
+            await populateCourseDropdown();
+        }
+
+        async function migrateLocalToSupabase() {
+            try {
+                const local = JSON.parse(localStorage.getItem(BANK_KEY));
+                if (!local || Object.keys(local).length === 0) return;
+                const remote = await getBanksFromSupabase();
+                const merged = mergeDeep(remote, local);
+                await saveBanksToSupabase(merged);
+                localStorage.removeItem(BANK_KEY);
+            } catch (e) {
+                console.warn('Migration failed, keeping localStorage:', e);
+            }
+        }
+
+        function mergeDeep(target, source) {
+            const result = { ...target };
+            for (const key of Object.keys(source)) {
+                if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                    result[key] = mergeDeep(result[key] || {}, source[key]);
+                } else {
+                    result[key] = source[key];
+                }
+            }
+            return result;
+        }
+
+        async function getBanksFromSupabase() {
+            const { data, error } = await supabase
+                .from('question_banks')
+                .select('data')
+                .eq('user_id', currentUser.id)
+                .eq('bank_type', 'vocab')
+                .single();
+            if (error && error.code === 'PGRST116') return {};
+            if (error) throw error;
+            return data.data || {};
+        }
+
+        async function saveBanksToSupabase(banks) {
+            const { error } = await supabase
+                .from('question_banks')
+                .upsert({
+                    user_id: currentUser.id,
+                    bank_type: 'vocab',
+                    data: banks
+                }, { onConflict: 'user_id,bank_type' });
+            if (error) throw error;
+            banksCache = banks;
+        }
+
+        function getBanks() {
+            if (banksCache) return banksCache;
+            try {
+                banksCache = JSON.parse(localStorage.getItem(BANK_KEY)) || {};
+            } catch (e) {
+                banksCache = {};
+            }
+            return banksCache;
+        }
+
+        function saveBanks(banks) {
+            banksCache = banks;
+            localStorage.setItem(BANK_KEY, JSON.stringify(banks));
+            // Also try Supabase in background if authenticated
+            if (currentUser) {
+                saveBanksToSupabase(banks).catch(e =>
+                    console.warn('Supabase sync failed:', e)
+                );
+            }
+        }
+
+        function populateCourseDropdown() {
+            const banks = getBanks();
+            const select = document.getElementById('bankCourse');
+            const current = select.value;
+            select.innerHTML = '<option value="">-- Course --</option>';
+            Object.keys(banks).sort().forEach(course => {
+                const opt = document.createElement('option');
+                opt.value = course;
+                opt.textContent = course;
+                select.appendChild(opt);
+            });
+            if (current && banks[current]) select.value = current;
+        }
+
+        function onCourseChange() {
+            const banks = getBanks();
+            const course = document.getElementById('bankCourse').value;
+            const topicSelect = document.getElementById('bankTopic');
+            const setSelect = document.getElementById('bankSet');
+            topicSelect.innerHTML = '<option value="">-- Topic --</option>';
+            setSelect.innerHTML = '<option value="">-- Vocab Set --</option>';
+            setSelect.disabled = true;
+            document.getElementById('bankVocabList').innerHTML = '';
+
+            if (!course || !banks[course]) {
+                topicSelect.disabled = true;
+                return;
+            }
+            topicSelect.disabled = false;
+            Object.keys(banks[course]).sort().forEach(topic => {
+                const opt = document.createElement('option');
+                opt.value = topic;
+                opt.textContent = topic;
+                topicSelect.appendChild(opt);
+            });
+        }
+
+        function onTopicChange() {
+            const banks = getBanks();
+            const course = document.getElementById('bankCourse').value;
+            const topic = document.getElementById('bankTopic').value;
+            const setSelect = document.getElementById('bankSet');
+            setSelect.innerHTML = '<option value="">-- Vocab Set --</option>';
+            document.getElementById('bankVocabList').innerHTML = '';
+
+            if (!course || !topic || !banks[course] || !banks[course][topic]) {
+                setSelect.disabled = true;
+                return;
+            }
+            setSelect.disabled = false;
+            Object.keys(banks[course][topic]).sort().forEach(setName => {
+                const opt = document.createElement('option');
+                opt.value = setName;
+                opt.textContent = setName;
+                setSelect.appendChild(opt);
+            });
+        }
+
+        function onSetChange() {
+            const banks = getBanks();
+            const course = document.getElementById('bankCourse').value;
+            const topic = document.getElementById('bankTopic').value;
+            const setName = document.getElementById('bankSet').value;
+            const container = document.getElementById('bankVocabList');
+            container.innerHTML = '';
+
+            if (!course || !topic || !setName || !banks[course] || !banks[course][topic] || !banks[course][topic][setName]) {
+                return;
+            }
+
+            const words = banks[course][topic][setName];
+            if (words.length === 0) {
+                container.innerHTML = '<div class="bank-empty">No words in this set.</div>';
+                return;
+            }
+
+            let html = '<div class="bank-question-list">';
+            words.forEach((w, i) => {
+                const label = w.chapter ? `<span style="color:#9ca3af; font-size:0.8rem;">[${w.chapter}]</span> ` : '';
+                html += `<div class="bank-question-item">
+                    <input type="checkbox" id="bankW${i}" checked>
+                    <span>${label}<strong>${w.col1}</strong> &mdash; ${w.col2}</span>
+                </div>`;
+            });
+            html += '</div>';
+            html += `<div class="bank-load-actions">
+                <button class="bank-btn primary" onclick="loadSelected()">Load Selected</button>
+                <button class="bank-btn" onclick="loadAll()">Load All</button>
+            </div>`;
+            container.innerHTML = html;
+        }
+
+        function loadSelected() {
+            const banks = getBanks();
+            const course = document.getElementById('bankCourse').value;
+            const topic = document.getElementById('bankTopic').value;
+            const setName = document.getElementById('bankSet').value;
+            if (!banks[course] || !banks[course][topic] || !banks[course][topic][setName]) return;
+
+            const words = banks[course][topic][setName];
+            const checkboxes = document.querySelectorAll('#bankVocabList input[type="checkbox"]');
+            checkboxes.forEach((cb, i) => {
+                if (cb.checked && words[i]) {
+                    addRow(words[i].col1, words[i].col2, words[i].chapter);
+                }
+            });
+        }
+
+        function loadAll() {
+            const banks = getBanks();
+            const course = document.getElementById('bankCourse').value;
+            const topic = document.getElementById('bankTopic').value;
+            const setName = document.getElementById('bankSet').value;
+            if (!banks[course] || !banks[course][topic] || !banks[course][topic][setName]) return;
+
+            banks[course][topic][setName].forEach(w => addRow(w.col1, w.col2, w.chapter));
+        }
+
+        function showSaveModal() {
+            const banks = getBanks();
+            const courseList = document.getElementById('courseList');
+            courseList.innerHTML = '';
+            Object.keys(banks).sort().forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                courseList.appendChild(opt);
+            });
+
+            // Populate topic datalist based on existing courses
+            const topicList = document.getElementById('topicList');
+            topicList.innerHTML = '';
+            const allTopics = new Set();
+            Object.values(banks).forEach(course => {
+                Object.keys(course).forEach(t => allTopics.add(t));
+            });
+            allTopics.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t;
+                topicList.appendChild(opt);
+            });
+
+            document.getElementById('saveModal').style.display = 'block';
+        }
+
+        function closeSaveModal() {
+            document.getElementById('saveModal').style.display = 'none';
+        }
+
+        function saveToBank() {
+            const course = document.getElementById('saveCourse').value.trim();
+            const topic = document.getElementById('saveTopic').value.trim();
+            const setName = document.getElementById('saveSet').value.trim();
+
+            if (!course || !topic || !setName) {
+                alert('Please fill in Course, Topic, and Vocab Set name.');
+                return;
+            }
+
+            const vocab = getVocab();
+            if (vocab.length === 0) {
+                alert('No vocabulary to save. Add some words first.');
+                return;
+            }
+
+            const banks = getBanks();
+            if (!banks[course]) banks[course] = {};
+            if (!banks[course][topic]) banks[course][topic] = {};
+            banks[course][topic][setName] = vocab;
+            saveBanks(banks);
+
+            closeSaveModal();
+            populateCourseDropdown();
+
+            // Auto-select the newly saved set
+            document.getElementById('bankCourse').value = course;
+            onCourseChange();
+            document.getElementById('bankTopic').value = topic;
+            onTopicChange();
+            document.getElementById('bankSet').value = setName;
+            onSetChange();
+
+            // Clear save form
+            document.getElementById('saveCourse').value = '';
+            document.getElementById('saveTopic').value = '';
+            document.getElementById('saveSet').value = '';
+        }
+
+        function manageBanks() {
+            const banks = getBanks();
+            const container = document.getElementById('manageContent');
+
+            const courses = Object.keys(banks);
+            if (courses.length === 0) {
+                container.innerHTML = '<div class="bank-empty">No vocabulary banks saved yet.</div>';
+                document.getElementById('manageModal').style.display = 'block';
+                return;
+            }
+
+            let html = '';
+            courses.sort().forEach(course => {
+                html += `<div style="margin-bottom: 1rem;">`;
+                html += `<div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 2px solid #e5e7eb;">
+                    <strong style="font-size: 1rem; color: #1f2937;">${course}</strong>
+                    <button class="bank-btn danger" onclick="deleteCourse('${course.replace(/'/g, "\\'")}')">Delete Course</button>
+                </div>`;
+                const topics = Object.keys(banks[course]).sort();
+                topics.forEach(topic => {
+                    html += `<div style="margin-left: 1rem; padding: 0.4rem 0; border-bottom: 1px solid #f3f4f6;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span style="color: #6b7280; font-weight: 600;">${topic}</span>
+                            <button class="bank-btn danger" onclick="deleteTopic('${course.replace(/'/g, "\\'")}', '${topic.replace(/'/g, "\\'")}')">Delete Topic</button>
+                        </div>`;
+                    const sets = Object.keys(banks[course][topic]).sort();
+                    sets.forEach(setName => {
+                        const count = banks[course][topic][setName].length;
+                        html += `<div style="margin-left: 1rem; padding: 0.3rem 0; display: flex; align-items: center; justify-content: space-between;">
+                            <span style="color: #9ca3af; font-size: 0.85rem;">${setName} (${count} words)</span>
+                            <button class="bank-btn danger" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;" onclick="deleteSet('${course.replace(/'/g, "\\'")}', '${topic.replace(/'/g, "\\'")}', '${setName.replace(/'/g, "\\'")}')">Delete</button>
+                        </div>`;
+                    });
+                    html += `</div>`;
+                });
+                html += `</div>`;
+            });
+
+            container.innerHTML = html;
+            document.getElementById('manageModal').style.display = 'block';
+        }
+
+        function closeManageModal() {
+            document.getElementById('manageModal').style.display = 'none';
+        }
+
+        function deleteCourse(course) {
+            if (!confirm(`Delete entire course "${course}" and all its vocabulary?`)) return;
+            const banks = getBanks();
+            delete banks[course];
+            saveBanks(banks);
+            populateCourseDropdown();
+            onCourseChange();
+            manageBanks();
+        }
+
+        function deleteTopic(course, topic) {
+            if (!confirm(`Delete topic "${topic}" and all its vocab sets?`)) return;
+            const banks = getBanks();
+            if (banks[course]) {
+                delete banks[course][topic];
+                if (Object.keys(banks[course]).length === 0) delete banks[course];
+            }
+            saveBanks(banks);
+            populateCourseDropdown();
+            onCourseChange();
+            manageBanks();
+        }
+
+        function deleteSet(course, topic, setName) {
+            if (!confirm(`Delete vocab set "${setName}"?`)) return;
+            const banks = getBanks();
+            if (banks[course] && banks[course][topic]) {
+                delete banks[course][topic][setName];
+                if (Object.keys(banks[course][topic]).length === 0) delete banks[course][topic];
+                if (Object.keys(banks[course]).length === 0) delete banks[course];
+            }
+            saveBanks(banks);
+            populateCourseDropdown();
+            onCourseChange();
+            manageBanks();
+        }
+
+        // Initialize bank system
+        try { initBankAuth(); } catch(e) { populateCourseDropdown(); }
     </script>
 </body>
 </html>
