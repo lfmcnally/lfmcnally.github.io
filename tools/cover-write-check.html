@@ -706,8 +706,9 @@
 
                 <!-- Vocabulary Card -->
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <h2 class="card-title">Vocabulary</h2>
+                        <button class="add-row-btn" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem;" onclick="shuffleRows()">Shuffle Order</button>
                     </div>
                     <div class="card-body">
                         <table class="vocab-table" id="vocabTable">
@@ -910,6 +911,20 @@
             });
         }
 
+        function shuffleRows() {
+            const vocab = getVocab();
+            if (vocab.length <= 1) return;
+            // Fisher-Yates shuffle
+            for (let i = vocab.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [vocab[i], vocab[j]] = [vocab[j], vocab[i]];
+            }
+            // Clear and re-add
+            document.getElementById('vocabBody').innerHTML = '';
+            vocab.forEach(v => addRow(v.col1, v.col2, v.chapter));
+            document.activeElement.blur();
+        }
+
         function getVocab() {
             const rows = document.querySelectorAll('#vocabBody tr');
             const vocab = [];
@@ -944,26 +959,30 @@
             // Build attempt column headers
             let attemptHeaders = '';
             for (let i = 1; i <= attemptCols; i++) {
-                attemptHeaders += `<th class="attempt-header">Attempt ${i}</th>`;
+                attemptHeaders += `<th class="attempt-header">${attemptCols <= 4 ? ['1st', '2nd', '3rd', '4th'][i-1] : 'Attempt ' + i}</th>`;
             }
 
-            // Build rows
+            // Build rows - ORDER: attempts | chapter? | col1 (prompt) | col2 (fold-over answer)
             const rowsHtml = vocab.map((v, i) => {
-                let cells = `<td class="num-cell">${i + 1}</td>`;
-                if (showChapter) {
-                    cells += `<td class="chapter-cell">${v.chapter}</td>`;
-                }
-                cells += `<td class="word-cell">${v.col1}</td>`;
-                cells += `<td class="meaning-cell">${v.col2}</td>`;
+                let cells = '';
                 for (let a = 0; a < attemptCols; a++) {
                     cells += `<td class="attempt-cell"></td>`;
                 }
+                if (showChapter) {
+                    cells += `<td class="chapter-cell">${v.chapter}</td>`;
+                }
+                cells += `<td class="prompt-cell">${v.col1}</td>`;
+                cells += `<td class="fold-border">${v.col2}</td>`;
                 return `<tr>${cells}</tr>`;
             }).join('');
 
-            // Calculate column widths
-            const fixedCols = 2 + (showChapter ? 1 : 0); // num + col1 + col2 + optional chapter
-            const attemptWidth = attemptCols > 0 ? Math.floor(50 / attemptCols) : 0;
+            // Score row
+            const scoreRowHtml = showScore ? `<tr class="score-row">
+                ${Array.from({length: attemptCols}, (_, i) => `<td>__ / ${vocab.length}</td>`).join('')}
+                <td colspan="${(showChapter ? 1 : 0) + 2}"></td>
+            </tr>` : '';
+
+            const attemptWidth = attemptCols > 0 ? Math.floor(56 / attemptCols) : 14;
 
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
@@ -974,7 +993,7 @@
                     <style>
                         @page {
                             size: A4 landscape;
-                            margin: 1.5cm;
+                            margin: 1cm 1.2cm;
                         }
                         body {
                             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -983,109 +1002,112 @@
                         }
                         .sheet-header {
                             border: 2px solid #000;
-                            padding: 15px;
-                            margin-bottom: 20px;
+                            padding: 10px 15px;
+                            margin-bottom: 8px;
                         }
                         .sheet-header h2 {
-                            margin: 0 0 10px 0;
-                            font-size: 20pt;
+                            margin: 0 0 4px 0;
+                            font-size: 16pt;
                             text-align: center;
                         }
-                        .student-info {
+                        .header-row {
                             display: flex;
                             justify-content: space-between;
-                            margin-top: 15px;
-                            font-size: 12pt;
-                        }
-                        .student-info-field {
-                            display: flex;
                             align-items: center;
-                            gap: 5px;
+                            font-size: 11pt;
                         }
                         .field-value {
                             border-bottom: 1px solid #000;
-                            min-width: 150px;
+                            min-width: 120px;
                             padding-bottom: 2px;
                             display: inline-block;
+                        }
+                        .instructions {
+                            font-size: 9pt;
+                            color: #555;
+                            text-align: center;
+                            margin-bottom: 8px;
                         }
                         table {
                             width: 100%;
                             border-collapse: collapse;
-                            font-size: 11pt;
+                            font-size: 10pt;
                         }
                         th {
                             border: 1px solid #000;
-                            padding: 8px;
-                            text-align: left;
+                            padding: 6px 8px;
+                            text-align: center;
                             background: #f0f0f0;
                             font-weight: bold;
+                            font-size: 9pt;
                         }
                         td {
                             border: 1px solid #000;
-                            padding: 6px 8px;
+                            padding: 4px 6px;
                             vertical-align: middle;
                         }
-                        .num-cell {
-                            text-align: center;
-                            font-weight: bold;
-                            width: 30px;
-                            color: #333;
+                        .attempt-header {
+                            width: ${attemptWidth}%;
                         }
                         .chapter-cell {
-                            width: 60px;
-                            font-size: 10pt;
+                            width: 4%;
+                            text-align: center;
+                            font-size: 9pt;
                             color: #555;
                         }
-                        .word-cell {
+                        .prompt-cell {
                             font-weight: bold;
+                            font-size: 10pt;
+                            width: ${showChapter ? '16%' : '18%'};
                         }
-                        .attempt-cell {
-                            min-height: 25px;
+                        .fold-border {
+                            border-left: 3px dashed #999 !important;
+                            width: ${showChapter ? '14%' : '16%'};
                         }
-                        .attempt-header {
+                        .fold-header {
+                            border-left: 3px dashed #999 !important;
+                            position: relative;
+                        }
+                        .fold-hint {
+                            font-size: 7pt;
+                            color: #999;
+                            font-weight: normal;
+                            display: block;
+                        }
+                        .score-row td {
                             text-align: center;
-                        }
-                        .score-box {
-                            margin-top: 20px;
-                            border: 2px solid #000;
-                            padding: 10px;
-                            text-align: center;
-                            font-size: 14pt;
                             font-weight: bold;
+                            font-size: 9pt;
+                            padding: 5px;
                         }
                     </style>
                 </head>
                 <body>
                     <div class="sheet-header">
                         <h2>${title}</h2>
-                        <div class="student-info">
-                            <div class="student-info-field">
-                                <strong>Name:</strong>
-                                <span class="field-value">${studentName}</span>
-                            </div>
-                            <div class="student-info-field">
-                                <strong>Date:</strong>
-                                <span class="field-value">${testDate}</span>
-                            </div>
+                        <div class="header-row">
+                            <span><strong>Name:</strong> <span class="field-value">${studentName}</span></span>
+                            <span>${vocab.length} words</span>
+                            <span><strong>Date:</strong> <span class="field-value">${testDate}</span></span>
                         </div>
                     </div>
+
+                    <div class="instructions">Write your answers in the attempt columns. Fold along the dashed line to hide the ${col2Header.toLowerCase()} column, then unfold to check.</div>
 
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 30px;">#</th>
-                                ${showChapter ? '<th style="width: 60px;">Chapter</th>' : ''}
-                                <th>${col1Header}</th>
-                                <th>${col2Header}</th>
                                 ${attemptHeaders}
+                                ${showChapter ? '<th class="chapter-cell">Ch</th>' : ''}
+                                <th>${col1Header}</th>
+                                <th class="fold-header">${col2Header}<span class="fold-hint">&larr; fold here</span></th>
                             </tr>
                         </thead>
                         <tbody>
                             ${rowsHtml}
+                            ${scoreRowHtml}
                         </tbody>
                     </table>
-
-                    ${showScore ? `<div class="score-box">Score: _____ / ${vocab.length}</div>` : ''}
                 </body>
                 </html>
             `);
