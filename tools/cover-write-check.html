@@ -1420,9 +1420,10 @@
 
         async function getBanksFromSupabase() {
             const { data, error } = await supabase
-                .from('vocab_banks')
+                .from('question_banks')
                 .select('data')
                 .eq('user_id', currentUser.id)
+                .eq('bank_type', 'vocab')
                 .single();
             if (error && error.code === 'PGRST116') return {};
             if (error) throw error;
@@ -1431,47 +1432,39 @@
 
         async function saveBanksToSupabase(banks) {
             const { error } = await supabase
-                .from('vocab_banks')
+                .from('question_banks')
                 .upsert({
                     user_id: currentUser.id,
+                    bank_type: 'vocab',
                     data: banks
-                }, { onConflict: 'user_id' });
+                }, { onConflict: 'user_id,bank_type' });
             if (error) throw error;
             banksCache = banks;
         }
 
-        async function getBanks() {
-            if (currentUser) {
-                try {
-                    if (banksCache) return banksCache;
-                    banksCache = await getBanksFromSupabase();
-                    return banksCache;
-                } catch (e) {
-                    console.error('Supabase fetch failed, falling back to localStorage:', e);
-                }
-            }
+        function getBanks() {
+            if (banksCache) return banksCache;
             try {
-                return JSON.parse(localStorage.getItem(BANK_KEY)) || {};
+                banksCache = JSON.parse(localStorage.getItem(BANK_KEY)) || {};
             } catch (e) {
-                return {};
+                banksCache = {};
             }
+            return banksCache;
         }
 
-        async function saveBanks(banks) {
+        function saveBanks(banks) {
             banksCache = banks;
-            if (currentUser) {
-                try {
-                    await saveBanksToSupabase(banks);
-                    return;
-                } catch (e) {
-                    console.error('Supabase save failed, falling back to localStorage:', e);
-                }
-            }
             localStorage.setItem(BANK_KEY, JSON.stringify(banks));
+            // Also try Supabase in background if authenticated
+            if (currentUser) {
+                saveBanksToSupabase(banks).catch(e =>
+                    console.warn('Supabase sync failed:', e)
+                );
+            }
         }
 
-        async function populateCourseDropdown() {
-            const banks = await getBanks();
+        function populateCourseDropdown() {
+            const banks = getBanks();
             const select = document.getElementById('bankCourse');
             const current = select.value;
             select.innerHTML = '<option value="">-- Course --</option>';
@@ -1484,8 +1477,8 @@
             if (current && banks[current]) select.value = current;
         }
 
-        async function onCourseChange() {
-            const banks = await getBanks();
+        function onCourseChange() {
+            const banks = getBanks();
             const course = document.getElementById('bankCourse').value;
             const topicSelect = document.getElementById('bankTopic');
             const setSelect = document.getElementById('bankSet');
@@ -1507,8 +1500,8 @@
             });
         }
 
-        async function onTopicChange() {
-            const banks = await getBanks();
+        function onTopicChange() {
+            const banks = getBanks();
             const course = document.getElementById('bankCourse').value;
             const topic = document.getElementById('bankTopic').value;
             const setSelect = document.getElementById('bankSet');
@@ -1528,8 +1521,8 @@
             });
         }
 
-        async function onSetChange() {
-            const banks = await getBanks();
+        function onSetChange() {
+            const banks = getBanks();
             const course = document.getElementById('bankCourse').value;
             const topic = document.getElementById('bankTopic').value;
             const setName = document.getElementById('bankSet').value;
@@ -1562,8 +1555,8 @@
             container.innerHTML = html;
         }
 
-        async function loadSelected() {
-            const banks = await getBanks();
+        function loadSelected() {
+            const banks = getBanks();
             const course = document.getElementById('bankCourse').value;
             const topic = document.getElementById('bankTopic').value;
             const setName = document.getElementById('bankSet').value;
@@ -1578,8 +1571,8 @@
             });
         }
 
-        async function loadAll() {
-            const banks = await getBanks();
+        function loadAll() {
+            const banks = getBanks();
             const course = document.getElementById('bankCourse').value;
             const topic = document.getElementById('bankTopic').value;
             const setName = document.getElementById('bankSet').value;
@@ -1588,8 +1581,8 @@
             banks[course][topic][setName].forEach(w => addRow(w.col1, w.col2, w.chapter));
         }
 
-        async function showSaveModal() {
-            const banks = await getBanks();
+        function showSaveModal() {
+            const banks = getBanks();
             const courseList = document.getElementById('courseList');
             courseList.innerHTML = '';
             Object.keys(banks).sort().forEach(c => {
@@ -1618,7 +1611,7 @@
             document.getElementById('saveModal').style.display = 'none';
         }
 
-        async function saveToBank() {
+        function saveToBank() {
             const course = document.getElementById('saveCourse').value.trim();
             const topic = document.getElementById('saveTopic').value.trim();
             const setName = document.getElementById('saveSet').value.trim();
@@ -1634,22 +1627,22 @@
                 return;
             }
 
-            const banks = await getBanks();
+            const banks = getBanks();
             if (!banks[course]) banks[course] = {};
             if (!banks[course][topic]) banks[course][topic] = {};
             banks[course][topic][setName] = vocab;
-            await saveBanks(banks);
+            saveBanks(banks);
 
             closeSaveModal();
-            await populateCourseDropdown();
+            populateCourseDropdown();
 
             // Auto-select the newly saved set
             document.getElementById('bankCourse').value = course;
-            await onCourseChange();
+            onCourseChange();
             document.getElementById('bankTopic').value = topic;
-            await onTopicChange();
+            onTopicChange();
             document.getElementById('bankSet').value = setName;
-            await onSetChange();
+            onSetChange();
 
             // Clear save form
             document.getElementById('saveCourse').value = '';
@@ -1657,8 +1650,8 @@
             document.getElementById('saveSet').value = '';
         }
 
-        async function manageBanks() {
-            const banks = await getBanks();
+        function manageBanks() {
+            const banks = getBanks();
             const container = document.getElementById('manageContent');
 
             const courses = Object.keys(banks);
@@ -1703,45 +1696,45 @@
             document.getElementById('manageModal').style.display = 'none';
         }
 
-        async function deleteCourse(course) {
+        function deleteCourse(course) {
             if (!confirm(`Delete entire course "${course}" and all its vocabulary?`)) return;
-            const banks = await getBanks();
+            const banks = getBanks();
             delete banks[course];
-            await saveBanks(banks);
-            await populateCourseDropdown();
-            await onCourseChange();
-            await manageBanks();
+            saveBanks(banks);
+            populateCourseDropdown();
+            onCourseChange();
+            manageBanks();
         }
 
-        async function deleteTopic(course, topic) {
+        function deleteTopic(course, topic) {
             if (!confirm(`Delete topic "${topic}" and all its vocab sets?`)) return;
-            const banks = await getBanks();
+            const banks = getBanks();
             if (banks[course]) {
                 delete banks[course][topic];
                 if (Object.keys(banks[course]).length === 0) delete banks[course];
             }
-            await saveBanks(banks);
-            await populateCourseDropdown();
-            await onCourseChange();
-            await manageBanks();
+            saveBanks(banks);
+            populateCourseDropdown();
+            onCourseChange();
+            manageBanks();
         }
 
-        async function deleteSet(course, topic, setName) {
+        function deleteSet(course, topic, setName) {
             if (!confirm(`Delete vocab set "${setName}"?`)) return;
-            const banks = await getBanks();
+            const banks = getBanks();
             if (banks[course] && banks[course][topic]) {
                 delete banks[course][topic][setName];
                 if (Object.keys(banks[course][topic]).length === 0) delete banks[course][topic];
                 if (Object.keys(banks[course]).length === 0) delete banks[course];
             }
-            await saveBanks(banks);
-            await populateCourseDropdown();
-            await onCourseChange();
-            await manageBanks();
+            saveBanks(banks);
+            populateCourseDropdown();
+            onCourseChange();
+            manageBanks();
         }
 
         // Initialize bank system
-        initBankAuth();
+        try { initBankAuth(); } catch(e) { populateCourseDropdown(); }
     </script>
 </body>
 </html>
