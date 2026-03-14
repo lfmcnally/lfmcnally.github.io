@@ -1383,26 +1383,46 @@
         async function initBankAuth() {
             try {
                 currentUser = await getCurrentUser();
-                if (currentUser) {
-                    await migrateLocalToSupabase();
-                }
             } catch (e) {
                 console.warn('Auth not available, using localStorage:', e.message);
                 currentUser = null;
             }
-            await populateCourseDropdown();
+
+            if (currentUser) {
+                // Try to load from Supabase first
+                try {
+                    const remote = await getBanksFromSupabase();
+                    const local = getLocalBanks();
+
+                    if (Object.keys(remote).length > 0 && Object.keys(local).length > 0) {
+                        // Merge: remote + local, local wins for conflicts
+                        banksCache = mergeDeep(remote, local);
+                        await saveBanksToSupabase(banksCache);
+                    } else if (Object.keys(remote).length > 0) {
+                        banksCache = remote;
+                    } else if (Object.keys(local).length > 0) {
+                        banksCache = local;
+                        await saveBanksToSupabase(banksCache);
+                    } else {
+                        banksCache = {};
+                    }
+                    // Keep localStorage in sync as a fast cache
+                    localStorage.setItem(BANK_KEY, JSON.stringify(banksCache));
+                } catch (e) {
+                    console.warn('Supabase load failed, using localStorage:', e);
+                    banksCache = getLocalBanks();
+                }
+            } else {
+                banksCache = getLocalBanks();
+            }
+            populateCourseDropdown();
         }
 
-        async function migrateLocalToSupabase() {
+        function getLocalBanks() {
             try {
-                const local = JSON.parse(localStorage.getItem(BANK_KEY));
-                if (!local || Object.keys(local).length === 0) return;
-                const remote = await getBanksFromSupabase();
-                const merged = mergeDeep(remote, local);
-                await saveBanksToSupabase(merged);
-                localStorage.removeItem(BANK_KEY);
+                return JSON.parse(localStorage.getItem(BANK_KEY)) || {};
             } catch (e) {
-                console.warn('Migration failed, keeping localStorage:', e);
+                return {};
             }
         }
 
@@ -1439,23 +1459,18 @@
                     data: banks
                 }, { onConflict: 'user_id,bank_type' });
             if (error) throw error;
-            banksCache = banks;
         }
 
         function getBanks() {
             if (banksCache) return banksCache;
-            try {
-                banksCache = JSON.parse(localStorage.getItem(BANK_KEY)) || {};
-            } catch (e) {
-                banksCache = {};
-            }
+            banksCache = getLocalBanks();
             return banksCache;
         }
 
         function saveBanks(banks) {
             banksCache = banks;
             localStorage.setItem(BANK_KEY, JSON.stringify(banks));
-            // Also try Supabase in background if authenticated
+            // Also save to Supabase if authenticated
             if (currentUser) {
                 saveBanksToSupabase(banks).catch(e =>
                     console.warn('Supabase sync failed:', e)

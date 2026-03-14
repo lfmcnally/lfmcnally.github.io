@@ -1291,32 +1291,43 @@
         async function initBankAuth() {
             try {
                 currentUser = await getCurrentUser();
-                if (currentUser) {
-                    // Migrate any localStorage banks to Supabase on first login
-                    await migrateLocalToSupabase();
-                }
             } catch (e) {
                 console.warn('Auth not available, using localStorage:', e.message);
                 currentUser = null;
             }
-            // Refresh dropdowns after auth check
+
+            if (currentUser) {
+                try {
+                    const remote = await getBanksFromSupabase();
+                    const local = getLocalBanks();
+
+                    if (Object.keys(remote).length > 0 && Object.keys(local).length > 0) {
+                        banksCache = mergeDeep(remote, local);
+                        await saveBanksToSupabase(banksCache);
+                    } else if (Object.keys(remote).length > 0) {
+                        banksCache = remote;
+                    } else if (Object.keys(local).length > 0) {
+                        banksCache = local;
+                        await saveBanksToSupabase(banksCache);
+                    } else {
+                        banksCache = {};
+                    }
+                    localStorage.setItem(BANK_KEY, JSON.stringify(banksCache));
+                } catch (e) {
+                    console.warn('Supabase load failed, using localStorage:', e);
+                    banksCache = getLocalBanks();
+                }
+            } else {
+                banksCache = getLocalBanks();
+            }
             await populateCourseDropdown();
         }
 
-        async function migrateLocalToSupabase() {
+        function getLocalBanks() {
             try {
-                const local = JSON.parse(localStorage.getItem(BANK_KEY));
-                if (!local || Object.keys(local).length === 0) return;
-
-                // Fetch existing remote data
-                const remote = await getBanksFromSupabase();
-                // Merge local into remote (local wins for conflicts)
-                const merged = mergeDeep(remote, local);
-                await saveBanksToSupabase(merged);
-                // Clear localStorage after successful migration
-                localStorage.removeItem(BANK_KEY);
+                return JSON.parse(localStorage.getItem(BANK_KEY)) || {};
             } catch (e) {
-                console.warn('Migration failed, keeping localStorage:', e);
+                return {};
             }
         }
 
@@ -1337,6 +1348,7 @@
                 .from('question_banks')
                 .select('data')
                 .eq('user_id', currentUser.id)
+                .eq('bank_type', 'donow')
                 .single();
             if (error && error.code === 'PGRST116') return {}; // No row yet
             if (error) throw error;
@@ -1348,8 +1360,9 @@
                 .from('question_banks')
                 .upsert({
                     user_id: currentUser.id,
+                    bank_type: 'donow',
                     data: banks
-                }, { onConflict: 'user_id' });
+                }, { onConflict: 'user_id,bank_type' });
             if (error) throw error;
             banksCache = banks;
         }
@@ -1373,15 +1386,14 @@
 
         async function saveBanks(banks) {
             banksCache = banks;
+            localStorage.setItem(BANK_KEY, JSON.stringify(banks));
             if (currentUser) {
                 try {
                     await saveBanksToSupabase(banks);
-                    return;
                 } catch (e) {
-                    console.error('Supabase save failed, falling back to localStorage:', e);
+                    console.warn('Supabase sync failed:', e);
                 }
             }
-            localStorage.setItem(BANK_KEY, JSON.stringify(banks));
         }
 
         async function populateCourseDropdown() {
