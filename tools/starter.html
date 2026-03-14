@@ -7,6 +7,9 @@
     <link rel="icon" type="image/png" href="/images/favicon.png">
     <meta property="og:title" content="Starter Template - Classicalia">
     <meta property="og:description" content="Create and print custom do now / starter activities for any subject">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../auth/config.js"></script>
+    <script src="../auth/auth.js"></script>
     <style>
         * {
             margin: 0;
@@ -1263,12 +1266,90 @@
         }
 
         // ==========================================
-        // Question Bank System (localStorage)
+        // Question Bank System (Supabase + localStorage fallback)
         // ==========================================
 
         const BANK_KEY = 'classicalia_question_banks';
+        let currentUser = null;
+        let banksCache = null;
 
-        function getBanks() {
+        // Initialise auth state
+        async function initBankAuth() {
+            try {
+                currentUser = await getCurrentUser();
+                if (currentUser) {
+                    // Migrate any localStorage banks to Supabase on first login
+                    await migrateLocalToSupabase();
+                }
+            } catch (e) {
+                console.warn('Auth not available, using localStorage:', e.message);
+                currentUser = null;
+            }
+            // Refresh dropdowns after auth check
+            await populateCourseDropdown();
+        }
+
+        async function migrateLocalToSupabase() {
+            try {
+                const local = JSON.parse(localStorage.getItem(BANK_KEY));
+                if (!local || Object.keys(local).length === 0) return;
+
+                // Fetch existing remote data
+                const remote = await getBanksFromSupabase();
+                // Merge local into remote (local wins for conflicts)
+                const merged = mergeDeep(remote, local);
+                await saveBanksToSupabase(merged);
+                // Clear localStorage after successful migration
+                localStorage.removeItem(BANK_KEY);
+            } catch (e) {
+                console.warn('Migration failed, keeping localStorage:', e);
+            }
+        }
+
+        function mergeDeep(target, source) {
+            const result = { ...target };
+            for (const key of Object.keys(source)) {
+                if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                    result[key] = mergeDeep(result[key] || {}, source[key]);
+                } else {
+                    result[key] = source[key];
+                }
+            }
+            return result;
+        }
+
+        async function getBanksFromSupabase() {
+            const { data, error } = await supabase
+                .from('question_banks')
+                .select('data')
+                .eq('user_id', currentUser.id)
+                .single();
+            if (error && error.code === 'PGRST116') return {}; // No row yet
+            if (error) throw error;
+            return data.data || {};
+        }
+
+        async function saveBanksToSupabase(banks) {
+            const { error } = await supabase
+                .from('question_banks')
+                .upsert({
+                    user_id: currentUser.id,
+                    data: banks
+                }, { onConflict: 'user_id' });
+            if (error) throw error;
+            banksCache = banks;
+        }
+
+        async function getBanks() {
+            if (currentUser) {
+                try {
+                    if (banksCache) return banksCache;
+                    banksCache = await getBanksFromSupabase();
+                    return banksCache;
+                } catch (e) {
+                    console.error('Supabase fetch failed, falling back to localStorage:', e);
+                }
+            }
             try {
                 return JSON.parse(localStorage.getItem(BANK_KEY)) || {};
             } catch (e) {
@@ -1276,12 +1357,21 @@
             }
         }
 
-        function saveBanks(banks) {
+        async function saveBanks(banks) {
+            banksCache = banks;
+            if (currentUser) {
+                try {
+                    await saveBanksToSupabase(banks);
+                    return;
+                } catch (e) {
+                    console.error('Supabase save failed, falling back to localStorage:', e);
+                }
+            }
             localStorage.setItem(BANK_KEY, JSON.stringify(banks));
         }
 
-        function populateCourseDropdown() {
-            const banks = getBanks();
+        async function populateCourseDropdown() {
+            const banks = await getBanks();
             const select = document.getElementById('bankCourse');
             const current = select.value;
             select.innerHTML = '<option value="">-- Course --</option>';
@@ -1294,8 +1384,8 @@
             if (current && banks[current]) select.value = current;
         }
 
-        function onCourseChange() {
-            const banks = getBanks();
+        async function onCourseChange() {
+            const banks = await getBanks();
             const course = document.getElementById('bankCourse').value;
             const topicSelect = document.getElementById('bankTopic');
             const setSelect = document.getElementById('bankSet');
@@ -1317,8 +1407,8 @@
             });
         }
 
-        function onTopicChange() {
-            const banks = getBanks();
+        async function onTopicChange() {
+            const banks = await getBanks();
             const course = document.getElementById('bankCourse').value;
             const topic = document.getElementById('bankTopic').value;
             const setSelect = document.getElementById('bankSet');
@@ -1338,8 +1428,8 @@
             });
         }
 
-        function onSetChange() {
-            const banks = getBanks();
+        async function onSetChange() {
+            const banks = await getBanks();
             const course = document.getElementById('bankCourse').value;
             const topic = document.getElementById('bankTopic').value;
             const setName = document.getElementById('bankSet').value;
@@ -1371,8 +1461,8 @@
             container.innerHTML = html;
         }
 
-        function loadSelected() {
-            const banks = getBanks();
+        async function loadSelected() {
+            const banks = await getBanks();
             const course = document.getElementById('bankCourse').value;
             const topic = document.getElementById('bankTopic').value;
             const setName = document.getElementById('bankSet').value;
@@ -1387,8 +1477,8 @@
             });
         }
 
-        function loadAll() {
-            const banks = getBanks();
+        async function loadAll() {
+            const banks = await getBanks();
             const course = document.getElementById('bankCourse').value;
             const topic = document.getElementById('bankTopic').value;
             const setName = document.getElementById('bankSet').value;
@@ -1397,8 +1487,8 @@
             banks[course][topic][setName].forEach(q => addRow(q));
         }
 
-        function showSaveModal() {
-            const banks = getBanks();
+        async function showSaveModal() {
+            const banks = await getBanks();
             // Populate datalists for autocomplete
             const courseList = document.getElementById('courseList');
             courseList.innerHTML = '';
@@ -1414,7 +1504,7 @@
             document.getElementById('saveModal').style.display = 'none';
         }
 
-        function saveToBank() {
+        async function saveToBank() {
             const course = document.getElementById('saveCourse').value.trim();
             const topic = document.getElementById('saveTopic').value.trim();
             const setName = document.getElementById('saveSet').value.trim();
@@ -1430,22 +1520,22 @@
                 return;
             }
 
-            const banks = getBanks();
+            const banks = await getBanks();
             if (!banks[course]) banks[course] = {};
             if (!banks[course][topic]) banks[course][topic] = {};
             banks[course][topic][setName] = questions;
-            saveBanks(banks);
+            await saveBanks(banks);
 
             closeSaveModal();
-            populateCourseDropdown();
+            await populateCourseDropdown();
 
             // Auto-select the newly saved set
             document.getElementById('bankCourse').value = course;
-            onCourseChange();
+            await onCourseChange();
             document.getElementById('bankTopic').value = topic;
-            onTopicChange();
+            await onTopicChange();
             document.getElementById('bankSet').value = setName;
-            onSetChange();
+            await onSetChange();
 
             // Clear save form
             document.getElementById('saveCourse').value = '';
@@ -1453,8 +1543,8 @@
             document.getElementById('saveSet').value = '';
         }
 
-        function manageBanks() {
-            const banks = getBanks();
+        async function manageBanks() {
+            const banks = await getBanks();
             const container = document.getElementById('manageContent');
 
             const courses = Object.keys(banks);
@@ -1499,41 +1589,41 @@
             document.getElementById('manageModal').style.display = 'none';
         }
 
-        function deleteCourse(course) {
+        async function deleteCourse(course) {
             if (!confirm(`Delete entire course "${course}" and all its questions?`)) return;
-            const banks = getBanks();
+            const banks = await getBanks();
             delete banks[course];
-            saveBanks(banks);
-            populateCourseDropdown();
-            onCourseChange();
-            manageBanks();
+            await saveBanks(banks);
+            await populateCourseDropdown();
+            await onCourseChange();
+            await manageBanks();
         }
 
-        function deleteTopic(course, topic) {
+        async function deleteTopic(course, topic) {
             if (!confirm(`Delete topic "${topic}" and all its question sets?`)) return;
-            const banks = getBanks();
+            const banks = await getBanks();
             if (banks[course]) {
                 delete banks[course][topic];
                 if (Object.keys(banks[course]).length === 0) delete banks[course];
             }
-            saveBanks(banks);
-            populateCourseDropdown();
-            onCourseChange();
-            manageBanks();
+            await saveBanks(banks);
+            await populateCourseDropdown();
+            await onCourseChange();
+            await manageBanks();
         }
 
-        function deleteSet(course, topic, setName) {
+        async function deleteSet(course, topic, setName) {
             if (!confirm(`Delete question set "${setName}"?`)) return;
-            const banks = getBanks();
+            const banks = await getBanks();
             if (banks[course] && banks[course][topic]) {
                 delete banks[course][topic][setName];
                 if (Object.keys(banks[course][topic]).length === 0) delete banks[course][topic];
                 if (Object.keys(banks[course]).length === 0) delete banks[course];
             }
-            saveBanks(banks);
-            populateCourseDropdown();
-            onCourseChange();
-            manageBanks();
+            await saveBanks(banks);
+            await populateCourseDropdown();
+            await onCourseChange();
+            await manageBanks();
         }
 
         // Close modals on background click
@@ -1548,15 +1638,15 @@
         document.getElementById('addRowBtn').addEventListener('click', () => addRow());
         document.getElementById('printBtn').addEventListener('click', printStarter);
 
-        // Initialize question bank dropdowns
-        populateCourseDropdown();
-
         // Start with 5 blank rows
         for (let i = 0; i < 5; i++) {
             addRow();
         }
         // Clear focus from last row
         document.activeElement.blur();
+
+        // Initialize question bank (async - loads auth then populates dropdowns)
+        initBankAuth();
     </script>
 </body>
 </html>
