@@ -1306,7 +1306,7 @@
             // Update UI based on ownership status
             if (isClassOwner) {
                 // Show co-teachers section
-                document.getElementById('coTeachersCard').style.display = 'block';
+                document.getElementById('coTeachersSection').style.display = 'block';
                 await loadCoTeachers();
             } else {
                 // Co-teachers can't delete the class
@@ -2777,119 +2777,6 @@
             container.innerHTML = html;
         }
         
-        // Load the set text progress grid
-        async function loadSetTextGrid() {
-            const container = document.getElementById('setTextGridContainer');
-            const selector = document.getElementById('setTextGridSelector');
-            const selectedTextId = selector ? selector.value : 'messalina';
-
-            if (classStudents.length === 0) {
-                container.innerHTML = '<div class="no-tasks-message">No students in class yet.</div>';
-                return;
-            }
-
-            const studentIds = classStudents.map(s => s.id);
-
-            // Get set text progress for students in this class, filtered by selected text
-            const { data: progress, error: progressError } = await supabase
-                .from('set_text_progress')
-                .select('*')
-                .in('student_id', studentIds)
-                .eq('text_id', selectedTextId);
-
-            if (progressError) {
-                console.error('Error loading set text progress:', progressError);
-                container.innerHTML = '<div class="no-tasks-message">Error loading set text data.</div>';
-                return;
-            }
-
-            // Define available texts and their sections
-            const allTexts = {
-                'messalina': { id: 'messalina', name: 'Messalina', shortName: 'Mess.', sections: 9 },
-                'baucis-philemon': { id: 'baucis-philemon', name: 'Baucis & Philemon', shortName: 'B&P', sections: 6 },
-                'otium': { id: 'otium', name: 'Otium', shortName: 'Otium', sections: 3 }
-            };
-
-            // Get selected text config
-            const selectedText = allTexts[selectedTextId];
-            const texts = [selectedText];
-            
-            // Build lookup: { textId: { sectionNum: { userId: { score, attempts } } } }
-            const progressLookup = {};
-            if (progress) {
-                progress.forEach(p => {
-                    if (!progressLookup[p.text_id]) progressLookup[p.text_id] = {};
-                    if (!progressLookup[p.text_id][p.section_id]) progressLookup[p.text_id][p.section_id] = {};
-                    
-                    const existing = progressLookup[p.text_id][p.section_id][p.student_id];
-                    // Use best_score if available, otherwise calculate from questions_correct/questions_total
-                    const score = p.best_score != null ? p.best_score :
-                        (p.questions_total > 0 ? Math.round((p.questions_correct / p.questions_total) * 100) : 0);
-                    
-                    if (!existing || score > existing.score) {
-                        progressLookup[p.text_id][p.section_id][p.student_id] = {
-                            score: score,
-                            correct: p.questions_correct,
-                            total: p.questions_total,
-                            attempts: p.attempts || 1
-                        };
-                    }
-                });
-            }
-            
-            // Check if any progress exists for this text
-            const hasAnyProgress = progress && progress.length > 0;
-            if (!hasAnyProgress) {
-                container.innerHTML = `<div class="no-tasks-message">No ${selectedText.name} attempts yet. Students can practise at the <a href="/latin/literature/set-text-quiz.html?text=${selectedTextId}" target="_blank">Set Text Tester</a>.</div>`;
-                return;
-            }
-            
-            // Build HTML table
-            let html = '<div class="completion-grid-wrapper"><table class="completion-grid">';
-            
-            // Header row
-            html += '<thead><tr><th class="student-col">Student</th>';
-            texts.forEach(text => {
-                for (let s = 1; s <= text.sections; s++) {
-                    html += `<th class="task-col" title="${text.name} Section ${s}">${text.shortName} §${s}</th>`;
-                }
-            });
-            html += '</tr></thead>';
-            
-            // Body rows
-            html += '<tbody>';
-            
-            classStudents.forEach(student => {
-                const name = student.full_name || student.email.split('@')[0];
-                html += `<tr><td class="student-name">${name}</td>`;
-                
-                texts.forEach(text => {
-                    for (let s = 1; s <= text.sections; s++) {
-                        const data = progressLookup[text.id]?.[s]?.[student.id];
-                        
-                        let cellClass = 'not-started';
-                        let cellContent = '<span class="task-cell-icon">—</span>';
-                        
-                        if (data) {
-                            if (data.score >= 70) {
-                                cellClass = 'completed';
-                            } else {
-                                cellClass = 'completed-late'; // Yellow for <70%
-                            }
-                            cellContent = `<span class="task-cell-score" style="font-size: 0.9rem; font-weight: 600;">${data.score}%</span>`;
-                        }
-                        
-                        html += `<td class="task-cell"><div class="task-cell-inner ${cellClass}">${cellContent}</div></td>`;
-                    }
-                });
-                
-                html += '</tr>';
-            });
-            
-            html += '</tbody></table></div>';
-            container.innerHTML = html;
-        }
-
         // Classics Quiz Progress Grid Functions
         const classicsCoursesData = {
             'politics': {
