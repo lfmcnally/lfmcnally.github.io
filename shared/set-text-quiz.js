@@ -1,3 +1,6 @@
+// DEPRECATED: Set text tracking has been removed from the class system.
+// This file is retained for backwards compatibility but is no longer actively used.
+
 // Set Text Quiz Logic with Progress Tracking and Answer Recording
 // Handles quiz flow, answer checking, and saves progress + individual answers to Supabase
 

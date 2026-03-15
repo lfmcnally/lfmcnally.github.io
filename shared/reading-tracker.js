@@ -55,6 +55,18 @@ const readingTracker = {
         } else {
             this.courseName = 'Reading';
         }
+
+        // Detect class level from URL path for filtering
+        if (path.includes('/prep/') || path.includes('prep-latin')) {
+            this.classLevel = 'prep';
+        } else if (path.includes('/gcse/') || path.includes('latin-gcse') || path.includes('greek-gcse')) {
+            this.classLevel = 'gcse';
+        } else if (path.includes('/alevel/') || path.includes('latin-alevel') || path.includes('greek-alevel')) {
+            this.classLevel = 'alevel';
+        } else {
+            this.classLevel = null;
+        }
+
         return this.courseName;
     },
 
