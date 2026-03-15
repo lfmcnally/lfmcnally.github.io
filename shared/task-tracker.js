@@ -467,16 +467,25 @@ const taskTracker = {
     },
     
     // Get word mastery stats for current user
-    async getWordMasteryStats() {
+    // Optionally filter by language (e.g. 'latin', 'greek')
+    async getWordMasteryStats(language = null) {
         if (!this.userId) {
             const ready = await this.init();
             if (!ready) return null;
         }
-        
-        const { data, error } = await supabase
+
+        let query = supabase
             .from('word_mastery')
             .select('*')
             .eq('student_id', this.userId);
+
+        // Filter by language if specified, otherwise use the tracker's current language
+        const lang = language || this.language;
+        if (lang) {
+            query = query.eq('language', lang);
+        }
+
+        const { data, error } = await query;
         
         if (error) {
             console.error('Error fetching word mastery:', error);
@@ -508,18 +517,26 @@ const taskTracker = {
     },
     
     // Get struggling words for review
-    async getStrugglingWords(limit = 20) {
+    // Optionally filter by language (e.g. 'latin', 'greek')
+    async getStrugglingWords(limit = 20, language = null) {
         if (!this.userId) {
             const ready = await this.init();
             if (!ready) return [];
         }
 
-        const { data, error } = await supabase
+        let query = supabase
             .from('word_mastery')
             .select('*')
             .eq('student_id', this.userId)
             .order('incorrect_count', { ascending: false })
             .limit(limit);
+
+        const lang = language || this.language;
+        if (lang) {
+            query = query.eq('language', lang);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
             console.error('Error fetching struggling words:', error);

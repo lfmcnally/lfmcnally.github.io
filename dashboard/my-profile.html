@@ -5,846 +5,566 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile - Classicalia</title>
     <link rel="icon" type="image/png" href="../images/favicon.png">
+    <link rel="stylesheet" href="../shared/google-theme.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #f0f4ff 0%, #f8f9fa 50%, #fff5f5 100%);
-            min-height: 100vh;
-            padding: 1.5rem;
-        }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
+        /* Page-specific styles */
+        .loading-page {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            flex-direction: column;
+            gap: 1rem;
         }
 
-        /* Header */
-        .header {
-            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-            border-radius: 20px;
-            padding: 2rem;
-            color: white;
-            margin-bottom: 2rem;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(139, 92, 246, 0.3);
+        .loading-page .spinner {
+            width: 40px;
+            height: 40px;
         }
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -80%;
-            right: -5%;
-            width: 300px;
-            height: 300px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 50%;
-        }
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: relative;
-            z-index: 1;
-        }
-        .header-left {
+
+        .profile-header {
             display: flex;
             align-items: center;
             gap: 1.5rem;
+            margin-bottom: 1rem;
         }
-        .profile-avatar {
-            width: 80px;
-            height: 80px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 3rem;
-            border: 3px solid rgba(255,255,255,0.3);
+
+        .profile-avatar-wrap {
             position: relative;
         }
-        .level-badge-avatar {
+
+        .profile-avatar-wrap .avatar-lg {
+            font-size: 2.5rem;
+            cursor: pointer;
+            transition: box-shadow var(--g-transition);
+        }
+
+        .profile-avatar-wrap .avatar-lg:hover {
+            box-shadow: var(--g-shadow-hover);
+        }
+
+        .profile-avatar-level {
             position: absolute;
-            bottom: -5px;
-            right: -5px;
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
-            color: #1f2937;
-            width: 28px;
-            height: 28px;
+            bottom: -4px;
+            right: -4px;
+            background: var(--g-blue);
+            color: #fff;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.85rem;
-            font-weight: 800;
-            border: 3px solid white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            font-size: 11px;
+            font-weight: 600;
+            border: 2px solid #fff;
         }
-        .profile-info h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
+
+        .profile-details h2 {
             margin-bottom: 0.25rem;
         }
-        .profile-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            background: rgba(255,255,255,0.2);
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-        }
-        .header-actions {
-            display: flex;
-            gap: 0.75rem;
-        }
-        .btn {
-            padding: 0.6rem 1.25rem;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s;
-            border: none;
-        }
-        .btn-ghost {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-        .btn-ghost:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-2px);
+
+        .profile-details .profile-email {
+            font-size: var(--g-font-size);
+            color: var(--g-text-secondary);
+            margin-bottom: 0.5rem;
         }
 
-        /* XP Bar */
-        .xp-section {
-            background: white;
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            border: 2px solid #e5e7eb;
-        }
-        .xp-header {
+        .profile-badges {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .xp-level {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        .level-badge {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-        .level-title {
-            color: #6b7280;
-            font-size: 0.9rem;
-        }
-        .xp-balance {
-            text-align: right;
-        }
-        .xp-amount {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #8b5cf6;
-        }
-        .xp-label {
-            font-size: 0.8rem;
-            color: #6b7280;
-        }
-        .xp-bar-container {
-            background: #e5e7eb;
-            border-radius: 10px;
-            height: 20px;
-            overflow: hidden;
-            position: relative;
-        }
-        .xp-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
-            border-radius: 10px;
-            transition: width 0.5s ease;
-        }
-        .xp-bar-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #374151;
-        }
-
-        /* Section */
-        .section {
-            background: white;
-            border-radius: 16px;
-            border: 2px solid #e5e7eb;
-            margin-bottom: 1.5rem;
-            overflow: hidden;
-        }
-        .section-header {
-            padding: 1.25rem;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #1f2937;
-            display: flex;
-            align-items: center;
             gap: 0.5rem;
-        }
-        .section-body {
-            padding: 1.25rem;
-        }
-
-        /* Academic Level Selector */
-        .level-btn {
-            flex: 1;
-            min-width: 150px;
-            padding: 1.25rem;
-            background: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
-            cursor: pointer;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            transition: all 0.2s ease;
-        }
-        .level-btn:hover {
-            border-color: #8b5cf6;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
-        }
-        .level-btn.selected {
-            border-color: #8b5cf6;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(124, 58, 237, 0.1) 100%);
-        }
-        .level-btn strong {
-            color: #1f2937;
-            font-size: 1rem;
-        }
-        .level-btn small {
-            color: #6b7280;
-            font-size: 0.8rem;
-        }
-
-        /* Emoji Collection Header */
-        .emoji-collection-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
             flex-wrap: wrap;
-            gap: 1rem;
-        }
-        .collection-progress {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        .collection-count {
-            font-size: 0.9rem;
-            color: #6b7280;
-        }
-        .collection-count strong {
-            color: #8b5cf6;
-        }
-        .unlock-btn {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-            border: none;
-            padding: 0.6rem 1.25rem;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .unlock-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-        }
-        .unlock-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .unlock-btn .cost {
-            background: rgba(255,255,255,0.2);
-            padding: 0.15rem 0.4rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
         }
 
-        /* Emoji Grid */
+        /* Emoji collection */
         .emoji-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
-            gap: 0.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+            gap: 0.4rem;
         }
+
         .emoji-item {
             aspect-ratio: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.75rem;
-            background: #f9fafb;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
+            font-size: 1.5rem;
+            background: var(--g-bg);
+            border: 2px solid var(--g-border);
+            border-radius: var(--g-radius);
             cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-        }
-        .emoji-item:hover:not(.locked) {
-            border-color: #8b5cf6;
-            transform: scale(1.1);
-        }
-        .emoji-item.selected {
-            border-color: #8b5cf6;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.1));
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
-        }
-        .emoji-item.locked {
-            background: linear-gradient(135deg, #e5e7eb, #d1d5db);
-            cursor: default;
-            font-size: 1.25rem;
-            color: #9ca3af;
-        }
-        .emoji-item.locked:hover {
-            transform: none;
+            transition: border-color var(--g-transition), background var(--g-transition);
         }
 
-        /* Tag Grid */
+        .emoji-item:hover:not(.locked) {
+            border-color: var(--g-blue);
+        }
+
+        .emoji-item.selected {
+            border-color: var(--g-blue);
+            background: var(--g-blue-light);
+        }
+
+        .emoji-item.locked {
+            background: var(--g-surface-dim);
+            cursor: default;
+            font-size: 1rem;
+            color: var(--g-text-secondary);
+        }
+
+        /* Tag shop */
         .tag-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.75rem;
         }
+
         .tag-item {
-            padding: 1rem;
-            background: #f9fafb;
-            border: 2px solid #e5e7eb;
-            border-radius: 12px;
+            padding: 0.75rem;
+            background: var(--g-bg);
+            border: 1px solid var(--g-border);
+            border-radius: var(--g-radius);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: border-color var(--g-transition);
         }
+
         .tag-item:hover:not(.locked) {
-            border-color: #8b5cf6;
-            transform: translateY(-2px);
+            border-color: var(--g-blue);
         }
+
         .tag-item.selected {
-            border-color: #8b5cf6;
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.1));
+            border-color: var(--g-blue);
+            background: var(--g-blue-light);
         }
-        .tag-item.locked {
-            opacity: 0.7;
-        }
+
         .tag-item.owned {
-            border-color: #10b981;
+            border-color: var(--g-green);
         }
+
         .tag-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
-        }
-        .tag-emoji {
-            font-size: 1.5rem;
-        }
-        .tag-cost {
-            font-size: 0.85rem;
-            font-weight: 600;
-            padding: 0.25rem 0.5rem;
-            border-radius: 6px;
-        }
-        .tag-cost.affordable {
-            background: #dcfce7;
-            color: #16a34a;
-        }
-        .tag-cost.expensive {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-        .tag-cost.owned {
-            background: #dbeafe;
-            color: #2563eb;
-        }
-        .tag-text {
-            font-weight: 600;
-            color: #1f2937;
-        }
-        .tag-category {
-            font-size: 0.75rem;
-            color: #6b7280;
-            text-transform: uppercase;
-            margin-top: 0.25rem;
+            margin-bottom: 0.35rem;
         }
 
-        /* Background Grid */
+        .tag-emoji { font-size: 1.25rem; }
+
+        .tag-cost {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: var(--g-radius-pill);
+        }
+
+        .tag-cost.affordable { background: var(--g-green-light); color: #137333; }
+        .tag-cost.expensive { background: var(--g-red-light); color: #C5221F; }
+        .tag-cost.owned { background: var(--g-blue-light); color: var(--g-blue); }
+
+        .tag-text {
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--g-text);
+        }
+
+        .tag-category {
+            font-size: 11px;
+            color: var(--g-text-secondary);
+            text-transform: uppercase;
+            margin-top: 0.15rem;
+        }
+
+        /* Background / Border grids */
         .bg-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 0.75rem;
-        }
-        .bg-item {
-            aspect-ratio: 1;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-            border: 3px solid #e5e7eb;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            color: white;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-            font-weight: 600;
-        }
-        .bg-item:hover:not(.locked) {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        .bg-item.selected {
-            border-color: #8b5cf6;
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
-        }
-        .bg-item.locked {
-            background: #e5e7eb !important;
-            cursor: default;
-            color: #9ca3af;
-            text-shadow: none;
-        }
-        .bg-item.locked::after {
-            content: '🔒';
-            font-size: 1.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 0.5rem;
         }
 
-        /* Border Grid */
-        .border-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            gap: 0.75rem;
-        }
-        .border-item {
+        .bg-item {
             aspect-ratio: 1;
-            border-radius: 12px;
+            border-radius: var(--g-radius);
             cursor: pointer;
-            transition: all 0.2s;
-            background: #f9fafb;
+            transition: box-shadow var(--g-transition);
+            border: 3px solid var(--g-border);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.75rem;
-            color: #374151;
-            font-weight: 600;
+            font-size: 11px;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            font-weight: 500;
+        }
+
+        .bg-item:hover:not(.locked) { box-shadow: var(--g-shadow-hover); }
+        .bg-item.selected { border-color: var(--g-blue); box-shadow: 0 0 0 2px var(--g-blue); }
+        .bg-item.locked { background: var(--g-surface-dim) !important; cursor: default; color: var(--g-text-secondary); text-shadow: none; }
+        .bg-item.locked::after { content: '🔒'; font-size: 1.25rem; }
+
+        .border-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .border-item {
+            aspect-ratio: 1;
+            border-radius: var(--g-radius);
+            cursor: pointer;
+            transition: box-shadow var(--g-transition);
+            background: var(--g-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--g-text);
+            font-weight: 500;
             text-align: center;
             padding: 0.5rem;
         }
-        .border-item:hover:not(.locked) {
-            transform: scale(1.05);
-        }
-        .border-item.selected {
-            background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.1));
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
-        }
-        .border-item.locked {
-            opacity: 0.5;
-            cursor: default;
-        }
 
-        /* Category Filter */
+        .border-item:hover:not(.locked) { box-shadow: var(--g-shadow-hover); }
+        .border-item.selected { background: var(--g-blue-light); box-shadow: 0 0 0 2px var(--g-blue); }
+        .border-item.locked { opacity: 0.5; cursor: default; }
+
+        /* Category filter */
         .category-filter {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.35rem;
             flex-wrap: wrap;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
+
         .filter-btn {
-            padding: 0.4rem 0.75rem;
-            border: 1px solid #e5e7eb;
-            background: #f9fafb;
-            border-radius: 8px;
-            font-size: 0.85rem;
+            padding: 4px 10px;
+            border: 1px solid var(--g-border);
+            background: var(--g-bg);
+            border-radius: var(--g-radius-pill);
+            font-size: 12px;
             cursor: pointer;
-            transition: all 0.2s;
-        }
-        .filter-btn:hover {
-            border-color: #8b5cf6;
-        }
-        .filter-btn.active {
-            background: #8b5cf6;
-            color: white;
-            border-color: #8b5cf6;
+            transition: background var(--g-transition), color var(--g-transition);
+            font-family: var(--g-font);
+            font-weight: 500;
+            color: var(--g-text-secondary);
         }
 
-        /* Clear Selection Button */
-        .clear-btn {
-            background: #f3f4f6;
-            color: #6b7280;
-            border: 1px solid #e5e7eb;
-            padding: 0.4rem 0.75rem;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            cursor: pointer;
-        }
-        .clear-btn:hover {
-            background: #e5e7eb;
+        .filter-btn:hover { border-color: var(--g-blue); }
+        .filter-btn.active { background: var(--g-blue); color: #fff; border-color: var(--g-blue); }
+
+        /* Collection header */
+        .collection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
         }
 
-        /* Toast Notification */
+        .collection-count {
+            font-size: 13px;
+            color: var(--g-text-secondary);
+        }
+
+        .collection-count strong {
+            color: var(--g-blue);
+        }
+
+        /* XP bar */
+        .xp-bar-container {
+            background: var(--g-surface-dim);
+            border-radius: var(--g-radius-sm);
+            height: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .xp-bar-fill {
+            height: 100%;
+            background: var(--g-blue);
+            border-radius: var(--g-radius-sm);
+            transition: width 0.5s ease;
+        }
+
+        .xp-bar-text {
+            font-size: 11px;
+            color: var(--g-text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Toast */
         .toast {
             position: fixed;
-            bottom: 2rem;
+            bottom: 1.5rem;
             left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: #1f2937;
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
+            transform: translateX(-50%) translateY(80px);
+            background: #323232;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--g-radius);
+            font-size: 14px;
             font-weight: 500;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            box-shadow: var(--g-shadow-modal);
             opacity: 0;
-            transition: all 0.3s ease;
-            z-index: 1000;
+            transition: all 0.25s ease;
+            z-index: 1100;
+            max-width: 90%;
         }
+
         .toast.show {
             transform: translateX(-50%) translateY(0);
             opacity: 1;
         }
-        .toast.success {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-        .toast.error {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-        .toast.levelup {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            font-size: 1.1rem;
+
+        .toast.success { background: #1E8E3E; }
+        .toast.error { background: #D93025; }
+        .toast.levelup { background: var(--g-blue); font-size: 15px; }
+
+        /* Modal overrides */
+        .modal-overlay {
+            display: none;
         }
 
-        /* Purchase Modal */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 1rem;
-        }
         .modal-overlay.open {
             display: flex;
         }
-        .modal {
-            background: white;
-            border-radius: 20px;
-            max-width: 400px;
-            width: 100%;
-            padding: 2rem;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-        .modal-emoji {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-        }
-        .modal h3 {
-            font-size: 1.25rem;
-            margin-bottom: 0.5rem;
-            color: #1f2937;
-        }
-        .modal p {
-            color: #6b7280;
-            margin-bottom: 1.5rem;
-        }
+
+        .modal-emoji { font-size: 3rem; margin-bottom: 0.75rem; }
         .modal-cost {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #8b5cf6;
-            margin-bottom: 1.5rem;
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--g-blue);
+            margin-bottom: 1rem;
         }
+
         .modal-buttons {
             display: flex;
             gap: 0.75rem;
             justify-content: center;
         }
-        .modal-btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-        }
-        .modal-btn-cancel {
-            background: #f3f4f6;
-            color: #6b7280;
-        }
-        .modal-btn-cancel:hover {
-            background: #e5e7eb;
-        }
-        .modal-btn-confirm {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-        }
-        .modal-btn-confirm:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
-        }
-        .modal-btn-confirm:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
 
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: #6b7280;
-        }
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e5e7eb;
-            border-top-color: #8b5cf6;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Responsive */
         @media (max-width: 600px) {
-            body { padding: 1rem; }
-            .header { padding: 1.5rem; }
-            .header-content { flex-direction: column; gap: 1.5rem; }
-            .header-left { flex-direction: column; text-align: center; }
-            .emoji-grid { grid-template-columns: repeat(6, 1fr); gap: 0.5rem; }
-            .emoji-item { font-size: 1.5rem; }
+            .profile-header { flex-direction: column; text-align: center; }
+            .profile-badges { justify-content: center; }
             .tag-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Loading State -->
-        <div id="loading" class="loading">
-            <div class="loading-spinner"></div>
-            <p>Loading your profile...</p>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <a href="student-hub.html" class="top-bar-brand">Classicalia</a>
+        <div class="top-bar-nav">
+            <a href="student-hub.html">Back to Hub</a>
         </div>
+        <div class="top-bar-actions">
+            <span style="font-size: 14px; font-weight: 500; color: var(--g-text);">My Profile</span>
+        </div>
+    </div>
 
-        <!-- Main Content -->
-        <div id="content" style="display: none;">
-            <!-- Header -->
-            <div class="header">
-                <div class="header-content">
-                    <div class="header-left">
-                        <div class="profile-avatar" id="profileAvatar">
+    <!-- Loading State -->
+    <div id="loading" class="loading-page">
+        <div class="spinner"></div>
+        <p class="text-muted">Loading your profile...</p>
+    </div>
+
+    <!-- Main Content -->
+    <div id="content" class="container" style="display: none; padding-top: 1.5rem; padding-bottom: 3rem;">
+
+        <!-- Profile Card -->
+        <div class="card mb-24">
+            <div class="card-body">
+                <div class="profile-header">
+                    <div class="profile-avatar-wrap">
+                        <div class="avatar-lg" id="profileAvatar">
                             <span id="avatarEmoji">🙂</span>
-                            <div class="level-badge-avatar" id="avatarLevelBadge">1</div>
                         </div>
-                        <div class="profile-info">
-                            <h1 id="userName">Student Name</h1>
-                            <div class="profile-tag" id="profileTag" style="display: none;">
-                                <span id="tagEmoji"></span>
-                                <span id="tagText"></span>
+                        <div class="profile-avatar-level" id="avatarLevelBadge">1</div>
+                    </div>
+                    <div class="profile-details">
+                        <h2 id="userName" style="margin-bottom: 0.25rem;">Student Name</h2>
+                        <div class="profile-email" id="userEmail"></div>
+                        <div class="profile-badges">
+                            <span class="chip chip-blue" id="roleBadge">Student</span>
+                            <span class="chip chip-gray" id="levelBadge">Level 1</span>
+                            <div id="profileTag" style="display: none;">
+                                <span class="chip chip-green">
+                                    <span id="tagEmoji"></span>
+                                    <span id="tagText"></span>
+                                </span>
                             </div>
                         </div>
                     </div>
-                    <div class="header-actions">
-                        <a href="student-hub.html" class="btn btn-ghost">Back to Hub</a>
-                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- XP Section -->
-            <div class="xp-section">
-                <div class="xp-header">
-                    <div class="xp-level">
-                        <div class="level-badge">Level <span id="levelNum">1</span></div>
-                        <div class="level-title" id="levelTitle">Novice</div>
-                    </div>
-                    <div class="xp-balance">
-                        <div class="xp-amount"><span id="xpBalance">0</span> XP</div>
-                        <div class="xp-label">Available to spend</div>
-                    </div>
-                </div>
+        <!-- Stats Row -->
+        <div class="stats-row mb-24">
+            <div class="metric-card">
+                <div class="metric-value" id="xpBalance">0</div>
+                <div class="metric-label">Total XP</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="levelNum">1</div>
+                <div class="metric-label">Level</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="rankDisplay">-</div>
+                <div class="metric-label">Rank</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="streakDisplay">0</div>
+                <div class="metric-label">Streak</div>
+            </div>
+        </div>
+
+        <!-- XP Progress -->
+        <div class="card mb-24">
+            <div class="card-header">
+                <h3 class="card-title" style="margin: 0;">XP Progress</h3>
+                <span class="text-muted" id="levelTitle" style="font-size: 13px;">Novice</span>
+            </div>
+            <div class="card-body">
                 <div class="xp-bar-container">
                     <div class="xp-bar-fill" id="xpBar" style="width: 0%"></div>
-                    <div class="xp-bar-text" id="xpBarText">0 / 100 XP to next level</div>
                 </div>
+                <div class="xp-bar-text" id="xpBarText">0 / 100 XP to next level</div>
             </div>
+        </div>
 
-            <!-- Academic Level -->
-            <div class="section">
-                <div class="section-header">
-                    <h2 class="section-title">🎓 Academic Level</h2>
-                </div>
-                <div class="section-body">
-                    <p style="color: #6b7280; margin-bottom: 1rem; font-size: 0.9rem;">
-                        Select your current level to see relevant vocabulary lists and track progress appropriately.
-                    </p>
-                    <div class="level-selector" style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <button class="level-btn" data-level="prep" onclick="selectAcademicLevel('prep')">
-                            <span style="font-size: 1.5rem;">🌟</span>
-                            <strong>Prep School</strong>
-                            <small>Suburani Book 1 (300+ words)</small>
-                        </button>
-                        <button class="level-btn" data-level="gcse" onclick="selectAcademicLevel('gcse')">
-                            <span style="font-size: 1.5rem;">📚</span>
-                            <strong>GCSE</strong>
-                            <small>OCR Specification (450+ words)</small>
-                        </button>
-                        <button class="level-btn" data-level="a-level" onclick="selectAcademicLevel('a-level')">
-                            <span style="font-size: 1.5rem;">🎓</span>
-                            <strong>A-Level</strong>
-                            <small>Full OCR List (1,126 words)</small>
-                        </button>
-                    </div>
-                </div>
+        <!-- Account Settings -->
+        <div class="card mb-24">
+            <div class="card-header">
+                <h3 class="card-title" style="margin: 0;">Account Settings</h3>
             </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="settingsEmail" class="form-input" disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Display Name</label>
+                    <input type="text" id="settingsName" class="form-input" placeholder="Your display name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Academic Level</label>
+                    <select id="settingsLevel" class="form-select" onchange="selectAcademicLevel(this.value)">
+                        <option value="">Select level...</option>
+                        <option value="prep">Prep</option>
+                        <option value="gcse">GCSE</option>
+                        <option value="a-level">A Level</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">New Password</label>
+                    <input type="password" id="settingsPassword" class="form-input" placeholder="Leave blank to keep current">
+                </div>
+                <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
+            </div>
+        </div>
 
-            <!-- Emoji Collection -->
-            <div class="section">
-                <div class="section-header">
-                    <h2 class="section-title">🎲 Emoji Collection</h2>
-                    <button class="clear-btn" onclick="clearEmoji()">Clear Selection</button>
-                </div>
-                <div class="section-body">
-                    <div class="emoji-collection-header">
-                        <div class="collection-progress">
-                            <span class="collection-count">
-                                <strong id="emojiUnlockedCount">0</strong> / <span id="emojiTotalCount">96</span> unlocked
-                            </span>
-                        </div>
-                        <button class="unlock-btn" id="unlockBtn" onclick="unlockRandomEmoji()">
-                            🎲 Unlock Random
-                            <span class="cost" id="unlockCost">100 XP</span>
-                        </button>
-                    </div>
-                    <div class="emoji-grid" id="emojiGrid">
-                        <!-- Emojis inserted by JS -->
-                    </div>
-                </div>
+        <!-- Emoji Collection -->
+        <div class="card mb-24">
+            <div class="card-header">
+                <h3 class="card-title" style="margin: 0;">Emoji Collection</h3>
+                <button class="btn btn-ghost btn-sm" onclick="clearEmoji()">Clear</button>
             </div>
+            <div class="card-body">
+                <div class="collection-header">
+                    <span class="collection-count">
+                        <strong id="emojiUnlockedCount">0</strong> / <span id="emojiTotalCount">96</span> unlocked
+                    </span>
+                    <button class="btn btn-secondary btn-sm" id="unlockBtn" onclick="unlockRandomEmoji()">
+                        Unlock Random <span id="unlockCost">100 XP</span>
+                    </button>
+                </div>
+                <div class="emoji-grid" id="emojiGrid"></div>
+            </div>
+        </div>
 
-            <!-- Tag Shop -->
-            <div class="section">
-                <div class="section-header">
-                    <h2 class="section-title">Tag Shop</h2>
-                    <button class="clear-btn" onclick="clearTag()">Remove Tag</button>
-                </div>
-                <div class="section-body">
-                    <div class="category-filter" id="categoryFilter">
-                        <button class="filter-btn active" data-category="all">All</button>
-                        <button class="filter-btn" data-category="starter">Starter</button>
-                        <button class="filter-btn" data-category="latin">Latin</button>
-                        <button class="filter-btn" data-category="greek">Greek</button>
-                        <button class="filter-btn" data-category="roman">Rome</button>
-                        <button class="filter-btn" data-category="greek_culture">Greece</button>
-                        <button class="filter-btn" data-category="teacher">Teacher</button>
-                        <button class="filter-btn" data-category="fun">Fun</button>
-                        <button class="filter-btn" data-category="mythical">Mythical</button>
-                    </div>
-                    <div class="tag-grid" id="tagGrid">
-                        <!-- Tags inserted by JS -->
-                    </div>
-                </div>
+        <!-- Tag Shop -->
+        <div class="card mb-24">
+            <div class="card-header">
+                <h3 class="card-title" style="margin: 0;">Tag Shop</h3>
+                <button class="btn btn-ghost btn-sm" onclick="clearTag()">Remove Tag</button>
             </div>
+            <div class="card-body">
+                <div class="category-filter" id="categoryFilter">
+                    <button class="filter-btn active" data-category="all">All</button>
+                    <button class="filter-btn" data-category="starter">Starter</button>
+                    <button class="filter-btn" data-category="latin">Latin</button>
+                    <button class="filter-btn" data-category="greek">Greek</button>
+                    <button class="filter-btn" data-category="roman">Rome</button>
+                    <button class="filter-btn" data-category="greek_culture">Greece</button>
+                    <button class="filter-btn" data-category="teacher">Teacher</button>
+                    <button class="filter-btn" data-category="fun">Fun</button>
+                    <button class="filter-btn" data-category="mythical">Mythical</button>
+                </div>
+                <div class="tag-grid" id="tagGrid"></div>
+            </div>
+        </div>
 
-            <!-- Background Collection -->
-            <div class="section">
-                <div class="section-header">
-                    <h2 class="section-title">🎨 Background Collection</h2>
-                    <button class="clear-btn" onclick="clearBackground()">Clear Background</button>
-                </div>
-                <div class="section-body">
-                    <div class="emoji-collection-header">
-                        <div class="collection-progress">
-                            <span class="collection-count">
-                                <strong id="bgUnlockedCount">0</strong> / <span id="bgTotalCount">20</span> unlocked
-                            </span>
-                        </div>
-                        <button class="unlock-btn" id="unlockBgBtn" onclick="unlockRandomBackground()">
-                            🎲 Unlock Random
-                            <span class="cost" id="bgUnlockCost">100 XP</span>
-                        </button>
-                    </div>
-                    <div class="bg-grid" id="bgGrid">
-                        <!-- Backgrounds inserted by JS -->
-                    </div>
-                </div>
+        <!-- Background Collection -->
+        <div class="card mb-24">
+            <div class="card-header">
+                <h3 class="card-title" style="margin: 0;">Background Collection</h3>
+                <button class="btn btn-ghost btn-sm" onclick="clearBackground()">Clear</button>
             </div>
+            <div class="card-body">
+                <div class="collection-header">
+                    <span class="collection-count">
+                        <strong id="bgUnlockedCount">0</strong> / <span id="bgTotalCount">20</span> unlocked
+                    </span>
+                    <button class="btn btn-secondary btn-sm" id="unlockBgBtn" onclick="unlockRandomBackground()">
+                        Unlock Random <span id="bgUnlockCost">100 XP</span>
+                    </button>
+                </div>
+                <div class="bg-grid" id="bgGrid"></div>
+            </div>
+        </div>
 
-            <!-- Border Collection -->
-            <div class="section">
-                <div class="section-header">
-                    <h2 class="section-title">🖼️ Border Collection</h2>
-                    <button class="clear-btn" onclick="clearBorder()">Clear Border</button>
-                </div>
-                <div class="section-body">
-                    <div class="emoji-collection-header">
-                        <div class="collection-progress">
-                            <span class="collection-count">
-                                <strong id="borderUnlockedCount">0</strong> / <span id="borderTotalCount">15</span> unlocked
-                            </span>
-                        </div>
-                        <button class="unlock-btn" id="unlockBorderBtn" onclick="unlockRandomBorder()">
-                            🎲 Unlock Random
-                            <span class="cost" id="borderUnlockCost">100 XP</span>
-                        </button>
-                    </div>
-                    <div class="border-grid" id="borderGrid">
-                        <!-- Borders inserted by JS -->
-                    </div>
-                </div>
+        <!-- Border Collection -->
+        <div class="card mb-24">
+            <div class="card-header">
+                <h3 class="card-title" style="margin: 0;">Border Collection</h3>
+                <button class="btn btn-ghost btn-sm" onclick="clearBorder()">Clear</button>
             </div>
+            <div class="card-body">
+                <div class="collection-header">
+                    <span class="collection-count">
+                        <strong id="borderUnlockedCount">0</strong> / <span id="borderTotalCount">15</span> unlocked
+                    </span>
+                    <button class="btn btn-secondary btn-sm" id="unlockBorderBtn" onclick="unlockRandomBorder()">
+                        Unlock Random <span id="borderUnlockCost">100 XP</span>
+                    </button>
+                </div>
+                <div class="border-grid" id="borderGrid"></div>
+            </div>
+        </div>
+
+        <!-- Sign Out -->
+        <div style="text-align: center; margin-top: 2rem;">
+            <button onclick="signOut()" class="btn btn-danger">Sign Out</button>
         </div>
     </div>
 
     <!-- Purchase Modal -->
     <div class="modal-overlay" id="purchaseModal">
-        <div class="modal">
+        <div class="modal" style="padding: 2rem; text-align: center; max-width: 400px;">
             <div class="modal-emoji" id="modalEmoji"></div>
-            <h3 id="modalTitle">Purchase Tag?</h3>
-            <p id="modalDesc">This tag will be yours forever!</p>
+            <h3 id="modalTitle" style="margin-bottom: 0.5rem;">Purchase Tag?</h3>
+            <p id="modalDesc" class="text-muted" style="margin-bottom: 1rem;">This tag will be yours forever!</p>
             <div class="modal-cost">
                 <span id="modalCost">100</span> XP
             </div>
             <div class="modal-buttons">
-                <button class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancel</button>
-                <button class="modal-btn modal-btn-confirm" id="modalConfirm" onclick="confirmPurchase()">Buy Now</button>
+                <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" id="modalConfirm" onclick="confirmPurchase()">Buy Now</button>
             </div>
         </div>
     </div>
@@ -861,7 +581,6 @@
 
         async function init() {
             try {
-                // Check auth
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
                 if (!user) {
                     window.location.href = '../auth/login.html';
@@ -869,16 +588,24 @@
                 }
                 currentUser = user;
 
-                // Get user name
+                // Get user profile
                 const { data: profile } = await supabase
                     .from('users')
-                    .select('full_name')
+                    .select('full_name, role')
                     .eq('id', user.id)
                     .single();
 
                 if (profile) {
                     document.getElementById('userName').textContent = profile.full_name || 'Student';
+                    if (profile.role) {
+                        document.getElementById('roleBadge').textContent = profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
+                    }
                 }
+
+                // Set email
+                document.getElementById('userEmail').textContent = user.email || '';
+                document.getElementById('settingsEmail').value = user.email || '';
+                document.getElementById('settingsName').value = profile?.full_name || '';
 
                 // Initialize XP system
                 await xpSystem.init();
@@ -907,7 +634,7 @@
                 document.getElementById('content').style.display = 'block';
             } catch (err) {
                 console.error('Init error:', err);
-                document.getElementById('loading').innerHTML = '<p>Error loading profile</p>';
+                document.getElementById('loading').innerHTML = '<p class="text-muted">Error loading profile</p>';
             }
         }
 
@@ -918,6 +645,8 @@
             document.getElementById('levelTitle').textContent = data.levelTitle;
             document.getElementById('xpBalance').textContent = data.xp.toLocaleString();
             document.getElementById('xpBar').style.width = data.progress + '%';
+            document.getElementById('levelBadge').textContent = 'Level ' + data.level;
+            document.getElementById('streakDisplay').textContent = data.streak || 0;
 
             const nextLevel = xpSystem.getNextLevel();
             if (nextLevel) {
@@ -934,34 +663,25 @@
             const allEmojis = xpSystem.getAllEmojisWithStatus();
             const collection = xpSystem.getCollectionProgress();
 
-            // Update collection counts
             document.getElementById('emojiUnlockedCount').textContent = collection.unlocked;
             document.getElementById('emojiTotalCount').textContent = collection.total;
 
-            // Update unlock button state
             const unlockBtn = document.getElementById('unlockBtn');
             const canUnlock = xpSystem.canUnlockEmoji();
             unlockBtn.disabled = !canUnlock;
             document.getElementById('unlockCost').textContent = xpSystem.EMOJI_UNLOCK_COST + ' XP';
 
             let html = '';
-
             for (const item of allEmojis) {
                 const classes = ['emoji-item'];
                 if (item.selected) classes.push('selected');
                 if (!item.unlocked) classes.push('locked');
 
-                // Show ❓ for locked emojis (mystery), actual emoji for unlocked
-                const displayEmoji = item.unlocked ? item.emoji : '❓';
+                const displayEmoji = item.unlocked ? item.emoji : '?';
                 const onclick = item.unlocked ? `selectEmoji('${item.emoji}')` : '';
 
-                html += `
-                    <div class="${classes.join(' ')}" onclick="${onclick}">
-                        ${displayEmoji}
-                    </div>
-                `;
+                html += `<div class="${classes.join(' ')}" onclick="${onclick}">${displayEmoji}</div>`;
             }
-
             grid.innerHTML = html;
         }
 
@@ -1010,11 +730,9 @@
             const allBgs = xpSystem.getAllBackgroundsWithStatus();
             const collection = xpSystem.getBackgroundProgress();
 
-            // Update collection counts
             document.getElementById('bgUnlockedCount').textContent = collection.unlocked;
             document.getElementById('bgTotalCount').textContent = collection.total;
 
-            // Update unlock button state
             const unlockBtn = document.getElementById('unlockBgBtn');
             const canUnlock = xpSystem.canUnlockBackground();
             unlockBtn.disabled = !canUnlock;
@@ -1038,11 +756,9 @@
             const allBorders = xpSystem.getAllBordersWithStatus();
             const collection = xpSystem.getBorderProgress();
 
-            // Update collection counts
             document.getElementById('borderUnlockedCount').textContent = collection.unlocked;
             document.getElementById('borderTotalCount').textContent = collection.total;
 
-            // Update unlock button state
             const unlockBtn = document.getElementById('unlockBorderBtn');
             const canUnlock = xpSystem.canUnlockBorder();
             unlockBtn.disabled = !canUnlock;
@@ -1064,28 +780,21 @@
         function updateHeaderDisplay() {
             const data = xpSystem.getDisplayData();
 
-            // Update avatar emoji
             document.getElementById('avatarEmoji').textContent = data.emoji || '🙂';
-
-            // Update level badge on avatar
             document.getElementById('avatarLevelBadge').textContent = data.level;
 
-            // Update avatar background
             const avatar = document.getElementById('profileAvatar');
             if (data.background) {
                 avatar.style.background = data.background.color;
             } else {
-                avatar.style.background = 'rgba(255,255,255,0.2)';
+                avatar.style.background = '';
             }
-
-            // Update avatar border
             if (data.border) {
                 avatar.style.border = data.border.style;
             } else {
-                avatar.style.border = '3px solid rgba(255,255,255,0.3)';
+                avatar.style.border = '';
             }
 
-            // Update tag
             const tagEl = document.getElementById('profileTag');
             if (data.tag) {
                 document.getElementById('tagEmoji').textContent = data.tag.emoji;
@@ -1167,7 +876,7 @@
                 const result = await xpSystem.unlockRandomBackground();
                 renderXpSection();
                 renderBackgrounds();
-                showToast(`🎨 You unlocked: ${result.background.name}`, 'success');
+                showToast(`You unlocked: ${result.background.name}`, 'success');
                 await xpSystem.selectBackground(result.background.id);
                 renderBackgrounds();
                 updateHeaderDisplay();
@@ -1203,7 +912,7 @@
                 const result = await xpSystem.unlockRandomBorder();
                 renderXpSection();
                 renderBorders();
-                showToast(`🖼️ You unlocked: ${result.border.name}`, 'success');
+                showToast(`You unlocked: ${result.border.name}`, 'success');
                 await xpSystem.selectBorder(result.border.id);
                 renderBorders();
                 updateHeaderDisplay();
@@ -1215,15 +924,9 @@
         async function unlockRandomEmoji() {
             try {
                 const result = await xpSystem.unlockRandomEmoji();
-
-                // Refresh displays
                 renderXpSection();
                 renderEmojis();
-
-                // Show celebration toast with the new emoji
-                showToast(`🎉 You unlocked: ${result.emoji}`, 'success');
-
-                // Auto-select the new emoji
+                showToast(`You unlocked: ${result.emoji}`, 'success');
                 await xpSystem.selectEmoji(result.emoji);
                 renderEmojis();
                 updateHeaderDisplay();
@@ -1267,7 +970,6 @@
                 renderTags();
                 showToast('Tag purchased! It has been equipped.', 'success');
 
-                // Auto-select the purchased tag
                 await xpSystem.selectTag(pendingPurchase);
                 renderTags();
                 updateHeaderDisplay();
@@ -1276,20 +978,42 @@
             }
         }
 
-        // Academic Level Functions
+        // Account settings
+        async function saveSettings() {
+            try {
+                const name = document.getElementById('settingsName').value.trim();
+                const password = document.getElementById('settingsPassword').value;
+
+                if (name) {
+                    await supabase.from('users').update({ full_name: name }).eq('id', currentUser.id);
+                    document.getElementById('userName').textContent = name;
+                }
+
+                if (password && password.length >= 6) {
+                    await supabase.auth.updateUser({ password });
+                    document.getElementById('settingsPassword').value = '';
+                } else if (password && password.length < 6) {
+                    showToast('Password must be at least 6 characters', 'error');
+                    return;
+                }
+
+                showToast('Settings saved!', 'success');
+            } catch (err) {
+                showToast('Error saving settings', 'error');
+            }
+        }
+
+        // Academic Level
         async function loadAcademicLevel() {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
-
                 const { data, error } = await supabase
                     .from('users')
                     .select('academic_level')
-                    .eq('id', user.id)
+                    .eq('id', currentUser.id)
                     .single();
 
                 if (!error && data && data.academic_level) {
-                    updateLevelButtons(data.academic_level);
+                    document.getElementById('settingsLevel').value = data.academic_level;
                 }
             } catch (err) {
                 console.log('Could not load academic level:', err);
@@ -1298,39 +1022,28 @@
 
         async function selectAcademicLevel(level) {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                    showToast('Please log in to set your level', 'error');
-                    return;
-                }
+                if (!level) return;
 
                 const { error } = await supabase
                     .from('users')
                     .update({ academic_level: level })
-                    .eq('id', user.id);
+                    .eq('id', currentUser.id);
 
                 if (error) {
-                    console.error('Error updating level:', error);
                     showToast('Failed to update level', 'error');
                     return;
                 }
 
-                updateLevelButtons(level);
                 showToast('Academic level updated!', 'success');
             } catch (err) {
-                console.error('Error:', err);
                 showToast('Failed to update level', 'error');
             }
         }
 
-        function updateLevelButtons(selectedLevel) {
-            document.querySelectorAll('.level-btn').forEach(btn => {
-                if (btn.dataset.level === selectedLevel) {
-                    btn.classList.add('selected');
-                } else {
-                    btn.classList.remove('selected');
-                }
-            });
+        // Sign out
+        async function signOut() {
+            await supabase.auth.signOut();
+            window.location.href = '../auth/login.html';
         }
 
         function showToast(message, type = '') {

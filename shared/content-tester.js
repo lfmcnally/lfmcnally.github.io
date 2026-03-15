@@ -10,17 +10,44 @@ class ContentTesterSystem {
         this.currentUser = null;
         this.currentClassId = null;
         this.currentTest = null;
+        this.course = null; // e.g. 'myth', 'politics', 'religion' — detected from URL or set explicitly
     }
 
-    async init(supabaseClient, classId) {
+    async init(supabaseClient, classId, course = null) {
         this.supabase = supabaseClient;
         this.currentClassId = classId;
+        this.course = course || this.detectCourse();
 
         // Get current user
         const { data: { user } } = await this.supabase.auth.getUser();
         this.currentUser = user;
 
         return this;
+    }
+
+    /**
+     * Detect the course identifier from the current page URL.
+     * Looks for known course segments in the path (e.g. /myth/, /politics/).
+     * Falls back to URL search params (?course=...) or null.
+     */
+    detectCourse() {
+        const path = window.location.pathname.toLowerCase();
+        const knownCourses = ['myth', 'politics', 'religion', 'society', 'identity', 'war', 'heroes', 'art'];
+        for (const c of knownCourses) {
+            if (path.includes('/' + c + '/') || path.includes('/' + c + '-')) {
+                return c;
+            }
+        }
+        // Check URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('course') || null;
+    }
+
+    /**
+     * Set course explicitly (overrides auto-detection)
+     */
+    setCourse(course) {
+        this.course = course;
     }
 
     /**
@@ -45,10 +72,14 @@ class ContentTesterSystem {
 
     /**
      * Get student's progress on all content tests
+     * @param {string} studentId - optional student UUID
+     * @param {string} classId - optional class UUID
+     * @param {string} course - optional course filter (e.g. 'myth', 'politics')
      */
-    async getStudentProgress(studentId = null, classId = null) {
+    async getStudentProgress(studentId = null, classId = null, course = null) {
         const targetStudentId = studentId || this.currentUser?.id;
         const targetClassId = classId || this.currentClassId;
+        const targetCourse = course || this.course;
 
         if (!targetStudentId) return [];
 
@@ -57,12 +88,19 @@ class ContentTesterSystem {
         if (tests.length === 0) return [];
 
         // Get student's attempts
-        const { data: attempts, error } = await this.supabase
+        let attemptsQuery = this.supabase
             .from('content_test_attempts')
             .select('*')
             .eq('student_id', targetStudentId)
             .in('test_id', tests.map(t => t.id))
             .order('completed_at', { ascending: false });
+
+        // Filter by course if specified
+        if (targetCourse) {
+            attemptsQuery = attemptsQuery.eq('course', targetCourse);
+        }
+
+        const { data: attempts, error } = await attemptsQuery;
 
         if (error) {
             console.error('Error loading test attempts:', error);
@@ -127,17 +165,24 @@ class ContentTesterSystem {
 
         const scorePercentage = Math.round((questionsCorrect / questionsTotal) * 100);
 
+        const insertData = {
+            student_id: this.currentUser.id,
+            test_id: testId,
+            score_percentage: scorePercentage,
+            questions_total: questionsTotal,
+            questions_correct: questionsCorrect,
+            completed_at: new Date().toISOString(),
+            time_spent_seconds: timeSpent
+        };
+
+        // Include course identifier for filtering by class dashboard
+        if (this.course) {
+            insertData.course = this.course;
+        }
+
         const { data, error } = await this.supabase
             .from('content_test_attempts')
-            .insert({
-                student_id: this.currentUser.id,
-                test_id: testId,
-                score_percentage: scorePercentage,
-                questions_total: questionsTotal,
-                questions_correct: questionsCorrect,
-                completed_at: new Date().toISOString(),
-                time_spent_seconds: timeSpent
-            })
+            .insert(insertData)
             .select()
             .single();
 
