@@ -1140,16 +1140,16 @@
 
 
         // Class type helpers
-        function isLanguageClass(type) { return type && (type.startsWith('latin-') || type.startsWith('greek-')); }
-        function isCivClass(type) { return type && type.startsWith('civ-'); }
+        function isLanguageClass(type) { return type && (type.startsWith('latin-') || type.startsWith('greek-') || type === 'latin' || type === 'greek' || type === 'prep-latin'); }
+        function isCivClass(type) { return type && (type.startsWith('civ-') || type === 'classics'); }
         function isALevelLanguage(type) { return type === 'latin-alevel' || type === 'greek-alevel'; }
         function getLanguage(type) {
-            if (type && type.startsWith('latin-')) return 'latin';
-            if (type && type.startsWith('greek-')) return 'greek';
+            if (type && (type.startsWith('latin-') || type === 'latin' || type === 'prep-latin')) return 'latin';
+            if (type && (type.startsWith('greek-') || type === 'greek')) return 'greek';
             return null;
         }
         function getLevel(type) {
-            if (type && type.includes('-prep')) return 'prep';
+            if (type && (type.includes('-prep') || type === 'prep-latin')) return 'prep';
             if (type && type.includes('-gcse')) return 'gcse';
             if (type && type.includes('-alevel')) return 'alevel';
             return null;
@@ -1164,9 +1164,9 @@
         function getVocabData() {
             if (!currentClass) return [];
             const type = currentClass.type;
-            if (type === 'latin-gcse' || type === 'latin-alevel') return typeof vocabularyData !== 'undefined' ? vocabularyData : [];
-            if (type === 'greek-gcse' || type === 'greek-alevel') return typeof greekVocabularyData !== 'undefined' ? greekVocabularyData : [];
-            if (type === 'latin-prep') return typeof suburaniVocabularyData !== 'undefined' ? suburaniVocabularyData : [];
+            if (type === 'latin-gcse' || type === 'latin-alevel' || type === 'latin') return typeof vocabularyData !== 'undefined' ? vocabularyData : [];
+            if (type === 'greek-gcse' || type === 'greek-alevel' || type === 'greek') return typeof greekVocabularyData !== 'undefined' ? greekVocabularyData : [];
+            if (type === 'latin-prep' || type === 'prep-latin') return typeof suburaniVocabularyData !== 'undefined' ? suburaniVocabularyData : [];
             return [];
         }
         
@@ -1174,9 +1174,9 @@
         function getVocabPracticeUrl(fromChapter, toChapter, from, to) {
             const type = currentClass?.type;
             const params = `fromChapter=${fromChapter}&toChapter=${toChapter}&from=${from}&to=${to}`;
-            if (type === 'latin-gcse' || type === 'latin-alevel') return `/latin/vocabulary-practice.html?${params}`;
-            if (type === 'greek-gcse' || type === 'greek-alevel') return `/greek/vocabulary-practice.html?${params}`;
-            if (type === 'latin-prep') return `/latin/prep-vocabulary-practice.html?${params}`;
+            if (type === 'latin-gcse' || type === 'latin-alevel' || type === 'latin') return `/latin/vocabulary-practice.html?${params}`;
+            if (type === 'greek-gcse' || type === 'greek-alevel' || type === 'greek') return `/greek/vocabulary-practice.html?${params}`;
+            if (type === 'latin-prep' || type === 'prep-latin') return `/latin/prep-vocabulary-practice.html?${params}`;
             return `/latin/vocabulary-practice.html?${params}`;
         }
         
@@ -1384,10 +1384,10 @@
         // Vocab Schedule config - adapts based on class type
         function getVocabConfig() {
             const type = currentClass?.type || 'latin-gcse';
-            if (type === 'greek-gcse' || type === 'greek-alevel') {
+            if (type === 'greek-gcse' || type === 'greek-alevel' || type === 'greek') {
                 return { totalWords: 1166, language: 'greek', label: 'Greek', color: '#34A853', colorLight: '#81c995' };
             }
-            if (type === 'latin-prep') {
+            if (type === 'latin-prep' || type === 'prep-latin') {
                 return { totalWords: 400, language: 'latin', label: 'Prep Latin', color: '#4285F4', colorLight: '#8ab4f8' };
             }
             return { totalWords: 1126, language: 'latin', label: 'Latin', color: '#4285F4', colorLight: '#8ab4f8' };
@@ -3323,9 +3323,7 @@
                 await loadVocabPracticeTracker();
             }
 
-            // New features: section toggles and class heatmap
-            renderToggleBar();
-            applySectionToggles();
+            // Activity heatmap
             try { await loadClassActivityHeatmap(); } catch (e) { console.error('Error loading heatmap:', e); }
 
             document.getElementById('taskFromChapter').addEventListener('change', handleFromChapterChange);
@@ -4077,96 +4075,6 @@
         // ============================================
         // NEW FEATURE FUNCTIONS
         // ============================================
-
-        // Section toggle system
-        const DASHBOARD_SECTIONS = {
-            interventions:    { label: 'Interventions',      elementId: 'interventionsCard' },
-            studentTracker:   { label: 'Student Tracker',    elementId: 'studentTrackerCard' },
-            completionGrid:   { label: 'Completion Grid',    elementId: 'completionGridCard' },
-            leaderboard:      { label: 'Leaderboard',        elementId: 'leaderboardCard' },
-            announcements:    { label: 'Announcements',      elementId: 'announcementsCard' },
-            resources:        { label: 'Resources',          elementId: 'resourcesCard' },
-            vocabSchedule:    { label: 'Vocab Schedule',     elementId: 'vocabScheduleCard' },
-            vocabPractice:    { label: 'Vocab Practice',     elementId: 'vocabPracticeCard' },
-            vocabTests:       { label: 'Vocab Tests',        elementId: 'vocabTestsCard' },
-            classHeatmap:     { label: 'Activity Heatmap',   elementId: 'classHeatmapCard' },
-            classicsProgress: { label: 'Classics Progress',  elementId: 'classicsQuizProgressCard' }
-        };
-
-        function getSectionToggles() {
-            const settings = currentClass?.content_settings || {};
-            const saved = settings.dashboard_sections || {};
-            const toggles = {};
-            for (const key of Object.keys(DASHBOARD_SECTIONS)) {
-                toggles[key] = saved.hasOwnProperty(key) ? !!saved[key] : true;
-            }
-            return toggles;
-        }
-
-        async function toggleSection(sectionKey) {
-            if (!DASHBOARD_SECTIONS[sectionKey]) return;
-            try {
-                const toggles = getSectionToggles();
-                toggles[sectionKey] = !toggles[sectionKey];
-                const settings = currentClass.content_settings || {};
-                settings.dashboard_sections = toggles;
-                const { error } = await supabase
-                    .from('classes')
-                    .update({ content_settings: settings })
-                    .eq('id', currentClass.id);
-                if (error) { console.error('Error saving section toggle:', error); return; }
-                currentClass.content_settings = settings;
-                const section = DASHBOARD_SECTIONS[sectionKey];
-                const el = document.getElementById(section.elementId);
-                if (el) el.style.display = toggles[sectionKey] ? '' : 'none';
-                const chip = document.getElementById(`toggleChip_${sectionKey}`);
-                if (chip) {
-                    chip.classList.toggle('active', toggles[sectionKey]);
-                }
-            } catch (err) { console.error('Error toggling section:', err); }
-        }
-
-        function applySectionToggles() {
-            if (!currentClass) return;
-            const toggles = getSectionToggles();
-            const classType = currentClass.type;
-            const vocabOnly = ['vocabSchedule', 'vocabPractice', 'vocabTests'];
-            const latinOnly = [];
-            const classicsOnly = ['classicsProgress'];
-            for (const [key, section] of Object.entries(DASHBOARD_SECTIONS)) {
-                const el = document.getElementById(section.elementId);
-                const chip = document.getElementById(`toggleChip_${key}`);
-                let isRelevant = true;
-                if (vocabOnly.includes(key) && isCivClass(classType)) isRelevant = false;
-                // latinOnly removed (set texts removed)
-                if (classicsOnly.includes(key) && !isCivClass(classType)) isRelevant = false;
-                if (chip) chip.style.display = isRelevant ? '' : 'none';
-                if (el && (!isRelevant || !toggles[key])) {
-                    el.style.display = 'none';
-                }
-            }
-        }
-
-        function renderToggleBar() {
-            const container = document.getElementById('sectionToggleBar');
-            if (!container) return;
-            const toggles = getSectionToggles();
-            const classType = currentClass?.type;
-            const vocabOnly = ['vocabSchedule', 'vocabPractice', 'vocabTests'];
-            const latinOnly = [];
-            const classicsOnly = ['classicsProgress'];
-            let html = '';
-            for (const [key, section] of Object.entries(DASHBOARD_SECTIONS)) {
-                let isRelevant = true;
-                if (vocabOnly.includes(key) && isCivClass(classType)) isRelevant = false;
-                // latinOnly removed (set texts removed)
-                if (classicsOnly.includes(key) && !isCivClass(classType)) isRelevant = false;
-                const activeClass = toggles[key] ? 'active' : '';
-                const displayStyle = isRelevant ? '' : 'display: none;';
-                html += `<button id="toggleChip_${key}" class="toggle-chip ${activeClass}" style="${displayStyle}" onclick="toggleSection('${key}')">${section.label}</button>`;
-            }
-            container.innerHTML = html;
-        }
 
         // Interventions Quadrant
         async function loadInterventionsQuadrant() {

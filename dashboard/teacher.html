@@ -258,7 +258,12 @@
             'greek-gcse':   { label: 'GCSE Greek', description: 'OCR GCSE Greek vocabulary and grammar', chipClass: 'chip chip-green', prefix: 'GREEK' },
             'greek-alevel': { label: 'A Level Greek', description: 'Full OCR A Level Greek vocabulary with scheduling', chipClass: 'chip chip-green', prefix: 'GREEK' },
             'civ-gcse':     { label: 'GCSE Civ', description: 'Myth and Religion content and testing', chipClass: 'chip chip-yellow', prefix: 'CIV' },
-            'civ-alevel':   { label: 'A Level Civ', description: 'Politics of the Late Republic content and testing', chipClass: 'chip chip-yellow', prefix: 'CIV' }
+            'civ-alevel':   { label: 'A Level Civ', description: 'Politics of the Late Republic content and testing', chipClass: 'chip chip-yellow', prefix: 'CIV' },
+            // Legacy fallbacks (before migration runs)
+            'latin':        { label: 'Latin', description: 'Latin vocabulary', chipClass: 'chip chip-blue', prefix: 'LATIN' },
+            'prep-latin':   { label: 'Prep Latin', description: 'Prep school Latin', chipClass: 'chip chip-blue', prefix: 'PREP' },
+            'greek':        { label: 'Greek', description: 'Greek vocabulary', chipClass: 'chip chip-green', prefix: 'GREEK' },
+            'classics':     { label: 'Classical Civ', description: 'Classical Civilisation', chipClass: 'chip chip-yellow', prefix: 'CIV' }
         };
 
         // Type description updater for modal
@@ -270,24 +275,28 @@
 
         // Auto-migration for old class types
         async function migrateClassTypes() {
-            const { data: classes } = await supabase.from('classes').select('id, type, name').in('type', ['latin', 'prep-latin', 'greek', 'classics']);
-            if (!classes || classes.length === 0) return;
+            try {
+                const { data: classes, error } = await supabase.from('classes').select('id, type, name').in('type', ['latin', 'prep-latin', 'greek', 'classics']);
+                if (error || !classes || classes.length === 0) return;
 
-            for (const cls of classes) {
-                let newType;
-                const nameLower = cls.name.toLowerCase();
-                const isALevel = nameLower.includes('a level') || nameLower.includes('a-level') || nameLower.includes('alevel') || nameLower.includes('year 12') || nameLower.includes('year 13') || nameLower.includes('yr 12') || nameLower.includes('yr 13') || nameLower.includes('sixth form') || nameLower.includes('upper sixth') || nameLower.includes('lower sixth');
+                for (const cls of classes) {
+                    let newType;
+                    const nameLower = cls.name.toLowerCase();
+                    const isALevel = nameLower.includes('a level') || nameLower.includes('a-level') || nameLower.includes('alevel') || nameLower.includes('year 12') || nameLower.includes('year 13') || nameLower.includes('yr 12') || nameLower.includes('yr 13') || nameLower.includes('sixth form') || nameLower.includes('upper sixth') || nameLower.includes('lower sixth');
 
-                switch (cls.type) {
-                    case 'prep-latin': newType = 'latin-prep'; break;
-                    case 'latin': newType = isALevel ? 'latin-alevel' : 'latin-gcse'; break;
-                    case 'greek': newType = isALevel ? 'greek-alevel' : 'greek-gcse'; break;
-                    case 'classics': newType = isALevel ? 'civ-alevel' : 'civ-gcse'; break;
+                    switch (cls.type) {
+                        case 'prep-latin': newType = 'latin-prep'; break;
+                        case 'latin': newType = isALevel ? 'latin-alevel' : 'latin-gcse'; break;
+                        case 'greek': newType = isALevel ? 'greek-alevel' : 'greek-gcse'; break;
+                        case 'classics': newType = isALevel ? 'civ-alevel' : 'civ-gcse'; break;
+                    }
+
+                    if (newType) {
+                        await supabase.from('classes').update({ type: newType }).eq('id', cls.id);
+                    }
                 }
-
-                if (newType) {
-                    await supabase.from('classes').update({ type: newType }).eq('id', cls.id);
-                }
+            } catch (e) {
+                console.error('Migration error (non-fatal):', e);
             }
         }
 
