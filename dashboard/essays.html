@@ -568,7 +568,7 @@
             // First try loading just the essays without joins
             const { data, error } = await supabase
                 .from('essay_submissions')
-                .select('*')
+                .select('id, teacher_id, student_id, class_id, title, mark, feedback, date_submitted, date_returned, file_name, created_at, updated_at')
                 .eq('teacher_id', currentUser.id)
                 .order('created_at', { ascending: false });
 
@@ -789,28 +789,26 @@
         // ─── File handling ─────────────────────────────────
         function handleFileSelect(input) {
             if (input.files && input.files[0]) {
-                selectedFile = input.files[0];
+                const file = input.files[0];
+                // 10MB limit
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('File is too large. Maximum size is 10MB.');
+                    input.value = '';
+                    return;
+                }
+                selectedFile = file;
                 document.getElementById('fileUploadArea').classList.add('has-file');
                 document.getElementById('fileUploadText').textContent = selectedFile.name;
             }
         }
 
-        async function uploadFile(essayId) {
-            if (!selectedFile) return { file_name: null, file_path: null };
-
-            const ext = selectedFile.name.split('.').pop();
-            const path = `essays/${currentUser.id}/${essayId}.${ext}`;
-
-            const { error } = await supabase.storage
-                .from('essay-files')
-                .upload(path, selectedFile, { upsert: true });
-
-            if (error) {
-                console.error('File upload error:', error);
-                return { file_name: selectedFile.name, file_path: null };
-            }
-
-            return { file_name: selectedFile.name, file_path: path };
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         // ─── Save essay ────────────────────────────────────
@@ -842,15 +840,18 @@
                 date_returned: document.getElementById('essayDateReturned').value || null,
             };
 
+            // Encode file as base64 if one was selected
+            if (selectedFile) {
+                try {
+                    record.file_data = await fileToBase64(selectedFile);
+                    record.file_name = selectedFile.name;
+                } catch (e) {
+                    console.error('Error reading file:', e);
+                }
+            }
+
             let result;
             if (isEdit) {
-                // Upload file if new one selected
-                if (selectedFile) {
-                    const fileInfo = await uploadFile(essayId);
-                    if (fileInfo.file_name) record.file_name = fileInfo.file_name;
-                    if (fileInfo.file_path) record.file_path = fileInfo.file_path;
-                }
-
                 result = await supabase
                     .from('essay_submissions')
                     .update(record)
@@ -861,17 +862,6 @@
                     .insert(record)
                     .select('id')
                     .single();
-
-                // Upload file after insert so we have the ID
-                if (!result.error && result.data && selectedFile) {
-                    const fileInfo = await uploadFile(result.data.id);
-                    if (fileInfo.file_name || fileInfo.file_path) {
-                        await supabase
-                            .from('essay_submissions')
-                            .update({ file_name: fileInfo.file_name, file_path: fileInfo.file_path })
-                            .eq('id', result.data.id);
-                    }
-                }
             }
 
             btn.disabled = false;
@@ -887,8 +877,6 @@
         }
 
         // ─── View essay (full-screen viewer) ─────────────
-        let currentFileUrl = null;
-
         async function viewEssay(id) {
             const essay = essays.find(e => e.id === id);
             if (!essay) return;
@@ -909,47 +897,44 @@
             const noFile = document.getElementById('viewerNoFile');
             const downloadBtn = document.getElementById('viewerDownloadBtn');
 
-            // Clean up any previous file
-            if (currentFileUrl) { URL.revokeObjectURL(currentFileUrl); currentFileUrl = null; }
-            filePanel.querySelectorAll('iframe, img').forEach(el => el.remove());
-
-            if (essay.file_name && essay.file_path) {
+            if (essay.file_name) {
                 noFile.style.display = 'none';
                 downloadBtn.style.display = '';
                 filePanel.innerHTML = '<div class="viewer-no-file"><p>Loading file...</p></div>';
 
-                // Fetch the file from storage
-                const { data, error } = await supabase.storage
-                    .from('essay-files')
-                    .download(essay.file_path);
+                // Fetch file_data on demand (not loaded in list query)
+                const { data: fileRow } = await supabase
+                    .from('essay_submissions')
+                    .select('file_data')
+                    .eq('id', essay.id)
+                    .single();
 
-                if (error || !data) {
-                    filePanel.innerHTML = '<div class="viewer-no-file"><p>Could not load file</p><small>The file may have been removed from storage</small></div>';
-                } else {
-                    currentFileUrl = URL.createObjectURL(data);
+                const fileData = fileRow?.file_data;
+                if (fileData) {
+                    essay.file_data = fileData;
                     const ext = (essay.file_name.split('.').pop() || '').toLowerCase();
                     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
 
+                    filePanel.innerHTML = '';
                     if (isImage) {
-                        filePanel.innerHTML = '';
                         const img = document.createElement('img');
-                        img.src = currentFileUrl;
+                        img.src = fileData;
                         img.alt = essay.file_name;
                         filePanel.appendChild(img);
                     } else {
-                        // PDF, docs — use iframe
-                        filePanel.innerHTML = '';
                         const iframe = document.createElement('iframe');
-                        iframe.src = currentFileUrl;
+                        iframe.src = fileData;
                         iframe.title = essay.file_name;
                         filePanel.appendChild(iframe);
                     }
+                } else {
+                    filePanel.innerHTML = '<div class="viewer-no-file"><p>Could not load file</p><small>The file data may be missing</small></div>';
                 }
             } else {
+                filePanel.innerHTML = '';
+                filePanel.appendChild(noFile);
                 noFile.style.display = '';
                 downloadBtn.style.display = 'none';
-                // Make sure no leftover content
-                filePanel.querySelectorAll('iframe, img').forEach(el => el.remove());
             }
 
             document.getElementById('essayViewer').classList.add('open');
@@ -959,8 +944,6 @@
         function closeViewer() {
             document.getElementById('essayViewer').classList.remove('open');
             document.body.style.overflow = '';
-            // Clean up blob URL
-            if (currentFileUrl) { URL.revokeObjectURL(currentFileUrl); currentFileUrl = null; }
         }
 
         function editFromViewer() {
@@ -969,8 +952,11 @@
         }
 
         function downloadCurrentFile() {
-            if (currentViewEssay && currentViewEssay.file_path) {
-                downloadFile(currentViewEssay.file_path, currentViewEssay.file_name);
+            if (currentViewEssay && currentViewEssay.file_data) {
+                const a = document.createElement('a');
+                a.href = currentViewEssay.file_data;
+                a.download = currentViewEssay.file_name || 'essay';
+                a.click();
             }
         }
 
@@ -985,13 +971,6 @@
         async function deleteEssay(id) {
             if (!confirm('Delete this essay record? This cannot be undone.')) return;
 
-            const essay = essays.find(e => e.id === id);
-
-            // Delete file from storage if exists
-            if (essay && essay.file_path) {
-                await supabase.storage.from('essay-files').remove([essay.file_path]);
-            }
-
             const { error } = await supabase
                 .from('essay_submissions')
                 .delete()
@@ -1005,24 +984,6 @@
             await loadEssays();
         }
 
-        // ─── Download file ─────────────────────────────────
-        async function downloadFile(path, name) {
-            const { data, error } = await supabase.storage
-                .from('essay-files')
-                .download(path);
-
-            if (error) {
-                alert('Error downloading file. It may have been removed.');
-                return;
-            }
-
-            const url = URL.createObjectURL(data);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = name;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
 
         // ─── Helpers ───────────────────────────────────────
         function formatDate(dateStr) {
