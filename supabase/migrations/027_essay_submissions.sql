@@ -16,6 +16,9 @@ CREATE TABLE IF NOT EXISTS essay_submissions (
     date_returned DATE,
     file_name TEXT,                     -- original filename for display
     file_data TEXT,                     -- base64-encoded file content (data URL)
+    marked_file_name TEXT,             -- annotated/marked file name
+    marked_file_data TEXT,             -- base64 annotated file for handback
+    handed_back BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -39,6 +42,11 @@ CREATE POLICY "Teachers can update own essays"
 CREATE POLICY "Teachers can delete own essays"
     ON essay_submissions FOR DELETE
     USING (auth.uid() = teacher_id);
+
+-- Students can view essays handed back to them
+CREATE POLICY "Students can view handed-back essays"
+    ON essay_submissions FOR SELECT
+    USING (auth.uid() = student_id AND handed_back = TRUE);
 
 -- Co-teachers can also view essays for classes they teach
 CREATE POLICY "Co-teachers can view class essays"

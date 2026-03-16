@@ -423,6 +423,22 @@
                     <label class="form-label">Feedback</label>
                     <textarea class="form-input" id="essayFeedback" rows="4" placeholder="Your comments on the essay..."></textarea>
                 </div>
+
+                <div class="form-group" style="display: flex; flex-direction: column;">
+                    <label class="form-label">Marked Copy (for student handback)</label>
+                    <div class="file-upload-area" id="markedFileUploadArea" onclick="document.getElementById('markedFile').click()">
+                        <span id="markedFileUploadText">Click to attach marked version</span>
+                    </div>
+                    <input type="file" id="markedFile" style="display:none" onchange="handleMarkedFileSelect(this)" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                        <input type="checkbox" id="essayHandedBack" style="width:16px; height:16px;">
+                        Hand back to student
+                    </label>
+                    <small style="color:#5F6368; font-size:0.8rem;">When checked, the student can see the mark, feedback, and marked copy.</small>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeEssayModal()">Cancel</button>
@@ -479,6 +495,7 @@
         let essays = [];
         let classStudentsCache = {};
         let selectedFile = null;
+        let selectedMarkedFile = null;
         let currentViewEssay = null;
 
         // ─── Init ──────────────────────────────────────────
@@ -568,7 +585,7 @@
             // First try loading just the essays without joins
             const { data, error } = await supabase
                 .from('essay_submissions')
-                .select('id, teacher_id, student_id, class_id, title, mark, feedback, date_submitted, date_returned, file_name, created_at, updated_at')
+                .select('id, teacher_id, student_id, class_id, title, mark, feedback, date_submitted, date_returned, file_name, marked_file_name, handed_back, created_at, updated_at')
                 .eq('teacher_id', currentUser.id)
                 .order('created_at', { ascending: false });
 
@@ -730,6 +747,7 @@
         }
 
         function getStatus(essay) {
+            if (essay.handed_back) return { cls: 'returned', label: 'Handed Back' };
             if (essay.date_returned) return { cls: 'returned', label: 'Returned' };
             if (essay.mark) return { cls: 'pending', label: 'To Return' };
             return { cls: 'unmarked', label: 'Unmarked' };
@@ -747,15 +765,19 @@
             document.getElementById('essayFeedback').value = '';
             document.getElementById('essayModalTitle').textContent = 'Log Essay';
             selectedFile = null;
+            selectedMarkedFile = null;
             document.getElementById('fileUploadArea').classList.remove('has-file');
             document.getElementById('fileUploadText').textContent = 'Click to attach a file';
             document.getElementById('essayFile').value = '';
+            document.getElementById('markedFileUploadArea').classList.remove('has-file');
+            document.getElementById('markedFileUploadText').textContent = 'Click to attach marked version';
+            document.getElementById('markedFile').value = '';
+            document.getElementById('essayHandedBack').checked = false;
 
             if (essayData) {
                 document.getElementById('essayModalTitle').textContent = 'Edit Essay';
                 document.getElementById('essayId').value = essayData.id;
                 document.getElementById('essayClass').value = essayData.class_id;
-                // Need to load students then set the value
                 loadClassStudents().then(() => {
                     document.getElementById('essayStudent').value = essayData.student_id;
                 });
@@ -764,9 +786,14 @@
                 document.getElementById('essayDateSubmitted').value = essayData.date_submitted || '';
                 document.getElementById('essayDateReturned').value = essayData.date_returned || '';
                 document.getElementById('essayFeedback').value = essayData.feedback || '';
+                document.getElementById('essayHandedBack').checked = !!essayData.handed_back;
                 if (essayData.file_name) {
                     document.getElementById('fileUploadArea').classList.add('has-file');
                     document.getElementById('fileUploadText').textContent = essayData.file_name;
+                }
+                if (essayData.marked_file_name) {
+                    document.getElementById('markedFileUploadArea').classList.add('has-file');
+                    document.getElementById('markedFileUploadText').textContent = essayData.marked_file_name;
                 }
             }
 
@@ -799,6 +826,20 @@
                 selectedFile = file;
                 document.getElementById('fileUploadArea').classList.add('has-file');
                 document.getElementById('fileUploadText').textContent = selectedFile.name;
+            }
+        }
+
+        function handleMarkedFileSelect(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('File is too large. Maximum size is 10MB.');
+                    input.value = '';
+                    return;
+                }
+                selectedMarkedFile = file;
+                document.getElementById('markedFileUploadArea').classList.add('has-file');
+                document.getElementById('markedFileUploadText').textContent = selectedMarkedFile.name;
             }
         }
 
@@ -838,6 +879,7 @@
                 feedback: document.getElementById('essayFeedback').value.trim() || null,
                 date_submitted: document.getElementById('essayDateSubmitted').value || null,
                 date_returned: document.getElementById('essayDateReturned').value || null,
+                handed_back: document.getElementById('essayHandedBack').checked,
             };
 
             // Encode file as base64 if one was selected
@@ -847,6 +889,16 @@
                     record.file_name = selectedFile.name;
                 } catch (e) {
                     console.error('Error reading file:', e);
+                }
+            }
+
+            // Encode marked file
+            if (selectedMarkedFile) {
+                try {
+                    record.marked_file_data = await fileToBase64(selectedMarkedFile);
+                    record.marked_file_name = selectedMarkedFile.name;
+                } catch (e) {
+                    console.error('Error reading marked file:', e);
                 }
             }
 
