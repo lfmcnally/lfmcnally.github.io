@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Essay Tracker - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <link rel="stylesheet" href="../shared/google-theme.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-bar select {
+            height: 36px;
+            padding: 0 32px 0 12px;
+            border: 1px solid #DADCE0;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #202124;
+            background: #fff;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235F6368' d='M3 5l3 3 3-3z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            cursor: pointer;
+        }
+        .filter-bar select:focus {
+            border-color: #4285F4;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(66,133,244,0.2);
+        }
+        .search-input {
+            height: 36px;
+            padding: 0 12px;
+            border: 1px solid #DADCE0;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            width: 220px;
+            outline: none;
+            font-family: inherit;
+        }
+        .search-input:focus {
+            border-color: #4285F4;
+            box-shadow: 0 0 0 2px rgba(66,133,244,0.2);
+        }
+
+        /* Essay table */
+        .essay-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .essay-table th {
+            text-align: left;
+            padding: 10px 12px;
+            font-weight: 500;
+            color: #5F6368;
+            border-bottom: 2px solid #DADCE0;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+        .essay-table th:hover { color: #4285F4; }
+        .essay-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #DADCE0;
+            color: #202124;
+            vertical-align: middle;
+        }
+        .essay-table tr:hover td { background: #F8F9FA; }
+
+        .essay-title-cell {
+            font-weight: 500;
+        }
+        .essay-student {
+            display: flex;
+            flex-direction: column;
+        }
+        .essay-student-name { font-weight: 500; }
+        .essay-class-name { font-size: 0.75rem; color: #5F6368; }
+
+        .mark-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 0.8rem;
+            background: #E8F0FE;
+            color: #1967D2;
+        }
+        .mark-badge.empty { background: #F1F3F4; color: #5F6368; }
+
+        .date-cell { white-space: nowrap; font-size: 0.8rem; color: #5F6368; }
+        .date-cell.overdue { color: #C5221F; font-weight: 500; }
+
+        .status-pill {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .status-pill.returned { background: #E6F4EA; color: #137333; }
+        .status-pill.pending { background: #FEF7E0; color: #B06000; }
+        .status-pill.unmarked { background: #F1F3F4; color: #5F6368; }
+
+        .essay-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #DADCE0;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: #5F6368;
+            transition: all 0.15s;
+        }
+        .action-btn:hover { border-color: #4285F4; color: #4285F4; background: #E8F0FE; }
+        .action-btn.delete:hover { border-color: #EA4335; color: #EA4335; background: #FCE8E6; }
+
+        .feedback-preview {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.8rem;
+            color: #5F6368;
+        }
+
+        /* File attachment */
+        .file-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.8rem;
+            color: #4285F4;
+            text-decoration: none;
+        }
+        .file-link:hover { text-decoration: underline; }
+
+        /* Stats */
+        .essay-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .essay-stat {
+            background: #fff;
+            border: 1px solid #DADCE0;
+            border-radius: 8px;
+            padding: 16px 20px;
+            min-width: 120px;
+            text-align: center;
+        }
+        .essay-stat-value {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #202124;
+        }
+        .essay-stat-label {
+            font-size: 0.8rem;
+            color: #5F6368;
+            margin-top: 2px;
+        }
+
+        /* Responsive */
+        .table-wrap { overflow-x: auto; }
+        @media (max-width: 768px) {
+            .filter-bar { flex-direction: column; align-items: stretch; }
+            .filter-bar select, .search-input { width: 100%; }
+            .essay-stats { flex-direction: column; }
+        }
+
+        /* Modal wide for essay form */
+        .modal.wide { max-width: 640px; }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 480px) {
+            .form-row { grid-template-columns: 1fr; }
+        }
+
+        .file-upload-area {
+            border: 2px dashed #DADCE0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            color: #5F6368;
+            font-size: 0.85rem;
+        }
+        .file-upload-area:hover { border-color: #4285F4; background: #E8F0FE; }
+        .file-upload-area.has-file { border-color: #34A853; background: #E6F4EA; color: #137333; }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="top-bar-brand">Classicalia</div>
+        <div class="top-bar-nav">
+            <a href="teacher.html">Dashboard</a>
+            <a href="essays.html" class="active">Essays</a>
+            <a href="planner.html">My Planner</a>
+            <a href="teacher-help.html">Help</a>
+            <a href="../index.html">Home</a>
+        </div>
+        <div class="top-bar-actions">
+            <span id="teacherName" class="text-muted"></span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Stats Row -->
+        <div class="essay-stats mt-24">
+            <div class="essay-stat">
+                <div class="essay-stat-value" id="statTotal">0</div>
+                <div class="essay-stat-label">Total Essays</div>
+            </div>
+            <div class="essay-stat">
+                <div class="essay-stat-value" id="statPending">0</div>
+                <div class="essay-stat-label">To Return</div>
+            </div>
+            <div class="essay-stat">
+                <div class="essay-stat-value" id="statReturned">0</div>
+                <div class="essay-stat-label">Returned</div>
+            </div>
+            <div class="essay-stat">
+                <div class="essay-stat-value" id="statUnmarked">0</div>
+                <div class="essay-stat-label">Unmarked</div>
+            </div>
+        </div>
+
+        <!-- Filter & Add -->
+        <div class="card mt-24">
+            <div class="card-header">
+                <span class="card-title">Essay Submissions</span>
+                <button class="btn btn-primary btn-sm" onclick="openEssayModal()">+ Log Essay</button>
+            </div>
+            <div class="card-body">
+                <div class="filter-bar mb-16">
+                    <select id="filterClass" onchange="applyFilters()">
+                        <option value="">All Classes</option>
+                    </select>
+                    <select id="filterStatus" onchange="applyFilters()">
+                        <option value="">All Statuses</option>
+                        <option value="unmarked">Unmarked</option>
+                        <option value="pending">Marked - Not Returned</option>
+                        <option value="returned">Returned</option>
+                    </select>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search student or title..." oninput="applyFilters()">
+                </div>
+                <div class="table-wrap" id="essayTableContainer">
+                    <div class="spinner" style="padding: 48px; text-align: center;">Loading essays...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Essay Modal -->
+    <div class="modal-overlay" id="essayModal">
+        <div class="modal wide">
+            <div class="modal-header">
+                <h3 id="essayModalTitle">Log Essay</h3>
+                <button class="modal-close" onclick="closeEssayModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="essayId">
+
+                <div class="form-group">
+                    <label class="form-label">Class</label>
+                    <select class="form-input" id="essayClass" onchange="loadClassStudents()">
+                        <option value="">Select a class...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Student</label>
+                    <select class="form-input" id="essayStudent">
+                        <option value="">Select a student...</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Essay Title</label>
+                    <input type="text" class="form-input" id="essayTitle" placeholder="e.g. Aeneid Book 2 Translation">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Mark</label>
+                        <input type="text" class="form-input" id="essayMark" placeholder="e.g. A+, 72%, 18/20">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date Submitted</label>
+                        <input type="date" class="form-input" id="essayDateSubmitted">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Date Returned</label>
+                        <input type="date" class="form-input" id="essayDateReturned">
+                    </div>
+                    <div class="form-group" style="display: flex; flex-direction: column;">
+                        <label class="form-label">Attachment</label>
+                        <div class="file-upload-area" id="fileUploadArea" onclick="document.getElementById('essayFile').click()">
+                            <span id="fileUploadText">Click to attach a file</span>
+                        </div>
+                        <input type="file" id="essayFile" style="display:none" onchange="handleFileSelect(this)" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Feedback</label>
+                    <textarea class="form-input" id="essayFeedback" rows="4" placeholder="Your comments on the essay..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEssayModal()">Cancel</button>
+                <button class="btn btn-primary" id="essaySaveBtn" onclick="saveEssay()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Feedback Modal -->
+    <div class="modal-overlay" id="feedbackModal">
+        <div class="modal wide">
+            <div class="modal-header">
+                <h3 id="feedbackTitle">Essay Feedback</h3>
+                <button class="modal-close" onclick="closeFeedbackModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; font-size: 0.85rem;">
+                    <div><strong>Student:</strong> <span id="fbStudent"></span></div>
+                    <div><strong>Class:</strong> <span id="fbClass"></span></div>
+                    <div><strong>Mark:</strong> <span id="fbMark"></span></div>
+                    <div><strong>Submitted:</strong> <span id="fbSubmitted"></span></div>
+                    <div><strong>Returned:</strong> <span id="fbReturned"></span></div>
+                    <div id="fbFileRow"><strong>File:</strong> <span id="fbFile"></span></div>
+                </div>
+                <div style="border-top: 1px solid #DADCE0; padding-top: 16px;">
+                    <label class="form-label">Feedback</label>
+                    <div id="fbFeedback" style="white-space: pre-wrap; font-size: 0.9rem; color: #202124; line-height: 1.6;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeFeedbackModal()">Close</button>
+                <button class="btn btn-primary" id="fbEditBtn" onclick="editFromFeedback()">Edit</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../auth/config.js"></script>
+    <script>
+        let currentUser = null;
+        let classes = [];
+        let essays = [];
+        let classStudentsCache = {};
+        let selectedFile = null;
+        let currentViewEssay = null;
+
+        // ─── Init ──────────────────────────────────────────
+        async function init() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { window.location.href = '../auth/login.html'; return; }
+
+            const { data: profile } = await supabase
+                .from('users').select('*').eq('id', user.id).single();
+
+            if (!profile || profile.role !== 'teacher') {
+                window.location.href = '../auth/login.html'; return;
+            }
+
+            currentUser = profile;
+            document.getElementById('teacherName').textContent = profile.full_name;
+
+            await loadClasses();
+            await loadEssays();
+        }
+
+        // ─── Load teacher's classes ────────────────────────
+        async function loadClasses() {
+            // Owned classes
+            const { data: owned } = await supabase
+                .from('classes')
+                .select('id, name, type, class_members(count)')
+                .eq('teacher_id', currentUser.id)
+                .order('name');
+
+            // Co-taught classes
+            const { data: coEntries } = await supabase
+                .from('class_teachers')
+                .select('classes(id, name, type, class_members(count))')
+                .eq('teacher_id', currentUser.id);
+
+            const coTaught = (coEntries || []).map(e => e.classes).filter(Boolean);
+            const ownedIds = new Set((owned || []).map(c => c.id));
+            classes = [...(owned || []), ...coTaught.filter(c => !ownedIds.has(c.id))];
+            classes.sort((a, b) => a.name.localeCompare(b.name));
+
+            // Populate filter dropdown
+            const filterSel = document.getElementById('filterClass');
+            const modalSel = document.getElementById('essayClass');
+            classes.forEach(cls => {
+                filterSel.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+                modalSel.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+            });
+        }
+
+        // ─── Load students for a class ─────────────────────
+        async function loadClassStudents() {
+            const classId = document.getElementById('essayClass').value;
+            const studentSel = document.getElementById('essayStudent');
+            studentSel.innerHTML = '<option value="">Select a student...</option>';
+
+            if (!classId) return;
+
+            if (classStudentsCache[classId]) {
+                populateStudentSelect(classStudentsCache[classId]);
+                return;
+            }
+
+            const { data: members } = await supabase
+                .from('class_members')
+                .select('student_id, users:student_id(id, full_name)')
+                .eq('class_id', classId);
+
+            const students = (members || [])
+                .map(m => m.users)
+                .filter(Boolean)
+                .sort((a, b) => a.full_name.localeCompare(b.full_name));
+
+            classStudentsCache[classId] = students;
+            populateStudentSelect(students);
+        }
+
+        function populateStudentSelect(students) {
+            const sel = document.getElementById('essayStudent');
+            students.forEach(s => {
+                sel.innerHTML += `<option value="${s.id}">${s.full_name}</option>`;
+            });
+        }
+
+        // ─── Load all essays ───────────────────────────────
+        async function loadEssays() {
+            const { data, error } = await supabase
+                .from('essay_submissions')
+                .select('*, users:student_id(full_name), classes:class_id(name)')
+                .eq('teacher_id', currentUser.id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error loading essays:', error);
+                document.getElementById('essayTableContainer').innerHTML =
+                    '<p class="text-muted" style="padding: 24px;">Error loading essays. Please refresh.</p>';
+                return;
+            }
+
+            essays = data || [];
+            updateStats();
+            applyFilters();
+        }
+
+        // ─── Stats ─────────────────────────────────────────
+        function updateStats() {
+            document.getElementById('statTotal').textContent = essays.length;
+
+            const returned = essays.filter(e => e.date_returned).length;
+            const unmarked = essays.filter(e => !e.mark).length;
+            const pending = essays.filter(e => e.mark && !e.date_returned).length;
+
+            document.getElementById('statReturned').textContent = returned;
+            document.getElementById('statUnmarked').textContent = unmarked;
+            document.getElementById('statPending').textContent = pending;
+        }
+
+        // ─── Filtering ─────────────────────────────────────
+        function applyFilters() {
+            const classFilter = document.getElementById('filterClass').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const search = document.getElementById('searchInput').value.toLowerCase().trim();
+
+            let filtered = essays;
+
+            if (classFilter) {
+                filtered = filtered.filter(e => e.class_id === classFilter);
+            }
+
+            if (statusFilter === 'unmarked') {
+                filtered = filtered.filter(e => !e.mark);
+            } else if (statusFilter === 'pending') {
+                filtered = filtered.filter(e => e.mark && !e.date_returned);
+            } else if (statusFilter === 'returned') {
+                filtered = filtered.filter(e => e.date_returned);
+            }
+
+            if (search) {
+                filtered = filtered.filter(e =>
+                    (e.users?.full_name || '').toLowerCase().includes(search) ||
+                    (e.title || '').toLowerCase().includes(search)
+                );
+            }
+
+            renderTable(filtered);
+        }
+
+        // ─── Render table ──────────────────────────────────
+        function renderTable(data) {
+            const container = document.getElementById('essayTableContainer');
+
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state" style="padding: 48px; text-align: center;">
+                        <p class="empty-state-text">${essays.length === 0 ? 'No essays logged yet. Click "+ Log Essay" to get started!' : 'No essays match your filters.'}</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="essay-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Title</th>
+                            <th>Mark</th>
+                            <th>Submitted</th>
+                            <th>Returned</th>
+                            <th>Status</th>
+                            <th>Feedback</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(e => {
+                            const status = getStatus(e);
+                            const submittedStr = e.date_submitted ? formatDate(e.date_submitted) : '—';
+                            const returnedStr = e.date_returned ? formatDate(e.date_returned) : '—';
+
+                            // Check if submitted but not returned and it's been > 14 days
+                            const isOverdue = e.date_submitted && !e.date_returned &&
+                                (new Date() - new Date(e.date_submitted)) > 14 * 86400000;
+
+                            return `
+                            <tr>
+                                <td>
+                                    <div class="essay-student">
+                                        <span class="essay-student-name">${e.users?.full_name || 'Unknown'}</span>
+                                        <span class="essay-class-name">${e.classes?.name || ''}</span>
+                                    </div>
+                                </td>
+                                <td class="essay-title-cell">${escapeHtml(e.title)}</td>
+                                <td>${e.mark ? `<span class="mark-badge">${escapeHtml(e.mark)}</span>` : '<span class="mark-badge empty">—</span>'}</td>
+                                <td class="date-cell">${submittedStr}</td>
+                                <td class="date-cell${isOverdue ? ' overdue' : ''}">${returnedStr}${isOverdue ? ' ⚠' : ''}</td>
+                                <td><span class="status-pill ${status.cls}">${status.label}</span></td>
+                                <td class="feedback-preview">${e.feedback ? escapeHtml(e.feedback) : '—'}</td>
+                                <td>
+                                    <div class="essay-actions">
+                                        <button class="action-btn" onclick="viewEssay('${e.id}')" title="View">&#128065;</button>
+                                        <button class="action-btn" onclick="editEssay('${e.id}')" title="Edit">&#9998;</button>
+                                        <button class="action-btn delete" onclick="deleteEssay('${e.id}')" title="Delete">&#128465;</button>
+                                    </div>
+                                </td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>`;
+        }
+
+        function getStatus(essay) {
+            if (essay.date_returned) return { cls: 'returned', label: 'Returned' };
+            if (essay.mark) return { cls: 'pending', label: 'To Return' };
+            return { cls: 'unmarked', label: 'Unmarked' };
+        }
+
+        // ─── Modal controls ────────────────────────────────
+        function openEssayModal(essayData) {
+            document.getElementById('essayId').value = '';
+            document.getElementById('essayClass').value = '';
+            document.getElementById('essayStudent').innerHTML = '<option value="">Select a student...</option>';
+            document.getElementById('essayTitle').value = '';
+            document.getElementById('essayMark').value = '';
+            document.getElementById('essayDateSubmitted').value = '';
+            document.getElementById('essayDateReturned').value = '';
+            document.getElementById('essayFeedback').value = '';
+            document.getElementById('essayModalTitle').textContent = 'Log Essay';
+            selectedFile = null;
+            document.getElementById('fileUploadArea').classList.remove('has-file');
+            document.getElementById('fileUploadText').textContent = 'Click to attach a file';
+            document.getElementById('essayFile').value = '';
+
+            if (essayData) {
+                document.getElementById('essayModalTitle').textContent = 'Edit Essay';
+                document.getElementById('essayId').value = essayData.id;
+                document.getElementById('essayClass').value = essayData.class_id;
+                // Need to load students then set the value
+                loadClassStudents().then(() => {
+                    document.getElementById('essayStudent').value = essayData.student_id;
+                });
+                document.getElementById('essayTitle').value = essayData.title || '';
+                document.getElementById('essayMark').value = essayData.mark || '';
+                document.getElementById('essayDateSubmitted').value = essayData.date_submitted || '';
+                document.getElementById('essayDateReturned').value = essayData.date_returned || '';
+                document.getElementById('essayFeedback').value = essayData.feedback || '';
+                if (essayData.file_name) {
+                    document.getElementById('fileUploadArea').classList.add('has-file');
+                    document.getElementById('fileUploadText').textContent = essayData.file_name;
+                }
+            }
+
+            document.getElementById('essayModal').classList.add('open');
+        }
+
+        function closeEssayModal() {
+            document.getElementById('essayModal').classList.remove('open');
+        }
+
+        function closeFeedbackModal() {
+            document.getElementById('feedbackModal').classList.remove('open');
+        }
+
+        // Close modals on overlay click
+        document.getElementById('essayModal').addEventListener('click', function(e) {
+            if (e.target === this) closeEssayModal();
+        });
+        document.getElementById('feedbackModal').addEventListener('click', function(e) {
+            if (e.target === this) closeFeedbackModal();
+        });
+
+        // ─── File handling ─────────────────────────────────
+        function handleFileSelect(input) {
+            if (input.files && input.files[0]) {
+                selectedFile = input.files[0];
+                document.getElementById('fileUploadArea').classList.add('has-file');
+                document.getElementById('fileUploadText').textContent = selectedFile.name;
+            }
+        }
+
+        async function uploadFile(essayId) {
+            if (!selectedFile) return { file_name: null, file_path: null };
+
+            const ext = selectedFile.name.split('.').pop();
+            const path = `essays/${currentUser.id}/${essayId}.${ext}`;
+
+            const { error } = await supabase.storage
+                .from('essay-files')
+                .upload(path, selectedFile, { upsert: true });
+
+            if (error) {
+                console.error('File upload error:', error);
+                return { file_name: selectedFile.name, file_path: null };
+            }
+
+            return { file_name: selectedFile.name, file_path: path };
+        }
+
+        // ─── Save essay ────────────────────────────────────
+        async function saveEssay() {
+            const classId = document.getElementById('essayClass').value;
+            const studentId = document.getElementById('essayStudent').value;
+            const title = document.getElementById('essayTitle').value.trim();
+
+            if (!classId || !studentId || !title) {
+                alert('Please select a class, student, and enter a title.');
+                return;
+            }
+
+            const btn = document.getElementById('essaySaveBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            const essayId = document.getElementById('essayId').value;
+            const isEdit = !!essayId;
+
+            const record = {
+                teacher_id: currentUser.id,
+                class_id: classId,
+                student_id: studentId,
+                title: title,
+                mark: document.getElementById('essayMark').value.trim() || null,
+                feedback: document.getElementById('essayFeedback').value.trim() || null,
+                date_submitted: document.getElementById('essayDateSubmitted').value || null,
+                date_returned: document.getElementById('essayDateReturned').value || null,
+            };
+
+            let result;
+            if (isEdit) {
+                // Upload file if new one selected
+                if (selectedFile) {
+                    const fileInfo = await uploadFile(essayId);
+                    if (fileInfo.file_name) record.file_name = fileInfo.file_name;
+                    if (fileInfo.file_path) record.file_path = fileInfo.file_path;
+                }
+
+                result = await supabase
+                    .from('essay_submissions')
+                    .update(record)
+                    .eq('id', essayId)
+                    .select()
+                    .single();
+            } else {
+                result = await supabase
+                    .from('essay_submissions')
+                    .insert(record)
+                    .select()
+                    .single();
+
+                // Upload file after insert so we have the ID
+                if (!result.error && selectedFile) {
+                    const fileInfo = await uploadFile(result.data.id);
+                    if (fileInfo.file_name || fileInfo.file_path) {
+                        await supabase
+                            .from('essay_submissions')
+                            .update({ file_name: fileInfo.file_name, file_path: fileInfo.file_path })
+                            .eq('id', result.data.id);
+                    }
+                }
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Save';
+
+            if (result.error) {
+                alert('Error saving essay: ' + result.error.message);
+                return;
+            }
+
+            closeEssayModal();
+            await loadEssays();
+        }
+
+        // ─── View essay ────────────────────────────────────
+        function viewEssay(id) {
+            const essay = essays.find(e => e.id === id);
+            if (!essay) return;
+
+            currentViewEssay = essay;
+            document.getElementById('feedbackTitle').textContent = essay.title;
+            document.getElementById('fbStudent').textContent = essay.users?.full_name || 'Unknown';
+            document.getElementById('fbClass').textContent = essay.classes?.name || '';
+            document.getElementById('fbMark').textContent = essay.mark || '—';
+            document.getElementById('fbSubmitted').textContent = essay.date_submitted ? formatDate(essay.date_submitted) : '—';
+            document.getElementById('fbReturned').textContent = essay.date_returned ? formatDate(essay.date_returned) : '—';
+            document.getElementById('fbFeedback').textContent = essay.feedback || 'No feedback added.';
+
+            const fileRow = document.getElementById('fbFileRow');
+            if (essay.file_name && essay.file_path) {
+                fileRow.style.display = '';
+                document.getElementById('fbFile').innerHTML =
+                    `<a href="#" class="file-link" onclick="downloadFile('${essay.file_path}', '${escapeHtml(essay.file_name)}')">${escapeHtml(essay.file_name)}</a>`;
+            } else {
+                fileRow.style.display = 'none';
+            }
+
+            document.getElementById('feedbackModal').classList.add('open');
+        }
+
+        function editFromFeedback() {
+            closeFeedbackModal();
+            if (currentViewEssay) editEssay(currentViewEssay.id);
+        }
+
+        // ─── Edit essay ────────────────────────────────────
+        function editEssay(id) {
+            const essay = essays.find(e => e.id === id);
+            if (!essay) return;
+            openEssayModal(essay);
+        }
+
+        // ─── Delete essay ──────────────────────────────────
+        async function deleteEssay(id) {
+            if (!confirm('Delete this essay record? This cannot be undone.')) return;
+
+            const essay = essays.find(e => e.id === id);
+
+            // Delete file from storage if exists
+            if (essay && essay.file_path) {
+                await supabase.storage.from('essay-files').remove([essay.file_path]);
+            }
+
+            const { error } = await supabase
+                .from('essay_submissions')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                alert('Error deleting essay: ' + error.message);
+                return;
+            }
+
+            await loadEssays();
+        }
+
+        // ─── Download file ─────────────────────────────────
+        async function downloadFile(path, name) {
+            const { data, error } = await supabase.storage
+                .from('essay-files')
+                .download(path);
+
+            if (error) {
+                alert('Error downloading file. It may have been removed.');
+                return;
+            }
+
+            const url = URL.createObjectURL(data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // ─── Helpers ───────────────────────────────────────
+        function formatDate(dateStr) {
+            const d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
