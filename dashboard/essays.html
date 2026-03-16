@@ -181,6 +181,104 @@
 
         /* Modal wide for essay form */
         .modal.wide { max-width: 640px; }
+
+        /* Full-screen essay viewer */
+        .viewer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            z-index: 1000;
+        }
+        .viewer-overlay.open { display: flex; }
+        .viewer-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+        .viewer-file-panel {
+            flex: 1;
+            background: #525659;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .viewer-file-panel iframe,
+        .viewer-file-panel img {
+            max-width: 100%;
+            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .viewer-file-panel img {
+            object-fit: contain;
+            width: auto;
+            height: auto;
+        }
+        .viewer-no-file {
+            color: #9aa0a6;
+            text-align: center;
+            padding: 48px;
+        }
+        .viewer-no-file p { font-size: 1rem; margin-bottom: 8px; }
+        .viewer-no-file small { font-size: 0.8rem; }
+        .viewer-details-panel {
+            width: 380px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .viewer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #DADCE0;
+        }
+        .viewer-header h3 { margin: 0; font-size: 1.05rem; }
+        .viewer-close {
+            width: 36px; height: 36px; border: none; background: none;
+            font-size: 1.4rem; cursor: pointer; color: #5F6368;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        }
+        .viewer-close:hover { background: #F1F3F4; }
+        .viewer-body { padding: 20px; flex: 1; }
+        .viewer-meta {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 6px 12px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+        .viewer-meta dt { color: #5F6368; font-weight: 500; }
+        .viewer-meta dd { margin: 0; color: #202124; }
+        .viewer-feedback {
+            border-top: 1px solid #DADCE0;
+            padding-top: 16px;
+        }
+        .viewer-feedback-text {
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            color: #202124;
+            line-height: 1.6;
+        }
+        .viewer-footer {
+            padding: 12px 20px;
+            border-top: 1px solid #DADCE0;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        @media (max-width: 768px) {
+            .viewer-container { flex-direction: column; }
+            .viewer-file-panel { min-height: 45vh; }
+            .viewer-details-panel { width: 100%; }
+        }
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -333,30 +431,43 @@
         </div>
     </div>
 
-    <!-- View Feedback Modal -->
-    <div class="modal-overlay" id="feedbackModal">
-        <div class="modal wide">
-            <div class="modal-header">
-                <h3 id="feedbackTitle">Essay Feedback</h3>
-                <button class="modal-close" onclick="closeFeedbackModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; font-size: 0.85rem;">
-                    <div><strong>Student:</strong> <span id="fbStudent"></span></div>
-                    <div><strong>Class:</strong> <span id="fbClass"></span></div>
-                    <div><strong>Mark:</strong> <span id="fbMark"></span></div>
-                    <div><strong>Submitted:</strong> <span id="fbSubmitted"></span></div>
-                    <div><strong>Returned:</strong> <span id="fbReturned"></span></div>
-                    <div id="fbFileRow"><strong>File:</strong> <span id="fbFile"></span></div>
-                </div>
-                <div style="border-top: 1px solid #DADCE0; padding-top: 16px;">
-                    <label class="form-label">Feedback</label>
-                    <div id="fbFeedback" style="white-space: pre-wrap; font-size: 0.9rem; color: #202124; line-height: 1.6;"></div>
+    <!-- Full-screen Essay Viewer -->
+    <div class="viewer-overlay" id="essayViewer">
+        <div class="viewer-container">
+            <div class="viewer-file-panel" id="viewerFilePanel">
+                <div class="viewer-no-file" id="viewerNoFile">
+                    <p>No file attached</p>
+                    <small>Attach a file when editing this essay to view it here</small>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeFeedbackModal()">Close</button>
-                <button class="btn btn-primary" id="fbEditBtn" onclick="editFromFeedback()">Edit</button>
+            <div class="viewer-details-panel">
+                <div class="viewer-header">
+                    <h3 id="viewerTitle">Essay</h3>
+                    <button class="viewer-close" onclick="closeViewer()">&times;</button>
+                </div>
+                <div class="viewer-body">
+                    <dl class="viewer-meta">
+                        <dt>Student</dt>
+                        <dd id="viewerStudent"></dd>
+                        <dt>Class</dt>
+                        <dd id="viewerClass"></dd>
+                        <dt>Mark</dt>
+                        <dd id="viewerMark"></dd>
+                        <dt>Submitted</dt>
+                        <dd id="viewerSubmitted"></dd>
+                        <dt>Returned</dt>
+                        <dd id="viewerReturned"></dd>
+                    </dl>
+                    <div class="viewer-feedback">
+                        <label class="form-label">Feedback</label>
+                        <div class="viewer-feedback-text" id="viewerFeedback"></div>
+                    </div>
+                </div>
+                <div class="viewer-footer">
+                    <button class="btn btn-secondary btn-sm" id="viewerDownloadBtn" style="display:none" onclick="downloadCurrentFile()">Download</button>
+                    <button class="btn btn-secondary btn-sm" onclick="editFromViewer()">Edit</button>
+                    <button class="btn btn-primary btn-sm" onclick="closeViewer()">Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -666,16 +777,13 @@
             document.getElementById('essayModal').classList.remove('open');
         }
 
-        function closeFeedbackModal() {
-            document.getElementById('feedbackModal').classList.remove('open');
-        }
 
         // Close modals on overlay click
         document.getElementById('essayModal').addEventListener('click', function(e) {
             if (e.target === this) closeEssayModal();
         });
-        document.getElementById('feedbackModal').addEventListener('click', function(e) {
-            if (e.target === this) closeFeedbackModal();
+        document.getElementById('essayViewer').addEventListener('click', function(e) {
+            if (e.target === this) closeViewer();
         });
 
         // ─── File handling ─────────────────────────────────
@@ -778,35 +886,92 @@
             await loadEssays();
         }
 
-        // ─── View essay ────────────────────────────────────
-        function viewEssay(id) {
+        // ─── View essay (full-screen viewer) ─────────────
+        let currentFileUrl = null;
+
+        async function viewEssay(id) {
             const essay = essays.find(e => e.id === id);
             if (!essay) return;
 
             currentViewEssay = essay;
-            document.getElementById('feedbackTitle').textContent = essay.title;
-            document.getElementById('fbStudent').textContent = essay.users?.full_name || 'Unknown';
-            document.getElementById('fbClass').textContent = essay.classes?.name || '';
-            document.getElementById('fbMark').textContent = essay.mark || '—';
-            document.getElementById('fbSubmitted').textContent = essay.date_submitted ? formatDate(essay.date_submitted) : '—';
-            document.getElementById('fbReturned').textContent = essay.date_returned ? formatDate(essay.date_returned) : '—';
-            document.getElementById('fbFeedback').textContent = essay.feedback || 'No feedback added.';
 
-            const fileRow = document.getElementById('fbFileRow');
+            // Populate details panel
+            document.getElementById('viewerTitle').textContent = essay.title;
+            document.getElementById('viewerStudent').textContent = essay.users?.full_name || 'Unknown';
+            document.getElementById('viewerClass').textContent = essay.classes?.name || '';
+            document.getElementById('viewerMark').textContent = essay.mark || '—';
+            document.getElementById('viewerSubmitted').textContent = essay.date_submitted ? formatDate(essay.date_submitted) : '—';
+            document.getElementById('viewerReturned').textContent = essay.date_returned ? formatDate(essay.date_returned) : '—';
+            document.getElementById('viewerFeedback').textContent = essay.feedback || 'No feedback added.';
+
+            // File panel
+            const filePanel = document.getElementById('viewerFilePanel');
+            const noFile = document.getElementById('viewerNoFile');
+            const downloadBtn = document.getElementById('viewerDownloadBtn');
+
+            // Clean up any previous file
+            if (currentFileUrl) { URL.revokeObjectURL(currentFileUrl); currentFileUrl = null; }
+            filePanel.querySelectorAll('iframe, img').forEach(el => el.remove());
+
             if (essay.file_name && essay.file_path) {
-                fileRow.style.display = '';
-                document.getElementById('fbFile').innerHTML =
-                    `<a href="#" class="file-link" onclick="downloadFile('${essay.file_path}', '${escapeHtml(essay.file_name)}')">${escapeHtml(essay.file_name)}</a>`;
+                noFile.style.display = 'none';
+                downloadBtn.style.display = '';
+                filePanel.innerHTML = '<div class="viewer-no-file"><p>Loading file...</p></div>';
+
+                // Fetch the file from storage
+                const { data, error } = await supabase.storage
+                    .from('essay-files')
+                    .download(essay.file_path);
+
+                if (error || !data) {
+                    filePanel.innerHTML = '<div class="viewer-no-file"><p>Could not load file</p><small>The file may have been removed from storage</small></div>';
+                } else {
+                    currentFileUrl = URL.createObjectURL(data);
+                    const ext = (essay.file_name.split('.').pop() || '').toLowerCase();
+                    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+
+                    if (isImage) {
+                        filePanel.innerHTML = '';
+                        const img = document.createElement('img');
+                        img.src = currentFileUrl;
+                        img.alt = essay.file_name;
+                        filePanel.appendChild(img);
+                    } else {
+                        // PDF, docs — use iframe
+                        filePanel.innerHTML = '';
+                        const iframe = document.createElement('iframe');
+                        iframe.src = currentFileUrl;
+                        iframe.title = essay.file_name;
+                        filePanel.appendChild(iframe);
+                    }
+                }
             } else {
-                fileRow.style.display = 'none';
+                noFile.style.display = '';
+                downloadBtn.style.display = 'none';
+                // Make sure no leftover content
+                filePanel.querySelectorAll('iframe, img').forEach(el => el.remove());
             }
 
-            document.getElementById('feedbackModal').classList.add('open');
+            document.getElementById('essayViewer').classList.add('open');
+            document.body.style.overflow = 'hidden';
         }
 
-        function editFromFeedback() {
-            closeFeedbackModal();
+        function closeViewer() {
+            document.getElementById('essayViewer').classList.remove('open');
+            document.body.style.overflow = '';
+            // Clean up blob URL
+            if (currentFileUrl) { URL.revokeObjectURL(currentFileUrl); currentFileUrl = null; }
+        }
+
+        function editFromViewer() {
+            closeViewer();
             if (currentViewEssay) editEssay(currentViewEssay.id);
+        }
+
+        function downloadCurrentFile() {
+            if (currentViewEssay && currentViewEssay.file_path) {
+                downloadFile(currentViewEssay.file_path, currentViewEssay.file_name);
+            }
         }
 
         // ─── Edit essay ────────────────────────────────────
@@ -870,6 +1035,13 @@
             div.textContent = str;
             return div.innerHTML;
         }
+
+        // Escape key closes viewer
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (document.getElementById('essayViewer').classList.contains('open')) closeViewer();
+            }
+        });
 
         // Start
         init();
