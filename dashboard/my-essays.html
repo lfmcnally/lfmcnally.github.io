@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Essays - Classicalia</title>
+    <link rel="icon" type="image/png" href="../images/favicon.png">
+    <link rel="stylesheet" href="../shared/google-theme.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .essay-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .essay-card {
+            background: var(--g-card-bg);
+            border: 1px solid var(--g-border);
+            border-radius: var(--g-radius);
+            padding: var(--g-space-24);
+            cursor: pointer;
+            transition: box-shadow var(--g-transition);
+        }
+        .essay-card:hover { box-shadow: var(--g-shadow-hover); }
+        .essay-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .essay-card-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--g-text);
+        }
+        .essay-card-class {
+            font-size: var(--g-font-size-sm);
+            color: var(--g-text-secondary);
+        }
+        .mark-badge {
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            background: #E8F0FE;
+            color: #1967D2;
+            white-space: nowrap;
+        }
+        .essay-card-dates {
+            display: flex;
+            gap: 16px;
+            font-size: var(--g-font-size-sm);
+            color: var(--g-text-secondary);
+        }
+        .essay-card-feedback {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: var(--g-text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .has-file-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 1px 8px;
+            border-radius: 10px;
+            background: #E6F4EA;
+            color: #137333;
+            margin-left: 8px;
+        }
+
+        /* Viewer overlay */
+        .viewer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            z-index: 1000;
+        }
+        .viewer-overlay.open { display: flex; }
+        .viewer-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+        .viewer-file-panel {
+            flex: 1;
+            background: #525659;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .viewer-file-panel iframe,
+        .viewer-file-panel img {
+            max-width: 100%;
+            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .viewer-file-panel img {
+            object-fit: contain;
+            width: auto;
+            height: auto;
+        }
+        .viewer-no-file {
+            color: #9aa0a6;
+            text-align: center;
+            padding: 48px;
+        }
+        .viewer-no-file p { font-size: 1rem; margin-bottom: 8px; }
+        .viewer-no-file small { font-size: 0.8rem; }
+        .viewer-details-panel {
+            width: 380px;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .viewer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid #DADCE0;
+        }
+        .viewer-header h3 { margin: 0; font-size: 1.05rem; }
+        .viewer-close {
+            width: 36px; height: 36px; border: none; background: none;
+            font-size: 1.4rem; cursor: pointer; color: #5F6368;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        }
+        .viewer-close:hover { background: #F1F3F4; }
+        .viewer-body { padding: 20px; flex: 1; }
+        .viewer-meta {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 6px 12px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+        .viewer-meta dt { color: #5F6368; font-weight: 500; }
+        .viewer-meta dd { margin: 0; color: #202124; }
+        .viewer-feedback {
+            border-top: 1px solid #DADCE0;
+            padding-top: 16px;
+        }
+        .viewer-feedback-text {
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            color: #202124;
+            line-height: 1.6;
+        }
+        .viewer-footer {
+            padding: 12px 20px;
+            border-top: 1px solid #DADCE0;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 64px 24px;
+            color: var(--g-text-secondary);
+        }
+        .empty-state p { font-size: 1rem; margin-bottom: 4px; }
+        .empty-state small { font-size: 0.85rem; }
+
+        @media (max-width: 768px) {
+            .viewer-container { flex-direction: column; }
+            .viewer-file-panel { min-height: 45vh; }
+            .viewer-details-panel { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <a href="../index.html" class="top-bar-brand">Classicalia</a>
+        <div class="top-bar-nav">
+            <a href="student-hub.html">My Classes</a>
+            <a href="my-essays.html" class="active">My Essays</a>
+            <a href="my-profile.html">My Profile</a>
+            <a href="../index.html">Home</a>
+        </div>
+        <div class="top-bar-actions">
+            <span id="studentName" class="text-muted"></span>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2 class="mt-24" style="margin-bottom: 4px;">My Essays</h2>
+        <p class="text-muted" style="margin-bottom: 24px; font-size: 0.9rem;">View feedback and marks from your teachers.</p>
+
+        <div id="essayListContainer">
+            <div class="spinner" style="padding: 48px; text-align: center;">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Essay Viewer Overlay -->
+    <div class="viewer-overlay" id="essayViewer">
+        <div class="viewer-container">
+            <div class="viewer-file-panel" id="viewerFilePanel">
+                <div class="viewer-no-file" id="viewerNoFile">
+                    <p>No marked copy attached</p>
+                    <small>Your teacher hasn't uploaded a marked copy yet</small>
+                </div>
+            </div>
+            <div class="viewer-details-panel">
+                <div class="viewer-header">
+                    <h3 id="viewerTitle">Essay</h3>
+                    <button class="viewer-close" onclick="closeViewer()">&times;</button>
+                </div>
+                <div class="viewer-body">
+                    <dl class="viewer-meta">
+                        <dt>Class</dt>
+                        <dd id="viewerClass"></dd>
+                        <dt>Mark</dt>
+                        <dd id="viewerMark"></dd>
+                        <dt>Submitted</dt>
+                        <dd id="viewerSubmitted"></dd>
+                        <dt>Returned</dt>
+                        <dd id="viewerReturned"></dd>
+                    </dl>
+                    <div class="viewer-feedback">
+                        <label class="form-label">Feedback</label>
+                        <div class="viewer-feedback-text" id="viewerFeedback"></div>
+                    </div>
+                </div>
+                <div class="viewer-footer">
+                    <button class="btn btn-secondary btn-sm" id="viewerDownloadBtn" style="display:none" onclick="downloadMarkedFile()">Download Marked Copy</button>
+                    <button class="btn btn-primary btn-sm" onclick="closeViewer()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../auth/config.js"></script>
+    <script>
+        let currentUser = null;
+        let essays = [];
+
+        async function init() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { window.location.href = '../auth/login.html'; return; }
+
+            const { data: profile } = await supabase
+                .from('users').select('*').eq('id', user.id).single();
+
+            if (!profile || profile.role !== 'student') {
+                window.location.href = '../auth/login.html'; return;
+            }
+
+            currentUser = profile;
+            document.getElementById('studentName').textContent = profile.full_name;
+
+            await loadEssays();
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function formatDate(d) {
+            if (!d) return '—';
+            return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        async function loadEssays() {
+            // RLS ensures only handed_back essays are returned for students
+            const { data, error } = await supabase
+                .from('essay_submissions')
+                .select('id, class_id, title, mark, feedback, date_submitted, date_returned, marked_file_name, created_at')
+                .eq('student_id', currentUser.id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                document.getElementById('essayListContainer').innerHTML =
+                    '<p class="text-muted" style="padding: 24px;">Error loading essays.</p>';
+                return;
+            }
+
+            essays = data || [];
+
+            if (essays.length === 0) {
+                document.getElementById('essayListContainer').innerHTML =
+                    '<div class="empty-state"><p>No essays handed back yet</p><small>When your teacher returns an essay, it will appear here with their feedback.</small></div>';
+                return;
+            }
+
+            // Fetch class names
+            const classIds = [...new Set(essays.map(e => e.class_id))];
+            const { data: classData } = await supabase
+                .from('classes')
+                .select('id, name')
+                .in('id', classIds);
+            const classMap = {};
+            (classData || []).forEach(c => classMap[c.id] = c.name);
+
+            document.getElementById('essayListContainer').innerHTML = `
+                <div class="essay-list">
+                    ${essays.map(e => `
+                        <div class="essay-card" onclick="viewEssay('${e.id}')">
+                            <div class="essay-card-header">
+                                <div>
+                                    <div class="essay-card-title">
+                                        ${escapeHtml(e.title)}
+                                        ${e.marked_file_name ? '<span class="has-file-badge">Marked copy</span>' : ''}
+                                    </div>
+                                    <div class="essay-card-class">${escapeHtml(classMap[e.class_id] || '')}</div>
+                                </div>
+                                ${e.mark ? `<span class="mark-badge">${escapeHtml(e.mark)}</span>` : ''}
+                            </div>
+                            <div class="essay-card-dates">
+                                <span>Submitted: ${formatDate(e.date_submitted)}</span>
+                                <span>Returned: ${formatDate(e.date_returned)}</span>
+                            </div>
+                            ${e.feedback ? `<div class="essay-card-feedback">${escapeHtml(e.feedback)}</div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>`;
+        }
+
+        async function viewEssay(id) {
+            const essay = essays.find(e => e.id === id);
+            if (!essay) return;
+
+            document.getElementById('viewerTitle').textContent = essay.title;
+            document.getElementById('viewerClass').textContent = essay.class_name || '';
+            document.getElementById('viewerMark').textContent = essay.mark || '—';
+            document.getElementById('viewerSubmitted').textContent = formatDate(essay.date_submitted);
+            document.getElementById('viewerReturned').textContent = formatDate(essay.date_returned);
+            document.getElementById('viewerFeedback').textContent = essay.feedback || 'No feedback added.';
+
+            const filePanel = document.getElementById('viewerFilePanel');
+            const noFile = document.getElementById('viewerNoFile');
+            const downloadBtn = document.getElementById('viewerDownloadBtn');
+
+            if (essay.marked_file_name) {
+                noFile.style.display = 'none';
+                downloadBtn.style.display = '';
+                filePanel.innerHTML = '<div class="viewer-no-file"><p>Loading marked copy...</p></div>';
+
+                // Fetch marked file data on demand
+                const { data: fileRow } = await supabase
+                    .from('essay_submissions')
+                    .select('marked_file_data')
+                    .eq('id', essay.id)
+                    .single();
+
+                const fileData = fileRow?.marked_file_data;
+                if (fileData) {
+                    essay._markedData = fileData;
+                    const ext = (essay.marked_file_name.split('.').pop() || '').toLowerCase();
+                    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+
+                    filePanel.innerHTML = '';
+                    if (isImage) {
+                        const img = document.createElement('img');
+                        img.src = fileData;
+                        img.alt = essay.marked_file_name;
+                        filePanel.appendChild(img);
+                    } else {
+                        const iframe = document.createElement('iframe');
+                        iframe.src = fileData;
+                        iframe.title = essay.marked_file_name;
+                        filePanel.appendChild(iframe);
+                    }
+                } else {
+                    filePanel.innerHTML = '<div class="viewer-no-file"><p>Could not load file</p></div>';
+                }
+            } else {
+                filePanel.innerHTML = '';
+                filePanel.appendChild(noFile);
+                noFile.style.display = '';
+                downloadBtn.style.display = 'none';
+            }
+
+            document.getElementById('essayViewer').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeViewer() {
+            document.getElementById('essayViewer').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function downloadMarkedFile() {
+            const essay = essays.find(e => e._markedData);
+            if (essay && essay._markedData) {
+                const a = document.createElement('a');
+                a.href = essay._markedData;
+                a.download = essay.marked_file_name || 'marked-essay';
+                a.click();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
