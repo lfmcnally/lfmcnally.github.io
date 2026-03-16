@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS essay_submissions (
     date_submitted DATE,
     date_returned DATE,
     file_name TEXT,                     -- original filename for display
-    file_path TEXT,                     -- Supabase Storage path
+    file_data TEXT,                     -- base64-encoded file content (data URL)
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
