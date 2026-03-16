@@ -164,6 +164,34 @@
             justify-content: flex-end;
         }
 
+        .file-toggle {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+            padding: 3px;
+            gap: 2px;
+        }
+        .file-toggle-btn {
+            border: none;
+            background: transparent;
+            color: #ccc;
+            font-size: 0.8rem;
+            padding: 5px 14px;
+            border-radius: 18px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .file-toggle-btn.active {
+            background: #fff;
+            color: #202124;
+        }
+        .file-toggle-btn:hover:not(.active) { color: #fff; }
+
         .empty-state {
             text-align: center;
             padding: 64px 24px;
@@ -234,7 +262,8 @@
                     </div>
                 </div>
                 <div class="viewer-footer">
-                    <button class="btn btn-secondary btn-sm" id="viewerDownloadBtn" style="display:none" onclick="downloadMarkedFile()">Download Marked Copy</button>
+                    <button class="btn btn-secondary btn-sm" id="viewerDownloadMarked" style="display:none" onclick="downloadFile('marked')">Download Marked Copy</button>
+                    <button class="btn btn-secondary btn-sm" id="viewerDownloadOriginal" style="display:none" onclick="downloadFile('original')">Download Original</button>
                     <button class="btn btn-primary btn-sm" onclick="closeViewer()">Close</button>
                 </div>
             </div>
@@ -278,7 +307,7 @@
             // RLS ensures only handed_back essays are returned for students
             const { data, error } = await supabase
                 .from('essay_submissions')
-                .select('id, class_id, title, mark, feedback, date_submitted, date_returned, marked_file_name, created_at')
+                .select('id, class_id, title, mark, feedback, date_submitted, date_returned, file_name, marked_file_name, created_at')
                 .eq('student_id', currentUser.id)
                 .order('created_at', { ascending: false });
 
@@ -305,6 +334,11 @@
             const classMap = {};
             (classData || []).forEach(c => classMap[c.id] = c.name);
 
+            // Store class name on each essay for the viewer
+            essays.forEach(e => e._className = classMap[e.class_id] || '');
+
+            const hasFile = e => e.marked_file_name || e.file_name;
+
             document.getElementById('essayListContainer').innerHTML = `
                 <div class="essay-list">
                     ${essays.map(e => `
@@ -313,9 +347,9 @@
                                 <div>
                                     <div class="essay-card-title">
                                         ${escapeHtml(e.title)}
-                                        ${e.marked_file_name ? '<span class="has-file-badge">Marked copy</span>' : ''}
+                                        ${e.marked_file_name ? '<span class="has-file-badge">Marked copy</span>' : e.file_name ? '<span class="has-file-badge">File attached</span>' : ''}
                                     </div>
-                                    <div class="essay-card-class">${escapeHtml(classMap[e.class_id] || '')}</div>
+                                    <div class="essay-card-class">${escapeHtml(e._className)}</div>
                                 </div>
                                 ${e.mark ? `<span class="mark-badge">${escapeHtml(e.mark)}</span>` : ''}
                             </div>
@@ -332,9 +366,10 @@
         async function viewEssay(id) {
             const essay = essays.find(e => e.id === id);
             if (!essay) return;
+            currentViewId = id;
 
             document.getElementById('viewerTitle').textContent = essay.title;
-            document.getElementById('viewerClass').textContent = essay.class_name || '';
+            document.getElementById('viewerClass').textContent = essay._className || '';
             document.getElementById('viewerMark').textContent = essay.mark || '—';
             document.getElementById('viewerSubmitted').textContent = formatDate(essay.date_submitted);
             document.getElementById('viewerReturned').textContent = formatDate(essay.date_returned);
@@ -344,35 +379,52 @@
             const noFile = document.getElementById('viewerNoFile');
             const downloadBtn = document.getElementById('viewerDownloadBtn');
 
-            if (essay.marked_file_name) {
-                noFile.style.display = 'none';
-                downloadBtn.style.display = '';
-                filePanel.innerHTML = '<div class="viewer-no-file"><p>Loading marked copy...</p></div>';
+            const hasMarked = !!essay.marked_file_name;
+            const hasOriginal = !!essay.file_name;
+            const downloadMarkedBtn = document.getElementById('viewerDownloadMarked');
+            const downloadOriginalBtn = document.getElementById('viewerDownloadOriginal');
+            downloadMarkedBtn.style.display = 'none';
+            downloadOriginalBtn.style.display = 'none';
 
-                // Fetch marked file data on demand
+            if (hasMarked || hasOriginal) {
+                noFile.style.display = 'none';
+                filePanel.innerHTML = '<div class="viewer-no-file"><p>Loading file...</p></div>';
+
+                // Fetch whichever file data exists
+                const fields = [];
+                if (hasMarked) fields.push('marked_file_data');
+                if (hasOriginal) fields.push('file_data');
                 const { data: fileRow } = await supabase
                     .from('essay_submissions')
-                    .select('marked_file_data')
+                    .select(fields.join(', '))
                     .eq('id', essay.id)
                     .single();
 
-                const fileData = fileRow?.marked_file_data;
-                if (fileData) {
-                    essay._markedData = fileData;
-                    const ext = (essay.marked_file_name.split('.').pop() || '').toLowerCase();
-                    const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+                if (fileRow?.marked_file_data) {
+                    essay._markedData = fileRow.marked_file_data;
+                    downloadMarkedBtn.style.display = '';
+                }
+                if (fileRow?.file_data) {
+                    essay._originalData = fileRow.file_data;
+                    downloadOriginalBtn.style.display = '';
+                }
 
-                    filePanel.innerHTML = '';
-                    if (isImage) {
-                        const img = document.createElement('img');
-                        img.src = fileData;
-                        img.alt = essay.marked_file_name;
-                        filePanel.appendChild(img);
-                    } else {
-                        const iframe = document.createElement('iframe');
-                        iframe.src = fileData;
-                        iframe.title = essay.marked_file_name;
-                        filePanel.appendChild(iframe);
+                // Display marked copy first if available, otherwise original
+                const showData = essay._markedData || essay._originalData;
+                const showName = essay._markedData ? essay.marked_file_name : essay.file_name;
+
+                if (showData) {
+                    renderFile(filePanel, showData, showName);
+
+                    // If both exist, add a toggle bar
+                    if (essay._markedData && essay._originalData) {
+                        const toggle = document.createElement('div');
+                        toggle.className = 'file-toggle';
+                        toggle.innerHTML = `
+                            <button class="file-toggle-btn active" onclick="showFile('marked')">Marked Copy</button>
+                            <button class="file-toggle-btn" onclick="showFile('original')">Original</button>
+                        `;
+                        filePanel.prepend(toggle);
                     }
                 } else {
                     filePanel.innerHTML = '<div class="viewer-no-file"><p>Could not load file</p></div>';
@@ -381,7 +433,6 @@
                 filePanel.innerHTML = '';
                 filePanel.appendChild(noFile);
                 noFile.style.display = '';
-                downloadBtn.style.display = 'none';
             }
 
             document.getElementById('essayViewer').classList.add('open');
@@ -393,14 +444,58 @@
             document.body.style.overflow = '';
         }
 
-        function downloadMarkedFile() {
-            const essay = essays.find(e => e._markedData);
-            if (essay && essay._markedData) {
-                const a = document.createElement('a');
+        function renderFile(panel, dataUrl, fileName) {
+            const ext = (fileName.split('.').pop() || '').toLowerCase();
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
+
+            // Keep any toggle bar, remove file content
+            const toggle = panel.querySelector('.file-toggle');
+            panel.innerHTML = '';
+            if (toggle) panel.appendChild(toggle);
+
+            if (isImage) {
+                const img = document.createElement('img');
+                img.src = dataUrl;
+                img.alt = fileName;
+                panel.appendChild(img);
+            } else {
+                const iframe = document.createElement('iframe');
+                iframe.src = dataUrl;
+                iframe.title = fileName;
+                panel.appendChild(iframe);
+            }
+        }
+
+        let currentViewId = null;
+
+        function showFile(type) {
+            const essay = essays.find(e => e.id === currentViewId);
+            if (!essay) return;
+            const filePanel = document.getElementById('viewerFilePanel');
+            const btns = filePanel.querySelectorAll('.file-toggle-btn');
+            btns.forEach(b => b.classList.remove('active'));
+
+            if (type === 'marked' && essay._markedData) {
+                btns[0].classList.add('active');
+                renderFile(filePanel, essay._markedData, essay.marked_file_name);
+            } else if (type === 'original' && essay._originalData) {
+                btns[1].classList.add('active');
+                renderFile(filePanel, essay._originalData, essay.file_name);
+            }
+        }
+
+        function downloadFile(type) {
+            const essay = essays.find(e => e.id === currentViewId);
+            if (!essay) return;
+            const a = document.createElement('a');
+            if (type === 'marked' && essay._markedData) {
                 a.href = essay._markedData;
                 a.download = essay.marked_file_name || 'marked-essay';
-                a.click();
-            }
+            } else if (type === 'original' && essay._originalData) {
+                a.href = essay._originalData;
+                a.download = essay.file_name || 'essay';
+            } else return;
+            a.click();
         }
 
         init();
