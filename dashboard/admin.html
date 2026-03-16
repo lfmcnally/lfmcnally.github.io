@@ -580,6 +580,7 @@
                     <span class="card-title">Schools Overview</span>
                 </div>
                 <div class="card-body" style="padding: 0;">
+                    <div id="schoolsMessage" style="padding: 0 1rem;"></div>
                     <div id="schoolsTable" class="loading">Loading schools...</div>
                 </div>
             </div>
@@ -1019,6 +1020,8 @@
         }
 
         // Schools
+        let schoolNames = []; // cached list for merge dropdown
+
         async function loadSchools() {
             const { data: users, error } = await supabase
                 .from('users')
@@ -1047,6 +1050,8 @@
                 (b[1].teachers + b[1].students) - (a[1].teachers + a[1].students)
             );
 
+            schoolNames = sorted.map(([name]) => name);
+
             container.innerHTML = `
                 <table class="data-table">
                     <thead>
@@ -1054,21 +1059,98 @@
                             <th>School</th>
                             <th>Teachers</th>
                             <th>Students</th>
-                            <th>Total Users</th>
+                            <th>Total</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${sorted.map(([name, counts]) => `
                             <tr>
-                                <td><strong>${name}</strong></td>
+                                <td><strong>${escapeHtml(name)}</strong></td>
                                 <td>${counts.teachers}</td>
                                 <td>${counts.students}</td>
                                 <td>${counts.teachers + counts.students}</td>
+                                <td style="white-space: nowrap;">
+                                    <button class="btn btn-sm" style="background: #f3f4f6; color: #374151;" onclick="renameSchool('${escapeAttr(name)}')">Rename</button>
+                                    <button class="btn btn-sm btn-primary" onclick="mergeSchool('${escapeAttr(name)}')">Merge</button>
+                                </td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             `;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function escapeAttr(str) {
+            return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+
+        // Rename a school — updates all users with that school name
+        async function renameSchool(oldName) {
+            const newName = prompt('Rename "' + oldName + '" to:', oldName);
+            if (!newName || newName.trim() === oldName) return;
+
+            const trimmed = newName.trim();
+            const messageDiv = document.getElementById('schoolsMessage');
+
+            const { error } = await supabase
+                .from('users')
+                .update({ school: trimmed })
+                .eq('school', oldName);
+
+            if (error) {
+                messageDiv.innerHTML = '<div class="message error">Error renaming: ' + error.message + '</div>';
+                return;
+            }
+
+            messageDiv.innerHTML = '<div class="message success">Renamed "' + oldName + '" to "' + trimmed + '"</div>';
+            setTimeout(() => { messageDiv.innerHTML = ''; }, 3000);
+            await loadSchools();
+            await loadStats();
+        }
+
+        // Merge a school into another — moves all users from source to target
+        async function mergeSchool(sourceName) {
+            const otherSchools = schoolNames.filter(n => n !== sourceName);
+            if (otherSchools.length === 0) {
+                alert('No other schools to merge into.');
+                return;
+            }
+
+            const targetName = prompt(
+                'Merge "' + sourceName + '" INTO which school?\n\nExisting schools:\n' +
+                otherSchools.map((s, i) => (i + 1) + '. ' + s).join('\n') +
+                '\n\nType the exact school name to merge into:'
+            );
+
+            if (!targetName || !targetName.trim()) return;
+
+            const trimmed = targetName.trim();
+
+            if (!confirm('This will move ALL users from "' + sourceName + '" to "' + trimmed + '".\n\nAre you sure?')) return;
+
+            const messageDiv = document.getElementById('schoolsMessage');
+
+            const { error } = await supabase
+                .from('users')
+                .update({ school: trimmed })
+                .eq('school', sourceName);
+
+            if (error) {
+                messageDiv.innerHTML = '<div class="message error">Error merging: ' + error.message + '</div>';
+                return;
+            }
+
+            messageDiv.innerHTML = '<div class="message success">Merged "' + sourceName + '" into "' + trimmed + '"</div>';
+            setTimeout(() => { messageDiv.innerHTML = ''; }, 3000);
+            await loadSchools();
+            await loadStats();
         }
 
         function showTab(tabName, btn) {
