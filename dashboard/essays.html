@@ -454,9 +454,10 @@
 
         // ─── Load all essays ───────────────────────────────
         async function loadEssays() {
+            // First try loading just the essays without joins
             const { data, error } = await supabase
                 .from('essay_submissions')
-                .select('*, users:student_id(full_name), classes:class_id(name)')
+                .select('*')
                 .eq('teacher_id', currentUser.id)
                 .order('created_at', { ascending: false });
 
@@ -467,7 +468,46 @@
                 return;
             }
 
-            essays = data || [];
+            // Manually attach student names and class names from cached data
+            essays = (data || []).map(e => {
+                // Find student name from cache or classes list
+                let studentName = null;
+                const cached = classStudentsCache[e.class_id];
+                if (cached) {
+                    const s = cached.find(s => s.id === e.student_id);
+                    if (s) studentName = s.full_name;
+                }
+
+                // Find class name
+                const cls = classes.find(c => c.id === e.class_id);
+
+                return {
+                    ...e,
+                    users: { full_name: studentName },
+                    classes: { name: cls?.name || '' }
+                };
+            });
+
+            // If we don't have student names yet, fetch them
+            const missingNames = essays.some(e => !e.users.full_name);
+            if (missingNames && essays.length > 0) {
+                const studentIds = [...new Set(essays.map(e => e.student_id))];
+                const { data: students } = await supabase
+                    .from('users')
+                    .select('id, full_name')
+                    .in('id', studentIds);
+
+                if (students) {
+                    const nameMap = {};
+                    students.forEach(s => nameMap[s.id] = s.full_name);
+                    essays.forEach(e => {
+                        if (!e.users.full_name && nameMap[e.student_id]) {
+                            e.users.full_name = nameMap[e.student_id];
+                        }
+                    });
+                }
+            }
+
             updateStats();
             applyFilters();
         }
@@ -706,18 +746,16 @@
                 result = await supabase
                     .from('essay_submissions')
                     .update(record)
-                    .eq('id', essayId)
-                    .select()
-                    .single();
+                    .eq('id', essayId);
             } else {
                 result = await supabase
                     .from('essay_submissions')
                     .insert(record)
-                    .select()
+                    .select('id')
                     .single();
 
                 // Upload file after insert so we have the ID
-                if (!result.error && selectedFile) {
+                if (!result.error && result.data && selectedFile) {
                     const fileInfo = await uploadFile(result.data.id);
                     if (fileInfo.file_name || fileInfo.file_path) {
                         await supabase
