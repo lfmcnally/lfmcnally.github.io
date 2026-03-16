@@ -184,7 +184,8 @@
             <div class="card-body">
                 <p class="text-muted mb-16" style="font-size: 0.9rem;">Let us know which school you're from - this helps us understand how Classicalia is being used.</p>
                 <div class="school-row">
-                    <input type="text" class="form-input" id="schoolInput" placeholder="Enter your school name">
+                    <input type="text" class="form-input" id="schoolInput" placeholder="Enter your school name" list="schoolSuggestions" autocomplete="off">
+                    <datalist id="schoolSuggestions"></datalist>
                     <button class="btn btn-primary" onclick="saveSchool()">Save</button>
                 </div>
                 <div id="schoolMessage" style="margin-top: 8px;"></div>
@@ -336,6 +337,9 @@
             } else {
                 showSchoolPrompt(currentUser.id);
             }
+
+            // Load school suggestions for autocomplete
+            await loadSchoolSuggestions();
 
             // Migrate old class types before loading
             await migrateClassTypes();
@@ -611,6 +615,37 @@
             if (e.target === this) closeCreateClassModal();
         });
 
+        // Title-case helper: capitalise first letter of each word
+        function titleCaseSchool(value) {
+            return value.replace(/\b\w/g, function(char) { return char.toUpperCase(); });
+        }
+
+        // Auto-capitalise school input as user types
+        document.getElementById('schoolInput').addEventListener('input', function() {
+            const pos = this.selectionStart;
+            this.value = titleCaseSchool(this.value);
+            this.setSelectionRange(pos, pos);
+        });
+
+        // Load existing school names for autocomplete suggestions
+        async function loadSchoolSuggestions() {
+            try {
+                const { data: users } = await supabase
+                    .from('users')
+                    .select('school')
+                    .not('school', 'is', null);
+
+                if (!users) return;
+                const unique = [...new Set(users.map(u => u.school.trim()).filter(Boolean))];
+                unique.sort();
+                const datalist = document.getElementById('schoolSuggestions');
+                datalist.innerHTML = unique.map(s => '<option value="' + s + '">').join('');
+                return unique;
+            } catch (e) {
+                return [];
+            }
+        }
+
         // Save school
         async function saveSchool() {
             const school = document.getElementById('schoolInput').value.trim();
@@ -656,7 +691,7 @@
                     <div class="modal-body">
                         <p class="text-muted mb-16">This helps us understand how Classicalia is being used across schools.</p>
                         <div class="form-group">
-                            <input type="text" id="schoolPromptInput" class="form-input" placeholder="Enter your school name">
+                            <input type="text" id="schoolPromptInput" class="form-input" placeholder="Enter your school name" list="schoolSuggestions" autocomplete="off">
                         </div>
                         <p id="schoolPromptError" style="color: #c5221f; font-size: 0.85rem; display: none;"></p>
                     </div>
@@ -666,6 +701,12 @@
                 </div>
             `;
             document.body.appendChild(overlay);
+
+            document.getElementById('schoolPromptInput').addEventListener('input', function() {
+                const pos = this.selectionStart;
+                this.value = titleCaseSchool(this.value);
+                this.setSelectionRange(pos, pos);
+            });
 
             document.getElementById('schoolPromptBtn').addEventListener('click', async () => {
                 const school = document.getElementById('schoolPromptInput').value.trim();

@@ -228,7 +228,8 @@
             
             <div class="form-group">
                 <label for="school">School</label>
-                <input type="text" id="school" name="school" required placeholder="Your school name">
+                <input type="text" id="school" name="school" required placeholder="Your school name" list="schoolSuggestions" autocomplete="off">
+                <datalist id="schoolSuggestions"></datalist>
             </div>
 
             <div class="form-group">
@@ -294,11 +295,43 @@
         
         // Select student by default on page load
         document.getElementById('studentCard').classList.add('selected');
-        
+
+        // Title-case helper: capitalise first letter of each word
+        function titleCaseSchool(value) {
+            return value.replace(/\b\w/g, function(char) { return char.toUpperCase(); });
+        }
+
+        // Auto-capitalise school input as user types
+        const schoolInput = document.getElementById('school');
+        schoolInput.addEventListener('input', function() {
+            const pos = this.selectionStart;
+            this.value = titleCaseSchool(this.value);
+            this.setSelectionRange(pos, pos);
+        });
+
+        // Load existing school names for autocomplete
+        async function loadSchoolSuggestions() {
+            try {
+                const { data: users } = await supabase
+                    .from('users')
+                    .select('school')
+                    .not('school', 'is', null);
+
+                if (!users) return;
+                const unique = [...new Set(users.map(u => u.school.trim()).filter(Boolean))];
+                unique.sort();
+                const datalist = document.getElementById('schoolSuggestions');
+                datalist.innerHTML = unique.map(s => '<option value="' + s + '">').join('');
+            } catch (e) {
+                // Non-critical, silently fail
+            }
+        }
+
         // When the page loads, check if user is already logged in
         document.addEventListener('DOMContentLoaded', async function() {
             // If already logged in, redirect to dashboard
             await redirectIfLoggedIn();
+            loadSchoolSuggestions();
         });
         
         // Handle the registration form submission
