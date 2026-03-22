@@ -13,7 +13,7 @@ const topics = [
     title: 'Chapter 1: First Steps',
     stage: 'Stage 1 — Year 9',
     units: [
-      { title: 'Unit 1: Verbs', detail: 'Present tense: 1st conjugation, all persons' },
+      { title: 'Unit 1: Verbs', detail: 'Present tense: 1st conjugation, all persons', href: '/latinvideos/1.html' },
       { title: 'Unit 2: Negatives and conjunctions', detail: 'non, et, sed, quod, igitur, -ne, nec/neque' },
       { title: 'Unit 3: Subjects', detail: 'Nominative singular: 1st declension' },
       { title: 'Unit 4: Objects', detail: 'Accusative singular: 1st declension' },
@@ -218,7 +218,7 @@ topics.forEach((topic, ti) => {
     const numDisplay = isPassage ? '\u{1F4DC}' : unitNum;
     const passageClass = isPassage ? ' passage' : '';
     return `
-      <a class="unit-item${passageClass}" href="#" data-topic="${topic.id}" data-unit="${ui + 1}">
+      <a class="unit-item${passageClass}" href="${u.href || '#'}" data-topic="${topic.id}" data-unit="${ui + 1}">
         <div class="unit-num">${numDisplay}</div>
         <div class="unit-body">
           <div class="unit-title">${u.title}</div>
