@@ -763,26 +763,48 @@ var examData = [
   ]},
   { group: 'Classical Civilisation (A Level)', exams: [
     { code: 'H408/11', name: 'The world of the hero', date: '2026-05-12T13:30:00', duration: '2h 30m' },
-    { code: 'H408/21-24', name: 'Component 2 options', date: '2026-05-18T13:30:00', duration: '1h 45m' },
-    { code: 'H408/31-34', name: 'Component 3 options', date: '2026-06-02T09:00:00', duration: '1h 45m' }
+    { code: 'H408/21-24', name: 'Component 2 options', date: '2026-05-18T13:30:00', duration: '1h 45m',
+      papers: 'H408/21 Greek theatre | H408/22 Imperial image | H408/23 Invention of the barbarian | H408/24 Greek art' },
+    { code: 'H408/31-34', name: 'Component 3 options', date: '2026-06-02T09:00:00', duration: '1h 45m',
+      papers: 'H408/31 Greek religion | H408/32 Love and relationships | H408/33 Politics of the late republic | H408/34 Democracy and the Athenians' }
   ]},
   { group: 'Latin (GCSE)', exams: [
     { code: 'J282/01', name: 'Language', date: '2026-05-08T09:00:00', duration: '1h 30m' },
-    { code: 'J282/02-03', name: 'Prose literature', date: '2026-05-15T13:30:00', duration: '1h' },
-    { code: 'J282/04-05', name: 'Verse literature', date: '2026-06-02T13:30:00', duration: '1h' },
+    { code: 'J282/02-03', name: 'Prose literature', date: '2026-05-15T13:30:00', duration: '1h',
+      papers: 'J282/02 Prose literature A | J282/03 Prose literature B' },
+    { code: 'J282/04-05', name: 'Verse literature', date: '2026-06-02T13:30:00', duration: '1h',
+      papers: 'J282/04 Verse literature A | J282/05 Verse literature B' },
     { code: 'J282/06', name: 'Literature and culture', date: '2026-06-11T13:30:00', duration: '1h' }
   ]},
   { group: 'Classical Greek (GCSE)', exams: [
     { code: 'J292/01', name: 'Language', date: '2026-05-11T13:30:00', duration: '1h 30m' },
-    { code: 'J292/02-03', name: 'Prose literature', date: '2026-05-22T13:30:00', duration: '1h' },
-    { code: 'J292/04-05', name: 'Verse literature', date: '2026-06-01T13:30:00', duration: '1h' },
+    { code: 'J292/02-03', name: 'Prose literature', date: '2026-05-22T13:30:00', duration: '1h',
+      papers: 'J292/02 Prose literature A | J292/03 Prose literature B' },
+    { code: 'J292/04-05', name: 'Verse literature', date: '2026-06-01T13:30:00', duration: '1h',
+      papers: 'J292/04 Verse literature A | J292/05 Verse literature B' },
     { code: 'J292/06', name: 'Literature and culture', date: '2026-06-08T13:30:00', duration: '1h' }
   ]},
   { group: 'Classical Civilisation (GCSE)', exams: [
-    { code: 'J199/11-12', name: 'Myth and religion / Women', date: '2026-05-19T13:30:00', duration: '1h 30m' },
-    { code: 'J199/21-23', name: 'Component 2 options', date: '2026-06-01T09:00:00', duration: '1h 30m' }
+    { code: 'J199/11-12', name: 'Myth and religion / Women', date: '2026-05-19T13:30:00', duration: '1h 30m',
+      papers: 'J199/11 Myth and religion | J199/12 Women in the ancient world' },
+    { code: 'J199/21-23', name: 'Component 2 options', date: '2026-06-01T09:00:00', duration: '1h 30m',
+      papers: 'J199/21 The Homeric world | J199/22 Roman city life | J199/23 War and warfare' }
   ]}
 ];
+
+function formatExamDate(dateStr) {
+  var d = new Date(dateStr);
+  var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var session = d.getHours() < 12 ? 'am' : 'pm';
+  return days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ' ' + session;
+}
+
+function buildTooltip(e) {
+  var tip = e.code + ' \u2013 ' + formatExamDate(e.date) + ' \u2013 ' + e.duration;
+  if (e.papers) tip += '\n' + e.papers.split(' | ').join('\n');
+  return tip;
+}
 
 function daysUntil(dateStr) {
   var now = new Date(); now.setHours(0,0,0,0);
@@ -822,7 +844,7 @@ function loadExamCountdown() {
     '<div class="countdown-days ' + dc + '">' + (days === 0 ? 'TODAY' : days) + '</div>' +
     '<div class="countdown-label">' + (days === 0 ? '' : days === 1 ? 'day to go' : 'days to go') + '</div>' +
     '<div class="countdown-next-exam">' + next.name + '</div>' +
-    '<div class="countdown-next-detail">' + next.group + ' &middot; ' + next.duration + '</div>';
+    '<div class="countdown-next-detail">' + formatExamDate(next.date) + ' &middot; ' + next.group + ' &middot; ' + next.duration + '</div>';
 
   // Build grouped list
   var html = '';
@@ -830,8 +852,8 @@ function loadExamCountdown() {
     html += '<div class="countdown-group-title">' + g.group + '</div>';
     g.exams.forEach(function(e) {
       var d = daysUntil(e.date);
-      html += '<div class="countdown-row">' +
-        '<span class="countdown-row-name" title="' + e.code + ' – ' + e.name + '">' + e.name + '</span>' +
+      html += '<div class="countdown-row" title="' + buildTooltip(e).replace(/"/g, '&quot;') + '">' +
+        '<span class="countdown-row-name">' + e.name + '</span>' +
         '<span class="countdown-row-days ' + daysClass(d) + '">' + daysText(d) + '</span></div>';
     });
   });
