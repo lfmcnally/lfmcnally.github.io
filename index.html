@@ -141,6 +141,28 @@ a { text-decoration: none; color: inherit; }
 .sidebar { display: flex; flex-direction: column; gap: 0.85rem; }
 .widget { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 0.95rem 1rem; box-shadow: var(--sh); }
 .widget-title { font-size: 0.57rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--dim); margin-bottom: 0.6rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+
+/* EXAM COUNTDOWN */
+.countdown-next { text-align: center; margin-bottom: 0.6rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border); }
+.countdown-days { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; color: var(--blue); }
+.countdown-days.soon { color: #e65100; }
+.countdown-days.imminent { color: #c62828; }
+.countdown-label { font-size: 0.6rem; color: var(--dim); margin-top: 0.15rem; }
+.countdown-next-exam { font-size: 0.7rem; font-weight: 600; color: var(--text); margin-top: 0.35rem; line-height: 1.3; }
+.countdown-next-detail { font-size: 0.6rem; color: var(--mid); margin-top: 0.1rem; }
+.countdown-toggle { font-size: 0.62rem; font-weight: 600; color: var(--blue); cursor: pointer; text-align: center; padding: 0.3rem 0; transition: color 0.12s; }
+.countdown-toggle:hover { color: #1a74ff; }
+.countdown-list { display: none; margin-top: 0.5rem; }
+.countdown-list.open { display: block; }
+.countdown-group-title { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); margin-top: 0.5rem; margin-bottom: 0.25rem; }
+.countdown-group-title:first-child { margin-top: 0; }
+.countdown-row { display: flex; justify-content: space-between; align-items: baseline; padding: 0.2rem 0; gap: 0.3rem; }
+.countdown-row-name { font-size: 0.62rem; color: var(--mid); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.countdown-row-days { font-size: 0.62rem; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.countdown-row-days.blue { color: var(--blue); }
+.countdown-row-days.orange { color: #e65100; }
+.countdown-row-days.red { color: #c62828; }
+.countdown-row-days.done { color: var(--dim); text-decoration: line-through; }
 .roman-date { font-family: 'Lora', Georgia, serif; font-style: italic; font-size: 0.95rem; color: var(--text); text-align: center; line-height: 1.5; }
 .quote-lat  { font-family: 'Lora', Georgia, serif; font-style: italic; font-size: 0.8rem; color: var(--text); line-height: 1.55; margin-bottom: 0.32rem; }
 .quote-eng  { font-size: 0.68rem; color: var(--mid); line-height: 1.5; margin-bottom: 0.38rem; }
@@ -373,6 +395,13 @@ footer { margin-top: 1.25rem; border-top: 1px solid var(--border); padding-top: 
 
     <!-- SIDEBAR -->
     <aside class="sidebar">
+
+      <div class="widget" id="exam-countdown-widget" style="display:none;">
+        <div class="widget-title">Exam Countdown</div>
+        <div class="countdown-next" id="countdown-next"></div>
+        <div class="countdown-toggle" id="countdown-toggle" onclick="toggleExamList()">Show all exams &#x25BC;</div>
+        <div class="countdown-list" id="countdown-list"></div>
+      </div>
 
       <div class="widget">
         <div class="widget-title">Today in Roman</div>
@@ -718,6 +747,110 @@ async function loadAnnouncements() {
     } catch (err) { container.style.display = 'none'; }
 }
 
+// === EXAM COUNTDOWN ===
+var examData = [
+  { group: 'Latin (A Level)', exams: [
+    { code: 'H443/01', name: 'Unseen translation', date: '2026-05-19T13:30:00', duration: '1h 45m' },
+    { code: 'H443/02', name: 'Prose comp. or comprehension', date: '2026-06-01T13:30:00', duration: '1h 15m' },
+    { code: 'H443/03', name: 'Prose literature', date: '2026-06-08T13:30:00', duration: '2h' },
+    { code: 'H443/04', name: 'Verse literature', date: '2026-06-15T13:30:00', duration: '2h' }
+  ]},
+  { group: 'Classical Greek (A Level)', exams: [
+    { code: 'H444/01', name: 'Unseen translation', date: '2026-05-20T13:30:00', duration: '1h 45m' },
+    { code: 'H444/02', name: 'Prose comp. or comprehension', date: '2026-06-03T09:00:00', duration: '1h 15m' },
+    { code: 'H444/03', name: 'Prose literature', date: '2026-06-11T13:30:00', duration: '2h' },
+    { code: 'H444/04', name: 'Verse literature', date: '2026-06-18T09:00:00', duration: '2h' }
+  ]},
+  { group: 'Classical Civilisation (A Level)', exams: [
+    { code: 'H408/11', name: 'The world of the hero', date: '2026-05-12T13:30:00', duration: '2h 30m' },
+    { code: 'H408/21-24', name: 'Component 2 options', date: '2026-05-18T13:30:00', duration: '1h 45m' },
+    { code: 'H408/31-34', name: 'Component 3 options', date: '2026-06-02T09:00:00', duration: '1h 45m' }
+  ]},
+  { group: 'Latin (GCSE)', exams: [
+    { code: 'J282/01', name: 'Language', date: '2026-05-08T09:00:00', duration: '1h 30m' },
+    { code: 'J282/02-03', name: 'Prose literature', date: '2026-05-15T13:30:00', duration: '1h' },
+    { code: 'J282/04-05', name: 'Verse literature', date: '2026-06-02T13:30:00', duration: '1h' },
+    { code: 'J282/06', name: 'Literature and culture', date: '2026-06-11T13:30:00', duration: '1h' }
+  ]},
+  { group: 'Classical Greek (GCSE)', exams: [
+    { code: 'J292/01', name: 'Language', date: '2026-05-11T13:30:00', duration: '1h 30m' },
+    { code: 'J292/02-03', name: 'Prose literature', date: '2026-05-22T13:30:00', duration: '1h' },
+    { code: 'J292/04-05', name: 'Verse literature', date: '2026-06-01T13:30:00', duration: '1h' },
+    { code: 'J292/06', name: 'Literature and culture', date: '2026-06-08T13:30:00', duration: '1h' }
+  ]},
+  { group: 'Classical Civilisation (GCSE)', exams: [
+    { code: 'J199/11-12', name: 'Myth and religion / Women', date: '2026-05-19T13:30:00', duration: '1h 30m' },
+    { code: 'J199/21-23', name: 'Component 2 options', date: '2026-06-01T09:00:00', duration: '1h 30m' }
+  ]}
+];
+
+function daysUntil(dateStr) {
+  var now = new Date(); now.setHours(0,0,0,0);
+  var exam = new Date(dateStr); exam.setHours(0,0,0,0);
+  return Math.ceil((exam - now) / 86400000);
+}
+
+function daysClass(d) {
+  if (d < 0) return 'done';
+  if (d <= 7) return 'red';
+  if (d <= 30) return 'orange';
+  return 'blue';
+}
+
+function daysText(d) {
+  if (d < 0) return 'done';
+  if (d === 0) return 'TODAY';
+  if (d === 1) return '1 day';
+  return d + ' days';
+}
+
+function loadExamCountdown() {
+  var widget = document.getElementById('exam-countdown-widget');
+  var allExams = [];
+  examData.forEach(function(g) {
+    g.exams.forEach(function(e) { allExams.push({ group: g.group, name: e.name, code: e.code, date: e.date, duration: e.duration }); });
+  });
+  // Find next upcoming
+  var upcoming = allExams.filter(function(e) { return daysUntil(e.date) >= 0; });
+  if (upcoming.length === 0) return; // all exams passed, hide widget
+  upcoming.sort(function(a, b) { return new Date(a.date) - new Date(b.date); });
+  var next = upcoming[0];
+  var days = daysUntil(next.date);
+  var dc = days <= 7 ? (days <= 2 ? 'imminent' : 'soon') : '';
+
+  document.getElementById('countdown-next').innerHTML =
+    '<div class="countdown-days ' + dc + '">' + (days === 0 ? 'TODAY' : days) + '</div>' +
+    '<div class="countdown-label">' + (days === 0 ? '' : days === 1 ? 'day to go' : 'days to go') + '</div>' +
+    '<div class="countdown-next-exam">' + next.name + '</div>' +
+    '<div class="countdown-next-detail">' + next.group + ' &middot; ' + next.duration + '</div>';
+
+  // Build grouped list
+  var html = '';
+  examData.forEach(function(g) {
+    html += '<div class="countdown-group-title">' + g.group + '</div>';
+    g.exams.forEach(function(e) {
+      var d = daysUntil(e.date);
+      html += '<div class="countdown-row">' +
+        '<span class="countdown-row-name" title="' + e.code + ' – ' + e.name + '">' + e.name + '</span>' +
+        '<span class="countdown-row-days ' + daysClass(d) + '">' + daysText(d) + '</span></div>';
+    });
+  });
+  document.getElementById('countdown-list').innerHTML = html;
+  widget.style.display = '';
+}
+
+function toggleExamList() {
+  var list = document.getElementById('countdown-list');
+  var toggle = document.getElementById('countdown-toggle');
+  if (list.classList.contains('open')) {
+    list.classList.remove('open');
+    toggle.innerHTML = 'Show all exams &#x25BC;';
+  } else {
+    list.classList.add('open');
+    toggle.innerHTML = 'Hide exams &#x25B2;';
+  }
+}
+
 // Init
 window.addEventListener('DOMContentLoaded', function() {
     checkAuth();
@@ -727,6 +860,7 @@ window.addEventListener('DOMContentLoaded', function() {
     loadUserCounter();
     loadRomanDate();
     loadAnnouncements();
+    loadExamCountdown();
 });
 </script>
 
