@@ -336,12 +336,8 @@
             <!-- Stats Row -->
             <div class="stats-row mb-24" id="statsRow">
                 <div class="metric-card">
-                    <div class="metric-value" id="csStudents">0</div>
-                    <div class="metric-label">Students</div>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-value" id="csTotalTime">0m</div>
-                    <div class="metric-label">Total Practice</div>
+                    <div class="metric-value" id="csActiveStudents">0</div>
+                    <div class="metric-label">Active Students</div>
                 </div>
                 <div class="metric-card">
                     <div class="metric-value" id="csAvgScore">0%</div>
@@ -349,11 +345,7 @@
                 </div>
                 <div class="metric-card">
                     <div class="metric-value" id="csCompletion">0%</div>
-                    <div class="metric-label">Task Completion</div>
-                </div>
-                <div class="metric-card" id="wordsMasteredStat">
-                    <div class="metric-value" id="csWordsMastered">0</div>
-                    <div class="metric-label">Words Mastered</div>
+                    <div class="metric-label">Completion Rate</div>
                 </div>
             </div>
 
@@ -387,19 +379,28 @@
                 </div>
             </div>
 
-            <!-- Leaderboard -->
-            <div class="card mb-16" id="leaderboardCard">
-                <div class="card-header">
-                    <span class="card-title">Leaderboard</span>
-                    <div style="display: flex; gap: 0.25rem;">
-                        <button class="heatmap-btn active" onclick="showLeaderboard('time', this)">Time</button>
-                        <button class="heatmap-btn" id="leaderboardWordsTab" onclick="showLeaderboard('words', this)">Words</button>
-                        <button class="heatmap-btn" onclick="showLeaderboard('streak', this)">Streak</button>
-                        <button class="heatmap-btn" onclick="showLeaderboard('score', this)">Score</button>
+            <!-- Task Completion Grid -->
+            <div class="card mb-16" id="completionGridCard">
+                <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem;">
+                    <span class="card-title">Task Completion Overview</span>
+                    <div class="grid-legend">
+                        <span class="legend-item"><span class="legend-dot not-started"></span> Not started</span>
+                        <span class="legend-item"><span class="legend-dot completed"></span> Completed</span>
+                        <span class="legend-item"><span class="legend-dot completed-late"></span> Late</span>
+                        <span class="legend-item"><span class="legend-dot overdue"></span> Overdue</span>
                     </div>
                 </div>
-                <div class="card-body" id="leaderboardContainer">
-                    <div class="loading">Loading...</div>
+                <div class="card-body">
+                    <div id="completionGridFilters" style="display: flex; gap: 0.25rem; margin-bottom: 0.75rem;">
+                        <button class="heatmap-btn active" onclick="filterCompletionGrid('all', this)">All</button>
+                        <button class="heatmap-btn" onclick="filterCompletionGrid('prep', this)">Prep</button>
+                        <button class="heatmap-btn" onclick="filterCompletionGrid('quizzes', this)">Quizzes</button>
+                        <button class="heatmap-btn" onclick="filterCompletionGrid('content-tests', this)">Content Tests</button>
+                        <button class="heatmap-btn" onclick="filterCompletionGrid('reading', this)">Reading</button>
+                    </div>
+                    <div id="completionGridContainer">
+                        <div class="loading">Loading task data...</div>
+                    </div>
                 </div>
             </div>
 
@@ -415,24 +416,6 @@
                 </div>
                 <div class="card-body">
                     <div id="classHeatmapGrid"></div>
-                </div>
-            </div>
-
-            <!-- Task Completion Grid -->
-            <div class="card mb-16" id="completionGridCard">
-                <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem;">
-                    <span class="card-title">Task Completion Overview</span>
-                    <div class="grid-legend">
-                        <span class="legend-item"><span class="legend-dot not-started"></span> Not started</span>
-                        <span class="legend-item"><span class="legend-dot completed"></span> Completed</span>
-                        <span class="legend-item"><span class="legend-dot completed-late"></span> Late</span>
-                        <span class="legend-item"><span class="legend-dot overdue"></span> Overdue</span>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div id="completionGridContainer">
-                        <div class="loading">Loading task data...</div>
-                    </div>
                 </div>
             </div>
 
@@ -1342,17 +1325,11 @@
             if (isCivClass(classData.type)) {
                 // Hide challenges button (challenges are vocab-based)
                 document.getElementById('challengesLink').style.display = 'none';
-                // Hide vocab-related elements for civ classes
-                if (document.getElementById('wordsMasteredStat')) document.getElementById('wordsMasteredStat').style.display = 'none';
-                // Hide words mastered stat
-                document.getElementById('wordsMasteredStat').style.display = 'none';
                 // Hide vocab and set text task forms, show classics quiz
                 document.getElementById('vocabTaskOption').style.display = 'none';
                 // Set text removed
                 document.getElementById('classicsQuizTaskOption').style.display = '';
                 selectTaskType('classicsquiz');
-                // Hide words tab in leaderboard
-                document.getElementById('leaderboardWordsTab').style.display = 'none';
                 // Hide set text progress grid, show classics quiz grid
                 // Set text removed
                 document.getElementById('classicsQuizProgressCard').style.display = 'block';
@@ -2729,34 +2706,48 @@
                 });
             }
             
+            // Determine task type category based on title patterns
+            function getTaskType(task) {
+                const title = (task.title || '').toLowerCase();
+                const path = (task.content_path || '').toLowerCase();
+                if (path.includes('manual_test') || title.includes('test')) return 'content-tests';
+                if (title.includes('quiz') || path.includes('quiz')) return 'quizzes';
+                if (title.includes('prep') || title.includes('preparation')) return 'prep';
+                if (title.includes('reading') || title.includes('read') || title.includes('set text') || title.includes('passage')) return 'reading';
+                if (path.includes('vocabulary-practice')) return 'prep';
+                return 'prep'; // default to prep for vocab tasks
+            }
+
             // Build HTML table
             let html = '<div class="completion-grid-wrapper"><table class="completion-grid">';
-            
+
             // Header row
             html += '<thead><tr><th class="student-col">Student</th>';
-            sortedTasks.forEach(task => {
+            sortedTasks.forEach((task, colIdx) => {
                 const dueDate = new Date(task.due_date);
                 const dueDateStr = dueDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                html += `<th class="task-col" title="${escapeHtml(task.title)}">${dueDateStr}</th>`;
+                const taskType = getTaskType(task);
+                html += `<th class="task-col" title="${escapeHtml(task.title)}" data-task-type="${taskType}" data-col-idx="${colIdx}">${dueDateStr}</th>`;
             });
             html += '</tr></thead>';
-            
+
             // Body rows
             html += '<tbody>';
             const now = new Date();
-            
+
             classStudents.forEach(student => {
                 const name = student.full_name || student.email.split('@')[0];
                 html += `<tr><td class="student-name">${name}</td>`;
-                
-                sortedTasks.forEach(task => {
+
+                sortedTasks.forEach((task, colIdx) => {
                     const attempt = attemptLookup[task.id]?.[student.id];
                     const dueDate = new Date(task.due_date);
                     const isOverdue = now > dueDate;
-                    
+                    const taskType = getTaskType(task);
+
                     let cellClass = 'not-started';
                     let cellContent = '<span class="task-cell-icon">—</span>';
-                    
+
                     if (attempt && attempt.completed) {
                         const wasLate = attempt.completedAt && attempt.completedAt > dueDate;
                         cellClass = wasLate ? 'completed-late' : 'completed';
@@ -2773,15 +2764,44 @@
                         cellClass = 'overdue';
                         cellContent = '<span class="task-cell-icon">✗</span>';
                     }
-                    
-                    html += `<td class="task-cell"><div class="task-cell-inner ${cellClass}">${cellContent}</div></td>`;
+
+                    html += `<td class="task-cell" data-task-type="${taskType}" data-col-idx="${colIdx}"><div class="task-cell-inner ${cellClass}">${cellContent}</div></td>`;
                 });
-                
+
                 html += '</tr>';
             });
-            
+
             html += '</tbody></table></div>';
             container.innerHTML = html;
+        }
+
+        // Filter completion grid columns by task type
+        function filterCompletionGrid(type, btn) {
+            // Update active button state
+            const filterContainer = document.getElementById('completionGridFilters');
+            filterContainer.querySelectorAll('.heatmap-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Get all header and body cells with data-col-idx
+            const table = document.querySelector('#completionGridContainer .completion-grid');
+            if (!table) return;
+
+            const allHeaders = table.querySelectorAll('th[data-col-idx]');
+            const allCells = table.querySelectorAll('td[data-col-idx]');
+
+            if (type === 'all') {
+                // Show all columns
+                allHeaders.forEach(th => th.style.display = '');
+                allCells.forEach(td => td.style.display = '');
+            } else {
+                // Show only columns matching the filter type
+                allHeaders.forEach(th => {
+                    th.style.display = th.dataset.taskType === type ? '' : 'none';
+                });
+                allCells.forEach(td => {
+                    td.style.display = td.dataset.taskType === type ? '' : 'none';
+                });
+            }
         }
         
         // Classics Quiz Progress Grid Functions
@@ -3153,7 +3173,6 @@
             }
 
             await loadClassStats();
-            await loadLeaderboard();
 
             // New features: interventions quadrant and student tracker
             try { await loadInterventionsQuadrant(); } catch (e) { console.error('Error loading interventions:', e); }
@@ -3184,62 +3203,66 @@
         
         async function loadClassStats() {
             if (classStudents.length === 0) {
-                document.getElementById('csStudents').textContent = '0';
+                document.getElementById('csActiveStudents').textContent = '0';
                 return;
             }
-            
+
             // Get all attempts for all students in this class
             const studentIds = classStudents.map(s => s.id);
-            
-            const { data: attempts, error: attemptsError } = await supabase
-                .from('task_attempts')
-                .select('*')
-                .in('student_id', studentIds);
-            
-            const lang = getLanguage(currentClass?.type);
-            let wordMasteryQuery = supabase
-                .from('word_mastery')
-                .select('*')
-                .in('student_id', studentIds);
-            if (lang) wordMasteryQuery = wordMasteryQuery.eq('language', lang);
-            const { data: wordMastery, error: wordError } = await wordMasteryQuery;
-            
-            // Get tasks for this class to calculate completion
-            const { data: tasks } = await supabase
-                .from('tasks')
-                .select('id')
-                .eq('class_id', currentClass.id);
-            
-            const taskIds = (tasks || []).map(t => t.id);
-            
+
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+            const [attemptsRes, recentAttemptsRes, wordMasteryRes, tasksRes] = await Promise.all([
+                supabase.from('task_attempts').select('*').in('student_id', studentIds),
+                supabase.from('task_attempts').select('student_id').in('student_id', studentIds).gte('started_at', thirtyDaysAgo.toISOString()),
+                (() => {
+                    const lang = getLanguage(currentClass?.type);
+                    let q = supabase.from('word_mastery').select('*').in('student_id', studentIds);
+                    if (lang) q = q.eq('language', lang);
+                    return q;
+                })(),
+                supabase.from('tasks').select('id').eq('class_id', currentClass.id)
+            ]);
+
+            const attempts = attemptsRes.data || [];
+            const recentAttempts = recentAttemptsRes.data || [];
+            const wordMastery = wordMasteryRes.data || [];
+            const taskIds = (tasksRes.data || []).map(t => t.id);
+
+            // Calculate active students (students with activity in last 30 days)
+            const activeStudentIds = new Set(recentAttempts.map(a => a.student_id));
+            const activeStudentCount = activeStudentIds.size;
+
             // Calculate per-student stats
             classStatsData.studentStats = classStudents.map(student => {
-                const studentAttempts = (attempts || []).filter(a => a.student_id === student.id);
-                const studentWords = (wordMastery || []).filter(w => w.student_id === student.id);
-                
+                const studentAttempts = attempts.filter(a => a.student_id === student.id);
+                const studentWords = wordMastery.filter(w => w.student_id === student.id);
+
                 const totalTime = studentAttempts.reduce((sum, a) => sum + (a.time_spent_seconds || 0), 0);
                 const completedAttempts = studentAttempts.filter(a => a.score !== null);
                 const avgScore = completedAttempts.length > 0
                     ? Math.round(completedAttempts.reduce((sum, a) => sum + a.score, 0) / completedAttempts.length)
                     : 0;
-                
+
                 // Count mastered words
                 const wordsMastered = studentWords.filter(w => {
                     const total = w.correct_count + w.incorrect_count;
                     const acc = total > 0 ? (w.correct_count / total) * 100 : 0;
                     return w.correct_count >= 3 && acc >= 70;
                 }).length;
-                
+
                 // Calculate streak
                 const streak = calculateStreak(studentAttempts);
-                
+
                 // Task completion (unique tasks completed)
                 const completedTaskIds = [...new Set(
                     studentAttempts
                         .filter(a => a.completed_at && taskIds.includes(a.task_id))
                         .map(a => a.task_id)
                 )];
-                
+
                 return {
                     student,
                     attempts: studentAttempts.length,
@@ -3250,35 +3273,26 @@
                     tasksCompleted: completedTaskIds.length
                 };
             });
-            
+
             // Calculate class-wide stats
             const totalStudents = classStudents.length;
-            const totalTime = classStatsData.studentStats.reduce((sum, s) => sum + s.totalTime, 0);
-            const totalMinutes = Math.round(totalTime / 60);
-            const hours = Math.floor(totalMinutes / 60);
-            const mins = totalMinutes % 60;
-            const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-            
+
             const studentsWithScores = classStatsData.studentStats.filter(s => s.avgScore > 0);
             const avgScore = studentsWithScores.length > 0
                 ? Math.round(studentsWithScores.reduce((sum, s) => sum + s.avgScore, 0) / studentsWithScores.length)
                 : 0;
-            
+
             // Task completion rate
             const totalTasksAssigned = taskIds.length * totalStudents;
             const totalTasksCompleted = classStatsData.studentStats.reduce((sum, s) => sum + s.tasksCompleted, 0);
             const completionRate = totalTasksAssigned > 0
                 ? Math.round((totalTasksCompleted / totalTasksAssigned) * 100)
                 : 0;
-            
-            const totalWordsMastered = classStatsData.studentStats.reduce((sum, s) => sum + s.wordsMastered, 0);
-            
+
             // Update display
-            document.getElementById('csStudents').textContent = totalStudents;
-            document.getElementById('csTotalTime').textContent = timeStr;
+            document.getElementById('csActiveStudents').textContent = activeStudentCount;
             document.getElementById('csAvgScore').textContent = avgScore + '%';
             document.getElementById('csCompletion').textContent = completionRate + '%';
-            document.getElementById('csWordsMastered').textContent = totalWordsMastered;
         }
         
         function calculateStreak(attempts) {
@@ -3316,61 +3330,6 @@
             return streak;
         }
 
-        async function loadLeaderboard() {
-            const activeBtn = document.querySelector('#leaderboardCard .heatmap-btn.active');
-            if (activeBtn) showLeaderboard('time', activeBtn);
-        }
-
-        function showLeaderboard(type, btn) {
-            // Update active tab
-            btn.parentElement.querySelectorAll('.heatmap-btn').forEach(t => t.classList.remove('active'));
-            btn.classList.add('active');
-            
-            const container = document.getElementById('leaderboardContainer');
-            
-            if (classStatsData.studentStats.length === 0) {
-                container.innerHTML = '<div class="loading" style="padding: 2rem;">No data yet</div>';
-                return;
-            }
-            
-            let sorted = [...classStatsData.studentStats];
-            let valueFormatter;
-            
-            switch (type) {
-                case 'time':
-                    sorted.sort((a, b) => b.totalTime - a.totalTime);
-                    valueFormatter = s => {
-                        const mins = Math.round(s.totalTime / 60);
-                        return mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins}m`;
-                    };
-                    break;
-                case 'words':
-                    sorted.sort((a, b) => b.wordsMastered - a.wordsMastered);
-                    valueFormatter = s => `${s.wordsMastered} words`;
-                    break;
-                case 'streak':
-                    sorted.sort((a, b) => b.streak - a.streak);
-                    valueFormatter = s => s.streak > 0 ? `${s.streak} days 🔥` : '-';
-                    break;
-                case 'score':
-                    sorted.sort((a, b) => b.avgScore - a.avgScore);
-                    valueFormatter = s => s.avgScore > 0 ? `${s.avgScore}%` : '-';
-                    break;
-            }
-            
-            container.innerHTML = '<ul class="leaderboard-list">' + 
-                sorted.slice(0, 10).map((s, i) => {
-                    const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-                    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
-                    return `
-                        <li class="leaderboard-item">
-                            <span class="leaderboard-rank ${rankClass}">${medal}</span>
-                            <span class="leaderboard-name">${s.student.full_name || 'Unknown'}</span>
-                            <span class="leaderboard-value">${valueFormatter(s)}</span>
-                        </li>
-                    `;
-                }).join('') + '</ul>';
-        }
         
         document.getElementById('setVocabTaskForm').addEventListener('submit', async function(e) {
             e.preventDefault();

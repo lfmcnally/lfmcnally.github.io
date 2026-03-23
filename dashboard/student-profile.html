@@ -243,12 +243,84 @@
             cursor: pointer;
         }
 
+        /* Insight indicators */
+        .insights-list.strengths-list li::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--g-green);
+            flex-shrink: 0;
+            margin-top: 5px;
+        }
+        .insights-list.weaknesses-list li::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #E37400;
+            flex-shrink: 0;
+            margin-top: 5px;
+        }
+
+        /* Metric card color tints */
+        .metric-card.tint-blue { background: rgba(66, 133, 244, 0.07); border: 1px solid rgba(66, 133, 244, 0.18); }
+        .metric-card.tint-green { background: rgba(52, 168, 83, 0.07); border: 1px solid rgba(52, 168, 83, 0.18); }
+        .metric-card.tint-yellow { background: rgba(251, 188, 4, 0.07); border: 1px solid rgba(251, 188, 4, 0.18); }
+        .metric-card.tint-red { background: rgba(234, 67, 53, 0.07); border: 1px solid rgba(234, 67, 53, 0.18); }
+        .metric-card.tint-purple { background: rgba(142, 68, 173, 0.07); border: 1px solid rgba(142, 68, 173, 0.18); }
+
+        /* Activity summary */
+        .activity-summary {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            font-size: 13px;
+            color: var(--g-text-secondary);
+            border-top: 1px solid var(--g-border);
+        }
+        .activity-summary .dot-sep {
+            display: inline-block;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--g-text-secondary);
+            opacity: 0.5;
+        }
+
+        /* Quick actions row */
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .quick-actions .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Sticky tabs */
+        .tabs.sticky-tabs {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--g-bg);
+            padding-top: 4px;
+            padding-bottom: 4px;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .profile-header { flex-wrap: wrap; }
             .student-nav { width: 100%; justify-content: center; margin-left: 0; margin-top: 8px; }
             .mastery-grid { grid-template-columns: 1fr; }
             .insights-grid { grid-template-columns: 1fr; }
+            .quick-actions { flex-direction: column; }
         }
     </style>
 </head>
@@ -307,6 +379,13 @@
                         <div class="metric-label" id="stat4Label">--</div>
                     </div>
                 </div>
+
+                <!-- Activity Summary -->
+                <div class="activity-summary hidden" id="activitySummary">
+                    <span id="activityLastActive">--</span>
+                    <span class="dot-sep"></span>
+                    <span id="activityTotalSessions">0 sessions total</span>
+                </div>
             </div>
 
             <!-- Insights Card -->
@@ -318,13 +397,13 @@
                     <div class="insights-grid">
                         <div>
                             <h4 class="insights-heading strengths-heading">Strengths</h4>
-                            <ul class="insights-list" id="strengthsList">
+                            <ul class="insights-list strengths-list" id="strengthsList">
                                 <li class="text-muted" style="font-style: italic;">Analysing...</li>
                             </ul>
                         </div>
                         <div>
                             <h4 class="insights-heading weaknesses-heading">Areas for Improvement</h4>
-                            <ul class="insights-list" id="weaknessesList">
+                            <ul class="insights-list weaknesses-list" id="weaknessesList">
                                 <li class="text-muted" style="font-style: italic;">Analysing...</li>
                             </ul>
                         </div>
@@ -332,8 +411,15 @@
                 </div>
             </div>
 
+            <!-- Quick Actions -->
+            <div class="quick-actions hidden" id="quickActions">
+                <a class="btn btn-ghost btn-sm" id="qaViewInClass" href="#">&#8592; View in Class</a>
+                <a class="btn btn-ghost btn-sm" id="qaEmailStudent" href="#">&#9993; Email Student</a>
+                <button class="btn btn-ghost btn-sm" onclick="window.print()">&#128438; Print Report</button>
+            </div>
+
             <!-- Tabs -->
-            <div class="tabs mb-24" id="mainTabs">
+            <div class="tabs mb-24 sticky-tabs" id="mainTabs">
                 <button class="tab active" data-tab="progress" onclick="switchTab('progress', this)">Progress</button>
                 <button class="tab" data-tab="sessions" onclick="switchTab('sessions', this)">Sessions</button>
                 <button class="tab" data-tab="details" onclick="switchTab('details', this)">Details</button>
@@ -884,13 +970,23 @@
                 renderCivStats();
             }
 
+            // Color tints for metric cards
+            const metricCards = document.querySelectorAll('#statsRow .metric-card');
+            const tints = ['tint-blue', 'tint-green', 'tint-yellow'];
+            for (let i = 0; i < Math.min(3, metricCards.length); i++) {
+                metricCards[i].classList.add(tints[i]);
+            }
+            if (metricCards.length >= 4) {
+                metricCards[3].classList.add(isCivClass(classType) ? 'tint-purple' : 'tint-red');
+            }
+
             // Last active
+            let lastActiveStr = '';
             if (allAttempts.length > 0 && allAttempts[0].started_at) {
                 const lastDate = new Date(allAttempts[0].started_at);
                 const now = new Date();
                 const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
 
-                let lastActiveStr;
                 if (diffDays === 0) lastActiveStr = 'Last active today';
                 else if (diffDays === 1) lastActiveStr = 'Last active yesterday';
                 else if (diffDays < 7) lastActiveStr = `Last active ${diffDays} days ago`;
@@ -898,6 +994,24 @@
 
                 document.getElementById('lastActive').textContent = lastActiveStr;
             }
+
+            // Activity summary line
+            const summaryEl = document.getElementById('activitySummary');
+            if (allAttempts.length > 0) {
+                document.getElementById('activityLastActive').textContent = lastActiveStr || 'No recent activity';
+                document.getElementById('activityTotalSessions').textContent = allAttempts.length + ' session' + (allAttempts.length !== 1 ? 's' : '') + ' total';
+                summaryEl.classList.remove('hidden');
+            }
+
+            // Quick actions setup
+            const qaEl = document.getElementById('quickActions');
+            document.getElementById('qaViewInClass').href = classId ? `class.html?id=${classId}` : 'teacher.html';
+            const emailEl = document.getElementById('studentEmail');
+            const email = emailEl ? emailEl.textContent : '';
+            if (email && email !== 'Loading...') {
+                document.getElementById('qaEmailStudent').href = 'mailto:' + email;
+            }
+            qaEl.classList.remove('hidden');
         }
 
         function renderLanguageStats() {
@@ -1715,11 +1829,11 @@
             card.classList.remove('hidden');
 
             strengthsList.innerHTML = strengths.length > 0
-                ? strengths.map(s => `<li><span style="color: var(--g-green);">&#9679;</span> ${escapeHtml(s)}</li>`).join('')
+                ? strengths.map(s => `<li>${escapeHtml(s)}</li>`).join('')
                 : '<li class="text-muted">Not enough data yet</li>';
 
             weaknessesList.innerHTML = weaknesses.length > 0
-                ? weaknesses.map(w => `<li><span style="color: var(--g-red);">&#9679;</span> ${escapeHtml(w)}</li>`).join('')
+                ? weaknesses.map(w => `<li>${escapeHtml(w)}</li>`).join('')
                 : '<li class="text-muted">No issues identified</li>';
         }
 

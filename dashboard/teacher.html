@@ -132,6 +132,21 @@
             color: #5F6368;
             margin-top: 4px;
         }
+        .attention-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #c5221f;
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 600;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 5px;
+            border-radius: 10px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
         @media (max-width: 768px) {
             .classes-grid {
                 grid-template-columns: 1fr;
@@ -164,15 +179,15 @@
             </div>
             <div class="metric-card">
                 <div class="metric-value" id="statStudents">0</div>
-                <div class="metric-label">Students</div>
+                <div class="metric-label">Total Students</div>
             </div>
             <div class="metric-card">
-                <div class="metric-value" id="statTasks">0</div>
-                <div class="metric-label">Tasks Set</div>
+                <div class="metric-value" id="statAvgScore">-</div>
+                <div class="metric-label">Avg Score</div>
             </div>
             <div class="metric-card">
-                <div class="metric-value" id="statCompletions">0</div>
-                <div class="metric-label">Completions</div>
+                <div class="metric-value" id="statNeedsAttention">0</div>
+                <div class="metric-label">Needs Attention</div>
             </div>
         </div>
 
@@ -251,6 +266,8 @@
     <script>
         let currentUser = null;
         let classes = [];
+        let classAtRiskCounts = {};  // classId -> count of at-risk students
+        let classAvgScores = {};     // classId -> average score or null
 
         // Type metadata
         const typeConfig = {
@@ -421,16 +438,19 @@
                     ${classes.map(cls => {
                         const config = typeConfig[cls.type] || { label: cls.type, chipClass: 'chip chip-gray' };
                         const coTeacherBadge = cls.isOwner === false ? '<span class="co-teacher-badge">Co-teacher</span>' : '';
+                        const atRisk = classAtRiskCounts[cls.id] || 0;
+                        const attentionBadge = atRisk > 0 ? '<span class="attention-badge" title="' + atRisk + ' student' + (atRisk !== 1 ? 's' : '') + ' need attention">' + atRisk + '</span>' : '';
                         return `
                         <div class="class-card${cls.isOwner === false ? ' co-taught' : ''}">
                             <div class="class-header">
-                                <div class="class-name">${cls.name}${coTeacherBadge}</div>
+                                <div class="class-name">${cls.name}${coTeacherBadge}${attentionBadge}</div>
                                 <div class="class-code">${cls.join_code}</div>
                             </div>
                             <span class="${config.chipClass}">${config.label}</span>
                             <div class="class-stats">
                                 <span>${cls.class_members?.[0]?.count || 0} students</span>
                                 <span>${cls.tasks?.[0]?.count || 0} tasks</span>
+                                <span>${classAvgScores[cls.id] != null ? classAvgScores[cls.id] + '% avg' : '-'}</span>
                             </div>
                             <div class="class-actions">
                                 <a href="class.html?id=${cls.id}" class="btn btn-primary btn-sm">Manage</a>
@@ -451,31 +471,132 @@
             const totalStudents = classes.reduce((sum, cls) => sum + (cls.class_members?.[0]?.count || 0), 0);
             document.getElementById('statStudents').textContent = totalStudents;
 
-            // Total tasks
-            const totalTasks = classes.reduce((sum, cls) => sum + (cls.tasks?.[0]?.count || 0), 0);
-            document.getElementById('statTasks').textContent = totalTasks;
+            // Reset per-class data
+            classAtRiskCounts = {};
+            classAvgScores = {};
 
-            // Get completions
-            if (classes.length > 0) {
-                const classIds = classes.map(c => c.id);
-
-                const { data: tasks } = await supabase
-                    .from('tasks')
-                    .select('id')
-                    .in('class_id', classIds);
-
-                if (tasks && tasks.length > 0) {
-                    const taskIds = tasks.map(t => t.id);
-
-                    const { count } = await supabase
-                        .from('task_attempts')
-                        .select('*', { count: 'exact', head: true })
-                        .in('task_id', taskIds)
-                        .not('completed_at', 'is', null);
-
-                    document.getElementById('statCompletions').textContent = count || 0;
-                }
+            if (classes.length === 0) {
+                document.getElementById('statAvgScore').textContent = '-';
+                document.getElementById('statNeedsAttention').textContent = '0';
+                return;
             }
+
+            const classIds = classes.map(c => c.id);
+
+            // Fetch all tasks for these classes
+            const { data: tasks } = await supabase
+                .from('tasks')
+                .select('id, class_id')
+                .in('class_id', classIds);
+
+            if (!tasks || tasks.length === 0) {
+                document.getElementById('statAvgScore').textContent = '-';
+                document.getElementById('statNeedsAttention').textContent = '0';
+                renderClasses(); // re-render with empty data
+                return;
+            }
+
+            const taskIds = tasks.map(t => t.id);
+
+            // Build taskId -> classId map
+            const taskClassMap = {};
+            tasks.forEach(t => { taskClassMap[t.id] = t.class_id; });
+
+            // Fetch all completed attempts for these tasks
+            const { data: attempts } = await supabase
+                .from('task_attempts')
+                .select('task_id, student_id, score, completed_at')
+                .in('task_id', taskIds)
+                .not('completed_at', 'is', null);
+
+            // Compute overall avg score
+            if (attempts && attempts.length > 0) {
+                const totalScore = attempts.reduce((sum, a) => sum + (a.score || 0), 0);
+                const avgScore = Math.round(totalScore / attempts.length);
+                document.getElementById('statAvgScore').textContent = avgScore + '%';
+
+                // Compute per-class avg scores
+                const classScores = {};  // classId -> [scores]
+                attempts.forEach(a => {
+                    const cid = taskClassMap[a.task_id];
+                    if (!classScores[cid]) classScores[cid] = [];
+                    classScores[cid].push(a.score || 0);
+                });
+                for (const cid of classIds) {
+                    if (classScores[cid] && classScores[cid].length > 0) {
+                        classAvgScores[cid] = Math.round(
+                            classScores[cid].reduce((s, v) => s + v, 0) / classScores[cid].length
+                        );
+                    } else {
+                        classAvgScores[cid] = null;
+                    }
+                }
+            } else {
+                document.getElementById('statAvgScore').textContent = '-';
+            }
+
+            // Fetch all class members to identify at-risk students
+            const { data: members } = await supabase
+                .from('class_members')
+                .select('class_id, student_id')
+                .in('class_id', classIds);
+
+            if (members && members.length > 0 && attempts && attempts.length > 0) {
+                const fourteenDaysAgo = new Date();
+                fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
+                // Per-student per-class: avg score and latest activity
+                // Key: classId:studentId -> { scores: [], latestActivity: Date }
+                const studentClassData = {};
+                attempts.forEach(a => {
+                    const cid = taskClassMap[a.task_id];
+                    const key = cid + ':' + a.student_id;
+                    if (!studentClassData[key]) {
+                        studentClassData[key] = { scores: [], latestActivity: null };
+                    }
+                    studentClassData[key].scores.push(a.score || 0);
+                    const completedDate = new Date(a.completed_at);
+                    if (!studentClassData[key].latestActivity || completedDate > studentClassData[key].latestActivity) {
+                        studentClassData[key].latestActivity = completedDate;
+                    }
+                });
+
+                let totalNeedsAttention = 0;
+
+                for (const cid of classIds) {
+                    let classAtRisk = 0;
+                    const classMembers = members.filter(m => m.class_id === cid);
+
+                    classMembers.forEach(m => {
+                        const key = cid + ':' + m.student_id;
+                        const data = studentClassData[key];
+                        if (!data) {
+                            // No attempts at all — if there are tasks, this student is at risk
+                            // (no activity ever = no activity in 14 days, and avg score is 0)
+                            const classTasks = tasks.filter(t => t.class_id === cid);
+                            if (classTasks.length > 0) {
+                                classAtRisk++;
+                            }
+                        } else {
+                            const avgScore = data.scores.reduce((s, v) => s + v, 0) / data.scores.length;
+                            const noRecentActivity = data.latestActivity < fourteenDaysAgo;
+                            if (avgScore < 70 && noRecentActivity) {
+                                classAtRisk++;
+                            }
+                        }
+                    });
+
+                    classAtRiskCounts[cid] = classAtRisk;
+                    totalNeedsAttention += classAtRisk;
+                }
+
+                document.getElementById('statNeedsAttention').textContent = totalNeedsAttention;
+            } else {
+                document.getElementById('statNeedsAttention').textContent = '0';
+            }
+
+            // Re-render classes with the new per-class data
+            renderClasses();
         }
 
         // Load recent activity
