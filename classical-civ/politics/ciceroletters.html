@@ -1,0 +1,810 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cicero's Letters — Politics of the Late Republic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Cinzel:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --parchment: #f5f0e8;
+    --parchment-dark: #e8e0cc;
+    --ink: #1a1410;
+    --ink-faded: #4a3f32;
+    --red: #8b1a1a;
+    --gold: #9a7b2f;
+    --gold-light: #c9a227;
+    --border: #c8b89a;
+    --bg: #faf7f2;
+    --shadow: rgba(26,20,16,0.12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Source Sans 3', sans-serif; background: var(--bg); color: var(--ink); font-size: 16px; line-height: 1.65; }
+
+  header { background: var(--ink); color: var(--parchment); padding: 2rem 2rem 1.5rem; position: relative; overflow: hidden; }
+  header::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(45deg,transparent,transparent 40px,rgba(255,255,255,.015) 40px,rgba(255,255,255,.015) 80px); pointer-events: none; }
+  .header-inner { max-width: 1100px; margin: 0 auto; position: relative; }
+  .header-eyebrow { font-family: 'Cinzel', serif; font-size: .7rem; letter-spacing: .25em; color: var(--gold-light); text-transform: uppercase; margin-bottom: .5rem; }
+  header h1 { font-family: 'Cinzel', serif; font-size: clamp(1.6rem,4vw,2.8rem); font-weight: 700; line-height: 1.15; }
+  header h1 em { color: var(--gold-light); font-style: normal; }
+  .header-sub { margin-top: .6rem; font-size: .95rem; color: rgba(245,240,232,.6); font-style: italic; font-family: 'EB Garamond', serif; }
+  .header-meta { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
+  .meta-pill { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15); padding: .2rem .75rem; border-radius: 20px; font-size: .78rem; color: rgba(245,240,232,.8); }
+
+  /* TIMELINE
+     The horizontal line sits at LINE_PX = 72px from the top of the canvas.
+     Events have labels ABOVE the line; each event has a row (0/1/2) that
+     controls how far above the line its label floats. A connector line
+     runs from the label down to the pip on the timeline.
+     Letter dots have their pip ON the line and labels BELOW.
+     Canvas height: 155px.
+  */
+  .tl-section { background: #0e0d0b; overflow-x: auto; padding: 0 2rem; }
+  .tl-inner { max-width: 1100px; margin: 0 auto; padding: 1.2rem 0 1.2rem; min-width: 820px; }
+  .tl-heading { font-family: 'Cinzel', serif; font-size: .6rem; letter-spacing: .2em; color: rgba(245,240,232,.3); text-transform: uppercase; margin-bottom: .85rem; }
+  .tl-canvas { position: relative; height: 175px; }
+
+  /* horizontal rule */
+  .tl-line { position: absolute; left: 0; right: 0; top: 72px; height: 1px; background: rgba(255,255,255,.1); }
+
+  /* year ticks */
+  .tl-yr { position: absolute; top: 56px; transform: translateX(-50%); font-size: .54rem; color: rgba(255,255,255,.13); font-family: 'Source Sans 3', sans-serif; white-space: nowrap; }
+
+  /* EVENT: positioned absolutely, pip always at top:69px (centre on 72px line) */
+  .tl-ev { position: absolute; display: flex; flex-direction: column; align-items: center; transform: translateX(-50%); pointer-events: none; }
+  .ev-lbl { font-size: .54rem; color: rgba(245,240,232,.32); font-family: 'Source Sans 3', sans-serif; text-align: center; max-width: 72px; line-height: 1.25; white-space: nowrap; }
+  /* thin connector from label to pip */
+  .ev-connector { width: 1px; background: rgba(255,255,255,.1); flex-shrink: 0; }
+  .ev-pip { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.25); flex-shrink: 0; }
+
+  /* LETTER dots: positioned so pip is always on the line (top:69px = LINE-3).
+     dotRow controls how far below the line the label sits.
+     A thin connector runs from pip down to the label for rows 1 and 2. */
+  .tl-dot { position: absolute; top: 69px; display: flex; flex-direction: column; align-items: center; transform: translateX(-50%); cursor: pointer; transition: transform .15s; }
+  .tl-dot:hover { transform: translateX(-50%) translateY(-2px); }
+  .dot-pip { width: 10px; height: 10px; border-radius: 50%; background: transparent; border: 2px solid var(--gold); flex-shrink: 0; transition: background .15s, border-color .15s; }
+  .tl-dot:hover .dot-pip, .tl-dot.active .dot-pip { background: var(--gold-light); border-color: var(--gold-light); }
+  .dot-connector { width: 1px; background: rgba(201,162,39,0.25); flex-shrink: 0; }
+  .dot-lbl { font-family: 'Cinzel', serif; font-size: .54rem; color: rgba(245,240,232,.4); white-space: nowrap; text-align: center; transition: color .15s; max-width: 58px; line-height: 1.25; margin-top: 3px; }
+  .tl-dot.active .dot-lbl { color: var(--gold-light); }
+
+  /* LAYOUT */
+  .main-wrap { max-width: 1100px; margin: 0 auto; padding: 2rem; display: grid; grid-template-columns: 215px 1fr; gap: 2rem; align-items: start; }
+  .sidebar { position: sticky; top: 1rem; }
+  .sidebar-title { font-family: 'Cinzel', serif; font-size: .62rem; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); margin-bottom: .6rem; padding-bottom: .4rem; border-bottom: 1px solid var(--border); }
+  .nav-item { display: block; padding: .48rem .65rem; margin-bottom: .2rem; border-radius: 4px; cursor: pointer; transition: all .15s; border-left: 3px solid transparent; }
+  .nav-item:hover { background: var(--parchment-dark); border-left-color: var(--border); }
+  .nav-item.active { background: var(--parchment); border-left-color: var(--red); box-shadow: 0 1px 4px var(--shadow); }
+  .nav-ref { font-size: .68rem; font-family: 'Cinzel', serif; color: var(--gold); display: block; }
+  .nav-item.active .nav-ref { color: var(--red); }
+  .nav-sub { font-size: .72rem; color: var(--ink-faded); font-style: italic; font-family: 'EB Garamond', serif; }
+
+  .letter-card { display: none; animation: fadeIn .25s ease; }
+  .letter-card.visible { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+
+  /* CARD HEADER */
+  .card-header { background: var(--parchment); border: 1px solid var(--border); border-radius: 6px 6px 0 0; padding: 1.4rem 1.75rem 1.2rem; border-bottom: none; position: relative; }
+  .card-header::before { content: ''; position: absolute; top:0; left:0; right:0; height: 3px; background: linear-gradient(90deg,var(--red),var(--gold)); border-radius: 6px 6px 0 0; }
+  .ch-eye { font-family: 'Cinzel', serif; font-size: .62rem; letter-spacing: .2em; color: var(--gold); text-transform: uppercase; margin-bottom: .3rem; }
+  .ch-title { font-family: 'Cinzel', serif; font-size: 1.15rem; font-weight: 600; color: var(--ink); line-height: 1.3; }
+  .ch-meta { display: flex; gap: 0; margin-top: .75rem; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .ch-mi { flex: 1; min-width: 130px; padding: .45rem .75rem; background: rgba(255,255,255,.5); border-right: 1px solid var(--border); }
+  .ch-mi:last-child { border-right: none; }
+  .ch-mi-label { font-family: 'Cinzel', serif; font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); display: block; margin-bottom: .1rem; }
+  .ch-mi-val { font-size: .83rem; color: var(--ink); font-weight: 600; line-height: 1.3; }
+  .ch-mi.event .ch-mi-val { color: var(--red); }
+  .ch-badge { display: inline-block; background: var(--red); color: #fff; font-size: .67rem; padding: .14rem .58rem; border-radius: 3px; font-weight: 600; letter-spacing: .03em; margin-top: .6rem; }
+
+  /* TABS */
+  .card-tabs { display: flex; border: 1px solid var(--border); border-top: none; border-bottom: none; background: var(--parchment-dark); overflow-x: auto; }
+  .tab-btn { padding: .62rem 1.05rem; font-size: .78rem; font-family: 'Source Sans 3', sans-serif; font-weight: 600; color: var(--ink-faded); background: transparent; border: none; border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: all .15s; }
+  .tab-btn:hover { color: var(--ink); background: rgba(0,0,0,.04); }
+  .tab-btn.active { color: var(--red); border-bottom-color: var(--red); background: var(--parchment); }
+  .card-body { border: 1px solid var(--border); border-top: none; border-radius: 0 0 6px 6px; background: #fff; }
+  .tab-panel { display: none; padding: 1.55rem 1.75rem; }
+  .tab-panel.active { display: block; }
+
+  /* TEXT TAB */
+  .letter-text-box { background: var(--parchment); border: 1px solid var(--border); border-radius: 4px; padding: 1.35rem 1.7rem 1.35rem 2.2rem; margin-bottom: 1.2rem; position: relative; }
+  .letter-text-box::before { content:'\201C'; position:absolute; top:-.4rem; left:.55rem; font-family:'EB Garamond',serif; font-size:4rem; color:var(--border); line-height:1; pointer-events:none; }
+  .letter-text-box p { font-family:'EB Garamond',serif; font-size:1.03rem; line-height:1.8; color:var(--ink); margin-bottom:.85em; }
+  .letter-text-box p:last-child { margin-bottom:0; }
+  .ctx-grid { display:grid; grid-template-columns:1fr 1fr; gap:.85rem; margin-top:1rem; }
+  .ctx-box { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:.85rem 1.05rem; }
+  .ctx-box.full { grid-column:1/-1; }
+  .ctx-box h4 { font-family:'Cinzel',serif; font-size:.63rem; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); margin-bottom:.45rem; }
+  .ctx-box p { font-size:.855rem; color:var(--ink-faded); line-height:1.6; }
+
+  /* STYLE TAB */
+  .sdev { border-left:3px solid var(--gold); padding:.65rem .95rem .65rem 1.15rem; margin-bottom:.85rem; background:var(--bg); border-radius:0 4px 4px 0; }
+  .sdev-lbl { font-family:'Cinzel',serif; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase; color:var(--red); margin-bottom:.22rem; }
+  .sdev-q { font-family:'EB Garamond',serif; font-size:.95rem; font-style:italic; color:var(--ink); margin-bottom:.3rem; line-height:1.5; }
+  .sdev-a { font-size:.835rem; color:var(--ink-faded); line-height:1.55; }
+
+  /* EXAM TAB */
+  .exam-intro { font-size:.83rem; color:var(--ink-faded); font-style:italic; margin-bottom:1.2rem; line-height:1.55; }
+
+  /* quick facts */
+  .qf-grid { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; margin-bottom:1.4rem; }
+  .qf-box { background:var(--parchment); border:1px solid var(--border); border-radius:4px; padding:.55rem .8rem; }
+  .qf-label { font-family:'Cinzel',serif; font-size:.58rem; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); display:block; margin-bottom:.15rem; }
+  .qf-val { font-size:.84rem; color:var(--ink); font-weight:600; line-height:1.35; }
+
+  /* 10-mark block */
+  .ten-block { margin-bottom:1.4rem; }
+  .ten-q { background:var(--parchment); border:1px solid var(--border); border-left:3px solid var(--red); border-radius:0 4px 4px 0; padding:.6rem .9rem; font-size:.87rem; color:var(--ink); margin-bottom:.7rem; line-height:1.5; }
+  .ten-q em { color:var(--ink-faded); font-size:.76rem; display:block; margin-top:.15rem; }
+  .bullet-list { list-style:none; padding:0; }
+  .bullet-list li { display:flex; gap:.55rem; align-items:flex-start; margin-bottom:.38rem; font-size:.845rem; line-height:1.5; color:var(--ink-faded); }
+  .bl-dot { width:6px; height:6px; border-radius:50%; background:var(--red); flex-shrink:0; margin-top:.44rem; }
+
+  /* 30-mark block */
+  .thirty-block { background:var(--bg); border:1px solid var(--border); border-radius:4px; padding:.85rem 1.05rem; }
+  .thirty-title { font-family:'Cinzel',serif; font-size:.63rem; letter-spacing:.14em; text-transform:uppercase; color:var(--gold); margin-bottom:.5rem; }
+  .thirty-q { font-size:.84rem; color:var(--ink); font-style:italic; margin-bottom:.45rem; line-height:1.5; }
+  .thirty-note { font-size:.8rem; color:var(--ink-faded); line-height:1.55; }
+
+  .rule { border:none; border-top:1px solid var(--border); margin:1.1rem 0; }
+  .esec-title { font-family:'Cinzel',serif; font-size:.66rem; letter-spacing:.15em; text-transform:uppercase; color:var(--gold); border-bottom:1px solid var(--border); padding-bottom:.32rem; margin-bottom:.75rem; }
+  .ttag { display:inline-block; background:var(--ink); color:var(--parchment); font-size:.71rem; padding:.17rem .58rem; border-radius:3px; margin:.18rem; }
+
+  @media(max-width:750px){
+    .main-wrap{grid-template-columns:1fr;}
+    .sidebar{position:static;}
+    .ctx-grid{grid-template-columns:1fr;}
+    .qf-grid{grid-template-columns:1fr;}
+    .ch-meta{flex-direction:column;}
+    .ch-mi{border-right:none;border-bottom:1px solid var(--border);}
+    .ch-mi:last-child{border-bottom:none;}
+  }
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-track{background:var(--parchment-dark);}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-eyebrow">OCR A-Level Classical Civilisation · H408 · Politics of the Late Republic</div>
+    <h1>Cicero's <em>Letters</em></h1>
+    <p class="header-sub">All eleven prescribed sources — text, context, style, and examination guidance</p>
+    <div class="header-meta">
+      <span class="meta-pill">62 BC → 43 BC</span>
+      <span class="meta-pill">11 prescribed letters</span>
+      <span class="meta-pill">Content · Style · Exam prep</span>
+    </div>
+  </div>
+</header>
+
+<div class="tl-section">
+  <div class="tl-inner">
+    <div class="tl-heading">Timeline 63–43 BC — key events and letter dates (click a letter dot to navigate)</div>
+    <div class="tl-canvas" id="tlCanvas">
+      <div class="tl-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="main-wrap">
+  <nav class="sidebar" id="sidebar"><div class="sidebar-title">Letters</div></nav>
+  <div id="contentArea"></div>
+</div>
+
+<script>
+const SPAN = 20;
+function pct(yr){ return ((63-yr)/SPAN*100).toFixed(2)+'%'; }
+
+const EVENTS = [
+  {yr:63, lbl:'Catilinarian conspiracy',      row:0},
+  {yr:60, lbl:'First Triumvirate formed',     row:2},
+  {yr:58, lbl:"Cicero's exile begins",        row:1},
+  {yr:57, lbl:"Cicero returns",               row:0},
+  {yr:53, lbl:'Crassus dies at Carrhae',      row:2},
+  {yr:49, lbl:'Caesar crosses the Rubicon',   row:1},
+  {yr:48, lbl:'Pharsalus: Pompey defeated',   row:0},
+  {yr:46, lbl:'Cato dies at Utica',           row:2},
+  {yr:44, lbl:'Ides of March: Caesar killed', row:1},
+  {yr:43, lbl:'2nd Triumvirate; Cicero killed', row:0},
+];
+
+const LETTERS = [
+  {
+    id:'fam57', ref:'Fam. 5.7', yr:62, yrLbl:'62 BC', dotRow:0,
+    recipient:'Pompey', loc:'Rome', nearEvent:'After the Catilinarian conspiracy (63 BC)',
+    tone:'Formal, measured, subtly wounded',
+    topic:"Congratulating Pompey on his return — and hinting he's hurt that Pompey didn't congratulate him",
+    themes:['Amicitia','Self-promotion','Libertas','novus homo','Political alliance'],
+    text:[
+      `From your official dispatch, I – along with everyone else – take incredible pleasure. For you have given us that strong hope of peace of which I, trusting so completely in you, was assuring everyone. But I must inform you that your old enemies – now posing as your friends – have received a stunning blow by this despatch, and, being disappointed in the high hopes they were entertaining, are thoroughly distressed.`,
+      `The private letter to me contained a somewhat slight expression of your affection, yet I can assure you it gave me pleasure. There is, however, nothing in which I find greater satisfaction than in the knowledge of serving my friends. And, if on any occasion I do not meet with an adequate return, I am not at all sorry to have the balance of kindness in my favour. I feel no doubt that even if my extraordinary enthusiasm on your behalf has failed to unite you to me, the interests of the state will certainly create a mutual attachment and coalition between us.`,
+      `To leave you in no doubt of what I missed in your letter, I will write with the candour which my own disposition and our common friendship demand. I did expect some congratulation in your letter on my achievements, both for the sake of the ties between us and that of the republic. This I presume to have been omitted by you for fear of hurting anyone's feelings. But let me tell you; what I did for the salvation of the country is approved by the judgement and testimony of the whole world. When you return home, you will know the great wisdom and courage I showed, and you – a much greater man than Africanus was – will find it easy to admit me – one who is not much inferior to Laelius – into association in politics and friendship.`
+    ],
+    what:`Pompey has just returned from a hugely successful military campaign in the East (Asia Minor, Syria, Crete). He is the most powerful man in Rome. Cicero wrote to him while he was still abroad — and this is a reply to a brief, rather cold letter Pompey sent back. Cicero had recently been consul and crushed the Catilinarian conspiracy (63 BC), which he considers the greatest achievement of his career.`,
+    why:`Cicero wants to build a political friendship (amicitia) with Pompey. He has no noble family, no army, no great fortune — so influential alliances are his only real political tool. He's also irritated that Pompey didn't congratulate him on saving Rome, and this letter is a careful attempt to say so without seeming rude.`,
+    odd:`The Africanus/Laelius comparison: Scipio Africanus was Rome's great general who defeated Hannibal; Laelius was his close friend and intellectual ally. By comparing Pompey to Africanus and himself to Laelius, Cicero flatters Pompey enormously while inserting himself as the indispensable partner. Pompey's coldness may also reflect irritation at Cicero opposing a land reform bill that would have benefited Pompey's veterans.`,
+    style:[
+      {dev:'Historical comparison',q:'"you – a much greater man than Africanus – will find it easy to admit me – not much inferior to Laelius"',a:'Comparing them to two heroes famous for their great friendship, Cicero flatters Pompey while simultaneously placing himself as the indispensable intellectual partner.'},
+      {dev:'Understatement',q:'"The private letter to me contained a somewhat slight expression of your affection"',a:"Pompey's letter was evidently cold, but Cicero calls it only 'somewhat slight' — complaining diplomatically."},
+      {dev:'Euphemism',q:'"I presume to have been omitted by you for fear of hurting anyone\'s feelings"',a:'Cicero politely invents a generous excuse for the omission while making perfectly clear he expected recognition.'},
+      {dev:'Three-part list',q:'"he lacked a noble family, wealth for bribery, or military power" [contextual]',a:"Three parallel disadvantages as a novus homo — the three-part list underlines why amicitia is Cicero's only tool."},
+      {dev:'Appeal to shared duty',q:'"the interests of the state will certainly create a mutual attachment and coalition between us"',a:'Even without personal warmth, duty to Rome will bind them together — revealing Cicero\'s view of libertas as the foundation of genuine political alliance.'},
+    ],
+    quickFacts:[
+      {label:'Who wrote it?', val:'Cicero'},
+      {label:'To whom?', val:'Pompey (in Asia)'},
+      {label:'Where was Cicero?', val:'Rome'},
+      {label:'Date', val:'62 BC'},
+    ],
+    tenQ:{
+      q:'How does Cicero try to persuade Pompey to become his political ally?',
+      points:[
+        'Flatters Pompey extravagantly — compares him to Scipio Africanus, greater than even that hero',
+        'Positions himself as the perfect partner through the Laelius comparison — indispensable rather than inferior',
+        'Diplomatic understatement: acknowledges the cold letter without seeming hostile, maintaining the relationship',
+        'Appeals to shared interest in the state — even if personal feeling hasn\'t united them, duty to Rome will',
+        'Frames his own achievements (the Catilinarian conspiracy) as worthy of recognition, nudging Pompey towards gratitude',
+      ]
+    },
+    thirtyQ:`This letter is often cited in essays about amicitia, Cicero's self-promotion, and the political disadvantages of a novus homo. Use it alongside later letters to show how Cicero's relationship with Pompey evolved — and eventually collapsed.`,
+  },
+  {
+    id:'att218', ref:'Att. 2.18', yr:59, yrLbl:'59 BC', dotRow:0,
+    recipient:'Atticus', loc:'Rome', nearEvent:'First Triumvirate formed (60 BC)',
+    tone:'Despairing, intimate, agitated',
+    topic:"Political despair under the Triumvirate; Caesar's offer of a job Cicero can't quite refuse or accept",
+    themes:['First Triumvirate','Loss of libertas','Political marginalisation','Amicitia with Atticus','Caesar'],
+    text:[
+      `I have received several of your letters in which I could see how you were craving for news. Well, we are held down on all sides. We do not object any more to the loss of our freedom, but we fear death and exile as greater evils, when really they are lesser ones. That is how things are; everyone groans over the situation, yet no one speaks against it. What those in charge have in mind, I suspect, is to make sure that there is nothing left which anyone except themselves might be able to offer as a bribe! The only one to speak or openly offer opposition is young Curio. Honest people give him a tremendous round of applause and a very respectable reception in the forum, and many other signs of goodwill.`,
+      `And to omit details, with things as they are, there is now no hope of the magistrates, or indeed private citizens, ever being free.`,
+      `Nevertheless, despite this oppression, conversation, at least in society and at dinner tables, is freer than it was. Indignation is beginning to overcome fear, although that does not prevent a universal feeling of despair. For this Campanian Law contains a clause imposing an oath to be taken by candidates in public meeting, that they will not suggest any tenure of public land other than that provided in the Julian laws. All the others take the oath without hesitation: Laterensis is considered to have shown extraordinary virtue in retiring from his canvass for the tribunenate to avoid the oath. But I don't care to write any more about politics. I am dissatisfied with myself, and cannot write without the greatest pain. I hold my own position with some dignity considering the general repression, but, considering my past achievements, with less courage than I should like.`,
+      `I am invited by Caesar in a very gentlemanly manner to join his staff and act as his legate, and even to go on a mission at state expense. But the latter does not give sufficient security, since it depends too much on the scrupulousness of Clodius and removes me just when my brother is returning; the former offers better security, and does not prevent my returning when I wish. I am retaining the latter, but do not think I shall use it. However, nobody knows about it. I don't like running away; I am longing to fight. There is great warmth of feeling for me. But I don't say anything positive: you will please not mention it.`
+    ],
+    what:`59 BC — the year Caesar was consul and the First Triumvirate (Caesar, Pompey, Crassus) was at its most aggressive. Caesar is forcing through land laws over senatorial opposition; opponents are being intimidated. Atticus, Cicero's closest friend, is abroad, and Cicero is writing privately about how suffocated everything feels.`,
+    why:`Cicero is politically paralysed. He can't speak freely in public, he's been sidelined, and he's miserable. He's also wrestling with what to do about Caesar's offer: join his military staff in Gaul, which would get Cicero out of Rome but would look like collaboration with the Triumvirate.`,
+    odd:`Caesar's offer: Caesar has invited Cicero to be his legate (deputy) in Gaul, or take a diplomatic mission at public expense. Both options get Cicero out of Rome — convenient for Caesar, who neutralises a critic. The reference to Clodius: Clodius Pulcher was Cicero's arch-enemy who would engineer his exile (58 BC). "Nobody knows about it" — Cicero keeps the offer secret because even considering it would look like capitulation.`,
+    style:[
+      {dev:'Confession / self-reproach',q:'"I am dissatisfied with myself, and cannot write without the greatest pain."',a:"This frank admission would be unthinkable in a speech. It shows the unique register of the Atticus letters — Cicero's most vulnerable, honest voice."},
+      {dev:'Generalisation',q:'"everyone groans over the situation, yet no one speaks against it"',a:'The broad "everyone" creates a portrait of Roman society as collectively paralysed and complicit in its own repression.'},
+      {dev:'Short, clipped sentences',q:'"I don\'t like running away; I am longing to fight."',a:'Short, punchy clauses placed side by side with no elaboration — the rhythm mirrors Cicero\'s restless internal conflict.'},
+      {dev:'Political geography',q:'"conversation, at least in society and at dinner tables, is freer than it was"',a:'Public speech is suppressed; private dinner conversation is freer — political expression has been driven underground.'},
+      {dev:'Libertas as key term',q:'"there is now no hope of the magistrates, or indeed private citizens, ever being free"',a:'Libertas is framed not as inconvenience but as constitutional catastrophe — revealing Cicero\'s whole political worldview.'},
+    ],
+    quickFacts:[
+      {label:'Who wrote it?', val:'Cicero'},
+      {label:'To whom?', val:'Atticus (in Epirus)'},
+      {label:'Where was Cicero?', val:'Rome'},
+      {label:'Date', val:'59 BC'},
+    ],
+    tenQ:{
+      q:'How does Cicero convey the political atmosphere in Rome in this letter?',
+      points:[
+        '"Held down on all sides" — vivid language of entrapment establishes oppression from the opening',
+        'The contrast between public silence and freer private dinner-table conversation shows how political speech has been forced underground',
+        '"Everyone groans, yet no one speaks against it" — generalisation creates a portrait of collective complicity and fear',
+        'Libertas used as a key term: "no hope of the magistrates, or indeed private citizens, ever being free" — frames the Triumvirate as constitutional catastrophe',
+        'The secret offer from Caesar — kept from everyone — shows how dangerous and delicate political choices had become',
+      ]
+    },
+    thirtyQ:`A key letter for essays about the impact of the First Triumvirate on political freedom, and for showing the contrast between Cicero's public and private voices. The Atticus letters as a source type should be discussed.`,
+  },
+  {
+    id:'fam24', ref:'Fam. 2.4', yr:53, yrLbl:'53 BC', dotRow:0,
+    recipient:'Curio', loc:'Rome', nearEvent:'Crassus dies at Carrhae (53 BC)',
+    tone:'Witty, self-aware, carefully guarded',
+    topic:"A letter about why it's impossible to write an honest letter right now",
+    themes:['Loss of free speech','Political repression','Epistolary form','Amicitia','Libertas'],
+    text:[
+      `As you know, there are many types of letters, but there is one kind that is unmistakable, and this is the reason that letters were invented. Indeed, letter-writing was invented so that we might inform those absent if there was anything they should know, or that we ourselves should know. This type of letter you would not expect to receive from me. In regards to your home affairs, you have writers and messengers. As for my own affairs, they are without anything new. There remain two types of letter which greatly delight me; one familiar and funny, the other serious and grave. Which of the two would be less suitable, I do not know. Am I to joke with you by letter? By Hercules! I do not think there could be a good citizen who is able to laugh at this time. Am I to write something more serious? What could Cicero write to Curio about which could be more serious than the republic? But on this subject, my case is this; I do not dare to write what I feel, and I do not wish to write what I don't feel.`,
+      `Since, then, there is no theme left for a letter, I shall fall back upon my usual words and urge you to aim for the highest praise. For you have a serious rival here, firmly established and prepared for you, in the extraordinary expectations which people have of you. This rival you will easily overcome if you do one thing; that is, by deliberately developing, with continuous effort, the necessary qualities with which you will achieve your purpose.`,
+      `On these thoughts I would write more, if I were not confident that you are eager enough on your own! And if I have mentioned this subject, it is not to inflame your ambitions, but to demonstrate my love for you.`
+    ],
+    what:`53 BC — a year of serious political violence in Rome. Crassus has just died at Carrhae (breaking the Triumvirate). The consular elections have repeatedly collapsed because of street gang violence. Curio is a young politician, at this point friendly with Cicero — though he later defects to Caesar (49 BC).`,
+    why:`Cicero wants to stay in touch with Curio and encourage him, but he can't discuss politics honestly — too dangerous to commit real views to writing. So the letter becomes a witty, self-aware reflection on the impossibility of writing the letter he actually wants to write.`,
+    odd:`The three types of letter: Cicero explains that letters can be (1) informational — nothing to report; (2) funny — inappropriate given the crisis; (3) serious — too dangerous to write honestly. He's therefore written a letter about why he can't write any of those letters. The line "I do not dare to write what I feel, and I do not wish to write what I don't feel" is one of the most quoted in the whole course. Curio's later defection to Caesar adds retrospective irony.`,
+    style:[
+      {dev:'Central paradox',q:'"I do not dare to write what I feel, and I do not wish to write what I don\'t feel."',a:'The intellectual heart of the letter — two parallel clauses that trap Cicero between dangerous honesty and dishonesty that is beneath him.'},
+      {dev:'Rhetorical questions',q:'"Am I to joke with you by letter? By Hercules! Am I to write something more serious?"',a:'Rather than stating "things are terrible," Cicero uses questions to arrive at the same conclusion — letting the reader draw the inference.'},
+      {dev:'Repeated opening (repetition)',q:'"Am I to joke...Am I to write..."',a:'The repeated opening creates a rhetorical rhythm — an orator working through options and dismissing each one.'},
+      {dev:'The letter as its own subject',q:'"there are many types of letters...This type of letter you would not expect to receive from me"',a:'By discussing what he cannot write, Cicero effectively communicates the political constraints without stating them directly.'},
+      {dev:'Warm close',q:'"it is not to inflame your ambitions, but to demonstrate my love for you"',a:'After the politically charged opening, Cicero retreats into the personal — friendship as a safe harbour when political speech is impossible.'},
+    ],
+    quickFacts:[
+      {label:'Who wrote it?', val:'Cicero'},
+      {label:'To whom?', val:'Gaius Scribonius Curio'},
+      {label:'Where was Cicero?', val:'Rome'},
+      {label:'Date', val:'53 BC'},
+    ],
+    tenQ:{
+      q:'How does Cicero convey the difficulty of writing freely in this letter?',
+      points:[
+        'The central paradox — "I do not dare to write what I feel, and I do not wish to write what I don\'t feel" — states the problem directly and memorably',
+        'The taxonomy of letter types (informational, funny, serious) is a rhetorical structure that lets Cicero dismiss all options and communicate his paralysis indirectly',
+        'Rhetorical questions ("Am I to joke?") allow him to raise and rule out topics without committing to a position — a safe political strategy',
+        'The way the letter turns itself into its own subject is itself the message: by discussing what he can\'t write, Cicero effectively writes about it',
+        'The warm personal close shows friendship as the only safe ground when political discourse is impossible',
+      ]
+    },
+    thirtyQ:`A key letter for essays about free speech and political repression. The way Cicero turns the letter into its own subject is unique in the corpus and shows him using form as content. Curio's later defection adds irony.`,
+  },
+  {
+    id:'fam211', ref:'Fam. 2.11', yr:50, yrLbl:'50 BC', dotRow:0,
+    recipient:'Caelius', loc:'Laodicea, Cilicia', nearEvent:'Civil war looming (Caesar vs. Pompey)',
+    tone:'Informal, homesick, gently comic',
+    topic:"Cicero moans about being stuck in Cilicia; the panther problem",
+    themes:['Provincial governorship','Dignitas','Political ethics','Amicitia','Civil war looming'],
+    text:[
+      `Would you have ever thought it possible that my words would fail me, and not only the oratorical sort, but common vernacular language? They do fail me, and for this reason: I am extraordinarily anxious about what will be decided about the provinces. It is surprising how I long for Rome, you cannot believe how I long for my friends, in particular yourself. As for the province, it bores me, either because I have gained fame, to such an extent I do not desire to increase it, rather to fear its reversal; or, because it is not worthy of a man of my dignity, who before can and has borne heavier burdens to serve the state; or because I fear great war hanging over us, that I seem likely to escape if I leave on the appointed day.`,
+      `Now, about the panthers; it is being carefully attended to, as per my orders, by those who are accustomed to hunting them. There are, however, very few, and those there are, I am told, complain that in my province they are the only living creatures for whom traps are set. So it has been decided that they should leave the province for Caria. But still, attempts are being made, in particular by Patiscus. Whatever comes to hand will be yours, but how many it will be, I do not know.`,
+      `By the Gods, your aedileship is of great concern to me. This day reminds me of it, because I write this on the day of the Megalensia itself. I would like you to write carefully about the entire political situation, for I shall regard that which I get from you to be the most trustworthy information.`
+    ],
+    what:`April 50 BC. Cicero is serving as governor of Cilicia in southern Asia Minor — a duty he was given against his wishes. He's been away from Rome for most of a year. His friend Marcus Caelius Rufus is in Rome and is running for the position of aedile (the magistrate responsible for public games and buildings).`,
+    why:`Cicero is desperate to get home. He's anxious about Roman politics and worried he'll be stranded in Cilicia when the looming conflict between Caesar and Pompey breaks out. He also needs news from Rome — and trusts Caelius to give him the real picture.`,
+    odd:`The panthers: as aedile, Caelius would organise public games including wild animal hunts (venationes). He had asked Cicero to source some panthers from Cilicia. Cicero reports with gentle humour that there are very few — apparently they've realised they're being hunted and moved to a neighbouring region (Caria). The comic personification ("they complain...") politely explains why he can't fully deliver. The Megalensia was a Roman spring festival (4 April) for the goddess Cybele, with public games — hence why Caelius's aedileship is on Cicero's mind.`,
+    style:[
+      {dev:'Self-deprecating wit',q:'"Would you have ever thought it possible that my words would fail me?"',a:'The greatest orator in Rome, opening with a joke about having nothing to say — signals an informal register while conveying genuine distress.'},
+      {dev:'Comic personification',q:'"those there are, I am told, complain that in my province they are the only living creatures for whom traps are set"',a:"Giving the panthers a voice — they 'complain' — is gently funny and lets Cicero decline Caelius's request without a flat refusal."},
+      {dev:'Three-part list of reasons',q:'"either because I have gained fame...or because it is not worthy of a man of my dignity...or because I fear great war"',a:'Three parallel reasons for hating his governorship — the three-part list is a favourite Ciceronian structure.'},
+      {dev:'Dignitas',q:'"not worthy of a man of my dignity, who before can and has borne heavier burdens to serve the state"',a:'Cicero explicitly invokes his own rank to frame the governorship as beneath him — being away from Rome was, for him, a form of irrelevance.'},
+      {dev:'Request for political intelligence',q:'"I shall regard that which I get from you to be the most trustworthy information"',a:'Flattering Caelius serves a practical purpose: maintaining an information network in Rome while stuck abroad.'},
+    ],
+    quickFacts:[
+      {label:'Who wrote it?', val:'Cicero'},
+      {label:'To whom?', val:'Marcus Caelius Rufus (in Rome)'},
+      {label:'Where was Cicero?', val:'Laodicea, Cilicia (governor)'},
+      {label:'Date', val:'4 April 50 BC'},
+    ],
+    tenQ:{
+      q:'How does Cicero show his feelings about his provincial governorship in this letter?',
+      points:[
+        'The opening joke about words failing him — from the greatest orator in Rome — signals genuine emotional displacement beneath the humour',
+        '"Not worthy of a man of my dignity" — explicit invocation of dignitas frames the governorship as beneath him',
+        'The three-part list of reasons for his boredom (fame, dignity, fear of war) shows the depth and variety of his discomfort',
+        'The panther passage — comic and diplomatic — shows Cicero keeping his principles even while being playful: he won\'t exploit provincial resources',
+        'The urgent request for political news reveals his anxiety about missing the coming crisis from a distance',
+      ]
+    },
+    thirtyQ:`Useful for essays about Cicero's relationship to Rome and political relevance, and for showing that the informal letters to friends (as opposed to the Atticus letters) have their own political significance.`,
+  },
+  {
+    id:'att88', ref:'Att. 8.8', yr:49, yrLbl:'Feb 49 BC', dotRow:0,
+    recipient:'Atticus', loc:'Formiae', nearEvent:'Caesar crosses the Rubicon (January 49 BC)',
+    tone:'Anguished, bitter, barely controlled',
+    topic:"Fury and despair at Pompey's shameful retreat from Italy",
+    themes:['Civil War','Pompey\'s failure','Honour','Cicero\'s despair','Republican collapse'],
+    text:[
+      `Oh what a dishonourable and therefore miserable thing! For I feel that misery lies mainly or solely in dishonour. He developed Caesar, then he suddenly began to fear him; he rejected all offers of peace; he made no preparations for war; he left Rome; he was to blame for the loss of Picenum; he confined himself in Apulia; he went to Greece; leaving us all without a word, or letting us in on his extraordinary plan upon which so much depended. Suddenly, a letter came to him and his Consuls from Domitius. It seemed to me to be as though the light of honour flashed from Pompey's eyes, and the real man he ought to be exclaimed:`,
+      `"So let them scheme as they must,
+And attempt every trick,
+Yet right is on my side."`,
+      `But Pompey bids a long goodbye to honour, and proceeds for Brundisium. As for Domitius, they say upon hearing this, he and those with him surrendered. Oh, what a terrible business! I am too distressed to write much more – I hope for your letters.`
+    ],
+    what:`23 February 49 BC. Caesar crossed the Rubicon in January and civil war has begun. Pompey has been a disaster: he abandoned Rome without a fight, retreated south, and is now heading to Brundisium to cross to Greece. His general Domitius Ahenobarbus tried to hold Corfinium but was surrounded and had to surrender. Cicero is at his villa near Naples, watching events from a distance.`,
+    why:`Cicero had backed Pompey as the champion of the Republican cause — and Pompey has let him down catastrophically. This is a private outpouring of anger and grief to his closest friend.`,
+    odd:`The poetic quotation: when a letter arrives from Domitius urging Pompey to fight, Cicero imagines a moment where honour "flashes" in Pompey's eyes — and quotes what sounds like lines from a Greek tragedy, the voice of the Pompey who could have existed. But then reality: Pompey ignores Domitius and heads for Brundisium anyway. The contrast between imagined honour and actual flight is devastating. Domitius Ahenobarbus was a committed Optimate who tried to resist Caesar alone when Pompey would not.`,
+    style:[
+      {dev:'Repeated accusation (repetition)',q:'"He developed Caesar...he rejected all offers of peace...he made no preparations for war...he left Rome..."',a:'Relentless repetition of "he" creates a devastating charge sheet — each clause a new accusation, building breathlessly.'},
+      {dev:'Poetic quotation',q:'"So let them scheme as they must, / And attempt every trick, / Yet right is on my side."',a:'The quoted verse represents the Pompey who should have existed — a moment of imagined honour immediately extinguished by reality.'},
+      {dev:'Build-up then sudden collapse',q:'"the light of honour flashed from Pompey\'s eyes...But Pompey bids a long goodbye to honour"',a:'The dramatic rise and immediate collapse — Pompey almost became the hero, then chose not to. The contrast makes the failure feel all the sharper.'},
+      {dev:'Abrupt ending',q:'"I am too distressed to write much more."',a:'The writing simply stops — the abrupt end enacts the despair it describes, as expressive as everything that preceded it.'},
+      {dev:'Abstract noun as moral framework',q:'"misery lies mainly or solely in dishonour"',a:'Cicero frames the whole catastrophe as a moral failure first — losing the war is bad, dishonour is worse.'},
+    ],
+    quickFacts:[
+      {label:'Who wrote it?', val:'Cicero'},
+      {label:'To whom?', val:'Atticus'},
+      {label:'Where was Cicero?', val:'Formiae (his villa)'},
+      {label:'Date', val:'23 February 49 BC'},
+    ],
+    tenQ:{
+      q:'How does Cicero convey his feelings about Pompey in this letter?',
+      points:[
+        'Anaphoric charge sheet — the list of "he...he...he..." creates a relentless rhetorical indictment, each clause a new failure',
+        'The poetic quotation creates a devastating contrast: the Pompey who could have been honourable vs. the man who actually fled',
+        'The build-up then sudden collapse — the "light of honour" moment is immediately extinguished by "Pompey bids a long goodbye to honour" — the fall is felt all the more sharply',
+        '"Misery lies mainly or solely in dishonour" — the moral framework is clear: the military defeat matters less than the shame',
+        'The abrupt, trailing-off ending ("too distressed to write") enacts the despair Cicero is describing',
+      ]
+    },
+    thirtyQ:`Essential for essays about Pompey's character and the civil war. Also useful for showing how Cicero processes political trauma through literary allusion, and for the question of Cicero as a source on events he's watching from a distance.`,
+  },
+  {
+    id:'att94', ref:'Att. 9.4', yr:49, yrLbl:'Mar 49 BC', dotRow:1,
+    recipient:'Atticus', loc:'Formiae', nearEvent:'Three weeks after Caesar crosses the Rubicon',
+    tone:'Reflective, philosophical, quietly desperate',
+    topic:"A list of philosophical questions about duty, tyranny and resistance — Cicero's way of coping",
+    themes:['Political philosophy','Tyranny and libertas','Indecision','Duty vs. safety','Civil War'],
+    text:[
+      `Though I do not relax nowadays, except while I am writing to you or reading your letters, I still feel at a loss for subject-matter for a letter and I believe that you feel the same. The easy, personal exchanges we are used to are out of the question in these critical times, and we have already exhausted every topic relating to the crisis. However, so as not to succumb completely to morbid reflection, I have put down certain questions relating to political behaviour which apply to the present crisis.`,
+      `Should one stay in one's country if it is under oppressive rule? Is it justifiable to use any means to get rid of such rule, even if they endanger the fabric of the state? Secondly, do precautions have to be taken to prevent the liberator becoming a tyrant himself?`,
+      `If one's country is under such rule, what are the arguments in favour of helping it by words rather than by war?`,
+      `Is it statesmanlike when one's country is under a tyranny to retire to some other place and remain there inactive, or should you face danger in order to free it?`,
+      `If one's country is under a tyranny, is it right to concede to its invasion or blockade? Should you, even if not in agreement with war as a means of abolishing tyranny, join up with the right-minded party in order to fight against it?`,
+      `Should one in matters which concern one's country share the dangers of one's benefactors and friends, even if their policy seems to be without wisdom?`,
+      `If one has done great service to one's country, and because of this received spiteful and jealous treatment, should one nevertheless voluntarily endanger oneself for the sake of one's country? Or is it legitimate to eventually have some thought for oneself and one's family, and to cease fighting against the people in power?`
+    ],
+    what:`12 March 49 BC — three weeks after Att. 8.8. Caesar is advancing; Pompey has crossed to Greece. Cicero is stuck at home, unable to decide what to do. He and Atticus have "already exhausted every topic" about the crisis, so Cicero writes a list of philosophical questions instead.`,
+    why:`Every question maps onto his personal situation: should he stay in Italy under Caesar? Should he join a war he thinks is poorly led? Has he done enough for Rome already? The philosophical form gives him intellectual cover for what are really very personal calculations.`,
+    odd:`This reads like a Greek philosophical exercise — Cicero processed political problems through frameworks from Plato, Aristotle, and the Stoics. The question "do precautions have to be taken to prevent the liberator becoming a tyrant himself?" is extraordinary — written in 49 BC, it anticipates exactly what happens after Caesar's assassination in 44 BC. The conspirators kill the tyrant and create a vacuum that Antony and Octavian fill.`,
+    style:[
+      {dev:'Chain of questions',q:'"Should one stay in one\'s country if it is under oppressive rule?"',a:'The chain of questions creates a philosophical exercise — abstract in form but each one a direct reflection of Cicero\'s personal situation.'},
+      {dev:'Prescient question',q:'"do precautions have to be taken to prevent the liberator becoming a tyrant himself?"',a:'Written in 49 BC, this anticipates exactly the problem after 44 BC — the conspirators remove one tyrant only to enable another.'},
+      {dev:'Admission of writing as therapy',q:'"so as not to succumb completely to morbid reflection, I have put down certain questions"',a:'Cicero admits he is writing these questions as a coping mechanism — unusually honest and humanising for so public a figure.'},
+      {dev:'Personal question barely disguised',q:'"is it legitimate to eventually have some thought for oneself and one\'s family?"',a:'The last question is barely disguised self-justification for inaction — the philosophical framing provides cover for what is really self-interest.'},
+      {dev:'Dependence on Atticus',q:'"I do not relax nowadays, except while I am writing to you or reading your letters"',a:'The letters themselves are Cicero\'s only comfort — the correspondence is a lifeline, not just information exchange.'},
+    ],
+    quickFacts:[
+      {label:'Who wrote it?', val:'Cicero'},
+      {label:'To whom?', val:'Atticus'},
+      {label:'Where was Cicero?', val:'Formiae (his villa)'},
+      {label:'Date', val:'12 March 49 BC'},
+    ],
+    tenQ:{
+      q:'How does Cicero use philosophical questions to explore his situation in this letter?',
+      points:[
+        'Each question maps directly onto his personal dilemma — "should one stay in one\'s country under oppressive rule?" is literally Cicero\'s situation',
+        'The prescient question about the liberator becoming a tyrant shows extraordinary political insight — it anticipates the post-44 BC crisis',
+        'The admission ("so as not to succumb to morbid reflection") that he is writing as therapy is humanising and revealing',
+        'The final question about thinking of oneself and one\'s family is barely disguised self-justification for inaction — philosophy as cover for self-interest',
+        'The contrast with Att. 8.8 (three weeks earlier, raw anger) shows how quickly Cicero\'s register shifted when he needed to process differently',
+      ]
+    },
+    thirtyQ:`Key for essays about tyranny, libertas, and Cicero's political philosophy. The prescient question about liberators becoming tyrants is highly significant for the whole arc of the late Republic.`,
+  },
+  {
+    id:'att911a', ref:'Att. 9.11a', yr:49, yrLbl:'Mar 49 BC', dotRow:2,
+    recipient:'Caesar', loc:'Formiae', nearEvent:'Civil war — Caesar advancing through Italy',
+    tone:'Diplomatically polished, carefully flattering',
+    topic:"Declining to come to Rome; offering himself as a neutral peacemaker instead",
+    themes:['Civil War','Cicero as mediator','Neutrality','Caesar\'s clementia','Amicitia'],
+    text:[
+      `When I received your letter from our friend Furnius, in which you asked me to come to Rome, I was not so much surprised that you wanted my 'advice and status', but I asked myself, however, what you meant by 'influence and help'. Hope, however, led me to think that, due to your singular wisdom and outstanding statesmanship, you might want to pursue negotiations for peace and civic harmony. For this end, I consider myself suitable enough by nature and personality. If it is so, if you care to preserve our friend Pompey and reconcile him to the republic, you will find no one better suited to the cause than I am.`,
+      `When speaking with him and the senate I always advocated peace at the first opportunity. When arms were taken up, I had no part in the war. My considered opinion is that the war involved an infringement of your rights, in view of the opposition, by envious and unfriendly people, to an honour conferred upon you by the Roman people.`,
+      `But as then I not only supported your position myself, but urged others to come to your aid, so at the present moment I am strongly moved by consideration for the position of Pompey. It is some years since I chose you two to cultivate above all others, as what you still are, my very dear friends.`,
+      `Accordingly I ask you, I beg and implore you will all my heart, to spare some time, amidst your great concerns, to consider how by virtue of your kindness, I can best behave well, gratefully and loyally to Pompey, so as to remember my obligation to him. If this request concerned only me, I should still hope you would grant my request; I believe, however, that your honour and the republic is also at stake as I – a friend of peace and of you both – should be preserved by you as the most appropriate agent for restoring harmony between you two and among the citizen body.`,
+      `I thanked you before for saving Lentulus, who had saved me. But now I have read the letter which he has sent me, full of thanks for your kindness and generosity in rescuing him, in rescuing him you have rescued me too. If my gratitude to Lentulus is apparent to you, then I beg that I am able to show the same to Pompey.`
+    ],
+    what:`19–20 March 49 BC. Caesar has invited Cicero to come to Rome — implicitly wanting his visible prestige to lend legitimacy to his regime. Cicero doesn't want to go, but can't ignore one of the most powerful men alive. This letter is his diplomatic response.`,
+    why:`Cicero is trying to find a middle path: he won't actively support Caesar, but he wants to avoid becoming his enemy. His solution is to present himself as uniquely suited to be a neutral peacemaker. He's also genuinely trying to protect Pompey — asking Caesar not to harm him.`,
+    odd:`The Lentulus chain: Cornelius Lentulus Spinther was one of the people who campaigned for Cicero's recall from exile (57 BC) — so Cicero owes him a deep personal debt. Caesar recently showed Lentulus clementia (mercy) rather than punishing him. Cicero uses this as a precedent: "you've already been generous to someone I owe everything to — please extend the same mercy to Pompey." The letter was almost certainly written knowing it might circulate more widely than Caesar alone.`,
+    style:[
+      {dev:'Flattery as persuasion',q:'"due to your singular wisdom and outstanding statesmanship"',a:"Praises Caesar extravagantly but the flattery is instrumental — Cicero attributes to Caesar a policy (peace negotiations) that he wants Caesar to adopt."},
+      {dev:'Three escalating verbs',q:'"I ask you, I beg and implore you with all my heart"',a:'Three escalating words for asking — the list builds urgency while keeping a formally rhetorical tone.'},
+      {dev:'Self-presentation as indispensable',q:'"you will find no one better suited to the cause than I am"',a:'Cicero frames himself as the perfect mediator — a role that keeps him relevant without requiring him to take sides.'},
+      {dev:'Appeal to self-interest',q:'"your honour and the republic is also at stake"',a:"Protecting Cicero as a neutral figure is actually in Caesar's interest — an appeal to self-interest disguised as a moral argument."},
+      {dev:'Chain of obligation',q:'"in rescuing him you have rescued me too"',a:'Lentulus saved Cicero; Caesar saved Lentulus — a rhetorical construction that creates personal debt and tries to extend it to cover Pompey.'},
+    ],
+    quickFacts:[
+      {label:'Who wrote it?', val:'Cicero'},
+      {label:'To whom?', val:'Julius Caesar'},
+      {label:'Where was Cicero?', val:'Formiae (his villa)'},
+      {label:'Date', val:'19–20 March 49 BC'},
+    ],
+    tenQ:{
+      q:'How does Cicero try to persuade Caesar in this letter?',
+      points:[
+        'Extravagant flattery ("singular wisdom and outstanding statesmanship") — instrumental praise that attributes to Caesar the policy Cicero wants him to pursue',
+        'Presents himself as indispensable mediator — "you will find no one better suited" — creating a role that keeps him relevant without committing to Caesar\'s side',
+        'Appeals to Caesar\'s self-interest and dignitas — protecting Cicero as a neutral figure will make Caesar look magnanimous and statesmanlike',
+        'Three escalating words for asking — "I ask, I beg, I implore" — build urgency while keeping a formally rhetorical tone',
+        'The Lentulus precedent: Caesar has already shown clemency to someone Cicero owes a great debt — the letter extends this logic to cover Pompey',
+      ]
+    },
+    thirtyQ:`Key for essays about clementia, Cicero's neutrality during the civil war, and the contrast between his private views (Att. 8.8) and his public diplomatic voice. The most carefully crafted letter in the corpus.`,
+  },
+  {
+    id:'att1340', ref:'Att. 13.40', yr:45, yrLbl:'Aug 45 BC', dotRow:0,
+    recipient:'Atticus', loc:'Tusculum', nearEvent:"Caesar's dictatorship (dictator perpetuo, 44 BC)",
+    tone:'Sarcastic, bitter, restlessly indecisive',
+    topic:"Mocking Brutus's naivety about Caesar; can't decide whether to go to Rome",
+    themes:["Caesar's dictatorship","Optimate decline","Cynicism","Foreshadowing of assassination","Political paralysis"],
+    text:[
+      `Indeed? Brutus reports that Caesar has joined the Optimates? Good news! But where is he going to find them – unless he hangs himself? As for Brutus, how foolish of him to say such a thing! Where is that artwork of yours I saw in the Parthenon with Ahala and Brutus as Consuls?`,
+      `But what can he do? I was very pleased to read that 'not even the man who had begun the whole criminal business had a good word to say about our nephew'. I feared that even Brutus liked him. For that seemed the meaning of the sentence in his letter to me: 'But I could wish that you had a taste of his conversations with me.' But, as you say, more of this when we are face to face.`,
+      `But what do you advise? Am I to remain here or fly off to Rome? I am immersed in my books and I do not want to receive him here. I hear that today his father went off to meet him at Saxa in a very bad temper; I rebuked him! But I am chopping and changing this way and that myself – so we must wait and see.`,
+      `See what you think about my coming to Rome and let me hear the whole business tomorrow morning so that I know them immediately.`
+    ],
+    what:`August 45 BC — Caesar is dictator, the Republic is effectively over, and Cicero has been pardoned for having supported Pompey. He's living as a private citizen, writing philosophy at his country villas. His friend Brutus has apparently told him that Caesar has been aligning himself with the Optimates. Cicero finds this absurd.`,
+    why:`Cicero is politically marginalised and deeply sceptical. He doesn't believe Caesar has any genuine republican sympathies. He's also being asked whether to come to Rome — presumably to be seen socialising with Caesar's circle — and can't decide. Going would look like approval; staying away has its own costs.`,
+    odd:`"Unless he hangs himself": the real Optimate leadership (Pompey, Cato, Domitius) are all dead. For Caesar to "join" the Optimates, he would himself have to die. This dark joke — written eight months before the Ides of March (44 BC) — is extraordinary in retrospect. The reference to the artwork ("Ahala and Brutus"): Gaius Servilius Ahala was a Roman hero who killed a would-be tyrant. By mentioning the artwork linking Brutus to Ahala, Cicero may be quietly gesturing to Brutus's historical heritage as a tyrannicide.`,
+    style:[
+      {dev:'Sarcasm',q:'"Indeed? Brutus reports that Caesar has joined the Optimates? Good news!"',a:'"Good news!" drips with irony — Cicero clearly disbelieves it entirely. The sarcastic opening immediately sets the bitter, private tone.'},
+      {dev:'Dark humour / foreshadowing',q:'"But where is he going to find them – unless he hangs himself?"',a:'Written eight months before the Ides of March — the casual dark joke accidentally anticipates the conspirators\' logic.'},
+      {dev:'Direct speech',q:'"\'But I could wish that you had a taste of his conversations with me.\'"',a:"Quoting Brutus's letter directly creates intimacy and immediacy — we feel as if reading the private exchange ourselves."},
+      {dev:'Self-aware indecision',q:'"I am chopping and changing this way and that myself"',a:'Frank acknowledgement of his own vacillation in short colloquial language — the paralysis of an active man with nowhere to act.'},
+      {dev:'Short, rapid commands',q:'"See what you think...let me hear the whole business tomorrow morning"',a:'Short, rapid clauses with no elaborate structure mirror Cicero\'s anxious restlessness — a rush of instructions.'},
+    ],
+    quickFacts:[
+      {label:'Who wrote it?', val:'Cicero'},
+      {label:'To whom?', val:'Atticus'},
+      {label:'Where was Cicero?', val:'Tusculum (his villa)'},
+      {label:'Date', val:'17 August 45 BC'},
+    ],
+    tenQ:{
+      q:"How does Cicero reveal his attitude towards Caesar and the political situation in this letter?",
+      points:[
+        'Sarcasm from the very first line ("Good news!") establishes contempt for the idea that Caesar could genuinely align with the Optimates',
+        'The dark joke — "unless he hangs himself" — shows Cicero understands that Caesar\'s rule can only end with Caesar\'s death; a chilling implicit logic',
+        'Criticism of Brutus for naivety contrasts Cicero\'s sharp political realism with others\' apparent gullibility',
+        '"I am chopping and changing this way and that myself" — the acknowledged indecision shows the paralysis of a politically sidelined man under a dictatorship',
+        'The whole letter is written in an urgent, clipped, private register — showing the contrast between this unguarded private voice and any public stance Cicero might take',
+      ]
+    },
+    thirtyQ:`Key for essays about Caesar's dictatorship and the decline of the Optimates. The foreshadowing of the assassination, and Cicero's sidelining as a political actor, make this letter central to the end of the Republic.`,
+  },
+  {
+    id:'att144', ref:'Att. 14.4', yr:44, yrLbl:'Apr 44 BC', dotRow:0,
+    recipient:'Atticus', loc:'Lanuvium', nearEvent:'One month after the Ides of March (15 March 44 BC)',
+    tone:'Disillusioned, anxious, mixed relief and despair',
+    topic:"The assassination was glorious — but nothing has actually been fixed",
+    themes:['Ides of March','Libertas','Idealism vs. reality','Post-Caesar uncertainty','Civil war fears'],
+    text:[
+      `Now, what do you think I hear in Lanuvium? In contrast, I suspect there in Rome you hear news every day. Things are boiling up, if Matius talks like that, what do you think the rest will do? On my part I am sorry that what has happened is unprecedented in a state; that freedom has been restored without a free state. It is horrible what talk and threats there are. Also, I am afraid of wars in Gaul and where Sextus will end up.`,
+      `Yet come all, the Ides of March console us. Our heroes achieved all they were able, gloriously and magnificently. The things which remain, they require men and money; of which we have none. This from me to you – if you have any news (for I expect you hear some every day) send it to me. If you have nothing, nevertheless do not interrupt our custom. I shall not.`
+    ],
+    what:`10 April 44 BC — less than a month after Caesar's assassination on the Ides of March (15 March). The conspirators had expected the Senate and people to rally and restore the Republic. Instead, political uncertainty is deepening: Mark Antony is manoeuvring to fill the power vacuum, Caesar's veterans are restless, and the conspirators have no real plan for what comes next. Cicero is at his villa at Lanuvium, cut off from day-to-day news.`,
+    why:`Cicero supported the assassination and is glad Caesar is dead. But he's deeply frustrated that it hasn't led to the restoration he hoped for. The conspirators were heroic but had no follow-through: no army, no money, no political programme. He wants news from Atticus and is trying to make sense of what happens next.`,
+    odd:`Matius: a mutual friend of Caesar and Cicero who was apparently expressing strong pro-Caesarian views in public after the assassination — a sign of how volatile the situation was. Sextus Pompey (son of Pompey the Great) was in Spain with an army, a potential further flashpoint. "Freedom restored without a free state" is the central paradox: the tyrant is dead, but the republican institutions hadn't survived long enough to function on their own.`,
+    style:[
+      {dev:'Contrast',q:'"freedom has been restored without a free state"',a:'"Freedom restored" (what the conspirators achieved) against "without a free state" (what they failed to create) — one of the most important quotations in the course.'},
+      {dev:'Vivid metaphor',q:'"Things are boiling up"',a:'The image of boiling — heat, pressure, imminent explosion — conveys dangerous political tension in one colloquial phrase.'},
+      {dev:'Praise undercut by blunt reality',q:'"Our heroes achieved all they were able, gloriously and magnificently. The things which remain, they require men and money; of which we have none."',a:'The glowing praise is immediately undercut by "of which we have none" — short and blunt, making the failure land with maximum force.'},
+      {dev:'Consolation (not triumph)',q:'"the Ides of March console us"',a:'"Console" rather than "triumph" — the word choice admits things have not gone to plan. Cold comfort, not victory.'},
+      {dev:'Insistence on correspondence',q:'"If you have nothing, nevertheless do not interrupt our custom. I shall not."',a:'Even without news, keep writing — the correspondence itself matters as an emotional and intellectual lifeline.'},
+    ],
+    quickFacts:[
+      {label:'Who wrote it?', val:'Cicero'},
+      {label:'To whom?', val:'Atticus'},
+      {label:'Where was Cicero?', val:'Lanuvium (his villa)'},
+      {label:'Date', val:'10 April 44 BC'},
+    ],
+    tenQ:{
+      q:'How does Cicero express his mixed feelings about the aftermath of the Ides of March?',
+      points:[
+        '"Freedom has been restored without a free state" — the contrast captures both the achievement and the failure in a single elegant formulation',
+        '"The Ides of March console us" — "console" rather than "triumph" signals mixed feelings: support for the act alongside disappointment at the outcome',
+        'The praise is immediately undercut — "gloriously and magnificently...of which we have none" — the blunt admission of failure makes the shortfall land all the harder',
+        '"Things are boiling up" — the vivid metaphor of boiling conveys ongoing danger and political instability despite the assassination',
+        'The urgent request for news from Atticus shows Cicero\'s isolation and anxiety — he is cut off from the political centre at the worst possible moment',
+      ]
+    },
+    thirtyQ:`Central to any essay about the Ides of March, the conspirators' failure to plan for the aftermath, and the gap between Cicero's republican idealism and political reality. "Freedom restored without a free state" is one of the course's key quotations.`,
+  },
+  {
+    id:'fam1028', ref:'Fam. 10.28', yr:43, yrLbl:'Feb 43 BC', dotRow:0,
+    recipient:'Trebonius', loc:'Rome', nearEvent:'The Philippics against Antony (44–43 BC)',
+    tone:'Warm, darkly witty, self-confident',
+    topic:"Mock-reproach that Antony wasn't killed too; Cicero's role reviving the Senate",
+    themes:["Cicero as defender of Republic","Antony as threat","Senate revival","Ides of March","Octavian"],
+    text:[
+      `How I would have liked you to have invited me to that most beautiful feast on the Ides of March! We should have had nothing remaining. But with matters as they are, the heavenly service you have given to the republic is qualified by some grumbling. Truly, the fact that this curse of the country was taken out of the way by you – the most loyal of men – and thanks to your generosity, is still alive, makes me a little angry with you at times (although it is hardly right!). Since you have left more trouble for me to deal with by myself, than for the rest of the world put together!`,
+      `For as soon as the Senate could be held freely after the most dishonourable departure of Antony, I resumed my old spirit, which you and that most patriotic citizen, your father, have always praised and loved. For, when the tribune of the plebs had summoned the senate on the 20th of December and were putting another question to the house, I reviewed the whole constitutional situation and spoke with intense spirit rather than eloquence. I restored to the weary, wilting senate its ancient and traditional valour. That day, my intense pleading gave the Roman people hope of recovering their freedom. From that time, I have devoted every moment not only to thinking about the republic, but being active in it.`,
+      `We have a strong senate; some of the ex-consuls are afraid, others you sense are unsound. Servius is a serious loss. Lucius Caesar is loyal; but because he is Antony's uncle, he does not speak his mind forcefully. The Consuls are excellent, Decimus Brutus is famous; the boy Caesar is excellent, and I have great hopes for his future. Indeed, this you can be sure of; had he not quickly conscripted the veterans, and had two legions of Antony's not been brought over to his command, and had Antony not been terrified, there was no crime, no cruelty Antony would not have committed.`
+    ],
+    what:`Around 2 February 43 BC. Caesar is dead and Cicero is at the height of his last great political campaign — the Philippics, a series of devastating speeches attacking Mark Antony. Trebonius was one of the Ides of March conspirators and is now governor of Asia. (Cicero doesn't know it yet, but Trebonius has already been murdered by Dolabella — the letter arrives posthumously.)`,
+    why:`Cicero wants to update Trebonius on the political situation, celebrate his own role in reviving the Senate through the Philippics, and vent — through jokes — his frustration that the conspirators killed Caesar but left Antony alive.`,
+    odd:`"The most beautiful feast": Cicero calls the assassination a "feast" and jokes he wishes he'd been invited (i.e. had been a conspirator himself). "We should have had nothing remaining" implies that if Cicero had been there, Antony too would have been killed. Octavian is "the boy Caesar" — Cicero thinks he can use Octavian as a weapon against Antony, then discard him. Octavian joins the Second Triumvirate and approves Cicero's execution in December 43 BC, just months after this letter.`,
+    style:[
+      {dev:'Dark metaphor',q:'"that most beautiful feast on the Ides of March"',a:'Describing the assassination as a "feast" is striking and darkly comic — showing genuine pleasure at Caesar\'s death in Cicero\'s most private, uninhibited register.'},
+      {dev:'Mock-reproach / hyperbole',q:'"you have left more trouble for me to deal with by myself, than for the rest of the world put together!"',a:'The exaggeration is funny but makes a real accusation: the conspirators killed Caesar without a plan, leaving Antony free.'},
+      {dev:'Metaphor (wilting senate)',q:'"I restored to the weary, wilting senate its ancient and traditional valour."',a:'The "wilting" senate — a dying plant — and Cicero\'s claim to have revived it is deliberate self-promotion. Treat critically.'},
+      {dev:'Repetition',q:'"not only to thinking about the republic, but being active in it"',a:'Thinking vs. acting — the parallel structure reinforces his self-image as the Republic\'s last active defender.'},
+      {dev:'Ironic praise of Octavian',q:'"the boy Caesar is excellent, and I have great hopes for his future"',a:'"The boy" — slightly patronising — signals Cicero thinks he can manage Octavian. One of his most consequential misjudgements.'},
+    ],
+    quickFacts:[
+      {label:'Who wrote it?', val:'Cicero'},
+      {label:'To whom?', val:'Gaius Trebonius (governor of Asia)'},
+      {label:'Where was Cicero?', val:'Rome'},
+      {label:'Date', val:'c. 2 February 43 BC'},
+    ],
+    tenQ:{
+      q:'How does Cicero present his own role in defending the Republic in this letter?',
+      points:[
+        'The "feast" metaphor for the assassination shows Cicero as an enthusiastic supporter of the conspiracy — wishing he had been part of it',
+        '"I restored to the weary, wilting senate its ancient and traditional valour" — the extended metaphor of revival positions Cicero as the Senate\'s saviour',
+        'The mock-reproach about Antony being left alive uses humour to make a serious political point: the conspirators\' failure to plan is now Cicero\'s problem to solve',
+        '"Not only to thinking about the republic, but being active in it" — the repeated contrast of thought vs. action emphasises his energy and commitment',
+        'The cautious praise of Octavian shows strategic political thinking — Cicero is already planning the next alliance to defeat Antony',
+      ]
+    },
+    thirtyQ:`Key for essays about Cicero's role in the final phase of the Republic, the aftermath of the Ides, and his misjudgement of Octavian. The letter was written in ignorance of Trebonius's death — a reminder of the limits of ancient communication as a source issue.`,
+  },
+  {
+    id:'fam106', ref:'Fam. 10.6', yr:43, yrLbl:'Mar 43 BC', dotRow:1,
+    recipient:'Plancus', loc:'Rome', nearEvent:'War of Mutina — Antony besieging Decimus Brutus',
+    tone:'Persuasive, urgent, slightly reproachful',
+    topic:"Urging Plancus to stop sitting on the fence and commit to the Republic against Antony",
+    themes:["Antony as threat","Republican loyalty","Dignitas vs. empty titles","Amicitia","Moral duty"],
+    text:[
+      `The statement of our friend Furnius about your views on the republic was most agreeable to the senate, and most pleasing to the Roman people. However, the letter which was read out in the senate seemed in no way to agree with what Furnius had said. For you are an agent of peace when your colleague, a most distinguished man, is being blockaded by a gang of vile brigands, which ought to lay down their weapons and beg for peace; or if they demand a battle, then peace is acquired by victory not treaty. But whether or not your letters, or Lepidus', are accepted, you will learn from that best of men, your brother, and from Furnius. I would never think you yourself to be without good judgement, or for you to be without the good sense and loyalty of your brother and Furnius, yet still I wish for some advice to reach you under my influence.`,
+      `Therefore, believe me, Plancus, all those ranks of honour you have so far attained (and you have attained the most glorious of these); these will be regarded not as badges of honour, but as empty titles, unless you join yourself with the freedom of the Roman People and authority of the Senate. Separate yourself, I beg, from those whom you joined not by your own deliberate decision, but the chains of circumstance. In the confusion, several men have been called consular, although none is regarded as a consular unless they have shown true consular spirit towards the republic.`,
+      `Such therefore is your opportunity, firstly to separate yourself from disloyal citizens with whom you have nothing in common; then you should offer yourself to the senate as an advisor, leader and general; and lastly you must understand that peace cannot be achieved by merely putting down your weapons, but by dispelling the fear of conflict and slavery. If you feel and do this, then you will not only be a consul and a consular but a great one. Otherwise, your most distinguished and honourable titles; will not only be undistinguished, but will be the greatest dishonour. Good intention has prompted me to write these words, although they are a little harsh. Put them to the test of practice – which is the only method worthy of you – and you will find them to be true.`
+    ],
+    what:`20 March 43 BC. Antony is fighting Republican forces in northern Italy; Decimus Brutus (one of the conspirators) is besieged at the town of Mutina. Lucius Munatius Plancus is governor of Gallia Comata (central Gaul) with a large army. He has been saying publicly he supports the Senate, but his actions suggest he's keeping his options open — hedging towards Antony and Lepidus. Cicero is trying to force him off the fence.`,
+    why:`Cicero needs Plancus's army for the Republican cause. But Plancus is a flexible politician who follows power rather than principle — he eventually joins Antony and Lepidus, then switches to Octavian. Cicero uses every rhetorical tool: appeals to honour, dignitas, friendship, and the promise of lasting glory.`,
+    odd:`"Badges of honour vs. empty titles": offices like consul are only meaningful if you act with genuine consular spirit. Holding a title without the virtue to back it up is actually a dishonour — a central Roman aristocratic concept. "Peace cannot be achieved by merely putting down your weapons": Cicero is arguing directly against Plancus's preference for negotiating with Antony. Real peace means defeating Antony, not talking to him. Plancus eventually defected — Cicero's persuasion failed.`,
+    style:[
+      {dev:'Metaphor: badges vs. empty titles',q:'"these will be regarded not as badges of honour, but as empty titles"',a:'Titles are meaningless without virtue — a central Roman concept. Cicero deploys it to shame Plancus: your consulship is worthless without genuine consular spirit.'},
+      {dev:'Contrast: false peace vs. real peace',q:'"peace cannot be achieved by merely putting down your weapons, but by dispelling the fear of conflict and slavery"',a:'Superficial peace (ceasing to fight) vs. genuine peace (freedom from fear and servitude) — redefines the terms of debate in Cicero\'s favour.'},
+      {dev:'Three-stage instruction',q:'"firstly to separate yourself...then you should offer yourself...and lastly you must understand..."',a:'The three-step structure gives the letter the feel of a tactical brief — Cicero the advocate making his argument for maximum clarity.'},
+      {dev:'Direct address',q:'"believe me, Plancus"',a:'Personal and intimate — makes what follows seem like honest advice between friends rather than political pressure.'},
+      {dev:'Acknowledging harshness in advance',q:'"Good intention has prompted me to write these words, although they are a little harsh."',a:'Cicero admits the words are harsh before the reader can object — a classic way of neutralising a complaint before it is raised.'},
+    ],
+    quickFacts:[
+      {label:'Who wrote it?', val:'Cicero'},
+      {label:'To whom?', val:'Lucius Munatius Plancus (governor of Gallia Comata)'},
+      {label:'Where was Cicero?', val:'Rome'},
+      {label:'Date', val:'20 March 43 BC'},
+    ],
+    tenQ:{
+      q:'How does Cicero attempt to persuade Plancus to support the Senate?',
+      points:[
+        'The distinction between "badges of honour" and "empty titles" appeals to Plancus\'s sense of dignitas — makes him feel his consulship means nothing without virtuous action',
+        'The contrast between superficial peace and genuine peace redefines Plancus\'s preferred policy (negotiation) as capitulation, not statecraft',
+        'The three-step structure (firstly, then, lastly) gives Cicero\'s appeal the clarity of a tactical brief — practical, not just rhetorical',
+        'The direct personal address — "believe me, Plancus" — creates intimacy and frames the letter as honest advice from a friend rather than political pressure',
+        'The pre-emptive acknowledgement of harshness ("although they are a little harsh") disarms objections and makes Cicero seem fair-minded rather than aggressive',
+      ]
+    },
+    thirtyQ:`Key for essays about the final phase of the Republic, Antony as a threat, and the limits of Cicero's political influence in 43 BC. Plancus's eventual defection makes this a document of failure — useful for evaluating Cicero's effectiveness.`,
+  },
+];
+
+// BUILD TIMELINE
+(function(){
+  const canvas = document.getElementById('tlCanvas');
+  const LINE = 72; // px from top where the horizontal line sits
+
+  // Row heights above the line (row 0 = closest, row 2 = furthest)
+  // Each row: how many px above LINE the label top sits
+  // label height ~14px, connector fills gap to pip
+  const ROW_TOP = [52, 34, 14]; // top of label for rows 0,1,2
+
+  // Year labels
+  [63,60,57,54,51,48,45,43].forEach(y=>{
+    const d=document.createElement('div');
+    d.className='tl-yr'; d.style.left=pct(y);
+    d.textContent=y+' BC'; canvas.appendChild(d);
+  });
+
+  // Event markers
+  EVENTS.forEach(e=>{
+    const labelTop = ROW_TOP[e.row];         // top of label
+    const labelH   = 14;                     // approx label height (px)
+    const connectorH = LINE - labelTop - labelH - 3; // gap from label bottom to pip top
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'tl-ev';
+    wrapper.style.left = pct(e.yr);
+    wrapper.style.top  = labelTop + 'px';
+
+    wrapper.innerHTML = `
+      <div class="ev-lbl">${e.lbl}</div>
+      <div class="ev-connector" style="height:${Math.max(connectorH,2)}px"></div>
+      <div class="ev-pip"></div>`;
+    canvas.appendChild(wrapper);
+  });
+
+  // Letter dots (pip always on the line, label staggered by dotRow below)
+  // DOT_ROW_GAP: extra px of connector per row step
+  const DOT_ROW_GAP = 16; // px between row 0 label and row 1 label etc.
+  // nudge overlapping same-year letters horizontally
+  const nudge = {att88:'-13px', att94:'0px', att911a:'13px', fam1028:'-10px', fam106:'10px'};
+
+  LETTERS.forEach(l => {
+    const d = document.createElement('div');
+    d.className = 'tl-dot';
+    d.style.left = pct(l.yr);
+    if (nudge[l.id]) d.style.marginLeft = nudge[l.id];
+    d.dataset.id = l.id;
+
+    const connH = l.dotRow * DOT_ROW_GAP; // 0 for row 0, 16 for row 1, 32 for row 2
+    const connHTML = connH > 0
+      ? `<div class="dot-connector" style="height:${connH}px"></div>`
+      : '';
+
+    d.innerHTML = `<div class="dot-pip"></div>${connHTML}<div class="dot-lbl">${l.ref}</div>`;
+    d.addEventListener('click', () => showLetter(l.id));
+    canvas.appendChild(d);
+  });
+})();
+
+// BUILD SIDEBAR
+const sidebar=document.getElementById('sidebar');
+LETTERS.forEach((l,i)=>{
+  const d=document.createElement('div');
+  d.className='nav-item'+(i===0?' active':'');
+  d.dataset.id=l.id;
+  d.innerHTML=`<span class="nav-ref">${l.ref}</span><span class="nav-sub">${l.yrLbl} · To ${l.recipient}</span>`;
+  d.addEventListener('click',()=>showLetter(l.id));
+  sidebar.appendChild(d);
+});
+
+// BUILD CARDS
+const ca=document.getElementById('contentArea');
+LETTERS.forEach((l,i)=>{
+  const card=document.createElement('div');
+  card.className='letter-card'+(i===0?' visible':'');
+  card.id='card-'+l.id;
+
+  const textH=l.text.map(p=>`<p>${p}</p>`).join('');
+  const styleH=l.style.map(s=>`<div class="sdev"><div class="sdev-lbl">${s.dev}</div><div class="sdev-q">${s.q}</div><div class="sdev-a">${s.a}</div></div>`).join('');
+  const qfH=l.quickFacts.map(f=>`<div class="qf-box"><span class="qf-label">${f.label}</span><div class="qf-val">${f.val}</div></div>`).join('');
+  const ptH=l.tenQ.points.map(p=>`<li><div class="bl-dot"></div><div>${p}</div></li>`).join('');
+  const tagH=l.themes.map(t=>`<span class="ttag">${t}</span>`).join('');
+
+  card.innerHTML=`
+<div class="card-header">
+  <div class="ch-eye">${l.ref} · ${l.yrLbl}</div>
+  <div class="ch-title">To ${l.recipient}: ${l.topic}</div>
+  <div class="ch-meta">
+    <div class="ch-mi"><span class="ch-mi-label">Location</span><div class="ch-mi-val">${l.loc}</div></div>
+    <div class="ch-mi"><span class="ch-mi-label">Recipient</span><div class="ch-mi-val">${l.recipient}</div></div>
+    <div class="ch-mi event"><span class="ch-mi-label">Nearest event</span><div class="ch-mi-val">${l.nearEvent}</div></div>
+  </div>
+  <div><span class="ch-badge">${l.tone}</span></div>
+</div>
+<div class="card-tabs">
+  <button class="tab-btn active" data-tab="tx-${l.id}">📜 Text &amp; Context</button>
+  <button class="tab-btn" data-tab="st-${l.id}">✒ Style</button>
+  <button class="tab-btn" data-tab="ex-${l.id}">📋 Exam Guidance</button>
+</div>
+<div class="card-body">
+  <div class="tab-panel active" id="tx-${l.id}">
+    <div class="letter-text-box">${textH}</div>
+    <div class="ctx-grid">
+      <div class="ctx-box"><h4>What's happening?</h4><p>${l.what}</p></div>
+      <div class="ctx-box"><h4>Why is Cicero writing this?</h4><p>${l.why}</p></div>
+      <div class="ctx-box full"><h4>What needs explaining?</h4><p>${l.odd}</p></div>
+    </div>
+    <div style="margin-top:.9rem;">${tagH}</div>
+  </div>
+  <div class="tab-panel" id="st-${l.id}">
+    <p style="font-size:.83rem;color:var(--ink-faded);margin-bottom:1rem;font-style:italic;">Stylistic devices with quotation and analysis — use these directly in exam answers.</p>
+    ${styleH}
+  </div>
+  <div class="tab-panel" id="ex-${l.id}">
+    <p class="exam-intro">Questions on individual letters are either short (1–2 marks, content-based) or longer (10 marks). Letters across the whole corpus can also appear in 30-mark essay questions.</p>
+
+    <div class="esec-title">1–2 mark questions — quick content facts</div>
+    <div class="qf-grid">${qfH}</div>
+
+    <hr class="rule">
+
+    <div class="ten-block">
+      <div class="esec-title">10-mark question</div>
+      <div class="ten-q">${l.tenQ.q} <em>[10 marks — aim for 4–5 developed points with evidence]</em></div>
+      <ul class="bullet-list">${ptH}</ul>
+    </div>
+
+    <hr class="rule">
+
+    <div class="thirty-block">
+      <div class="thirty-title">30-mark essay — how this letter fits</div>
+      <p class="thirty-note">${l.thirtyQ}</p>
+    </div>
+  </div>
+</div>`;
+
+  ca.appendChild(card);
+  card.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      card.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      card.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+});
+
+function showLetter(id){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.id===id));
+  document.querySelectorAll('.tl-dot').forEach(d=>d.classList.toggle('active',d.dataset.id===id));
+  document.querySelectorAll('.letter-card').forEach(c=>c.classList.toggle('visible',c.id==='card-'+id));
+  if(window.innerWidth<750) document.getElementById('contentArea').scrollIntoView({behavior:'smooth',block:'start'});
+}
+</script>
+</body>
+</html>
