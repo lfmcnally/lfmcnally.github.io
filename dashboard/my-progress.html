@@ -668,17 +668,38 @@ async function renderAllSections() {
     }
 }
 
+// ===== VOCAB HELPERS =====
+// Build a Set of valid word strings for a given subject key
+function getVocabListWords(key) {
+    const lists = {
+        'latin-prep': () => typeof suburaniVocabularyData !== 'undefined' ? suburaniVocabularyData.map(v => v.latin) : [],
+        'latin-gcse': () => typeof vocabularyData !== 'undefined' ? vocabularyData.map(v => v.latin) : [],
+        'latin-alevel': () => typeof aLevelVocabularyData !== 'undefined' ? aLevelVocabularyData.map(v => v.latin) : [],
+        'greek-gcse': () => typeof greekVocabularyData !== 'undefined' ? greekVocabularyData.map(v => v.greek) : [],
+        'greek-alevel': () => typeof greekALevelVocabularyData !== 'undefined' ? greekALevelVocabularyData.map(v => v.greek) : []
+    };
+    const getter = lists[key];
+    if (!getter) return null;
+    return new Set(getter().map(w => (w || '').toLowerCase().trim()));
+}
+
 // ===== VOCAB SECTION =====
 async function renderVocabSection(key, config) {
     const totalWords = config.totalWords();
+    const validWords = getVocabListWords(key);
 
     const { data: wordData } = await supabase
         .from('word_mastery')
-        .select('correct_count, incorrect_count')
+        .select('word_latin, correct_count, incorrect_count')
         .eq('student_id', currentUser.authId)
         .eq('language', config.language);
 
-    const words = wordData || [];
+    // Filter to only words in this specific vocab list
+    let words = wordData || [];
+    if (validWords) {
+        words = words.filter(w => validWords.has((w.word_latin || '').toLowerCase().trim()));
+    }
+
     let strong = 0;
     let struggling = 0;
 
