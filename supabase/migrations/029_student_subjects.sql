@@ -4,10 +4,9 @@
 -- Allows students to choose which subjects/levels they want to track
 -- on their personal progress page, independent of class membership.
 --
--- subject_key values match existing class type keys:
---   latin-prep, latin-gcse, latin-alevel,
---   greek-gcse, greek-alevel,
---   civ-gcse, civ-alevel
+-- subject_key values:
+--   Vocab: latin-prep, latin-gcse, latin-alevel, greek-gcse, greek-alevel
+--   Civ courses: civ-iliad, civ-aeneid, civ-greek-art, civ-politics
 
 CREATE TABLE IF NOT EXISTS student_subjects (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -15,7 +14,7 @@ CREATE TABLE IF NOT EXISTS student_subjects (
     subject_key TEXT NOT NULL CHECK (subject_key IN (
         'latin-prep', 'latin-gcse', 'latin-alevel',
         'greek-gcse', 'greek-alevel',
-        'civ-gcse', 'civ-alevel'
+        'civ-iliad', 'civ-aeneid', 'civ-greek-art', 'civ-politics'
     )),
     added_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE(student_id, subject_key)
