@@ -416,8 +416,10 @@ a { text-decoration: none; color: inherit; }
       <button class="toggle-chip" data-key="latin-alevel" onclick="toggleSubject(this)">A Level Latin</button>
       <button class="toggle-chip" data-key="greek-gcse" onclick="toggleSubject(this)">GCSE Greek</button>
       <button class="toggle-chip" data-key="greek-alevel" onclick="toggleSubject(this)">A Level Greek</button>
-      <button class="toggle-chip" data-key="civ-gcse" onclick="toggleSubject(this)">GCSE Classical Civ</button>
-      <button class="toggle-chip" data-key="civ-alevel" onclick="toggleSubject(this)">A Level Classical Civ</button>
+      <button class="toggle-chip" data-key="civ-iliad" onclick="toggleSubject(this)">Iliad</button>
+      <button class="toggle-chip" data-key="civ-aeneid" onclick="toggleSubject(this)">Aeneid</button>
+      <button class="toggle-chip" data-key="civ-greek-art" onclick="toggleSubject(this)">Greek Art</button>
+      <button class="toggle-chip" data-key="civ-politics" onclick="toggleSubject(this)">Politics of the Late Republic</button>
     </div>
   </div>
 
@@ -426,20 +428,6 @@ a { text-decoration: none; color: inherit; }
     <div class="empty-state">
       <div class="empty-state-icon">&#x1F4DA;</div>
       <div class="empty-state-text">Select the subjects you're studying above to see your progress.</div>
-    </div>
-  </div>
-
-  <!-- LEADERBOARD -->
-  <div id="leaderboardSection" class="leaderboard-section" style="display:none;">
-    <div class="section-header">
-      <div class="section-title">Leaderboard</div>
-    </div>
-    <div class="lb-tabs">
-      <button class="lb-tab active" data-period="week" onclick="switchLeaderboard('week', this)">This Week</button>
-      <button class="lb-tab" data-period="all" onclick="switchLeaderboard('all', this)">All Time</button>
-    </div>
-    <div class="lb-body" id="leaderboardBody">
-      <div class="lb-empty">Loading...</div>
     </div>
   </div>
 
@@ -471,7 +459,8 @@ const SUBJECT_CONFIG = {
         color: '#7c3aed',
         colorLight: '#ede9fe',
         totalWords: () => typeof suburaniVocabularyData !== 'undefined' ? suburaniVocabularyData.length : 0,
-        practiceUrl: '../latin/prep-vocabulary-practice.html'
+        practiceUrl: '../latin/prep-vocabulary-practice.html',
+        lbFilter: (path) => path && path.includes('suburani')
     },
     'latin-gcse': {
         label: 'GCSE Latin',
@@ -480,7 +469,8 @@ const SUBJECT_CONFIG = {
         color: '#0055dd',
         colorLight: '#eef4ff',
         totalWords: () => typeof vocabularyData !== 'undefined' ? vocabularyData.length : 0,
-        practiceUrl: '../latin/vocabulary-hub.html'
+        practiceUrl: '../latin/vocabulary-hub.html',
+        lbFilter: (path) => path && path.includes('latin') && !path.includes('a-level') && !path.includes('suburani') && !path.includes('prep')
     },
     'latin-alevel': {
         label: 'A Level Latin',
@@ -489,7 +479,8 @@ const SUBJECT_CONFIG = {
         color: '#0055dd',
         colorLight: '#eef4ff',
         totalWords: () => typeof aLevelVocabularyData !== 'undefined' ? aLevelVocabularyData.length : 0,
-        practiceUrl: '../latin/a-level-vocabulary-practice.html'
+        practiceUrl: '../latin/a-level-vocabulary-practice.html',
+        lbFilter: (path) => path && path.includes('latin') && path.includes('a-level')
     },
     'greek-gcse': {
         label: 'GCSE Greek',
@@ -498,7 +489,8 @@ const SUBJECT_CONFIG = {
         color: '#0e7a45',
         colorLight: '#edfaf3',
         totalWords: () => typeof greekVocabularyData !== 'undefined' ? greekVocabularyData.length : 0,
-        practiceUrl: '../greek/vocabulary-practice.html'
+        practiceUrl: '../greek/vocabulary-practice.html',
+        lbFilter: (path) => path && path.includes('greek') && !path.includes('a-level') && !path.includes('greek-art')
     },
     'greek-alevel': {
         label: 'A Level Greek',
@@ -507,28 +499,50 @@ const SUBJECT_CONFIG = {
         color: '#0e7a45',
         colorLight: '#edfaf3',
         totalWords: () => typeof greekALevelVocabularyData !== 'undefined' ? greekALevelVocabularyData.length : 0,
-        practiceUrl: '../greek/a-level-vocabulary-practice.html'
+        practiceUrl: '../greek/a-level-vocabulary-practice.html',
+        lbFilter: (path) => path && path.includes('greek') && path.includes('a-level')
     },
-    'civ-gcse': {
-        label: 'GCSE Classical Civ',
+    'civ-iliad': {
+        label: 'Iliad',
         type: 'civ',
         color: '#cc2200',
         colorLight: '#fff0ee',
-        courses: ['myth-religion', 'roman-city']
+        pathMatch: 'iliad',
+        courseUrl: '../classical-civ/iliad/index.html',
+        lbFilter: (path) => path && path.includes('iliad')
     },
-    'civ-alevel': {
-        label: 'A Level Classical Civ',
+    'civ-aeneid': {
+        label: 'Aeneid',
         type: 'civ',
         color: '#cc2200',
         colorLight: '#fff0ee',
-        courses: ['iliad', 'aeneid', 'greek-art', 'politics']
+        pathMatch: 'aeneid',
+        courseUrl: '../classical-civ/aeneid/index.html',
+        lbFilter: (path) => path && path.includes('aeneid')
+    },
+    'civ-greek-art': {
+        label: 'Greek Art',
+        type: 'civ',
+        color: '#cc2200',
+        colorLight: '#fff0ee',
+        pathMatch: 'greek-art',
+        courseUrl: '../classical-civ/greek-art/index.html',
+        lbFilter: (path) => path && path.includes('greek-art')
+    },
+    'civ-politics': {
+        label: 'Politics of the Late Republic',
+        type: 'civ',
+        color: '#cc2200',
+        colorLight: '#fff0ee',
+        pathMatch: 'politics',
+        courseUrl: '../classical-civ/politics/index.html',
+        lbFilter: (path) => path && path.includes('politics')
     }
 };
 
 // ===== STATE =====
 let currentUser = null;
 let activeSubjects = new Set();
-let leaderboardPeriod = 'week';
 
 // ===== INIT =====
 async function init() {
@@ -562,7 +576,6 @@ async function loadSavedSubjects() {
             data.forEach(row => activeSubjects.add(row.subject_key));
         }
     } catch (e) {
-        // Table might not exist yet — fall back to localStorage
         console.warn('student_subjects table not available, using localStorage');
     }
 
@@ -585,18 +598,14 @@ async function loadSavedSubjects() {
 }
 
 async function saveSubjects() {
-    // Save to localStorage as fallback
     localStorage.setItem('classicalia_subjects', JSON.stringify([...activeSubjects]));
 
-    // Save to DB
     try {
-        // Delete all existing
         await supabase
             .from('student_subjects')
             .delete()
             .eq('student_id', currentUser.authId);
 
-        // Insert current selections
         if (activeSubjects.size > 0) {
             const rows = [...activeSubjects].map(key => ({
                 student_id: currentUser.authId,
@@ -626,7 +635,6 @@ function toggleSubject(chip) {
 // ===== RENDER =====
 async function renderAllSections() {
     const container = document.getElementById('progressContent');
-    const lbSection = document.getElementById('leaderboardSection');
 
     if (activeSubjects.size === 0) {
         container.innerHTML = `
@@ -634,7 +642,6 @@ async function renderAllSections() {
                 <div class="empty-state-icon">&#x1F4DA;</div>
                 <div class="empty-state-text">Select the subjects you're studying above to see your progress.</div>
             </div>`;
-        lbSection.style.display = 'none';
         return;
     }
 
@@ -654,25 +661,24 @@ async function renderAllSections() {
 
     container.innerHTML = html;
 
-    // Show leaderboard
-    lbSection.style.display = '';
-    loadLeaderboard(leaderboardPeriod);
+    // Load leaderboards for each active section (async, fills in after render)
+    for (const key of activeSubjects) {
+        const config = SUBJECT_CONFIG[key];
+        if (config) loadSectionLeaderboard(key, config, 'week');
+    }
 }
 
 // ===== VOCAB SECTION =====
 async function renderVocabSection(key, config) {
     const totalWords = config.totalWords();
 
-    // Fetch word mastery data
-    const { data: wordData, error } = await supabase
+    const { data: wordData } = await supabase
         .from('word_mastery')
         .select('correct_count, incorrect_count')
         .eq('student_id', currentUser.authId)
         .eq('language', config.language);
 
     const words = wordData || [];
-
-    // Categorise words
     let strong = 0;
     let struggling = 0;
 
@@ -725,45 +731,39 @@ async function renderVocabSection(key, config) {
                     <div class="vocab-bar-segment unlearnt" style="width:${unlearntPct}%"></div>
                 </div>
             </div>
+            ${renderLeaderboardShell(key)}
         </div>
     </div>`;
 }
 
 // ===== CIV SECTION =====
 async function renderCivSection(key, config) {
-    // Fetch reading time from task_attempts for civ-related content paths
+    // Fetch ONLY reading sessions (total_questions = 0) for this course
     const { data: attempts } = await supabase
         .from('task_attempts')
-        .select('content_path, time_spent_seconds')
-        .eq('student_id', currentUser.authId);
+        .select('content_path, time_spent_seconds, started_at')
+        .eq('student_id', currentUser.authId)
+        .eq('total_questions', 0);
 
-    // Group by page/content_path that match civ content
-    const civPaths = ['classical-civ', 'classics'];
+    // Filter to pages matching this course
     const pageMap = new Map();
-
     (attempts || []).forEach(a => {
-        if (!a.content_path) return;
-        const isCiv = civPaths.some(p => a.content_path.includes(p));
-        if (!isCiv) return;
+        if (!a.content_path || !a.content_path.includes(config.pathMatch)) return;
 
-        // Extract readable page name from path
-        const pageName = extractPageName(a.content_path);
+        const pageName = extractPageName(a.content_path, config.pathMatch);
         const existing = pageMap.get(pageName) || { time: 0, visits: 0 };
         existing.time += (a.time_spent_seconds || 0);
         existing.visits++;
         pageMap.set(pageName, existing);
     });
 
-    // Sort by time spent descending
-    const pages = [...pageMap.entries()]
-        .sort((a, b) => b[1].time - a[1].time);
-
+    const pages = [...pageMap.entries()].sort((a, b) => b[1].time - a[1].time);
     const totalSeconds = pages.reduce((sum, [, v]) => sum + v.time, 0);
     const totalMins = Math.round(totalSeconds / 60);
 
     let tableRows = '';
     if (pages.length === 0) {
-        tableRows = `<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:1.5rem;">No reading time recorded yet. Start exploring the <a href="../classical-civ/index.html" style="color:var(--blue);font-weight:600;">Classical Civ courses</a>.</td></tr>`;
+        tableRows = `<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:1.5rem;">No reading time recorded yet. Start exploring the <a href="${config.courseUrl}" style="color:var(--blue);font-weight:600;">${config.label} course</a>.</td></tr>`;
     } else {
         pages.slice(0, 20).forEach(([name, data]) => {
             const mins = Math.round(data.time / 60);
@@ -785,10 +785,10 @@ async function renderCivSection(key, config) {
             <div class="section-title">
                 ${config.label}
                 <span class="section-badge" style="background:${config.colorLight};color:${config.color};">
-                    ${totalDisplay} total
+                    ${totalDisplay} reading time
                 </span>
             </div>
-            <a href="../classical-civ/index.html" class="practice-link">Explore</a>
+            <a href="${config.courseUrl}" class="practice-link">Read</a>
         </div>
         <div class="section-body">
             <table class="civ-table">
@@ -801,18 +801,25 @@ async function renderCivSection(key, config) {
                 </thead>
                 <tbody>${tableRows}</tbody>
             </table>
+            ${renderLeaderboardShell(key)}
         </div>
     </div>`;
 }
 
-function extractPageName(contentPath) {
-    // Convert a path like "/classical-civ/iliad/topic3.html" to "Iliad - Topic 3"
+function extractPageName(contentPath, courseName) {
     try {
         const parts = contentPath.replace(/^\//, '').replace('.html', '').split('/');
-        // Remove the base directory
-        const relevant = parts.filter(p => !['classical-civ', 'classics'].includes(p));
+        // Drop everything up to and including the course folder
+        const courseIdx = parts.findIndex(p => p === courseName || p.includes(courseName));
+        const relevant = courseIdx >= 0 ? parts.slice(courseIdx + 1) : parts;
+        if (relevant.length === 0) return courseName;
+
         return relevant
-            .map(p => p.replace(/[-_]/g, ' ').replace(/topic(\d+)/i, 'Topic $1'))
+            .map(p => p
+                .replace(/[-_]/g, ' ')
+                .replace(/^topic\s*(\d+)$/i, 'Topic $1')
+                .replace(/^(\d+)\s+(\d+)$/, 'Lesson $1.$2')
+            )
             .map(p => p.charAt(0).toUpperCase() + p.slice(1))
             .join(' — ') || contentPath;
     } catch (e) {
@@ -820,37 +827,56 @@ function extractPageName(contentPath) {
     }
 }
 
-// ===== LEADERBOARD =====
-function switchLeaderboard(period, tab) {
-    leaderboardPeriod = period;
-    document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    loadLeaderboard(period);
+// ===== PER-SECTION LEADERBOARD =====
+function renderLeaderboardShell(key) {
+    return `
+    <div class="leaderboard-section" style="margin-top:1rem;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+        <div class="lb-tabs">
+            <button class="lb-tab active" onclick="switchSectionLb('${key}','week',this)">This Week</button>
+            <button class="lb-tab" onclick="switchSectionLb('${key}','all',this)">All Time</button>
+        </div>
+        <div class="lb-body" id="lb-${key}">
+            <div class="lb-empty">Loading...</div>
+        </div>
+    </div>`;
 }
 
-async function loadLeaderboard(period) {
-    const body = document.getElementById('leaderboardBody');
+function switchSectionLb(key, period, tab) {
+    const tabs = tab.parentElement;
+    tabs.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const config = SUBJECT_CONFIG[key];
+    if (config) loadSectionLeaderboard(key, config, period);
+}
+
+async function loadSectionLeaderboard(key, config, period) {
+    const body = document.getElementById(`lb-${key}`);
+    if (!body) return;
     body.innerHTML = '<div class="lb-empty">Loading...</div>';
 
-    // Get time window
+    // Time window
     let since = null;
     if (period === 'week') {
-        // Monday of current week
         const now = new Date();
         const day = now.getDay();
-        const diff = (day === 0 ? 6 : day - 1); // Monday = 0
+        const diff = (day === 0 ? 6 : day - 1);
         since = new Date(now);
         since.setDate(now.getDate() - diff);
         since.setHours(0, 0, 0, 0);
     }
 
-    // Fetch all task_attempts (time-based leaderboard)
+    // Fetch attempts — for civ, only reading sessions
     let query = supabase
         .from('task_attempts')
-        .select('student_id, time_spent_seconds');
+        .select('student_id, time_spent_seconds, content_path, total_questions');
 
     if (since) {
         query = query.gte('started_at', since.toISOString());
+    }
+
+    // For civ courses, only get reading sessions
+    if (config.type === 'civ') {
+        query = query.eq('total_questions', 0);
     }
 
     const { data: attempts, error } = await query;
@@ -860,24 +886,24 @@ async function loadLeaderboard(period) {
         return;
     }
 
-    // Aggregate time by student
+    // Filter to this subject/course and aggregate by student
     const timeMap = new Map();
     attempts.forEach(a => {
+        if (!config.lbFilter(a.content_path)) return;
         const existing = timeMap.get(a.student_id) || 0;
         timeMap.set(a.student_id, existing + (a.time_spent_seconds || 0));
     });
 
-    // Sort by time descending
     const sorted = [...timeMap.entries()]
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 20);
+        .slice(0, 15);
 
     if (sorted.length === 0) {
         body.innerHTML = `<div class="lb-empty">No activity ${period === 'week' ? 'this week' : ''} yet.</div>`;
         return;
     }
 
-    // Fetch names for these students
+    // Fetch names
     const studentIds = sorted.map(([id]) => id);
     const { data: users } = await supabase
         .from('users')
@@ -889,7 +915,6 @@ async function loadLeaderboard(period) {
         nameMap.set(u.id, anonymiseName(u.full_name));
     });
 
-    // Render
     let html = '';
     sorted.forEach(([studentId, totalSeconds], idx) => {
         const rank = idx + 1;
