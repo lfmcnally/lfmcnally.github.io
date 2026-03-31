@@ -460,7 +460,7 @@ const SUBJECT_CONFIG = {
         colorLight: '#ede9fe',
         totalWords: () => typeof suburaniVocabularyData !== 'undefined' ? suburaniVocabularyData.length : 0,
         practiceUrl: '../latin/prep-vocabulary-practice.html',
-        lbFilter: (path) => path && path.includes('suburani')
+
     },
     'latin-gcse': {
         label: 'GCSE Latin',
@@ -470,7 +470,7 @@ const SUBJECT_CONFIG = {
         colorLight: '#eef4ff',
         totalWords: () => typeof vocabularyData !== 'undefined' ? vocabularyData.length : 0,
         practiceUrl: '../latin/vocabulary-hub.html',
-        lbFilter: (path) => path && path.includes('latin') && !path.includes('a-level') && !path.includes('suburani') && !path.includes('prep')
+
     },
     'latin-alevel': {
         label: 'A Level Latin',
@@ -480,7 +480,7 @@ const SUBJECT_CONFIG = {
         colorLight: '#eef4ff',
         totalWords: () => typeof aLevelVocabularyData !== 'undefined' ? aLevelVocabularyData.length : 0,
         practiceUrl: '../latin/a-level-vocabulary-practice.html',
-        lbFilter: (path) => path && path.includes('latin') && path.includes('a-level')
+
     },
     'greek-gcse': {
         label: 'GCSE Greek',
@@ -490,7 +490,7 @@ const SUBJECT_CONFIG = {
         colorLight: '#edfaf3',
         totalWords: () => typeof greekVocabularyData !== 'undefined' ? greekVocabularyData.length : 0,
         practiceUrl: '../greek/vocabulary-practice.html',
-        lbFilter: (path) => path && path.includes('greek') && !path.includes('a-level') && !path.includes('greek-art')
+
     },
     'greek-alevel': {
         label: 'A Level Greek',
@@ -500,7 +500,7 @@ const SUBJECT_CONFIG = {
         colorLight: '#edfaf3',
         totalWords: () => typeof greekALevelVocabularyData !== 'undefined' ? greekALevelVocabularyData.length : 0,
         practiceUrl: '../greek/a-level-vocabulary-practice.html',
-        lbFilter: (path) => path && path.includes('greek') && path.includes('a-level')
+
     },
     'civ-iliad': {
         label: 'Iliad',
@@ -509,7 +509,7 @@ const SUBJECT_CONFIG = {
         colorLight: '#fff0ee',
         pathMatch: 'iliad',
         courseUrl: '../classical-civ/iliad/index.html',
-        lbFilter: (path) => path && path.includes('iliad')
+
     },
     'civ-aeneid': {
         label: 'Aeneid',
@@ -518,7 +518,7 @@ const SUBJECT_CONFIG = {
         colorLight: '#fff0ee',
         pathMatch: 'aeneid',
         courseUrl: '../classical-civ/aeneid/index.html',
-        lbFilter: (path) => path && path.includes('aeneid')
+
     },
     'civ-greek-art': {
         label: 'Greek Art',
@@ -527,7 +527,7 @@ const SUBJECT_CONFIG = {
         colorLight: '#fff0ee',
         pathMatch: 'greek-art',
         courseUrl: '../classical-civ/greek-art/index.html',
-        lbFilter: (path) => path && path.includes('greek-art')
+
     },
     'civ-politics': {
         label: 'Politics of the Late Republic',
@@ -536,7 +536,7 @@ const SUBJECT_CONFIG = {
         colorLight: '#fff0ee',
         pathMatch: 'politics',
         courseUrl: '../classical-civ/politics/index.html',
-        lbFilter: (path) => path && path.includes('politics')
+
     }
 };
 
@@ -738,12 +738,12 @@ async function renderVocabSection(key, config) {
 
 // ===== CIV SECTION =====
 async function renderCivSection(key, config) {
-    // Fetch ONLY reading sessions (total_questions = 0) for this course
+    // Fetch reading sessions (total_questions = 0 or null) for this course
     const { data: attempts } = await supabase
         .from('task_attempts')
         .select('content_path, time_spent_seconds, started_at')
         .eq('student_id', currentUser.authId)
-        .eq('total_questions', 0);
+        .or('total_questions.eq.0,total_questions.is.null');
 
     // Filter to pages matching this course
     const pageMap = new Map();
@@ -854,7 +854,7 @@ async function loadSectionLeaderboard(key, config, period) {
     if (!body) return;
     body.innerHTML = '<div class="lb-empty">Loading...</div>';
 
-    // Time window
+    // Time window — Monday of current week
     let since = null;
     if (period === 'week') {
         const now = new Date();
@@ -865,81 +865,57 @@ async function loadSectionLeaderboard(key, config, period) {
         since.setHours(0, 0, 0, 0);
     }
 
-    // Fetch attempts — for civ, only reading sessions
-    let query = supabase
-        .from('task_attempts')
-        .select('student_id, time_spent_seconds, content_path, total_questions');
+    // Determine path filter for this subject
+    const pathFilters = {
+        'latin-prep': 'suburani',
+        'latin-gcse': 'latin/vocabulary',
+        'latin-alevel': 'a-level-vocabulary',
+        'greek-gcse': 'greek/vocabulary',
+        'greek-alevel': 'greek/a-level',
+        'civ-iliad': 'iliad',
+        'civ-aeneid': 'aeneid',
+        'civ-greek-art': 'greek-art',
+        'civ-politics': 'politics'
+    };
 
-    if (since) {
-        query = query.gte('started_at', since.toISOString());
-    }
+    const pathFilter = pathFilters[key] || null;
 
-    // For civ courses, only get reading sessions
-    if (config.type === 'civ') {
-        query = query.eq('total_questions', 0);
-    }
+    // Call the database function (bypasses RLS, returns anonymised data)
+    const { data, error } = await supabase.rpc('get_leaderboard', {
+        path_filter: pathFilter,
+        since_date: since ? since.toISOString() : null,
+        reading_only: config.type === 'civ',
+        max_results: 15
+    });
 
-    const { data: attempts, error } = await query;
-
-    if (error || !attempts) {
+    if (error) {
+        console.warn('Leaderboard RPC error:', error);
         body.innerHTML = '<div class="lb-empty">Could not load leaderboard.</div>';
         return;
     }
 
-    // Filter to this subject/course and aggregate by student
-    const timeMap = new Map();
-    attempts.forEach(a => {
-        if (!config.lbFilter(a.content_path)) return;
-        const existing = timeMap.get(a.student_id) || 0;
-        timeMap.set(a.student_id, existing + (a.time_spent_seconds || 0));
-    });
-
-    const sorted = [...timeMap.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 15);
-
-    if (sorted.length === 0) {
+    if (!data || data.length === 0) {
         body.innerHTML = `<div class="lb-empty">No activity ${period === 'week' ? 'this week' : ''} yet.</div>`;
         return;
     }
 
-    // Fetch names
-    const studentIds = sorted.map(([id]) => id);
-    const { data: users } = await supabase
-        .from('users')
-        .select('id, full_name')
-        .in('id', studentIds);
-
-    const nameMap = new Map();
-    (users || []).forEach(u => {
-        nameMap.set(u.id, anonymiseName(u.full_name));
-    });
-
     let html = '';
-    sorted.forEach(([studentId, totalSeconds], idx) => {
+    data.forEach((row, idx) => {
         const rank = idx + 1;
-        const name = nameMap.get(studentId) || 'Anonymous';
-        const mins = Math.round(totalSeconds / 60);
+        const mins = Math.round(row.total_seconds / 60);
         const display = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins}m`;
-        const isMe = studentId === currentUser.authId;
+        const isMe = row.student_id === currentUser.authId;
         const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
 
         html += `
         <div class="lb-row${isMe ? ' is-me' : ''}">
             <div class="lb-rank ${rankClass}">${rank}</div>
-            <div class="lb-name">${name}${isMe ? ' (you)' : ''}</div>
+            <div class="lb-name">${row.display_name}${isMe ? ' (you)' : ''}</div>
             <div class="lb-value">${display}</div>
         </div>`;
     });
 
     body.innerHTML = html;
-}
-
-function anonymiseName(fullName) {
-    if (!fullName) return 'Anonymous';
-    const parts = fullName.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0];
-    return parts[0] + ' ' + parts[parts.length - 1].charAt(0).toUpperCase();
 }
 
 // ===== AUTH =====
