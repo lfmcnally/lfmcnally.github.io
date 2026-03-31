@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Progress - Classicalia</title>
+<link rel="icon" type="image/png" href="../images/favicon.png">
+<meta name="description" content="Track your vocabulary progress across Latin, Greek, and Classical Civilisation on Classicalia.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --navy:    #0d1433;
+  --blue:    #0066ff;
+  --blue-s:  #e8f0fe;
+  --bg:      #f0f2f8;
+  --white:   #ffffff;
+  --border:  #dde1ee;
+  --text:    #1a1f3c;
+  --mid:     #4a5070;
+  --dim:     #8890b0;
+  --green:   #34A853;
+  --red:     #EA4335;
+  --yellow:  #FBBC04;
+  --sh:      0 2px 10px rgba(13,20,51,0.09), 0 1px 3px rgba(13,20,51,0.05);
+  --sh-lg:   0 6px 22px rgba(13,20,51,0.13), 0 2px 5px rgba(13,20,51,0.07);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+a { text-decoration: none; color: inherit; }
+.page { max-width: 900px; margin: 0 auto; padding: 1.5rem; }
+
+/* HEADER BANNER */
+.header-banner {
+  background: linear-gradient(135deg, #0d1433 0%, #0a0e28 60%, #0d1433 100%);
+  border: 1px solid rgba(0,102,255,0.18);
+  border-radius: 14px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.header-banner::before {
+  content: '';
+  position: absolute;
+  top: -40px; left: 40%;
+  width: 500px; height: 160px;
+  background: radial-gradient(ellipse, rgba(0,102,255,0.13) 0%, transparent 65%);
+  pointer-events: none;
+}
+.hb-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+.hb-title {
+  font-family: 'Lora', Georgia, serif;
+  font-style: italic;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.02em;
+}
+.hb-title .blue { color: #0066ff; }
+.hb-sub {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.45);
+  margin-top: 0.2rem;
+}
+.hb-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+.hb-btn {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.6);
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  transition: all 0.13s;
+  cursor: pointer;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+.hb-btn:hover { color: white; background: rgba(255,255,255,0.08); }
+.hb-btn-primary {
+  background: var(--blue) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 10px rgba(0,102,255,0.35);
+}
+.hb-btn-primary:hover { background: #1a74ff !important; }
+
+/* SUBJECT TOGGLE BAR */
+.subject-toggles {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--sh);
+}
+.toggle-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 0.6rem;
+}
+.toggle-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  color: var(--mid);
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+.toggle-chip:hover { border-color: var(--blue); color: var(--text); }
+.toggle-chip.active {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+.toggle-chip.active:hover { background: #1a74ff; }
+
+/* LOADING */
+.loading { text-align: center; padding: 3rem; color: var(--dim); font-size: 0.85rem; }
+.spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.6s linear infinite; margin: 0 auto 0.75rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* EMPTY */
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--dim);
+}
+.empty-state-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+.empty-state-text { font-size: 0.85rem; line-height: 1.5; }
+
+/* PROGRESS SECTIONS */
+.subject-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.section-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+.section-body { padding: 1.25rem; }
+
+/* VOCAB PROGRESS BARS */
+.vocab-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.vocab-stat {
+  text-align: center;
+  padding: 1rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.vocab-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-bottom: 0.15rem;
+}
+.vocab-stat-label {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.vocab-stat.strong { background: #e8f5e9; }
+.vocab-stat.strong .vocab-stat-value { color: var(--green); }
+.vocab-stat.struggling { background: #fff3e0; }
+.vocab-stat.struggling .vocab-stat-value { color: #e65100; }
+.vocab-stat.unlearnt { background: var(--bg); }
+.vocab-stat.unlearnt .vocab-stat-value { color: var(--dim); }
+
+/* VOCAB BAR */
+.vocab-bar-container { margin-bottom: 1rem; }
+.vocab-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--mid);
+  margin-bottom: 0.3rem;
+}
+.vocab-bar {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--bg);
+  overflow: hidden;
+  display: flex;
+}
+.vocab-bar-segment {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+.vocab-bar-segment.strong { background: var(--green); }
+.vocab-bar-segment.struggling { background: #ff9800; }
+.vocab-bar-segment.unlearnt { background: var(--border); }
+
+/* PRACTICE LINK */
+.practice-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--blue);
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--blue);
+  transition: all 0.13s;
+}
+.practice-link:hover { background: var(--blue); color: white; }
+
+/* CIV PAGES TABLE */
+.civ-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.civ-table th {
+  text-align: left;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.civ-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--mid);
+}
+.civ-table tr:last-child td { border-bottom: none; }
+.civ-table .page-name { font-weight: 500; color: var(--text); }
+.civ-table .time-cell { font-weight: 600; }
+
+/* LEADERBOARD */
+.leaderboard-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: var(--sh);
+  overflow: hidden;
+}
+.lb-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+.lb-tab {
+  flex: 1;
+  padding: 0.7rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--dim);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.13s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  font-family: inherit;
+}
+.lb-tab:hover { color: var(--text); }
+.lb-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+.lb-body { padding: 0.75rem 1.25rem; }
+.lb-row {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  gap: 0.75rem;
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-row.is-me { background: #e8f0fe; margin: 0 -1.25rem; padding-left: 1.25rem; padding-right: 1.25rem; border-radius: 6px; }
+.lb-rank {
+  width: 24px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--dim);
+  text-align: center;
+  flex-shrink: 0;
+}
+.lb-rank.gold { color: #e6a800; }
+.lb-rank.silver { color: #8c8c8c; }
+.lb-rank.bronze { color: #b45309; }
+.lb-name {
+  flex: 1;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.lb-value {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--blue);
+  flex-shrink: 0;
+}
+.lb-empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--dim);
+  font-size: 0.8rem;
+}
+
+/* FOOTER */
+.page-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.footer-brand { font-size: 0.7rem; color: var(--dim); }
+.footer-brand strong { color: var(--mid); font-weight: 600; }
+.footer-links { list-style: none; display: flex; gap: 1rem; }
+.footer-links a { font-size: 0.7rem; color: var(--dim); font-weight: 500; transition: color 0.12s; }
+.footer-links a:hover { color: var(--blue); }
+
+/* RESPONSIVE */
+@media (max-width: 600px) {
+  .page { padding: 1rem; }
+  .header-banner { padding: 1.25rem; }
+  .hb-top { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
+  .hb-title { font-size: 1.3rem; }
+  .vocab-summary { grid-template-columns: 1fr; }
+  .toggle-grid { gap: 0.35rem; }
+  .toggle-chip { font-size: 0.72rem; padding: 0.35rem 0.7rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header-banner">
+    <div class="hb-top">
+      <div>
+        <div class="hb-title">My <span class="blue">Progress</span></div>
+        <div class="hb-sub" id="userGreeting">Track your learning across subjects</div>
+      </div>
+      <div class="hb-actions">
+        <a href="../index.html" class="hb-btn">Home</a>
+        <a href="student-hub.html" class="hb-btn">Classes</a>
+        <a href="#" class="hb-btn" id="logoutBtn" onclick="logout(); return false;">Log out</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBJECT TOGGLES -->
+  <div class="subject-toggles">
+    <div class="toggle-label">What are you tracking?</div>
+    <div class="toggle-grid" id="toggleGrid">
+      <button class="toggle-chip" data-key="latin-prep" onclick="toggleSubject(this)">Prep Latin</button>
+      <button class="toggle-chip" data-key="latin-gcse" onclick="toggleSubject(this)">GCSE Latin</button>
+      <button class="toggle-chip" data-key="latin-alevel" onclick="toggleSubject(this)">A Level Latin</button>
+      <button class="toggle-chip" data-key="greek-gcse" onclick="toggleSubject(this)">GCSE Greek</button>
+      <button class="toggle-chip" data-key="greek-alevel" onclick="toggleSubject(this)">A Level Greek</button>
+      <button class="toggle-chip" data-key="civ-gcse" onclick="toggleSubject(this)">GCSE Classical Civ</button>
+      <button class="toggle-chip" data-key="civ-alevel" onclick="toggleSubject(this)">A Level Classical Civ</button>
+    </div>
+  </div>
+
+  <!-- PROGRESS CONTENT -->
+  <div id="progressContent">
+    <div class="empty-state">
+      <div class="empty-state-icon">&#x1F4DA;</div>
+      <div class="empty-state-text">Select the subjects you're studying above to see your progress.</div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div id="leaderboardSection" class="leaderboard-section" style="display:none;">
+    <div class="section-header">
+      <div class="section-title">Leaderboard</div>
+    </div>
+    <div class="lb-tabs">
+      <button class="lb-tab active" data-period="week" onclick="switchLeaderboard('week', this)">This Week</button>
+      <button class="lb-tab" data-period="all" onclick="switchLeaderboard('all', this)">All Time</button>
+    </div>
+    <div class="lb-body" id="leaderboardBody">
+      <div class="lb-empty">Loading...</div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="page-footer">
+    <div class="footer-brand"><strong>Classicalia</strong></div>
+    <ul class="footer-links">
+      <li><a href="../index.html">Home</a></li>
+      <li><a href="student-hub.html">Classes</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="../auth/config.js"></script>
+<script src="../shared/vocabulary-data.js"></script>
+<script src="../shared/a-level-vocabulary-data.js"></script>
+<script src="../shared/greek-vocabulary-data.js"></script>
+<script src="../shared/greek-alevel-vocabulary-data.js"></script>
+<script src="../latin/data/suburani-vocab.js"></script>
+
+<script>
+// ===== CONFIG =====
+const SUBJECT_CONFIG = {
+    'latin-prep': {
+        label: 'Prep Latin (Suburani)',
+        type: 'vocab',
+        language: 'prep-latin',
+        color: '#7c3aed',
+        colorLight: '#ede9fe',
+        totalWords: () => typeof suburaniVocabularyData !== 'undefined' ? suburaniVocabularyData.length : 0,
+        practiceUrl: '../latin/prep-vocabulary-practice.html'
+    },
+    'latin-gcse': {
+        label: 'GCSE Latin',
+        type: 'vocab',
+        language: 'latin',
+        color: '#0055dd',
+        colorLight: '#eef4ff',
+        totalWords: () => typeof vocabularyData !== 'undefined' ? vocabularyData.length : 0,
+        practiceUrl: '../latin/vocabulary-hub.html'
+    },
+    'latin-alevel': {
+        label: 'A Level Latin',
+        type: 'vocab',
+        language: 'latin',
+        color: '#0055dd',
+        colorLight: '#eef4ff',
+        totalWords: () => typeof aLevelVocabularyData !== 'undefined' ? aLevelVocabularyData.length : 0,
+        practiceUrl: '../latin/a-level-vocabulary-practice.html'
+    },
+    'greek-gcse': {
+        label: 'GCSE Greek',
+        type: 'vocab',
+        language: 'greek',
+        color: '#0e7a45',
+        colorLight: '#edfaf3',
+        totalWords: () => typeof greekVocabularyData !== 'undefined' ? greekVocabularyData.length : 0,
+        practiceUrl: '../greek/vocabulary-practice.html'
+    },
+    'greek-alevel': {
+        label: 'A Level Greek',
+        type: 'vocab',
+        language: 'greek',
+        color: '#0e7a45',
+        colorLight: '#edfaf3',
+        totalWords: () => typeof greekALevelVocabularyData !== 'undefined' ? greekALevelVocabularyData.length : 0,
+        practiceUrl: '../greek/a-level-vocabulary-practice.html'
+    },
+    'civ-gcse': {
+        label: 'GCSE Classical Civ',
+        type: 'civ',
+        color: '#cc2200',
+        colorLight: '#fff0ee',
+        courses: ['myth-religion', 'roman-city']
+    },
+    'civ-alevel': {
+        label: 'A Level Classical Civ',
+        type: 'civ',
+        color: '#cc2200',
+        colorLight: '#fff0ee',
+        courses: ['iliad', 'aeneid', 'greek-art', 'politics']
+    }
+};
+
+// ===== STATE =====
+let currentUser = null;
+let activeSubjects = new Set();
+let leaderboardPeriod = 'week';
+
+// ===== INIT =====
+async function init() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { window.location.href = '../auth/login.html'; return; }
+
+    const { data: profile } = await supabase
+        .from('users').select('*').eq('id', user.id).single();
+    if (!profile) { window.location.href = '../auth/login.html'; return; }
+    currentUser = { ...profile, authId: user.id };
+
+    // Greet
+    const firstName = (profile.full_name || '').split(' ')[0] || 'there';
+    document.getElementById('userGreeting').textContent = `Hi ${firstName} — track your learning across subjects`;
+
+    // Load saved subjects
+    await loadSavedSubjects();
+
+    // Render
+    renderAllSections();
+}
+
+async function loadSavedSubjects() {
+    try {
+        const { data, error } = await supabase
+            .from('student_subjects')
+            .select('subject_key')
+            .eq('student_id', currentUser.authId);
+
+        if (!error && data) {
+            data.forEach(row => activeSubjects.add(row.subject_key));
+        }
+    } catch (e) {
+        // Table might not exist yet — fall back to localStorage
+        console.warn('student_subjects table not available, using localStorage');
+    }
+
+    // Fallback: localStorage
+    if (activeSubjects.size === 0) {
+        const saved = localStorage.getItem('classicalia_subjects');
+        if (saved) {
+            try {
+                JSON.parse(saved).forEach(k => activeSubjects.add(k));
+            } catch (e) {}
+        }
+    }
+
+    // Update toggle UI
+    document.querySelectorAll('.toggle-chip').forEach(chip => {
+        if (activeSubjects.has(chip.dataset.key)) {
+            chip.classList.add('active');
+        }
+    });
+}
+
+async function saveSubjects() {
+    // Save to localStorage as fallback
+    localStorage.setItem('classicalia_subjects', JSON.stringify([...activeSubjects]));
+
+    // Save to DB
+    try {
+        // Delete all existing
+        await supabase
+            .from('student_subjects')
+            .delete()
+            .eq('student_id', currentUser.authId);
+
+        // Insert current selections
+        if (activeSubjects.size > 0) {
+            const rows = [...activeSubjects].map(key => ({
+                student_id: currentUser.authId,
+                subject_key: key
+            }));
+            await supabase.from('student_subjects').insert(rows);
+        }
+    } catch (e) {
+        console.warn('Could not save to student_subjects table:', e);
+    }
+}
+
+// ===== TOGGLE =====
+function toggleSubject(chip) {
+    const key = chip.dataset.key;
+    if (activeSubjects.has(key)) {
+        activeSubjects.delete(key);
+        chip.classList.remove('active');
+    } else {
+        activeSubjects.add(key);
+        chip.classList.add('active');
+    }
+    saveSubjects();
+    renderAllSections();
+}
+
+// ===== RENDER =====
+async function renderAllSections() {
+    const container = document.getElementById('progressContent');
+    const lbSection = document.getElementById('leaderboardSection');
+
+    if (activeSubjects.size === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">&#x1F4DA;</div>
+                <div class="empty-state-text">Select the subjects you're studying above to see your progress.</div>
+            </div>`;
+        lbSection.style.display = 'none';
+        return;
+    }
+
+    container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading your progress...</div>';
+
+    let html = '';
+    for (const key of activeSubjects) {
+        const config = SUBJECT_CONFIG[key];
+        if (!config) continue;
+
+        if (config.type === 'vocab') {
+            html += await renderVocabSection(key, config);
+        } else if (config.type === 'civ') {
+            html += await renderCivSection(key, config);
+        }
+    }
+
+    container.innerHTML = html;
+
+    // Show leaderboard
+    lbSection.style.display = '';
+    loadLeaderboard(leaderboardPeriod);
+}
+
+// ===== VOCAB SECTION =====
+async function renderVocabSection(key, config) {
+    const totalWords = config.totalWords();
+
+    // Fetch word mastery data
+    const { data: wordData, error } = await supabase
+        .from('word_mastery')
+        .select('correct_count, incorrect_count')
+        .eq('student_id', currentUser.authId)
+        .eq('language', config.language);
+
+    const words = wordData || [];
+
+    // Categorise words
+    let strong = 0;
+    let struggling = 0;
+
+    words.forEach(w => {
+        const total = w.correct_count + w.incorrect_count;
+        if (total === 0) return;
+        const accuracy = w.correct_count / total;
+        if (w.correct_count >= 3 && accuracy >= 0.7) {
+            strong++;
+        } else {
+            struggling++;
+        }
+    });
+
+    const unlearnt = Math.max(0, totalWords - strong - struggling);
+    const strongPct = totalWords > 0 ? Math.round((strong / totalWords) * 100) : 0;
+    const strugglingPct = totalWords > 0 ? Math.round((struggling / totalWords) * 100) : 0;
+    const unlearntPct = totalWords > 0 ? Math.round((unlearnt / totalWords) * 100) : 0;
+
+    return `
+    <div class="subject-section">
+        <div class="section-header">
+            <div class="section-title">
+                ${config.label}
+                <span class="section-badge" style="background:${config.colorLight};color:${config.color};">
+                    ${strong} / ${totalWords} mastered
+                </span>
+            </div>
+            <a href="${config.practiceUrl}" class="practice-link">Practice</a>
+        </div>
+        <div class="section-body">
+            <div class="vocab-summary">
+                <div class="vocab-stat strong">
+                    <div class="vocab-stat-value">${strongPct}%</div>
+                    <div class="vocab-stat-label">Strong (${strong})</div>
+                </div>
+                <div class="vocab-stat struggling">
+                    <div class="vocab-stat-value">${strugglingPct}%</div>
+                    <div class="vocab-stat-label">Struggling (${struggling})</div>
+                </div>
+                <div class="vocab-stat unlearnt">
+                    <div class="vocab-stat-value">${unlearntPct}%</div>
+                    <div class="vocab-stat-label">Unlearnt (${unlearnt})</div>
+                </div>
+            </div>
+            <div class="vocab-bar-container">
+                <div class="vocab-bar">
+                    <div class="vocab-bar-segment strong" style="width:${strongPct}%"></div>
+                    <div class="vocab-bar-segment struggling" style="width:${strugglingPct}%"></div>
+                    <div class="vocab-bar-segment unlearnt" style="width:${unlearntPct}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>`;
+}
+
+// ===== CIV SECTION =====
+async function renderCivSection(key, config) {
+    // Fetch reading time from task_attempts for civ-related content paths
+    const { data: attempts } = await supabase
+        .from('task_attempts')
+        .select('content_path, time_spent_seconds')
+        .eq('student_id', currentUser.authId);
+
+    // Group by page/content_path that match civ content
+    const civPaths = ['classical-civ', 'classics'];
+    const pageMap = new Map();
+
+    (attempts || []).forEach(a => {
+        if (!a.content_path) return;
+        const isCiv = civPaths.some(p => a.content_path.includes(p));
+        if (!isCiv) return;
+
+        // Extract readable page name from path
+        const pageName = extractPageName(a.content_path);
+        const existing = pageMap.get(pageName) || { time: 0, visits: 0 };
+        existing.time += (a.time_spent_seconds || 0);
+        existing.visits++;
+        pageMap.set(pageName, existing);
+    });
+
+    // Sort by time spent descending
+    const pages = [...pageMap.entries()]
+        .sort((a, b) => b[1].time - a[1].time);
+
+    const totalSeconds = pages.reduce((sum, [, v]) => sum + v.time, 0);
+    const totalMins = Math.round(totalSeconds / 60);
+
+    let tableRows = '';
+    if (pages.length === 0) {
+        tableRows = `<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:1.5rem;">No reading time recorded yet. Start exploring the <a href="../classical-civ/index.html" style="color:var(--blue);font-weight:600;">Classical Civ courses</a>.</td></tr>`;
+    } else {
+        pages.slice(0, 20).forEach(([name, data]) => {
+            const mins = Math.round(data.time / 60);
+            const display = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins}m`;
+            tableRows += `
+                <tr>
+                    <td class="page-name">${name}</td>
+                    <td>${data.visits} visit${data.visits !== 1 ? 's' : ''}</td>
+                    <td class="time-cell">${display}</td>
+                </tr>`;
+        });
+    }
+
+    const totalDisplay = totalMins >= 60 ? `${Math.floor(totalMins/60)}h ${totalMins%60}m` : `${totalMins}m`;
+
+    return `
+    <div class="subject-section">
+        <div class="section-header">
+            <div class="section-title">
+                ${config.label}
+                <span class="section-badge" style="background:${config.colorLight};color:${config.color};">
+                    ${totalDisplay} total
+                </span>
+            </div>
+            <a href="../classical-civ/index.html" class="practice-link">Explore</a>
+        </div>
+        <div class="section-body">
+            <table class="civ-table">
+                <thead>
+                    <tr>
+                        <th>Page</th>
+                        <th>Visits</th>
+                        <th>Time Spent</th>
+                    </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+            </table>
+        </div>
+    </div>`;
+}
+
+function extractPageName(contentPath) {
+    // Convert a path like "/classical-civ/iliad/topic3.html" to "Iliad - Topic 3"
+    try {
+        const parts = contentPath.replace(/^\//, '').replace('.html', '').split('/');
+        // Remove the base directory
+        const relevant = parts.filter(p => !['classical-civ', 'classics'].includes(p));
+        return relevant
+            .map(p => p.replace(/[-_]/g, ' ').replace(/topic(\d+)/i, 'Topic $1'))
+            .map(p => p.charAt(0).toUpperCase() + p.slice(1))
+            .join(' — ') || contentPath;
+    } catch (e) {
+        return contentPath;
+    }
+}
+
+// ===== LEADERBOARD =====
+function switchLeaderboard(period, tab) {
+    leaderboardPeriod = period;
+    document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    loadLeaderboard(period);
+}
+
+async function loadLeaderboard(period) {
+    const body = document.getElementById('leaderboardBody');
+    body.innerHTML = '<div class="lb-empty">Loading...</div>';
+
+    // Get time window
+    let since = null;
+    if (period === 'week') {
+        // Monday of current week
+        const now = new Date();
+        const day = now.getDay();
+        const diff = (day === 0 ? 6 : day - 1); // Monday = 0
+        since = new Date(now);
+        since.setDate(now.getDate() - diff);
+        since.setHours(0, 0, 0, 0);
+    }
+
+    // Fetch all task_attempts (time-based leaderboard)
+    let query = supabase
+        .from('task_attempts')
+        .select('student_id, time_spent_seconds');
+
+    if (since) {
+        query = query.gte('started_at', since.toISOString());
+    }
+
+    const { data: attempts, error } = await query;
+
+    if (error || !attempts) {
+        body.innerHTML = '<div class="lb-empty">Could not load leaderboard.</div>';
+        return;
+    }
+
+    // Aggregate time by student
+    const timeMap = new Map();
+    attempts.forEach(a => {
+        const existing = timeMap.get(a.student_id) || 0;
+        timeMap.set(a.student_id, existing + (a.time_spent_seconds || 0));
+    });
+
+    // Sort by time descending
+    const sorted = [...timeMap.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 20);
+
+    if (sorted.length === 0) {
+        body.innerHTML = `<div class="lb-empty">No activity ${period === 'week' ? 'this week' : ''} yet.</div>`;
+        return;
+    }
+
+    // Fetch names for these students
+    const studentIds = sorted.map(([id]) => id);
+    const { data: users } = await supabase
+        .from('users')
+        .select('id, full_name')
+        .in('id', studentIds);
+
+    const nameMap = new Map();
+    (users || []).forEach(u => {
+        nameMap.set(u.id, anonymiseName(u.full_name));
+    });
+
+    // Render
+    let html = '';
+    sorted.forEach(([studentId, totalSeconds], idx) => {
+        const rank = idx + 1;
+        const name = nameMap.get(studentId) || 'Anonymous';
+        const mins = Math.round(totalSeconds / 60);
+        const display = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins}m`;
+        const isMe = studentId === currentUser.authId;
+        const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+
+        html += `
+        <div class="lb-row${isMe ? ' is-me' : ''}">
+            <div class="lb-rank ${rankClass}">${rank}</div>
+            <div class="lb-name">${name}${isMe ? ' (you)' : ''}</div>
+            <div class="lb-value">${display}</div>
+        </div>`;
+    });
+
+    body.innerHTML = html;
+}
+
+function anonymiseName(fullName) {
+    if (!fullName) return 'Anonymous';
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0];
+    return parts[0] + ' ' + parts[parts.length - 1].charAt(0).toUpperCase();
+}
+
+// ===== AUTH =====
+async function logout() {
+    await supabase.auth.signOut();
+    window.location.href = '../auth/login.html';
+}
+
+// ===== START =====
+init();
+</script>
+
+</body>
+</html>
