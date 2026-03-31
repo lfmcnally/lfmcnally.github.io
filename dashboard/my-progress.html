@@ -738,39 +738,54 @@ async function renderVocabSection(key, config) {
 
 // ===== CIV SECTION =====
 async function renderCivSection(key, config) {
-    // Fetch reading sessions (total_questions = 0 or null) for this course
+    // Fetch ONLY reading sessions (total_questions = 0, same as teacher dashboard)
     const { data: attempts } = await supabase
         .from('task_attempts')
         .select('content_path, time_spent_seconds, started_at')
         .eq('student_id', currentUser.authId)
-        .or('total_questions.eq.0,total_questions.is.null');
+        .eq('total_questions', 0);
 
-    // Filter to pages matching this course
-    const pageMap = new Map();
+    // Filter to pages matching this course and group by lesson ID (e.g. 1-1, 2-6)
+    const lessonMap = new Map();
+    let totalSeconds = 0;
+
     (attempts || []).forEach(a => {
         if (!a.content_path || !a.content_path.includes(config.pathMatch)) return;
 
-        const pageName = extractPageName(a.content_path, config.pathMatch);
-        const existing = pageMap.get(pageName) || { time: 0, visits: 0 };
-        existing.time += (a.time_spent_seconds || 0);
+        const seconds = a.time_spent_seconds || 0;
+        totalSeconds += seconds;
+
+        // Extract lesson ID like "1-1" from path like /classical-civ/iliad/topic1/1-1.html
+        const match = a.content_path.match(/\/(\d+-\d+)\.html/);
+        const lessonId = match ? match[1] : null;
+        if (!lessonId) return;
+
+        const existing = lessonMap.get(lessonId) || { time: 0, visits: 0 };
+        existing.time += seconds;
         existing.visits++;
-        pageMap.set(pageName, existing);
+        lessonMap.set(lessonId, existing);
     });
 
-    const pages = [...pageMap.entries()].sort((a, b) => b[1].time - a[1].time);
-    const totalSeconds = pages.reduce((sum, [, v]) => sum + v.time, 0);
+    // Sort lessons numerically (1-1, 1-2, 2-1, etc.)
+    const lessons = [...lessonMap.entries()].sort((a, b) => {
+        const [aT, aL] = a[0].split('-').map(Number);
+        const [bT, bL] = b[0].split('-').map(Number);
+        return aT !== bT ? aT - bT : aL - bL;
+    });
+
     const totalMins = Math.round(totalSeconds / 60);
 
     let tableRows = '';
-    if (pages.length === 0) {
+    if (lessons.length === 0) {
         tableRows = `<tr><td colspan="3" style="text-align:center;color:var(--dim);padding:1.5rem;">No reading time recorded yet. Start exploring the <a href="${config.courseUrl}" style="color:var(--blue);font-weight:600;">${config.label} course</a>.</td></tr>`;
     } else {
-        pages.slice(0, 20).forEach(([name, data]) => {
+        lessons.forEach(([lessonId, data]) => {
+            const displayId = lessonId.replace('-', '.');
             const mins = Math.round(data.time / 60);
-            const display = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins}m`;
+            const display = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : mins > 0 ? `${mins}m` : '<1m';
             tableRows += `
                 <tr>
-                    <td class="page-name">${name}</td>
+                    <td class="page-name">Lesson ${displayId}</td>
                     <td>${data.visits} visit${data.visits !== 1 ? 's' : ''}</td>
                     <td class="time-cell">${display}</td>
                 </tr>`;
@@ -794,7 +809,7 @@ async function renderCivSection(key, config) {
             <table class="civ-table">
                 <thead>
                     <tr>
-                        <th>Page</th>
+                        <th>Lesson</th>
                         <th>Visits</th>
                         <th>Time Spent</th>
                     </tr>
@@ -804,27 +819,6 @@ async function renderCivSection(key, config) {
             ${renderLeaderboardShell(key)}
         </div>
     </div>`;
-}
-
-function extractPageName(contentPath, courseName) {
-    try {
-        const parts = contentPath.replace(/^\//, '').replace('.html', '').split('/');
-        // Drop everything up to and including the course folder
-        const courseIdx = parts.findIndex(p => p === courseName || p.includes(courseName));
-        const relevant = courseIdx >= 0 ? parts.slice(courseIdx + 1) : parts;
-        if (relevant.length === 0) return courseName;
-
-        return relevant
-            .map(p => p
-                .replace(/[-_]/g, ' ')
-                .replace(/^topic\s*(\d+)$/i, 'Topic $1')
-                .replace(/^(\d+)\s+(\d+)$/, 'Lesson $1.$2')
-            )
-            .map(p => p.charAt(0).toUpperCase() + p.slice(1))
-            .join(' — ') || contentPath;
-    } catch (e) {
-        return contentPath;
-    }
 }
 
 // ===== PER-SECTION LEADERBOARD =====
