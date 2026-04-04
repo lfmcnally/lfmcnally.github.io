@@ -507,38 +507,43 @@ async function loadAllStudentData(){
   const {data:allUsers}=await supabase.from('users').select('id, full_name').in('id',allSids);
   const userMap={};(allUsers||[]).forEach(u=>userMap[u.id]=u);
 
-  // Step 3: Fetch ALL task_attempts and word_mastery in parallel
-  const [attRes,wmRes]=await Promise.all([
-    supabase.from('task_attempts').select('student_id, score, started_at, completed_at, time_spent_seconds, total_questions, correct_answers').in('student_id',allSids),
-    supabase.from('word_mastery').select('student_id, word_latin, word_english, language, chapter, correct_count, incorrect_count, mastered_at, is_tricky, last_seen_at').in('student_id',allSids)
-  ]);
-  const allAttemptsList=attRes.data||[];
-  const allMasteryList=wmRes.data||[];
+  // Step 3: Fetch task_attempts and word_mastery per class in PARALLEL
+  // (avoids Supabase 1000-row default limit on bulk queries)
+  const classDataPromises=teacherClasses.map(cls=>{
+    const classMembers=(allMembers||[]).filter(m=>m.class_id===cls.id);
+    const sids=classMembers.map(m=>m.student_id).filter(Boolean);
+    if(!sids.length) return Promise.resolve({cls,sids,attempts:[],mastery:[]});
+    const isCiv=cls.type&&cls.type.startsWith('civ-');
+    const fetches=[
+      supabase.from('task_attempts').select('student_id, score, started_at, completed_at, time_spent_seconds, total_questions, correct_answers').in('student_id',sids).limit(5000)
+    ];
+    if(!isCiv){
+      fetches.push(supabase.from('word_mastery').select('student_id, word_latin, word_english, language, chapter, correct_count, incorrect_count, mastered_at, is_tricky, last_seen_at').in('student_id',sids).limit(50000));
+    } else {
+      fetches.push(Promise.resolve({data:[]}));
+    }
+    return Promise.all(fetches).then(([attRes,wmRes])=>({cls,sids,attempts:attRes.data||[],mastery:wmRes.data||[]}));
+  });
+  const classResults=await Promise.all(classDataPromises);
 
   // Step 4: Process per class
-  for(const cls of teacherClasses){
+  for(const {cls,sids,attempts:allAttempts,mastery:allMastery} of classResults){
     try {
-    const classMembers=(allMembers||[]).filter(m=>m.class_id===cls.id);
-    if(!classMembers.length) continue;
-    const students=classMembers.map(m=>userMap[m.student_id]).filter(Boolean);
+    if(!sids.length) continue;
+    const students=sids.map(id=>userMap[id]).filter(Boolean);
     if(!students.length) continue;
-    console.log(cls.name,':',students.length,'students');
+    console.log(cls.name,':',students.length,'students,',allAttempts.length,'attempts,',allMastery.length,'mastery records');
     const studentIds=students.map(s=>s.id);
     const studentIdSet=new Set(studentIds);
     const isCiv=cls.type&&cls.type.startsWith('civ-');
     const isPrep=cls.type&&(cls.type==='latin-prep'||cls.type==='prep-latin');
     const isAlevel=cls.type&&cls.type.includes('alevel');
-    const lang=isPrep?'prep-latin':cls.type&&cls.type.includes('greek')?'greek':'latin';
 
-    // Filter from the already-fetched data
-    const allAttempts=allAttemptsList.filter(a=>studentIdSet.has(a.student_id));
+    // Filter mastery by language
     let mastery=[];
     if(!isCiv){
-      // Include all Latin variants (latin + prep-latin) for any Latin class,
-      // or all Greek for Greek classes. Don't be strict about language value
-      // since different practice pages may write different values.
       const isGreekClass=cls.type&&cls.type.includes('greek');
-      mastery=allMasteryList.filter(w=>studentIdSet.has(w.student_id)&&(isGreekClass?w.language==='greek':(w.language==='latin'||w.language==='prep-latin')));
+      mastery=allMastery.filter(w=>(isGreekClass?w.language==='greek':(w.language==='latin'||w.language==='prep-latin')));
     }
 
     students.forEach((s,idx)=>{
