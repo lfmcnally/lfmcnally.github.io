@@ -519,26 +519,46 @@ function injectDemoClass(){
   const listTotal=466;
   const now=Date.now();
 
-  names.forEach((name,idx)=>{
-    // Each student gets different stats for variety
-    const seed=idx*7+3;
-    const masteredCount=Math.round(60+seed*3.5+(Math.sin(seed)*40));
-    const weakCount=Math.round(8+Math.abs(Math.sin(seed*2.1))*25);
-    const vocabScore=Math.round(masteredCount/listTotal*100);
-    const daysAgo=idx<4?0:idx<8?Math.floor(1+idx*0.5):Math.floor(3+idx*2);
-    const lastActive=new Date(now-daysAgo*86400000).toISOString();
-    const st=daysAgo===0?'active':daysAgo<=3?'active':daysAgo<=7?'behind':'inactive';
-    const allTimeSecs=Math.round(1800+seed*420+Math.sin(seed*1.3)*900);
+  // Hand-crafted student profiles: stars, solid, middling, struggling, inactive
+  const profiles=[
+    // STARS — finished or nearly finished
+    {mastered:466,weak:0,days:0,time:14400,freq:0.9},   // Cicero: fully mastered
+    {mastered:460,weak:3,days:0,time:12600,freq:0.85},   // Caesar: nearly there
+    {mastered:448,weak:8,days:1,time:11200,freq:0.8},    // Virgil: strong
+    // SOLID — good progress
+    {mastered:350,weak:12,days:0,time:9000,freq:0.7},    // Horace: solid
+    {mastered:310,weak:18,days:1,time:7800,freq:0.65},   // Seneca: good
+    {mastered:280,weak:22,days:2,time:6600,freq:0.55},   // Ovid: decent
+    // MIDDLING — average, some gaps
+    {mastered:190,weak:35,days:3,time:4200,freq:0.4},    // Catullus: middling
+    {mastered:155,weak:42,days:2,time:3600,freq:0.35},   // Livy: behind
+    // STRUGGLING — need help
+    {mastered:85,weak:55,days:5,time:2100,freq:0.2},     // Pompey: struggling
+    {mastered:52,weak:38,days:8,time:1200,freq:0.12},    // Crassus: weak
+    // INACTIVE — barely engaged
+    {mastered:20,weak:15,days:18,time:480,freq:0.05},    // Catiline: inactive
+    {mastered:8,weak:6,days:30,time:180,freq:0.02},      // Sallust: barely started
+  ];
 
-    // Generate realistic 14-day activity
+  names.forEach((name,idx)=>{
+    const p=profiles[idx];
+    const masteredCount=p.mastered;
+    const weakCount=p.weak;
+    const vocabScore=Math.round(masteredCount/listTotal*100);
+    const daysAgo=p.days;
+    const lastActive=daysAgo<90?new Date(now-daysAgo*86400000).toISOString():null;
+    const st=daysAgo<=1?'active':daysAgo<=5?'active':daysAgo<=10?'behind':'inactive';
+    const allTimeSecs=p.time;
+
+    // Generate 14-day activity based on frequency
     const activity=[];
     for(let d=13;d>=0;d--){
       const dt=new Date(now-d*86400000);
-      const active=Math.random()>(0.3+idx*0.03);
+      const active=Math.random()<p.freq;
       activity.push({
         date:dt,
-        mins:active?Math.round(5+Math.random()*25):0,
-        words:active?Math.round(10+Math.random()*60):0,
+        mins:active?Math.round(5+Math.random()*20+(p.freq*10)):0,
+        words:active?Math.round(8+Math.random()*40+(p.freq*20)):0,
         label:dt.getDate()+'/'+(dt.getMonth()+1)
       });
     }
