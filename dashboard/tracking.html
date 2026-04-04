@@ -38,8 +38,8 @@ body { display: flex; flex-direction: column; background: var(--g-bg); }
 .user-role { font-size: 0.7rem; color: var(--g-text-secondary); }
 
 /* ── MAIN ───────────────────────────────────────────────── */
-.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-.page { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.page { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
 .page.active { display: flex; }
 .topbar { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; border-bottom: 1px solid var(--g-border); background: var(--g-card-bg); flex-shrink: 0; }
 .topbar-left { display: flex; align-items: center; gap: 8px; }
@@ -626,52 +626,79 @@ async function renderLangCls(){
   console.log('Tasks for',currCls.name,':',(tasks||[]).length,'found');
   let hwHtml='';
   if(tasks&&tasks.length){
-    // Fetch all attempts for these tasks
     const taskIds=tasks.map(t=>t.id);
-    const {data:attempts}=await supabase.from('task_attempts').select('task_id, student_id, score, completed_at, time_spent_seconds, total_questions').in('task_id',taskIds);
+    const {data:attempts}=await supabase.from('task_attempts').select('task_id, student_id, score, completed_at, started_at, time_spent_seconds, total_questions, correct_answers').in('task_id',taskIds);
     const attemptsByTask={};
     (attempts||[]).forEach(a=>{if(!attemptsByTask[a.task_id])attemptsByTask[a.task_id]=[];attemptsByTask[a.task_id].push(a);});
-    const studentNames={};ss.forEach(s=>studentNames[s.id]=s.name);
 
-    hwHtml=tasks.map(t=>{
+    hwHtml=tasks.map((t,ti)=>{
       const ta=attemptsByTask[t.id]||[];
       const completed=ta.filter(a=>a.completed_at);
-      const notStarted=ss.filter(s=>!ta.find(a=>a.student_id===s.id)||!ta.find(a=>a.student_id===s.id).completed_at);
-      const avgTime=completed.length?Math.round(completed.reduce((s,a)=>s+(a.time_spent_seconds||0),0)/completed.length/60):0;
-      const avgScore=completed.filter(a=>a.score!=null).length?Math.round(completed.filter(a=>a.score!=null).reduce((s,a)=>s+a.score,0)/completed.filter(a=>a.score!=null).length):null;
       const due=t.due_date?new Date(t.due_date):null;
-      const overdue=due&&due<new Date()&&notStarted.length>0;
+      const overdue=due&&due<new Date();
       const dueStr=due?due.toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'no deadline';
+      const avgScore=completed.filter(a=>a.score!=null).length?Math.round(completed.filter(a=>a.score!=null).reduce((s,a)=>s+a.score,0)/completed.filter(a=>a.score!=null).length):null;
+      const taskId='hw-task-'+ti;
+
+      // Build per-student rows
+      const stuRows=ss.map(s=>{
+        const att=ta.find(a=>a.student_id===s.id);
+        if(!att) return {name:s.name,status:'not-set',score:null,time:null,words:null,first:null,last:null};
+        if(!att.completed_at) return {name:s.name,status:overdue?'overdue':'not-started',score:null,time:att.time_spent_seconds?Math.round(att.time_spent_seconds/60):0,words:att.total_questions||0,first:att.started_at,last:null};
+        return {name:s.name,status:'done',score:att.score,time:att.time_spent_seconds?Math.round(att.time_spent_seconds/60):0,words:att.total_questions||0,first:att.started_at,last:att.completed_at};
+      });
+      const doneCount=stuRows.filter(r=>r.status==='done').length;
+      const overdueCount=stuRows.filter(r=>r.status==='overdue').length;
+
+      const statusPill=doneCount===ss.length
+        ?'<span class="pill pill-green">All done</span>'
+        :'<span class="pill '+(overdueCount>0?'pill-red':'pill-amber')+'">'+doneCount+'/'+ss.length+' done</span>';
 
       return '<div style="border:1px solid var(--g-border);border-radius:10px;overflow:hidden;margin-bottom:8px">'+
-        '<div style="padding:12px 16px;background:var(--g-bg);display:flex;align-items:center;justify-content:space-between;gap:8px">'+
-          '<div style="font-weight:500;color:var(--g-text);font-size:0.9rem">'+t.title+'</div>'+
+        '<div onclick="document.getElementById(\''+taskId+'\').style.display=document.getElementById(\''+taskId+'\').style.display===\'none\'?\'block\':\'none\'" style="padding:12px 16px;background:var(--g-bg);display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;user-select:none">'+
+          '<div style="display:flex;align-items:center;gap:8px"><span style="color:var(--g-text-secondary);font-size:0.75rem">▶</span><span style="font-weight:500;color:var(--g-text);font-size:0.9rem">'+t.title+'</span></div>'+
           '<div style="display:flex;gap:8px;align-items:center">'+
-            '<span class="pill pill-green">'+completed.length+'/'+ss.length+' done</span>'+
+            statusPill+
             (avgScore!=null?'<span class="pill pill-blue">avg '+avgScore+'%</span>':'')+
-            (avgTime>0?'<span style="font-size:0.78rem;color:var(--g-text-secondary)">~'+avgTime+' min</span>':'')+
-            '<span style="font-size:0.78rem;color:'+(overdue?'var(--g-red)':'var(--g-text-secondary)')+'">due '+dueStr+'</span>'+
+            '<span style="font-size:0.78rem;color:'+(overdue&&overdueCount>0?'var(--g-red)':'var(--g-text-secondary)')+'">due '+dueStr+'</span>'+
           '</div>'+
         '</div>'+
-        (notStarted.length>0?
-          '<div style="padding:10px 16px;font-size:0.8rem;color:var(--g-text-secondary);border-top:1px solid var(--g-border);display:flex;align-items:center;gap:6px">'+
-            '<span style="color:'+(overdue?'var(--g-red)':'var(--g-text-secondary)')+';font-weight:500">'+(overdue?'Overdue':'Not done')+':</span> '+
-            notStarted.map(s=>'<span style="background:var(--g-bg);padding:2px 8px;border-radius:4px;font-size:0.78rem">'+s.name+'</span>').join(' ')+
-          '</div>':'')+
+        '<div id="'+taskId+'" style="display:none;border-top:1px solid var(--g-border)">'+
+          '<table class="stu-table"><thead><tr><th>Student</th><th>Status</th><th>Score</th><th>Time</th><th>Words</th><th>First attempt</th><th>Last attempt</th></tr></thead><tbody>'+
+          stuRows.map(r=>{
+            const stCol=r.status==='done'?'pill-green':r.status==='overdue'?'pill-red':r.status==='not-started'?'pill-amber':'pill-blue';
+            const stLabel=r.status==='done'?'Done':r.status==='overdue'?'Overdue':r.status==='not-started'?'Not started':'—';
+            const fmtDate=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+            return '<tr><td style="font-weight:500">'+r.name+'</td>'+
+              '<td><span class="pill '+stCol+'">'+stLabel+'</span></td>'+
+              '<td>'+(r.score!=null?'<span class="pill '+scl(r.score)+'">'+r.score+'%</span>':'—')+'</td>'+
+              '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+(r.time!=null?r.time+' min':'—')+'</td>'+
+              '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+(r.words?r.words:'—')+'</td>'+
+              '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+fmtDate(r.first)+'</td>'+
+              '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+fmtDate(r.last)+'</td></tr>';
+          }).join('')+
+          '</tbody></table>'+
+        '</div>'+
       '</div>';
     }).join('');
   }
 
+  // Mastery stats
+  const totalMastered=ss.reduce((a,s)=>a+(s.masteredCount||0),0);
+  const totalWordPool=ss.reduce((a,s)=>a+(s.totalWords||0),0);
+  const avgMastered=ss.length?Math.round(totalMastered/ss.length):0;
+  const avgPool=ss.length?Math.round(totalWordPool/ss.length):0;
+
   document.getElementById('cls-content').innerHTML=
     '<div class="stats-row">'+
-      '<div class="stat-card" style="--c:var(--g-blue)"><div class="stat-label">Avg vocab score</div><div class="stat-value">'+avg+'%</div><div class="stat-delta">across '+ss.length+' students</div></div>'+
-      '<div class="stat-card" style="--c:var(--g-green)"><div class="stat-label">Active this week</div><div class="stat-value">'+act+'</div><div class="stat-delta">'+ss.length+' total</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-blue)"><div class="stat-label">Avg mastery</div><div class="stat-value">'+avgMastered+' / '+avgPool+'</div><div class="stat-delta">words mastered per student</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-green)"><div class="stat-label">Avg vocab score</div><div class="stat-value">'+avg+'%</div><div class="stat-delta">across '+ss.length+' students</div></div>'+
       '<div class="stat-card" style="--c:var(--g-red)"><div class="stat-label">Need attention</div><div class="stat-value">'+beh+'</div><div class="stat-delta delta-down">behind or inactive</div></div>'+
       '<div class="stat-card" style="--c:var(--g-yellow)"><div class="stat-label">Total weak words</div><div class="stat-value">'+tw+'</div><div class="stat-delta">across class</div></div>'+
     '</div>'+
     '<div class="two-col">'+
-      '<div class="table-wrap"><table class="stu-table"><thead><tr><th>Student</th><th>Vocab score</th><th>Weak words</th><th>14-day activity</th><th>Last active</th><th>Status</th></tr></thead><tbody>'+
-      ss.map((s,i)=>'<tr onclick="openStuFromClass(\''+s.id+'\')"><td><div class="s-wrap"><div class="s-av" style="background:'+AVC[i%AVC.length]+'">'+ini(s.name)+'</div><div><div class="s-name">'+s.name+'</div></div></div></td><td><span class="pill '+scl(s.score)+'">'+s.score+'%</span></td><td><span class="pill '+(s.wc>8?'pill-red':s.wc>4?'pill-amber':'pill-blue')+'">'+s.wc+' words</span></td><td><div class="trend-spark">'+spark(s.sparkData)+'</div></td><td style="color:var(--g-text-secondary);font-size:0.8rem">'+ll(s.lastActive)+'</td><td>'+stHTML(s.st)+'</td></tr>').join('')+
+      '<div class="table-wrap"><table class="stu-table"><thead><tr><th>Student</th><th>Mastered</th><th>Weak words</th><th>14-day activity</th><th>Last active</th><th>Status</th></tr></thead><tbody>'+
+      ss.map((s,i)=>'<tr onclick="openStuFromClass(\''+s.id+'\')"><td><div class="s-wrap"><div class="s-av" style="background:'+AVC[i%AVC.length]+'">'+ini(s.name)+'</div><div><div class="s-name">'+s.name+'</div></div></div></td><td><span class="pill '+scl(s.score)+'">'+(s.masteredCount||0)+' / '+(s.totalWords||0)+'</span></td><td><span class="pill '+(s.wc>8?'pill-red':s.wc>4?'pill-amber':'pill-blue')+'">'+s.wc+'</span></td><td><div class="trend-spark">'+spark(s.sparkData)+'</div></td><td style="color:var(--g-text-secondary);font-size:0.8rem">'+ll(s.lastActive)+'</td><td>'+stHTML(s.st)+'</td></tr>').join('')+
       '</tbody></table></div>'+
       '<div class="card"><div class="card-hdr"><span class="card-t">Class weak words</span><span class="card-m">most commonly missed</span></div><div class="card-body">'+
         (chips.length?'<div class="chip-legend"><div class="chip-legend-item"><div class="legend-dot" style="background:#b91c1c"></div>5+ students</div><div class="chip-legend-item"><div class="legend-dot" style="background:#b45309"></div>3–4 students</div><div class="chip-legend-item"><div class="legend-dot" style="background:#047857"></div>1–2 students</div></div><div class="chip-grid">'+chips.map(w=>'<span class="chip-w chip-'+w.sev+'" title="'+w.count+' students" style="font-family:\'Lora\',Georgia,serif;font-style:italic">'+w.word+'</span>').join('')+'</div>'
