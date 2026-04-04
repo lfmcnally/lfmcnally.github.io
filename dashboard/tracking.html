@@ -620,8 +620,10 @@ async function renderLangCls(){
   ss.forEach(s=>(s.weakWords||[]).forEach(w=>{const k=w.word;if(!wordMap[k])wordMap[k]={word:w.word,count:0};wordMap[k].count++;}));
   const chips=Object.values(wordMap).sort((a,b)=>b.count-a.count).slice(0,15).map(w=>({...w,sev:w.count>=5?'hot':w.count>=3?'warm':'ok'}));
 
-  // Fetch recent tasks for this class
-  const {data:tasks}=await supabase.from('tasks').select('id, title, type, due_date, created_at, content_path').eq('class_id',currCls.id).order('created_at',{ascending:false}).limit(10);
+  // Fetch recent tasks for this class (match class.html pattern exactly)
+  const {data:tasks,error:taskErr}=await supabase.from('tasks').select('*').eq('class_id',currCls.id).order('due_date',{ascending:false}).limit(10);
+  if(taskErr) console.error('tasks query error:',taskErr);
+  console.log('Tasks for',currCls.name,':',(tasks||[]).length,'found');
   let hwHtml='';
   if(tasks&&tasks.length){
     // Fetch all attempts for these tasks
