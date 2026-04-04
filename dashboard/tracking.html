@@ -381,25 +381,29 @@ async function loadTeacherClasses(){
   }).join('');
 
   // Load ALL student data upfront for the overview
-  await loadAllStudentData();
+  try {
+    await loadAllStudentData();
+  } catch(e) {
+    console.error('loadAllStudentData failed:', e);
+  }
   renderOverview();
 }
 
 async function loadAllStudentData(){
   allStudentData=[];
+  console.log('Loading students for',teacherClasses.length,'classes');
   for(const cls of teacherClasses){
-    const {data:members,error:memErr}=await supabase.from('class_members').select('student_id, users(id, full_name)').eq('class_id',cls.id);
+    try {
+    // Fetch members, then users separately (most reliable approach)
+    const {data:members,error:memErr}=await supabase.from('class_members').select('student_id').eq('class_id',cls.id);
     if(memErr){console.error('class_members error for',cls.name,memErr);continue;}
-    if(!members||!members.length) continue;
-    let students=members.map(m=>m.users).filter(Boolean);
-    if(!students.length){
-      // Fallback: if embed didn't resolve, fetch users separately
-      const sids=members.map(m=>m.student_id).filter(Boolean);
-      if(!sids.length) continue;
-      const {data:userRows}=await supabase.from('users').select('id, full_name').in('id',sids);
-      if(!userRows||!userRows.length) continue;
-      students=userRows;
-    }
+    if(!members||!members.length){console.log(cls.name,': no members');continue;}
+    const sids=members.map(m=>m.student_id).filter(Boolean);
+    if(!sids.length) continue;
+    const {data:students,error:usrErr}=await supabase.from('users').select('id, full_name').in('id',sids);
+    if(usrErr){console.error('users error for',cls.name,usrErr);continue;}
+    if(!students||!students.length){console.log(cls.name,': no user profiles found');continue;}
+    console.log(cls.name,':',students.length,'students');
     const studentIds=students.map(s=>s.id);
     const isCiv=cls.type&&cls.type.startsWith('civ-');
     // Map class type to word_mastery language value
@@ -457,7 +461,9 @@ async function loadAllStudentData(){
         allStudentData.push({id:s.id,name:s.full_name||'Unknown',idx,type:'civ',classId:cls.id,className:cls.name,classType:cls.type,score:avgScore,tp,wc:0,tr:trend,lastActive:lastAttempt,st,attempts:sa});
       }
     });
+    } catch(e){console.error('Error processing class',cls.name,e);}
   }
+  console.log('Total students loaded:',allStudentData.length);
 }
 
 // ── OVERVIEW (ALL STUDENTS) ───
