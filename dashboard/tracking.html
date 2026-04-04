@@ -456,46 +456,47 @@ async function loadTeacherClasses(){
 async function loadAllStudentData(){
   allStudentData=[];
   console.log('Loading students for',teacherClasses.length,'classes');
+
+  // Step 1: Fetch ALL class members in one query
+  const allClassIds=teacherClasses.map(c=>c.id);
+  const {data:allMembers}=await supabase.from('class_members').select('class_id, student_id').in('class_id',allClassIds);
+  if(!allMembers||!allMembers.length){console.log('No members in any class');return;}
+
+  // Step 2: Fetch ALL user profiles in one query
+  const allSids=[...new Set((allMembers||[]).map(m=>m.student_id).filter(Boolean))];
+  const {data:allUsers}=await supabase.from('users').select('id, full_name').in('id',allSids);
+  const userMap={};(allUsers||[]).forEach(u=>userMap[u.id]=u);
+
+  // Step 3: Fetch ALL task_attempts and word_mastery in parallel
+  const [attRes,wmRes]=await Promise.all([
+    supabase.from('task_attempts').select('student_id, score, started_at, completed_at, time_spent_seconds, total_questions, correct_answers').in('student_id',allSids),
+    supabase.from('word_mastery').select('student_id, word_latin, word_english, language, chapter, correct_count, incorrect_count, mastered_at, is_tricky, last_seen_at').in('student_id',allSids)
+  ]);
+  const allAttemptsList=attRes.data||[];
+  const allMasteryList=wmRes.data||[];
+
+  // Step 4: Process per class
   for(const cls of teacherClasses){
     try {
-    // Fetch members, then users separately (most reliable approach)
-    const {data:members,error:memErr}=await supabase.from('class_members').select('student_id').eq('class_id',cls.id);
-    if(memErr){console.error('class_members error for',cls.name,memErr);continue;}
-    if(!members||!members.length){console.log(cls.name,': no members');continue;}
-    const sids=members.map(m=>m.student_id).filter(Boolean);
-    if(!sids.length) continue;
-    const {data:students,error:usrErr}=await supabase.from('users').select('id, full_name').in('id',sids);
-    if(usrErr){console.error('users error for',cls.name,usrErr);continue;}
-    if(!students||!students.length){console.log(cls.name,': no user profiles found');continue;}
+    const classMembers=(allMembers||[]).filter(m=>m.class_id===cls.id);
+    if(!classMembers.length) continue;
+    const students=classMembers.map(m=>userMap[m.student_id]).filter(Boolean);
+    if(!students.length) continue;
     console.log(cls.name,':',students.length,'students');
     const studentIds=students.map(s=>s.id);
+    const studentIdSet=new Set(studentIds);
     const isCiv=cls.type&&cls.type.startsWith('civ-');
-    // Map class type to word_mastery language value
-    // prep-latin is its own language value; gcse and alevel both use 'latin' or 'greek'
     const isPrep=cls.type&&(cls.type==='latin-prep'||cls.type==='prep-latin');
     const isAlevel=cls.type&&cls.type.includes('alevel');
     const lang=isPrep?'prep-latin':cls.type&&cls.type.includes('greek')?'greek':'latin';
 
-    // Fetch word_mastery AND task_attempts
-    const fetches=[
-      supabase.from('task_attempts').select('student_id, score, started_at, completed_at, time_spent_seconds, total_questions, correct_answers').in('student_id',studentIds)
-    ];
+    // Filter from the already-fetched data
+    const allAttempts=allAttemptsList.filter(a=>studentIdSet.has(a.student_id));
+    let mastery=[];
     if(!isCiv){
-      // Word mastery: filter by student_id + language
-      // For GCSE vs A-Level: GCSE chapters are 1-10, A-Level words have chapter > 10 or null
-      let wmQuery=supabase.from('word_mastery').select('student_id, word_latin, word_english, language, chapter, correct_count, incorrect_count, mastered_at, is_tricky, last_seen_at').in('student_id',studentIds).eq('language',lang);
-      if(lang==='latin'||lang==='greek'){
-        // GCSE: chapters 1-10 only; A-Level: chapters > 10 or all (A-Level includes GCSE words)
-        if(!isAlevel) wmQuery=wmQuery.lte('chapter',10);
-      }
-      fetches.push(wmQuery);
-    }else{
-      // content_test_attempts table doesn't exist yet — civ tracking is future work
-      fetches.push(Promise.resolve({data:[]}));
+      mastery=allMasteryList.filter(w=>studentIdSet.has(w.student_id)&&w.language===lang);
+      if((lang==='latin'||lang==='greek')&&!isAlevel) mastery=mastery.filter(w=>w.chapter!=null&&w.chapter<=10);
     }
-    const [attRes,dataRes]=await Promise.all(fetches);
-    const allAttempts=attRes.data||[];
-    const mastery=dataRes.data||[];
 
     students.forEach((s,idx)=>{
       const sa=allAttempts.filter(a=>a.student_id===s.id);
