@@ -491,12 +491,78 @@ async function loadTeacherClasses(){
   } catch(e) {
     console.error('loadAllStudentData failed:', e);
   }
+
+  // Inject demo class for admins (for promo videos)
+  if(currentUser.is_admin) injectDemoClass();
+
   try {
     renderOverview();
   } catch(e) {
     console.error('renderOverview failed:', e);
     document.getElementById('overview-content').innerHTML='<div style="padding:24px;color:var(--g-red)">Error rendering overview: '+e.message+'</div>';
   }
+}
+
+function injectDemoClass(){
+  const DEMO_ID='demo-latin-gcse';
+  const demoCls={id:DEMO_ID,name:'Demo Latin GCSE',type:'latin-gcse'};
+  teacherClasses.push(demoCls);
+  // Re-render sidebar to include the demo class
+  const el=document.getElementById('sidebar-classes');
+  el.innerHTML+=('<div class="nav-item" data-id="'+DEMO_ID+'" onclick="loadClass(\''+DEMO_ID+'\')"><span class="nav-icon">I</span> Demo Latin GCSE <span class="nav-badge badge-lang" style="background:#ede9fe;color:#7c3aed">demo</span></div>');
+
+  const names=[
+    'M. Tullius Cicero','G. Julius Caesar','P. Vergilius Maro','Q. Horatius Flaccus',
+    'L. Annaeus Seneca','P. Ovidius Naso','C. Valerius Catullus','T. Livius Patavinus',
+    'Cn. Pompeius Magnus','M. Licinius Crassus','L. Sergius Catilina','C. Sallustius Crispus'
+  ];
+  const listTotal=466;
+  const now=Date.now();
+
+  names.forEach((name,idx)=>{
+    // Each student gets different stats for variety
+    const seed=idx*7+3;
+    const masteredCount=Math.round(60+seed*3.5+(Math.sin(seed)*40));
+    const weakCount=Math.round(8+Math.abs(Math.sin(seed*2.1))*25);
+    const vocabScore=Math.round(masteredCount/listTotal*100);
+    const daysAgo=idx<4?0:idx<8?Math.floor(1+idx*0.5):Math.floor(3+idx*2);
+    const lastActive=new Date(now-daysAgo*86400000).toISOString();
+    const st=daysAgo===0?'active':daysAgo<=3?'active':daysAgo<=7?'behind':'inactive';
+    const allTimeSecs=Math.round(1800+seed*420+Math.sin(seed*1.3)*900);
+
+    // Generate realistic 14-day activity
+    const activity=[];
+    for(let d=13;d>=0;d--){
+      const dt=new Date(now-d*86400000);
+      const active=Math.random()>(0.3+idx*0.03);
+      activity.push({
+        date:dt,
+        mins:active?Math.round(5+Math.random()*25):0,
+        words:active?Math.round(10+Math.random()*60):0,
+        label:dt.getDate()+'/'+(dt.getMonth()+1)
+      });
+    }
+    const sparkData=activity.map(d=>d.words);
+
+    // Generate weak words
+    const weakLatin=['autem','tamen','dum','iam','nisi','postquam','quamquam','itaque','numquam','semper','ingens','omnis','alter','idem','ipse','suus','quisque','nemo','quidam','tantus','deinde','neque','sive','denique','praeter','simul','donec','undique','paene','vix'];
+    const weakEnglish=['however','nevertheless','while','now','unless','after','although','therefore','never','always','huge','all','the other','the same','himself','his own','each','no one','a certain','so great','then','nor','or if','finally','beyond','at the same time','until','from everywhere','almost','scarcely'];
+    const weakWords=[];
+    for(let w=0;w<weakCount&&w<weakLatin.length;w++){
+      const att=Math.round(3+Math.random()*8);
+      const acc=Math.round(15+Math.random()*40);
+      weakWords.push({word:weakLatin[w],english:weakEnglish[w],word_latin:weakLatin[w],word_english:weakEnglish[w],attempts:att,accuracy:acc,mastered_at:null,correct_count:Math.round(att*acc/100),incorrect_count:Math.round(att*(100-acc)/100)});
+    }
+
+    allStudentData.push({
+      id:'demo-stu-'+idx, name, idx, type:'lang',
+      classId:DEMO_ID, className:'Demo Latin GCSE', classType:'latin-gcse',
+      score:vocabScore, masteredCount, totalWords:listTotal,
+      wc:weakCount, weakWords, activity, sparkData,
+      lastActive, st, allMastery:[], attempts:[],
+      _demo:true
+    });
+  });
 }
 
 async function loadAllStudentData(){
@@ -678,16 +744,41 @@ async function renderLangCls(){
   ss.forEach(s=>(s.weakWords||[]).forEach(w=>{const k=w.word;if(!wordMap[k])wordMap[k]={word:w.word,count:0};wordMap[k].count++;}));
   const chips=Object.values(wordMap).sort((a,b)=>b.count-a.count).slice(0,15).map(w=>({...w,sev:w.count>=5?'hot':w.count>=3?'warm':'ok'}));
 
-  // Fetch recent tasks for this class (match class.html pattern exactly)
-  const {data:tasks,error:taskErr}=await supabase.from('tasks').select('*').eq('class_id',currCls.id).order('due_date',{ascending:false}).limit(10);
-  if(taskErr) console.error('tasks query error:',taskErr);
+  // Fetch recent tasks for this class (skip for demo classes)
+  const isDemo=currCls.id&&currCls.id.startsWith('demo-');
+  let tasks=null,taskErr=null;
+  if(!isDemo){
+    const res=await supabase.from('tasks').select('*').eq('class_id',currCls.id).order('due_date',{ascending:false}).limit(10);
+    tasks=res.data;taskErr=res.error;
+    if(taskErr) console.error('tasks query error:',taskErr);
+  } else {
+    // Generate fake homework for demo
+    const now=new Date();
+    tasks=[
+      {id:'demo-t1',title:'GCSE Vocab Ch.3 words 1–20',type:'vocab',due_date:new Date(now.getTime()-2*86400000).toISOString(),created_at:new Date(now.getTime()-5*86400000).toISOString()},
+      {id:'demo-t2',title:'GCSE Vocab Ch.2 words 1–25',type:'vocab',due_date:new Date(now.getTime()-9*86400000).toISOString(),created_at:new Date(now.getTime()-12*86400000).toISOString()},
+      {id:'demo-t3',title:'Practice: autem, tamen, dum, iam, nisi',type:'vocab',due_date:new Date(now.getTime()+2*86400000).toISOString(),created_at:new Date(now.getTime()-1*86400000).toISOString()},
+    ];
+  }
   console.log('Tasks for',currCls.name,':',(tasks||[]).length,'found');
   let hwHtml='';
   if(tasks&&tasks.length){
     const taskIds=tasks.map(t=>t.id);
-    const {data:attempts}=await supabase.from('task_attempts').select('task_id, student_id, score, completed_at, started_at, time_spent_seconds, total_questions, correct_answers').in('task_id',taskIds);
-    const attemptsByTask={};
-    (attempts||[]).forEach(a=>{if(!attemptsByTask[a.task_id])attemptsByTask[a.task_id]=[];attemptsByTask[a.task_id].push(a);});
+    let attemptsByTask={};
+    if(!isDemo){
+      const {data:attempts}=await supabase.from('task_attempts').select('task_id, student_id, score, completed_at, started_at, time_spent_seconds, total_questions, correct_answers').in('task_id',taskIds);
+      (attempts||[]).forEach(a=>{if(!attemptsByTask[a.task_id])attemptsByTask[a.task_id]=[];attemptsByTask[a.task_id].push(a);});
+    } else {
+      // Generate fake attempts for demo homework
+      const now=new Date();
+      tasks.forEach(t=>{attemptsByTask[t.id]=[];
+        ss.forEach((s,si)=>{
+          const done=Math.random()>0.25;
+          const started=new Date(new Date(t.created_at).getTime()+si*3600000);
+          attemptsByTask[t.id].push({task_id:t.id,student_id:s.id,score:done?Math.round(40+Math.random()*55):null,completed_at:done?new Date(started.getTime()+Math.round(300000+Math.random()*900000)).toISOString():null,started_at:started.toISOString(),time_spent_seconds:done?Math.round(180+Math.random()*600):Math.round(30+Math.random()*120),total_questions:done?Math.round(15+Math.random()*10):Math.round(2+Math.random()*5)});
+        });
+      });
+    }
 
     hwHtml=tasks.map((t,ti)=>{
       const ta=attemptsByTask[t.id]||[];
