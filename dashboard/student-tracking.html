@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Progress — Classicalia</title>
+<link rel="icon" type="image/png" href="../images/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/google-theme.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+html { height: 100%; }
+body { margin: 0; padding: 0; height: 100%; overflow: hidden !important; }
+.app { display: flex; height: 100vh; width: 100%; position: fixed; top: 0; left: 0; }
+.sidebar { width: 220px; flex-shrink: 0; background: var(--g-card-bg); border-right: 1px solid var(--g-border); display: flex; flex-direction: column; height: 100%; }
+.sidebar-logo { padding: 16px; border-bottom: 1px solid var(--g-border); display: flex; align-items: center; gap: 10px; }
+.sidebar-logo img { width: 24px; height: 24px; }
+.logo-text { font-family: 'Lora', Georgia, serif; font-style: italic; font-size: 1rem; font-weight: 500; color: var(--g-text); }
+.sidebar-section { padding: 12px 10px 6px; }
+.sidebar-label { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--g-text-secondary); padding: 0 8px; margin-bottom: 4px; font-weight: 500; }
+.nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--g-radius-sm); font-size: 0.85rem; color: var(--g-text-secondary); cursor: pointer; transition: background 0.14s, color 0.14s; margin-bottom: 2px; user-select: none; font-weight: 500; }
+.nav-item:hover { background: var(--g-bg); color: var(--g-text); }
+.nav-item.active { background: var(--g-blue-light); color: var(--g-blue); }
+.nav-item.active-civ { background: #ede9fe; color: #7c3aed; }
+.nav-icon { font-size: 0.85rem; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-badge { margin-left: auto; font-size: 0.6rem; padding: 1px 6px; border-radius: 4px; font-weight: 500; }
+.badge-lang { background: var(--g-blue-light); color: var(--g-blue); }
+.badge-civ { background: #ede9fe; color: #7c3aed; }
+.sidebar-spacer { flex: 1; }
+.sidebar-user { padding: 12px; border-top: 1px solid var(--g-border); display: flex; align-items: center; gap: 10px; }
+.user-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--g-blue); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 600; color: white; flex-shrink: 0; }
+.user-name { font-size: 0.8rem; font-weight: 500; color: var(--g-text); }
+.user-role { font-size: 0.7rem; color: var(--g-text-secondary); }
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.page { display: none; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.page.active { display: flex; }
+.topbar { height: 52px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; border-bottom: 1px solid var(--g-border); background: var(--g-card-bg); flex-shrink: 0; }
+.topbar-left { display: flex; align-items: center; gap: 8px; }
+.topbar-title { font-size: 0.95rem; font-weight: 500; color: var(--g-text); }
+.topbar-sep { color: var(--g-text-secondary); }
+.topbar-sub { font-size: 0.8rem; color: var(--g-text-secondary); }
+.content { flex: 1 1 0; overflow-y: auto !important; padding: 20px 24px; }
+.content > * { margin-bottom: 16px; }
+.content > *:last-child { margin-bottom: 0; }
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+.stat-card { background: var(--g-card-bg); border: 1px solid var(--g-border); border-radius: var(--g-radius); padding: 20px; position: relative; overflow: hidden; transition: box-shadow 0.2s; }
+.stat-card:hover { box-shadow: var(--g-shadow-raised); }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--c, var(--g-blue)); }
+.stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--g-text-secondary); font-weight: 500; margin-bottom: 6px; }
+.stat-value { font-size: 1.8rem; font-weight: 600; color: var(--g-text); line-height: 1; margin-bottom: 4px; }
+.stat-delta { font-size: 0.75rem; color: var(--g-text-secondary); }
+.card { background: var(--g-card-bg); border: 1px solid var(--g-border); border-radius: var(--g-radius); overflow: hidden; }
+.card-hdr { padding: 16px 20px; border-bottom: 1px solid var(--g-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.card-t { font-size: 1rem; font-weight: 500; color: var(--g-text); }
+.card-m { font-size: 0.8rem; color: var(--g-text-secondary); }
+.card-body { padding: 16px 20px; }
+.two-col-equal { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pill { display: inline-flex; align-items: center; justify-content: center; min-width: 42px; padding: 2px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 500; }
+.pill-green { background: var(--g-green-light); color: #047857; }
+.pill-amber { background: var(--g-yellow-light); color: #b45309; }
+.pill-red { background: var(--g-red-light); color: #b91c1c; }
+.pill-blue { background: var(--g-blue-light); color: var(--g-blue); }
+.profile-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ps-card { background: var(--g-bg); border-radius: 10px; padding: 14px; }
+.ps-card-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--g-text-secondary); font-weight: 500; margin-bottom: 6px; }
+.ps-card-value { font-size: 1.3rem; font-weight: 600; color: var(--g-text); }
+.ps-card-sub { font-size: 0.72rem; color: var(--g-text-secondary); margin-top: 2px; }
+.weak-row { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--g-border); }
+.weak-row:last-child { border-bottom: none; }
+.wr-main { font-size: 0.9rem; color: var(--g-text); font-family: 'Lora', Georgia, serif; font-style: italic; flex: 1; line-height: 1.4; }
+.wr-count { font-size: 0.78rem; color: var(--g-red); font-weight: 500; min-width: 60px; flex-shrink: 0; }
+.chart-wrap { position: relative; }
+.table-wrap { background: var(--g-card-bg); border: 1px solid var(--g-border); border-radius: var(--g-radius); overflow: hidden; }
+.stu-table { width: 100%; border-collapse: collapse; }
+.stu-table thead th { padding: 10px 14px; text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--g-text-secondary); font-weight: 500; border-bottom: 2px solid var(--g-border); white-space: nowrap; background: var(--g-bg); }
+.stu-table tbody tr { border-bottom: 1px solid var(--g-border); }
+.stu-table tbody tr:last-child { border-bottom: none; }
+.stu-table tbody td { padding: 10px 14px; font-size: 0.85rem; vertical-align: middle; }
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .stats-row { grid-template-columns: repeat(2,1fr); }
+  .two-col-equal, .profile-stats { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="sidebar-logo"><img src="../images/favicon.png" alt=""><span class="logo-text">Classicalia</span></div>
+  <div class="sidebar-section">
+    <p class="sidebar-label">Overview</p>
+    <div class="nav-item active" id="nav-all" onclick="showOverview()"><span class="nav-icon">⊞</span> My Progress</div>
+  </div>
+  <div class="sidebar-section">
+    <p class="sidebar-label">My Classes</p>
+    <div id="sidebar-classes"><div style="padding:8px 12px;font-size:0.8rem;color:var(--g-text-secondary)">Loading...</div></div>
+  </div>
+  <div class="sidebar-spacer"></div>
+  <div class="sidebar-section">
+    <p class="sidebar-label">Tools</p>
+    <div class="nav-item" onclick="window.location.href='../index.html'"><span class="nav-icon">🏠</span> Home</div>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="user-ini">?</div>
+    <div><div class="user-name" id="user-name">Loading...</div><div class="user-role">student</div></div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="page active" id="page-overview">
+    <div class="topbar"><div class="topbar-left"><span class="topbar-title">My Progress</span><span class="topbar-sep">/</span><span class="topbar-sub">across all classes</span></div></div>
+    <div class="content" id="overview-content"><div style="text-align:center;padding:48px;color:var(--g-text-secondary)">Loading...</div></div>
+  </div>
+  <div class="page" id="page-class">
+    <div class="topbar"><div class="topbar-left"><span class="topbar-title" id="cls-title"></span><span class="topbar-sep">/</span><span class="topbar-sub" id="cls-sub"></span></div></div>
+    <div class="content" id="cls-content"></div>
+  </div>
+</div>
+</div><!-- end .app -->
+
+<script src="../auth/config.js"></script>
+<script>
+const AVC=['#0066ff','#34A853','#FBBC04','#EA4335','#7c3aed','#06b6d4','#ec4899','#2dd4bf','#f97316','#84cc16'];
+let currentUser=null, myClasses=[], classData={}, currClsId=null;
+
+const ini=n=>(n||'?').split(' ').map(x=>x[0]).join('');
+function ll(d){if(!d)return '—';const days=Math.floor((Date.now()-new Date(d).getTime())/86400000);return days===0?'today':days===1?'yesterday':days+'d ago';}
+function scl(s){return s>=75?'pill-green':s>=55?'pill-amber':'pill-red';}
+
+function buildDailyActivity(attempts){
+  const days=[];const now=new Date();now.setHours(23,59,59,999);
+  for(let i=13;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);d.setHours(0,0,0,0);const dEnd=new Date(d);dEnd.setHours(23,59,59,999);const da=(attempts||[]).filter(a=>{const t=new Date(a.started_at);return t>=d&&t<=dEnd;});days.push({date:d,mins:Math.round(da.reduce((s,a)=>s+(a.time_spent_seconds||0),0)/60),words:da.reduce((s,a)=>s+(a.total_questions||0),0),label:d.getDate()+'/'+(d.getMonth()+1)});}
+  return days;
+}
+
+function drawActivityBars(elId,days){
+  const el=document.getElementById(elId);if(!el||!days||!days.length)return;
+  const W=el.clientWidth||600,H=130,pad=40,barW=Math.min(14,Math.floor((W-pad*2)/(days.length*2.5)));
+  const mxM=Math.max(...days.map(d=>d.mins),1),mxW=Math.max(...days.map(d=>d.words),1);
+  const chartH=H-30,groupW=barW*2+4,totalW=days.length*groupW,startX=Math.max(pad,(W-totalW)/2);
+  let bars='',labels='';
+  days.forEach((d,i)=>{const x=startX+i*groupW;const hM=d.mins>0?Math.max(3,Math.round(d.mins/mxM*chartH)):0;const hW=d.words>0?Math.max(3,Math.round(d.words/mxW*chartH)):0;
+    bars+='<rect x="'+x+'" y="'+(chartH-hM)+'" width="'+barW+'" height="'+hM+'" rx="2" fill="#0066ff" opacity="0.7"><title>'+d.mins+' min</title></rect>';
+    bars+='<rect x="'+(x+barW+2)+'" y="'+(chartH-hW)+'" width="'+barW+'" height="'+hW+'" rx="2" fill="#34A853" opacity="0.7"><title>'+d.words+' words</title></rect>';
+    if(i%2===0||days.length<=7) labels+='<text x="'+(x+groupW/2)+'" y="'+(chartH+14)+'" text-anchor="middle" font-size="8" fill="#4a5070" font-family="Inter,sans-serif">'+d.label+'</text>';
+  });
+  el.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:100%;overflow:visible">'+
+    '<line x1="'+startX+'" y1="'+chartH+'" x2="'+(startX+totalW)+'" y2="'+chartH+'" stroke="#dde1ee" stroke-width="1"/>'+
+    '<text x="2" y="10" font-size="8" fill="#4a5070" font-family="Inter,sans-serif">'+mxM+'m</text>'+
+    '<text x="'+(W-2)+'" y="10" text-anchor="end" font-size="8" fill="#047857" font-family="Inter,sans-serif">'+mxW+'w</text>'+
+    bars+labels+
+    '<rect x="'+startX+'" y="'+(H-8)+'" width="10" height="6" rx="1" fill="#0066ff" opacity="0.7"/><text x="'+(startX+14)+'" y="'+(H-3)+'" font-size="8" fill="#4a5070" font-family="Inter,sans-serif">Time (mins)</text>'+
+    '<rect x="'+(startX+85)+'" y="'+(H-8)+'" width="10" height="6" rx="1" fill="#34A853" opacity="0.7"/><text x="'+(startX+99)+'" y="'+(H-3)+'" font-size="8" fill="#4a5070" font-family="Inter,sans-serif">Words practised</text>'+
+  '</svg>';
+}
+
+// ── AUTH & INIT ───
+async function init(){
+  const {data:{user}}=await supabase.auth.getUser();
+  if(!user) return window.location.href='../auth/login.html';
+  const {data:profile}=await supabase.from('users').select('*').eq('id',user.id).single();
+  if(!profile) return window.location.href='../auth/login.html';
+  currentUser={...user,...profile};
+  document.getElementById('user-name').textContent=profile.full_name||'Student';
+  document.getElementById('user-ini').textContent=ini(profile.full_name||'S');
+  await loadMyData();
+}
+
+async function loadMyData(){
+  // Get my class memberships
+  const {data:memberships}=await supabase.from('class_members').select('class_id, classes(id, name, type)').eq('student_id',currentUser.id);
+  if(!memberships||!memberships.length){
+    document.getElementById('sidebar-classes').innerHTML='<div style="padding:8px 12px;font-size:0.8rem;color:var(--g-text-secondary)">No classes yet</div>';
+    document.getElementById('overview-content').innerHTML='<div style="text-align:center;padding:48px;color:var(--g-text-secondary)">Join a class to start tracking your progress.</div>';
+    return;
+  }
+  myClasses=memberships.map(m=>m.classes).filter(Boolean);
+
+  // Render sidebar
+  document.getElementById('sidebar-classes').innerHTML=myClasses.map(c=>{
+    const isCiv=c.type&&c.type.startsWith('civ-');
+    return '<div class="nav-item" data-id="'+c.id+'" onclick="showClass(\''+c.id+'\')"><span class="nav-icon">'+(isCiv?'⊙':c.type&&c.type.includes('greek')?'α':'I')+'</span> '+c.name+' <span class="nav-badge badge-'+(isCiv?'civ':'lang')+'">'+(isCiv?'civ':'lang')+'</span></div>';
+  }).join('');
+
+  // Fetch all my data in parallel
+  const [attRes,wmRes]=await Promise.all([
+    supabase.from('task_attempts').select('task_id, score, started_at, completed_at, time_spent_seconds, total_questions, correct_answers').eq('student_id',currentUser.id).limit(5000),
+    supabase.from('word_mastery').select('word_latin, word_english, language, chapter, correct_count, incorrect_count, mastered_at, is_tricky, last_seen_at').eq('student_id',currentUser.id).limit(50000)
+  ]);
+  const myAttempts=attRes.data||[];
+  const myMastery=(wmRes.data||[]).map(w=>{const total=(w.correct_count||0)+(w.incorrect_count||0);return {...w,word:w.word_latin,english:w.word_english,attempts:total,accuracy:total>0?Math.round((w.correct_count||0)/total*100):0};});
+
+  // Process per class
+  for(const cls of myClasses){
+    const isCiv=cls.type&&cls.type.startsWith('civ-');
+    const isPrep=cls.type&&(cls.type==='latin-prep'||cls.type==='prep-latin');
+    const isAlevel=cls.type&&cls.type.includes('alevel');
+    const isGreek=cls.type&&cls.type.includes('greek');
+    const listTotal=isCiv?0:(isPrep?320:(isAlevel?(isGreek?1166:1126):(isGreek?382:466)));
+
+    let mastery=[];
+    if(!isCiv){
+      mastery=myMastery.filter(w=>isGreek?w.language==='greek':(w.language==='latin'||w.language==='prep-latin'));
+    }
+    const masteredCount=mastery.filter(w=>w.mastered_at!=null).length;
+    const weakWords=mastery.filter(w=>w.mastered_at==null&&w.attempts>0).sort((a,b)=>a.accuracy-b.accuracy);
+    const vocabScore=listTotal?Math.round(masteredCount/listTotal*100):0;
+    const activity=buildDailyActivity(myAttempts);
+    const allTimeSecs=myAttempts.reduce((a,att)=>a+(att.time_spent_seconds||0),0);
+    const lastAttempt=myAttempts.length?myAttempts.reduce((l,a)=>(!l||new Date(a.started_at)>new Date(l))?a.started_at:l,null):null;
+
+    classData[cls.id]={cls,isCiv,listTotal,mastery,masteredCount,weakWords,vocabScore,activity,allTimeSecs,lastAttempt,attempts:myAttempts};
+  }
+  renderOverview();
+}
+
+// ── OVERVIEW ───
+function renderOverview(){
+  const langClasses=myClasses.filter(c=>!c.type||!c.type.startsWith('civ-'));
+  const totalMastered=langClasses.reduce((a,c)=>{const d=classData[c.id];return a+(d?d.masteredCount:0);},0);
+  const totalWeak=langClasses.reduce((a,c)=>{const d=classData[c.id];return a+(d?d.weakWords.length:0);},0);
+  // Use first class's data for time/activity (attempts are shared across classes)
+  const firstData=classData[myClasses[0]?.id];
+  const allTimeSecs=firstData?firstData.allTimeSecs:0;
+  const allTimeHrs=Math.floor(allTimeSecs/3600);
+  const allTimeMins=Math.round((allTimeSecs%3600)/60);
+  const allTimeStr=allTimeHrs>0?allTimeHrs+'h '+allTimeMins+'m':allTimeMins+' mins';
+  const lastActive=firstData?firstData.lastAttempt:null;
+
+  document.getElementById('overview-content').innerHTML=
+    '<div class="stats-row">'+
+      '<div class="stat-card" style="--c:var(--g-blue)"><div class="stat-label">Classes</div><div class="stat-value">'+myClasses.length+'</div><div class="stat-delta">enrolled</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-green)"><div class="stat-label">Words mastered</div><div class="stat-value">'+totalMastered+'</div><div class="stat-delta">across all classes</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-red)"><div class="stat-label">Weak words</div><div class="stat-value">'+totalWeak+'</div><div class="stat-delta">need practice</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-yellow)"><div class="stat-label">Total time</div><div class="stat-value">'+allTimeStr+'</div><div class="stat-delta">all-time practice</div></div>'+
+    '</div>'+
+    '<div class="card"><div class="card-hdr"><span class="card-t">My activity — last 14 days</span><span class="card-m">time spent vs words practised</span></div><div class="card-body"><div class="chart-wrap" id="overview-chart" style="height:140px"></div></div></div>'+
+    '<div class="two-col-equal">'+myClasses.map(c=>{
+      const d=classData[c.id];
+      const isCiv=c.type&&c.type.startsWith('civ-');
+      if(isCiv) return '<div class="card"><div class="card-hdr"><span class="card-t">'+c.name+'</span><span class="pill pill-purple">civ</span></div><div class="card-body"><p style="color:var(--g-text-secondary);font-size:0.85rem">Civ tracking coming soon.</p></div></div>';
+      if(!d) return '';
+      const sc=d.vocabScore>=75?'var(--g-green)':d.vocabScore>=55?'var(--g-yellow)':'var(--g-red)';
+      const pct=d.listTotal?Math.round(d.masteredCount/d.listTotal*100):0;
+      return '<div class="card" style="cursor:pointer" onclick="showClass(\''+c.id+'\')">'+
+        '<div class="card-hdr"><span class="card-t">'+c.name+'</span><span class="pill pill-blue">lang</span></div>'+
+        '<div class="card-body"><div class="profile-stats">'+
+          '<div class="ps-card"><div class="ps-card-label">Mastered</div><div class="ps-card-value" style="color:'+sc+'">'+d.masteredCount+' <span style="font-size:0.8rem;font-weight:400;color:var(--g-text-secondary)">/ '+d.listTotal+'</span></div>'+
+            '<div style="height:4px;background:var(--g-surface-dim);border-radius:2px;margin-top:8px"><div style="height:100%;width:'+pct+'%;background:'+sc+';border-radius:2px"></div></div>'+
+            '<div class="ps-card-sub">'+pct+'%</div></div>'+
+          '<div class="ps-card"><div class="ps-card-label">Weak words</div><div class="ps-card-value" style="color:'+(d.weakWords.length>8?'var(--g-red)':d.weakWords.length>4?'var(--g-yellow)':'var(--g-green)')+'">'+d.weakWords.length+'</div><div class="ps-card-sub">need practice</div></div>'+
+        '</div></div></div>';
+    }).join('')+'</div>';
+  setTimeout(()=>{if(firstData)drawActivityBars('overview-chart',firstData.activity);},30);
+}
+
+function showOverview(){
+  document.getElementById('nav-all').classList.add('active');
+  document.querySelectorAll('#sidebar-classes .nav-item').forEach(n=>n.classList.remove('active','active-civ'));
+  renderOverview();
+  showPage('overview');
+}
+
+// ── CLASS VIEW ───
+async function showClass(classId){
+  currClsId=classId;
+  const cls=myClasses.find(c=>c.id===classId);
+  const d=classData[classId];
+  if(!cls||!d) return;
+  document.getElementById('nav-all').classList.remove('active');
+  document.querySelectorAll('#sidebar-classes .nav-item').forEach(n=>{n.classList.remove('active','active-civ');if(n.dataset.id===classId)n.classList.add(d.isCiv?'active-civ':'active');});
+  document.getElementById('cls-title').textContent=cls.name;
+  document.getElementById('cls-sub').textContent=d.isCiv?'Classical Civilisation':'Vocabulary';
+
+  if(d.isCiv){
+    document.getElementById('cls-content').innerHTML='<div class="card" style="border-left:4px solid #7c3aed"><div class="card-body" style="display:flex;gap:16px"><div style="font-size:1.5rem">🏛️</div><div><div style="font-weight:600;color:var(--g-text);margin-bottom:4px">Civ tracking coming soon</div><p style="color:var(--g-text-secondary);margin:0;font-size:0.9rem">Topic-level progress will appear here once the content tester is live.</p></div></div></div>';
+    showPage('class');return;
+  }
+
+  const sc=d.vocabScore>=75?'var(--g-green)':d.vocabScore>=55?'var(--g-yellow)':'var(--g-red)';
+  const pct=d.listTotal?Math.round(d.masteredCount/d.listTotal*100):0;
+  const allTimeHrs=Math.floor(d.allTimeSecs/3600);const allTimeMins=Math.round((d.allTimeSecs%3600)/60);
+  const allTimeStr=allTimeHrs>0?allTimeHrs+'h '+allTimeMins+'m':allTimeMins+' mins';
+  const recentMins=(d.activity||[]).reduce((a,x)=>a+x.mins,0);
+  const recentWords=(d.activity||[]).reduce((a,x)=>a+x.words,0);
+  const ww=(d.weakWords||[]).slice(0,30);
+
+  // Fetch homework for this class
+  const {data:tasks}=await supabase.from('tasks').select('*').eq('class_id',classId).order('due_date',{ascending:false}).limit(10);
+  let hwHtml='';
+  if(tasks&&tasks.length){
+    const taskIds=tasks.map(t=>t.id);
+    const {data:myTaskAttempts}=await supabase.from('task_attempts').select('task_id, score, completed_at, time_spent_seconds, total_questions, started_at').eq('student_id',currentUser.id).in('task_id',taskIds);
+    const attMap={};(myTaskAttempts||[]).forEach(a=>attMap[a.task_id]=a);
+    hwHtml=tasks.map(t=>{
+      const a=attMap[t.id];
+      const due=t.due_date?new Date(t.due_date):null;
+      const dueStr=due?due.toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'no deadline';
+      const overdue=due&&due<new Date()&&(!a||!a.completed_at);
+      if(!a) return '<tr><td style="font-weight:500">'+t.title+'</td><td><span class="pill '+(overdue?'pill-red':'pill-amber')+'">'+(overdue?'Overdue':'Not started')+'</span></td><td>—</td><td>—</td><td style="color:'+(overdue?'var(--g-red)':'var(--g-text-secondary)')+'">'+dueStr+'</td></tr>';
+      const done=!!a.completed_at;
+      const mins=a.time_spent_seconds?Math.round(a.time_spent_seconds/60):0;
+      return '<tr><td style="font-weight:500">'+t.title+'</td><td><span class="pill '+(done?'pill-green':'pill-amber')+'">'+(done?'Done':'In progress')+'</span></td><td>'+(a.score!=null?'<span class="pill '+scl(a.score)+'">'+a.score+'%</span>':'—')+'</td><td>'+mins+' min</td><td style="color:var(--g-text-secondary)">'+dueStr+'</td></tr>';
+    }).join('');
+  }
+
+  document.getElementById('cls-content').innerHTML=
+    '<div class="stats-row">'+
+      '<div class="stat-card" style="--c:var(--g-blue)"><div class="stat-label">Words mastered</div><div class="stat-value">'+d.masteredCount+' <span style="font-size:1rem;font-weight:400;color:var(--g-text-secondary)">/ '+d.listTotal+'</span></div>'+
+        '<div style="height:4px;background:var(--g-surface-dim);border-radius:2px;margin-top:8px"><div style="height:100%;width:'+pct+'%;background:'+sc+';border-radius:2px"></div></div>'+
+        '<div class="stat-delta">'+pct+'% mastered</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-red)"><div class="stat-label">Weak words</div><div class="stat-value" style="color:'+(d.weakWords.length>8?'var(--g-red)':d.weakWords.length>4?'var(--g-yellow)':'var(--g-green)')+'">'+d.weakWords.length+'</div><div class="stat-delta">need practice</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-green)"><div class="stat-label">Total time</div><div class="stat-value">'+allTimeStr+'</div><div class="stat-delta">all-time</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-yellow)"><div class="stat-label">Last active</div><div class="stat-value" style="font-size:1.3rem">'+ll(d.lastAttempt)+'</div><div class="stat-delta">14-day: '+recentMins+' mins · '+recentWords+' words</div></div>'+
+    '</div>'+
+    '<div class="card"><div class="card-hdr"><span class="card-t">My activity — last 14 days</span></div><div class="card-body"><div class="chart-wrap" id="cls-chart" style="height:140px"></div></div></div>'+
+    '<div class="two-col-equal">'+
+      '<div class="card"><div class="card-hdr"><span class="card-t">Weak words</span><span class="card-m">'+d.weakWords.length+' words to practise</span></div><div class="card-body">'+
+        (ww.length?ww.map(w=>'<div class="weak-row"><span class="wr-main">'+w.word+'</span><span style="font-size:0.82rem;color:var(--g-text-secondary);flex:1">'+(w.english||'')+'</span><span class="wr-count">'+w.attempts+' att · '+w.accuracy+'%</span></div>').join('')
+        :'<p style="color:var(--g-text-secondary)">No weak words — all mastered!</p>')+
+      '</div></div>'+
+      '<div class="card"><div class="card-hdr"><span class="card-t">Homework</span></div><div class="card-body">'+
+        (hwHtml?'<div class="table-wrap"><table class="stu-table"><thead><tr><th>Task</th><th>Status</th><th>Score</th><th>Time</th><th>Due</th></tr></thead><tbody>'+hwHtml+'</tbody></table></div>'
+        :'<p style="color:var(--g-text-secondary)">No homework set yet.</p>')+
+      '</div></div>'+
+    '</div>';
+  showPage('class');
+  setTimeout(()=>drawActivityBars('cls-chart',d.activity),30);
+}
+
+function showPage(n){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page-'+n).classList.add('active');}
+init();
+</script>
+</body>
+</html>
