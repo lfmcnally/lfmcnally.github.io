@@ -79,6 +79,27 @@ body { margin: 0; padding: 0; height: 100%; overflow: hidden !important; }
 .stu-table tbody tr { border-bottom: 1px solid var(--g-border); }
 .stu-table tbody tr:last-child { border-bottom: none; }
 .stu-table tbody td { padding: 10px 14px; font-size: 0.85rem; vertical-align: middle; }
+/* ── LEADERBOARD ────────────────────────────────────────── */
+.lb-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--g-border); }
+.lb-row:last-child { border-bottom: none; }
+.lb-pos { width: 28px; text-align: center; font-weight: 600; font-size: 0.9rem; color: var(--g-text-secondary); flex-shrink: 0; }
+.lb-pos.gold { color: #f59e0b; } .lb-pos.silver { color: #9ca3af; } .lb-pos.bronze { color: #b45309; }
+.lb-name { flex: 1; font-weight: 500; color: var(--g-text); font-size: 0.9rem; }
+.lb-name.me { color: var(--g-blue); }
+.lb-time { font-weight: 500; font-size: 0.85rem; color: var(--g-text-secondary); }
+.lb-row.me { background: var(--g-blue-light); border-radius: 8px; padding: 10px 12px; margin: -2px -12px; }
+
+/* ── READING PROGRESS ──────────────────────────────────── */
+.reading-topic { border: 1px solid var(--g-border); border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
+.reading-topic-hdr { padding: 12px 16px; background: var(--g-bg); display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+.reading-topic-hdr:hover { background: var(--g-surface-dim); }
+.reading-lesson { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--g-border); }
+.reading-lesson:hover { background: var(--g-bg); }
+.reading-lesson a { color: var(--g-blue); text-decoration: none; font-weight: 500; font-size: 0.85rem; flex: 1; }
+.reading-lesson a:hover { text-decoration: underline; }
+.reading-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.reading-dot.done { background: var(--g-green); } .reading-dot.started { background: var(--g-yellow); } .reading-dot.unread { background: var(--g-surface-dim); }
+
 @media (max-width: 768px) {
   .sidebar { display: none; }
   .stats-row { grid-template-columns: repeat(2,1fr); }
@@ -97,6 +118,10 @@ body { margin: 0; padding: 0; height: 100%; overflow: hidden !important; }
   <div class="sidebar-section">
     <p class="sidebar-label">My Classes</p>
     <div id="sidebar-classes"><div style="padding:8px 12px;font-size:0.8rem;color:var(--g-text-secondary)">Loading...</div></div>
+  </div>
+  <div class="sidebar-section">
+    <p class="sidebar-label">Leaderboards</p>
+    <div class="nav-item" id="nav-lb" onclick="showLeaderboards()"><span class="nav-icon">🏆</span> Reading time</div>
   </div>
   <div class="sidebar-spacer"></div>
   <div class="sidebar-section">
@@ -117,6 +142,10 @@ body { margin: 0; padding: 0; height: 100%; overflow: hidden !important; }
   <div class="page" id="page-class">
     <div class="topbar"><div class="topbar-left"><span class="topbar-title" id="cls-title"></span><span class="topbar-sep">/</span><span class="topbar-sub" id="cls-sub"></span></div></div>
     <div class="content" id="cls-content"></div>
+  </div>
+  <div class="page" id="page-lb">
+    <div class="topbar"><div class="topbar-left"><span class="topbar-title">Leaderboards</span><span class="topbar-sep">/</span><span class="topbar-sub">reading time by course</span></div></div>
+    <div class="content" id="lb-content"><div style="text-align:center;padding:48px;color:var(--g-text-secondary)">Loading...</div></div>
   </div>
 </div>
 </div><!-- end .app -->
@@ -241,7 +270,7 @@ function renderOverview(){
     '<div class="two-col-equal">'+myClasses.map(c=>{
       const d=classData[c.id];
       const isCiv=c.type&&c.type.startsWith('civ-');
-      if(isCiv) return '<div class="card"><div class="card-hdr"><span class="card-t">'+c.name+'</span><span class="pill pill-purple">civ</span></div><div class="card-body"><p style="color:var(--g-text-secondary);font-size:0.85rem">Civ tracking coming soon.</p></div></div>';
+      if(isCiv) return '<div class="card" style="cursor:pointer" onclick="showClass(\''+c.id+'\')"><div class="card-hdr"><span class="card-t">'+c.name+'</span><span class="pill pill-purple">civ</span></div><div class="card-body"><p style="color:var(--g-text-secondary);font-size:0.85rem">Click to see reading progress</p></div></div>';
       if(!d) return '';
       const sc=d.vocabScore>=75?'var(--g-green)':d.vocabScore>=55?'var(--g-yellow)':'var(--g-red)';
       const pct=d.listTotal?Math.round(d.masteredCount/d.listTotal*100):0;
@@ -276,8 +305,11 @@ async function showClass(classId){
   document.getElementById('cls-sub').textContent=d.isCiv?'Classical Civilisation':'Vocabulary';
 
   if(d.isCiv){
-    document.getElementById('cls-content').innerHTML='<div class="card" style="border-left:4px solid #7c3aed"><div class="card-body" style="display:flex;gap:16px"><div style="font-size:1.5rem">🏛️</div><div><div style="font-weight:600;color:var(--g-text);margin-bottom:4px">Civ tracking coming soon</div><p style="color:var(--g-text-secondary);margin:0;font-size:0.9rem">Topic-level progress will appear here once the content tester is live.</p></div></div></div>';
-    showPage('class');return;
+    document.getElementById('cls-content').innerHTML='<div style="text-align:center;padding:24px;color:var(--g-text-secondary)">Loading reading progress...</div>';
+    showPage('class');
+    const civHtml=await renderCivReading(cls.type);
+    document.getElementById('cls-content').innerHTML=civHtml;
+    return;
   }
 
   const sc=d.vocabScore>=75?'var(--g-green)':d.vocabScore>=55?'var(--g-yellow)':'var(--g-red)';
@@ -331,7 +363,138 @@ async function showClass(classId){
   setTimeout(()=>drawActivityBars('cls-chart',d.activity),30);
 }
 
-function showPage(n){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page-'+n).classList.add('active');}
+// ── LEADERBOARDS ───
+const LB_COURSES=[
+  {key:'iliad',label:'Iliad',path:'iliad',colour:'#0066ff'},
+  {key:'aeneid',label:'Aeneid',path:'aeneid',colour:'#7c3aed'},
+  {key:'greek-art',label:'Greek Art',path:'greek-art',colour:'#34A853'},
+  {key:'politics',label:'Politics of the Late Republic',path:'politics',colour:'#EA4335'},
+  {key:'latin',label:'Latin Vocab',path:'latin%vocabulary',colour:'#0066ff'},
+  {key:'greek',label:'Greek Vocab',path:'greek%vocabulary',colour:'#34A853'},
+];
+
+async function showLeaderboards(){
+  document.getElementById('nav-all').classList.remove('active');
+  document.querySelectorAll('#sidebar-classes .nav-item').forEach(n=>n.classList.remove('active','active-civ'));
+  document.getElementById('nav-lb').classList.add('active');
+  document.getElementById('lb-content').innerHTML='<div style="text-align:center;padding:48px;color:var(--g-text-secondary)">Loading leaderboards...</div>';
+  showPage('lb');
+
+  const results=await Promise.all(LB_COURSES.map(c=>
+    supabase.rpc('get_leaderboard',{path_filter:c.path,since_date:null,reading_only:c.key==='latin'||c.key==='greek'?false:true,max_results:10})
+  ));
+
+  document.getElementById('lb-content').innerHTML=
+    '<div class="two-col-equal">'+LB_COURSES.map((c,ci)=>{
+      const rows=results[ci].data||[];
+      if(!rows.length) return '<div class="card"><div class="card-hdr"><span class="card-t" style="color:'+c.colour+'">'+c.label+'</span></div><div class="card-body"><p style="color:var(--g-text-secondary)">No data yet</p></div></div>';
+      const myIdx=rows.findIndex(r=>r.student_id===currentUser.id);
+      return '<div class="card"><div class="card-hdr"><span class="card-t" style="color:'+c.colour+'">'+c.label+'</span><span class="card-m">top '+rows.length+'</span></div><div class="card-body">'+
+        rows.map((r,i)=>{
+          const isMe=r.student_id===currentUser.id;
+          const medal=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+          const hrs=Math.floor(r.total_seconds/3600);const mins=Math.round((r.total_seconds%3600)/60);
+          const timeStr=hrs>0?hrs+'h '+mins+'m':mins+'m';
+          return '<div class="lb-row'+(isMe?' me':'')+'"><span class="lb-pos'+(medal?' '+medal:'')+'">'+(medal?['🥇','🥈','🥉'][i]:i+1)+'</span><span class="lb-name'+(isMe?' me':'')+'">'+(isMe?'You':r.display_name)+'</span><span class="lb-time">'+timeStr+'</span></div>';
+        }).join('')+
+      '</div></div>';
+    }).join('')+'</div>';
+}
+
+// ── CIV READING PROGRESS ───
+const CIV_CONTENT={
+  'civ-alevel':[
+    {name:'World of the Hero — Iliad',path:'iliad',colour:'#0066ff',topics:[
+      {name:'Topic 1',lessons:[{t:'1.1',p:'/classical-civ/iliad/topic1/1-1.html'},{t:'1.2',p:'/classical-civ/iliad/topic1/1-2.html'},{t:'1.3',p:'/classical-civ/iliad/topic1/1-3.html'},{t:'1.4',p:'/classical-civ/iliad/topic1/1-4.html'},{t:'1.5',p:'/classical-civ/iliad/topic1/1-5.html'}]},
+      {name:'Topic 2',lessons:[{t:'2.1',p:'/classical-civ/iliad/topic2/2-1.html'},{t:'2.2',p:'/classical-civ/iliad/topic2/2-2.html'},{t:'2.3',p:'/classical-civ/iliad/topic2/2-3.html'},{t:'2.4',p:'/classical-civ/iliad/topic2/2-4.html'},{t:'2.5',p:'/classical-civ/iliad/topic2/2-5.html'}]},
+      {name:'Topic 3',lessons:[{t:'3.1',p:'/classical-civ/iliad/topic3/3-1.html'},{t:'3.2',p:'/classical-civ/iliad/topic3/3-2.html'},{t:'3.3',p:'/classical-civ/iliad/topic3/3-3.html'},{t:'3.4',p:'/classical-civ/iliad/topic3/3-4.html'},{t:'3.5',p:'/classical-civ/iliad/topic3/3-5.html'}]},
+      {name:'Topic 4',lessons:[{t:'4.1',p:'/classical-civ/iliad/topic4/4-1.html'},{t:'4.2',p:'/classical-civ/iliad/topic4/4-2.html'},{t:'4.3',p:'/classical-civ/iliad/topic4/4-3.html'},{t:'4.4',p:'/classical-civ/iliad/topic4/4-4.html'},{t:'4.5',p:'/classical-civ/iliad/topic4/4-5.html'}]},
+      {name:'Topic 5',lessons:[{t:'5.1',p:'/classical-civ/iliad/topic5/5-1.html'},{t:'5.2',p:'/classical-civ/iliad/topic5/5-2.html'},{t:'5.3',p:'/classical-civ/iliad/topic5/5-3.html'},{t:'5.4',p:'/classical-civ/iliad/topic5/5-4.html'},{t:'5.5',p:'/classical-civ/iliad/topic5/5-5.html'}]},
+      {name:'Topic 6',lessons:[{t:'6.1',p:'/classical-civ/iliad/topic6/6-1.html'},{t:'6.2',p:'/classical-civ/iliad/topic6/6-2.html'},{t:'6.3',p:'/classical-civ/iliad/topic6/6-3.html'},{t:'6.4',p:'/classical-civ/iliad/topic6/6-4.html'},{t:'6.5',p:'/classical-civ/iliad/topic6/6-5.html'}]},
+      {name:'Topic 7',lessons:[{t:'7.1',p:'/classical-civ/iliad/topic7/7-1.html'},{t:'7.2',p:'/classical-civ/iliad/topic7/7-2.html'},{t:'7.3',p:'/classical-civ/iliad/topic7/7-3.html'},{t:'7.4',p:'/classical-civ/iliad/topic7/7-4.html'},{t:'7.5',p:'/classical-civ/iliad/topic7/7-5.html'}]},
+    ]},
+    {name:'World of the Hero — Aeneid',path:'aeneid',colour:'#7c3aed',topics:[
+      {name:'Topic 1',lessons:[{t:'1.1',p:'/classical-civ/aeneid/topic1/1-1.html'},{t:'1.2',p:'/classical-civ/aeneid/topic1/1-2.html'},{t:'1.3',p:'/classical-civ/aeneid/topic1/1-3.html'},{t:'1.4',p:'/classical-civ/aeneid/topic1/1-4.html'},{t:'1.5',p:'/classical-civ/aeneid/topic1/1-5.html'}]},
+      {name:'Topic 2',lessons:[{t:'2.1',p:'/classical-civ/aeneid/topic2/2-1.html'},{t:'2.2',p:'/classical-civ/aeneid/topic2/2-2.html'},{t:'2.3',p:'/classical-civ/aeneid/topic2/2-3.html'},{t:'2.4',p:'/classical-civ/aeneid/topic2/2-4.html'},{t:'2.5',p:'/classical-civ/aeneid/topic2/2-5.html'}]},
+      {name:'Topic 3',lessons:[{t:'3.1',p:'/classical-civ/aeneid/topic3/3-1.html'},{t:'3.2',p:'/classical-civ/aeneid/topic3/3-2.html'},{t:'3.3',p:'/classical-civ/aeneid/topic3/3-3.html'},{t:'3.4',p:'/classical-civ/aeneid/topic3/3-4.html'},{t:'3.5',p:'/classical-civ/aeneid/topic3/3-5.html'}]},
+      {name:'Topic 4',lessons:[{t:'4.1',p:'/classical-civ/aeneid/topic4/4-1.html'},{t:'4.2',p:'/classical-civ/aeneid/topic4/4-2.html'},{t:'4.3',p:'/classical-civ/aeneid/topic4/4-3.html'},{t:'4.4',p:'/classical-civ/aeneid/topic4/4-4.html'},{t:'4.5',p:'/classical-civ/aeneid/topic4/4-5.html'}]},
+      {name:'Topic 5',lessons:[{t:'5.1',p:'/classical-civ/aeneid/topic5/5-1.html'},{t:'5.2',p:'/classical-civ/aeneid/topic5/5-2.html'},{t:'5.3',p:'/classical-civ/aeneid/topic5/5-3.html'},{t:'5.4',p:'/classical-civ/aeneid/topic5/5-4.html'},{t:'5.5',p:'/classical-civ/aeneid/topic5/5-5.html'}]},
+      {name:'Topic 6',lessons:[{t:'6.1',p:'/classical-civ/aeneid/topic6/6-1.html'},{t:'6.2',p:'/classical-civ/aeneid/topic6/6-2.html'},{t:'6.3',p:'/classical-civ/aeneid/topic6/6-3.html'},{t:'6.4',p:'/classical-civ/aeneid/topic6/6-4.html'},{t:'6.5',p:'/classical-civ/aeneid/topic6/6-5.html'}]},
+      {name:'Topic 7',lessons:[{t:'7.1',p:'/classical-civ/aeneid/topic7/7-1.html'},{t:'7.2',p:'/classical-civ/aeneid/topic7/7-2.html'},{t:'7.3',p:'/classical-civ/aeneid/topic7/7-3.html'},{t:'7.4',p:'/classical-civ/aeneid/topic7/7-4.html'},{t:'7.5',p:'/classical-civ/aeneid/topic7/7-5.html'}]},
+      {name:'Topic 8',lessons:[{t:'8.1',p:'/classical-civ/aeneid/topic8/8-1.html'},{t:'8.2',p:'/classical-civ/aeneid/topic8/8-2.html'},{t:'8.3',p:'/classical-civ/aeneid/topic8/8-3.html'},{t:'8.4',p:'/classical-civ/aeneid/topic8/8-4.html'},{t:'8.5',p:'/classical-civ/aeneid/topic8/8-5.html'}]},
+    ]},
+    {name:'Greek Art',path:'greek-art',colour:'#34A853',topics:[
+      {name:'Topic 1',lessons:[{t:'1.1',p:'/classical-civ/greek-art/topic1/1-1.html'}]},
+      {name:'Topic 2',lessons:[{t:'2.1',p:'/classical-civ/greek-art/topic2/2-1.html'},{t:'2.2',p:'/classical-civ/greek-art/topic2/2-2.html'},{t:'2.3',p:'/classical-civ/greek-art/topic2/2-3.html'},{t:'2.4',p:'/classical-civ/greek-art/topic2/2-4.html'},{t:'2.5',p:'/classical-civ/greek-art/topic2/2-5.html'}]},
+      {name:'Topic 3',lessons:[{t:'3.1',p:'/classical-civ/greek-art/topic3/3-1.html'},{t:'3.2',p:'/classical-civ/greek-art/topic3/3-2.html'},{t:'3.3',p:'/classical-civ/greek-art/topic3/3-3.html'},{t:'3.4',p:'/classical-civ/greek-art/topic3/3-4.html'},{t:'3.5',p:'/classical-civ/greek-art/topic3/3-5.html'}]},
+      {name:'Topic 4',lessons:[{t:'4.1',p:'/classical-civ/greek-art/topic4/4-1.html'},{t:'4.2',p:'/classical-civ/greek-art/topic4/4-2.html'},{t:'4.3',p:'/classical-civ/greek-art/topic4/4-3.html'},{t:'4.4',p:'/classical-civ/greek-art/topic4/4-4.html'},{t:'4.5',p:'/classical-civ/greek-art/topic4/4-5.html'}]},
+    ]},
+    {name:'Politics of the Late Republic',path:'politics',colour:'#EA4335',topics:[
+      {name:'Topic 1',lessons:[{t:'1.1',p:'/classical-civ/politics/topic1-1.html'},{t:'1.2',p:'/classical-civ/politics/topic1-2.html'},{t:'1.3',p:'/classical-civ/politics/topic1-3.html'},{t:'1.4',p:'/classical-civ/politics/topic1-4.html'},{t:'1.5',p:'/classical-civ/politics/topic1-5.html'}]},
+      {name:'Topic 2',lessons:[{t:'2.1',p:'/classical-civ/politics/topic2-1.html'},{t:'2.2',p:'/classical-civ/politics/topic2-2.html'},{t:'2.3',p:'/classical-civ/politics/topic2-3.html'},{t:'2.4',p:'/classical-civ/politics/topic2-4.html'},{t:'2.5',p:'/classical-civ/politics/topic2-5.html'}]},
+      {name:'Topic 3',lessons:[{t:'3.1',p:'/classical-civ/politics/topic3-1.html'},{t:'3.2',p:'/classical-civ/politics/topic3-2.html'},{t:'3.3',p:'/classical-civ/politics/topic3-3.html'},{t:'3.4',p:'/classical-civ/politics/topic3-4.html'},{t:'3.5',p:'/classical-civ/politics/topic3-5.html'}]},
+      {name:'Topic 4',lessons:[{t:'4.1',p:'/classical-civ/politics/topic4-1.html'},{t:'4.2',p:'/classical-civ/politics/topic4-2.html'},{t:'4.3',p:'/classical-civ/politics/topic4-3.html'},{t:'4.4',p:'/classical-civ/politics/topic4-4.html'},{t:'4.5',p:'/classical-civ/politics/topic4-5.html'}]},
+      {name:'Topic 5',lessons:[{t:'5.1',p:'/classical-civ/politics/topic5-1.html'},{t:'5.2',p:'/classical-civ/politics/topic5-2.html'},{t:'5.3',p:'/classical-civ/politics/topic5-3.html'},{t:'5.4',p:'/classical-civ/politics/topic5-4.html'},{t:'5.5',p:'/classical-civ/politics/topic5-5.html'}]},
+      {name:'Topic 6',lessons:[{t:'6.1',p:'/classical-civ/politics/topic6-1.html'},{t:'6.2',p:'/classical-civ/politics/topic6-2.html'},{t:'6.3',p:'/classical-civ/politics/topic6-3.html'},{t:'6.4',p:'/classical-civ/politics/topic6-4.html'},{t:'6.5',p:'/classical-civ/politics/topic6-5.html'}]},
+    ]},
+  ],
+  'civ-gcse':[] // GCSE civ content TBD
+};
+
+async function renderCivReading(classType){
+  const sections=CIV_CONTENT[classType]||[];
+  if(!sections.length) return '<div class="card" style="border-left:4px solid #7c3aed"><div class="card-body" style="display:flex;gap:16px"><div style="font-size:1.5rem">🏛️</div><div><div style="font-weight:600;color:var(--g-text);margin-bottom:4px">Civ reading content coming soon</div><p style="color:var(--g-text-secondary);margin:0;font-size:0.9rem">Reading pages for this course are being added.</p></div></div></div>';
+
+  // Fetch reading attempts (content_path based) for this student
+  const {data:readingAttempts}=await supabase.from('task_attempts').select('content_path, time_spent_seconds, started_at').eq('student_id',currentUser.id).limit(5000);
+  const timeByPath={};
+  (readingAttempts||[]).forEach(a=>{
+    if(!a.content_path) return;
+    if(!timeByPath[a.content_path]) timeByPath[a.content_path]=0;
+    timeByPath[a.content_path]+=(a.time_spent_seconds||0);
+  });
+
+  let totalRead=0,totalLessons=0,readLessons=0;
+  const html=sections.map(section=>{
+    let sectionTime=0;
+    const topicHtml=section.topics.map((topic,ti)=>{
+      const lessonHtml=topic.lessons.map(l=>{
+        totalLessons++;
+        const secs=timeByPath[l.p]||0;
+        sectionTime+=secs;totalRead+=secs;
+        const status=secs>=60?'done':secs>0?'started':'unread';
+        if(secs>=60) readLessons++;
+        const mins=Math.round(secs/60);
+        return '<div class="reading-lesson"><div class="reading-dot '+status+'"></div><a href="'+l.p+'">'+section.name.split(' — ')[1]+' '+topic.name+' · '+l.t+'</a><span style="font-size:0.78rem;color:var(--g-text-secondary)">'+(secs>0?mins+' min':'—')+'</span></div>';
+      }).join('');
+      const topicId='rt-'+section.path+'-'+ti;
+      return '<div class="reading-topic">'+
+        '<div class="reading-topic-hdr" onclick="document.getElementById(\''+topicId+'\').style.display=document.getElementById(\''+topicId+'\').style.display===\'none\'?\'block\':\'none\'">'+
+          '<span style="font-weight:500;color:var(--g-text)">'+topic.name+'</span>'+
+          '<span style="font-size:0.78rem;color:var(--g-text-secondary)">'+topic.lessons.length+' lessons</span>'+
+        '</div>'+
+        '<div id="'+topicId+'" style="display:none">'+lessonHtml+'</div>'+
+      '</div>';
+    }).join('');
+    const secHrs=Math.floor(sectionTime/3600);const secMins=Math.round((sectionTime%3600)/60);
+    const secTimeStr=secHrs>0?secHrs+'h '+secMins+'m':secMins+' mins';
+    return '<div class="card"><div class="card-hdr"><span class="card-t" style="color:'+section.colour+'">'+section.name+'</span><span class="card-m">'+secTimeStr+' reading time</span></div><div class="card-body">'+topicHtml+'</div></div>';
+  }).join('');
+
+  const pct=totalLessons?Math.round(readLessons/totalLessons*100):0;
+  const totalHrs=Math.floor(totalRead/3600);const totalMins=Math.round((totalRead%3600)/60);
+  return '<div class="stats-row" style="grid-template-columns:repeat(3,1fr)">'+
+    '<div class="stat-card" style="--c:#7c3aed"><div class="stat-label">Pages read</div><div class="stat-value">'+readLessons+' <span style="font-size:1rem;font-weight:400;color:var(--g-text-secondary)">/ '+totalLessons+'</span></div><div class="stat-delta">'+pct+'% complete</div></div>'+
+    '<div class="stat-card" style="--c:var(--g-blue)"><div class="stat-label">Total reading time</div><div class="stat-value">'+(totalHrs>0?totalHrs+'h '+totalMins+'m':totalMins+' mins')+'</div><div class="stat-delta">across all topics</div></div>'+
+    '<div class="stat-card" style="--c:var(--g-green)"><div class="stat-label">Sections</div><div class="stat-value">'+sections.length+'</div><div class="stat-delta">content areas</div></div>'+
+  '</div>'+html;
+}
+
+function showPage(n){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+n).classList.add('active');
+  if(n!=='lb') document.getElementById('nav-lb').classList.remove('active');
+}
 init();
 </script>
 </body>
