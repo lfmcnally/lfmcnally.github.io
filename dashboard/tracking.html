@@ -400,8 +400,8 @@ async function loadAllStudentData(){
       supabase.from('task_attempts').select('student_id, score, started_at, completed_at, time_spent_seconds').in('student_id',studentIds)
     ];
     if(!isCiv){
-      // Word mastery: the core of weak word tracking
-      fetches.push(supabase.from('word_mastery').select('student_id, word, language, chapter, attempts, correct_count, accuracy, mastered_at, is_tricky').eq('class_id',cls.id));
+      // Word mastery: filter by student_id + language (no class_id column on this table)
+      fetches.push(supabase.from('word_mastery').select('student_id, word_latin, word_english, language, chapter, correct_count, incorrect_count, mastered_at, is_tricky, last_seen_at').in('student_id',studentIds).eq('language',lang));
     }else{
       fetches.push(supabase.from('content_test_attempts').select('student_id, content_path, course, score, max_score, completed_at').eq('class_id',cls.id));
     }
@@ -415,11 +415,15 @@ async function loadAllStudentData(){
       const trend=computeTrend(sa);
 
       if(!isCiv){
-        const wm=mastery.filter(w=>w.student_id===s.id);
+        // Normalize word_mastery rows: add computed fields
+        const wm=mastery.filter(w=>w.student_id===s.id).map(w=>{
+          const total=(w.correct_count||0)+(w.incorrect_count||0);
+          return {...w, word:w.word_latin, english:w.word_english, attempts:total, accuracy:total>0?Math.round((w.correct_count||0)/total*100):0};
+        });
         const totalWords=wm.length;
         const masteredWords=wm.filter(w=>w.mastered_at!=null);
-        // Weak words: attempted but not mastered (accuracy < 70% or failed 3+ times)
-        const weakWords=wm.filter(w=>w.mastered_at==null && w.attempts>0).sort((a,b)=>(a.accuracy||100)-(b.accuracy||100));
+        // Weak words: have been attempted but not mastered, sorted worst accuracy first
+        const weakWords=wm.filter(w=>w.mastered_at==null && w.attempts>0).sort((a,b)=>a.accuracy-b.accuracy);
         const vocabScore=totalWords?Math.round(masteredWords.length/totalWords*100):(sa.filter(a=>a.score!=null).length?Math.round(sa.filter(a=>a.score!=null).reduce((a,c)=>a+c.score,0)/sa.filter(a=>a.score!=null).length):0);
         const st=computeStatus(lastAttempt,vocabScore);
         allStudentData.push({id:s.id,name:s.full_name||'Unknown',idx,type:'lang',classId:cls.id,className:cls.name,classType:cls.type,score:vocabScore,masteredCount:masteredWords.length,totalWords,wc:weakWords.length,weakWords,tr:trend,lastActive:lastAttempt,st,allMastery:wm,attempts:sa});
