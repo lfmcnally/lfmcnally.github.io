@@ -393,15 +393,25 @@ async function loadAllStudentData(){
     if(!students.length) continue;
     const studentIds=students.map(s=>s.id);
     const isCiv=cls.type&&cls.type.startsWith('civ-');
-    const lang=cls.type&&cls.type.includes('greek')?'greek':'latin';
+    // Map class type to word_mastery language value
+    // prep-latin is its own language value; gcse and alevel both use 'latin' or 'greek'
+    const isPrep=cls.type&&(cls.type==='latin-prep'||cls.type==='prep-latin');
+    const isAlevel=cls.type&&cls.type.includes('alevel');
+    const lang=isPrep?'prep-latin':cls.type&&cls.type.includes('greek')?'greek':'latin';
 
     // Fetch word_mastery AND task_attempts
     const fetches=[
       supabase.from('task_attempts').select('student_id, score, started_at, completed_at, time_spent_seconds').in('student_id',studentIds)
     ];
     if(!isCiv){
-      // Word mastery: filter by student_id + language (no class_id column on this table)
-      fetches.push(supabase.from('word_mastery').select('student_id, word_latin, word_english, language, chapter, correct_count, incorrect_count, mastered_at, is_tricky, last_seen_at').in('student_id',studentIds).eq('language',lang));
+      // Word mastery: filter by student_id + language
+      // For GCSE vs A-Level: GCSE chapters are 1-10, A-Level words have chapter > 10 or null
+      let wmQuery=supabase.from('word_mastery').select('student_id, word_latin, word_english, language, chapter, correct_count, incorrect_count, mastered_at, is_tricky, last_seen_at').in('student_id',studentIds).eq('language',lang);
+      if(lang==='latin'||lang==='greek'){
+        // GCSE: chapters 1-10 only; A-Level: chapters > 10 or all (A-Level includes GCSE words)
+        if(!isAlevel) wmQuery=wmQuery.lte('chapter',10);
+      }
+      fetches.push(wmQuery);
     }else{
       fetches.push(supabase.from('content_test_attempts').select('student_id, content_path, course, score, max_score, completed_at').eq('class_id',cls.id));
     }
