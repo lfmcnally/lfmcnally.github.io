@@ -388,9 +388,18 @@ async function loadTeacherClasses(){
 async function loadAllStudentData(){
   allStudentData=[];
   for(const cls of teacherClasses){
-    const {data:members}=await supabase.from('class_members').select('student_id, users(id, full_name)').eq('class_id',cls.id);
-    const students=(members||[]).map(m=>m.users).filter(Boolean);
-    if(!students.length) continue;
+    const {data:members,error:memErr}=await supabase.from('class_members').select('student_id, users(id, full_name)').eq('class_id',cls.id);
+    if(memErr){console.error('class_members error for',cls.name,memErr);continue;}
+    if(!members||!members.length) continue;
+    let students=members.map(m=>m.users).filter(Boolean);
+    if(!students.length){
+      // Fallback: if embed didn't resolve, fetch users separately
+      const sids=members.map(m=>m.student_id).filter(Boolean);
+      if(!sids.length) continue;
+      const {data:userRows}=await supabase.from('users').select('id, full_name').in('id',sids);
+      if(!userRows||!userRows.length) continue;
+      students=userRows;
+    }
     const studentIds=students.map(s=>s.id);
     const isCiv=cls.type&&cls.type.startsWith('civ-');
     // Map class type to word_mastery language value
