@@ -351,8 +351,62 @@ function ll(d){if(!d)return '—';const days=Math.floor((Date.now()-new Date(d).
 function stHTML(st){const m={active:['dot-green','active'],behind:['dot-amber','behind'],inactive:['dot-red','inactive']};const[dc,lb]=m[st]||['dot','?'];return '<span class="status-dot"><span class="dot '+dc+'"></span>'+lb+'</span>';}
 function spark(t){if(!t||!t.length)return '';const mx=Math.max(...t,1);return t.map(v=>'<div class="spark-bar" style="height:'+Math.max(3,Math.round(v/mx*18))+'px"></div>').join('');}
 function computeStatus(la,score){if(!la)return 'inactive';const d=Math.floor((Date.now()-new Date(la).getTime())/86400000);if(d>7)return 'inactive';if(d>3||score<55)return 'behind';return 'active';}
-function computeTrend(attempts){const now=Date.now();const w=[];for(let i=7;i>=0;i--){const s=now-i*7*86400000,e=now-(i-1)*7*86400000;const a=attempts.filter(a=>a.completed_at&&new Date(a.completed_at).getTime()>=s&&new Date(a.completed_at).getTime()<e&&a.score!=null);if(a.length)w.push(Math.round(a.reduce((s,a)=>s+a.score,0)/a.length));else w.push(w.length?w[w.length-1]:null);}let last=50;return w.map(v=>{if(v!=null){last=v;return v;}return last;});}
-function drawLine(elId,data,colour){const el=document.getElementById(elId);if(!el||!data||data.length<2)return;const W=el.clientWidth||480,H=100;const mn=Math.min(...data)-8,mx=Math.max(...data)+8,rng=mx-mn||1;const pts=data.map((v,i)=>[(i/(data.length-1))*(W-24)+12,H-4-((v-mn)/rng)*(H-12)]);const path=pts.map((p,i)=>i===0?'M'+p[0]+','+p[1]:'L'+p[0]+','+p[1]).join(' ');const area=path+' L'+pts[pts.length-1][0]+','+H+' L'+pts[0][0]+','+H+' Z';const wks=data.map((_,i)=>i===data.length-1?'now':(data.length-1-i)+'w');el.innerHTML='<svg viewBox="0 0 '+W+' '+(H+15)+'" style="width:100%;height:100%;overflow:visible"><defs><linearGradient id="lg'+elId+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+colour+'" stop-opacity="0.15"/><stop offset="100%" stop-color="'+colour+'" stop-opacity="0"/></linearGradient></defs><path d="'+area+'" fill="url(#lg'+elId+')"/><path d="'+path+'" fill="none" stroke="'+colour+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+pts.map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.5" fill="'+colour+'"/>').join('')+pts.map((p,i)=>'<text x="'+p[0]+'" y="'+(H+11)+'" text-anchor="middle" font-size="8" fill="#4a5070" font-family="Inter,sans-serif">'+wks[i]+'</text>').join('')+'</svg>';}
+// Build daily activity data from attempts + word mastery (last 14 days)
+function buildDailyActivity(attempts, mastery){
+  const days=[];
+  const now=new Date(); now.setHours(23,59,59,999);
+  for(let i=13;i>=0;i--){
+    const d=new Date(now); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
+    const dEnd=new Date(d); dEnd.setHours(23,59,59,999);
+    const dayAttempts=(attempts||[]).filter(a=>{const t=new Date(a.started_at);return t>=d&&t<=dEnd;});
+    const mins=Math.round(dayAttempts.reduce((s,a)=>s+(a.time_spent_seconds||0),0)/60);
+    const dayWords=(mastery||[]).filter(w=>{if(!w.last_seen_at)return false;const t=new Date(w.last_seen_at);return t>=d&&t<=dEnd;}).length;
+    days.push({date:d,mins,words:dayWords,label:(d.getDate())+'/'+(d.getMonth()+1)});
+  }
+  return days;
+}
+
+// Draw dual-bar chart: time (blue) vs words (green) per day
+function drawActivityBars(elId, days){
+  const el=document.getElementById(elId);if(!el||!days||!days.length)return;
+  const W=el.clientWidth||600, H=130, pad=40, barW=Math.min(14,Math.floor((W-pad*2)/(days.length*2.5)));
+  const mxMins=Math.max(...days.map(d=>d.mins),1);
+  const mxWords=Math.max(...days.map(d=>d.words),1);
+  const chartH=H-30;
+  const groupW=barW*2+4;
+  const totalW=days.length*groupW;
+  const startX=Math.max(pad,(W-totalW)/2);
+
+  let bars='';
+  let labels='';
+  days.forEach((d,i)=>{
+    const x=startX+i*groupW;
+    const hM=d.mins>0?Math.max(3,Math.round(d.mins/mxMins*chartH)):0;
+    const hW=d.words>0?Math.max(3,Math.round(d.words/mxWords*chartH)):0;
+    // Time bar (blue)
+    bars+='<rect x="'+x+'" y="'+(chartH-hM)+'" width="'+barW+'" height="'+hM+'" rx="2" fill="#0066ff" opacity="0.7"><title>'+d.mins+' min</title></rect>';
+    // Words bar (green)
+    bars+='<rect x="'+(x+barW+2)+'" y="'+(chartH-hW)+'" width="'+barW+'" height="'+hW+'" rx="2" fill="#34A853" opacity="0.7"><title>'+d.words+' words</title></rect>';
+    // Date label (show every other day to avoid crowding)
+    if(i%2===0||days.length<=7) labels+='<text x="'+(x+groupW/2)+'" y="'+(chartH+14)+'" text-anchor="middle" font-size="8" fill="#4a5070" font-family="Inter,sans-serif">'+d.label+'</text>';
+  });
+
+  // Y-axis labels
+  const yLabels=
+    '<text x="2" y="10" font-size="8" fill="#4a5070" font-family="Inter,sans-serif">'+mxMins+'m</text>'+
+    '<text x="'+(W-2)+'" y="10" text-anchor="end" font-size="8" fill="#047857" font-family="Inter,sans-serif">'+mxWords+'w</text>';
+
+  // Legend
+  const legend=
+    '<rect x="'+startX+'" y="'+(H-8)+'" width="10" height="6" rx="1" fill="#0066ff" opacity="0.7"/>'+
+    '<text x="'+(startX+14)+'" y="'+(H-3)+'" font-size="8" fill="#4a5070" font-family="Inter,sans-serif">Time (mins)</text>'+
+    '<rect x="'+(startX+85)+'" y="'+(H-8)+'" width="10" height="6" rx="1" fill="#34A853" opacity="0.7"/>'+
+    '<text x="'+(startX+99)+'" y="'+(H-3)+'" font-size="8" fill="#4a5070" font-family="Inter,sans-serif">Words practised</text>';
+
+  el.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:100%;overflow:visible">'+
+    '<line x1="'+startX+'" y1="'+chartH+'" x2="'+(startX+totalW)+'" y2="'+chartH+'" stroke="#dde1ee" stroke-width="1"/>'+
+    yLabels+bars+labels+legend+'</svg>';
+}
 
 // ── AUTH & INIT ───
 async function init(){
@@ -443,8 +497,6 @@ async function loadAllStudentData(){
     students.forEach((s,idx)=>{
       const sa=allAttempts.filter(a=>a.student_id===s.id);
       const lastAttempt=sa.length?sa.reduce((l,a)=>(!l||new Date(a.started_at)>new Date(l))?a.started_at:l,null):null;
-      const trend=computeTrend(sa);
-
       if(!isCiv){
         // Normalize word_mastery rows: add computed fields
         const wm=mastery.filter(w=>w.student_id===s.id).map(w=>{
@@ -457,7 +509,9 @@ async function loadAllStudentData(){
         const weakWords=wm.filter(w=>w.mastered_at==null && w.attempts>0).sort((a,b)=>a.accuracy-b.accuracy);
         const vocabScore=totalWords?Math.round(masteredWords.length/totalWords*100):(sa.filter(a=>a.score!=null).length?Math.round(sa.filter(a=>a.score!=null).reduce((a,c)=>a+c.score,0)/sa.filter(a=>a.score!=null).length):0);
         const st=computeStatus(lastAttempt,vocabScore);
-        allStudentData.push({id:s.id,name:s.full_name||'Unknown',idx,type:'lang',classId:cls.id,className:cls.name,classType:cls.type,score:vocabScore,masteredCount:masteredWords.length,totalWords,wc:weakWords.length,weakWords,tr:trend,lastActive:lastAttempt,st,allMastery:wm,attempts:sa});
+        const activity=buildDailyActivity(sa,wm);
+        const sparkData=activity.map(d=>d.words);
+        allStudentData.push({id:s.id,name:s.full_name||'Unknown',idx,type:'lang',classId:cls.id,className:cls.name,classType:cls.type,score:vocabScore,masteredCount:masteredWords.length,totalWords,wc:weakWords.length,weakWords,activity,sparkData,lastActive:lastAttempt,st,allMastery:wm,attempts:sa});
       }else{
         const ct=mastery.filter(c=>c.student_id===s.id);
         const tops=CIV_TOPICS[cls.type]||CIV_TOPICS['civ-gcse']||[];
@@ -465,7 +519,9 @@ async function loadAllStudentData(){
         const allScores=tp.filter(t=>t.q!=null).map(t=>t.q);
         const avgScore=allScores.length?Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length):0;
         const st=computeStatus(lastAttempt,avgScore);
-        allStudentData.push({id:s.id,name:s.full_name||'Unknown',idx,type:'civ',classId:cls.id,className:cls.name,classType:cls.type,score:avgScore,tp,wc:0,tr:trend,lastActive:lastAttempt,st,attempts:sa});
+        const activity=buildDailyActivity(sa,[]);
+        const sparkData=activity.map(d=>d.mins);
+        allStudentData.push({id:s.id,name:s.full_name||'Unknown',idx,type:'civ',classId:cls.id,className:cls.name,classType:cls.type,score:avgScore,tp,wc:0,activity,sparkData,lastActive:lastAttempt,st,attempts:sa});
       }
     });
     } catch(e){console.error('Error processing class',cls.name,e);}
@@ -494,14 +550,14 @@ function renderOverview(){
       '<div class="stat-card" style="--c:var(--g-yellow)"><div class="stat-label">Total weak words</div><div class="stat-value">'+totalWeak+'</div><div class="stat-delta">across all language classes</div></div>'+
     '</div>'+
     '<div class="table-wrap"><table class="stu-table">'+
-      '<thead><tr><th>Student</th><th>Class</th><th>Score</th><th>Weak items</th><th>8-wk trend</th><th>Last active</th><th>Status</th></tr></thead>'+
+      '<thead><tr><th>Student</th><th>Class</th><th>Score</th><th>Weak items</th><th>14-day activity</th><th>Last active</th><th>Status</th></tr></thead>'+
       '<tbody>'+ss.map((s,i)=>
         '<tr onclick="openStuFromOverview(\''+s.id+'\',\''+s.classId+'\')">'+
         '<td><div class="s-wrap"><div class="s-av" style="background:'+AVC[i%AVC.length]+'">'+ini(s.name)+'</div><div><div class="s-name">'+s.name+'</div></div></div></td>'+
         '<td><span class="pill '+(s.type==='civ'?'pill-purple':'pill-blue')+'">'+s.className+'</span></td>'+
         '<td><span class="pill '+scl(s.score)+'">'+s.score+'%</span></td>'+
         '<td>'+(s.wc>0?'<span class="pill '+(s.wc>8?'pill-red':s.wc>4?'pill-amber':'pill-blue')+'">'+s.wc+(s.type==='lang'?' words':' Qs')+'</span>':'<span style="color:var(--g-text-secondary)">—</span>')+'</td>'+
-        '<td><div class="trend-spark">'+spark(s.tr)+'</div></td>'+
+        '<td><div class="trend-spark">'+spark(s.sparkData)+'</div></td>'+
         '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+ll(s.lastActive)+'</td>'+
         '<td>'+stHTML(s.st)+'</td></tr>'
       ).join('')+'</tbody></table></div>';
@@ -556,31 +612,33 @@ function renderLangCls(){
   const act=ss.filter(s=>s.st==='active').length;
   const beh=ss.filter(s=>s.st!=='active').length;
   const tw=ss.reduce((a,s)=>a+s.wc,0);
-  const cavg=Array.from({length:8},(_,i)=>ss.length?Math.round(ss.reduce((a,s)=>a+(s.tr[i]||0),0)/ss.length):0);
+  // Aggregate daily activity across all students in class
+  const classActivity=Array.from({length:14},(_,i)=>{
+    const dayData=ss.map(s=>(s.activity||[])[i]||{mins:0,words:0});
+    return {mins:dayData.reduce((a,d)=>a+d.mins,0),words:dayData.reduce((a,d)=>a+d.words,0),label:ss.length&&ss[0].activity&&ss[0].activity[i]?ss[0].activity[i].label:''};
+  });
   // Weak words heatmap
   const wordMap={};
   ss.forEach(s=>(s.weakWords||[]).forEach(w=>{const k=w.word;if(!wordMap[k])wordMap[k]={word:w.word,count:0};wordMap[k].count++;}));
   const chips=Object.values(wordMap).sort((a,b)=>b.count-a.count).slice(0,15).map(w=>({...w,sev:w.count>=5?'hot':w.count>=3?'warm':'ok'}));
-  const f=ss.length?Math.round(ss.reduce((a,s)=>a+(s.tr[0]||0),0)/ss.length):0;
-
   document.getElementById('cls-content').innerHTML=
     '<div class="stats-row">'+
-      '<div class="stat-card" style="--c:var(--g-blue)"><div class="stat-label">Avg vocab score</div><div class="stat-value">'+avg+'%</div><div class="stat-delta '+(avg>=f?'delta-up':'delta-down')+'">'+(avg>=f?'↑':'↓')+' '+Math.abs(avg-f)+'pts over 8 weeks</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-blue)"><div class="stat-label">Avg vocab score</div><div class="stat-value">'+avg+'%</div><div class="stat-delta">across '+ss.length+' students</div></div>'+
       '<div class="stat-card" style="--c:var(--g-green)"><div class="stat-label">Active this week</div><div class="stat-value">'+act+'</div><div class="stat-delta">'+ss.length+' total</div></div>'+
       '<div class="stat-card" style="--c:var(--g-red)"><div class="stat-label">Need attention</div><div class="stat-value">'+beh+'</div><div class="stat-delta delta-down">behind or inactive</div></div>'+
       '<div class="stat-card" style="--c:var(--g-yellow)"><div class="stat-label">Total weak words</div><div class="stat-value">'+tw+'</div><div class="stat-delta">across class</div></div>'+
     '</div>'+
     '<div class="two-col">'+
-      '<div class="table-wrap"><table class="stu-table"><thead><tr><th>Student</th><th>Vocab score</th><th>Weak words</th><th>8-wk trend</th><th>Last active</th><th>Status</th></tr></thead><tbody>'+
-      ss.map((s,i)=>'<tr onclick="openStuFromClass(\''+s.id+'\')"><td><div class="s-wrap"><div class="s-av" style="background:'+AVC[i%AVC.length]+'">'+ini(s.name)+'</div><div><div class="s-name">'+s.name+'</div></div></div></td><td><span class="pill '+scl(s.score)+'">'+s.score+'%</span></td><td><span class="pill '+(s.wc>8?'pill-red':s.wc>4?'pill-amber':'pill-blue')+'">'+s.wc+' words</span></td><td><div class="trend-spark">'+spark(s.tr)+'</div></td><td style="color:var(--g-text-secondary);font-size:0.8rem">'+ll(s.lastActive)+'</td><td>'+stHTML(s.st)+'</td></tr>').join('')+
+      '<div class="table-wrap"><table class="stu-table"><thead><tr><th>Student</th><th>Vocab score</th><th>Weak words</th><th>14-day activity</th><th>Last active</th><th>Status</th></tr></thead><tbody>'+
+      ss.map((s,i)=>'<tr onclick="openStuFromClass(\''+s.id+'\')"><td><div class="s-wrap"><div class="s-av" style="background:'+AVC[i%AVC.length]+'">'+ini(s.name)+'</div><div><div class="s-name">'+s.name+'</div></div></div></td><td><span class="pill '+scl(s.score)+'">'+s.score+'%</span></td><td><span class="pill '+(s.wc>8?'pill-red':s.wc>4?'pill-amber':'pill-blue')+'">'+s.wc+' words</span></td><td><div class="trend-spark">'+spark(s.sparkData)+'</div></td><td style="color:var(--g-text-secondary);font-size:0.8rem">'+ll(s.lastActive)+'</td><td>'+stHTML(s.st)+'</td></tr>').join('')+
       '</tbody></table></div>'+
       '<div class="card"><div class="card-hdr"><span class="card-t">Class weak words</span><span class="card-m">most commonly missed</span></div><div class="card-body">'+
         (chips.length?'<div class="chip-legend"><div class="chip-legend-item"><div class="legend-dot" style="background:#b91c1c"></div>5+ students</div><div class="chip-legend-item"><div class="legend-dot" style="background:#b45309"></div>3–4 students</div><div class="chip-legend-item"><div class="legend-dot" style="background:#047857"></div>1–2 students</div></div><div class="chip-grid">'+chips.map(w=>'<span class="chip-w chip-'+w.sev+'" title="'+w.count+' students" style="font-family:\'Lora\',Georgia,serif;font-style:italic">'+w.word+'</span>').join('')+'</div>'
         :'<p style="color:var(--g-text-secondary);font-size:0.85rem">No weak word data yet. Students need to complete vocab practice.</p>')+
       '</div></div>'+
     '</div>'+
-    '<div class="card"><div class="card-hdr"><span class="card-t">Class avg score — 8 weeks</span></div><div class="card-body"><div class="chart-wrap" id="cls-chart" style="height:110px"></div></div></div>';
-  setTimeout(()=>drawLine('cls-chart',cavg,'#0066ff'),30);
+    '<div class="card"><div class="card-hdr"><span class="card-t">Class activity — last 14 days</span><span class="card-m">time spent vs words practised</span></div><div class="card-body"><div class="chart-wrap" id="cls-chart" style="height:140px"></div></div></div>';
+  setTimeout(()=>drawActivityBars('cls-chart',classActivity),30);
 }
 
 function renderCivCls(){
@@ -619,24 +677,25 @@ function openStuDirect(s){
     :'<button class="btn btn-secondary btn-sm" onclick="openWeak(\''+s.id+'\')">Assign weak questions</button><button class="btn-purple" onclick="openHw()">Set homework</button>';
   s.type==='lang'?renderLangStu(s,c):renderCivStu(s,c);
   showPage('student');
-  if(s.type==='lang') setTimeout(()=>drawLine('stu-chart',s.tr,c),30);
+  if(s.type==='lang') setTimeout(()=>drawActivityBars('stu-chart',s.activity),30);
 }
 
 function renderLangStu(s,c){
-  const d=s.tr.length>=2?s.tr[s.tr.length-1]-s.tr[0]:0;
   const sc=s.score>=75?'var(--g-green)':s.score>=55?'var(--g-yellow)':'var(--g-red)';
   const ww=(s.weakWords||[]).slice(0,20);
+  const totalMins=(s.activity||[]).reduce((a,d)=>a+d.mins,0);
+  const totalWordsP=(s.activity||[]).reduce((a,d)=>a+d.words,0);
   document.getElementById('stu-content').innerHTML=
     '<div class="profile-grid"><div class="profile-card">'+
       '<div style="display:flex;align-items:center;gap:12px"><div class="profile-avatar" style="background:'+c+'">'+ini(s.name)+'</div><div><div class="profile-name">'+s.name+'</div><div class="profile-cls">'+s.className+'</div></div></div>'+
       '<div><div class="ps-row"><span class="ps-label">Vocab score</span><span class="ps-value" style="color:'+sc+'">'+s.score+'%</span></div>'+
       '<div class="ps-row"><span class="ps-label">Words mastered</span><span class="ps-value">'+s.masteredCount+' / '+s.totalWords+'</span></div>'+
       '<div class="ps-row"><span class="ps-label">Weak words</span><span class="ps-value" style="color:'+(s.wc>8?'var(--g-red)':s.wc>4?'var(--g-yellow)':'var(--g-green)')+'">'+s.wc+'</span></div>'+
-      '<div class="ps-row"><span class="ps-label">8-week change</span><span class="ps-value" style="color:'+(d>=0?'var(--g-green)':'var(--g-red)')+'">'+(d>=0?'↑ +':'↓ ')+Math.abs(d)+'pts</span></div>'+
+      '<div class="ps-row"><span class="ps-label">14-day practice</span><span class="ps-value">'+totalMins+' mins · '+totalWordsP+' words</span></div>'+
       '<div class="ps-row"><span class="ps-label">Last active</span><span class="ps-value">'+ll(s.lastActive)+'</span></div>'+
       '<div class="ps-row"><span class="ps-label">Status</span>'+stHTML(s.st)+'</div></div></div>'+
     '<div class="profile-right">'+
-      '<div class="card"><div class="card-hdr"><span class="card-t">Score trend — 8 weeks</span><span class="card-m" style="color:'+(d>=0?'var(--g-green)':'var(--g-red)')+'">'+(d>=0?'↑ +':'↓ ')+Math.abs(d)+'pts</span></div><div class="card-body"><div class="chart-wrap" id="stu-chart" style="height:110px"></div></div></div>'+
+      '<div class="card"><div class="card-hdr"><span class="card-t">Activity — last 14 days</span><span class="card-m">time spent vs words practised</span></div><div class="card-body"><div class="chart-wrap" id="stu-chart" style="height:140px"></div></div></div>'+
       '<div class="card"><div class="card-hdr"><span class="card-t">Persistent weak words</span><div style="display:flex;gap:8px;align-items:center"><span class="card-m">'+s.wc+' words not mastered</span>'+(s.wc>0?'<button class="btn-amber" onclick="openWeak(\''+s.id+'\')">Assign as test</button>':'')+'</div></div><div class="card-body">'+
         (ww.length?ww.map(w=>'<div class="weak-row"><span class="wr-main">'+w.word+'</span><span class="wr-count">'+w.attempts+' attempts · '+(w.accuracy!=null?Math.round(w.accuracy)+'%':'0%')+' acc</span></div>').join('')
         :'<p style="color:var(--g-text-secondary)">All words mastered!</p>')+
