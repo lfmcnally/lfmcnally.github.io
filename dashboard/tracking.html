@@ -255,6 +255,13 @@ tr:hover .spark-bar { background: rgba(0,102,255,0.4); }
   <div class="sidebar-section">
     <p class="sidebar-label">Classes</p>
     <div id="sidebar-classes"><div style="padding:8px 12px;font-size:0.8rem;color:var(--g-text-secondary)">Loading...</div></div>
+    <div class="nav-item" onclick="openCreateClass()" style="margin-top:4px;color:var(--g-blue)"><span class="nav-icon">+</span> New class</div>
+  </div>
+  <div class="sidebar-section" id="sidebar-tools" style="display:none">
+    <p class="sidebar-label">Tools</p>
+    <div class="nav-item" onclick="window.location.href='planner.html'"><span class="nav-icon">📋</span> Planner</div>
+    <div class="nav-item" onclick="window.location.href='essays.html'"><span class="nav-icon">📝</span> Essays</div>
+    <div class="nav-item" id="nav-admin" style="display:none" onclick="window.location.href='admin.html'"><span class="nav-icon">⚙</span> Admin</div>
   </div>
   <div class="sidebar-spacer"></div>
   <div class="sidebar-user">
@@ -337,6 +344,36 @@ tr:hover .spark-bar { background: rgba(0,102,255,0.4); }
     <div class="m-confirm" id="hw-confirm"><div class="confirm-icon">📚</div><div class="confirm-title">Homework set</div><div class="confirm-sub" id="hw-confirm-sub"></div><button class="btn btn-primary" style="margin-top:8px" onclick="closeHw()">Done</button></div>
   </div>
 </div>
+<!-- Create Class Modal -->
+<div class="modal-overlay" id="cc-ov" onclick="if(event.target===this)closeCreateClass()">
+  <div class="modal-box" style="width:440px">
+    <div class="m-header"><div><div class="m-title">Create new class</div></div><button class="m-close" onclick="closeCreateClass()">✕</button></div>
+    <div class="m-body">
+      <div><div class="m-section-label">Class type</div>
+        <select class="field-input" id="cc-type" style="width:100%">
+          <option value="latin-prep">Prep School / KS3 Latin</option>
+          <option value="latin-gcse" selected>GCSE Latin</option>
+          <option value="latin-alevel">A Level Latin</option>
+          <option value="greek-gcse">GCSE Greek</option>
+          <option value="greek-alevel">A Level Greek</option>
+          <option value="civ-gcse">GCSE Classical Civilisation</option>
+          <option value="civ-alevel">A Level Classical Civilisation</option>
+        </select>
+      </div>
+      <div><div class="m-section-label">Class name</div>
+        <input class="field-input" id="cc-name" placeholder="e.g. Year 9 Latin" style="width:100%">
+      </div>
+    </div>
+    <div class="m-footer">
+      <span class="m-footer-left" id="cc-error" style="color:var(--g-red)"></span>
+      <div class="m-footer-right">
+        <button class="btn btn-secondary" onclick="closeCreateClass()">Cancel</button>
+        <button class="btn btn-primary" onclick="createClass()">Create class</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="../auth/config.js"></script>
 <script>
 const AVC=['#0066ff','#34A853','#FBBC04','#EA4335','#7c3aed','#06b6d4','#ec4899','#2dd4bf','#f97316','#84cc16'];
@@ -420,6 +457,9 @@ async function init(){
   currentUser={...user,...profile};
   document.getElementById('user-name').textContent=profile.full_name||'Teacher';
   document.getElementById('user-ini').textContent=ini(profile.full_name||'T');
+  // Show tools section and admin link if applicable
+  document.getElementById('sidebar-tools').style.display='';
+  if(profile.is_admin) document.getElementById('nav-admin').style.display='';
   await loadTeacherClasses();
 }
 
@@ -494,8 +534,9 @@ async function loadAllStudentData(){
     const allAttempts=allAttemptsList.filter(a=>studentIdSet.has(a.student_id));
     let mastery=[];
     if(!isCiv){
+      // Filter by student + language only. Students only encounter words from their
+      // own level's practice page, so no need to filter by chapter.
       mastery=allMasteryList.filter(w=>studentIdSet.has(w.student_id)&&w.language===lang);
-      if((lang==='latin'||lang==='greek')&&!isAlevel) mastery=mastery.filter(w=>w.chapter!=null&&w.chapter<=10);
     }
 
     students.forEach((s,idx)=>{
@@ -895,6 +936,30 @@ async function sendHw(){const sel=(hwTab==='civ'?'#c-classes':'#v-classes');cons
   document.getElementById('hw-main').style.display='none';document.getElementById('hw-confirm-sub').textContent=title+'\n'+ac.map(b=>b.textContent).join(', ')+' · due '+(due||'no deadline').toLowerCase();document.getElementById('hw-confirm').classList.add('show');}
 function closeHw(){document.getElementById('hw-ov').classList.remove('open');}
 function showPage(n){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page-'+n).classList.add('active');}
+
+// ── CREATE CLASS ───
+function openCreateClass(){
+  document.getElementById('cc-name').value='';
+  document.getElementById('cc-type').value='latin-gcse';
+  document.getElementById('cc-error').textContent='';
+  document.getElementById('cc-ov').classList.add('open');
+}
+function closeCreateClass(){document.getElementById('cc-ov').classList.remove('open');}
+async function createClass(){
+  const name=document.getElementById('cc-name').value.trim();
+  const type=document.getElementById('cc-type').value;
+  if(!name){document.getElementById('cc-error').textContent='Enter a class name';return;}
+  // Generate join code: TYPE PREFIX + 4 random chars
+  const prefixes={'latin-prep':'PREP','latin-gcse':'LATIN','latin-alevel':'LATIN','greek-gcse':'GREEK','greek-alevel':'GREEK','civ-gcse':'CIV','civ-alevel':'CIV'};
+  const prefix=prefixes[type]||'CLASS';
+  const code=prefix+'-'+Math.random().toString(36).substring(2,6).toUpperCase();
+  const {data,error}=await supabase.from('classes').insert({name,type,join_code:code,teacher_id:currentUser.id}).select().single();
+  if(error){document.getElementById('cc-error').textContent=error.message;return;}
+  closeCreateClass();
+  // Reload everything
+  await loadTeacherClasses();
+}
+
 init();
 </script>
 </body>

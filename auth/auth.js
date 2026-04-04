@@ -115,7 +115,7 @@ async function redirectIfLoggedIn() {
     if (user) {
         const profile = await getUserProfile();
         if (profile && profile.role === 'teacher') {
-            window.location.href = '/dashboard/teacher.html';
+            window.location.href = '/dashboard/tracking.html';
             return true;
         } else if (profile && profile.role === 'student') {
             window.location.href = '/dashboard/student-hub.html';
