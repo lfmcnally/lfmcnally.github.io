@@ -365,12 +365,13 @@ async function showClass(classId){
 
 // ── LEADERBOARDS ───
 const LB_COURSES=[
-  {key:'iliad',label:'Iliad',path:'iliad',colour:'#0066ff'},
+  {key:'latin-gcse',label:'Latin GCSE',path:'latin%vocabulary-practice',colour:'#0066ff'},
+  {key:'latin-alevel',label:'Latin A-Level',path:'a-level-vocabulary',colour:'#0066ff'},
+  {key:'greek',label:'Greek',path:'greek%vocabulary',colour:'#34A853'},
+  {key:'iliad',label:'Iliad',path:'iliad',colour:'#7c3aed'},
   {key:'aeneid',label:'Aeneid',path:'aeneid',colour:'#7c3aed'},
   {key:'greek-art',label:'Greek Art',path:'greek-art',colour:'#34A853'},
-  {key:'politics',label:'Politics of the Late Republic',path:'politics',colour:'#EA4335'},
-  {key:'latin',label:'Latin Vocab',path:'latin%vocabulary',colour:'#0066ff'},
-  {key:'greek',label:'Greek Vocab',path:'greek%vocabulary',colour:'#34A853'},
+  {key:'politics',label:'Late Republic',path:'politics',colour:'#EA4335'},
 ];
 
 async function showLeaderboards(){
@@ -380,23 +381,35 @@ async function showLeaderboards(){
   document.getElementById('lb-content').innerHTML='<div style="text-align:center;padding:48px;color:var(--g-text-secondary)">Loading leaderboards...</div>';
   showPage('lb');
 
+  // Fetch all-time and this-week leaderboards in parallel
+  const oneWeekAgo=new Date(Date.now()-7*86400000).toISOString();
   const results=await Promise.all(LB_COURSES.map(c=>
-    supabase.rpc('get_leaderboard',{path_filter:c.path,since_date:null,reading_only:c.key==='latin'||c.key==='greek'?false:true,max_results:10})
+    Promise.all([
+      supabase.rpc('get_leaderboard',{path_filter:c.path,since_date:null,reading_only:false,max_results:10}),
+      supabase.rpc('get_leaderboard',{path_filter:c.path,since_date:oneWeekAgo,reading_only:false,max_results:10})
+    ])
   ));
 
   document.getElementById('lb-content').innerHTML=
     '<div class="two-col-equal">'+LB_COURSES.map((c,ci)=>{
-      const rows=results[ci].data||[];
-      if(!rows.length) return '<div class="card"><div class="card-hdr"><span class="card-t" style="color:'+c.colour+'">'+c.label+'</span></div><div class="card-body"><p style="color:var(--g-text-secondary)">No data yet</p></div></div>';
-      const myIdx=rows.findIndex(r=>r.student_id===currentUser.id);
-      return '<div class="card"><div class="card-hdr"><span class="card-t" style="color:'+c.colour+'">'+c.label+'</span><span class="card-m">top '+rows.length+'</span></div><div class="card-body">'+
-        rows.map((r,i)=>{
+      const allTime=results[ci][0].data||[];
+      const thisWeek=results[ci][1].data||[];
+      if(!allTime.length&&!thisWeek.length) return '';
+
+      function renderLb(rows){
+        if(!rows.length) return '<p style="color:var(--g-text-secondary);font-size:0.85rem">No activity yet</p>';
+        return rows.map((r,i)=>{
           const isMe=r.student_id===currentUser.id;
           const medal=i===0?'gold':i===1?'silver':i===2?'bronze':'';
           const hrs=Math.floor(r.total_seconds/3600);const mins=Math.round((r.total_seconds%3600)/60);
           const timeStr=hrs>0?hrs+'h '+mins+'m':mins+'m';
           return '<div class="lb-row'+(isMe?' me':'')+'"><span class="lb-pos'+(medal?' '+medal:'')+'">'+(medal?['🥇','🥈','🥉'][i]:i+1)+'</span><span class="lb-name'+(isMe?' me':'')+'">'+(isMe?'You':r.display_name)+'</span><span class="lb-time">'+timeStr+'</span></div>';
-        }).join('')+
+        }).join('');
+      }
+
+      return '<div class="card"><div class="card-hdr"><span class="card-t" style="color:'+c.colour+'">'+c.label+'</span></div><div class="card-body">'+
+        '<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--g-text-secondary);font-weight:500;margin-bottom:8px">All time</div>'+renderLb(allTime)+
+        '<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--g-text-secondary);font-weight:500;margin:16px 0 8px">This week</div>'+renderLb(thisWeek)+
       '</div></div>';
     }).join('')+'</div>';
 }
@@ -443,10 +456,10 @@ const CIV_CONTENT={
 
 async function renderCivReading(classType){
   const sections=CIV_CONTENT[classType]||[];
-  if(!sections.length) return '<div class="card" style="border-left:4px solid #7c3aed"><div class="card-body" style="display:flex;gap:16px"><div style="font-size:1.5rem">🏛️</div><div><div style="font-weight:600;color:var(--g-text);margin-bottom:4px">Civ reading content coming soon</div><p style="color:var(--g-text-secondary);margin:0;font-size:0.9rem">Reading pages for this course are being added.</p></div></div></div>';
+  if(!sections.length) return '<div class="card" style="border-left:4px solid #7c3aed"><div class="card-body" style="display:flex;gap:16px"><div style="font-size:1.5rem">🏛️</div><div><div style="font-weight:600;color:var(--g-text);margin-bottom:4px">Reading content coming soon</div><p style="color:var(--g-text-secondary);margin:0;font-size:0.9rem">Reading pages for this course are being added.</p></div></div></div>';
 
-  // Fetch reading attempts (content_path based) for this student
-  const {data:readingAttempts}=await supabase.from('task_attempts').select('content_path, time_spent_seconds, started_at').eq('student_id',currentUser.id).limit(5000);
+  // Fetch all reading attempts for this student (content_path based)
+  const {data:readingAttempts}=await supabase.from('task_attempts').select('content_path, time_spent_seconds').eq('student_id',currentUser.id).limit(5000);
   const timeByPath={};
   (readingAttempts||[]).forEach(a=>{
     if(!a.content_path) return;
@@ -457,36 +470,47 @@ async function renderCivReading(classType){
   let totalRead=0,totalLessons=0,readLessons=0;
   const html=sections.map(section=>{
     let sectionTime=0;
-    const topicHtml=section.topics.map((topic,ti)=>{
-      const lessonHtml=topic.lessons.map(l=>{
+    // Build flat lesson rows for this section
+    const rows=section.topics.flatMap(topic=>
+      topic.lessons.map(l=>{
         totalLessons++;
         const secs=timeByPath[l.p]||0;
         sectionTime+=secs;totalRead+=secs;
         const status=secs>=60?'done':secs>0?'started':'unread';
         if(secs>=60) readLessons++;
         const mins=Math.round(secs/60);
-        return '<div class="reading-lesson"><div class="reading-dot '+status+'"></div><a href="'+l.p+'">'+section.name.split(' — ')[1]+' '+topic.name+' · '+l.t+'</a><span style="font-size:0.78rem;color:var(--g-text-secondary)">'+(secs>0?mins+' min':'—')+'</span></div>';
-      }).join('');
-      const topicId='rt-'+section.path+'-'+ti;
-      return '<div class="reading-topic">'+
-        '<div class="reading-topic-hdr" onclick="document.getElementById(\''+topicId+'\').style.display=document.getElementById(\''+topicId+'\').style.display===\'none\'?\'block\':\'none\'">'+
-          '<span style="font-weight:500;color:var(--g-text)">'+topic.name+'</span>'+
-          '<span style="font-size:0.78rem;color:var(--g-text-secondary)">'+topic.lessons.length+' lessons</span>'+
-        '</div>'+
-        '<div id="'+topicId+'" style="display:none">'+lessonHtml+'</div>'+
-      '</div>';
-    }).join('');
+        const fmtTime=secs>=3600?Math.floor(secs/3600)+'h '+Math.round((secs%3600)/60)+'m':mins>0?mins+' min':'—';
+        return {topic:topic.name,lesson:l.t,path:l.p,status,time:fmtTime,secs};
+      })
+    );
+
     const secHrs=Math.floor(sectionTime/3600);const secMins=Math.round((sectionTime%3600)/60);
     const secTimeStr=secHrs>0?secHrs+'h '+secMins+'m':secMins+' mins';
-    return '<div class="card"><div class="card-hdr"><span class="card-t" style="color:'+section.colour+'">'+section.name+'</span><span class="card-m">'+secTimeStr+' reading time</span></div><div class="card-body">'+topicHtml+'</div></div>';
+    const secRead=rows.filter(r=>r.status==='done').length;
+    const secPct=rows.length?Math.round(secRead/rows.length*100):0;
+
+    return '<div class="card"><div class="card-hdr"><span class="card-t" style="color:'+section.colour+'">'+section.name+'</span><div style="display:flex;gap:8px;align-items:center"><span class="pill pill-blue">'+secRead+'/'+rows.length+' read</span><span class="card-m">'+secTimeStr+'</span></div></div>'+
+      '<div style="overflow-x:auto"><table class="stu-table"><thead><tr><th>Lesson</th><th>Status</th><th>Time spent</th><th></th></tr></thead><tbody>'+
+      rows.map(r=>{
+        const dotCol=r.status==='done'?'var(--g-green)':r.status==='started'?'var(--g-yellow)':'var(--g-surface-dim)';
+        const statusLabel=r.status==='done'?'Read':r.status==='started'?'Started':'Not started';
+        const pillCls=r.status==='done'?'pill-green':r.status==='started'?'pill-amber':'pill-blue';
+        return '<tr><td><div style="display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:'+dotCol+';flex-shrink:0"></div><span style="font-weight:500">'+r.topic+' · '+r.lesson+'</span></div></td>'+
+          '<td><span class="pill '+pillCls+'">'+statusLabel+'</span></td>'+
+          '<td style="color:var(--g-text-secondary)">'+r.time+'</td>'+
+          '<td><a href="'+r.path+'" style="color:var(--g-blue);font-weight:500;font-size:0.85rem;text-decoration:none">'+(r.status==='done'?'Re-read':'Continue')+'</a></td></tr>';
+      }).join('')+
+      '</tbody></table></div></div>';
   }).join('');
 
   const pct=totalLessons?Math.round(readLessons/totalLessons*100):0;
   const totalHrs=Math.floor(totalRead/3600);const totalMins=Math.round((totalRead%3600)/60);
   return '<div class="stats-row" style="grid-template-columns:repeat(3,1fr)">'+
-    '<div class="stat-card" style="--c:#7c3aed"><div class="stat-label">Pages read</div><div class="stat-value">'+readLessons+' <span style="font-size:1rem;font-weight:400;color:var(--g-text-secondary)">/ '+totalLessons+'</span></div><div class="stat-delta">'+pct+'% complete</div></div>'+
+    '<div class="stat-card" style="--c:#7c3aed"><div class="stat-label">Pages read</div><div class="stat-value">'+readLessons+' <span style="font-size:1rem;font-weight:400;color:var(--g-text-secondary)">/ '+totalLessons+'</span></div>'+
+      '<div style="height:4px;background:var(--g-surface-dim);border-radius:2px;margin-top:8px"><div style="height:100%;width:'+pct+'%;background:#7c3aed;border-radius:2px"></div></div>'+
+      '<div class="stat-delta">'+pct+'% complete</div></div>'+
     '<div class="stat-card" style="--c:var(--g-blue)"><div class="stat-label">Total reading time</div><div class="stat-value">'+(totalHrs>0?totalHrs+'h '+totalMins+'m':totalMins+' mins')+'</div><div class="stat-delta">across all topics</div></div>'+
-    '<div class="stat-card" style="--c:var(--g-green)"><div class="stat-label">Sections</div><div class="stat-value">'+sections.length+'</div><div class="stat-delta">content areas</div></div>'+
+    '<div class="stat-card" style="--c:var(--g-green)"><div class="stat-label">Content areas</div><div class="stat-value">'+sections.length+'</div><div class="stat-delta">'+sections.map(s=>s.name.split(' — ').pop()).join(', ')+'</div></div>'+
   '</div>'+html;
 }
 
