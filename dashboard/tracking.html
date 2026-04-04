@@ -600,28 +600,66 @@ async function loadClass(classId){
   console.log('loadClass',cls.name,currClsStudents.length,'students, isCiv:',isCiv);
   showPage('class');
   try{
-    isCiv?renderCivCls():renderLangCls();
+    if(isCiv){renderCivCls();}
+    else{await renderLangCls();}
   }catch(e){
     console.error('render class failed:',e);
     document.getElementById('cls-content').innerHTML='<div style="padding:24px;color:var(--g-red)">Error: '+e.message+'</div>';
   }
 }
 
-function renderLangCls(){
+async function renderLangCls(){
   const ss=currClsStudents;
   const avg=ss.length?Math.round(ss.reduce((a,s)=>a+s.score,0)/ss.length):0;
   const act=ss.filter(s=>s.st==='active').length;
   const beh=ss.filter(s=>s.st!=='active').length;
   const tw=ss.reduce((a,s)=>a+s.wc,0);
-  // Aggregate daily activity across all students in class
-  const classActivity=Array.from({length:14},(_,i)=>{
-    const dayData=ss.map(s=>(s.activity||[])[i]||{mins:0,words:0});
-    return {mins:dayData.reduce((a,d)=>a+d.mins,0),words:dayData.reduce((a,d)=>a+d.words,0),label:ss.length&&ss[0].activity&&ss[0].activity[i]?ss[0].activity[i].label:''};
-  });
+
   // Weak words heatmap
   const wordMap={};
   ss.forEach(s=>(s.weakWords||[]).forEach(w=>{const k=w.word;if(!wordMap[k])wordMap[k]={word:w.word,count:0};wordMap[k].count++;}));
   const chips=Object.values(wordMap).sort((a,b)=>b.count-a.count).slice(0,15).map(w=>({...w,sev:w.count>=5?'hot':w.count>=3?'warm':'ok'}));
+
+  // Fetch recent tasks for this class
+  const {data:tasks}=await supabase.from('tasks').select('id, title, type, due_date, created_at, content_path').eq('class_id',currCls.id).order('created_at',{ascending:false}).limit(10);
+  let hwHtml='';
+  if(tasks&&tasks.length){
+    // Fetch all attempts for these tasks
+    const taskIds=tasks.map(t=>t.id);
+    const {data:attempts}=await supabase.from('task_attempts').select('task_id, student_id, score, completed_at, time_spent_seconds, total_questions').in('task_id',taskIds);
+    const attemptsByTask={};
+    (attempts||[]).forEach(a=>{if(!attemptsByTask[a.task_id])attemptsByTask[a.task_id]=[];attemptsByTask[a.task_id].push(a);});
+    const studentNames={};ss.forEach(s=>studentNames[s.id]=s.name);
+
+    hwHtml=tasks.map(t=>{
+      const ta=attemptsByTask[t.id]||[];
+      const completed=ta.filter(a=>a.completed_at);
+      const notStarted=ss.filter(s=>!ta.find(a=>a.student_id===s.id)||!ta.find(a=>a.student_id===s.id).completed_at);
+      const avgTime=completed.length?Math.round(completed.reduce((s,a)=>s+(a.time_spent_seconds||0),0)/completed.length/60):0;
+      const avgScore=completed.filter(a=>a.score!=null).length?Math.round(completed.filter(a=>a.score!=null).reduce((s,a)=>s+a.score,0)/completed.filter(a=>a.score!=null).length):null;
+      const due=t.due_date?new Date(t.due_date):null;
+      const overdue=due&&due<new Date()&&notStarted.length>0;
+      const dueStr=due?due.toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'no deadline';
+
+      return '<div style="border:1px solid var(--g-border);border-radius:10px;overflow:hidden;margin-bottom:8px">'+
+        '<div style="padding:12px 16px;background:var(--g-bg);display:flex;align-items:center;justify-content:space-between;gap:8px">'+
+          '<div style="font-weight:500;color:var(--g-text);font-size:0.9rem">'+t.title+'</div>'+
+          '<div style="display:flex;gap:8px;align-items:center">'+
+            '<span class="pill pill-green">'+completed.length+'/'+ss.length+' done</span>'+
+            (avgScore!=null?'<span class="pill pill-blue">avg '+avgScore+'%</span>':'')+
+            (avgTime>0?'<span style="font-size:0.78rem;color:var(--g-text-secondary)">~'+avgTime+' min</span>':'')+
+            '<span style="font-size:0.78rem;color:'+(overdue?'var(--g-red)':'var(--g-text-secondary)')+'">due '+dueStr+'</span>'+
+          '</div>'+
+        '</div>'+
+        (notStarted.length>0?
+          '<div style="padding:10px 16px;font-size:0.8rem;color:var(--g-text-secondary);border-top:1px solid var(--g-border);display:flex;align-items:center;gap:6px">'+
+            '<span style="color:'+(overdue?'var(--g-red)':'var(--g-text-secondary)')+';font-weight:500">'+(overdue?'Overdue':'Not done')+':</span> '+
+            notStarted.map(s=>'<span style="background:var(--g-bg);padding:2px 8px;border-radius:4px;font-size:0.78rem">'+s.name+'</span>').join(' ')+
+          '</div>':'')+
+      '</div>';
+    }).join('');
+  }
+
   document.getElementById('cls-content').innerHTML=
     '<div class="stats-row">'+
       '<div class="stat-card" style="--c:var(--g-blue)"><div class="stat-label">Avg vocab score</div><div class="stat-value">'+avg+'%</div><div class="stat-delta">across '+ss.length+' students</div></div>'+
@@ -638,8 +676,9 @@ function renderLangCls(){
         :'<p style="color:var(--g-text-secondary);font-size:0.85rem">No weak word data yet. Students need to complete vocab practice.</p>')+
       '</div></div>'+
     '</div>'+
-    '<div class="card"><div class="card-hdr"><span class="card-t">Class activity — last 14 days</span><span class="card-m">time spent vs words practised</span></div><div class="card-body"><div class="chart-wrap" id="cls-chart" style="height:140px"></div></div></div>';
-  setTimeout(()=>drawActivityBars('cls-chart',classActivity),30);
+    '<div class="card"><div class="card-hdr"><span class="card-t">Homework</span><span class="card-m">recent tasks &amp; completion</span></div><div class="card-body">'+
+      (hwHtml||'<p style="color:var(--g-text-secondary);font-size:0.85rem">No homework set yet.</p>')+
+    '</div></div>';
 }
 
 function renderCivCls(){
