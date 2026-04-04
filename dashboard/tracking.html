@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Class Tracking — Classicalia</title>
+<link rel="icon" type="image/png" href="../images/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../shared/google-theme.css">
+<style>
+/* ── Page-specific styles ─────────────────────────────────────── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* Class tabs bar */
+.class-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--g-border); background: var(--g-card-bg); padding: 0 var(--g-space-24); }
+.class-tab { padding: 12px 20px; font-size: 0.9rem; font-weight: 500; color: var(--g-text-secondary); cursor: pointer; border: none; background: none; font-family: var(--g-font); position: relative; transition: color 0.15s; white-space: nowrap; }
+.class-tab:hover { color: var(--g-text); }
+.class-tab.active { color: var(--g-blue); }
+.class-tab.active-civ { color: #7c3aed; }
+.class-tab.active::after, .class-tab.active-civ::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px; border-radius: 3px 3px 0 0; }
+.class-tab.active::after { background: var(--g-blue); }
+.class-tab.active-civ::after { background: #7c3aed; }
+.class-tab .tab-badge { font-size: 0.65rem; padding: 1px 6px; border-radius: 4px; margin-left: 6px; font-weight: 500; vertical-align: middle; }
+.badge-lang { background: var(--g-blue-light); color: var(--g-blue); }
+.badge-civ { background: #ede9fe; color: #7c3aed; }
+
+/* Sub-header */
+.sub-header { display: flex; align-items: center; justify-content: space-between; padding: 16px var(--g-space-24); flex-wrap: wrap; gap: 8px; }
+.sub-header-left { display: flex; align-items: center; gap: 8px; }
+.sub-header-left h2 { font-size: 1.1rem; margin: 0; }
+.sub-header-left .sep { color: var(--g-text-secondary); }
+.sub-header-left .meta { font-size: 0.8rem; color: var(--g-text-secondary); }
+.sub-header-right { display: flex; gap: 8px; }
+
+/* Stat cards override for coloured top accent */
+.stat-card { background: var(--g-card-bg); border: 1px solid var(--g-border); border-radius: var(--g-radius); padding: 20px; position: relative; overflow: hidden; transition: box-shadow 0.2s; }
+.stat-card:hover { box-shadow: var(--g-shadow-raised); }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--c, var(--g-blue)); }
+.stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--g-text-secondary); font-weight: 500; margin-bottom: 6px; }
+.stat-value { font-size: 1.8rem; font-weight: 600; color: var(--g-text); line-height: 1; margin-bottom: 4px; }
+.stat-delta { font-size: 0.75rem; color: var(--g-text-secondary); }
+.delta-up { color: var(--g-green); } .delta-down { color: var(--g-red); }
+
+/* Two-column layout */
+.two-col { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+.two-col-equal { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* Student table */
+.stu-table { width: 100%; border-collapse: collapse; }
+.stu-table thead th { padding: 10px 14px; text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--g-text-secondary); font-weight: 500; border-bottom: 2px solid var(--g-border); white-space: nowrap; }
+.stu-table tbody tr { cursor: pointer; transition: background 0.12s; border-bottom: 1px solid var(--g-border); }
+.stu-table tbody tr:last-child { border-bottom: none; }
+.stu-table tbody tr:hover { background: var(--g-bg); }
+.stu-table tbody td { padding: 10px 14px; font-size: 0.85rem; vertical-align: middle; }
+
+/* Student name cell */
+.s-wrap { display: flex; align-items: center; gap: 10px; }
+.s-av { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 600; color: white; flex-shrink: 0; }
+.s-name { font-weight: 500; color: var(--g-text); }
+.s-yr { font-size: 0.7rem; color: var(--g-text-secondary); }
+
+/* Pills */
+.pill { display: inline-flex; align-items: center; justify-content: center; min-width: 42px; padding: 2px 8px; border-radius: 6px; font-size: 0.78rem; font-weight: 500; }
+.pill-green { background: var(--g-green-light); color: #047857; }
+.pill-amber { background: var(--g-yellow-light); color: #b45309; }
+.pill-red { background: var(--g-red-light); color: #b91c1c; }
+.pill-blue { background: var(--g-blue-light); color: var(--g-blue); }
+.pill-purple { background: #ede9fe; color: #7c3aed; }
+
+/* Sparkline */
+.trend-spark { display: flex; align-items: flex-end; gap: 2px; height: 22px; }
+.spark-bar { width: 6px; border-radius: 2px 2px 0 0; background: var(--g-blue-light); transition: background 0.12s; }
+tr:hover .spark-bar { background: rgba(0,102,255,0.4); }
+
+/* Status dot */
+.status-dot { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; color: var(--g-text-secondary); }
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.dot-green { background: var(--g-green); } .dot-amber { background: var(--g-yellow); } .dot-red { background: var(--g-red); }
+
+/* Progress bar inline */
+.bar-wrap { width: 64px; height: 5px; background: var(--g-surface-dim); border-radius: 3px; overflow: hidden; display: inline-block; vertical-align: middle; }
+.bar-fill { height: 100%; border-radius: 3px; }
+
+/* Chips for weak words */
+.chip-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-w { font-size: 0.8rem; padding: 4px 10px; border-radius: 6px; border: 1px solid; cursor: default; font-weight: 500; }
+.chip-hot { background: var(--g-red-light); color: #b91c1c; border-color: #fca5a5; }
+.chip-warm { background: var(--g-yellow-light); color: #b45309; border-color: #fcd34d; }
+.chip-ok { background: var(--g-green-light); color: #047857; border-color: #86efac; }
+.chip-legend { display: flex; gap: 16px; margin-bottom: 12px; }
+.chip-legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--g-text-secondary); }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+/* Weak rows */
+.weak-row { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--g-border); }
+.weak-row:last-child { border-bottom: none; }
+.wr-main { font-size: 0.9rem; color: var(--g-text); font-family: 'Lora', Georgia, serif; font-style: italic; flex: 1; line-height: 1.4; }
+.wr-main.q { font-family: var(--g-font); font-style: normal; font-size: 0.85rem; }
+.wr-english { font-size: 0.85rem; color: var(--g-text-secondary); min-width: 120px; }
+.wr-topic { font-size: 0.75rem; color: var(--g-text-secondary); min-width: 100px; flex-shrink: 0; }
+.wr-count { font-size: 0.78rem; color: var(--g-red); font-weight: 500; min-width: 60px; flex-shrink: 0; }
+.wr-last { font-size: 0.75rem; color: var(--g-text-secondary); }
+
+/* Topic cards (civ) */
+.topic-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+.topic-card { background: var(--g-bg); border: 1px solid var(--g-border); border-radius: 10px; padding: 14px; }
+.topic-name { font-size: 0.85rem; font-weight: 500; color: var(--g-text); margin-bottom: 3px; }
+.topic-meta { font-size: 0.75rem; color: var(--g-text-secondary); margin-bottom: 8px; }
+.topic-bar-wrap { height: 5px; background: var(--g-surface-dim); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
+.topic-bar-fill { height: 100%; border-radius: 3px; }
+.topic-footer { display: flex; justify-content: space-between; }
+.topic-pct { font-size: 0.8rem; font-weight: 500; }
+.topic-quiz { font-size: 0.75rem; color: var(--g-text-secondary); }
+
+/* Profile grid */
+.profile-grid { display: grid; grid-template-columns: 280px 1fr; gap: 16px; }
+.profile-card { background: var(--g-card-bg); border: 1px solid var(--g-border); border-radius: var(--g-radius); padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: var(--g-shadow-hover); }
+.profile-avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 600; color: white; }
+.profile-name { font-size: 1.1rem; font-weight: 600; color: var(--g-text); margin-top: 4px; }
+.profile-cls { font-size: 0.8rem; color: var(--g-text-secondary); }
+.ps-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--g-border); }
+.ps-row:last-child { border-bottom: none; }
+.ps-label { font-size: 0.8rem; color: var(--g-text-secondary); }
+.ps-value { font-size: 0.9rem; font-weight: 500; color: var(--g-text); }
+.profile-right { display: flex; flex-direction: column; gap: 16px; }
+.chart-wrap { position: relative; }
+
+/* Back button */
+.back-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--g-text-secondary); cursor: pointer; transition: color 0.14s; font-weight: 500; background: none; border: none; font-family: var(--g-font); }
+.back-btn:hover { color: var(--g-blue); }
+
+/* Buttons */
+.btn-amber { background: var(--g-yellow); color: #000; border: none; font-size: 0.85rem; padding: 6px 14px; border-radius: var(--g-radius-pill); cursor: pointer; font-family: var(--g-font); font-weight: 500; transition: opacity 0.14s; }
+.btn-amber:hover { opacity: 0.85; }
+.btn-purple { background: #7c3aed; color: white; border: none; font-size: 0.85rem; padding: 6px 14px; border-radius: var(--g-radius-pill); cursor: pointer; font-family: var(--g-font); font-weight: 500; transition: opacity 0.14s; }
+.btn-purple:hover { opacity: 0.85; }
+
+/* ── Modal overrides ──────────────────────────────────────── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box { background: var(--g-card-bg); border: 1px solid var(--g-border); border-radius: var(--g-radius); width: 560px; max-width: calc(100vw - 2rem); max-height: 90vh; display: flex; flex-direction: column; box-shadow: var(--g-shadow-modal); transform: translateY(8px); transition: transform 0.2s; }
+.modal-overlay.open .modal-box { transform: translateY(0); }
+.modal-box.wide { width: 640px; }
+.m-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--g-border); display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.m-title { font-size: 1rem; font-weight: 600; color: var(--g-text); }
+.m-subtitle { font-size: 0.8rem; color: var(--g-text-secondary); margin-top: 2px; }
+.m-close { background: none; border: none; color: var(--g-text-secondary); font-size: 1.2rem; cursor: pointer; padding: 0; line-height: 1; transition: color 0.14s; }
+.m-close:hover { color: var(--g-text); }
+.m-body { padding: 20px 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.m-footer { padding: 14px 24px; border-top: 1px solid var(--g-border); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.m-footer-left { font-size: 0.8rem; color: var(--g-text-secondary); flex: 1; }
+.m-footer-right { display: flex; gap: 8px; }
+.m-section-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--g-text-secondary); font-weight: 500; margin-bottom: 8px; }
+.m-confirm { display: none; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; text-align: center; gap: 12px; }
+.m-confirm.show { display: flex; }
+.confirm-icon { font-size: 2.5rem; }
+.confirm-title { font-size: 1.1rem; font-weight: 600; color: var(--g-text); }
+.confirm-sub { font-size: 0.85rem; color: var(--g-text-secondary); line-height: 1.7; white-space: pre-line; }
+
+/* Toggle buttons */
+.toggle-row { display: flex; gap: 8px; }
+.toggle-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--g-border); background: var(--g-bg); color: var(--g-text-secondary); font-size: 0.85rem; cursor: pointer; font-family: var(--g-font); text-align: center; transition: all 0.14s; user-select: none; }
+.toggle-btn:hover { color: var(--g-text); }
+.toggle-btn.act-blue { background: var(--g-blue-light); border-color: rgba(0,102,255,0.3); color: var(--g-blue); }
+.toggle-btn.act-green { background: var(--g-green-light); border-color: rgba(52,168,83,0.3); color: #047857; }
+.toggle-btn.act-purple { background: #ede9fe; border-color: rgba(124,58,237,0.3); color: #7c3aed; }
+.toggle-btn .tb-name { font-weight: 500; display: block; margin-bottom: 2px; }
+.toggle-btn .tb-meta { font-size: 0.75rem; opacity: 0.7; }
+
+/* Due date buttons */
+.due-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.due-btn { padding: 6px 14px; border-radius: var(--g-radius-pill); border: 1px solid var(--g-border); background: var(--g-bg); color: var(--g-text-secondary); font-size: 0.85rem; cursor: pointer; font-family: var(--g-font); transition: all 0.13s; }
+.due-btn:hover { color: var(--g-text); }
+.due-btn.active { background: var(--g-card-bg); border-color: var(--g-blue); color: var(--g-blue); font-weight: 500; }
+
+/* Selection grid */
+.sel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.sel-count { font-size: 0.75rem; color: var(--g-blue); background: var(--g-blue-light); padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+.sel-grid { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
+.sel-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--g-border); background: var(--g-bg); cursor: pointer; transition: all 0.13s; user-select: none; }
+.sel-item:hover { border-color: var(--g-blue-light); background: var(--g-card-bg); }
+.sel-item.selected { border-color: rgba(0,102,255,0.3); background: var(--g-blue-light); }
+.sel-item.selected .sel-check { background: var(--g-blue); border-color: var(--g-blue); }
+.sel-item.selected .sel-check::after { opacity: 1; }
+.sel-check { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--g-border); background: var(--g-card-bg); flex-shrink: 0; position: relative; transition: all 0.13s; }
+.sel-check::after { content: '✓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: white; opacity: 0; }
+.sel-sev { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.sel-latin { font-family: 'Lora', Georgia, serif; font-style: italic; font-size: 0.9rem; color: var(--g-text); min-width: 90px; }
+.sel-q { font-size: 0.82rem; color: var(--g-text); flex: 1; line-height: 1.3; }
+.sel-english { font-size: 0.82rem; color: var(--g-text-secondary); flex: 1; }
+.sel-cnt { font-size: 0.75rem; color: var(--g-red); font-weight: 500; flex-shrink: 0; }
+
+/* Homework modal */
+.hw-tabs { display: flex; gap: 0; border: 1px solid var(--g-border); border-radius: 10px; overflow: hidden; }
+.hw-tab { flex: 1; padding: 10px; text-align: center; font-size: 0.85rem; cursor: pointer; background: var(--g-bg); color: var(--g-text-secondary); transition: all 0.14s; border-right: 1px solid var(--g-border); user-select: none; font-family: var(--g-font); font-weight: 500; }
+.hw-tab:last-child { border-right: none; }
+.hw-tab:hover { color: var(--g-text); }
+.hw-tab.act-vocab { background: var(--g-blue-light); color: var(--g-blue); }
+.hw-tab.act-civ { background: #ede9fe; color: #7c3aed; }
+.hw-tab.act-history { background: var(--g-card-bg); color: var(--g-text); }
+
+/* List picker */
+.list-picker { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.list-btn { padding: 12px 8px; border-radius: 10px; border: 1px solid var(--g-border); background: var(--g-bg); cursor: pointer; text-align: center; transition: all 0.14s; }
+.list-btn.active { border-color: rgba(0,102,255,0.35); background: var(--g-blue-light); }
+.list-btn .lb-name { font-size: 0.9rem; font-weight: 500; color: var(--g-text); display: block; margin-bottom: 3px; }
+.list-btn.active .lb-name { color: var(--g-blue); }
+.list-btn .lb-meta { font-size: 0.75rem; color: var(--g-text-secondary); }
+
+/* Course row */
+.course-row { display: flex; gap: 8px; }
+.course-btn { flex: 1; padding: 8px; border-radius: var(--g-radius-pill); border: 1px solid var(--g-border); background: var(--g-bg); color: var(--g-text-secondary); font-size: 0.85rem; cursor: pointer; text-align: center; transition: all 0.14s; font-family: var(--g-font); font-weight: 500; }
+.course-btn:hover { color: var(--g-text); }
+.course-btn.active { background: #ede9fe; border-color: rgba(124,58,237,0.3); color: #7c3aed; }
+
+/* Topic picker */
+.topic-picker { display: flex; flex-direction: column; gap: 4px; max-height: 170px; overflow-y: auto; }
+.tpb { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--g-border); background: var(--g-bg); cursor: pointer; transition: all 0.13s; user-select: none; }
+.tpb:hover { border-color: var(--g-blue-light); }
+.tpb.active { border-color: rgba(124,58,237,0.3); background: #ede9fe; }
+.tpb.active .tpb-name { color: #7c3aed; }
+.tpb-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.tpb-name { font-size: 0.85rem; color: var(--g-text); flex: 1; }
+.tpb-cnt { font-size: 0.75rem; color: var(--g-text-secondary); }
+
+/* Range fields */
+.range-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; align-items: end; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--g-text-secondary); font-weight: 500; }
+.field-input { background: var(--g-bg); border: 1px solid var(--g-border); border-radius: var(--g-radius-sm); padding: 8px 12px; font-size: 0.9rem; color: var(--g-text); font-family: var(--g-font); outline: none; width: 100%; transition: border-color 0.14s; -moz-appearance: textfield; }
+.field-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.field-input:focus { border-color: var(--g-blue); box-shadow: 0 0 0 2px rgba(0,102,255,0.15); }
+
+/* URL preview */
+.url-preview { background: var(--g-bg); border: 1px solid var(--g-border); border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+.url-text { font-size: 0.8rem; color: var(--g-blue); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.url-text.civ { color: #7c3aed; }
+.copy-btn { font-size: 0.8rem; padding: 4px 12px; border-radius: var(--g-radius-sm); border: 1px solid rgba(0,102,255,0.3); background: var(--g-blue-light); color: var(--g-blue); cursor: pointer; white-space: nowrap; font-family: var(--g-font); font-weight: 500; transition: opacity 0.14s; flex-shrink: 0; }
+.copy-btn:hover { opacity: 0.75; }
+.copy-btn.copied { background: var(--g-green-light); border-color: rgba(52,168,83,0.3); color: var(--g-green); }
+.copy-btn.civ { border-color: rgba(124,58,237,0.3); background: #ede9fe; color: #7c3aed; }
+
+/* Class buttons in modal */
+.class-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.class-btn { padding: 6px 14px; border-radius: var(--g-radius-pill); border: 1px solid var(--g-border); background: var(--g-bg); color: var(--g-text-secondary); font-size: 0.85rem; cursor: pointer; font-family: var(--g-font); font-weight: 500; transition: all 0.13s; }
+.class-btn:hover { color: var(--g-text); }
+.class-btn.active { background: var(--g-blue-light); border-color: rgba(0,102,255,0.3); color: var(--g-blue); }
+
+/* Homework history */
+.hw-history-list { display: flex; flex-direction: column; }
+.hw-hi { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--g-border); }
+.hw-hi:last-child { border-bottom: none; }
+.hw-hi-icon { width: 32px; height: 32px; border-radius: var(--g-radius-sm); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; }
+.hw-hi-info { flex: 1; min-width: 0; }
+.hw-hi-title { color: var(--g-text); font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hw-hi-meta { font-size: 0.75rem; color: var(--g-text-secondary); margin-top: 2px; }
+.hw-hi-due { font-size: 0.75rem; color: var(--g-text-secondary); white-space: nowrap; }
+.hw-hi-reuse { font-size: 0.75rem; padding: 4px 10px; border-radius: var(--g-radius-sm); border: 1px solid var(--g-border); background: transparent; color: var(--g-text-secondary); cursor: pointer; font-family: var(--g-font); transition: all 0.13s; font-weight: 500; }
+.hw-hi-reuse:hover { color: var(--g-text); background: var(--g-bg); }
+
+@media (max-width: 768px) {
+  .two-col, .two-col-equal, .profile-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: repeat(2, 1fr) !important; }
+  .topic-grid { grid-template-columns: 1fr; }
+  .class-tabs { overflow-x: auto; }
+}
+</style>
+</head>
+<body>
+<!-- Top Bar -->
+<div class="top-bar">
+  <div class="top-bar-brand" style="font-family: 'Lora', Georgia, serif; font-style: italic;">Classicalia</div>
+  <div class="top-bar-nav">
+    <a href="teacher.html">Dashboard</a>
+    <a href="tracking.html" class="active">Tracking</a>
+    <a href="planner.html">Planner</a>
+    <a href="../index.html">Home</a>
+  </div>
+  <div class="top-bar-actions">
+    <span class="text-muted">Mr McNally</span>
+  </div>
+</div>
+
+<!-- Class Tabs -->
+<div class="class-tabs">
+  <button class="class-tab active" id="tab-latin" onclick="loadClass('latin')">Latin GCSE <span class="tab-badge badge-lang">lang</span></button>
+  <button class="class-tab" id="tab-latinal" onclick="loadClass('latinal')">Latin A-Level <span class="tab-badge badge-lang">lang</span></button>
+  <button class="class-tab" id="tab-greek" onclick="loadClass('greek')">Greek Yr9 <span class="tab-badge badge-lang">lang</span></button>
+  <button class="class-tab" id="tab-cc" onclick="loadClass('cc')">Classical Civ. <span class="tab-badge badge-civ">civ</span></button>
+</div>
+
+<!-- Class Page -->
+<div class="page active" id="page-class">
+  <div class="sub-header">
+    <div class="sub-header-left">
+      <h2 id="cls-title"></h2>
+      <span class="sep">/</span>
+      <span class="meta" id="cls-sub"></span>
+    </div>
+    <div class="sub-header-right" id="cls-actions"></div>
+  </div>
+  <div class="container" style="padding-bottom:48px">
+    <div id="cls-content"></div>
+  </div>
+</div>
+
+<!-- Student Page -->
+<div class="page" id="page-student">
+  <div class="sub-header">
+    <div class="sub-header-left">
+      <button class="back-btn" onclick="showPage('class')">← Back</button>
+      <h2 id="stu-name"></h2>
+      <span class="sep">/</span>
+      <span class="meta" id="stu-cls"></span>
+    </div>
+    <div class="sub-header-right" id="stu-actions"></div>
+  </div>
+  <div class="container" style="padding-bottom:48px">
+    <div id="stu-content"></div>
+  </div>
+</div>
+
+<!-- Weak Modal -->
+<div class="modal-overlay" id="weak-ov" onclick="if(event.target===this)closeWeak()">
+  <div class="modal-box">
+    <div id="weak-main">
+      <div class="m-header">
+        <div><div class="m-title" id="weak-title">Assign weak items</div><div class="m-subtitle" id="weak-sub"></div></div>
+        <button class="m-close" onclick="closeWeak()">✕</button>
+      </div>
+      <div class="m-body">
+        <div><div class="m-section-label">Send to</div><div class="toggle-row" id="weak-recip"></div></div>
+        <div><div class="m-section-label">Type</div>
+          <div class="toggle-row">
+            <div class="toggle-btn act-green" id="w-practice" onclick="setWMode('practice')"><span class="tb-name">Practice set</span><span class="tb-meta">Drill before being tested</span></div>
+            <div class="toggle-btn" id="w-test" onclick="setWMode('test')"><span class="tb-name">Test</span><span class="tb-meta">Straight to assessment</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="sel-header">
+            <div class="m-section-label" style="margin-bottom:0" id="weak-items-lbl">Items to include</div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span class="sel-count" id="weak-count">0 selected</span>
+              <button class="btn btn-secondary btn-sm" onclick="wSelAll()">All</button>
+              <button class="btn btn-secondary btn-sm" onclick="wSelNone()">None</button>
+            </div>
+          </div>
+          <div style="margin-top:8px"><div class="sel-grid" id="weak-grid"></div></div>
+        </div>
+        <div><div class="m-section-label">Due</div>
+          <div class="due-row" id="weak-due">
+            <div class="due-btn active" onclick="setWDue(this)">Tomorrow</div>
+            <div class="due-btn" onclick="setWDue(this)">In 3 days</div>
+            <div class="due-btn" onclick="setWDue(this)">Next week</div>
+            <div class="due-btn" onclick="setWDue(this)">No deadline</div>
+          </div>
+        </div>
+      </div>
+      <div class="m-footer">
+        <span class="m-footer-left" id="weak-footer"></span>
+        <div class="m-footer-right">
+          <button class="btn btn-secondary" onclick="closeWeak()">Cancel</button>
+          <button class="btn btn-primary" id="weak-send" onclick="sendWeak()">Send</button>
+        </div>
+      </div>
+    </div>
+    <div class="m-confirm" id="weak-confirm">
+      <div class="confirm-icon">✓</div><div class="confirm-title">Assignment sent</div>
+      <div class="confirm-sub" id="weak-confirm-sub"></div>
+      <button class="btn btn-primary" style="margin-top:8px" onclick="closeWeak()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Homework Modal -->
+<div class="modal-overlay" id="hw-ov" onclick="if(event.target===this)closeHw()">
+  <div class="modal-box wide">
+    <div id="hw-main">
+      <div class="m-header">
+        <div><div class="m-title">Set homework</div><div class="m-subtitle" id="hw-sub"></div></div>
+        <button class="m-close" onclick="closeHw()">✕</button>
+      </div>
+      <div class="m-body">
+        <div class="hw-tabs">
+          <div class="hw-tab" onclick="switchTab('vocab',this)">Vocab tester</div>
+          <div class="hw-tab" onclick="switchTab('civ',this)">Content tester</div>
+          <div class="hw-tab" onclick="switchTab('history',this)">Recent tasks</div>
+        </div>
+        <!-- Vocab tab -->
+        <div id="tab-vocab">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div><div class="m-section-label">Assign to</div><div class="class-row" id="v-classes"></div></div>
+            <div><div class="m-section-label">Vocab list</div>
+              <div class="list-picker">
+                <div class="list-btn active" onclick="setVList('gcse',this)"><span class="lb-name">GCSE</span><span class="lb-meta">OCR defined · 250 words</span></div>
+                <div class="list-btn" onclick="setVList('prep',this)"><span class="lb-name">Prep</span><span class="lb-meta">Common entrance · 400 words</span></div>
+                <div class="list-btn" onclick="setVList('alevel',this)"><span class="lb-name">A-Level</span><span class="lb-meta">OCR defined · 500 words</span></div>
+              </div>
+            </div>
+            <div><div class="m-section-label">Chapter &amp; word range</div>
+              <div class="range-row">
+                <div class="field"><span class="field-label">Chapter</span><input class="field-input" type="number" id="v-ch" value="3" min="1" oninput="updateVUrl()"></div>
+                <div class="field"><span class="field-label">From word</span><input class="field-input" type="number" id="v-from" value="1" min="1" oninput="updateVUrl()"></div>
+                <div class="field"><span class="field-label">To word</span><input class="field-input" type="number" id="v-to" value="20" min="1" oninput="updateVUrl()"></div>
+              </div>
+            </div>
+            <div><div class="m-section-label">Due</div>
+              <div class="due-row" id="v-due">
+                <div class="due-btn active" onclick="setVDue(this)">Tomorrow</div>
+                <div class="due-btn" onclick="setVDue(this)">In 3 days</div>
+                <div class="due-btn" onclick="setVDue(this)">Next week</div>
+                <div class="due-btn" onclick="setVDue(this)">No deadline</div>
+              </div>
+            </div>
+            <div><div class="m-section-label">Generated link</div>
+              <div class="url-preview">
+                <span class="url-text" id="v-url"></span>
+                <button class="copy-btn" id="v-copy" onclick="copyUrl('v-url','v-copy')">Copy link</button>
+              </div>
+              <p style="font-size:0.75rem;color:var(--g-text-secondary);margin-top:6px">Opens the vocab tester pre-configured to this chapter and range.</p>
+            </div>
+          </div>
+        </div>
+        <!-- Civ tab -->
+        <div id="tab-civ" style="display:none">
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div><div class="m-section-label">Assign to</div><div class="class-row" id="c-classes"></div></div>
+            <div><div class="m-section-label">Course</div>
+              <div class="course-row">
+                <div class="course-btn active" onclick="setCourse('gcse',this)">GCSE</div>
+                <div class="course-btn" onclick="setCourse('alevel',this)">A-Level</div>
+              </div>
+            </div>
+            <div><div class="m-section-label">Topic</div><div class="topic-picker" id="c-topics"></div></div>
+            <div><div class="m-section-label">Question range</div>
+              <div class="range-row">
+                <div class="field"><span class="field-label">From Q</span><input class="field-input" type="number" id="c-from" value="1" min="1" oninput="updateCUrl()"></div>
+                <div class="field"><span class="field-label">To Q</span><input class="field-input" type="number" id="c-to" value="20" min="1" oninput="updateCUrl()"></div>
+                <div class="field"><span class="field-label">Available</span><div class="field-input" id="c-avail" style="color:var(--g-text-secondary);pointer-events:none">select topic</div></div>
+              </div>
+            </div>
+            <div><div class="m-section-label">Due</div>
+              <div class="due-row" id="c-due">
+                <div class="due-btn active" onclick="setCDue(this)">Tomorrow</div>
+                <div class="due-btn" onclick="setCDue(this)">In 3 days</div>
+                <div class="due-btn" onclick="setCDue(this)">Next week</div>
+                <div class="due-btn" onclick="setCDue(this)">No deadline</div>
+              </div>
+            </div>
+            <div><div class="m-section-label">Generated link</div>
+              <div class="url-preview">
+                <span class="url-text civ" id="c-url">classicalia.co.uk/civ?course=gcse&amp;topic=…&amp;from=1&amp;to=20</span>
+                <button class="copy-btn civ" id="c-copy" onclick="copyUrl('c-url','c-copy')">Copy link</button>
+              </div>
+              <p style="font-size:0.75rem;color:var(--g-text-secondary);margin-top:6px">Opens the content tester pre-configured to this topic and range.</p>
+            </div>
+          </div>
+        </div>
+        <!-- History tab -->
+        <div id="tab-history" style="display:none">
+          <div class="hw-history-list" id="hw-hist"></div>
+        </div>
+      </div>
+      <div class="m-footer">
+        <span class="m-footer-left" id="hw-footer"></span>
+        <div class="m-footer-right">
+          <button class="btn btn-secondary" onclick="closeHw()">Cancel</button>
+          <button class="btn btn-primary" onclick="sendHw()">Send to students</button>
+        </div>
+      </div>
+    </div>
+    <div class="m-confirm" id="hw-confirm">
+      <div class="confirm-icon">📚</div><div class="confirm-title">Homework set</div>
+      <div class="confirm-sub" id="hw-confirm-sub"></div>
+      <button class="btn btn-primary" style="margin-top:8px" onclick="closeHw()">Done</button>
+    </div>
+  </div>
+</div>
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const AVC = ['#0066ff','#34A853','#FBBC04','#EA4335','#7c3aed','#06b6d4','#ec4899','#2dd4bf','#f97316','#84cc16'];
+
+const WORDS = [
+  {latin:'autem',english:'however / moreover'},{latin:'tamen',english:'nevertheless'},
+  {latin:'dum',english:'while / until'},{latin:'iam',english:'now / already'},
+  {latin:'nisi',english:'unless / except'},{latin:'postquam',english:'after'},
+  {latin:'quamquam',english:'although'},{latin:'itaque',english:'and so / therefore'},
+  {latin:'numquam',english:'never'},{latin:'semper',english:'always'},
+  {latin:'ingens',english:'huge'},{latin:'omnis',english:'all / every'},
+  {latin:'alter',english:'the other (of two)'},{latin:'idem',english:'the same'},
+  {latin:'ipse',english:'himself / herself'},{latin:'suus',english:'his own / her own'},
+  {latin:'quisque',english:'each / every'},{latin:'nemo',english:'no one'},
+  {latin:'quidam',english:'a certain'},{latin:'tantus',english:'so great'},
+];
+
+const CIV_TOPICS = {
+  gcse:[
+    {id:'t1',name:'Topic 3 — Temples',slug:'temples',colour:'#7c3aed',qCount:32},
+    {id:'t2',name:'Topic 4 — Festivals',slug:'festivals',colour:'#ec4899',qCount:28},
+    {id:'t3',name:'Topic 5 — Foundation Stories',slug:'foundation',colour:'#06b6d4',qCount:24},
+    {id:'t4',name:'Topic 6 — Politics',slug:'politics',colour:'#FBBC04',qCount:35},
+  ],
+  alevel:[
+    {id:'a1',name:'Topic 1 — Augustus & Succession',slug:'augustus',colour:'#f97316',qCount:40},
+    {id:'a2',name:'Topic 2 — Roman Architecture',slug:'architecture',colour:'#34A853',qCount:30},
+    {id:'a3',name:'Topic 3 — Alexander the Great',slug:'alexander',colour:'#06b6d4',qCount:38},
+    {id:'a4',name:'Topic 4 — Greek Theatre',slug:'theatre',colour:'#ec4899',qCount:26},
+  ]
+};
+
+const QUESTIONS = [
+  {q:'What were the three orders of Greek temple architecture?',topic:'Temples'},
+  {q:'Name the architect responsible for the overall design of the Parthenon.',topic:'Temples'},
+  {q:'What festival was held in honour of Athena every four years?',topic:'Festivals'},
+  {q:'Describe the role of the agon in Greek festivals.',topic:'Festivals'},
+  {q:'Who were the twins said to have founded Rome?',topic:'Foundation Stories'},
+  {q:"What was the significance of the Lupercal cave in Roman foundation myth?",topic:'Foundation Stories'},
+  {q:'Identify the three phases of the Roman comitia.',topic:'Politics'},
+  {q:'What was the role of the tribunes of the plebs?',topic:'Politics'},
+  {q:'How did Augustus use the title princeps rather than rex?',topic:'Augustus'},
+  {q:'Name the key structural features of a Roman basilica.',topic:'Architecture'},
+];
+
+function mkTrend(s,e,n=8){return Array.from({length:n},(_,i)=>Math.round(Math.min(100,Math.max(10,s+((e-s)*i/(n-1))+Math.sin(i*3.7+s)*3))));}
+function shuffle(arr,seed){const a=[...arr];let s=seed;for(let i=a.length-1;i>0;i--){s=(s*1664525+1013904223)&0xffffffff;const j=Math.abs(s)%(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+const LS=[
+  {id:1,name:'A. Fletcher',yr:'Yr11',score:82,prog:78,lastDays:0,st:'active',wc:3,tr:mkTrend(58,82),type:'lang'},
+  {id:2,name:'B. Okafor',yr:'Yr11',score:74,prog:65,lastDays:1,st:'active',wc:5,tr:mkTrend(52,74),type:'lang'},
+  {id:3,name:'C. Singh',yr:'Yr11',score:91,prog:88,lastDays:0,st:'active',wc:1,tr:mkTrend(70,91),type:'lang'},
+  {id:4,name:'D. Whitmore',yr:'Yr11',score:58,prog:52,lastDays:3,st:'behind',wc:9,tr:mkTrend(62,55),type:'lang'},
+  {id:5,name:'E. Hartley',yr:'Yr11',score:34,prog:28,lastDays:12,st:'inactive',wc:14,tr:mkTrend(50,34),type:'lang'},
+  {id:6,name:'F. Brennan',yr:'Yr11',score:66,prog:61,lastDays:1,st:'active',wc:7,tr:mkTrend(48,66),type:'lang'},
+  {id:7,name:'G. Matsuda',yr:'Yr11',score:79,prog:74,lastDays:0,st:'active',wc:4,tr:mkTrend(60,79),type:'lang'},
+  {id:8,name:'T. Osei',yr:'Yr11',score:53,prog:49,lastDays:2,st:'behind',wc:11,tr:mkTrend(71,53),type:'lang'},
+];
+const LAL=[
+  {id:9,name:'H. Pearce',yr:'Yr13',score:88,prog:91,lastDays:0,st:'active',wc:2,tr:mkTrend(72,88),type:'lang'},
+  {id:10,name:'I. Novak',yr:'Yr13',score:95,prog:97,lastDays:0,st:'active',wc:1,tr:mkTrend(80,95),type:'lang'},
+  {id:11,name:'J. Adeyemi',yr:'Yr13',score:72,prog:68,lastDays:1,st:'active',wc:6,tr:mkTrend(60,72),type:'lang'},
+  {id:12,name:'K. Lindström',yr:'Yr12',score:61,prog:55,lastDays:2,st:'behind',wc:8,tr:mkTrend(55,61),type:'lang'},
+  {id:13,name:'L. Gallagher',yr:'Yr12',score:84,prog:79,lastDays:0,st:'active',wc:3,tr:mkTrend(65,84),type:'lang'},
+];
+const GK=[
+  {id:14,name:'M. Tanaka',yr:'Yr9',score:77,prog:72,lastDays:1,st:'active',wc:4,tr:mkTrend(55,77),type:'lang'},
+  {id:15,name:'N. Obi',yr:'Yr9',score:45,prog:38,lastDays:5,st:'behind',wc:12,tr:mkTrend(42,45),type:'lang'},
+  {id:16,name:'O. Hennessy',yr:'Yr9',score:83,prog:81,lastDays:0,st:'active',wc:3,tr:mkTrend(62,83),type:'lang'},
+  {id:17,name:'P. Al-Rashid',yr:'Yr9',score:69,prog:64,lastDays:3,st:'behind',wc:7,tr:mkTrend(58,69),type:'lang'},
+  {id:18,name:'Q. Mensah',yr:'Yr9',score:91,prog:88,lastDays:0,st:'active',wc:1,tr:mkTrend(70,91),type:'lang'},
+];
+const CC=[
+  {id:19,name:'R. Fitzgerald',yr:'Yr10',score:73,prog:70,lastDays:1,st:'active',wc:4,tr:mkTrend(58,73),type:'civ',tp:[{c:90,q:78},{c:70,q:62},{c:50,q:55},{c:20,q:null}]},
+  {id:20,name:'S. Kowalski',yr:'Yr10',score:88,prog:85,lastDays:0,st:'active',wc:2,tr:mkTrend(68,88),type:'civ',tp:[{c:100,q:88},{c:95,q:81},{c:80,q:74},{c:55,q:68}]},
+  {id:21,name:'T. Eze',yr:'Yr10',score:54,prog:48,lastDays:4,st:'behind',wc:8,tr:mkTrend(52,54),type:'civ',tp:[{c:55,q:44},{c:35,q:38},{c:10,q:null},{c:0,q:null}]},
+  {id:22,name:'U. Park',yr:'Yr10',score:67,prog:62,lastDays:2,st:'active',wc:5,tr:mkTrend(50,67),type:'civ',tp:[{c:85,q:70},{c:75,q:65},{c:60,q:58},{c:30,q:null}]},
+  {id:23,name:'V. Dubois',yr:'Yr10',score:92,prog:94,lastDays:0,st:'active',wc:1,tr:mkTrend(74,92),type:'civ',tp:[{c:100,q:94},{c:100,q:88},{c:95,q:91},{c:80,q:77}]},
+  {id:24,name:'W. Nwachukwu',yr:'Yr10',score:41,prog:35,lastDays:8,st:'inactive',wc:9,tr:mkTrend(48,41),type:'civ',tp:[{c:30,q:35},{c:15,q:null},{c:0,q:null},{c:0,q:null}]},
+];
+
+const CLASSES={
+  latin:{ss:LS,label:'Latin GCSE',sub:'Yr11 · 8 students · OCR GCSE',type:'lang',defaultList:'gcse'},
+  latinal:{ss:LAL,label:'Latin A-Level',sub:'Yr12–13 · 5 students · OCR A-Level',type:'lang',defaultList:'alevel'},
+  greek:{ss:GK,label:'Greek Yr9',sub:'Yr9 · 5 students · Greek to GCSE',type:'lang',defaultList:'gcse'},
+  cc:{ss:CC,label:'Classical Civ.',sub:'Yr10 · 6 students · OCR GCSE',type:'civ',defaultList:'gcse'},
+};
+
+const HW_HIST=[
+  {type:'vocab',list:'GCSE',ch:2,from:1,to:20,cls:'Latin GCSE',due:'Yesterday',sent:'3 Apr'},
+  {type:'civ',course:'gcse',topic:'Topic 3 — Temples',slug:'temples',from:1,to:20,cls:'Classical Civ.',due:'Yesterday',sent:'3 Apr'},
+  {type:'vocab',list:'GCSE',ch:3,from:1,to:15,cls:'Latin GCSE',due:'Last week',sent:'27 Mar'},
+  {type:'vocab',list:'A-Level',ch:1,from:1,to:30,cls:'Latin A-Level',due:'Last week',sent:'27 Mar'},
+  {type:'civ',course:'gcse',topic:'Topic 4 — Festivals',slug:'festivals',from:1,to:15,cls:'Classical Civ.',due:'2 weeks ago',sent:'20 Mar'},
+  {type:'vocab',list:'Prep',ch:4,from:1,to:25,cls:'Greek Yr9',due:'2 weeks ago',sent:'20 Mar'},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────
+let currCls='latin', currStu=null;
+let wItems=[], wMode='practice', wDue='Tomorrow';
+let hwTab='vocab', vList='gcse', vDue='Tomorrow', civCourse='gcse', civTopic=null, civDue='Tomorrow';
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+const ini = n => n.split(' ').map(x=>x[0]).join('');
+const col = id => AVC[id%AVC.length];
+const ll = d => d===0?'today':d===1?'yesterday':d+'d ago';
+const scl = s => s>=75?'pill-green':s>=55?'pill-amber':'pill-red';
+function stHTML(st){const m={active:['dot-green','active'],behind:['dot-amber','behind'],inactive:['dot-red','inactive']};const[dc,lb]=m[st]||['dot','?'];return '<span class="status-dot"><span class="dot '+dc+'"></span>'+lb+'</span>';}
+function spark(t){const mx=Math.max(...t);return t.map(v=>'<div class="spark-bar" style="height:'+Math.max(3,Math.round(v/mx*18))+'px"></div>').join('');}
+
+function drawLine(elId,data,colour){
+  const el=document.getElementById(elId);if(!el)return;
+  const W=el.clientWidth||480,H=100;
+  const mn=Math.min(...data)-8,mx=Math.max(...data)+8;
+  const pts=data.map((v,i)=>[(i/(data.length-1))*(W-24)+12,H-4-((v-mn)/(mx-mn))*(H-12)]);
+  const path=pts.map((p,i)=>i===0?'M'+p[0]+','+p[1]:'L'+p[0]+','+p[1]).join(' ');
+  const area=path+' L'+pts[pts.length-1][0]+','+H+' L'+pts[0][0]+','+H+' Z';
+  const wks=['8w','7w','6w','5w','4w','3w','2w','now'];
+  const wL=pts.map((p,i)=>'<text x="'+p[0]+'" y="'+(H+11)+'" text-anchor="middle" font-size="8" fill="#4a5070" font-family="Inter,sans-serif">'+wks[i]+'</text>').join('');
+  const yL=[Math.round(mn+4),Math.round((mn+mx)/2),Math.round(mx-4)].map(v=>'<text x="4" y="'+(H-4-((v-mn)/(mx-mn))*(H-12)+3.5)+'" font-size="8.5" fill="#4a5070" font-family="Inter,sans-serif">'+v+'%</text>').join('');
+  el.innerHTML='<svg viewBox="0 0 '+W+' '+(H+15)+'" style="width:100%;height:100%;overflow:visible">'+
+    '<defs><linearGradient id="lg'+elId+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+colour+'" stop-opacity="0.15"/><stop offset="100%" stop-color="'+colour+'" stop-opacity="0"/></linearGradient></defs>'+
+    yL+'<path d="'+area+'" fill="url(#lg'+elId+')"/>'+
+    '<path d="'+path+'" fill="none" stroke="'+colour+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'+
+    pts.map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.5" fill="'+colour+'"/>').join('')+wL+'</svg>';
+}
+
+// ── CLASS VIEW ─────────────────────────────────────────────────────────────
+function loadClass(key){
+  currCls=key;
+  const cls=CLASSES[key];
+  document.querySelectorAll('.class-tab').forEach(t=>t.classList.remove('active','active-civ'));
+  const tab=document.getElementById('tab-'+key);
+  if(tab)tab.classList.add(cls.type==='civ'?'active-civ':'active');
+  document.getElementById('cls-title').textContent=cls.label;
+  document.getElementById('cls-sub').textContent=cls.sub;
+  const ta=document.getElementById('cls-actions');
+  if(cls.type==='lang'){
+    ta.innerHTML='<button class="btn btn-secondary btn-sm" onclick="openWeak(null)">Assign weak words</button><button class="btn btn-primary btn-sm" onclick="openHw()">Set homework</button>';
+  }else{
+    ta.innerHTML='<button class="btn btn-secondary btn-sm" onclick="openWeak(null)">Assign weak questions</button><button class="btn-purple" onclick="openHw()">Set homework</button>';
+  }
+  cls.type==='lang'?renderLangCls(cls):renderCivCls(cls);
+  showPage('class');
+}
+
+function renderLangCls(cls){
+  const ss=cls.ss;
+  const avg=Math.round(ss.reduce((a,s)=>a+s.score,0)/ss.length);
+  const act=ss.filter(s=>s.st==='active').length;
+  const beh=ss.filter(s=>s.st!=='active').length;
+  const tw=ss.reduce((a,s)=>a+s.wc,0);
+  const cavg=Array.from({length:8},(_,i)=>Math.round(ss.reduce((a,s)=>a+s.tr[i],0)/ss.length));
+  const chips=WORDS.slice(0,12).map((w,i)=>({...w,sc:Math.max(1,ss.length-i-Math.floor(i/3)),sev:i<3?'hot':i<7?'warm':'ok'}));
+  document.getElementById('cls-content').innerHTML=
+    '<div class="stats-row mt-16" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">'+
+      '<div class="stat-card" style="--c:var(--g-blue)"><div class="stat-label">Avg vocab score</div><div class="stat-value">'+avg+'%</div><div class="stat-delta delta-up">↑ '+Math.abs(avg-Math.round(ss.reduce((a,s)=>a+s.tr[0],0)/ss.length))+'pts over 8 weeks</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-green)"><div class="stat-label">Active this week</div><div class="stat-value">'+act+'</div><div class="stat-delta">'+ss.length+' total</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-red)"><div class="stat-label">Need attention</div><div class="stat-value">'+beh+'</div><div class="stat-delta delta-down">behind or inactive</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-yellow)"><div class="stat-label">Total weak words</div><div class="stat-value">'+tw+'</div><div class="stat-delta">across class</div></div>'+
+    '</div>'+
+    '<div class="two-col mt-16">'+
+      '<div class="card" style="padding:0;overflow:hidden"><table class="stu-table">'+
+        '<thead><tr><th>Student</th><th>Vocab score</th><th>Weak words</th><th>8-wk trend</th><th>Last active</th><th>Status</th></tr></thead>'+
+        '<tbody>'+ss.map(s=>
+          '<tr onclick="openStu('+s.id+')">'+
+          '<td><div class="s-wrap"><div class="s-av" style="background:'+col(s.id)+'">'+ini(s.name)+'</div><div><div class="s-name">'+s.name+'</div><div class="s-yr">'+s.yr+'</div></div></div></td>'+
+          '<td><span class="pill '+scl(s.score)+'">'+s.score+'%</span></td>'+
+          '<td><span class="pill '+(s.wc>8?'pill-red':s.wc>4?'pill-amber':'pill-blue')+'">'+s.wc+' words</span></td>'+
+          '<td><div class="trend-spark">'+spark(s.tr)+'</div></td>'+
+          '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+ll(s.lastDays)+'</td>'+
+          '<td>'+stHTML(s.st)+'</td>'+
+          '</tr>'
+        ).join('')+'</tbody></table></div>'+
+      '<div class="card">'+
+        '<div class="card-header" style="padding:16px 20px"><span class="card-title" style="font-size:1rem">Class weak words</span><span style="font-size:0.8rem;color:var(--g-text-secondary)">most commonly missed</span></div>'+
+        '<div class="card-body" style="padding:16px 20px">'+
+          '<div class="chip-legend">'+
+            '<div class="chip-legend-item"><div class="legend-dot" style="background:#b91c1c"></div>5+ students</div>'+
+            '<div class="chip-legend-item"><div class="legend-dot" style="background:#b45309"></div>3–4 students</div>'+
+            '<div class="chip-legend-item"><div class="legend-dot" style="background:#047857"></div>1–2 students</div>'+
+          '</div>'+
+          '<div class="chip-grid">'+chips.map(w=>'<span class="chip-w chip-'+w.sev+'" title="'+w.sc+' student'+(w.sc!==1?'s':'')+' struggling" style="font-family:\'Lora\',Georgia,serif;font-style:italic">'+w.latin+'</span>').join('')+'</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="card mt-16">'+
+      '<div class="card-header" style="padding:16px 20px"><span class="card-title" style="font-size:1rem">Class avg vocab score — 8 weeks</span><span style="font-size:0.8rem;color:var(--g-text-secondary)">'+cls.label+'</span></div>'+
+      '<div class="card-body" style="padding:16px 20px"><div class="chart-wrap" id="cls-chart" style="height:110px"></div></div>'+
+    '</div>';
+  setTimeout(()=>drawLine('cls-chart',cavg,'#0066ff'),30);
+}
+
+function renderCivCls(cls){
+  const ss=cls.ss;
+  const tops=CIV_TOPICS.gcse;
+  const act=ss.filter(s=>s.st==='active').length;
+  const beh=ss.filter(s=>s.st!=='active').length;
+  const ts=tops.map((t,ti)=>{
+    const eng=ss.filter(s=>s.tp[ti].c>0);
+    const ac=eng.length?Math.round(eng.reduce((a,s)=>a+s.tp[ti].c,0)/eng.length):0;
+    const wq=ss.filter(s=>s.tp[ti].q!==null);
+    const aq=wq.length?Math.round(wq.reduce((a,s)=>a+s.tp[ti].q,0)/wq.length):null;
+    return{...t,ac,aq,ec:eng.length};
+  });
+  const allQ=ss.flatMap(s=>s.tp.map(p=>p.q).filter(q=>q!==null));
+  const oq=allQ.length?Math.round(allQ.reduce((a,b)=>a+b,0)/allQ.length):0;
+  const cwq=QUESTIONS.slice(0,8).map((q,i)=>({...q,sc:Math.max(1,ss.length-i),sev:i<2?'hot':i<5?'warm':'ok'}));
+  document.getElementById('cls-content').innerHTML=
+    '<div class="stats-row mt-16" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">'+
+      '<div class="stat-card" style="--c:#7c3aed"><div class="stat-label">Topics in progress</div><div class="stat-value">'+ts.filter(t=>t.ec>0).length+'/'+tops.length+'</div><div class="stat-delta">of '+tops.length+' GCSE topics</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-blue)"><div class="stat-label">Avg quiz score</div><div class="stat-value">'+oq+'%</div><div class="stat-delta">across attempted topics</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-green)"><div class="stat-label">Active this week</div><div class="stat-value">'+act+'</div><div class="stat-delta">'+ss.length+' total</div></div>'+
+      '<div class="stat-card" style="--c:var(--g-red)"><div class="stat-label">Need attention</div><div class="stat-value">'+beh+'</div><div class="stat-delta delta-down">behind or inactive</div></div>'+
+    '</div>'+
+    '<div class="two-col-equal mt-16">'+
+      '<div class="card">'+
+        '<div class="card-header" style="padding:16px 20px"><span class="card-title" style="font-size:1rem">Topic overview</span><span style="font-size:0.8rem;color:var(--g-text-secondary)">completion &amp; quiz avg</span></div>'+
+        '<div class="card-body" style="padding:16px 20px"><div class="topic-grid">'+ts.map(t=>
+          '<div class="topic-card">'+
+            '<div class="topic-name">'+t.name+'</div>'+
+            '<div class="topic-meta">'+t.ec+'/'+ss.length+' engaged</div>'+
+            '<div class="topic-bar-wrap"><div class="topic-bar-fill" style="width:'+t.ac+'%;background:'+t.colour+'"></div></div>'+
+            '<div class="topic-footer">'+
+              '<span class="topic-pct" style="color:'+t.colour+'">'+t.ac+'% done</span>'+
+              '<span class="topic-quiz">'+(t.aq!==null?'quiz: '+t.aq+'%':'no quiz yet')+'</span>'+
+            '</div>'+
+          '</div>'
+        ).join('')+'</div></div>'+
+      '</div>'+
+      '<div class="card">'+
+        '<div class="card-header" style="padding:16px 20px"><span class="card-title" style="font-size:1rem">Class weak questions</span><span style="font-size:0.8rem;color:var(--g-text-secondary)">most commonly missed</span></div>'+
+        '<div class="card-body" style="padding:16px 20px">'+
+          '<div class="chip-legend">'+
+            '<div class="chip-legend-item"><div class="legend-dot" style="background:#b91c1c"></div>5+ students</div>'+
+            '<div class="chip-legend-item"><div class="legend-dot" style="background:#b45309"></div>3–4 students</div>'+
+            '<div class="chip-legend-item"><div class="legend-dot" style="background:#047857"></div>1–2 students</div>'+
+          '</div>'+
+          cwq.map(q=>'<div class="weak-row"><span class="wr-main q">'+q.q+'</span><span class="wr-topic">'+q.topic+'</span><span class="wr-count">'+q.sc+' student'+(q.sc!==1?'s':'')+'</span></div>').join('')+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="card mt-16" style="padding:0;overflow:hidden"><table class="stu-table">'+
+      '<thead><tr><th>Student</th>'+tops.map(t=>'<th>'+t.name.split(' — ')[0].replace('Topic ','T')+'</th>').join('')+'<th>Last active</th><th>Status</th></tr></thead>'+
+      '<tbody>'+ss.map(s=>
+        '<tr onclick="openStu('+s.id+')">'+
+        '<td><div class="s-wrap"><div class="s-av" style="background:'+col(s.id)+'">'+ini(s.name)+'</div><div><div class="s-name">'+s.name+'</div><div class="s-yr">'+s.yr+'</div></div></div></td>'+
+        s.tp.map((tp,ti)=>{
+          if(tp.c===0)return '<td><span style="color:var(--g-text-secondary);font-size:0.78rem">—</span></td>';
+          const c=tops[ti].colour,qs=tp.q!==null?' / '+tp.q+'%':'';
+          return '<td><div style="display:flex;align-items:center;gap:6px"><div class="bar-wrap"><div class="bar-fill" style="width:'+tp.c+'%;background:'+c+'"></div></div><span style="font-size:0.75rem;color:'+c+';font-weight:500">'+tp.c+'%'+qs+'</span></div></td>';
+        }).join('')+
+        '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+ll(s.lastDays)+'</td>'+
+        '<td>'+stHTML(s.st)+'</td>'+
+        '</tr>'
+      ).join('')+'</tbody></table></div>';
+}
+
+// ── STUDENT PROFILE ───────────────────────────────────────────────────────
+function openStu(id){
+  const cls=CLASSES[currCls];
+  const s=cls.ss.find(x=>x.id===id);
+  if(!s)return;
+  currStu=id;
+  const c=col(s.id);
+  document.getElementById('stu-name').textContent=s.name;
+  document.getElementById('stu-cls').textContent=cls.label;
+  const sa=document.getElementById('stu-actions');
+  if(s.type==='lang'){
+    sa.innerHTML='<button class="btn btn-secondary btn-sm" onclick="openWeak('+id+')">Assign weak words</button><button class="btn btn-primary btn-sm" onclick="openHw()">Set homework</button>';
+  }else{
+    sa.innerHTML='<button class="btn btn-secondary btn-sm" onclick="openWeak('+id+')">Assign weak questions</button><button class="btn-purple" onclick="openHw()">Set homework</button>';
+  }
+  s.type==='lang'?renderLangStu(s,c,cls):renderCivStu(s,c,cls);
+  showPage('student');
+  setTimeout(()=>drawLine('stu-chart',s.tr,c),30);
+}
+
+function renderLangStu(s,c,cls){
+  const d=s.tr[7]-s.tr[0];
+  const sc=s.score>=75?'var(--g-green)':s.score>=55?'var(--g-yellow)':'var(--g-red)';
+  const ww=shuffle(WORDS,s.id*37).slice(0,s.wc).map((w,i)=>({...w,att:3+(i%5),sev:i===0?'hot':i<3?'warm':'ok',lw:['today','yesterday','2d ago','3d ago','4d ago'][i%5]}));
+  document.getElementById('stu-content').innerHTML=
+    '<div class="profile-grid mt-16">'+
+      '<div class="profile-card">'+
+        '<div style="display:flex;align-items:center;gap:12px"><div class="profile-avatar" style="background:'+c+'">'+ini(s.name)+'</div>'+
+          '<div><div class="profile-name">'+s.name+'</div><div class="profile-cls">'+s.yr+' · '+cls.label+'</div></div></div>'+
+        '<div>'+
+          '<div class="ps-row"><span class="ps-label">Vocab score</span><span class="ps-value" style="color:'+sc+'">'+s.score+'%</span></div>'+
+          '<div class="ps-row"><span class="ps-label">Progress</span><span class="ps-value">'+s.prog+'%</span></div>'+
+          '<div class="ps-row"><span class="ps-label">Weak words</span><span class="ps-value" style="color:'+(s.wc>8?'var(--g-red)':s.wc>4?'var(--g-yellow)':'var(--g-green)')+'">'+s.wc+'</span></div>'+
+          '<div class="ps-row"><span class="ps-label">8-week change</span><span class="ps-value" style="color:'+(d>=0?'var(--g-green)':'var(--g-red)')+'">'+(d>=0?'↑ +':'↓ ')+Math.abs(d)+'pts</span></div>'+
+          '<div class="ps-row"><span class="ps-label">Last active</span><span class="ps-value">'+ll(s.lastDays)+'</span></div>'+
+          '<div class="ps-row"><span class="ps-label">Status</span>'+stHTML(s.st)+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="profile-right">'+
+        '<div class="card">'+
+          '<div class="card-header" style="padding:16px 20px"><span class="card-title" style="font-size:1rem">Vocab score — 8 weeks</span><span style="font-size:0.8rem;color:'+(d>=0?'var(--g-green)':'var(--g-red)')+'">'+(d>=0?'↑ +':'↓ ')+Math.abs(d)+'pts</span></div>'+
+          '<div class="card-body" style="padding:16px 20px"><div class="chart-wrap" id="stu-chart" style="height:110px"></div></div>'+
+        '</div>'+
+        '<div class="card">'+
+          '<div class="card-header" style="padding:16px 20px"><span class="card-title" style="font-size:1rem">Persistent weak words</span>'+
+            '<div style="display:flex;gap:8px;align-items:center">'+
+              '<span style="font-size:0.8rem;color:var(--g-text-secondary)">'+s.wc+' words failed 3+ times</span>'+
+              '<button class="btn-amber" onclick="openWeak('+s.id+')">Assign as test</button>'+
+            '</div>'+
+          '</div>'+
+          '<div class="card-body" style="padding:16px 20px">'+
+            ww.map(w=>'<div class="weak-row"><span class="wr-main">'+w.latin+'</span><span class="wr-english">'+w.english+'</span><span class="wr-count">'+w.att+'× wrong</span><span class="wr-last">'+w.lw+'</span></div>').join('')+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+}
+
+function renderCivStu(s,c,cls){
+  const tops=CIV_TOPICS.gcse;
+  const wq=shuffle(QUESTIONS,s.id*41).slice(0,s.wc).map((q,i)=>({...q,att:3+(i%4),sev:i===0?'hot':i<3?'warm':'ok',lw:['today','yesterday','2d ago','3d ago'][i%4]}));
+  const aqs=s.tp.map(p=>p.q).filter(q=>q!==null);
+  const aq=aqs.length?Math.round(aqs.reduce((a,b)=>a+b,0)/aqs.length):null;
+  document.getElementById('stu-content').innerHTML=
+    '<div class="profile-grid mt-16">'+
+      '<div class="profile-card">'+
+        '<div style="display:flex;align-items:center;gap:12px"><div class="profile-avatar" style="background:'+c+'">'+ini(s.name)+'</div>'+
+          '<div><div class="profile-name">'+s.name+'</div><div class="profile-cls">'+s.yr+' · '+cls.label+'</div></div></div>'+
+        '<div>'+
+          '<div class="ps-row"><span class="ps-label">Avg quiz score</span><span class="ps-value" style="color:'+(aq>=75?'var(--g-green)':aq>=55?'var(--g-yellow)':'var(--g-red)')+'">'+(aq!==null?aq+'%':'—')+'</span></div>'+
+          tops.map((t,ti)=>{const tp=s.tp[ti];const cc=tp.c>=75?'var(--g-green)':tp.c>=40?'var(--g-yellow)':'var(--g-text-secondary)';
+            return '<div class="ps-row"><span class="ps-label" style="font-size:0.78rem">'+(t.name.split(' — ')[1]||t.name)+'</span><span class="ps-value" style="color:'+(tp.c>0?cc:'var(--g-text-secondary)')+'">'+(tp.c>0?tp.c+'%':'—')+'</span></div>';
+          }).join('')+
+          '<div class="ps-row"><span class="ps-label">Last active</span><span class="ps-value">'+ll(s.lastDays)+'</span></div>'+
+          '<div class="ps-row"><span class="ps-label">Status</span>'+stHTML(s.st)+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="profile-right">'+
+        '<div class="card">'+
+          '<div class="card-header" style="padding:16px 20px"><span class="card-title" style="font-size:1rem">Topic progress &amp; quiz scores</span></div>'+
+          '<div class="card-body" style="padding:16px 20px">'+
+            tops.map((t,ti)=>{const tp=s.tp[ti];const cc=tp.c>=75?'var(--g-green)':tp.c>=40?'var(--g-yellow)':'var(--g-text-secondary)';const qc=tp.q!==null?(tp.q>=75?'var(--g-green)':tp.q>=55?'var(--g-yellow)':'var(--g-red)'):'var(--g-text-secondary)';
+              return '<div class="weak-row"><div style="width:10px;height:10px;border-radius:50%;background:'+t.colour+';flex-shrink:0;margin-top:5px"></div>'+
+                '<div style="flex:1"><div style="font-size:0.85rem;color:var(--g-text)">'+t.name+'</div><div style="font-size:0.75rem;color:var(--g-text-secondary);margin-top:2px">'+(tp.c===0?'not started':tp.c<100?'in progress':'completed')+'</div></div>'+
+                '<span style="font-size:0.85rem;font-weight:500;color:'+cc+'">'+tp.c+'%</span>'+
+                '<span style="font-size:0.8rem;font-weight:500;color:'+qc+'">'+(tp.q!==null?'Q: '+tp.q+'%':'—')+'</span></div>';
+            }).join('')+
+          '</div>'+
+        '</div>'+
+        '<div class="card">'+
+          '<div class="card-header" style="padding:16px 20px"><span class="card-title" style="font-size:1rem">Persistent weak questions</span>'+
+            '<div style="display:flex;gap:8px;align-items:center">'+
+              '<span style="font-size:0.8rem;color:var(--g-text-secondary)">'+s.wc+' questions failed 3+ times</span>'+
+              '<button class="btn-purple" onclick="openWeak('+s.id+')">Assign as test</button>'+
+            '</div>'+
+          '</div>'+
+          '<div class="card-body" style="padding:16px 20px">'+
+            wq.map(q=>'<div class="weak-row"><span class="wr-main q">'+q.q+'</span><span class="wr-topic">'+q.topic+'</span><span class="wr-count">'+q.att+'× wrong</span><span class="wr-last">'+q.lw+'</span></div>').join('')+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+}
+
+// ── WEAK MODAL ───────────────────────────────────────────────────────────
+function openWeak(stuId){
+  const cls=CLASSES[currCls];
+  const isCiv=cls.type==='civ';
+  wMode='practice'; wDue='Tomorrow';
+  if(stuId!==null){
+    const s=cls.ss.find(x=>x.id===stuId);
+    const pool=isCiv?QUESTIONS:WORDS;
+    wItems=shuffle(pool,s.id*37).slice(0,s.wc).map((w,i)=>({...w,att:3+(i%5),sev:i===0?'hot':i<3?'warm':'ok',lw:['today','yesterday','2d ago','3d ago','4d ago'][i%5],sel:i<3}));
+    document.getElementById('weak-title').textContent=isCiv?'Assign weak questions':'Assign weak words';
+    document.getElementById('weak-sub').textContent=s.name+' · '+cls.label;
+    document.getElementById('weak-recip').innerHTML=
+      '<div class="toggle-btn act-blue" style="flex:none;min-width:150px"><span class="tb-name">'+s.name+'</span><span class="tb-meta">individual student</span></div>'+
+      '<div class="toggle-btn" onclick="wTogRecip(this)"><span class="tb-name">Whole class</span><span class="tb-meta">'+cls.ss.length+' students</span></div>';
+  }else{
+    const pool=isCiv?QUESTIONS:WORDS;
+    wItems=pool.slice(0,12).map((w,i)=>({...w,att:3+(i%5),sev:i<2?'hot':i<6?'warm':'ok',lw:['today','yesterday','2d ago'][i%3],sel:i<8}));
+    document.getElementById('weak-title').textContent=isCiv?'Assign weak questions — class':'Assign weak words — class';
+    document.getElementById('weak-sub').textContent=cls.label+' · '+cls.ss.length+' students';
+    document.getElementById('weak-recip').innerHTML=
+      '<div class="toggle-btn" onclick="wTogRecip(this)"><span class="tb-name">Individual student</span><span class="tb-meta">pick one student</span></div>'+
+      '<div class="toggle-btn act-blue"><span class="tb-name">Whole class</span><span class="tb-meta">'+cls.ss.length+' students</span></div>';
+  }
+  document.getElementById('weak-items-lbl').textContent=isCiv?'Questions to include':'Words to include';
+  document.getElementById('w-practice').className='toggle-btn act-green';
+  document.getElementById('w-test').className='toggle-btn';
+  document.querySelectorAll('#weak-due .due-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  renderWGrid();updateWFooter();
+  document.getElementById('weak-main').style.display='';
+  document.getElementById('weak-confirm').classList.remove('show');
+  document.getElementById('weak-ov').classList.add('open');
+}
+function wTogRecip(btn){document.querySelectorAll('#weak-recip .toggle-btn').forEach(b=>b.classList.remove('act-blue'));btn.classList.add('act-blue');updateWFooter();}
+function renderWGrid(){
+  const isCiv=CLASSES[currCls].type==='civ';
+  document.getElementById('weak-grid').innerHTML=wItems.map((w,i)=>{
+    const sc=w.sev==='hot'?'var(--g-red)':w.sev==='warm'?'var(--g-yellow)':'var(--g-green)';
+    const main=isCiv?'<span class="sel-q">'+w.q+'</span>':'<span class="sel-latin">'+w.latin+'</span><span class="sel-english">'+w.english+'</span>';
+    return '<div class="sel-item'+(w.sel?' selected':'')+'" onclick="wTog('+i+')"><div class="sel-check"></div><div class="sel-sev" style="background:'+sc+'"></div>'+main+'<span class="sel-cnt">'+w.att+'× wrong</span></div>';
+  }).join('');
+  document.getElementById('weak-count').textContent=wItems.filter(w=>w.sel).length+' selected';
+}
+function wTog(i){wItems[i].sel=!wItems[i].sel;renderWGrid();updateWFooter();}
+function wSelAll(){wItems.forEach(w=>w.sel=true);renderWGrid();updateWFooter();}
+function wSelNone(){wItems.forEach(w=>w.sel=false);renderWGrid();updateWFooter();}
+function setWMode(m){wMode=m;document.getElementById('w-practice').className='toggle-btn'+(m==='practice'?' act-green':'');document.getElementById('w-test').className='toggle-btn'+(m==='test'?' act-blue':'');updateWFooter();}
+function setWDue(btn){document.querySelectorAll('#weak-due .due-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');wDue=btn.textContent;updateWFooter();}
+function updateWFooter(){
+  const n=wItems.filter(w=>w.sel).length;
+  const r=document.querySelector('#weak-recip .act-blue .tb-name');
+  const rn=r?r.textContent:'—';
+  document.getElementById('weak-footer').textContent=n===0?'Select at least one item':n+' item'+(n!==1?'s':'')+' · '+wMode+' · '+rn+' · due '+wDue.toLowerCase();
+  document.getElementById('weak-send').style.opacity=n===0?'0.4':'1';
+}
+function sendWeak(){
+  const n=wItems.filter(w=>w.sel).length;if(!n)return;
+  const r=document.querySelector('#weak-recip .act-blue .tb-name');
+  const rn=r?r.textContent:'—';
+  document.getElementById('weak-main').style.display='none';
+  document.getElementById('weak-confirm-sub').textContent=(wMode==='practice'?'Practice set':'Test')+' · '+n+' item'+(n!==1?'s':'')+'\n'+rn+' · due '+wDue.toLowerCase();
+  document.getElementById('weak-confirm').classList.add('show');
+}
+function closeWeak(){document.getElementById('weak-ov').classList.remove('open');}
+
+// ── HOMEWORK MODAL ────────────────────────────────────────────────────────
+function openHw(){
+  const cls=CLASSES[currCls];
+  document.getElementById('hw-sub').textContent=cls.label+' · '+cls.ss.length+' students';
+  const ce=Object.entries(CLASSES);
+  const cr=ce.map(([k,c])=>'<div class="class-btn'+(k===currCls?' active':'')+'" onclick="this.classList.toggle(\'active\');updateHwFoot()">'+c.label+'</div>').join('');
+  document.getElementById('v-classes').innerHTML=cr;
+  document.getElementById('c-classes').innerHTML=cr;
+  vList=cls.defaultList;
+  document.querySelectorAll('.list-btn').forEach((b,i)=>b.classList.toggle('active',['gcse','prep','alevel'][i]===vList));
+  document.getElementById('v-ch').value=3;document.getElementById('v-from').value=1;document.getElementById('v-to').value=20;
+  document.querySelectorAll('#v-due .due-btn').forEach((b,i)=>b.classList.toggle('active',i===0));vDue='Tomorrow';
+  civCourse=cls.type==='civ'?cls.defaultList:'gcse';civTopic=null;
+  document.querySelectorAll('.course-btn').forEach((b,i)=>b.classList.toggle('active',(civCourse==='gcse'&&i===0)||(civCourse==='alevel'&&i===1)));
+  document.getElementById('c-from').value=1;document.getElementById('c-to').value=20;
+  document.querySelectorAll('#c-due .due-btn').forEach((b,i)=>b.classList.toggle('active',i===0));civDue='Tomorrow';
+  renderCivTopics();updateCUrl();updateVUrl();renderHwHist();
+  switchTab(cls.type==='civ'?'civ':'vocab');
+  document.getElementById('hw-main').style.display='';
+  document.getElementById('hw-confirm').classList.remove('show');
+  document.getElementById('hw-ov').classList.add('open');
+}
+function switchTab(tab){
+  hwTab=tab;
+  document.getElementById('tab-vocab').style.display=tab==='vocab'?'':'none';
+  document.getElementById('tab-civ').style.display=tab==='civ'?'':'none';
+  document.getElementById('tab-history').style.display=tab==='history'?'':'none';
+  document.querySelectorAll('.hw-tab').forEach((b,i)=>{
+    b.classList.remove('act-vocab','act-civ','act-history');
+    if((i===0&&tab==='vocab')||(i===1&&tab==='civ')||(i===2&&tab==='history'))b.classList.add('act-'+tab);
+  });
+  updateHwFoot();
+}
+function setVList(l,btn){vList=l;document.querySelectorAll('.list-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');updateVUrl();}
+function setVDue(btn){document.querySelectorAll('#v-due .due-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');vDue=btn.textContent;updateHwFoot();}
+function updateVUrl(){
+  const ch=document.getElementById('v-ch').value||'1',fr=document.getElementById('v-from').value||'1',to=document.getElementById('v-to').value||'10';
+  document.getElementById('v-url').textContent='classicalia.co.uk/vocab?list='+vList+'&ch='+ch+'&from='+fr+'&to='+to;
+  document.getElementById('v-copy').textContent='Copy link';document.getElementById('v-copy').classList.remove('copied');updateHwFoot();
+}
+function setCourse(c,btn){civCourse=c;civTopic=null;document.querySelectorAll('.course-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCivTopics();updateCUrl();}
+function renderCivTopics(){
+  const tops=CIV_TOPICS[civCourse];
+  document.getElementById('c-topics').innerHTML=tops.map((t,i)=>
+    '<div class="tpb'+(civTopic===i?' active':'')+'" onclick="selCivTop('+i+')">'+
+      '<div class="tpb-dot" style="background:'+t.colour+'"></div>'+
+      '<span class="tpb-name">'+t.name+'</span>'+
+      '<span class="tpb-cnt">'+t.qCount+' Qs</span>'+
+    '</div>'
+  ).join('');
+}
+function selCivTop(i){
+  civTopic=i;
+  document.querySelectorAll('.tpb').forEach((b,j)=>b.classList.toggle('active',j===i));
+  const t=CIV_TOPICS[civCourse][i];
+  document.getElementById('c-avail').textContent=t.qCount+' questions';
+  document.getElementById('c-to').value=Math.min(parseInt(document.getElementById('c-to').value)||20,t.qCount);
+  updateCUrl();
+}
+function setCDue(btn){document.querySelectorAll('#c-due .due-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');civDue=btn.textContent;updateHwFoot();}
+function updateCUrl(){
+  const fr=document.getElementById('c-from').value||'1',to=document.getElementById('c-to').value||'20';
+  const slug=civTopic!==null?CIV_TOPICS[civCourse][civTopic].slug:'…';
+  document.getElementById('c-url').textContent='classicalia.co.uk/civ?course='+civCourse+'&topic='+slug+'&from='+fr+'&to='+to;
+  document.getElementById('c-copy').textContent='Copy link';document.getElementById('c-copy').classList.remove('copied');updateHwFoot();
+}
+function copyUrl(uid,bid){
+  navigator.clipboard.writeText('https://'+document.getElementById(uid).textContent).catch(()=>{});
+  const btn=document.getElementById(bid);btn.textContent='Copied!';btn.classList.add('copied');
+  setTimeout(()=>{btn.textContent='Copy link';btn.classList.remove('copied');},2000);
+}
+function updateHwFoot(){
+  const ac=[...document.querySelectorAll((hwTab==='civ'?'#c-classes':'#v-classes')+' .class-btn.active')].map(b=>b.textContent);
+  let s='';
+  if(hwTab==='vocab'){
+    const ch=document.getElementById('v-ch')?.value||'?',fr=document.getElementById('v-from')?.value||'?',to=document.getElementById('v-to')?.value||'?';
+    const ll2=vList==='gcse'?'GCSE':vList==='prep'?'Prep':'A-Level';
+    s=ac.length?ll2+' list · Ch.'+ch+' words '+fr+'–'+to+' · '+ac.join(', ')+' · due '+vDue.toLowerCase():'Select at least one class';
+  }else if(hwTab==='civ'){
+    const fr=document.getElementById('c-from')?.value||'?',to=document.getElementById('c-to')?.value||'?';
+    const tn=civTopic!==null?CIV_TOPICS[civCourse][civTopic].name:'(select topic)';
+    s=ac.length?civCourse.toUpperCase()+' · '+tn+' · Q'+fr+'–'+to+' · '+ac.join(', ')+' · due '+civDue.toLowerCase():'Select at least one class';
+  }else{s='Showing recent homework tasks';}
+  document.getElementById('hw-footer').textContent=s;
+}
+function renderHwHist(){
+  document.getElementById('hw-hist').innerHTML=HW_HIST.map((h,i)=>{
+    const isCiv=h.type==='civ';
+    const ib=isCiv?'#ede9fe':'var(--g-blue-light)',ic=isCiv?'#7c3aed':'var(--g-blue)',ico=isCiv?'⊙':'I';
+    const t=isCiv?h.course.toUpperCase()+' · '+h.topic+' · Q'+h.from+'–'+h.to:h.list+' list · Ch.'+h.ch+' · words '+h.from+'–'+h.to;
+    return '<div class="hw-hi">'+
+      '<div class="hw-hi-icon" style="background:'+ib+';color:'+ic+'">'+ico+'</div>'+
+      '<div class="hw-hi-info"><div class="hw-hi-title">'+t+'</div><div class="hw-hi-meta">'+h.cls+' · set '+h.sent+'</div></div>'+
+      '<span class="hw-hi-due">due '+h.due+'</span>'+
+      '<button class="hw-hi-reuse" onclick="reuseHw('+i+')">Re-use</button>'+
+    '</div>';
+  }).join('');
+}
+function reuseHw(idx){
+  const h=HW_HIST[idx];
+  if(h.type==='civ'){
+    switchTab('civ');
+    civCourse=h.course;
+    document.querySelectorAll('.course-btn').forEach((b,i)=>b.classList.toggle('active',(civCourse==='gcse'&&i===0)||(civCourse==='alevel'&&i===1)));
+    renderCivTopics();
+    const ti=CIV_TOPICS[civCourse].findIndex(t=>t.slug===h.slug||t.name===h.topic);
+    if(ti>=0)selCivTop(ti);
+    document.getElementById('c-from').value=h.from;document.getElementById('c-to').value=h.to;updateCUrl();
+  }else{
+    switchTab('vocab');
+    vList=h.list.toLowerCase().replace('-level','level').replace(/\s/g,'');
+    document.querySelectorAll('.list-btn').forEach((b,i)=>b.classList.toggle('active',['gcse','prep','alevel'][i]===vList));
+    document.getElementById('v-ch').value=h.ch;document.getElementById('v-from').value=h.from;document.getElementById('v-to').value=h.to;updateVUrl();
+  }
+}
+function sendHw(){
+  const ac=[...document.querySelectorAll((hwTab==='civ'?'#c-classes':'#v-classes')+' .class-btn.active')].map(b=>b.textContent);
+  if(!ac.length||hwTab==='history')return;
+  let sub='';
+  if(hwTab==='vocab'){
+    const ch=document.getElementById('v-ch').value||'?',fr=document.getElementById('v-from').value||'?',to=document.getElementById('v-to').value||'?';
+    sub=(vList==='gcse'?'GCSE':vList==='prep'?'Prep':'A-Level')+' list · Ch.'+ch+', words '+fr+'–'+to+'\n'+ac.join(', ')+' · due '+vDue.toLowerCase()+'\n\nLink ready to share.';
+  }else{
+    const fr=document.getElementById('c-from').value||'?',to=document.getElementById('c-to').value||'?';
+    const tn=civTopic!==null?CIV_TOPICS[civCourse][civTopic].name:'(no topic)';
+    sub=civCourse.toUpperCase()+' · '+tn+'\nQ'+fr+'–'+to+' · '+ac.join(', ')+' · due '+civDue.toLowerCase()+'\n\nLink ready to share.';
+  }
+  document.getElementById('hw-main').style.display='none';
+  document.getElementById('hw-confirm-sub').textContent=sub;
+  document.getElementById('hw-confirm').classList.add('show');
+}
+function closeHw(){document.getElementById('hw-ov').classList.remove('open');}
+
+// ── PAGE NAV ─────────────────────────────────────────────────────────────
+function showPage(n){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page-'+n).classList.add('active');}
+
+// ── INIT ─────────────────────────────────────────────────────────────────
+loadClass('latin');
+</script>
+</body>
+</html>
