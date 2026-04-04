@@ -351,8 +351,9 @@ function ll(d){if(!d)return '—';const days=Math.floor((Date.now()-new Date(d).
 function stHTML(st){const m={active:['dot-green','active'],behind:['dot-amber','behind'],inactive:['dot-red','inactive']};const[dc,lb]=m[st]||['dot','?'];return '<span class="status-dot"><span class="dot '+dc+'"></span>'+lb+'</span>';}
 function spark(t){if(!t||!t.length)return '';const mx=Math.max(...t,1);return t.map(v=>'<div class="spark-bar" style="height:'+Math.max(3,Math.round(v/mx*18))+'px"></div>').join('');}
 function computeStatus(la,score){if(!la)return 'inactive';const d=Math.floor((Date.now()-new Date(la).getTime())/86400000);if(d>7)return 'inactive';if(d>3||score<55)return 'behind';return 'active';}
-// Build daily activity data from attempts + word mastery (last 14 days)
-function buildDailyActivity(attempts, mastery){
+// Build daily activity data from task_attempts (last 14 days)
+// Words = total_questions answered that day (not unique word_mastery records)
+function buildDailyActivity(attempts){
   const days=[];
   const now=new Date(); now.setHours(23,59,59,999);
   for(let i=13;i>=0;i--){
@@ -360,8 +361,8 @@ function buildDailyActivity(attempts, mastery){
     const dEnd=new Date(d); dEnd.setHours(23,59,59,999);
     const dayAttempts=(attempts||[]).filter(a=>{const t=new Date(a.started_at);return t>=d&&t<=dEnd;});
     const mins=Math.round(dayAttempts.reduce((s,a)=>s+(a.time_spent_seconds||0),0)/60);
-    const dayWords=(mastery||[]).filter(w=>{if(!w.last_seen_at)return false;const t=new Date(w.last_seen_at);return t>=d&&t<=dEnd;}).length;
-    days.push({date:d,mins,words:dayWords,label:(d.getDate())+'/'+(d.getMonth()+1)});
+    const words=dayAttempts.reduce((s,a)=>s+(a.total_questions||0),0);
+    days.push({date:d,mins,words,label:(d.getDate())+'/'+(d.getMonth()+1)});
   }
   return days;
 }
@@ -475,7 +476,7 @@ async function loadAllStudentData(){
 
     // Fetch word_mastery AND task_attempts
     const fetches=[
-      supabase.from('task_attempts').select('student_id, score, started_at, completed_at, time_spent_seconds').in('student_id',studentIds)
+      supabase.from('task_attempts').select('student_id, score, started_at, completed_at, time_spent_seconds, total_questions, correct_answers').in('student_id',studentIds)
     ];
     if(!isCiv){
       // Word mastery: filter by student_id + language
@@ -509,7 +510,7 @@ async function loadAllStudentData(){
         const weakWords=wm.filter(w=>w.mastered_at==null && w.attempts>0).sort((a,b)=>a.accuracy-b.accuracy);
         const vocabScore=totalWords?Math.round(masteredWords.length/totalWords*100):(sa.filter(a=>a.score!=null).length?Math.round(sa.filter(a=>a.score!=null).reduce((a,c)=>a+c.score,0)/sa.filter(a=>a.score!=null).length):0);
         const st=computeStatus(lastAttempt,vocabScore);
-        const activity=buildDailyActivity(sa,wm);
+        const activity=buildDailyActivity(sa);
         const sparkData=activity.map(d=>d.words);
         allStudentData.push({id:s.id,name:s.full_name||'Unknown',idx,type:'lang',classId:cls.id,className:cls.name,classType:cls.type,score:vocabScore,masteredCount:masteredWords.length,totalWords,wc:weakWords.length,weakWords,activity,sparkData,lastActive:lastAttempt,st,allMastery:wm,attempts:sa});
       }else{
@@ -519,7 +520,7 @@ async function loadAllStudentData(){
         const allScores=tp.filter(t=>t.q!=null).map(t=>t.q);
         const avgScore=allScores.length?Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length):0;
         const st=computeStatus(lastAttempt,avgScore);
-        const activity=buildDailyActivity(sa,[]);
+        const activity=buildDailyActivity(sa);
         const sparkData=activity.map(d=>d.mins);
         allStudentData.push({id:s.id,name:s.full_name||'Unknown',idx,type:'civ',classId:cls.id,className:cls.name,classType:cls.type,score:avgScore,tp,wc:0,activity,sparkData,lastActive:lastAttempt,st,attempts:sa});
       }
