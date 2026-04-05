@@ -401,6 +401,11 @@ tr:hover .spark-bar { background: rgba(0,102,255,0.4); }
       <div><div class="m-section-label">Join code</div>
         <div id="cs-code" style="font-size:1.1rem;font-weight:600;letter-spacing:2px;color:var(--g-blue)"></div>
       </div>
+      <div id="cs-chapter-limit-section" style="display:none">
+        <div class="m-section-label">Vocab chapter limit</div>
+        <p style="font-size:0.8rem;color:var(--g-text-secondary);margin-bottom:8px">Only count words up to this chapter for mastery tracking. Leave as "Full list" for the complete vocab set.</p>
+        <div style="display:flex;gap:8px"><select class="field-input" id="cs-chapter-limit" style="flex:1"></select><button class="btn btn-primary btn-sm" onclick="saveChapterLimit()">Save</button></div>
+      </div>
       <div><div class="m-section-label">Students</div>
         <div id="cs-students"></div>
       </div>
@@ -712,13 +717,22 @@ async function loadAllStudentData(){
           const total=(w.correct_count||0)+(w.incorrect_count||0);
           return {...w, word:w.word_latin, english:w.word_english, attempts:total, accuracy:total>0?Math.round((w.correct_count||0)/total*100):0};
         });
-        // Total words in the list (fixed per class type)
-        // latin-gcse: 466, latin-alevel: 1126, prep: 320, greek-gcse: 382, greek-alevel: 1166
+        // Total words: use chapter limit if set, otherwise full list
         const isGreek=cls.type&&cls.type.includes('greek');
-        const listTotal=isPrep?320:isAlevel?(isGreek?1166:1126):(isGreek?382:466);
-        const masteredWords=wm.filter(w=>w.mastered_at!=null);
+        const fullListTotal=isPrep?320:isAlevel?(isGreek?1166:1126):(isGreek?382:466);
+        const chLimit=cls.vocab_chapter_limit?parseInt(cls.vocab_chapter_limit):null;
+        let listTotal=fullListTotal;
+        let filteredMastery=wm;
+        if(chLimit){
+          // Count words in the vocab data up to the chapter limit
+          const vocabData=getHwVocab(cls);
+          listTotal=vocabData.filter(w=>{const c=parseInt(w.chapter);return !isNaN(c)&&c<=chLimit;}).length || fullListTotal;
+          // Only count mastery for words in chapters up to the limit
+          filteredMastery=wm.filter(w=>{const c=parseInt(w.chapter);return isNaN(c)||c<=chLimit;});
+        }
+        const masteredWords=filteredMastery.filter(w=>w.mastered_at!=null);
         // Weak words: have been attempted but not mastered, sorted worst accuracy first
-        const weakWords=wm.filter(w=>w.mastered_at==null && w.attempts>0).sort((a,b)=>a.accuracy-b.accuracy);
+        const weakWords=filteredMastery.filter(w=>w.mastered_at==null && w.attempts>0).sort((a,b)=>a.accuracy-b.accuracy);
         const vocabScore=Math.round(masteredWords.length/listTotal*100);
         const st=computeStatus(lastAttempt,vocabScore);
         const activity=buildDailyActivity(sa);
@@ -1102,9 +1116,10 @@ function closeWeak(){document.getElementById('weak-ov').classList.remove('open')
 // ── HOMEWORK MODAL ───
 // Get the right vocab data array for current class
 let hwVocabData=[];
-function getHwVocab(){
-  if(!currCls) return [];
-  const t=currCls.type||'';
+function getHwVocab(forCls){
+  const c=forCls||currCls;
+  if(!c) return [];
+  const t=c.type||'';
   if(t.includes('greek')&&t.includes('alevel')) return typeof greekALevelVocabularyData!=='undefined'?greekALevelVocabularyData:[];
   if(t.includes('greek')) return typeof greekVocabularyData!=='undefined'?greekVocabularyData:[];
   if(t.includes('alevel')) return typeof aLevelVocabularyData!=='undefined'?aLevelVocabularyData:[];
@@ -1179,7 +1194,9 @@ function updateVUrl(){
   const isPrep=currCls&&(currCls.type==='latin-prep'||currCls.type==='prep-latin');
   const page=isPrep?'prep-vocabulary-practice':isGreek?'vocabulary-practice':'vocabulary-practice';
   const base=isGreek?'classicalia.co.uk/greek/':'classicalia.co.uk/latin/';
-  document.getElementById('v-url').textContent=base+page+'.html?fromChapter='+ch+'&toChapter='+ch+'&fromWord='+fr+'&toWord='+to;
+  // Practice page uses 0-indexed 'from' and 'to' params
+  const fr0=parseInt(fr)-1, to0=parseInt(to)-1;
+  document.getElementById('v-url').textContent=base+page+'.html?fromChapter='+ch+'&toChapter='+ch+'&from='+fr0+'&to='+to0;
   document.getElementById('v-copy').textContent='Copy link';document.getElementById('v-copy').classList.remove('copied');
   updateHwFoot();
 }
@@ -1197,7 +1214,9 @@ async function sendHw(){const sel=(hwTab==='civ'?'#c-classes':'#v-classes');cons
     const firstWord=chWords[parseInt(fr)-1];const lastWord=chWords[parseInt(to)-1];
     const wordRange=firstWord&&lastWord?getWordText(firstWord)+' – '+getWordText(lastWord):'words '+fr+'–'+to;
     title='Ch.'+ch+' '+wordRange+' ('+(parseInt(to)-parseInt(fr)+1)+' words)';
-    cp='vocab?fromChapter='+ch+'&toChapter='+ch+'&fromWord='+fr+'&toWord='+to;}else{const key='civ-'+civCourse;const tops=CIV_TOPICS[key]||[];const tn=civTopic!=null&&tops[civTopic]?tops[civTopic].name:'Topic';const slug=civTopic!=null&&tops[civTopic]?tops[civTopic].slug:'topic';const fr=document.getElementById('c-from').value,to=document.getElementById('c-to').value;title=civCourse.toUpperCase()+' '+tn+' Q'+fr+'–'+to;cp='civ?course='+civCourse+'&topic='+slug+'&from='+fr+'&to='+to;}
+    // Practice page uses 0-indexed from/to
+    const fr0=parseInt(fr)-1, to0=parseInt(to)-1;
+    cp='vocab?fromChapter='+ch+'&toChapter='+ch+'&from='+fr0+'&to='+to0;}else{const key='civ-'+civCourse;const tops=CIV_TOPICS[key]||[];const tn=civTopic!=null&&tops[civTopic]?tops[civTopic].name:'Topic';const slug=civTopic!=null&&tops[civTopic]?tops[civTopic].slug:'topic';const fr=document.getElementById('c-from').value,to=document.getElementById('c-to').value;title=civCourse.toUpperCase()+' '+tn+' Q'+fr+'–'+to;cp='civ?course='+civCourse+'&topic='+slug+'&from='+fr+'&to='+to;}
   for(const cid of cids){const {data:task}=await supabase.from('tasks').insert({class_id:cid,title,type:hwTab==='civ'?'classics':'vocab',content_path:cp,due_date:dd?dd.toISOString():null}).select().single();if(task){const {data:members}=await supabase.from('class_members').select('student_id').eq('class_id',cid);if(members&&members.length)await supabase.from('task_attempts').insert(members.map(m=>({task_id:task.id,student_id:m.student_id,started_at:new Date().toISOString()})));}}
   document.getElementById('hw-main').style.display='none';document.getElementById('hw-confirm-sub').textContent=title+'\n'+ac.map(b=>b.textContent).join(', ')+' · due '+(due||'no deadline').toLowerCase();document.getElementById('hw-confirm').classList.add('show');}
 function closeHw(){document.getElementById('hw-ov').classList.remove('open');}
@@ -1318,6 +1337,25 @@ async function openClassSettings(){
   document.getElementById('cs-name').value=cls.name;
   document.getElementById('cs-code').textContent=cls.join_code||'—';
 
+  // Chapter limit (only for language classes)
+  const isCiv=cls.type&&cls.type.startsWith('civ-');
+  const csChSection=document.getElementById('cs-chapter-limit-section');
+  if(!isCiv){
+    csChSection.style.display='';
+    const vocabData=getHwVocab();
+    const chapters=[...new Set(vocabData.map(w=>w.chapter||w.letter||'?'))].filter(c=>!isNaN(parseInt(c))).sort((a,b)=>parseInt(a)-parseInt(b));
+    let running=0;
+    const chOpts=chapters.map(c=>{
+      const count=vocabData.filter(w=>String(w.chapter)===String(c)).length;
+      running+=count;
+      return '<option value="'+c+'">Up to Chapter '+c+' ('+running+' words)</option>';
+    });
+    document.getElementById('cs-chapter-limit').innerHTML='<option value="">Full list ('+vocabData.length+' words)</option>'+chOpts.join('');
+    document.getElementById('cs-chapter-limit').value=cls.vocab_chapter_limit||'';
+  }else{
+    csChSection.style.display='none';
+  }
+
   // Load students for this class
   const {data:members}=await supabase.from('class_members').select('id, student_id, users:student_id(id, full_name)').eq('class_id',cls.id);
   const el=document.getElementById('cs-students');
@@ -1335,6 +1373,16 @@ async function openClassSettings(){
   document.getElementById('cs-ov').classList.add('open');
 }
 function closeClassSettings(){document.getElementById('cs-ov').classList.remove('open');}
+
+async function saveChapterLimit(){
+  if(!currCls) return;
+  const val=document.getElementById('cs-chapter-limit').value;
+  const limit=val?parseInt(val):null;
+  const {error}=await supabase.from('classes').update({vocab_chapter_limit:limit}).eq('id',currCls.id);
+  if(error){alert('Error saving: '+error.message+'\n\nYou may need to run the migration: 031_class_vocab_chapter_limit.sql');return;}
+  currCls.vocab_chapter_limit=limit;
+  alert('Chapter limit saved. Reload to see updated mastery counts.');
+}
 
 async function renameClass(){
   const name=document.getElementById('cs-name').value.trim();
