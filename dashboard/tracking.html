@@ -402,6 +402,39 @@ tr:hover .spark-bar { background: rgba(0,102,255,0.4); }
   </div>
 </div>
 
+<!-- Vocab Browser Modal -->
+<div class="modal-overlay" id="vb-ov" onclick="if(event.target===this)closeVocabBrowser()">
+  <div class="modal-box" style="width:720px;max-height:92vh">
+    <div class="m-header">
+      <div><div class="m-title">Vocab list</div><div class="m-subtitle" id="vb-sub"></div></div>
+      <button class="m-close" onclick="closeVocabBrowser()">✕</button>
+    </div>
+    <div style="padding:12px 24px;border-bottom:1px solid var(--g-border);display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input class="field-input" id="vb-search" placeholder="Search words..." oninput="filterVocabList()" style="flex:1;min-width:150px">
+      <select class="field-input" id="vb-chapter" onchange="filterVocabList()" style="width:auto;min-width:120px">
+        <option value="">All chapters</option>
+      </select>
+      <span style="font-size:0.8rem;color:var(--g-text-secondary)" id="vb-count">0 words</span>
+      <button class="btn btn-secondary btn-sm" onclick="vbSelectAll()">Select all visible</button>
+      <button class="btn btn-secondary btn-sm" onclick="vbSelectNone()">Clear</button>
+    </div>
+    <div class="m-body" style="padding:0;overflow-y:auto;max-height:55vh">
+      <table class="stu-table" id="vb-table"><thead><tr><th style="width:30px"></th><th>Word</th><th>Meaning</th><th>Info</th><th>Ch.</th></tr></thead><tbody id="vb-tbody"></tbody></table>
+    </div>
+    <div class="m-footer">
+      <span class="m-footer-left" id="vb-selected">0 selected</span>
+      <div class="m-footer-right">
+        <button class="btn btn-secondary" onclick="closeVocabBrowser()">Cancel</button>
+        <button class="btn btn-primary" onclick="assignSelectedVocab()">Assign as homework</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/vocabulary-data.js"></script>
+<script src="../shared/a-level-vocabulary-data.js"></script>
+<script src="../shared/greek-vocabulary-data.js"></script>
+<script src="../shared/greek-alevel-vocabulary-data.js"></script>
 <script src="../auth/config.js"></script>
 <script>
 const AVC=['#0066ff','#34A853','#FBBC04','#EA4335','#7c3aed','#06b6d4','#ec4899','#2dd4bf','#f97316','#84cc16'];
@@ -762,7 +795,7 @@ async function loadClass(classId){
   const ta=document.getElementById('cls-actions');
   ta.innerHTML=isCiv
     ?'<button class="btn btn-secondary btn-sm" onclick="openWeak(null)">Assign weak questions</button><button class="btn-purple" onclick="openHw()">Set homework</button><button class="btn btn-secondary btn-sm" onclick="openClassSettings()">Settings</button>'
-    :'<button class="btn btn-secondary btn-sm" onclick="openWeak(null)">Assign weak words</button><button class="btn btn-primary btn-sm" onclick="openHw()">Set homework</button><button class="btn btn-secondary btn-sm" onclick="openClassSettings()">Settings</button>';
+    :'<button class="btn btn-secondary btn-sm" onclick="openVocabBrowser()">Browse vocab</button><button class="btn btn-secondary btn-sm" onclick="openWeak(null)">Assign weak words</button><button class="btn btn-primary btn-sm" onclick="openHw()">Set homework</button><button class="btn btn-secondary btn-sm" onclick="openClassSettings()">Settings</button>';
   currClsStudents=allStudentData.filter(s=>s.classId===classId);
   console.log('loadClass',cls.name,currClsStudents.length,'students, isCiv:',isCiv);
   showPage('class');
@@ -1115,6 +1148,89 @@ async function createClass(){
   closeCreateClass();
   // Reload everything
   await loadTeacherClasses();
+}
+
+// ── VOCAB BROWSER ───
+let vbWords=[], vbSelected=new Set();
+
+function getVocabDataForClass(){
+  if(!currCls) return [];
+  const t=currCls.type||'';
+  if(t.includes('greek')&&t.includes('alevel')) return (typeof greekALevelVocabularyData!=='undefined'?greekALevelVocabularyData:[]).map((w,i)=>({word:w.greek,english:w.english,info:w.info||'',chapter:w.chapter||'—',idx:i}));
+  if(t.includes('greek')) return (typeof greekVocabularyData!=='undefined'?greekVocabularyData:[]).map((w,i)=>({word:w.greek,english:w.english,info:w.info||'',chapter:w.chapter||'—',idx:i}));
+  if(t.includes('alevel')) return (typeof aLevelVocabularyData!=='undefined'?aLevelVocabularyData:[]).map((w,i)=>({word:w.latin,english:w.english,info:w.info||'',chapter:w.letter||w.topic||'—',idx:i}));
+  if(t==='latin-prep'||t==='prep-latin') return (typeof vocabularyData!=='undefined'?vocabularyData:[]).map((w,i)=>({word:w.latin,english:w.english,info:w.info||'',chapter:w.chapter||'—',idx:i}));
+  return (typeof vocabularyData!=='undefined'?vocabularyData:[]).map((w,i)=>({word:w.latin,english:w.english,info:w.info||'',chapter:w.chapter||'—',idx:i}));
+}
+
+function openVocabBrowser(){
+  vbWords=getVocabDataForClass();
+  vbSelected=new Set();
+  document.getElementById('vb-sub').textContent=(currCls?currCls.name:'')+' · '+vbWords.length+' words';
+  // Build chapter filter
+  const chapters=[...new Set(vbWords.map(w=>w.chapter))].sort((a,b)=>{const na=parseInt(a),nb=parseInt(b);if(!isNaN(na)&&!isNaN(nb))return na-nb;return String(a).localeCompare(String(b));});
+  document.getElementById('vb-chapter').innerHTML='<option value="">All chapters</option>'+chapters.map(c=>'<option value="'+c+'">Ch. '+c+'</option>').join('');
+  document.getElementById('vb-search').value='';
+  filterVocabList();
+  document.getElementById('vb-ov').classList.add('open');
+}
+function closeVocabBrowser(){document.getElementById('vb-ov').classList.remove('open');}
+
+function filterVocabList(){
+  const search=(document.getElementById('vb-search').value||'').toLowerCase();
+  const ch=document.getElementById('vb-chapter').value;
+  const filtered=vbWords.filter(w=>{
+    if(ch&&String(w.chapter)!==ch) return false;
+    if(search&&!w.word.toLowerCase().includes(search)&&!w.english.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  document.getElementById('vb-count').textContent=filtered.length+' words';
+  document.getElementById('vb-tbody').innerHTML=filtered.map(w=>{
+    const sel=vbSelected.has(w.idx);
+    return '<tr onclick="vbToggle('+w.idx+')" style="cursor:pointer'+(sel?';background:var(--g-blue-light)':'')+'">'+
+      '<td><div style="width:16px;height:16px;border-radius:4px;border:1.5px solid '+(sel?'var(--g-blue)':'var(--g-border)')+';background:'+(sel?'var(--g-blue)':'var(--g-card-bg)')+';display:flex;align-items:center;justify-content:center">'+(sel?'<span style="color:white;font-size:0.6rem">✓</span>':'')+'</div></td>'+
+      '<td style="font-family:\'Lora\',Georgia,serif;font-style:italic;font-weight:500">'+w.word+'</td>'+
+      '<td style="color:var(--g-text-secondary)">'+w.english+'</td>'+
+      '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+w.info+'</td>'+
+      '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+w.chapter+'</td></tr>';
+  }).join('');
+  updateVbCount();
+}
+
+function vbToggle(idx){if(vbSelected.has(idx))vbSelected.delete(idx);else vbSelected.add(idx);filterVocabList();}
+function vbSelectAll(){const search=(document.getElementById('vb-search').value||'').toLowerCase();const ch=document.getElementById('vb-chapter').value;vbWords.forEach(w=>{if(ch&&String(w.chapter)!==ch)return;if(search&&!w.word.toLowerCase().includes(search)&&!w.english.toLowerCase().includes(search))return;vbSelected.add(w.idx);});filterVocabList();}
+function vbSelectNone(){vbSelected.clear();filterVocabList();}
+function updateVbCount(){document.getElementById('vb-selected').textContent=vbSelected.size+' selected';}
+
+async function assignSelectedVocab(){
+  if(!vbSelected.size||!currCls) return;
+  const words=vbWords.filter(w=>vbSelected.has(w.idx));
+  const wordList=words.map(w=>w.word).join(', ');
+  const title='Vocab: '+wordList.slice(0,80)+(wordList.length>80?'...':'');
+  // Store selected word indices and the words themselves in content_path
+  const indices=words.map(w=>w.idx);
+  const cp='vocab?list=custom&words='+encodeURIComponent(words.map(w=>w.word).join('|'));
+
+  // Ask for due date
+  const dueChoice=prompt('Due date?\n1 = Tomorrow\n2 = In 3 days\n3 = Next week\n4 = No deadline','1');
+  let dd=new Date();
+  if(dueChoice==='1')dd.setDate(dd.getDate()+1);
+  else if(dueChoice==='2')dd.setDate(dd.getDate()+3);
+  else if(dueChoice==='3')dd.setDate(dd.getDate()+7);
+  else dd=null;
+
+  const {data:task,error}=await supabase.from('tasks').insert({
+    class_id:currCls.id,title,type:'vocab',content_path:cp,
+    due_date:dd?dd.toISOString():null
+  }).select().single();
+  if(error){alert('Error: '+error.message);return;}
+  if(task){
+    const {data:members}=await supabase.from('class_members').select('student_id').eq('class_id',currCls.id);
+    if(members&&members.length) await supabase.from('task_attempts').insert(members.map(m=>({task_id:task.id,student_id:m.student_id,started_at:new Date().toISOString()})));
+  }
+  closeVocabBrowser();
+  alert('Assigned '+words.length+' words to '+currCls.name);
+  if(currCls) loadClass(currCls.id); // Refresh
 }
 
 // ── CLASS SETTINGS ───
