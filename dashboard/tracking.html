@@ -330,8 +330,18 @@ tr:hover .spark-bar { background: rgba(0,102,255,0.4); }
         <div class="hw-tabs"><div class="hw-tab" onclick="switchTab('vocab',this)">Vocab tester</div><div class="hw-tab" onclick="switchTab('civ',this)">Content tester</div><div class="hw-tab" onclick="switchTab('history',this)">Recent tasks</div></div>
         <div id="tab-vocab"><div style="display:flex;flex-direction:column;gap:16px">
           <div><div class="m-section-label">Assign to</div><div class="class-row" id="v-classes"></div></div>
-          <div><div class="m-section-label">Vocab list</div><div class="list-picker"><div class="list-btn active" onclick="setVList('gcse',this)"><span class="lb-name">GCSE</span><span class="lb-meta">OCR defined · 250 words</span></div><div class="list-btn" onclick="setVList('prep',this)"><span class="lb-name">Prep</span><span class="lb-meta">Common entrance · 400 words</span></div><div class="list-btn" onclick="setVList('alevel',this)"><span class="lb-name">A-Level</span><span class="lb-meta">OCR defined · 500 words</span></div></div></div>
-          <div><div class="m-section-label">Chapter &amp; word range</div><div class="range-row"><div class="field"><span class="field-label">Chapter</span><input class="field-input" type="number" id="v-ch" value="3" min="1" oninput="updateVUrl()"></div><div class="field"><span class="field-label">From word</span><input class="field-input" type="number" id="v-from" value="1" min="1" oninput="updateVUrl()"></div><div class="field"><span class="field-label">To word</span><input class="field-input" type="number" id="v-to" value="20" min="1" oninput="updateVUrl()"></div></div></div>
+          <div><div class="m-section-label">Chapter</div>
+            <select class="field-input" id="v-ch" onchange="updateChapterWords()" style="width:100%"></select>
+          </div>
+          <div><div class="m-section-label">Word range</div>
+            <div class="range-row" style="grid-template-columns:1fr 1fr">
+              <div class="field"><span class="field-label">From word</span><select class="field-input" id="v-from" onchange="updateWordPreview()"></select></div>
+              <div class="field"><span class="field-label">To word</span><select class="field-input" id="v-to" onchange="updateWordPreview()"></select></div>
+            </div>
+          </div>
+          <div><div class="m-section-label">Word preview <span id="v-preview-count" style="font-weight:400;text-transform:none;letter-spacing:0"></span></div>
+            <div id="v-preview" style="max-height:180px;overflow-y:auto;border:1px solid var(--g-border);border-radius:8px;font-size:0.85rem"></div>
+          </div>
           <div><div class="m-section-label">Due</div><div class="due-row" id="v-due"><div class="due-btn active" onclick="setVDue(this)">Tomorrow</div><div class="due-btn" onclick="setVDue(this)">In 3 days</div><div class="due-btn" onclick="setVDue(this)">Next week</div><div class="due-btn" onclick="setVDue(this)">No deadline</div></div></div>
           <div><div class="m-section-label">Generated link</div><div class="url-preview"><span class="url-text" id="v-url"></span><button class="copy-btn" id="v-copy" onclick="copyUrl('v-url','v-copy')">Copy link</button></div></div>
         </div></div>
@@ -1090,38 +1100,104 @@ async function sendWeak(){
 function closeWeak(){document.getElementById('weak-ov').classList.remove('open');}
 
 // ── HOMEWORK MODAL ───
+// Get the right vocab data array for current class
+let hwVocabData=[];
+function getHwVocab(){
+  if(!currCls) return [];
+  const t=currCls.type||'';
+  if(t.includes('greek')&&t.includes('alevel')) return typeof greekALevelVocabularyData!=='undefined'?greekALevelVocabularyData:[];
+  if(t.includes('greek')) return typeof greekVocabularyData!=='undefined'?greekVocabularyData:[];
+  if(t.includes('alevel')) return typeof aLevelVocabularyData!=='undefined'?aLevelVocabularyData:[];
+  if(t==='latin-prep'||t==='prep-latin') return typeof vocabularyData!=='undefined'?vocabularyData:[];
+  return typeof vocabularyData!=='undefined'?vocabularyData:[];
+}
+function getWordText(w){return w.latin||w.greek||w.word||'?';}
+
 function openHw(){
   if(!currCls&&teacherClasses.length) currCls=teacherClasses[0];
   if(!currCls) return;
   document.getElementById('hw-sub').textContent=currCls.name;
   const cr=teacherClasses.map(c=>'<div class="class-btn'+(c.id===currCls.id?' active':'')+'" data-cid="'+c.id+'" onclick="this.classList.toggle(\'active\');updateHwFoot()">'+c.name+'</div>').join('');
   document.getElementById('v-classes').innerHTML=cr;document.getElementById('c-classes').innerHTML=cr;
-  vList=currCls.type&&currCls.type.includes('alevel')?'alevel':'gcse';
-  document.querySelectorAll('.list-btn').forEach((b,i)=>b.classList.toggle('active',['gcse','prep','alevel'][i]===vList));
-  document.getElementById('v-ch').value=3;document.getElementById('v-from').value=1;document.getElementById('v-to').value=20;
+
+  // Build chapter dropdown from actual vocab data
+  hwVocabData=getHwVocab();
+  const chapters=[...new Set(hwVocabData.map(w=>w.chapter||w.letter||'?'))].sort((a,b)=>{const na=parseInt(a),nb=parseInt(b);if(!isNaN(na)&&!isNaN(nb))return na-nb;return String(a).localeCompare(String(b));});
+  const chSel=document.getElementById('v-ch');
+  chSel.innerHTML=chapters.map(c=>{
+    const count=hwVocabData.filter(w=>(w.chapter||w.letter||'?')===c).length;
+    return '<option value="'+c+'">Chapter '+c+' ('+count+' words)</option>';
+  }).join('');
+  updateChapterWords();
+
   document.querySelectorAll('#v-due .due-btn').forEach((b,i)=>b.classList.toggle('active',i===0));vDue='Tomorrow';
   civCourse=currCls.type&&currCls.type.includes('alevel')?'alevel':'gcse';civTopic=null;
   document.querySelectorAll('.course-btn').forEach((b,i)=>b.classList.toggle('active',(civCourse==='gcse'&&i===0)||(civCourse==='alevel'&&i===1)));
   document.getElementById('c-from').value=1;document.getElementById('c-to').value=20;
   document.querySelectorAll('#c-due .due-btn').forEach((b,i)=>b.classList.toggle('active',i===0));civDue='Tomorrow';
-  renderCivTopics();updateCUrl();updateVUrl();renderHwHist();
+  renderCivTopics();updateCUrl();renderHwHist();
   switchTab(currCls.type&&currCls.type.startsWith('civ-')?'civ':'vocab');
   document.getElementById('hw-main').style.display='';document.getElementById('hw-confirm').classList.remove('show');
   document.getElementById('hw-ov').classList.add('open');
 }
+
+function updateChapterWords(){
+  const ch=document.getElementById('v-ch').value;
+  const chWords=hwVocabData.filter(w=>String(w.chapter||w.letter||'?')===String(ch));
+  // Populate from/to dropdowns with numbered words
+  const fromSel=document.getElementById('v-from');
+  const toSel=document.getElementById('v-to');
+  fromSel.innerHTML=chWords.map((w,i)=>'<option value="'+(i+1)+'">'+(i+1)+'. '+getWordText(w)+'</option>').join('');
+  toSel.innerHTML=chWords.map((w,i)=>'<option value="'+(i+1)+'">'+(i+1)+'. '+getWordText(w)+'</option>').join('');
+  toSel.value=chWords.length; // Default to last word
+  updateWordPreview();
+}
+
+function updateWordPreview(){
+  const ch=document.getElementById('v-ch').value;
+  const chWords=hwVocabData.filter(w=>String(w.chapter||w.letter||'?')===String(ch));
+  const from=parseInt(document.getElementById('v-from').value)||1;
+  const to=parseInt(document.getElementById('v-to').value)||chWords.length;
+  const selected=chWords.slice(from-1,to);
+  document.getElementById('v-preview-count').textContent='· '+selected.length+' words';
+  document.getElementById('v-preview').innerHTML=selected.length?
+    '<table style="width:100%;border-collapse:collapse;font-size:0.85rem">'+selected.map((w,i)=>{
+      const num=from+i;
+      return '<tr style="border-bottom:1px solid var(--g-border)"><td style="padding:6px 12px;color:var(--g-text-secondary);width:30px;text-align:right">'+num+'</td><td style="padding:6px 8px;font-family:\'Lora\',Georgia,serif;font-style:italic;font-weight:500">'+getWordText(w)+'</td><td style="padding:6px 12px;color:var(--g-text-secondary)">'+w.english+'</td></tr>';
+    }).join('')+'</table>'
+    :'<p style="padding:16px;color:var(--g-text-secondary);text-align:center">No words in this range</p>';
+  updateVUrl();
+}
+
 function switchTab(tab){hwTab=tab;document.getElementById('tab-vocab').style.display=tab==='vocab'?'':'none';document.getElementById('tab-civ').style.display=tab==='civ'?'':'none';document.getElementById('tab-history').style.display=tab==='history'?'':'none';document.querySelectorAll('.hw-tab').forEach((b,i)=>{b.classList.remove('act-vocab','act-civ','act-history');if((i===0&&tab==='vocab')||(i===1&&tab==='civ')||(i===2&&tab==='history'))b.classList.add('act-'+tab);});updateHwFoot();}
-function setVList(l,btn){vList=l;document.querySelectorAll('.list-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');updateVUrl();}
 function setVDue(btn){document.querySelectorAll('#v-due .due-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');vDue=btn.textContent;updateHwFoot();}
-function updateVUrl(){const ch=document.getElementById('v-ch').value||'1',fr=document.getElementById('v-from').value||'1',to=document.getElementById('v-to').value||'10';document.getElementById('v-url').textContent='classicalia.co.uk/vocab?list='+vList+'&ch='+ch+'&from='+fr+'&to='+to;document.getElementById('v-copy').textContent='Copy link';document.getElementById('v-copy').classList.remove('copied');updateHwFoot();}
+function updateVUrl(){
+  const ch=document.getElementById('v-ch').value||'1';
+  const fr=document.getElementById('v-from').value||'1';
+  const to=document.getElementById('v-to').value||'10';
+  const isGreek=currCls&&currCls.type&&currCls.type.includes('greek');
+  const isPrep=currCls&&(currCls.type==='latin-prep'||currCls.type==='prep-latin');
+  const page=isPrep?'prep-vocabulary-practice':isGreek?'vocabulary-practice':'vocabulary-practice';
+  const base=isGreek?'classicalia.co.uk/greek/':'classicalia.co.uk/latin/';
+  document.getElementById('v-url').textContent=base+page+'.html?fromChapter='+ch+'&toChapter='+ch+'&fromWord='+fr+'&toWord='+to;
+  document.getElementById('v-copy').textContent='Copy link';document.getElementById('v-copy').classList.remove('copied');
+  updateHwFoot();
+}
 function setCourse(c,btn){civCourse=c;civTopic=null;document.querySelectorAll('.course-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderCivTopics();updateCUrl();}
 function renderCivTopics(){const key='civ-'+civCourse;const tops=CIV_TOPICS[key]||[];document.getElementById('c-topics').innerHTML=tops.map((t,i)=>'<div class="tpb'+(civTopic===i?' active':'')+'" onclick="selCivTop('+i+')"><div class="tpb-dot" style="background:'+t.colour+'"></div><span class="tpb-name">'+t.name+'</span><span class="tpb-cnt">'+t.qCount+' Qs</span></div>').join('');}
 function selCivTop(i){civTopic=i;document.querySelectorAll('.tpb').forEach((b,j)=>b.classList.toggle('active',j===i));const key='civ-'+civCourse;const t=(CIV_TOPICS[key]||[])[i];if(t){document.getElementById('c-avail').textContent=t.qCount+' questions';document.getElementById('c-to').value=Math.min(parseInt(document.getElementById('c-to').value)||20,t.qCount);}updateCUrl();}
 function setCDue(btn){document.querySelectorAll('#c-due .due-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');civDue=btn.textContent;updateHwFoot();}
 function updateCUrl(){const fr=document.getElementById('c-from').value||'1',to=document.getElementById('c-to').value||'20';const key='civ-'+civCourse;const tops=CIV_TOPICS[key]||[];const slug=civTopic!=null&&tops[civTopic]?tops[civTopic].slug:'…';document.getElementById('c-url').textContent='classicalia.co.uk/civ?course='+civCourse+'&topic='+slug+'&from='+fr+'&to='+to;document.getElementById('c-copy').textContent='Copy link';document.getElementById('c-copy').classList.remove('copied');updateHwFoot();}
 function copyUrl(uid,bid){navigator.clipboard.writeText('https://'+document.getElementById(uid).textContent).catch(()=>{});const btn=document.getElementById(bid);btn.textContent='Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy link';btn.classList.remove('copied');},2000);}
-function updateHwFoot(){const sel=(hwTab==='civ'?'#c-classes':'#v-classes');const ac=[...document.querySelectorAll(sel+' .class-btn.active')].map(b=>b.textContent);let s='';if(hwTab==='vocab'){const ch=document.getElementById('v-ch')?.value||'?',fr=document.getElementById('v-from')?.value||'?',to=document.getElementById('v-to')?.value||'?';s=ac.length?(vList==='gcse'?'GCSE':vList==='prep'?'Prep':'A-Level')+' · Ch.'+ch+' words '+fr+'–'+to+' · '+ac.join(', ')+' · due '+vDue.toLowerCase():'Select at least one class';}else if(hwTab==='civ'){const fr=document.getElementById('c-from')?.value||'?',to=document.getElementById('c-to')?.value||'?';const key='civ-'+civCourse;const tops=CIV_TOPICS[key]||[];const tn=civTopic!=null&&tops[civTopic]?tops[civTopic].name:'(select topic)';s=ac.length?civCourse.toUpperCase()+' · '+tn+' · Q'+fr+'–'+to+' · '+ac.join(', ')+' · due '+civDue.toLowerCase():'Select at least one class';}else s='Recent tasks';document.getElementById('hw-footer').textContent=s;}
+function updateHwFoot(){const sel=(hwTab==='civ'?'#c-classes':'#v-classes');const ac=[...document.querySelectorAll(sel+' .class-btn.active')].map(b=>b.textContent);let s='';if(hwTab==='vocab'){const ch=document.getElementById('v-ch')?.value||'?',fr=document.getElementById('v-from')?.value||'?',to=document.getElementById('v-to')?.value||'?';s=ac.length?'Ch.'+ch+' words '+fr+'–'+to+' · '+ac.join(', ')+' · due '+vDue.toLowerCase():'Select at least one class';}else if(hwTab==='civ'){const fr=document.getElementById('c-from')?.value||'?',to=document.getElementById('c-to')?.value||'?';const key='civ-'+civCourse;const tops=CIV_TOPICS[key]||[];const tn=civTopic!=null&&tops[civTopic]?tops[civTopic].name:'(select topic)';s=ac.length?civCourse.toUpperCase()+' · '+tn+' · Q'+fr+'–'+to+' · '+ac.join(', ')+' · due '+civDue.toLowerCase():'Select at least one class';}else s='Recent tasks';document.getElementById('hw-footer').textContent=s;}
 async function renderHwHist(){const classIds=teacherClasses.map(c=>c.id);const {data:tasks}=await supabase.from('tasks').select('id, class_id, title, type, due_date, created_at').in('class_id',classIds).order('created_at',{ascending:false}).limit(10);const el=document.getElementById('hw-hist');if(!tasks||!tasks.length){el.innerHTML='<p style="padding:16px;color:var(--g-text-secondary)">No recent homework.</p>';return;}const cm={};teacherClasses.forEach(c=>cm[c.id]=c.name);el.innerHTML=tasks.map(h=>{const isCiv=h.type&&h.type.includes('civ');const sent=new Date(h.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'});const due=h.due_date?new Date(h.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'no deadline';return '<div class="hw-hi"><div class="hw-hi-icon" style="background:'+(isCiv?'#ede9fe':'var(--g-blue-light)')+';color:'+(isCiv?'#7c3aed':'var(--g-blue)')+'">'+(isCiv?'⊙':'I')+'</div><div class="hw-hi-info"><div class="hw-hi-title">'+h.title+'</div><div class="hw-hi-meta">'+(cm[h.class_id]||'')+' · '+sent+'</div></div><span class="hw-hi-due">due '+due+'</span></div>';}).join('');}
-async function sendHw(){const sel=(hwTab==='civ'?'#c-classes':'#v-classes');const ac=[...document.querySelectorAll(sel+' .class-btn.active')];if(!ac.length||hwTab==='history')return;const cids=ac.map(b=>b.dataset.cid).filter(Boolean);let title='',cp='',dd=new Date();const due=hwTab==='civ'?civDue:vDue;if(due==='Tomorrow')dd.setDate(dd.getDate()+1);else if(due==='In 3 days')dd.setDate(dd.getDate()+3);else if(due==='Next week')dd.setDate(dd.getDate()+7);else dd=null;if(hwTab==='vocab'){const ch=document.getElementById('v-ch').value,fr=document.getElementById('v-from').value,to=document.getElementById('v-to').value;title=(vList==='gcse'?'GCSE':vList==='prep'?'Prep':'A-Level')+' Vocab Ch.'+ch+' words '+fr+'–'+to;cp='vocab?list='+vList+'&fromChapter='+ch+'&toChapter='+ch+'&fromWord='+fr+'&toWord='+to;}else{const key='civ-'+civCourse;const tops=CIV_TOPICS[key]||[];const tn=civTopic!=null&&tops[civTopic]?tops[civTopic].name:'Topic';const slug=civTopic!=null&&tops[civTopic]?tops[civTopic].slug:'topic';const fr=document.getElementById('c-from').value,to=document.getElementById('c-to').value;title=civCourse.toUpperCase()+' '+tn+' Q'+fr+'–'+to;cp='civ?course='+civCourse+'&topic='+slug+'&from='+fr+'&to='+to;}
+async function sendHw(){const sel=(hwTab==='civ'?'#c-classes':'#v-classes');const ac=[...document.querySelectorAll(sel+' .class-btn.active')];if(!ac.length||hwTab==='history')return;const cids=ac.map(b=>b.dataset.cid).filter(Boolean);let title='',cp='',dd=new Date();const due=hwTab==='civ'?civDue:vDue;if(due==='Tomorrow')dd.setDate(dd.getDate()+1);else if(due==='In 3 days')dd.setDate(dd.getDate()+3);else if(due==='Next week')dd.setDate(dd.getDate()+7);else dd=null;if(hwTab==='vocab'){const ch=document.getElementById('v-ch').value,fr=document.getElementById('v-from').value,to=document.getElementById('v-to').value;
+    // Get first and last word names for a descriptive title
+    const chWords=hwVocabData.filter(w=>String(w.chapter||w.letter||'?')===String(ch));
+    const firstWord=chWords[parseInt(fr)-1];const lastWord=chWords[parseInt(to)-1];
+    const wordRange=firstWord&&lastWord?getWordText(firstWord)+' – '+getWordText(lastWord):'words '+fr+'–'+to;
+    title='Ch.'+ch+' '+wordRange+' ('+(parseInt(to)-parseInt(fr)+1)+' words)';
+    cp='vocab?fromChapter='+ch+'&toChapter='+ch+'&fromWord='+fr+'&toWord='+to;}else{const key='civ-'+civCourse;const tops=CIV_TOPICS[key]||[];const tn=civTopic!=null&&tops[civTopic]?tops[civTopic].name:'Topic';const slug=civTopic!=null&&tops[civTopic]?tops[civTopic].slug:'topic';const fr=document.getElementById('c-from').value,to=document.getElementById('c-to').value;title=civCourse.toUpperCase()+' '+tn+' Q'+fr+'–'+to;cp='civ?course='+civCourse+'&topic='+slug+'&from='+fr+'&to='+to;}
   for(const cid of cids){const {data:task}=await supabase.from('tasks').insert({class_id:cid,title,type:hwTab==='civ'?'classics':'vocab',content_path:cp,due_date:dd?dd.toISOString():null}).select().single();if(task){const {data:members}=await supabase.from('class_members').select('student_id').eq('class_id',cid);if(members&&members.length)await supabase.from('task_attempts').insert(members.map(m=>({task_id:task.id,student_id:m.student_id,started_at:new Date().toISOString()})));}}
   document.getElementById('hw-main').style.display='none';document.getElementById('hw-confirm-sub').textContent=title+'\n'+ac.map(b=>b.textContent).join(', ')+' · due '+(due||'no deadline').toLowerCase();document.getElementById('hw-confirm').classList.add('show');}
 function closeHw(){document.getElementById('hw-ov').classList.remove('open');}
