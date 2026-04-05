@@ -757,16 +757,39 @@ async function loadAllStudentData(){
 }
 
 // ── OVERVIEW (ALL STUDENTS) ───
+let overviewSort={col:'name',asc:true};
+function sortOverview(col){
+  if(overviewSort.col===col) overviewSort.asc=!overviewSort.asc;
+  else {overviewSort.col=col;overviewSort.asc=col==='name'||col==='class';}
+  renderOverview();
+}
+
 function renderOverview(){
-  console.log('renderOverview called, students:', allStudentData.length);
   document.getElementById('nav-all').classList.add('active');
   document.querySelectorAll('#sidebar-classes .nav-item').forEach(n=>n.classList.remove('active','active-civ'));
-  const ss=allStudentData;
+  // Sort
+  const ss=[...allStudentData].sort((a,b)=>{
+    let v=0;
+    if(overviewSort.col==='name') v=a.name.localeCompare(b.name);
+    else if(overviewSort.col==='class') v=a.className.localeCompare(b.className);
+    else if(overviewSort.col==='weak') v=(a.wc||0)-(b.wc||0);
+    else if(overviewSort.col==='active'){
+      const da=a.lastActive?new Date(a.lastActive).getTime():0;
+      const db=b.lastActive?new Date(b.lastActive).getTime():0;
+      v=da-db;
+    }
+    else if(overviewSort.col==='status'){
+      const order={active:0,behind:1,inactive:2};
+      v=(order[a.st]||9)-(order[b.st]||9);
+    }
+    return overviewSort.asc?v:-v;
+  });
   const total=ss.length;
   const act=ss.filter(s=>s.st==='active').length;
   const beh=ss.filter(s=>s.st!=='active'&&s.st!=='inactive').length;
   const inact=ss.filter(s=>s.st==='inactive').length;
   const totalWeak=ss.reduce((a,s)=>a+s.wc,0);
+  const arrow=c=>overviewSort.col===c?(overviewSort.asc?' ↑':' ↓'):'';
 
   document.getElementById('overview-content').innerHTML=
     '<div class="stats-row">'+
@@ -776,7 +799,14 @@ function renderOverview(){
       '<div class="stat-card" style="--c:var(--g-yellow)"><div class="stat-label">Total weak words</div><div class="stat-value">'+totalWeak+'</div><div class="stat-delta">across all language classes</div></div>'+
     '</div>'+
     '<div class="table-wrap"><table class="stu-table">'+
-      '<thead><tr><th>Student</th><th>Class</th><th>Weak items</th><th>14-day activity</th><th>Last active</th><th>Status</th></tr></thead>'+
+      '<thead><tr>'+
+        '<th onclick="sortOverview(\'name\')" style="cursor:pointer">Student'+arrow('name')+'</th>'+
+        '<th onclick="sortOverview(\'class\')" style="cursor:pointer">Class'+arrow('class')+'</th>'+
+        '<th onclick="sortOverview(\'weak\')" style="cursor:pointer">Weak items'+arrow('weak')+'</th>'+
+        '<th>14-day activity</th>'+
+        '<th onclick="sortOverview(\'active\')" style="cursor:pointer">Last active'+arrow('active')+'</th>'+
+        '<th onclick="sortOverview(\'status\')" style="cursor:pointer">Status'+arrow('status')+'</th>'+
+      '</tr></thead>'+
       '<tbody>'+ss.map((s,i)=>
         '<tr onclick="openStuFromOverview(\''+s.id+'\',\''+s.classId+'\')">'+
         '<td><div class="s-wrap"><div class="s-av" style="background:'+AVC[i%AVC.length]+'">'+ini(s.name)+'</div><div><div class="s-name">'+s.name+'</div></div></div></td>'+
