@@ -332,10 +332,25 @@ async function showClass(classId){
       const due=t.due_date?new Date(t.due_date):null;
       const dueStr=due?due.toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'no deadline';
       const overdue=due&&due<new Date()&&(!a||!a.completed_at);
-      if(!a) return '<tr><td style="font-weight:500">'+t.title+'</td><td><span class="pill '+(overdue?'pill-red':'pill-amber')+'">'+(overdue?'Overdue':'Not started')+'</span></td><td>—</td><td>—</td><td style="color:'+(overdue?'var(--g-red)':'var(--g-text-secondary)')+'">'+dueStr+'</td></tr>';
-      const done=!!a.completed_at;
-      const mins=a.time_spent_seconds?Math.round(a.time_spent_seconds/60):0;
-      return '<tr><td style="font-weight:500">'+t.title+'</td><td><span class="pill '+(done?'pill-green':'pill-amber')+'">'+(done?'Done':'In progress')+'</span></td><td>'+(a.score!=null?'<span class="pill '+scl(a.score)+'">'+a.score+'%</span>':'—')+'</td><td>'+mins+' min</td><td style="color:var(--g-text-secondary)">'+dueStr+'</td></tr>';
+      const done=a&&a.completed_at;
+      const mins=a&&a.time_spent_seconds?Math.round(a.time_spent_seconds/60):0;
+      // Build practice link from content_path
+      const cp=t.content_path||'';
+      let practiceUrl='';
+      if(cp.startsWith('vocab?')){
+        // Determine practice page from list param
+        const isPrep=cp.includes('list=prep');
+        const isGreek=cls.type&&cls.type.includes('greek');
+        const practicePage=isPrep?'/latin/prep-vocabulary-practice.html':isGreek?'/greek/vocabulary-practice.html':'/latin/vocabulary-practice.html';
+        practiceUrl=practicePage+'?'+cp.replace('vocab?','')+'&task_id='+t.id;
+      }else if(cp.startsWith('civ?')){
+        practiceUrl=''; // civ tester not built yet
+      }else if(cp){
+        practiceUrl=cp+(cp.includes('?')?'&':'?')+'task_id='+t.id;
+      }
+      const statusPill=done?'<span class="pill pill-green">Done</span>':overdue?'<span class="pill pill-red">Overdue</span>':'<span class="pill pill-amber">'+(a?'In progress':'Not started')+'</span>';
+      const actionBtn=practiceUrl?(done?'<a href="'+practiceUrl+'" style="color:var(--g-blue);font-weight:500;font-size:0.85rem;text-decoration:none">Re-do</a>':'<a href="'+practiceUrl+'" style="color:var(--g-blue);font-weight:500;font-size:0.85rem;text-decoration:none;white-space:nowrap">'+(a?'Continue':'Start')+'</a>'):'';
+      return '<tr><td style="font-weight:500">'+t.title+'</td><td>'+statusPill+'</td><td>'+(a&&a.score!=null?'<span class="pill '+scl(a.score)+'">'+a.score+'%</span>':'—')+'</td><td>'+(mins?mins+' min':'—')+'</td><td style="color:'+(overdue?'var(--g-red)':'var(--g-text-secondary)')+'">'+dueStr+'</td><td>'+actionBtn+'</td></tr>';
     }).join('');
   }
 
@@ -355,7 +370,7 @@ async function showClass(classId){
         :'<p style="color:var(--g-text-secondary)">No weak words — all mastered!</p>')+
       '</div></div>'+
       '<div class="card"><div class="card-hdr"><span class="card-t">Homework</span></div><div class="card-body">'+
-        (hwHtml?'<div class="table-wrap"><table class="stu-table"><thead><tr><th>Task</th><th>Status</th><th>Score</th><th>Time</th><th>Due</th></tr></thead><tbody>'+hwHtml+'</tbody></table></div>'
+        (hwHtml?'<div class="table-wrap"><table class="stu-table"><thead><tr><th>Task</th><th>Status</th><th>Score</th><th>Time</th><th>Due</th><th></th></tr></thead><tbody>'+hwHtml+'</tbody></table></div>'
         :'<p style="color:var(--g-text-secondary)">No homework set yet.</p>')+
       '</div></div>'+
     '</div>';

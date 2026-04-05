@@ -380,6 +380,28 @@ tr:hover .spark-bar { background: rgba(0,102,255,0.4); }
   </div>
 </div>
 
+<!-- Class Settings Modal -->
+<div class="modal-overlay" id="cs-ov" onclick="if(event.target===this)closeClassSettings()">
+  <div class="modal-box" style="width:540px">
+    <div class="m-header"><div><div class="m-title" id="cs-title">Class settings</div><div class="m-subtitle" id="cs-sub"></div></div><button class="m-close" onclick="closeClassSettings()">✕</button></div>
+    <div class="m-body">
+      <div><div class="m-section-label">Class name</div>
+        <div style="display:flex;gap:8px"><input class="field-input" id="cs-name" style="flex:1"><button class="btn btn-primary btn-sm" onclick="renameClass()">Save</button></div>
+      </div>
+      <div><div class="m-section-label">Join code</div>
+        <div id="cs-code" style="font-size:1.1rem;font-weight:600;letter-spacing:2px;color:var(--g-blue)"></div>
+      </div>
+      <div><div class="m-section-label">Students</div>
+        <div id="cs-students"></div>
+      </div>
+    </div>
+    <div class="m-footer">
+      <button class="btn btn-secondary" style="color:var(--g-red);border-color:var(--g-red)" onclick="confirmDeleteClass()">Delete class</button>
+      <div class="m-footer-right"><button class="btn btn-secondary" onclick="closeClassSettings()">Close</button></div>
+    </div>
+  </div>
+</div>
+
 <script src="../auth/config.js"></script>
 <script>
 const AVC=['#0066ff','#34A853','#FBBC04','#EA4335','#7c3aed','#06b6d4','#ec4899','#2dd4bf','#f97316','#84cc16'];
@@ -739,8 +761,8 @@ async function loadClass(classId){
   document.getElementById('cls-sub').textContent=cls.type||'';
   const ta=document.getElementById('cls-actions');
   ta.innerHTML=isCiv
-    ?'<button class="btn btn-secondary btn-sm" onclick="openWeak(null)">Assign weak questions</button><button class="btn-purple" onclick="openHw()">Set homework</button>'
-    :'<button class="btn btn-secondary btn-sm" onclick="openWeak(null)">Assign weak words</button><button class="btn btn-primary btn-sm" onclick="openHw()">Set homework</button>';
+    ?'<button class="btn btn-secondary btn-sm" onclick="openWeak(null)">Assign weak questions</button><button class="btn-purple" onclick="openHw()">Set homework</button><button class="btn btn-secondary btn-sm" onclick="openClassSettings()">Settings</button>'
+    :'<button class="btn btn-secondary btn-sm" onclick="openWeak(null)">Assign weak words</button><button class="btn btn-primary btn-sm" onclick="openHw()">Set homework</button><button class="btn btn-secondary btn-sm" onclick="openClassSettings()">Settings</button>';
   currClsStudents=allStudentData.filter(s=>s.classId===classId);
   console.log('loadClass',cls.name,currClsStudents.length,'students, isCiv:',isCiv);
   showPage('class');
@@ -1066,7 +1088,7 @@ function updateCUrl(){const fr=document.getElementById('c-from').value||'1',to=d
 function copyUrl(uid,bid){navigator.clipboard.writeText('https://'+document.getElementById(uid).textContent).catch(()=>{});const btn=document.getElementById(bid);btn.textContent='Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='Copy link';btn.classList.remove('copied');},2000);}
 function updateHwFoot(){const sel=(hwTab==='civ'?'#c-classes':'#v-classes');const ac=[...document.querySelectorAll(sel+' .class-btn.active')].map(b=>b.textContent);let s='';if(hwTab==='vocab'){const ch=document.getElementById('v-ch')?.value||'?',fr=document.getElementById('v-from')?.value||'?',to=document.getElementById('v-to')?.value||'?';s=ac.length?(vList==='gcse'?'GCSE':vList==='prep'?'Prep':'A-Level')+' · Ch.'+ch+' words '+fr+'–'+to+' · '+ac.join(', ')+' · due '+vDue.toLowerCase():'Select at least one class';}else if(hwTab==='civ'){const fr=document.getElementById('c-from')?.value||'?',to=document.getElementById('c-to')?.value||'?';const key='civ-'+civCourse;const tops=CIV_TOPICS[key]||[];const tn=civTopic!=null&&tops[civTopic]?tops[civTopic].name:'(select topic)';s=ac.length?civCourse.toUpperCase()+' · '+tn+' · Q'+fr+'–'+to+' · '+ac.join(', ')+' · due '+civDue.toLowerCase():'Select at least one class';}else s='Recent tasks';document.getElementById('hw-footer').textContent=s;}
 async function renderHwHist(){const classIds=teacherClasses.map(c=>c.id);const {data:tasks}=await supabase.from('tasks').select('id, class_id, title, type, due_date, created_at').in('class_id',classIds).order('created_at',{ascending:false}).limit(10);const el=document.getElementById('hw-hist');if(!tasks||!tasks.length){el.innerHTML='<p style="padding:16px;color:var(--g-text-secondary)">No recent homework.</p>';return;}const cm={};teacherClasses.forEach(c=>cm[c.id]=c.name);el.innerHTML=tasks.map(h=>{const isCiv=h.type&&h.type.includes('civ');const sent=new Date(h.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'});const due=h.due_date?new Date(h.due_date).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'no deadline';return '<div class="hw-hi"><div class="hw-hi-icon" style="background:'+(isCiv?'#ede9fe':'var(--g-blue-light)')+';color:'+(isCiv?'#7c3aed':'var(--g-blue)')+'">'+(isCiv?'⊙':'I')+'</div><div class="hw-hi-info"><div class="hw-hi-title">'+h.title+'</div><div class="hw-hi-meta">'+(cm[h.class_id]||'')+' · '+sent+'</div></div><span class="hw-hi-due">due '+due+'</span></div>';}).join('');}
-async function sendHw(){const sel=(hwTab==='civ'?'#c-classes':'#v-classes');const ac=[...document.querySelectorAll(sel+' .class-btn.active')];if(!ac.length||hwTab==='history')return;const cids=ac.map(b=>b.dataset.cid).filter(Boolean);let title='',cp='',dd=new Date();const due=hwTab==='civ'?civDue:vDue;if(due==='Tomorrow')dd.setDate(dd.getDate()+1);else if(due==='In 3 days')dd.setDate(dd.getDate()+3);else if(due==='Next week')dd.setDate(dd.getDate()+7);else dd=null;if(hwTab==='vocab'){const ch=document.getElementById('v-ch').value,fr=document.getElementById('v-from').value,to=document.getElementById('v-to').value;title=(vList==='gcse'?'GCSE':vList==='prep'?'Prep':'A-Level')+' Vocab Ch.'+ch+' words '+fr+'–'+to;cp='vocab?list='+vList+'&ch='+ch+'&from='+fr+'&to='+to;}else{const key='civ-'+civCourse;const tops=CIV_TOPICS[key]||[];const tn=civTopic!=null&&tops[civTopic]?tops[civTopic].name:'Topic';const slug=civTopic!=null&&tops[civTopic]?tops[civTopic].slug:'topic';const fr=document.getElementById('c-from').value,to=document.getElementById('c-to').value;title=civCourse.toUpperCase()+' '+tn+' Q'+fr+'–'+to;cp='civ?course='+civCourse+'&topic='+slug+'&from='+fr+'&to='+to;}
+async function sendHw(){const sel=(hwTab==='civ'?'#c-classes':'#v-classes');const ac=[...document.querySelectorAll(sel+' .class-btn.active')];if(!ac.length||hwTab==='history')return;const cids=ac.map(b=>b.dataset.cid).filter(Boolean);let title='',cp='',dd=new Date();const due=hwTab==='civ'?civDue:vDue;if(due==='Tomorrow')dd.setDate(dd.getDate()+1);else if(due==='In 3 days')dd.setDate(dd.getDate()+3);else if(due==='Next week')dd.setDate(dd.getDate()+7);else dd=null;if(hwTab==='vocab'){const ch=document.getElementById('v-ch').value,fr=document.getElementById('v-from').value,to=document.getElementById('v-to').value;title=(vList==='gcse'?'GCSE':vList==='prep'?'Prep':'A-Level')+' Vocab Ch.'+ch+' words '+fr+'–'+to;cp='vocab?list='+vList+'&fromChapter='+ch+'&toChapter='+ch+'&fromWord='+fr+'&toWord='+to;}else{const key='civ-'+civCourse;const tops=CIV_TOPICS[key]||[];const tn=civTopic!=null&&tops[civTopic]?tops[civTopic].name:'Topic';const slug=civTopic!=null&&tops[civTopic]?tops[civTopic].slug:'topic';const fr=document.getElementById('c-from').value,to=document.getElementById('c-to').value;title=civCourse.toUpperCase()+' '+tn+' Q'+fr+'–'+to;cp='civ?course='+civCourse+'&topic='+slug+'&from='+fr+'&to='+to;}
   for(const cid of cids){const {data:task}=await supabase.from('tasks').insert({class_id:cid,title,type:hwTab==='civ'?'classics':'vocab',content_path:cp,due_date:dd?dd.toISOString():null}).select().single();if(task){const {data:members}=await supabase.from('class_members').select('student_id').eq('class_id',cid);if(members&&members.length)await supabase.from('task_attempts').insert(members.map(m=>({task_id:task.id,student_id:m.student_id,started_at:new Date().toISOString()})));}}
   document.getElementById('hw-main').style.display='none';document.getElementById('hw-confirm-sub').textContent=title+'\n'+ac.map(b=>b.textContent).join(', ')+' · due '+(due||'no deadline').toLowerCase();document.getElementById('hw-confirm').classList.add('show');}
 function closeHw(){document.getElementById('hw-ov').classList.remove('open');}
@@ -1092,6 +1114,64 @@ async function createClass(){
   if(error){document.getElementById('cc-error').textContent=error.message;return;}
   closeCreateClass();
   // Reload everything
+  await loadTeacherClasses();
+}
+
+// ── CLASS SETTINGS ───
+async function openClassSettings(){
+  if(!currCls) return;
+  const cls=currCls;
+  document.getElementById('cs-title').textContent=cls.name+' — Settings';
+  document.getElementById('cs-sub').textContent=cls.type||'';
+  document.getElementById('cs-name').value=cls.name;
+  document.getElementById('cs-code').textContent=cls.join_code||'—';
+
+  // Load students for this class
+  const {data:members}=await supabase.from('class_members').select('id, student_id, users:student_id(id, full_name)').eq('class_id',cls.id);
+  const el=document.getElementById('cs-students');
+  if(!members||!members.length){
+    el.innerHTML='<p style="color:var(--g-text-secondary)">No students enrolled.</p>';
+  }else{
+    el.innerHTML=members.map(m=>{
+      const name=m.users?m.users.full_name:'Unknown';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--g-border)">'+
+        '<span style="font-weight:500">'+name+'</span>'+
+        '<button class="btn btn-secondary btn-sm" style="color:var(--g-red);border-color:var(--g-red);font-size:0.75rem" onclick="removeStudent(\''+m.id+'\',\''+name.replace(/'/g,"\\'")+'\')">Remove</button>'+
+      '</div>';
+    }).join('');
+  }
+  document.getElementById('cs-ov').classList.add('open');
+}
+function closeClassSettings(){document.getElementById('cs-ov').classList.remove('open');}
+
+async function renameClass(){
+  const name=document.getElementById('cs-name').value.trim();
+  if(!name||!currCls) return;
+  await supabase.from('classes').update({name}).eq('id',currCls.id);
+  currCls.name=name;
+  document.getElementById('cls-title').textContent=name;
+  document.getElementById('cs-title').textContent=name+' — Settings';
+  // Update sidebar
+  const navItem=document.querySelector('#sidebar-classes .nav-item[data-id="'+currCls.id+'"]');
+  if(navItem){const icon=navItem.querySelector('.nav-icon').outerHTML;const badge=navItem.querySelector('.nav-badge').outerHTML;navItem.innerHTML=icon+' '+name+' '+badge;}
+}
+
+async function removeStudent(membershipId,name){
+  if(!confirm('Remove '+name+' from this class?')) return;
+  await supabase.from('class_members').delete().eq('id',membershipId);
+  openClassSettings(); // Refresh the list
+}
+
+async function confirmDeleteClass(){
+  if(!currCls) return;
+  if(!confirm('Delete "'+currCls.name+'"? This will remove all tasks and student enrolments. This cannot be undone.')) return;
+  if(!confirm('Are you sure? Type the class name to confirm.\n\nExpected: '+currCls.name)){return;}
+  // Delete tasks first (cascade should handle attempts), then members, then class
+  await supabase.from('tasks').delete().eq('class_id',currCls.id);
+  await supabase.from('class_members').delete().eq('class_id',currCls.id);
+  await supabase.from('classes').delete().eq('id',currCls.id);
+  closeClassSettings();
+  currCls=null;
   await loadTeacherClasses();
 }
 
