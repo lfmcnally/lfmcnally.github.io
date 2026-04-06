@@ -493,6 +493,7 @@ body {
 </style>
 </head>
 <body>
+<canvas id="burst" style="position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:0;transition:opacity 0.15s ease;"></canvas>
 <div id="app">
 
   <canvas id="canvas"></canvas>
@@ -555,7 +556,7 @@ body {
       <div class="p-heading">What are you studying?</div>
       <div class="p-sub2">Choose a subject to explore resources and tools.</div>
       <div class="sub-grid">
-        <div class="sub-card" onclick="goDetail('latin')">
+        <div class="sub-card" onclick="burstAndGo('latin', this)">
           <svg class="sub-svg" viewBox="0 0 120 38">
             <line x1="15" y1="30" x2="40" y2="10" stroke="rgba(94,159,255,0.3)" stroke-width="0.8"/>
             <line x1="40" y1="10" x2="72" y2="22" stroke="rgba(94,159,255,0.3)" stroke-width="0.8"/>
@@ -571,7 +572,7 @@ body {
           <div class="sub-hint">Vocab, set texts, grammar &amp; full video course</div>
           <div class="sub-arr">&#8594;</div>
         </div>
-        <div class="sub-card" onclick="goDetail('greek')">
+        <div class="sub-card" onclick="burstAndGo('greek', this)">
           <svg class="sub-svg" viewBox="0 0 120 38">
             <line x1="20" y1="8" x2="55" y2="28" stroke="rgba(94,203,138,0.3)" stroke-width="0.8"/>
             <line x1="55" y1="28" x2="85" y2="12" stroke="rgba(94,203,138,0.3)" stroke-width="0.8"/>
@@ -587,7 +588,7 @@ body {
           <div class="sub-hint">Vocab, set texts &amp; language courses</div>
           <div class="sub-arr">&#8594;</div>
         </div>
-        <div class="sub-card" onclick="goDetail('classciv')">
+        <div class="sub-card" onclick="burstAndGo('classciv', this)">
           <svg class="sub-svg" viewBox="0 0 120 38">
             <line x1="10" y1="22" x2="35" y2="8" stroke="rgba(224,85,85,0.3)" stroke-width="0.8"/>
             <line x1="35" y1="8" x2="62" y2="20" stroke="rgba(224,85,85,0.3)" stroke-width="0.8"/>
@@ -605,7 +606,7 @@ body {
           <div class="sub-hint">Courses, quizzes &amp; more</div>
           <div class="sub-arr">&#8594;</div>
         </div>
-        <div class="sub-card" onclick="goDetail('english')">
+        <div class="sub-card" onclick="burstAndGo('english', this)">
           <svg class="sub-svg" viewBox="0 0 120 38">
             <line x1="25" y1="30" x2="50" y2="10" stroke="rgba(245,200,66,0.3)" stroke-width="0.8"/>
             <line x1="50" y1="10" x2="78" y2="22" stroke="rgba(245,200,66,0.3)" stroke-width="0.8"/>
@@ -1206,6 +1207,124 @@ window.addEventListener('DOMContentLoaded', function() {
     loadVisitCounter();
     loadUserCounter();
 });
+</script>
+
+<script>
+var BURST_COLORS = {
+  latin:    '94,159,255',
+  greek:    '94,203,138',
+  classciv: '224,85,85',
+  english:  '245,200,66'
+};
+
+function burstAndGo(key, cardEl) {
+  var col = BURST_COLORS[key] || '255,255,255';
+  var bc = document.getElementById('burst');
+  var ctx = bc.getContext('2d');
+  bc.width = window.innerWidth;
+  bc.height = window.innerHeight;
+  bc.style.opacity = '1';
+
+  var rect = cardEl.getBoundingClientRect();
+  var ox = rect.left + rect.width / 2;
+  var oy = rect.top + rect.height / 2;
+
+  var particles = [];
+
+  // Main burst particles
+  for (var i = 0; i < 120; i++) {
+    var ang = Math.random() * Math.PI * 2;
+    var spd = Math.random() * 18 + 4;
+    if (Math.random() < 0.3) spd *= 2.5;
+    particles.push({
+      x: ox, y: oy,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd,
+      r: Math.random() * 2.2 + 0.4,
+      alpha: Math.random() * 0.6 + 0.4,
+      decay: Math.random() * 0.018 + 0.01,
+      trail: [], streak: false
+    });
+  }
+
+  // Long streak particles
+  for (var j = 0; j < 18; j++) {
+    var ang2 = Math.random() * Math.PI * 2;
+    var spd2 = Math.random() * 30 + 15;
+    particles.push({
+      x: ox, y: oy,
+      vx: Math.cos(ang2) * spd2,
+      vy: Math.sin(ang2) * spd2,
+      r: 1, alpha: 0.5, decay: 0.025,
+      trail: [], streak: true
+    });
+  }
+
+  var flash = 1.0;
+  var done = false;
+
+  function frame() {
+    if (done) return;
+    ctx.clearRect(0, 0, bc.width, bc.height);
+
+    // Radial flash
+    if (flash > 0) {
+      var grad = ctx.createRadialGradient(ox, oy, 0, ox, oy, 120 * flash);
+      grad.addColorStop(0, 'rgba(' + col + ',' + (flash * 0.35) + ')');
+      grad.addColorStop(1, 'rgba(' + col + ',0)');
+      ctx.beginPath();
+      ctx.arc(ox, oy, 120 * flash, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+      flash -= 0.055;
+    }
+
+    var alive = 0;
+    particles.forEach(function(p) {
+      if (p.alpha <= 0) return;
+      alive++;
+      p.trail.push({x: p.x, y: p.y});
+      if (p.trail.length > 6) p.trail.shift();
+
+      // Draw streak trail
+      if (p.streak && p.trail.length > 1) {
+        for (var t = 1; t < p.trail.length; t++) {
+          ctx.beginPath();
+          ctx.moveTo(p.trail[t-1].x, p.trail[t-1].y);
+          ctx.lineTo(p.trail[t].x, p.trail[t].y);
+          ctx.strokeStyle = 'rgba(' + col + ',' + (p.alpha * (t / p.trail.length) * 0.4) + ')';
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+
+      // Draw particle
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(' + col + ',' + p.alpha + ')';
+      ctx.fill();
+
+      p.x += p.vx; p.y += p.vy;
+      p.vx *= 0.97; p.vy *= 0.97;
+      p.alpha -= p.decay;
+    });
+
+    if (alive > 0 || flash > 0) {
+      requestAnimationFrame(frame);
+    } else {
+      ctx.clearRect(0, 0, bc.width, bc.height);
+      bc.style.opacity = '0';
+      done = true;
+    }
+  }
+
+  requestAnimationFrame(frame);
+
+  // Transition to detail panel after short delay so burst is visible
+  setTimeout(function() {
+    goDetail(key);
+  }, 220);
+}
 </script>
 
 </body>
