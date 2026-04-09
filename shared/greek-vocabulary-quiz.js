@@ -41,19 +41,21 @@ function levenshteinDistance(str1, str2) {
     return dp[m][n];
 }
 
-// Normalize text for comparison (remove dashes, extra spaces, parenthetical content)
+// Normalize text for comparison (remove dashes, ellipsis, extra spaces, parenthetical content)
 function normalizeText(text) {
     return text
         .toLowerCase()
-        .replace(/[-–—]/g, ' ')      // Replace dashes with spaces
+        .replace(/[…]/g, ' ')         // Replace unicode ellipsis (…) with space
+        .replace(/\.{2,}/g, ' ')      // Replace multiple dots (...) with space
+        .replace(/[-–—]/g, ' ')       // Replace dashes with spaces
         .replace(/\s+/g, ' ')         // Collapse multiple spaces
         .replace(/['']/g, "'")        // Normalize apostrophes
         .trim();
 }
 
-// Remove all spaces and dashes for very lenient comparison
+// Remove all spaces, dashes, dots, and punctuation for very lenient comparison
 function removeSpacesAndDashes(text) {
-    return text.toLowerCase().replace(/[-–—\s]/g, '');
+    return text.toLowerCase().replace(/[-–—\s.,;…]/g, '');
 }
 
 // Remove common prefixes that students might omit
@@ -78,18 +80,25 @@ function isCloseMatch(userAnswer, correctAnswer, maxDistance = 1) {
 }
 
 // Main answer checking function
-function isAnswerCorrect(userAnswer, correctAnswer) {
+function isAnswerCorrect(userAnswer, correctAnswer, acceptAlternatives) {
     const userNorm = normalizeText(userAnswer);
     const correctNorm = normalizeText(correctAnswer);
-    
+
     // Split by commas, semicolons, or slashes to get all acceptable answers
     const acceptableAnswers = correctNorm
         .split(/[,;\/]/)
         .map(a => a.trim())
         .filter(a => a.length > 0);
-    
+
     // Also add the full answer as an option
     acceptableAnswers.push(correctNorm);
+
+    // Add any explicit alternative answers (from word.accept array)
+    if (acceptAlternatives && Array.isArray(acceptAlternatives)) {
+        for (const alt of acceptAlternatives) {
+            acceptableAnswers.push(normalizeText(alt));
+        }
+    }
     
     for (const acceptable of acceptableAnswers) {
         // Remove parenthetical content for comparison
@@ -266,8 +275,8 @@ function checkAnswer() {
     const feedback = document.getElementById('feedback');
     
     // Check if answer is correct using lenient matching
-    const isCorrect = isAnswerCorrect(userAnswerLower, correctAnswer);
-    
+    const isCorrect = isAnswerCorrect(userAnswerLower, correctAnswer, word.accept);
+
     // === TRACKING: Record the word answer ===
     if (typeof window.onWordAnswered === 'function') {
         window.onWordAnswered(word, isCorrect);
