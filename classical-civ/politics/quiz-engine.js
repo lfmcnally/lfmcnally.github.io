@@ -124,7 +124,7 @@ function loadQuestion() {
     answerInput.focus();
 
     // Scroll to top of question
-    document.querySelector('.content-wrapper').scrollTop = 0;
+    window.scrollTo({ top: document.getElementById('question-screen').offsetTop - 100, behavior: 'smooth' });
 }
 
 // Reveal model answer
