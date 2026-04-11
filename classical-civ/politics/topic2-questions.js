@@ -1,4 +1,4 @@
-const quizData = {
+window.quizData = {
     '2.1': {
         title: "The Gracchi Brothers",
         questions: [

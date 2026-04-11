@@ -1,4 +1,4 @@
-const quizData = {
+window.quizData = {
     '6.1': {
         title: "Antony and Octavian",
         questions: [

@@ -1,4 +1,4 @@
-const quizData = {
+window.quizData = {
     '1.1': {
         title: "What was the Roman Republic?",
         questions: [
