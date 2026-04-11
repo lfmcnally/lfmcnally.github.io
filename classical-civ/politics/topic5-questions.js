@@ -1,4 +1,4 @@
-const quizData = {
+window.quizData = {
     '5.1': {
         title: "The Outbreak of Civil War",
         questions: [

@@ -1,4 +1,4 @@
-const quizData = {
+window.quizData = {
 '3.1': {
     title: "Cicero Before Power",
     questions: [

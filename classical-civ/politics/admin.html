@@ -741,7 +741,13 @@ async function syncFromStaticFiles() {
     try {
         for (let topicNum = 1; topicNum <= 6; topicNum++) {
             // Dynamically load topic questions file
-            const data = await loadTopicFile(topicNum);
+            let data;
+            try {
+                data = await loadTopicFile(topicNum);
+            } catch (e) {
+                console.error(`Failed to load topic ${topicNum}:`, e);
+                continue;
+            }
             if (!data) continue;
 
             for (const [lessonNum, lesson] of Object.entries(data)) {
@@ -787,20 +793,23 @@ async function syncFromStaticFiles() {
 
 // Load a topic's static JS file and return its quizData
 async function loadTopicFile(topicNum) {
-    return new Promise((resolve) => {
-        // Reset the global quizData so each topic file writes fresh
-        delete window.quizData;
+    return new Promise((resolve, reject) => {
+        window.quizData = undefined;
         const script = document.createElement('script');
         script.src = `topic${topicNum}-questions.js?t=${Date.now()}`;
         script.onload = () => {
             const data = window.quizData;
             document.head.removeChild(script);
-            delete window.quizData;
+            window.quizData = undefined;
+            if (!data || typeof data !== 'object') {
+                reject(new Error(`topic${topicNum}-questions.js did not set window.quizData`));
+                return;
+            }
             resolve(data);
         };
         script.onerror = () => {
             document.head.removeChild(script);
-            resolve(null);
+            reject(new Error(`Failed to load topic${topicNum}-questions.js`));
         };
         document.head.appendChild(script);
     });
