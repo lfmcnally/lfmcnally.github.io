@@ -1,11 +1,52 @@
 // Flashcard Quiz Engine - Politics of the Late Republic
 // Retrieval Practice with Self-Assessment
+// Reads questions from Supabase with fallback to static JS files.
 
 let selectedLessons = [];
 let currentQuestions = [];
 let currentQuestionIndex = 0;
 let ratings = [];
 let quizStartTime = null;
+let supabaseQuizData = null; // Populated async from Supabase if available
+
+// Returns the active question data: Supabase data if loaded, otherwise the
+// global quizData set by topicN-questions.js
+function getQuizData() {
+    if (supabaseQuizData && Object.keys(supabaseQuizData).length > 0) {
+        return supabaseQuizData;
+    }
+    return (typeof quizData !== 'undefined') ? quizData : {};
+}
+
+// Load questions from Supabase on page load
+async function loadSupabaseQuestions() {
+    if (typeof supabase === 'undefined') return;
+    try {
+        const { data, error } = await supabase
+            .from('politics_quiz_questions')
+            .select('*')
+            .order('lesson')
+            .order('sort_order');
+        if (error) throw error;
+        if (!data || data.length === 0) return;
+
+        const grouped = {};
+        for (const row of data) {
+            if (!grouped[row.lesson]) {
+                grouped[row.lesson] = { title: row.lesson_title, questions: [] };
+            }
+            grouped[row.lesson].questions.push({
+                question: row.question,
+                modelAnswer: row.model_answer,
+                keyPoints: row.key_points || []
+            });
+        }
+        supabaseQuizData = grouped;
+        updateStartButton();
+    } catch (e) {
+        console.warn('Supabase quiz data fetch failed, using static data:', e);
+    }
+}
 
 // Lesson selection
 function toggleLesson(lesson) {
@@ -52,10 +93,11 @@ function updateStartButton() {
 }
 
 function getQuestionCount() {
+    const data = getQuizData();
     let count = 0;
     for (const lesson of selectedLessons) {
-        if (quizData[lesson]) {
-            count += quizData[lesson].questions.length;
+        if (data[lesson]) {
+            count += data[lesson].questions.length;
         }
     }
     return count;
@@ -65,13 +107,14 @@ function getQuestionCount() {
 function startQuiz() {
     if (selectedLessons.length === 0) return;
 
+    const data = getQuizData();
     let questionsToUse = [];
     for (const lesson of selectedLessons) {
-        if (quizData[lesson]) {
-            questionsToUse.push(...quizData[lesson].questions.map(q => ({
+        if (data[lesson]) {
+            questionsToUse.push(...data[lesson].questions.map(q => ({
                 ...q,
                 lesson: lesson,
-                lessonTitle: quizData[lesson].title
+                lessonTitle: data[lesson].title
             })));
         }
     }
@@ -99,31 +142,25 @@ function loadQuestion() {
     const q = currentQuestions[currentQuestionIndex];
     const total = currentQuestions.length;
 
-    // Progress
     document.getElementById('progress-text').textContent = `Question ${currentQuestionIndex + 1} of ${total}`;
     document.getElementById('progress-bar-fill').style.width = `${((currentQuestionIndex + 1) / total) * 100}%`;
     document.getElementById('question-number').textContent = currentQuestionIndex + 1;
     document.getElementById('lesson-tag').textContent = `${q.lesson}: ${q.lessonTitle}`;
 
-    // Question
     document.getElementById('question-text').textContent = q.question;
 
-    // Reset answer area
     const answerInput = document.getElementById('answer-input');
     answerInput.value = '';
     answerInput.readOnly = false;
     answerInput.style.opacity = '1';
     answerInput.placeholder = 'Write your answer here before revealing the model answer...';
 
-    // Reset buttons
     document.getElementById('reveal-btn').style.display = 'block';
     document.getElementById('model-answer-section').style.display = 'none';
     document.getElementById('rating-section').style.display = 'none';
 
-    // Focus textarea
     answerInput.focus();
 
-    // Scroll to top of question
     window.scrollTo({ top: document.getElementById('question-screen').offsetTop - 100, behavior: 'smooth' });
 }
 
@@ -131,18 +168,14 @@ function loadQuestion() {
 function revealAnswer() {
     const q = currentQuestions[currentQuestionIndex];
 
-    // Dim the textarea
     const answerInput = document.getElementById('answer-input');
     answerInput.readOnly = true;
     answerInput.style.opacity = '0.6';
 
-    // Hide reveal button
     document.getElementById('reveal-btn').style.display = 'none';
 
-    // Show model answer
     document.getElementById('model-answer-text').textContent = q.modelAnswer;
 
-    // Build key points
     const keyPointsList = document.getElementById('key-points-list');
     keyPointsList.innerHTML = '';
     if (q.keyPoints && q.keyPoints.length > 0) {
@@ -157,11 +190,8 @@ function revealAnswer() {
     }
 
     document.getElementById('model-answer-section').style.display = 'block';
-
-    // Show rating buttons
     document.getElementById('rating-section').style.display = 'flex';
 
-    // Smooth scroll to model answer
     document.getElementById('model-answer-section').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -205,7 +235,6 @@ function showResults() {
     document.getElementById('result-not-really').textContent = notReally;
     document.getElementById('result-time').textContent = minutes;
 
-    // Score message
     const score = total > 0 ? ((nailed + mostly * 0.5) / total) * 100 : 0;
     let message = '';
     if (score >= 85) message = 'Excellent recall! You know this content well. Keep it fresh with regular practice.';
@@ -215,10 +244,8 @@ function showResults() {
 
     document.getElementById('result-message').textContent = message;
 
-    // Build review list
     buildReviewList();
 
-    // Show/hide retry button
     const weakCount = mostly + notReally;
     const retryBtn = document.getElementById('retry-weak-btn');
     if (weakCount > 0) {
@@ -234,11 +261,10 @@ function buildReviewList() {
     const container = document.getElementById('review-list');
     container.innerHTML = '';
 
-    // Group by rating
     const groups = [
-        { label: 'Not Really', icon: '✗', class: 'not-really', items: ratings.filter(r => r.rating === 'not-really') },
-        { label: 'Mostly', icon: '~', class: 'mostly', items: ratings.filter(r => r.rating === 'mostly') },
-        { label: 'Nailed It', icon: '✓', class: 'nailed', items: ratings.filter(r => r.rating === 'nailed') }
+        { label: 'Not Really', class: 'not-really', items: ratings.filter(r => r.rating === 'not-really') },
+        { label: 'Mostly', class: 'mostly', items: ratings.filter(r => r.rating === 'mostly') },
+        { label: 'Nailed It', class: 'nailed', items: ratings.filter(r => r.rating === 'nailed') }
     ];
 
     groups.forEach(group => {
@@ -291,7 +317,6 @@ function retryWeak() {
 
     if (weakQuestions.length === 0) return;
 
-    // Shuffle
     for (let i = weakQuestions.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [weakQuestions[i], weakQuestions[j]] = [weakQuestions[j], weakQuestions[i]];
@@ -317,3 +342,6 @@ document.addEventListener('keydown', function(e) {
         }
     }
 });
+
+// Kick off Supabase load
+loadSupabaseQuestions();
