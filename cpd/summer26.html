@@ -1,0 +1,3128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Respond to Understanding in Real-Time — T&L INSET</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0a0e1a;
+    --bg-panel: #111729;
+    --bg-card: #1a2138;
+    --bg-elevated: #232b47;
+    --blue-primary: #3b82f6;
+    --blue-bright: #60a5fa;
+    --blue-glow: rgba(59, 130, 246, 0.35);
+    --blue-faint: rgba(59, 130, 246, 0.08);
+    --text-primary: #e8ecf5;
+    --text-secondary: #a8b2c8;
+    --text-muted: #6b7590;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-bright: rgba(96, 165, 250, 0.3);
+    --gold-accent: #d4af37;
+    --red-soft: #f87171;
+    --amber-soft: #fbbf24;
+    --green-soft: #4ade80;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Constellation background */
+  .star-field {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse at 20% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 70%, rgba(96, 165, 250, 0.06) 0%, transparent 50%);
+  }
+
+  .stars {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    opacity: 0;
+    animation: twinkle 4s ease-in-out infinite;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.8; }
+  }
+
+  /* Presentation container */
+  .deck {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    z-index: 2;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 4rem 5rem 5rem;
+    display: none;
+    flex-direction: column;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .slide.active {
+    display: flex;
+    opacity: 1;
+  }
+
+  .slide.active .fade-in {
+    animation: slideUp 0.7s ease forwards;
+  }
+
+  .slide.active .fade-in:nth-child(2) { animation-delay: 0.1s; }
+  .slide.active .fade-in:nth-child(3) { animation-delay: 0.2s; }
+  .slide.active .fade-in:nth-child(4) { animation-delay: 0.3s; }
+  .slide.active .fade-in:nth-child(5) { animation-delay: 0.4s; }
+  .slide.active .fade-in:nth-child(6) { animation-delay: 0.5s; }
+
+  .fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  @keyframes slideUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Top bar with progress dots */
+  .top-bar {
+    position: fixed;
+    top: 1.5rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+    z-index: 100;
+  }
+
+  .brand {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--blue-bright);
+    letter-spacing: 0.02em;
+  }
+
+  .brand span { color: var(--text-muted); font-style: normal; font-size: 0.85rem; margin-left: 0.75rem; }
+
+  .progress-dots {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    opacity: 0.4;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .dot.active {
+    background: var(--blue-bright);
+    opacity: 1;
+    width: 24px;
+    border-radius: 3px;
+    box-shadow: 0 0 12px var(--blue-glow);
+  }
+
+  .slide-counter {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Timing badge on task slides */
+  .timing-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.7rem;
+    background: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    color: var(--amber-soft);
+    letter-spacing: 0.05em;
+    margin-left: 0.75rem;
+  }
+
+  .timing-pill::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--amber-soft);
+    opacity: 0.8;
+  }
+
+  /* Split path metaphor */
+  .metaphor-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+    flex: 1;
+    align-items: center;
+  }
+
+  .metaphor-visual {
+    width: 100%;
+    height: 100%;
+    max-height: 420px;
+  }
+
+  .metaphor-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .metaphor-block {
+    padding: 1.25rem 1.5rem;
+    background: var(--bg-card);
+    border-radius: 8px;
+    border-left: 3px solid;
+  }
+
+  .metaphor-block.diff { border-left-color: var(--red-soft); }
+  .metaphor-block.adapt { border-left-color: var(--green-soft); }
+
+  .metaphor-block h3 {
+    font-family: 'Lora', serif;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .metaphor-block.diff h3 { color: var(--red-soft); }
+  .metaphor-block.adapt h3 { color: var(--green-soft); }
+
+  .metaphor-block p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  .metaphor-block em {
+    color: var(--text-primary);
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  /* Exemplar slide */
+  .exemplar-wrap {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 2rem;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .exemplar-context {
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 1.25rem 1.4rem;
+    border: 1px solid var(--border);
+    align-self: start;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+
+  .exemplar-context h4 {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    color: var(--blue-bright);
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .exemplar-context p {
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    line-height: 1.55;
+    margin-bottom: 0.5rem;
+  }
+
+  .exemplar-context .hinge-q {
+    background: var(--bg-elevated);
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-style: italic;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    margin-top: 0.75rem;
+    border-left: 2px solid var(--blue-bright);
+  }
+
+  .hinge-q-stem {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin-bottom: 0.3rem;
+  }
+
+  .hinge-q-prompt {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-style: normal;
+    margin-bottom: 0.6rem;
+  }
+
+  .hinge-options {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .hinge-option {
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    font-style: normal;
+    line-height: 1.4;
+    align-items: start;
+  }
+
+  .hinge-option .opt-letter {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-weight: 600;
+    color: var(--text-muted);
+    padding-top: 1px;
+  }
+
+  .hinge-option.correct .opt-letter { color: var(--green-soft); }
+
+  .hinge-option .opt-text { color: var(--text-secondary); }
+
+  .hinge-option.correct .opt-text { color: var(--green-soft); font-weight: 500; }
+
+  .hinge-option .misconception {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-style: italic;
+    line-height: 1.35;
+  }
+
+  .hinge-option.correct .misconception {
+    color: var(--green-soft);
+    opacity: 0.8;
+  }
+
+  .exemplar-scenarios {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .scenario-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 1rem;
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    align-items: start;
+    border-top: 2px solid;
+  }
+
+  .scenario-row.a { border-top-color: var(--red-soft); }
+  .scenario-row.b { border-top-color: var(--amber-soft); }
+  .scenario-row.c { border-top-color: var(--green-soft); }
+
+  .scenario-pattern {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 0.95rem;
+  }
+
+  .scenario-row.a .scenario-pattern { color: var(--red-soft); }
+  .scenario-row.b .scenario-pattern { color: var(--amber-soft); }
+  .scenario-row.c .scenario-pattern { color: var(--green-soft); }
+
+  .scenario-body {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+
+  .scenario-body .tag {
+    display: inline;
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  .scenario-body .tag.if { color: var(--blue-bright); }
+  .scenario-body .tag.then { color: var(--amber-soft); }
+
+  .scenario-body .resourced {
+    display: block;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--border);
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-style: italic;
+  }
+
+  .scenario-body .resourced strong {
+    color: var(--text-secondary);
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  /* Bottom navigation */
+  .nav-bar {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 2rem;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  .nav-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    pointer-events: auto;
+  }
+
+  .key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 22px;
+    padding: 0 6px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+  }
+
+  /* ============ TITLE SLIDE ============ */
+  .title-slide {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .title-eyebrow {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--blue-bright);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+  }
+
+  .title-main {
+    font-family: 'Lora', serif;
+    font-weight: 500;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    line-height: 1.1;
+    color: var(--text-primary);
+    max-width: 1000px;
+    margin-bottom: 1rem;
+  }
+
+  .title-main em {
+    font-style: italic;
+    color: var(--blue-bright);
+  }
+
+  .title-sub {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+    color: var(--text-secondary);
+    margin-bottom: 3rem;
+  }
+
+  .title-meta {
+    display: flex;
+    gap: 3rem;
+    align-items: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .title-meta .divider {
+    width: 1px;
+    height: 16px;
+    background: var(--border);
+  }
+
+  /* ============ SECTION HEADINGS ============ */
+  .slide-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--blue-bright);
+    margin-bottom: 1rem;
+    font-weight: 500;
+  }
+
+  .slide-title {
+    font-family: 'Lora', serif;
+    font-weight: 500;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.15;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    max-width: 1200px;
+  }
+
+  .slide-title em {
+    font-style: italic;
+    color: var(--blue-bright);
+  }
+
+  .slide-lede {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: clamp(1.1rem, 1.6vw, 1.4rem);
+    color: var(--text-secondary);
+    max-width: 900px;
+    line-height: 1.5;
+    margin-bottom: 2.5rem;
+  }
+
+  /* ============ OVERVIEW SLIDE ============ */
+  .overview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-top: 2rem;
+    flex: 1;
+  }
+
+  .overview-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .overview-card:hover {
+    border-color: var(--border-bright);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--border-bright);
+  }
+
+  .overview-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--blue-primary), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .overview-card:hover::before { opacity: 1; }
+
+  .step-number {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 3.5rem;
+    font-weight: 500;
+    color: var(--blue-bright);
+    line-height: 1;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+  }
+
+  .step-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .step-heading {
+    font-family: 'Lora', serif;
+    font-size: 1.35rem;
+    font-weight: 500;
+    line-height: 1.3;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+  }
+
+  .step-body {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  /* ============ CONTENT SLIDES ============ */
+  .content-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    flex: 1;
+    align-items: start;
+  }
+
+  .content-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+  }
+
+  .content-panel.accent {
+    border-left: 3px solid var(--blue-primary);
+  }
+
+  .content-panel h3 {
+    font-family: 'Lora', serif;
+    font-weight: 500;
+    font-size: 1.3rem;
+    color: var(--blue-bright);
+    margin-bottom: 1rem;
+  }
+
+  .content-panel p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 0.8rem;
+    font-size: 0.95rem;
+  }
+
+  .content-panel ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .content-panel li {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    padding-left: 1.2rem;
+    position: relative;
+    margin-bottom: 0.6rem;
+    font-size: 0.95rem;
+  }
+
+  .content-panel li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.7em;
+    width: 6px;
+    height: 1px;
+    background: var(--blue-bright);
+  }
+
+  .content-panel strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .content-panel em {
+    color: var(--blue-bright);
+    font-style: italic;
+  }
+
+  /* If/then blocks */
+  .ifthen {
+    background: var(--bg-elevated);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    border-left: 2px solid var(--blue-primary);
+  }
+
+  .ifthen .if { color: var(--blue-bright); font-weight: 600; }
+  .ifthen .then { color: var(--amber-soft); font-weight: 600; }
+
+  /* ============ DO NOW TASK ============ */
+  .task-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .task-badge {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    color: var(--blue-bright);
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+  }
+
+  .task-heading {
+    font-family: 'Lora', serif;
+    font-weight: 500;
+    font-size: 2.2rem;
+    color: var(--text-primary);
+  }
+
+  .task-sub {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-style: italic;
+  }
+
+  .do-now-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem 2rem;
+    flex: 1;
+    align-content: start;
+    overflow-y: auto;
+  }
+
+  .do-now-item {
+    display: flex;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    align-items: flex-start;
+  }
+
+  .do-now-item:hover {
+    border-color: var(--border-bright);
+    background: var(--bg-elevated);
+  }
+
+  .do-now-item.revealed {
+    border-color: var(--blue-primary);
+    background: var(--bg-elevated);
+  }
+
+  .do-now-num {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 1.3rem;
+    color: var(--blue-bright);
+    line-height: 1;
+    min-width: 20px;
+    font-weight: 500;
+  }
+
+  .do-now-content { flex: 1; }
+
+  .do-now-q {
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .do-now-a {
+    max-height: 0;
+    overflow: hidden;
+    color: var(--blue-bright);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    transition: max-height 0.4s ease, margin-top 0.3s ease;
+    font-style: italic;
+  }
+
+  .do-now-item.revealed .do-now-a {
+    max-height: 500px;
+    margin-top: 0.5rem;
+  }
+
+  .do-now-a strong { color: var(--text-primary); font-style: normal; }
+
+  .reveal-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+  }
+
+  .do-now-item.revealed .reveal-hint { display: none; }
+
+  .reveal-all-btn {
+    position: absolute;
+    top: 4rem;
+    right: 5rem;
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--blue-bright);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.05em;
+  }
+
+  .reveal-all-btn:hover {
+    background: var(--blue-faint);
+  }
+
+  /* Comparison table for differentiation vs adaptive */
+  .compare-table {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .compare-col {
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+  }
+
+  .compare-col.diff { border-top: 3px solid var(--red-soft); }
+  .compare-col.adapt { border-top: 3px solid var(--green-soft); }
+
+  .compare-col h4 {
+    font-family: 'Lora', serif;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+  }
+
+  .compare-col.diff h4 { color: var(--red-soft); }
+  .compare-col.adapt h4 { color: var(--green-soft); }
+
+  .compare-col ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .compare-col li {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    padding: 0.3rem 0;
+    padding-left: 1rem;
+    position: relative;
+  }
+
+  .compare-col li::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    color: var(--blue-bright);
+  }
+
+  .compare-col li strong { color: var(--text-primary); font-weight: 600; }
+
+  /* ============ TASK 2: POST-ITS ============ */
+  .postits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    flex: 1;
+    margin-top: 1rem;
+  }
+
+  .postit {
+    border-radius: 12px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  .postit::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+  }
+
+  .postit.red::before { background: var(--red-soft); }
+  .postit.amber::before { background: var(--amber-soft); }
+  .postit.green::before { background: var(--green-soft); }
+
+  .postit-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  .postit.red .postit-label { color: var(--red-soft); }
+  .postit.amber .postit-label { color: var(--amber-soft); }
+  .postit.green .postit-label { color: var(--green-soft); }
+
+  .postit-title {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 1.4rem;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+  }
+
+  .postit-instr {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .pps-flow {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1.5rem;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .pps-step {
+    text-align: center;
+    padding: 0.75rem 1.25rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-width: 120px;
+  }
+
+  .pps-step-label {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    color: var(--blue-bright);
+    margin-bottom: 0.2rem;
+  }
+
+  .pps-step-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .pps-arrow {
+    color: var(--blue-primary);
+    font-size: 1.5rem;
+  }
+
+  /* ============ TASK 3: SORTING ============ */
+  .sort-container {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 1rem;
+  }
+
+  .sort-legend {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    align-items: center;
+  }
+
+  .sort-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .sort-legend-marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1.5px solid;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .sort-legend-marker.cross { color: var(--red-soft); border-color: var(--red-soft); }
+  .sort-legend-marker.circle { color: var(--amber-soft); border-color: var(--amber-soft); }
+  .sort-legend-marker.tick { color: var(--green-soft); border-color: var(--green-soft); }
+
+  .sort-actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-left: auto;
+  }
+
+  .sort-btn {
+    background: transparent;
+    border: 1px solid var(--border-bright);
+    color: var(--blue-bright);
+    padding: 0.4rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.03em;
+  }
+
+  .sort-btn:hover { background: var(--blue-faint); }
+
+  .sort-btn.reset {
+    border-color: var(--border);
+    color: var(--text-muted);
+  }
+
+  .sort-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.6rem;
+    flex: 1;
+    align-content: start;
+    overflow-y: auto;
+  }
+
+  .sort-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: var(--text-secondary);
+    position: relative;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+  }
+
+  .sort-card:hover {
+    border-color: var(--border-bright);
+    background: var(--bg-elevated);
+  }
+
+  .sort-card.marked-a { border-color: var(--red-soft); background: rgba(248, 113, 113, 0.08); }
+  .sort-card.marked-b { border-color: var(--amber-soft); background: rgba(251, 191, 36, 0.08); }
+  .sort-card.marked-c { border-color: var(--green-soft); background: rgba(74, 222, 128, 0.08); }
+
+  .sort-marker {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1.5px solid;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .sort-card.marked-a .sort-marker { opacity: 1; color: var(--red-soft); border-color: var(--red-soft); }
+  .sort-card.marked-b .sort-marker { opacity: 1; color: var(--amber-soft); border-color: var(--amber-soft); }
+  .sort-card.marked-c .sort-marker { opacity: 1; color: var(--green-soft); border-color: var(--green-soft); }
+
+  /* Check mode: show correctness */
+  .sort-card.correct {
+    border-color: var(--green-soft) !important;
+    background: rgba(74, 222, 128, 0.15) !important;
+    box-shadow: 0 0 0 1px var(--green-soft);
+  }
+
+  .sort-card.incorrect {
+    border-color: var(--red-soft) !important;
+    background: rgba(248, 113, 113, 0.15) !important;
+    box-shadow: 0 0 0 1px var(--red-soft);
+  }
+
+  .sort-card .correct-badge {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    display: none;
+  }
+
+  .sort-card.correct .correct-badge {
+    display: inline-block;
+    color: var(--green-soft);
+    background: rgba(74, 222, 128, 0.15);
+    border: 1px solid var(--green-soft);
+  }
+
+  .sort-card.incorrect .correct-badge {
+    display: inline-block;
+    color: var(--red-soft);
+    background: rgba(248, 113, 113, 0.15);
+    border: 1px solid var(--red-soft);
+  }
+
+  .sort-card.check-revealed .answer-hint {
+    display: block;
+  }
+
+  .answer-hint {
+    display: none;
+    position: absolute;
+    bottom: 6px;
+    left: 8px;
+    font-size: 0.68rem;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  .sort-card.incorrect .answer-hint { color: var(--amber-soft); }
+
+  .sort-score {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.9rem;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-family: 'Inter', sans-serif;
+  }
+
+  .sort-score.show { display: inline-flex; }
+  .sort-score strong { color: var(--blue-bright); font-weight: 600; }
+
+  /* ============ PLANNING TASK ============ */
+  .planning-layout {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 2.5rem;
+    flex: 1;
+  }
+
+  .planning-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .plan-step {
+    background: var(--bg-card);
+    border-left: 3px solid var(--blue-primary);
+    padding: 1.25rem 1.5rem;
+    border-radius: 8px;
+  }
+
+  .plan-step-num {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    color: var(--blue-bright);
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .plan-step-title {
+    font-family: 'Lora', serif;
+    font-size: 1.15rem;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+  }
+
+  .plan-step-body {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  /* ============ CLOSING SLIDE ============ */
+  .closing-slide {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .closing-quote {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: clamp(1.5rem, 3vw, 2.4rem);
+    line-height: 1.4;
+    color: var(--text-primary);
+    max-width: 1000px;
+    margin-bottom: 2rem;
+  }
+
+  .closing-quote em {
+    color: var(--blue-bright);
+  }
+
+  .closing-attrib {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ============ FAQ MODAL ============ */
+  .faq-trigger {
+    position: fixed;
+    bottom: 1.3rem;
+    right: 2rem;
+    z-index: 200;
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    color: var(--blue-bright);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .faq-trigger:hover {
+    background: var(--blue-faint);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+  }
+
+  .faq-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 14, 26, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 300;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  .faq-overlay.open {
+    display: flex;
+    opacity: 1;
+  }
+
+  .faq-modal {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: min(950px, 100%);
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+    transform: scale(0.97);
+    transition: transform 0.25s ease;
+  }
+
+  .faq-overlay.open .faq-modal { transform: scale(1); }
+
+  .faq-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .faq-header-text h3 {
+    font-family: 'Lora', serif;
+    font-weight: 500;
+    font-size: 1.4rem;
+    color: var(--text-primary);
+    margin-bottom: 0.2rem;
+  }
+
+  .faq-header-text h3 em { color: var(--blue-bright); font-style: italic; }
+
+  .faq-header-text p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .faq-close {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: all 0.2s ease;
+  }
+
+  .faq-close:hover {
+    border-color: var(--border-bright);
+    color: var(--blue-bright);
+    background: var(--blue-faint);
+  }
+
+  .faq-body {
+    padding: 1.5rem 2rem 2rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .faq-item {
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 0;
+  }
+
+  .faq-item:last-child { border-bottom: none; }
+
+  .faq-question {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    padding: 0.25rem 0;
+  }
+
+  .faq-question-text {
+    font-family: 'Lora', serif;
+    font-weight: 500;
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    line-height: 1.4;
+  }
+
+  .faq-question-text em { color: var(--blue-bright); font-style: italic; }
+
+  .faq-toggle {
+    color: var(--blue-bright);
+    font-size: 1.4rem;
+    line-height: 1;
+    transition: transform 0.25s ease;
+    font-family: 'Lora', serif;
+    font-weight: 300;
+    min-width: 20px;
+    text-align: center;
+  }
+
+  .faq-item.open .faq-toggle { transform: rotate(45deg); }
+
+  .faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, padding 0.3s ease;
+    color: var(--text-secondary);
+    font-size: 0.93rem;
+    line-height: 1.65;
+  }
+
+  .faq-item.open .faq-answer {
+    max-height: 500px;
+    padding-top: 0.75rem;
+  }
+
+  .faq-answer strong { color: var(--text-primary); font-weight: 600; }
+  .faq-answer em { color: var(--blue-bright); font-style: italic; }
+
+  .faq-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.5rem 0 0.5rem;
+    color: var(--amber-soft);
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+  }
+
+  .faq-divider::before,
+  .faq-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(251, 191, 36, 0.2);
+  }
+
+  .faq-divider span {
+    padding: 0 0.5rem;
+  }
+
+  .faq-hint {
+    position: fixed;
+    bottom: 4.5rem;
+    right: 2rem;
+    z-index: 199;
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    color: var(--text-secondary);
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .faq-trigger:hover + .faq-hint {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ============ TIMER ============ */
+  .timer {
+    position: fixed;
+    top: 4rem;
+    right: 2rem;
+    z-index: 90;
+    background: var(--bg-card);
+    border: 1px solid var(--border-bright);
+    border-radius: 10px;
+    padding: 0.8rem 1.1rem;
+    display: none;
+    align-items: center;
+    gap: 0.8rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    font-family: 'Inter', sans-serif;
+    min-width: 180px;
+  }
+
+  .timer.visible { display: flex; }
+
+  .timer-display {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 1.6rem;
+    color: var(--blue-bright);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    transition: color 0.3s ease;
+  }
+
+  .timer.warning .timer-display { color: var(--amber-soft); }
+  .timer.critical .timer-display {
+    color: var(--red-soft);
+    animation: pulse-timer 1s ease-in-out infinite;
+  }
+  .timer.finished .timer-display {
+    color: var(--red-soft);
+    animation: none;
+  }
+
+  @keyframes pulse-timer {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .timer-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .timer-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .timer-btns {
+    display: flex;
+    gap: 0.3rem;
+  }
+
+  .timer-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.15s ease;
+  }
+
+  .timer-btn:hover {
+    border-color: var(--border-bright);
+    color: var(--blue-bright);
+  }
+
+  .timer-btn.primary {
+    color: var(--blue-bright);
+    border-color: var(--border-bright);
+  }
+
+  .timer-hint-pill {
+    position: fixed;
+    top: 4rem;
+    right: 2rem;
+    z-index: 85;
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--text-muted);
+    padding: 0.5rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .timer-hint-pill.visible { display: inline-flex; }
+  .timer-hint-pill:hover {
+    border-color: var(--border-bright);
+    color: var(--blue-bright);
+  }
+
+  /* ============ CONTINGENCY (SKIPPABLE) MARKERS ============ */
+  .skip-marker {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.7rem;
+    background: rgba(107, 117, 144, 0.12);
+    border: 1px dashed var(--text-muted);
+    border-radius: 20px;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    z-index: 50;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .skip-marker::before {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+
+  /* ============ JUMP MENU ============ */
+  .jump-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 14, 26, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 250;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .jump-overlay.open {
+    display: flex;
+    opacity: 1;
+  }
+
+  .jump-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: min(860px, 100%);
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+    transform: scale(0.97);
+    transition: transform 0.2s ease;
+  }
+
+  .jump-overlay.open .jump-panel { transform: scale(1); }
+
+  .jump-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 1.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .jump-header h3 {
+    font-family: 'Lora', serif;
+    font-weight: 500;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+  }
+
+  .jump-header h3 em { color: var(--blue-bright); font-style: italic; }
+
+  .jump-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .jump-body {
+    padding: 1.2rem 1.8rem 1.8rem;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+  }
+
+  .jump-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.7rem 0.9rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .jump-item:hover {
+    border-color: var(--border-bright);
+    background: var(--bg-elevated);
+    transform: translateX(2px);
+  }
+
+  .jump-item.current {
+    border-color: var(--blue-bright);
+    background: var(--blue-faint);
+  }
+
+  .jump-item.skippable {
+    border-style: dashed;
+    opacity: 0.75;
+  }
+
+  .jump-item.skippable:hover { opacity: 1; }
+
+  .jump-num {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--blue-bright);
+    min-width: 24px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .jump-item.skippable .jump-num { color: var(--text-muted); }
+
+  .jump-label {
+    flex: 1;
+    font-size: 0.82rem;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+
+  .jump-badge {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-style: italic;
+  }
+
+  .jump-legend {
+    display: flex;
+    gap: 1.5rem;
+    padding: 0.8rem 1.8rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
+
+  .jump-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .jump-legend-marker {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+
+  .jump-legend-marker.solid { border-style: solid; border-color: var(--border-bright); background: var(--bg-card); }
+  .jump-legend-marker.dashed { border-style: dashed; border-color: var(--text-muted); background: transparent; }
+  .scholars-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .scholar-item {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 0.9rem 1.2rem;
+    background: var(--bg-card);
+    border-radius: 8px;
+    border-left: 2px solid var(--blue-primary);
+  }
+
+  .scholar-year {
+    font-family: 'Lora', serif;
+    font-style: italic;
+    color: var(--blue-bright);
+    font-size: 0.9rem;
+    min-width: 50px;
+    padding-top: 2px;
+  }
+
+  .scholar-body {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+  }
+
+  .scholar-body strong { color: var(--text-primary); }
+
+  /* Responsive sizing */
+  @media (max-width: 1100px) {
+    .slide { padding: 3rem 2.5rem 4rem; }
+    .sort-grid { grid-template-columns: repeat(3, 1fr); }
+    .do-now-list { grid-template-columns: 1fr; }
+    .content-two-col { grid-template-columns: 1fr; gap: 1.5rem; }
+    .planning-layout { grid-template-columns: 1fr; }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
+</style>
+</head>
+<body>
+
+<div class="star-field"></div>
+<div class="stars" id="stars"></div>
+
+<div class="top-bar">
+  <div class="brand"><em>Clifton College</em> <span>Teaching & Learning INSET · Summer 2026</span></div>
+  <div class="slide-counter"><span id="current-num">01</span> / <span id="total-num">14</span></div>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- ========= 1. TITLE ========= -->
+  <section class="slide title-slide active" data-slide="1" data-short-label="Title">
+    <div class="title-eyebrow fade-in">Responsive Teaching · Pillar III</div>
+    <h1 class="title-main fade-in">Respond to Understanding in <em>Real-Time</em></h1>
+    <div class="title-sub fade-in">Adapt for success</div>
+    <div class="title-meta fade-in">
+      <span>Walkthru</span>
+      <span class="divider"></span>
+      <span>Summer Term 2026</span>
+      <span class="divider"></span>
+      <span>L. McNally</span>
+    </div>
+  </section>
+
+  <!-- ========= 2. THE BIG IDEA (scholars) ========= -->
+  <section class="slide" data-slide="2" data-skippable="true" data-short-label="Framing · Scholars">
+    <div class="skip-marker">optional · skip if short</div>
+    <div class="slide-label fade-in">Framing</div>
+    <h2 class="slide-title fade-in">The value lies not in <em>diagnosing</em> understanding, but in the <em>responsive action</em> that follows.</h2>
+
+    <div class="content-two-col fade-in" style="margin-top: 1rem;">
+      <div class="content-panel accent">
+        <h3>Where the thinking comes from</h3>
+        <div class="scholars-list">
+          <div class="scholar-item">
+            <div class="scholar-year">2018</div>
+            <div class="scholar-body"><strong>Fletcher-Wood</strong> ('Responsive Teaching') and <strong>Kneyber</strong> (formative <em>action</em>) shift the focus from blind assessment to adaptive response.</div>
+          </div>
+          <div class="scholar-item">
+            <div class="scholar-year">–</div>
+            <div class="scholar-body"><strong>Jade Pearce</strong> places responsive teaching as one of three pillars of adaptive teaching; <strong>Kirsten Mould</strong> (SEND) puts it at the heart of high-quality teaching for all.</div>
+          </div>
+          <div class="scholar-item">
+            <div class="scholar-year">–</div>
+            <div class="scholar-body"><strong>Dylan Wiliam</strong>: adjustments made by <em>teachers and learners</em>. <strong>Lyn Corno</strong>: ultimate goal is transferring the skill to the pupil for self-regulated learning.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-panel">
+        <h3>Our focus this term</h3>
+        <p>We have spent this year working through the three pillars of adaptive teaching, one per term.</p>
+        <ul style="margin-top: 1rem;">
+          <li><strong>Pillar I</strong> — Clear learning intentions</li>
+          <li><strong>Pillar II</strong> — Formative assessment</li>
+          <li><strong>Pillar III</strong> — <em>Responsive teaching</em></li>
+        </ul>
+        <p style="margin-top: 1rem; font-style: italic; color: var(--blue-bright);">This session: what does pillar three actually ask us to do?</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= 3. OVERVIEW: THREE STEPS ========= -->
+  <section class="slide" data-slide="3" data-short-label="The Walkthru · overview">
+    <div class="slide-label fade-in">The Walkthru</div>
+    <h2 class="slide-title fade-in">Three steps, three patterns, one responsive teacher.</h2>
+    <p class="slide-lede fade-in">Everything we do in this session sits inside this structure. Hover a card for a preview.</p>
+
+    <div class="overview-grid fade-in">
+      <div class="overview-card">
+        <div class="step-number">01</div>
+        <div class="step-label">Before the lesson</div>
+        <div class="step-heading">Prepare & resource responses</div>
+        <div class="step-body">Pre-plan the adjustments you <em style="color:var(--blue-bright)">might</em> need, so cognitive load doesn't defeat you in the moment.</div>
+      </div>
+      <div class="overview-card">
+        <div class="step-number">02</div>
+        <div class="step-label">In the lesson</div>
+        <div class="step-heading">Check for understanding</div>
+        <div class="step-body">Deploy a hinge question that reveals every pupil's position, quickly and simultaneously.</div>
+      </div>
+      <div class="overview-card">
+        <div class="step-number">03</div>
+        <div class="step-label">In the lesson</div>
+        <div class="step-heading">Respond adaptively in real-time</div>
+        <div class="step-body">Choose from three pathways depending on what the class shows you: all misunderstand, varied, or all understand.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= 4. TASK 1 INTRO ========= -->
+  <section class="slide" data-slide="4" data-short-label="Task 1 · Do Now" data-timer-seconds="300">
+    <div class="task-header fade-in">
+      <span class="task-badge">Task One</span>
+      <h2 class="task-heading">Do Now</h2>
+      <span class="task-sub">· silent, individual</span>
+      <span class="timing-pill">~5 min + review</span>
+    </div>
+    <p class="slide-lede fade-in">Work through these on your sheet. We'll review together. Click each box to check your thinking.</p>
+    <button class="reveal-all-btn fade-in" id="reveal-all">Reveal all answers</button>
+
+    <div class="do-now-list fade-in" id="do-now-list">
+      <div class="do-now-item" data-idx="1">
+        <div class="do-now-num">1</div>
+        <div class="do-now-content">
+          <div class="do-now-q">State at least 2 differences between adaptive teaching and differentiation.</div>
+          <div class="reveal-hint">Click to reveal</div>
+          <div class="do-now-a">See the detailed comparison on the next slide — key differences cluster around <strong>goals, grouping, and responsiveness</strong>.</div>
+        </div>
+      </div>
+
+      <div class="do-now-item" data-idx="2">
+        <div class="do-now-num">2</div>
+        <div class="do-now-content">
+          <div class="do-now-q">Pillars 2 and 3 are formative assessment and responsive teaching. What is pillar 1?</div>
+          <div class="reveal-hint">Click to reveal</div>
+          <div class="do-now-a"><strong>Clear learning intentions.</strong></div>
+        </div>
+      </div>
+
+      <div class="do-now-item" data-idx="3">
+        <div class="do-now-num">3</div>
+        <div class="do-now-content">
+          <div class="do-now-q">Both formative assessment and responsive teaching centre on evidence of learning. Define and distinguish them.</div>
+          <div class="reveal-hint">Click to reveal</div>
+          <div class="do-now-a"><strong>Formative assessment:</strong> the range of strategies used to elicit evidence of pupil learning to inform teaching. <strong>Responsive teaching:</strong> the immediate changes and adjustments made to teaching based on that evidence.</div>
+        </div>
+      </div>
+
+      <div class="do-now-item" data-idx="4">
+        <div class="do-now-num">4</div>
+        <div class="do-now-content">
+          <div class="do-now-q">Why do we need critical-point formative assessment as well as continuous?</div>
+          <div class="reveal-hint">Click to reveal</div>
+          <div class="do-now-a">Because only critical-point assesses <strong>all pupils in the class at the same time</strong>, and it is always pegged to a key concept the understanding of which is vital to progression.</div>
+        </div>
+      </div>
+
+      <div class="do-now-item" data-idx="5">
+        <div class="do-now-num">5</div>
+        <div class="do-now-content">
+          <div class="do-now-q">What 2 things must teachers do to successfully implement responsive teaching?</div>
+          <div class="reveal-hint">Click to reveal</div>
+          <div class="do-now-a"><strong>Prepare</strong> before the lesson (planning notes, tweaking resources) <em>and</em> <strong>implement</strong> those adjustments live, in immediate response to critical-point assessment.</div>
+        </div>
+      </div>
+
+      <div class="do-now-item" data-idx="6">
+        <div class="do-now-num">6</div>
+        <div class="do-now-content">
+          <div class="do-now-q">What are the 3 most common patterns of understanding following critical-point assessment?</div>
+          <div class="reveal-hint">Click to reveal</div>
+          <div class="do-now-a">All or most <strong>misunderstand</strong>. <strong>Varied</strong> understanding. All or most <strong>understand</strong>.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= 5. DIFFERENTIATION VS ADAPTIVE (VISUAL) ========= -->
+  <section class="slide" data-slide="5" data-skippable="true" data-short-label="Differentiation vs adaptive">
+    <div class="skip-marker">optional · skip if short</div>
+    <div class="slide-label fade-in">Answer to Q1 · Worth lingering on</div>
+    <h2 class="slide-title fade-in">Two ways to handle a mixed class.</h2>
+
+    <div class="metaphor-wrap">
+      <svg class="metaphor-visual fade-in" viewBox="0 0 500 440" xmlns="http://www.w3.org/2000/svg">
+        <!-- Section headings at top, well above any lines -->
+        <text x="125" y="28" text-anchor="middle" fill="#f87171" font-family="Lora, serif" font-style="italic" font-size="16" font-weight="500">Differentiation</text>
+        <text x="375" y="28" text-anchor="middle" fill="#4ade80" font-family="Lora, serif" font-style="italic" font-size="16" font-weight="500">Adaptive teaching</text>
+
+        <!-- Subtitle under each -->
+        <text x="125" y="48" text-anchor="middle" fill="#a8b2c8" font-family="Inter, sans-serif" font-size="11">three separate peaks</text>
+        <text x="375" y="48" text-anchor="middle" fill="#a8b2c8" font-family="Inter, sans-serif" font-size="11">one peak, many routes</text>
+
+        <!-- Divider line -->
+        <line x1="250" y1="20" x2="250" y2="400" stroke="#2d3a5c" stroke-width="1" stroke-dasharray="3 4"/>
+
+        <!-- ======== LEFT: DIFFERENTIATION ======== -->
+        <!-- Labels ABOVE each mountain in clear space -->
+        <text x="50" y="100" text-anchor="middle" fill="#f87171" font-family="Inter, sans-serif" font-size="9" font-weight="600" letter-spacing="1">LOWER</text>
+        <text x="125" y="100" text-anchor="middle" fill="#f87171" font-family="Inter, sans-serif" font-size="9" font-weight="600" letter-spacing="1">MIDDLE</text>
+        <text x="200" y="100" text-anchor="middle" fill="#f87171" font-family="Inter, sans-serif" font-size="9" font-weight="600" letter-spacing="1">HIGHER</text>
+
+        <text x="50" y="115" text-anchor="middle" fill="#a8b2c8" font-family="Inter, sans-serif" font-size="9">goal A</text>
+        <text x="125" y="115" text-anchor="middle" fill="#a8b2c8" font-family="Inter, sans-serif" font-size="9">goal B</text>
+        <text x="200" y="115" text-anchor="middle" fill="#a8b2c8" font-family="Inter, sans-serif" font-size="9">goal C</text>
+
+        <!-- Three mountains, progressively taller, peaks BELOW the labels -->
+        <!-- Shortest: peak at y=155 -->
+        <path d="M 20 300 L 50 155 L 80 300 Z" fill="rgba(248, 113, 113, 0.08)" stroke="#f87171" stroke-width="1.2"/>
+        <circle cx="50" cy="155" r="3.5" fill="#f87171"/>
+
+        <!-- Medium: peak at y=140 -->
+        <path d="M 90 300 L 125 140 L 160 300 Z" fill="rgba(248, 113, 113, 0.12)" stroke="#f87171" stroke-width="1.2"/>
+        <circle cx="125" cy="140" r="3.5" fill="#f87171"/>
+
+        <!-- Tallest: peak at y=125 -->
+        <path d="M 165 300 L 200 125 L 235 300 Z" fill="rgba(248, 113, 113, 0.18)" stroke="#f87171" stroke-width="1.2"/>
+        <circle cx="200" cy="125" r="3.5" fill="#f87171"/>
+
+        <!-- Baseline -->
+        <line x1="15" y1="300" x2="235" y2="300" stroke="#f87171" stroke-width="0.5" opacity="0.4"/>
+
+        <!-- Caption below -->
+        <text x="125" y="340" text-anchor="middle" fill="#f87171" font-family="Lora, serif" font-style="italic" font-size="12">Different pupils sent to</text>
+        <text x="125" y="358" text-anchor="middle" fill="#f87171" font-family="Lora, serif" font-style="italic" font-size="12">different destinations.</text>
+        <text x="125" y="380" text-anchor="middle" fill="#6b7590" font-family="Inter, sans-serif" font-size="10">Decisions fixed in advance.</text>
+
+        <!-- ======== RIGHT: ADAPTIVE TEACHING ======== -->
+        <!-- Single peak label ABOVE the mountain, in clear space -->
+        <text x="375" y="80" text-anchor="middle" fill="#4ade80" font-family="Inter, sans-serif" font-size="10" font-weight="600" letter-spacing="1">SAME CHALLENGING</text>
+        <text x="375" y="95" text-anchor="middle" fill="#4ade80" font-family="Lora, serif" font-style="italic" font-size="11">goal for all</text>
+
+        <!-- Flag/peak marker -->
+        <line x1="375" y1="108" x2="375" y2="128" stroke="#4ade80" stroke-width="1.5"/>
+        <path d="M 375 108 L 388 114 L 375 120 Z" fill="#4ade80"/>
+
+        <!-- Single large mountain -->
+        <path d="M 275 300 L 375 130 L 475 300 Z" fill="rgba(74, 222, 128, 0.08)" stroke="#4ade80" stroke-width="1.5"/>
+        <circle cx="375" cy="130" r="4" fill="#4ade80"/>
+
+        <!-- Three bold paths up the mountain, clearly visible, no text on them -->
+        <!-- Left path (wavier, with scaffolds) -->
+        <path d="M 305 300 Q 290 260, 320 230 Q 340 200, 335 170 Q 345 150, 375 130"
+              stroke="#4ade80" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.85"/>
+
+        <!-- Centre path (direct) -->
+        <path d="M 375 300 L 375 130"
+              stroke="#4ade80" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.85"/>
+
+        <!-- Right path (wavier) -->
+        <path d="M 445 300 Q 460 260, 430 230 Q 415 200, 420 175 Q 410 150, 375 130"
+              stroke="#4ade80" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.85"/>
+
+        <!-- Scaffold markers (SHAPES ONLY, no text on paths) -->
+        <!-- Scaffold on left path, low -->
+        <circle cx="302" cy="268" r="5" fill="#0a0e1a" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="302" y="272" text-anchor="middle" fill="#fbbf24" font-family="Inter, sans-serif" font-size="8" font-weight="600">S</text>
+
+        <!-- Scaffold on left path, mid -->
+        <circle cx="336" cy="195" r="5" fill="#0a0e1a" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="336" y="199" text-anchor="middle" fill="#fbbf24" font-family="Inter, sans-serif" font-size="8" font-weight="600">S</text>
+
+        <!-- Scaffold on right path -->
+        <circle cx="435" cy="220" r="5" fill="#0a0e1a" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="435" y="224" text-anchor="middle" fill="#fbbf24" font-family="Inter, sans-serif" font-size="8" font-weight="600">S</text>
+
+        <!-- Baseline -->
+        <line x1="270" y1="300" x2="480" y2="300" stroke="#4ade80" stroke-width="0.5" opacity="0.4"/>
+
+        <!-- Legend for scaffold marker, placed in clear space below baseline -->
+        <g>
+          <circle cx="285" cy="325" r="4" fill="#0a0e1a" stroke="#fbbf24" stroke-width="1.2"/>
+          <text x="285" y="328" text-anchor="middle" fill="#fbbf24" font-family="Inter, sans-serif" font-size="7" font-weight="600">S</text>
+          <text x="295" y="329" fill="#fbbf24" font-family="Inter, sans-serif" font-size="10" font-style="italic">= scaffold</text>
+        </g>
+
+        <!-- Caption below -->
+        <text x="375" y="358" text-anchor="middle" fill="#4ade80" font-family="Lora, serif" font-style="italic" font-size="12">Same destination, support</text>
+        <text x="375" y="376" text-anchor="middle" fill="#4ade80" font-family="Lora, serif" font-style="italic" font-size="12">adjusted along the way.</text>
+
+        <!-- Takeaway line across the bottom -->
+        <line x1="20" y1="405" x2="480" y2="405" stroke="#232b47" stroke-width="1"/>
+        <text x="250" y="430" text-anchor="middle" fill="#60a5fa" font-family="Lora, serif" font-style="italic" font-size="13">Sort the pupils, or scaffold them?</text>
+      </svg>
+
+      <div class="metaphor-text fade-in">
+        <div class="metaphor-block diff">
+          <h3>Differentiation is a sorting exercise.</h3>
+          <p>Based on <em>prior attainment and perception</em>, pupils are sent toward different goals with different tasks. Decisions are fixed in advance. Expectations diverge. Bias is baked in.</p>
+        </div>
+
+        <div class="metaphor-block adapt">
+          <h3>Adaptive teaching is a scaffolding exercise.</h3>
+          <p>Everyone aims at the <em>same challenging goal</em>. Teaching responds, in the moment, to evidence of what pupils need. Groupings are flexible and temporary. Expectations stay high for all.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= 6. STEP 1 ========= -->
+  <section class="slide" data-slide="6" data-short-label="Step 1 · Prepare responses">
+    <div class="slide-label fade-in">Step One · Before the lesson</div>
+    <h2 class="slide-title fade-in">Prepare & resource responses <em>before</em> the lesson.</h2>
+    <p class="slide-lede fade-in">Cognitive load in the moment is incredibly high. If you want a real chance of responding well, you need the responses already loaded.</p>
+
+    <div class="content-two-col">
+      <div class="content-panel accent fade-in">
+        <h3>The "if... then..." structure</h3>
+        <div class="ifthen">
+          <span class="if">If</span> most pupils misunderstand,
+          <span class="then">then</span> I'll need a different, more accessible explanation.
+        </div>
+        <div class="ifthen">
+          <span class="if">If</span> understanding is not quite secure,
+          <span class="then">then</span> I'll need additional practice tasks.
+        </div>
+        <div class="ifthen">
+          <span class="if">If</span> understanding is strong,
+          <span class="then">then</span> I'll need to extend and deepen.
+        </div>
+      </div>
+
+      <div class="content-panel fade-in">
+        <h3>What "resourcing" looks like</h3>
+        <p>Prepare these in advance so they're ready when needed:</p>
+        <ul>
+          <li>Examples and non-examples</li>
+          <li>Analogies and alternative visuals</li>
+          <li>Worked examples, partially completed</li>
+          <li>Practice questions at graded difficulty</li>
+          <li>Simpler alternative explanations</li>
+          <li>Scaffolds, prompts, chunking</li>
+          <li>Back-pocket questions and 'thunks'</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= 7. STEP 2 ========= -->
+  <section class="slide" data-slide="7" data-short-label="Step 2 · Check understanding">
+    <div class="slide-label fade-in">Step Two · In the lesson</div>
+    <h2 class="slide-title fade-in">Check for understanding — all pupils, at once.</h2>
+    <p class="slide-lede fade-in">A single pupil answering in a discussion tells you about one pupil. A hinge question tells you about the whole room.</p>
+
+    <div class="content-two-col">
+      <div class="content-panel accent fade-in">
+        <h3>The non-negotiables of a hinge</h3>
+        <ul>
+          <li>Stimulus <strong>carefully crafted</strong> against learning intentions</li>
+          <li>Responses taken from <strong>all pupils</strong>, <strong>quickly and simultaneously</strong></li>
+          <li>You can <strong>analyse the pattern</strong> of responses and act on it</li>
+        </ul>
+        <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); font-style: italic;">See the Clifton bespoke Walkthru "Implement Formative Hinges: Elicit Evidence of Progress" for full detail.</p>
+      </div>
+
+      <div class="content-panel fade-in">
+        <h3>What you're looking for</h3>
+        <p>One of three patterns will emerge:</p>
+        <div style="display: grid; gap: 0.75rem; margin-top: 1rem;">
+          <div class="ifthen" style="border-left-color: var(--red-soft);">
+            <strong style="color: var(--red-soft);">Pattern A</strong> · all or most misunderstand
+          </div>
+          <div class="ifthen" style="border-left-color: var(--amber-soft);">
+            <strong style="color: var(--amber-soft);">Pattern B</strong> · varied understanding
+          </div>
+          <div class="ifthen" style="border-left-color: var(--green-soft);">
+            <strong style="color: var(--green-soft);">Pattern C</strong> · all or most understand
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= 8. STEP 3A ========= -->
+  <section class="slide" data-slide="8" data-short-label="Step 3a · Misunderstand">
+    <div class="slide-label fade-in" style="color: var(--red-soft);">Step Three · Response A</div>
+    <h2 class="slide-title fade-in">All or most <em style="color: var(--red-soft);">misunderstand</em>.</h2>
+    <p class="slide-lede fade-in">This almost certainly means instruction has been ineffective. Gaps must be filled and misconceptions must be overwritten. Move on and you'll teach on sand.</p>
+
+    <div class="content-two-col">
+      <div class="content-panel fade-in" style="border-left: 3px solid var(--red-soft);">
+        <h3 style="color: var(--red-soft);">Re-explain</h3>
+        <p>Different, more accessible:</p>
+        <ul>
+          <li>Simpler terms</li>
+          <li>Remove redundant or superfluous information</li>
+          <li>Additional examples and non-examples</li>
+          <li>Analogies</li>
+          <li>Additional or alternative visuals</li>
+        </ul>
+      </div>
+
+      <div class="content-panel fade-in" style="border-left: 3px solid var(--red-soft);">
+        <h3 style="color: var(--red-soft);">Re-model</h3>
+        <ul>
+          <li>Live model, narrating your thinking</li>
+          <li>Use a worked example</li>
+          <li>Chunk the process — model each chunk, practise, then move on</li>
+        </ul>
+        <p style="margin-top: 1rem; font-style: italic; font-size: 0.88rem; color: var(--text-muted);">The goal is not to cover content. The goal is to replace the faulty schema with a correct one.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= 9. STEP 3B ========= -->
+  <section class="slide" data-slide="9" data-short-label="Step 3b · Varied">
+    <div class="slide-label fade-in" style="color: var(--amber-soft);">Step Three · Response B</div>
+    <h2 class="slide-title fade-in"><em style="color: var(--amber-soft);">Varied</em> understanding across the class.</h2>
+    <p class="slide-lede fade-in">Some are there, some are not. This is the most common pattern, and the most pedagogically rich. Three tools: support, rehearsal, peers.</p>
+
+    <div class="overview-grid fade-in">
+      <div class="overview-card" style="border-top: 2px solid var(--amber-soft);">
+        <div class="step-label" style="color: var(--amber-soft);">Support</div>
+        <div class="step-heading">Scaffolding</div>
+        <div class="step-body">Worked examples, partially completed examples, criteria, sentence starters, graphic organisers. Directs attention and relieves working memory.</div>
+      </div>
+      <div class="overview-card" style="border-top: 2px solid var(--amber-soft);">
+        <div class="step-label" style="color: var(--amber-soft);">Rehearsal</div>
+        <div class="step-heading">More practice</div>
+        <div class="step-body">Similar contexts, variations on a theme. Pupils may simply need more reps to embed the process and link it to existing knowledge.</div>
+      </div>
+      <div class="overview-card" style="border-top: 2px solid var(--amber-soft);">
+        <div class="step-label" style="color: var(--amber-soft);">Peers</div>
+        <div class="step-heading">Flexible grouping</div>
+        <div class="step-body"><em style="color:var(--amber-soft);">Temporary</em> groupings based on evidence. Mixed pairs for peer tutoring. Same-level groups for targeted support or rehearsal.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= 10. STEP 3C ========= -->
+  <section class="slide" data-slide="10" data-short-label="Step 3c · Understand">
+    <div class="slide-label fade-in" style="color: var(--green-soft);">Step Three · Response C</div>
+    <h2 class="slide-title fade-in">All or most <em style="color: var(--green-soft);">understand</em>.</h2>
+    <p class="slide-lede fade-in">Don't waste the opportunity. You have a choice — and "move on" is only one of them.</p>
+
+    <div class="content-two-col">
+      <div class="content-panel fade-in" style="border-left: 3px solid var(--green-soft);">
+        <h3 style="color: var(--green-soft);">Move on</h3>
+        <p>Understanding is secure. Introduce and explain the next concept or topic.</p>
+        <p style="margin-top: 0.75rem; font-size: 0.88rem; font-style: italic; color: var(--text-muted);">Legitimate. But consider whether "cover more" is always the best use of the time you've just earned.</p>
+      </div>
+
+      <div class="content-panel fade-in" style="border-left: 3px solid var(--green-soft);">
+        <h3 style="color: var(--green-soft);">Deepen, extend, transfer</h3>
+        <ul>
+          <li>Back-pocket questions or 'thunks'</li>
+          <li>Elaborative interrogation</li>
+          <li>Pupils generate and explain misconceptions</li>
+          <li>Rehearsal for transfer (new or unfamiliar contexts)</li>
+        </ul>
+        <p style="margin-top: 1rem; font-size: 0.88rem; font-style: italic; color: var(--green-soft);">This also frees you to provide 1:1 support to any pupil who doesn't yet understand.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= 11. TASK 2 ========= -->
+  <section class="slide" data-slide="11" data-skippable="true" data-short-label="Task 2 · Post-its" data-timer-seconds="480">
+    <div class="skip-marker">optional · overlaps with Task 3</div>
+    <div class="task-header fade-in">
+      <span class="task-badge">Task Two</span>
+      <h2 class="task-heading">Think, Write, Pair, Share</h2>
+      <span class="timing-pill">~8 min</span>
+    </div>
+    <p class="slide-lede fade-in">Three post-its, three patterns. What adjustments <em>could</em> you make?</p>
+
+    <div class="postits-grid fade-in">
+      <div class="postit red">
+        <div class="postit-label">Red / Pink</div>
+        <div class="postit-title">All or most misunderstand</div>
+        <div class="postit-instr">Write down possible adjustments you could make to your teaching in response.</div>
+      </div>
+      <div class="postit amber">
+        <div class="postit-label">Yellow</div>
+        <div class="postit-title">Varied understanding</div>
+        <div class="postit-instr">Write down possible adjustments you could make to your teaching in response.</div>
+      </div>
+      <div class="postit green">
+        <div class="postit-label">Green</div>
+        <div class="postit-title">All or most understand</div>
+        <div class="postit-instr">Write down possible adjustments you could make to your teaching in response.</div>
+      </div>
+    </div>
+
+    <div class="pps-flow fade-in">
+      <div class="pps-step">
+        <div class="pps-step-label">Think / Write</div>
+        <div class="pps-step-desc">silent, individual</div>
+      </div>
+      <div class="pps-arrow">→</div>
+      <div class="pps-step">
+        <div class="pps-step-label">Pair</div>
+        <div class="pps-step-desc">similarities, differences</div>
+      </div>
+      <div class="pps-arrow">→</div>
+      <div class="pps-step">
+        <div class="pps-step-label">Share</div>
+        <div class="pps-step-desc">group leader photographs board</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= 12. TASK 3 ========= -->
+  <section class="slide" data-slide="12" data-short-label="Task 3 · Sort adjustments" data-timer-seconds="420">
+    <div class="task-header fade-in">
+      <span class="task-badge">Task Three</span>
+      <h2 class="task-heading">Sort the adjustments</h2>
+      <span class="task-sub">· pair work</span>
+      <span class="timing-pill">~7 min</span>
+    </div>
+    <div class="sort-legend fade-in">
+      <div class="sort-legend-item"><span class="sort-legend-marker cross">✕</span> all/most misunderstand</div>
+      <div class="sort-legend-item"><span class="sort-legend-marker circle">○</span> varied</div>
+      <div class="sort-legend-item"><span class="sort-legend-marker tick">✓</span> all/most understand</div>
+      <div class="sort-actions">
+        <span class="sort-score" id="sort-score"><strong id="sort-score-num">0/19</strong> correct</span>
+        <button class="sort-btn" id="sort-check">Check answers</button>
+        <button class="sort-btn reset" id="sort-reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="sort-grid fade-in" id="sort-grid">
+      <div class="sort-card" data-answer="a">Explain using simpler language/terminology.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="c">Move on to the next topic or subtopic in the learning journey.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="a">Talk through a worked example.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="a">Explain removing any redundant or superfluous information.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="b">Pair pupils together. Same-understanding pairs, or different for peer tutoring.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="c">Deepen thinking — elaborative interrogation, generate misconceptions, write exam questions.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="b">Group pupils to work on a task. Same or different understanding.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="b">Additional practice tasks — variations on a theme, familiar context.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="a">Explain using additional or alternative visuals.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="c">You now have capacity to support pupils who don't understand 1:1.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="a">Live model the process, narrating your thinking.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="b">Give pupils a list of criteria, sentence starters, or a graphic organiser.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="c">Additional practice tasks — unfamiliar or new contexts.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="a">Explain using more examples and non-examples.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="c">Foster wonder and creativity with back-pocket questions or 'thunks'.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="a">Chunk the process, explain a chunk, practise, then move on.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="c">Strategic class discussion — select pupils who understand to explain their thinking.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="b">Give pupils a worked example, then partially completed examples.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+      <div class="sort-card" data-answer="a">Explain using at least one carefully selected analogy.<div class="sort-marker"></div><div class="correct-badge"></div><div class="answer-hint"></div></div>
+    </div>
+  </section>
+
+  <!-- ========= EXEMPLAR BEFORE TASK 4 ========= -->
+  <section class="slide" data-slide="13" data-short-label="Worked exemplar · Latin">
+    <div class="slide-label fade-in">A worked example · before you start Task 4</div>
+    <h2 class="slide-title fade-in">What "resourcing a response" actually looks like.</h2>
+    <p class="slide-lede fade-in">One hinge question. Three if-thens. One of them resourced properly. Here's mine, from last term.</p>
+
+    <div class="exemplar-wrap">
+      <div class="exemplar-context fade-in">
+        <h4>Context</h4>
+        <p><strong style="color: var(--text-primary);">Year 9 Latin · ablative case.</strong></p>
+        <p>Pupils have met the ablative for <em style="color: var(--blue-bright);">time when</em> and <em style="color: var(--blue-bright);">means / instrument</em>. Today's lesson introduces <em style="color: var(--blue-bright);">place where</em> (in / sub + abl.).</p>
+        <p style="margin-top: 0.75rem; color: var(--text-muted);">My hinge, with misconceptions pre-thought for each distractor:</p>
+        <div class="hinge-q">
+          <div class="hinge-q-stem">In villā magnā habitat.</div>
+          <div class="hinge-q-prompt">Why is <em>villā</em> in the ablative?</div>
+          <ul class="hinge-options">
+            <li class="hinge-option">
+              <span class="opt-letter">A</span>
+              <span class="opt-text">time when
+                <span class="misconception">→ hasn't attended to <em>in</em>; defaulting to most recent use taught.</span>
+              </span>
+            </li>
+            <li class="hinge-option">
+              <span class="opt-letter">B</span>
+              <span class="opt-text">means / instrument
+                <span class="misconception">→ ignoring the preposition; sees any ablative noun as "by/with".</span>
+              </span>
+            </li>
+            <li class="hinge-option correct">
+              <span class="opt-letter">C</span>
+              <span class="opt-text">place where  ✓
+                <span class="misconception">→ recognises <em>in</em> + abl. as locative function.</span>
+              </span>
+            </li>
+            <li class="hinge-option">
+              <span class="opt-letter">D</span>
+              <span class="opt-text">subject
+                <span class="misconception">→ case confusion; treating ablative singular <em>-ā</em> as nominative first declension.</span>
+              </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="exemplar-scenarios fade-in">
+        <div class="scenario-row a">
+          <div class="scenario-pattern">All/most misunderstand</div>
+          <div class="scenario-body">
+            <span class="tag if">If</span> most pick B (means) because that's what they've done all term, <span class="tag then">then</span> I re-teach via contrast: two sentences side by side, one genuine means, one place where.
+            <span class="resourced"><strong>Resourced:</strong> pre-made slide with <em>sagittā</em> pugnat / <em>in silvā</em> pugnat, matching visuals, the question "what does the preposition tell you?"</span>
+          </div>
+        </div>
+
+        <div class="scenario-row b">
+          <div class="scenario-pattern">Varied understanding</div>
+          <div class="scenario-body">
+            <span class="tag if">If</span> the class is split roughly half right, half wrong, <span class="tag then">then</span> pair secure pupils with insecure pupils; each pair takes three English sentences and identifies which Latin ablative use each would need.
+            <span class="resourced"><strong>Resourced:</strong> paired worksheet (6 sentences), sentence-starter scaffold on the back for the insecure partner.</span>
+          </div>
+        </div>
+
+        <div class="scenario-row c">
+          <div class="scenario-pattern">All/most understand</div>
+          <div class="scenario-body">
+            <span class="tag if">If</span> they're there, <span class="tag then">then</span> I extend into a fourth use (ablative of manner) and have them hypothesise what the pattern is, before I name it.
+            <span class="resourced"><strong>Resourced:</strong> back-pocket slide with three examples of manner usage, no English gloss, the prompt "what do these three have in common?"</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= 14. TASK 4 PLANNING ========= -->
+  <section class="slide" data-slide="14" data-short-label="Task 4 · Individual planning" data-timer-seconds="600">
+    <div class="task-header fade-in">
+      <span class="task-badge">Task Four</span>
+      <h2 class="task-heading">Individual planning</h2>
+      <span class="timing-pill">~10 min</span>
+    </div>
+    <p class="slide-lede fade-in">Now it's your turn. Take the hinge question you brought with you.</p>
+
+    <div class="planning-layout">
+      <div class="planning-steps fade-in">
+        <div class="plan-step">
+          <div class="plan-step-num">Step One</div>
+          <div class="plan-step-title">Write your three <em style="color:var(--blue-bright);">if... then...</em> statements</div>
+          <div class="plan-step-body">One for each pattern: all misunderstand, varied, all understand. Be specific to <em style="color:var(--blue-bright);">your</em> hinge question.</div>
+        </div>
+        <div class="plan-step">
+          <div class="plan-step-num">Step Two</div>
+          <div class="plan-step-title">Choose one</div>
+          <div class="plan-step-body">Pick the statement that feels most useful or most urgent for your next lesson with that class.</div>
+        </div>
+        <div class="plan-step">
+          <div class="plan-step-num">Step Three</div>
+          <div class="plan-step-title">Resource it properly</div>
+          <div class="plan-step-body">A more accessible explanation. A narrated worked example. Alternative visuals. A set of practice tasks for encoding. Back-pocket questions. Whatever the "then" demands.</div>
+        </div>
+      </div>
+
+      <div class="content-panel accent fade-in">
+        <h3>By the end of this task</h3>
+        <p>You walk out with <strong>one hinge question, three if-then statements, and one resourced response</strong>, ready to use in a real lesson.</p>
+        <p style="margin-top: 1rem;">CPD booklet is on your table for reference. Use the worked example from the previous slide as a model if you need one.</p>
+        <p style="margin-top: 1rem; font-style: italic; color: var(--blue-bright);">If you finish early — resource a second one.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========= 15. CLOSING ========= -->
+  <section class="slide closing-slide" data-slide="15" data-short-label="Closing">
+    <div class="title-eyebrow fade-in">To close</div>
+    <div class="closing-quote fade-in">
+      The ultimate goal is not just that <em>we</em> respond to understanding in real-time, but that we transfer the skill to the pupil — so they learn to do it for themselves.
+    </div>
+    <div class="closing-attrib fade-in">After Lyn Corno · via Walkthru_5</div>
+  </section>
+
+</div>
+
+<!-- Timer widget -->
+<div class="timer-hint-pill" id="timer-hint"><span class="key">T</span> start timer</div>
+<div class="timer" id="timer">
+  <div class="timer-display" id="timer-display">5:00</div>
+  <div class="timer-controls">
+    <span class="timer-label">task timer</span>
+    <div class="timer-btns">
+      <button class="timer-btn primary" id="timer-toggle">Start</button>
+      <button class="timer-btn" id="timer-reset">Reset</button>
+      <button class="timer-btn" id="timer-close">×</button>
+    </div>
+  </div>
+</div>
+
+<!-- Jump menu -->
+<div class="jump-overlay" id="jump-overlay">
+  <div class="jump-panel">
+    <div class="jump-header">
+      <h3>Jump to <em>slide</em></h3>
+      <div class="jump-hint">Press a number · Esc to close · dashed = skippable</div>
+    </div>
+    <div class="jump-body" id="jump-body"></div>
+    <div class="jump-legend">
+      <div class="jump-legend-item"><span class="jump-legend-marker solid"></span> core slide</div>
+      <div class="jump-legend-item"><span class="jump-legend-marker dashed"></span> skippable if running short</div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ button (always accessible) -->
+<button class="faq-trigger" id="faq-trigger" title="Common challenges & FAQs">?</button>
+<div class="faq-hint">Common challenges · press F or click</div>
+
+<!-- FAQ modal -->
+<div class="faq-overlay" id="faq-overlay">
+  <div class="faq-modal" id="faq-modal" role="dialog" aria-modal="true" aria-labelledby="faq-title">
+    <div class="faq-header">
+      <div class="faq-header-text">
+        <h3 id="faq-title">Common <em>challenges</em> from the floor</h3>
+        <p>Click a question. Esc or × to return to the deck.</p>
+      </div>
+      <button class="faq-close" id="faq-close" aria-label="Close FAQ">×</button>
+    </div>
+
+    <div class="faq-body">
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">Isn't this just <em>differentiation</em> rebranded?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          No — and that's the whole point of slide five. <strong>Differentiation sets different goals for different pupils based on perception or prior attainment.</strong> Adaptive teaching keeps the goal the same for everyone and adjusts the support dynamically, based on real-time evidence. One sorts pupils; the other scaffolds them. The language is deliberately distinct in the literature (Pearce, Mould, EEF) precisely <em>because</em> differentiation baked in bias and low expectations for pupils deemed "less able".
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">Doesn't all this prep massively increase my <em>workload</em>?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          Upfront, yes — a bit. But two things make it manageable. First, the resources you prepare are <strong>reusable</strong>: a good worked example for introducing the ablative works every year, not just once. Second, the alternative is higher cost: re-teaching whole topics, dealing with cemented misconceptions, pupils lost by year 11. Preparing a second explanation and a back-pocket question <em>is</em> the workload reduction, paid upfront. You don't need all three responses for every lesson — just for the critical-point hinge you've identified.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">What if my <em>"if-then"</em> prep doesn't match what actually happens?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          That's fine — and actually quite normal, especially at first. The value of the prep isn't that you'll always use what you've made. It's that <strong>the act of preparing makes you more responsive</strong>: you've already thought about the possible misconceptions, so you recognise them faster when they appear. Over time, your predictions get better. And if a pattern emerges that you hadn't planned for, you've got the headspace to improvise because the lower-cognitive-load scenarios are already handled.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">How is a hinge question different from just <em>asking</em> the class?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          Three things. <strong>All pupils answer</strong>, not just the keen ones or the ones you call on. <strong>Simultaneously</strong>, so no pupil is influenced by another's answer. And <strong>the responses are analysable</strong> — you can see the pattern in the room, not just the mode. Mini-whiteboards, ABCD cards, Plickers, or a well-designed multiple-choice on Forms all work. "Does everyone understand?" is not a hinge question — it's a hope.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">Is this realistic for a full <em>timetable</em>?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          You don't responsively teach every moment of every lesson — you responsively teach at <strong>critical points</strong>. One well-chosen hinge per lesson, sometimes one every few lessons, is the ambition. The Walkthru is not saying "do all of this all the time"; it's saying "when you do check understanding, have the response ready." Most teachers find that once the habit is in, it saves time elsewhere because they stop teaching into a void.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">Doesn't "same goal for all" ignore <em>SEND</em> needs?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          The opposite. Kirsten Mould — SEND specialist — places adaptive teaching at the <strong>heart of high-quality teaching for all</strong>, precisely because it keeps expectations high for SEND pupils and adjusts the route, not the destination. Specific EHCP provision sits alongside this, of course. The old model of "simpler task for the SEND pupil" was well-intentioned but corrosive: it cemented a ceiling. Adaptive teaching is about removing the ceiling while thickening the floor.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">Why can't I just use <em>prior attainment data</em>?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          Prior attainment is useful context but a poor predictor of moment-to-moment understanding. A pupil who aced the last topic may be completely lost in this one; a pupil who struggled last term may be thriving. Decisions based on <strong>live evidence</strong> outperform decisions based on stored assumptions — and they're less vulnerable to bias. Prior attainment tells you where someone <em>has been</em>, not where they <em>are</em>.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">Isn't <em>moving on</em> when they understand sometimes the right call?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          Absolutely, yes. "Move on" is a legitimate Response 3c — it's listed first in the Walkthru for a reason. The point of the slide is just that it's <em>a</em> choice, not the <em>only</em> choice. If you've got time and you've got understanding, there's real value in using that space for transfer and depth. But if curriculum pressure means moving on is right today, that's a responsive decision too.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">What if I <em>freeze</em> in the moment and can't pick a response?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          This is why step one exists. <strong>The prep is the antidote to the freeze.</strong> You're not trying to improvise a whole pedagogical strategy in real time — you're picking between 2-3 pre-loaded options. And if you do freeze, a perfectly legitimate move is to buy time: "right, some of you have this and some don't — take two minutes to explain your thinking to your partner," which also gives you peer-tutoring coverage while you decide. Freezing becomes rarer with practice, and in the meantime, having <em>any</em> "if-then" ready is better than none.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">How does this differ from <em>Wiliam's</em> formative assessment work?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          It builds directly on it. Wiliam's five strategies are the foundation — particularly "engineering effective classroom discussions" and "providing feedback that moves learning forward." The Walkthru you're using today is really the <strong>"what do I do with the evidence"</strong> half of Wiliam's framework, sharpened into a planning and in-lesson tool. Wiliam himself has moved in this direction, advocating that <em>both teachers and learners</em> make the responsive adjustments — which is where Corno's self-regulation endpoint comes in.
+        </div>
+      </div>
+
+      <div class="faq-divider">
+        <span>Trickier challenges</span>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">Isn't this just another <em>CPD fad</em> that will be gone in two years?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          Fair challenge — we've all sat through sessions on strategies that didn't survive the decade. The honest answer is that the <em>label</em> "adaptive teaching" is recent, but the <strong>underlying idea</strong> — check understanding, adjust accordingly — is as old as teaching itself. Socratic questioning, Vygotsky's ZPD, Rosenshine's checking for student understanding, Wiliam's formative assessment — this is all one continuous lineage. What's new is the attempt to make it concrete and teachable through Walkthrus. If the vocabulary changes in five years, the practice underneath it won't.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">I've been teaching for twenty years. Isn't this what <em>good teachers</em> already do?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          Yes — and that's exactly why we're doing it. Experienced teachers do this <em>intuitively</em>, which is brilliant for them but terrible for the profession, because intuition can't be transferred to ECTs or shared across a department. The point of codifying it isn't to patronise people who already do it well. It's so that the next generation of teachers have the vocabulary and structure to learn faster, and so that <strong>what the best teachers do implicitly becomes something we can all do deliberately</strong>. If a session feels like it's teaching you to suck eggs, then it's working — it means you recognise good practice when you see it.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">My subject doesn't have a <em>clean hinge question</em> — how does this apply to me?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          This is the most legitimate subject-specific challenge, and the honest answer varies by subject. In English, the hinge might be a short written response that surfaces a misconception about a text's meaning. In Art, it might be a structured peer critique using specific criteria. In PE, it might be a modelled skill where you observe form in real time. The principle isn't "use a multiple-choice" — it's <strong>elicit evidence from all pupils, quickly, in a way you can analyse</strong>. The MCQ hinge is just the cleanest example. If your subject resists it, your department is the best place to work out the equivalent. Worth a cross-departmental conversation — I'd be interested to compare with Art and Drama especially.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">This feels very <em>behaviourist</em> — what about deeper learning?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          Understandable concern. The Walkthru framing can make it sound reductive — check understanding, deploy response, done. But deep learning and responsive teaching aren't in tension; they're <strong>interdependent</strong>. You can't foster genuine depth if half your class has a fundamental misconception you haven't noticed. Response 3c — extending and deepening when understanding is secure — is <em>where</em> the richer pedagogy happens: elaborative interrogation, transfer to unfamiliar contexts, generating misconceptions. Responsive teaching clears the ground; depth is what you build on it.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">Doesn't this reduce teaching to <em>delivering algorithms</em>?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          The Walkthru looks algorithmic — if X then Y — but the craft sits in the <em>quality</em> of each response, not the logic tree. A weak teacher with a perfect "if-then" structure still delivers weak teaching. The framework gives you a place to put your pedagogical judgement, but it doesn't replace it. Choosing <em>which</em> analogy, <em>which</em> worked example, <em>which</em> back-pocket question — that's where expertise lives, and no framework will ever touch it. Think of it less as an algorithm, more as a <strong>scaffold for professional decision-making</strong>.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">What's the <em>evidence base</em> that this actually works?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          Honest answer: the specific term "responsive teaching" is relatively new (Fletcher-Wood, 2018) so there's no 30-year longitudinal study on it as a labelled practice. But the <strong>components</strong> are some of the most evidenced moves in education: formative assessment (Hattie effect size ~0.7), feedback (~0.7), scaffolding, worked examples, Rosenshine's principles. The EEF's guidance on adaptive teaching draws on this same body of work. What's less well-evidenced is the <em>specific Walkthru format</em> as packaging — but then, that's just a delivery mechanism for practices that are independently well-supported.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">What about the pupil who <em>pretends</em> to understand in the hinge?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          Real issue. Hinges are harder to fake than hands-up questioning but not foolproof — a well-designed multiple-choice can still be guessed. Three mitigations. <strong>Design your distractors carefully</strong>: a good hinge has wrong answers that map to specific misconceptions, so the choice reveals the <em>type</em> of error even if the pupil gets it right. <strong>Use multiple hinges across a topic</strong>, not just one; a pupil who bluffs one will usually slip on another. And <strong>follow up individually</strong> with pupils whose responses don't match their usual pattern. The hinge isn't a polygraph; it's a fast, imperfect signal that beats hoping for the best.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">How do I do this with a class of 30 on a <em>Friday afternoon</em>?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          Pragmatically. Friday afternoon, year 9, damp classroom — nobody's delivering platinum-standard responsive teaching in that slot, and pretending otherwise is how CPD loses credibility. The realistic ambition is: <strong>one hinge, one prepared response, pitched at whatever you think is most likely to be needed</strong>. Even that is more than nothing. The framework is a ceiling to aim at across a half-term of lessons, not a floor you hit every period. Be kind to yourself about which lessons you bring the full toolkit to.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">What if the <em>whole department</em> isn't on board with this?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          Responsive teaching works at the individual classroom level — you can do it in your room without your colleagues doing it in theirs, and your pupils will benefit. That said, it becomes more powerful when a department shares hinge questions and resources, so start small: one colleague, one topic, one shared resource. If you can point to pupils in your class doing better on a given misconception, the culture shifts. <strong>Evidence beats advocacy</strong> for persuading reluctant colleagues — and persuading the whole department isn't your responsibility in a 45-minute INSET. Tend your own garden first.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">Does this approach work for pupils with <em>significant SEMH</em> needs or trauma?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          Responsive teaching is about academic response, but the <em>same principle</em> — observe, adjust, respond in the moment — is core to trauma-informed practice. For SEMH pupils, your "if-then" thinking might sometimes be non-academic: "if this pupil is dysregulated, then this isn't the moment for a hinge question; then my response is regulation first." The Walkthru is built around academic understanding, but the responsive <em>disposition</em> extends naturally. Complex SEMH needs warrant specialist input beyond this framework, and our SENDCo and pastoral teams should always be in the loop.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <div class="faq-question-text">Why are we doing this when we should be talking about <em>[other priority]</em>?</div>
+          <div class="faq-toggle">+</div>
+        </div>
+        <div class="faq-answer">
+          The honest response is that pedagogy, pastoral care, wellbeing, workload, behaviour, assessment — these all deserve attention, and no single INSET can cover all of them. This strand has been this year's focus because we chose one of the three pillars of adaptive teaching per term, which gave us coherence across the year. If this feels like the wrong priority given what's happening in your corridor right now, that's worth raising separately — but it doesn't undermine the value of today's content. <strong>Good responsive teaching supports every other priority</strong>: fewer misconceptions means fewer lost pupils, means fewer behaviour issues, means less marking rework. It's not competing with the other thing you care about; it's upstream of it.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="nav-bar">
+  <div class="nav-hint"><span class="key">←</span> previous</div>
+  <div class="nav-hint">next <span class="key">→</span> <span style="margin-left: 1rem;"><span class="key">T</span> timer</span> <span style="margin-left: 1rem;"><span class="key">J</span> jump</span> <span style="margin-left: 1rem;"><span class="key">F</span> FAQ</span></div>
+</div>
+
+<script>
+  // ---------- Constellation stars ----------
+  (function createStars() {
+    const container = document.getElementById('stars');
+    const count = 80;
+    for (let i = 0; i < count; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      const size = Math.random() * 2 + 0.5;
+      star.style.width = size + 'px';
+      star.style.height = size + 'px';
+      star.style.left = Math.random() * 100 + '%';
+      star.style.top = Math.random() * 100 + '%';
+      star.style.animationDelay = Math.random() * 4 + 's';
+      star.style.animationDuration = (Math.random() * 3 + 3) + 's';
+      container.appendChild(star);
+    }
+  })();
+
+  // ---------- Slide navigation ----------
+  const slides = document.querySelectorAll('.slide');
+  const totalSlides = slides.length;
+  const currentNumEl = document.getElementById('current-num');
+  const totalNumEl = document.getElementById('total-num');
+  let currentSlide = 1;
+
+  totalNumEl.textContent = String(totalSlides).padStart(2, '0');
+
+  // Build progress dots
+  const topBar = document.querySelector('.top-bar');
+  const dotsContainer = document.createElement('div');
+  dotsContainer.className = 'progress-dots';
+  for (let i = 1; i <= totalSlides; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 1 ? ' active' : '');
+    dot.dataset.slide = i;
+    dot.addEventListener('click', () => goToSlide(i));
+    dotsContainer.appendChild(dot);
+  }
+  topBar.insertBefore(dotsContainer, topBar.lastElementChild);
+
+  function goToSlide(n) {
+    if (n < 1 || n > totalSlides) return;
+    slides.forEach(s => s.classList.remove('active'));
+    const target = document.querySelector(`.slide[data-slide="${n}"]`);
+    if (target) target.classList.add('active');
+
+    document.querySelectorAll('.dot').forEach(d => {
+      d.classList.toggle('active', Number(d.dataset.slide) === n);
+    });
+
+    currentSlide = n;
+    currentNumEl.textContent = String(n).padStart(2, '0');
+
+    // Show timer hint if this slide has a timer duration
+    updateTimerForSlide(target);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    const faqOpen = document.getElementById('faq-overlay').classList.contains('open');
+    const jumpOpen = document.getElementById('jump-overlay').classList.contains('open');
+
+    // Modal handling: Esc closes, block other keys
+    if (faqOpen) {
+      if (e.key === 'Escape') { e.preventDefault(); closeFaq(); }
+      return;
+    }
+    if (jumpOpen) {
+      if (e.key === 'Escape') { e.preventDefault(); closeJump(); }
+      // Number keys jump to slide
+      else if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        handleJumpNumber(e.key);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault();
+      goToSlide(currentSlide + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+      e.preventDefault();
+      goToSlide(currentSlide - 1);
+    } else if (e.key === 'Home') {
+      goToSlide(1);
+    } else if (e.key === 'End') {
+      goToSlide(totalSlides);
+    } else if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault();
+      openFaq();
+    } else if (e.key === 't' || e.key === 'T') {
+      e.preventDefault();
+      toggleTimer();
+    } else if (e.key === 'j' || e.key === 'J') {
+      e.preventDefault();
+      openJump();
+    }
+  });
+
+  // ---------- FAQ modal ----------
+  const faqOverlay = document.getElementById('faq-overlay');
+  const faqTrigger = document.getElementById('faq-trigger');
+  const faqClose = document.getElementById('faq-close');
+
+  function openFaq() {
+    faqOverlay.classList.add('open');
+  }
+
+  function closeFaq() {
+    faqOverlay.classList.remove('open');
+    // collapse all open items on close
+    document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+  }
+
+  faqTrigger.addEventListener('click', openFaq);
+  faqClose.addEventListener('click', closeFaq);
+  faqOverlay.addEventListener('click', (e) => {
+    if (e.target === faqOverlay) closeFaq();
+  });
+
+  // Toggle individual FAQ items
+  document.querySelectorAll('.faq-question').forEach(q => {
+    q.addEventListener('click', () => {
+      q.parentElement.classList.toggle('open');
+    });
+  });
+
+  // ---------- Do Now reveal interactions ----------
+  document.querySelectorAll('.do-now-item').forEach(item => {
+    item.addEventListener('click', () => {
+      item.classList.toggle('revealed');
+    });
+  });
+
+  document.getElementById('reveal-all').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const items = document.querySelectorAll('.do-now-item');
+    const allRevealed = Array.from(items).every(i => i.classList.contains('revealed'));
+    items.forEach(item => {
+      item.classList.toggle('revealed', !allRevealed);
+    });
+    e.target.textContent = allRevealed ? 'Reveal all answers' : 'Hide all answers';
+  });
+
+  // ---------- Sort task: cycle markers + check answers ----------
+  const answerLabels = {
+    a: 'misunderstand (✕)',
+    b: 'varied (○)',
+    c: 'understand (✓)'
+  };
+
+  document.querySelectorAll('.sort-card').forEach(card => {
+    const marker = card.querySelector('.sort-marker');
+    card.addEventListener('click', () => {
+      // If in check mode, clicking resets that card's check state
+      if (card.classList.contains('correct') || card.classList.contains('incorrect')) {
+        card.classList.remove('correct', 'incorrect');
+      }
+      if (card.classList.contains('marked-a')) {
+        card.classList.remove('marked-a');
+        card.classList.add('marked-b');
+        marker.textContent = '○';
+      } else if (card.classList.contains('marked-b')) {
+        card.classList.remove('marked-b');
+        card.classList.add('marked-c');
+        marker.textContent = '✓';
+      } else if (card.classList.contains('marked-c')) {
+        card.classList.remove('marked-c');
+        marker.textContent = '';
+      } else {
+        card.classList.add('marked-a');
+        marker.textContent = '✕';
+      }
+    });
+  });
+
+  document.getElementById('sort-check').addEventListener('click', () => {
+    const cards = document.querySelectorAll('.sort-card');
+    let correct = 0;
+    let attempted = 0;
+    cards.forEach(card => {
+      const answer = card.dataset.answer;
+      const userMark = card.classList.contains('marked-a') ? 'a'
+                      : card.classList.contains('marked-b') ? 'b'
+                      : card.classList.contains('marked-c') ? 'c'
+                      : null;
+      const hint = card.querySelector('.answer-hint');
+      const badge = card.querySelector('.correct-badge');
+
+      card.classList.remove('correct', 'incorrect');
+      if (userMark === null) {
+        hint.textContent = 'answer: ' + answerLabels[answer];
+        return;
+      }
+      attempted++;
+      if (userMark === answer) {
+        card.classList.add('correct');
+        badge.textContent = '✓';
+        correct++;
+      } else {
+        card.classList.add('incorrect');
+        badge.textContent = '✕';
+        hint.textContent = 'correct: ' + answerLabels[answer];
+      }
+    });
+    const score = document.getElementById('sort-score');
+    const scoreNum = document.getElementById('sort-score-num');
+    scoreNum.textContent = `${correct} / ${cards.length}`;
+    score.classList.add('show');
+  });
+
+  document.getElementById('sort-reset').addEventListener('click', () => {
+    document.querySelectorAll('.sort-card').forEach(card => {
+      card.classList.remove('marked-a', 'marked-b', 'marked-c', 'correct', 'incorrect');
+      card.querySelector('.sort-marker').textContent = '';
+      card.querySelector('.correct-badge').textContent = '';
+      card.querySelector('.answer-hint').textContent = '';
+    });
+    document.getElementById('sort-score').classList.remove('show');
+  });
+
+  // ---------- Timer ----------
+  const timerEl = document.getElementById('timer');
+  const timerHintEl = document.getElementById('timer-hint');
+  const timerDisplay = document.getElementById('timer-display');
+  const timerToggle = document.getElementById('timer-toggle');
+  const timerReset = document.getElementById('timer-reset');
+  const timerClose = document.getElementById('timer-close');
+
+  let timerInterval = null;
+  let timerRemaining = 300;
+  let timerTotal = 300;
+  let timerRunning = false;
+
+  function formatTime(seconds) {
+    const m = Math.floor(Math.abs(seconds) / 60);
+    const s = Math.abs(seconds) % 60;
+    const prefix = seconds < 0 ? '-' : '';
+    return `${prefix}${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  function renderTimer() {
+    timerDisplay.textContent = formatTime(timerRemaining);
+    timerEl.classList.remove('warning', 'critical', 'finished');
+    if (timerRemaining <= 0) {
+      timerEl.classList.add('finished');
+    } else if (timerRemaining <= 15) {
+      timerEl.classList.add('critical');
+    } else if (timerRemaining <= 60) {
+      timerEl.classList.add('warning');
+    }
+  }
+
+  function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerRunning = true;
+    timerToggle.textContent = 'Pause';
+    timerInterval = setInterval(() => {
+      timerRemaining--;
+      renderTimer();
+      if (timerRemaining === 0) {
+        // gentle visual signal at zero
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.frequency.value = 880;
+          g.gain.setValueAtTime(0.15, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+          o.start(); o.stop(ctx.currentTime + 0.4);
+        } catch (e) { /* silent if audio blocked */ }
+      }
+    }, 1000);
+  }
+
+  function pauseTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = null;
+    timerRunning = false;
+    timerToggle.textContent = 'Resume';
+  }
+
+  function resetTimer() {
+    pauseTimer();
+    timerRemaining = timerTotal;
+    timerToggle.textContent = 'Start';
+    renderTimer();
+  }
+
+  function toggleTimer() {
+    const activeSlide = document.querySelector('.slide.active');
+    const durAttr = activeSlide?.dataset.timerSeconds;
+
+    // If we're on a slide with no timer set and timer not visible, nothing to do
+    if (!durAttr && !timerEl.classList.contains('visible')) return;
+
+    // Show timer if hidden
+    if (!timerEl.classList.contains('visible')) {
+      const duration = parseInt(durAttr, 10);
+      timerTotal = duration;
+      timerRemaining = duration;
+      renderTimer();
+      timerEl.classList.add('visible');
+      timerHintEl.classList.remove('visible');
+      startTimer();
+      return;
+    }
+
+    // Otherwise toggle pause/resume
+    if (timerRunning) pauseTimer();
+    else startTimer();
+  }
+
+  function updateTimerForSlide(slideEl) {
+    if (!slideEl) return;
+    const durAttr = slideEl.dataset.timerSeconds;
+    if (durAttr) {
+      // Task slide: show hint if timer isn't already running
+      if (!timerEl.classList.contains('visible')) {
+        const duration = parseInt(durAttr, 10);
+        timerTotal = duration;
+        timerRemaining = duration;
+        renderTimer();
+        timerHintEl.classList.add('visible');
+      }
+    } else {
+      // Non-task slide: hide the hint (timer itself stays visible if running)
+      timerHintEl.classList.remove('visible');
+    }
+  }
+
+  timerToggle.addEventListener('click', () => {
+    if (timerRunning) pauseTimer();
+    else startTimer();
+  });
+  timerReset.addEventListener('click', resetTimer);
+  timerClose.addEventListener('click', () => {
+    pauseTimer();
+    timerEl.classList.remove('visible');
+    // Re-show hint if we're on a task slide
+    const active = document.querySelector('.slide.active');
+    if (active?.dataset.timerSeconds) timerHintEl.classList.add('visible');
+  });
+  timerHintEl.addEventListener('click', toggleTimer);
+
+  // Initialise hint for starting slide (won't show on slide 1 — no timer)
+  updateTimerForSlide(document.querySelector('.slide.active'));
+
+  // ---------- Jump menu ----------
+  const jumpOverlay = document.getElementById('jump-overlay');
+  const jumpBody = document.getElementById('jump-body');
+
+  function buildJumpMenu() {
+    jumpBody.innerHTML = '';
+    slides.forEach(slide => {
+      const n = Number(slide.dataset.slide);
+      const label = slide.dataset.shortLabel || `Slide ${n}`;
+      const skippable = slide.dataset.skippable === 'true';
+      const item = document.createElement('div');
+      item.className = 'jump-item' + (skippable ? ' skippable' : '') + (n === currentSlide ? ' current' : '');
+      item.innerHTML = `
+        <span class="jump-num">${String(n).padStart(2, '0')}</span>
+        <span class="jump-label">${label}</span>
+        ${skippable ? '<span class="jump-badge">skip ok</span>' : ''}
+      `;
+      item.addEventListener('click', () => {
+        goToSlide(n);
+        closeJump();
+      });
+      jumpBody.appendChild(item);
+    });
+  }
+
+  function openJump() {
+    buildJumpMenu();
+    jumpOverlay.classList.add('open');
+  }
+
+  function closeJump() {
+    jumpOverlay.classList.remove('open');
+  }
+
+  jumpOverlay.addEventListener('click', (e) => {
+    if (e.target === jumpOverlay) closeJump();
+  });
+
+  // Number-key navigation while jump menu is open (two-digit buffer)
+  let jumpBuffer = '';
+  let jumpBufferTimer = null;
+
+  function handleJumpNumber(digit) {
+    jumpBuffer += digit;
+    clearTimeout(jumpBufferTimer);
+
+    const parsed = parseInt(jumpBuffer, 10);
+    // If buffer is 2 digits or parsing 1 digit more would exceed total, commit now
+    if (jumpBuffer.length === 2 || parsed * 10 > totalSlides) {
+      if (parsed >= 1 && parsed <= totalSlides) {
+        goToSlide(parsed);
+        closeJump();
+      }
+      jumpBuffer = '';
+    } else {
+      // Wait briefly for a second digit
+      jumpBufferTimer = setTimeout(() => {
+        if (parsed >= 1 && parsed <= totalSlides) {
+          goToSlide(parsed);
+          closeJump();
+        }
+        jumpBuffer = '';
+      }, 500);
+    }
+  }
+</script>
+
+</body>
+</html>
