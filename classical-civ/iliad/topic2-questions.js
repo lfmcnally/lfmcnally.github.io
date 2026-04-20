@@ -187,6 +187,174 @@ window.quizData = {
     },
     '3': {
         title: "Book 3",
-        questions: []
+        questions: [
+            {
+                question: "How are the two armies contrasted as they advance on each other at the start of Book 3?",
+                modelAnswer: "The Trojans advance with a great clamour and din, \"like cranes\" whose cries fill the sky as they fly towards the streams of Ocean. The Greeks, by contrast, come on in complete silence, breathing fury, each man determined to stand by his comrade. The effect is to make the Greeks look disciplined and formidable beside the noisy Trojans.",
+                keyPoints: [
+                    "Trojans compared to clamouring cranes",
+                    "Cranes fly towards the streams of Ocean",
+                    "Greeks advance in complete silence",
+                    "Greeks breathe fury and stand by one another",
+                    "Simile contrasts noise with discipline"
+                ]
+            },
+            {
+                question: "How is Paris introduced, and what challenge does he issue?",
+                modelAnswer: "Paris (also called Alexander) steps out in front of the Trojan lines wearing a panther skin, with a bow, sword and two spears, and calls on the best of the Greeks to fight him in single combat. He is described as \"godlike\" in looks, a glamorous figure designed to impress. His challenge is meant to be a grand heroic gesture.",
+                keyPoints: [
+                    "Paris / Alexander steps out as the Trojan champion",
+                    "Wears a panther skin",
+                    "Carries a bow, sword and two spears",
+                    "Challenges the best of the Greeks to single combat",
+                    "Described as godlike in appearance"
+                ]
+            },
+            {
+                question: "How does Paris react when Menelaus accepts his challenge, and what does Hector say to him?",
+                modelAnswer: "When Menelaus leaps down from his chariot, delighted at the chance to punish the man who stole his wife, Paris's heart fails him and he shrinks back into the Trojan ranks \"like a man who has seen a snake\". Hector rebukes him furiously, calling him \"Paris, evil Paris, handsome, woman-mad, seducer\" and says he is a disgrace who is only good-looking and no fighter — the Trojans would have stoned him long ago if they had any courage.",
+                keyPoints: [
+                    "Menelaus leaps from his chariot, eager to fight",
+                    "Paris shrinks back in fear, like a man seeing a snake",
+                    "Hector rebukes him harshly",
+                    "Calls him handsome but cowardly, a seducer",
+                    "Says the Trojans should have stoned him"
+                ]
+            },
+            {
+                question: "How does Paris answer Hector's rebuke, and what does he propose?",
+                modelAnswer: "Paris accepts the rebuke as justified and admits his brother's heart is like an unwearying axe. He defends his looks as gifts from Aphrodite that should not be despised, but then offers to fight Menelaus in single combat for Helen and all her possessions. Whoever wins takes Helen and her treasure, and both sides will swear oaths of friendship so the war can end.",
+                keyPoints: [
+                    "Accepts Hector's rebuke as fair",
+                    "Defends Aphrodite's gifts of beauty",
+                    "Proposes single combat with Menelaus",
+                    "The winner takes Helen and her possessions",
+                    "Both sides to swear oaths and end the war"
+                ]
+            },
+            {
+                question: "Who is Iris sent to, and what is Helen doing when she arrives?",
+                modelAnswer: "Iris, disguised as Helen's sister-in-law Laodice, is sent by the gods to fetch Helen to the walls. She finds Helen in her chamber weaving a great purple robe, into which she is working scenes of the battles the Trojans and Greeks are fighting over her. Iris tells her of the proposed duel between Paris and Menelaus, and fills her with a sweet longing for her former husband, her parents and her city.",
+                keyPoints: [
+                    "Iris disguised as Laodice, Helen's sister-in-law",
+                    "Helen is weaving in her chamber",
+                    "The robe shows scenes of the battles fought over her",
+                    "Iris announces the duel between Paris and Menelaus",
+                    "Iris stirs longing for her first husband and home"
+                ]
+            },
+            {
+                question: "Who are the Trojan elders on the walls, and how do they react to Helen?",
+                modelAnswer: "Priam is seated at the Scaean Gate with a group of old Trojan counsellors — men like Panthoos, Thymoetes, Lampos and Antenor — who are too old to fight but fine speakers, compared to cicadas chirping in a tree. When they see Helen coming, they quietly agree that it is no wonder Greeks and Trojans have suffered so long for such a woman, who looks terrifyingly like an immortal goddess — but they still say she should be sent home before she destroys them.",
+                keyPoints: [
+                    "Priam and the elders sit by the Scaean Gate",
+                    "Named elders include Panthoos, Thymoetes, Lampos, Antenor",
+                    "Compared to cicadas chirping on a tree",
+                    "Say Helen is terribly like an immortal goddess",
+                    "Still conclude she should be sent back to Greece"
+                ]
+            },
+            {
+                question: "What is the \"teichoskopia\", and which Greek leader does Priam ask Helen to identify first?",
+                modelAnswer: "The teichoskopia is the \"view from the walls\" — the scene in which Priam sits with Helen on the tower above the Scaean Gate and asks her to point out the leading Greek warriors in the plain below. He asks first about a tall, noble-looking man who stands out like a king — Helen identifies him as Agamemnon, son of Atreus, the great king of Mycenae, and calls him her brother-in-law, shaming herself for having left him.",
+                keyPoints: [
+                    "Teichoskopia = viewing from the walls",
+                    "Priam sits with Helen above the Scaean Gate",
+                    "First figure pointed out is Agamemnon",
+                    "Described as a kingly, broad-shouldered man",
+                    "Helen calls him her brother-in-law and blames herself"
+                ]
+            },
+            {
+                question: "How does Helen describe Odysseus to Priam, and what does Antenor add?",
+                modelAnswer: "Helen points out Odysseus as a man shorter than Agamemnon but broader in the chest, who strides up and down the ranks like a ram among sheep. She says he is the clever son of Laertes from rocky Ithaca, a man of many stratagems. Antenor confirms this, remembering how Odysseus once came to Troy as an ambassador with Menelaus: standing he looked unimpressive, but when he spoke his words fell like winter snowflakes and no man could match him.",
+                keyPoints: [
+                    "Odysseus is shorter but broader than Agamemnon",
+                    "Paces the ranks like a ram among sheep",
+                    "Son of Laertes, from rocky Ithaca, known for cunning",
+                    "Antenor recalls him as an ambassador to Troy",
+                    "His words fell \"like winter snowflakes\""
+                ]
+            },
+            {
+                question: "Which other Greek leaders does Helen name from the walls?",
+                modelAnswer: "Helen also picks out \"huge Ajax\", the bulwark of the Achaeans, who stands head and shoulders above the rest, and Idomeneus, the Cretan leader, whom she says often stayed in their house in Sparta and was entertained by Menelaus. She then looks for her own two brothers, Castor and Polydeuces, but cannot see them and assumes they chose to stay away out of shame — unaware that they are already dead and buried in Lacedaemon.",
+                keyPoints: [
+                    "Ajax, huge and a bulwark of the Greeks",
+                    "Idomeneus, the Cretan, often a guest in Sparta",
+                    "Looks for her brothers Castor and Polydeuces",
+                    "Cannot see them, assumes shame kept them away",
+                    "Narrator reveals they are already dead in Lacedaemon"
+                ]
+            },
+            {
+                question: "How are the oaths for the duel sworn, and by whom?",
+                modelAnswer: "Heralds bring two lambs and wine, and Priam is fetched down from Troy in a chariot with Antenor because the Trojans will not trust their younger men to swear. On the battlefield Agamemnon cuts hairs from the lambs' heads, prays to Zeus, Helios, the rivers and the underworld powers, and cuts the lambs' throats. Both sides pour wine and pray that whoever breaks the oaths will have their brains poured out like the wine. Priam, unable to bear watching his son fight, then rides back to Troy.",
+                keyPoints: [
+                    "Two lambs and wine are brought for the oath",
+                    "Priam summoned down from Troy with Antenor",
+                    "Agamemnon cuts hairs from the lambs and prays to Zeus and other gods",
+                    "Lambs' throats cut; wine poured as a curse on oath-breakers",
+                    "Priam cannot bear to watch and returns to Troy"
+                ]
+            },
+            {
+                question: "How is the duel between Paris and Menelaus arranged and fought?",
+                modelAnswer: "Hector and Odysseus measure out the ground and shake lots in a helmet to decide who throws first; Paris's lot leaps out. Paris throws his spear first but it is blunted on Menelaus's shield. Menelaus's spear pierces Paris's shield, corselet and tunic but only grazes his side. Menelaus then draws his sword and strikes Paris's helmet, but the sword shatters in his hand; he finally seizes Paris by the horsehair crest of his helmet and drags him towards the Greek lines, choking him with the chinstrap.",
+                keyPoints: [
+                    "Hector and Odysseus measure the ground and draw lots",
+                    "Paris's lot leaps out; he throws first",
+                    "Paris's spear is blunted on Menelaus's shield",
+                    "Menelaus's spear grazes Paris's side",
+                    "Menelaus's sword shatters on Paris's helmet",
+                    "Drags Paris by the helmet strap towards the Greeks"
+                ]
+            },
+            {
+                question: "How is Paris rescued from Menelaus, and where does he end up?",
+                modelAnswer: "Just as Menelaus is about to drag Paris to his death, Aphrodite breaks the chinstrap of his helmet — so that Menelaus is left clutching an empty helmet — and whisks Paris away wrapped in a thick mist. She sets him down safely in his own fragrant, perfumed bedroom in Troy, leaving Menelaus raging up and down the battlefield looking for him in vain.",
+                keyPoints: [
+                    "Aphrodite intervenes to save Paris",
+                    "Breaks the oxhide chinstrap of his helmet",
+                    "Menelaus is left holding an empty helmet",
+                    "Aphrodite hides Paris in a thick mist",
+                    "Sets him down in his own scented bedroom in Troy"
+                ]
+            },
+            {
+                question: "How does Aphrodite fetch Helen, and how does Helen first respond?",
+                modelAnswer: "Aphrodite, disguised as an old wool-working woman from Sparta, goes to Helen on the walls and tells her Paris is waiting for her in the bedroom, looking as beautiful as if he had been at a dance. Helen sees through the disguise — recognising the goddess's lovely throat, breasts and shining eyes — and answers angrily, telling Aphrodite to go and be Paris's wife herself, or his slave, but to stop dragging her around. Aphrodite furiously threatens to abandon her and make both Greeks and Trojans hate her, and Helen, terrified, obeys.",
+                keyPoints: [
+                    "Aphrodite disguises herself as an old wool-worker",
+                    "Tells Helen that Paris is waiting in the bedroom",
+                    "Helen recognises the goddess by her throat, breasts and eyes",
+                    "Helen refuses and tells Aphrodite to go to Paris herself",
+                    "Aphrodite threatens to hate her; Helen gives in in fear"
+                ]
+            },
+            {
+                question: "What passes between Helen and Paris in the bedroom scene?",
+                modelAnswer: "Veiled and led by Aphrodite, Helen goes to Paris and taunts him bitterly, saying he has come back from battle and she wishes he had been killed by the better man who was once her husband. Paris answers mildly, admitting Menelaus won this time with Athena's help, but saying he will beat him next time — and that right now he is overcome with desire for her, more even than on the day he first carried her off from Lacedaemon. He leads her to the bed and she follows, and they lie down together.",
+                keyPoints: [
+                    "Helen taunts Paris, wishing he had been killed",
+                    "Says Menelaus was the better man, her former husband",
+                    "Paris blames Athena's help, not his own weakness",
+                    "Claims he desires her more than when he first took her",
+                    "They go to bed together while the battle rages"
+                ]
+            },
+            {
+                question: "How does Book 3 end, and what does Agamemnon declare?",
+                modelAnswer: "While Paris and Helen are in bed, Menelaus is still prowling the battlefield looking for his rival, but no Trojan will point him out because they all hate Paris. Agamemnon then speaks out to both armies and formally declares victory for Menelaus, demanding that the Trojans now hand over Helen and her possessions and pay a fitting recompense, as the oaths require. The Greeks shout in agreement, and the book ends with the duel's outcome apparently settled — though the war is in fact about to restart.",
+                keyPoints: [
+                    "Menelaus hunts for Paris on the battlefield",
+                    "No Trojan will reveal Paris because they hate him",
+                    "Agamemnon speaks formally to both armies",
+                    "Declares Menelaus the winner of the duel",
+                    "Demands Helen, her possessions and recompense",
+                    "Greeks shout approval"
+                ]
+            }
+        ]
     }
 };
