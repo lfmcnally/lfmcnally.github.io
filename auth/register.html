@@ -264,6 +264,8 @@
     <script src="config.js"></script>
     <!-- Load our authentication functions -->
     <script src="auth.js"></script>
+    <!-- Shared school-name matcher to catch near-duplicates -->
+    <script src="../shared/school-matcher.js"></script>
     
     <script>
         // ============================================
@@ -309,7 +311,10 @@
             this.setSelectionRange(pos, pos);
         });
 
-        // Load existing school names for autocomplete
+        // Cached list of existing school names, used for both autocomplete
+        // and for detecting near-duplicates at submit time.
+        let existingSchools = [];
+
         async function loadSchoolSuggestions() {
             try {
                 const { data: users } = await supabase
@@ -318,10 +323,10 @@
                     .not('school', 'is', null);
 
                 if (!users) return;
-                const unique = [...new Set(users.map(u => u.school.trim()).filter(Boolean))];
-                unique.sort();
+                existingSchools = [...new Set(users.map(u => u.school.trim()).filter(Boolean))];
+                existingSchools.sort();
                 const datalist = document.getElementById('schoolSuggestions');
-                datalist.innerHTML = unique.map(s => '<option value="' + s + '">').join('');
+                datalist.innerHTML = existingSchools.map(s => '<option value="' + s + '">').join('');
             } catch (e) {
                 // Non-critical, silently fail
             }
@@ -342,8 +347,14 @@
             const fullName = document.getElementById('fullName').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const school = document.getElementById('school').value;
+            let school = document.getElementById('school').value.trim();
             const role = document.querySelector('input[name="role"]:checked').value;
+
+            // Catch near-duplicate spellings before we save a brand-new entry
+            if (school && window.SchoolMatcher) {
+                school = window.SchoolMatcher.resolveSchoolChoice(school, existingSchools);
+                document.getElementById('school').value = school;
+            }
 
             // Disable the button while we're registering
             submitBtn.disabled = true;

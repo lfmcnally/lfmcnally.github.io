@@ -200,6 +200,7 @@
 
     <script src="../auth/config.js"></script>
     <script src="../shared/xp-system.js"></script>
+    <script src="../shared/school-matcher.js"></script>
     <script>
         let currentUser = null;
         let userClasses = [];
@@ -494,7 +495,20 @@
         }
 
         // School prompt modal
-        function showSchoolPrompt(userId) {
+        async function showSchoolPrompt(userId) {
+            // Pull existing school list first so we can offer autocomplete
+            // and catch near-duplicates before saving a new one.
+            let existingSchools = [];
+            try {
+                const { data: users } = await supabase
+                    .from('users')
+                    .select('school')
+                    .not('school', 'is', null);
+                if (users) {
+                    existingSchools = [...new Set(users.map(u => u.school.trim()).filter(Boolean))].sort();
+                }
+            } catch (e) { /* non-critical */ }
+
             const overlay = document.createElement('div');
             overlay.className = 'modal-overlay';
             overlay.style.display = 'flex';
@@ -503,7 +517,10 @@
                     <h3 style="margin-bottom: 0.5rem;">What school are you from?</h3>
                     <p class="text-muted" style="font-size: 14px; margin-bottom: 1.25rem;">This helps us understand how Classicalia is being used across schools.</p>
                     <div class="form-group" style="margin-bottom: 1rem;">
-                        <input type="text" id="schoolPromptInput" class="form-input" placeholder="Enter your school name">
+                        <input type="text" id="schoolPromptInput" class="form-input" placeholder="Enter your school name" list="schoolPromptSuggestions" autocomplete="off">
+                        <datalist id="schoolPromptSuggestions">
+                            ${existingSchools.map(s => '<option value="' + s.replace(/"/g, '&quot;') + '">').join('')}
+                        </datalist>
                     </div>
                     <button id="schoolPromptBtn" class="btn btn-primary" style="width: 100%;">Save</button>
                     <p id="schoolPromptError" style="color: var(--g-red); font-size: 13px; margin-top: 0.5rem; display: none;"></p>
@@ -511,13 +528,25 @@
             `;
             document.body.appendChild(overlay);
 
+            // Title-case the school name as the student types
+            const input = document.getElementById('schoolPromptInput');
+            input.addEventListener('input', function () {
+                const pos = this.selectionStart;
+                this.value = this.value.replace(/\b\w/g, c => c.toUpperCase());
+                this.setSelectionRange(pos, pos);
+            });
+
             document.getElementById('schoolPromptBtn').addEventListener('click', async () => {
-                const school = document.getElementById('schoolPromptInput').value.trim();
+                let school = input.value.trim();
                 if (!school) {
                     const errEl = document.getElementById('schoolPromptError');
                     errEl.textContent = 'Please enter your school name';
                     errEl.style.display = 'block';
                     return;
+                }
+                if (window.SchoolMatcher) {
+                    school = window.SchoolMatcher.resolveSchoolChoice(school, existingSchools);
+                    input.value = school;
                 }
                 const { error } = await supabase.from('users').update({ school }).eq('id', userId);
                 if (error) {

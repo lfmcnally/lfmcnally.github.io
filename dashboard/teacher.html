@@ -266,8 +266,10 @@
     </div>
 
     <script src="../auth/config.js"></script>
+    <script src="../shared/school-matcher.js"></script>
     <script>
         let currentUser = null;
+        let existingSchools = [];
         let classes = [];
         let classAtRiskCounts = {};  // classId -> count of at-risk students
         let classAvgScores = {};     // classId -> average score or null
@@ -351,15 +353,16 @@
                 document.getElementById('adminLink').style.display = '';
             }
 
+            // Load school suggestions first so the prompt can warn about
+            // near-duplicate spellings even on first open.
+            await loadSchoolSuggestions();
+
             // Load school name if set, or prompt for it
             if (profile.school) {
                 document.getElementById('schoolInput').value = profile.school;
             } else {
                 showSchoolPrompt(currentUser.id);
             }
-
-            // Load school suggestions for autocomplete
-            await loadSchoolSuggestions();
 
             // Migrate old class types before loading
             await migrateClassTypes();
@@ -760,11 +763,11 @@
                     .not('school', 'is', null);
 
                 if (!users) return;
-                const unique = [...new Set(users.map(u => u.school.trim()).filter(Boolean))];
-                unique.sort();
+                existingSchools = [...new Set(users.map(u => u.school.trim()).filter(Boolean))];
+                existingSchools.sort();
                 const datalist = document.getElementById('schoolSuggestions');
-                datalist.innerHTML = unique.map(s => '<option value="' + s + '">').join('');
-                return unique;
+                datalist.innerHTML = existingSchools.map(s => '<option value="' + s + '">').join('');
+                return existingSchools;
             } catch (e) {
                 return [];
             }
@@ -772,8 +775,13 @@
 
         // Save school
         async function saveSchool() {
-            const school = document.getElementById('schoolInput').value.trim();
+            let school = document.getElementById('schoolInput').value.trim();
             const messageDiv = document.getElementById('schoolMessage');
+
+            if (school && window.SchoolMatcher) {
+                school = window.SchoolMatcher.resolveSchoolChoice(school, existingSchools);
+                document.getElementById('schoolInput').value = school;
+            }
 
             const { error } = await supabase
                 .from('users')
@@ -833,12 +841,16 @@
             });
 
             document.getElementById('schoolPromptBtn').addEventListener('click', async () => {
-                const school = document.getElementById('schoolPromptInput').value.trim();
+                let school = document.getElementById('schoolPromptInput').value.trim();
                 if (!school) {
                     const errEl = document.getElementById('schoolPromptError');
                     errEl.textContent = 'Please enter your school name';
                     errEl.style.display = 'block';
                     return;
+                }
+                if (window.SchoolMatcher) {
+                    school = window.SchoolMatcher.resolveSchoolChoice(school, existingSchools);
+                    document.getElementById('schoolPromptInput').value = school;
                 }
                 const { error } = await supabase.from('users').update({ school }).eq('id', userId);
                 if (error) {
