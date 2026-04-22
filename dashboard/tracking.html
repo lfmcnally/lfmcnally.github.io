@@ -1268,7 +1268,25 @@ async function sendHw(){const sel=(hwTab==='civ'?'#c-classes':'#v-classes');cons
     title=chStr+' '+wordRange+' ('+(parseInt(to)-parseInt(fr)+1)+' words)';
     const fr0=parseInt(fr)-1, to0=parseInt(to)-1;
     cp='vocab?fromChapter='+chF+'&toChapter='+chT+'&from='+fr0+'&to='+to0;}else{const key='civ-'+civCourse;const tops=CIV_TOPICS[key]||[];const tn=civTopic!=null&&tops[civTopic]?tops[civTopic].name:'Topic';const slug=civTopic!=null&&tops[civTopic]?tops[civTopic].slug:'topic';const fr=document.getElementById('c-from').value,to=document.getElementById('c-to').value;title=civCourse.toUpperCase()+' '+tn+' Q'+fr+'–'+to;cp='civ?course='+civCourse+'&topic='+slug+'&from='+fr+'&to='+to;}
-  for(const cid of cids){const {data:task}=await supabase.from('tasks').insert({class_id:cid,title,type:hwTab==='civ'?'classics':'vocab',content_path:cp,due_date:dd?dd.toISOString():null}).select().single();if(task){const {data:members}=await supabase.from('class_members').select('student_id').eq('class_id',cid);if(members&&members.length)await supabase.from('task_attempts').insert(members.map(m=>({task_id:task.id,student_id:m.student_id,started_at:new Date().toISOString()})));}}
+  const failures=[];let createdAny=false;
+  for(const cid of cids){
+    const {data:task,error}=await supabase.from('tasks').insert({class_id:cid,title,type:hwTab==='civ'?'classics':'vocab',content_path:cp,due_date:dd?dd.toISOString():null}).select().single();
+    if(error||!task){
+      const clsName=(teacherClasses.find(c=>c.id===cid)||{}).name||cid;
+      failures.push(clsName+': '+(error&&error.message?error.message:'no row returned (likely an RLS policy blocking INSERT or SELECT on the tasks table)'));
+      console.error('Task insert failed for class',cid,error);
+      continue;
+    }
+    createdAny=true;
+    const {data:members,error:mErr}=await supabase.from('class_members').select('student_id').eq('class_id',cid);
+    if(mErr) console.error('class_members query failed',mErr);
+    if(members&&members.length){
+      const {error:aErr}=await supabase.from('task_attempts').insert(members.map(m=>({task_id:task.id,student_id:m.student_id,started_at:new Date().toISOString()})));
+      if(aErr) console.error('task_attempts insert failed',aErr);
+    }
+  }
+  if(failures.length) alert('Could not create homework for:\n\n'+failures.join('\n')+'\n\nOpen the browser console for details.');
+  if(!createdAny) return;
   document.getElementById('hw-main').style.display='none';document.getElementById('hw-confirm-sub').textContent=title+'\n'+ac.map(b=>b.textContent).join(', ')+' · due '+fmtDue(due);document.getElementById('hw-confirm').classList.add('show');
   if(currCls&&cids.includes(currCls.id)) loadClass(currCls.id);
 }
