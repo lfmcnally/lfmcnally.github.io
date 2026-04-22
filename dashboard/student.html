@@ -906,10 +906,11 @@
             const twoWeeksAgo = new Date();
             twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
+            // Fetch tasks in the recent/upcoming window OR with no deadline (due_date IS NULL)
             const { data: tasks } = await supabase
                 .from('tasks').select('*').eq('class_id', currentClassId)
-                .gte('due_date', twoWeeksAgo.toISOString())
-                .order('due_date', { ascending: true });
+                .or(`due_date.gte.${twoWeeksAgo.toISOString()},due_date.is.null`)
+                .order('due_date', { ascending: true, nullsFirst: false });
 
             if (!tasks || tasks.length === 0) {
                 container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#127881;</div><p class="empty-state-text">No upcoming tasks!</p></div>';
@@ -918,25 +919,27 @@
 
             const completedTaskIds = new Set(attempts.filter(a => a.completed_at).map(a => a.task_id));
 
-            // Filter: show upcoming (not yet due) + recently overdue uncompleted
+            // Filter: show upcoming + recently overdue/completed + no-deadline (until completed)
             const displayTasks = tasks.filter(t => {
-                const due = new Date(t.due_date);
                 const isCompleted = completedTaskIds.has(t.id);
-                if (due >= now) return true; // upcoming
-                if (!isCompleted && due >= twoWeeksAgo) return true; // overdue but recent
-                if (isCompleted && due >= twoWeeksAgo) return true; // recently completed
+                if (!t.due_date) return !isCompleted;
+                const due = new Date(t.due_date);
+                if (due >= now) return true;
+                if (due >= twoWeeksAgo) return true;
                 return false;
             }).slice(0, 10);
 
             container.innerHTML = '<ul class="task-list">' + displayTasks.map(task => {
-                const due = new Date(task.due_date);
-                const daysUntil = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+                const due = task.due_date ? new Date(task.due_date) : null;
+                const daysUntil = due ? Math.ceil((due - now) / (1000 * 60 * 60 * 24)) : null;
                 const isCompleted = completedTaskIds.has(task.id);
-                const isOverdue = due < now && !isCompleted;
+                const isOverdue = due && due < now && !isCompleted;
 
                 let chipClass, chipText, statusClass;
                 if (isCompleted) {
                     chipClass = 'completed'; chipText = 'Done'; statusClass = 'completed';
+                } else if (!due) {
+                    chipClass = 'upcoming'; chipText = 'No deadline'; statusClass = '';
                 } else if (isOverdue) {
                     chipClass = 'overdue'; chipText = 'Overdue'; statusClass = 'overdue';
                 } else if (daysUntil === 0) {
