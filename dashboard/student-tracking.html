@@ -338,13 +338,21 @@ async function showClass(classId){
       const cp=t.content_path||'';
       let practiceUrl='';
       if(cp.startsWith('vocab?')){
-        // Determine practice page from list param
-        const isPrep=cp.includes('list=prep');
-        const isGreek=cls.type&&cls.type.includes('greek');
-        const practicePage=isPrep?'/latin/prep-vocabulary-practice.html':isGreek?'/greek/vocabulary-practice.html':'/latin/vocabulary-practice.html';
-        practiceUrl=practicePage+'?'+cp.replace('vocab?','')+'&task_id='+t.id;
+        const type=cls.type||'';
+        const isGreek=type.includes('greek');
+        const isPrep=type==='latin-prep'||type==='prep-latin';
+        const isAlevel=type.includes('alevel');
+        let params=cp.replace('vocab?','');
+        if(isAlevel) params=params.replace(/(^|&)fromChapter=/,'$1fromLetter=').replace(/(^|&)toChapter=/,'$1toLetter=');
+        let practicePage;
+        if(isPrep) practicePage='/latin/prep-vocabulary-practice.html';
+        else if(isGreek&&isAlevel) practicePage='/greek/a-level-vocabulary-practice.html';
+        else if(isGreek) practicePage='/greek/vocabulary-practice.html';
+        else if(isAlevel) practicePage='/latin/a-level-vocabulary-practice.html';
+        else practicePage='/latin/vocabulary-practice.html';
+        practiceUrl=practicePage+'?'+params+'&task_id='+t.id;
       }else if(cp.startsWith('civ?')){
-        practiceUrl=''; // civ tester not built yet
+        practiceUrl='/classics/quiz.html?'+cp.replace('civ?','')+'&task_id='+t.id;
       }else if(cp){
         practiceUrl=cp+(cp.includes('?')?'&':'?')+'task_id='+t.id;
       }
