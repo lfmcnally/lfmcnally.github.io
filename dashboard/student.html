@@ -667,6 +667,42 @@
             return '../classics/quiz.html';
         }
 
+        // Build practice URL(s) from a task's shortform content_path (e.g. "vocab?fromChapter=2&toChapter=4&from=0&to=59")
+        function buildTaskUrls(task, cls) {
+            const cp = task.content_path || '';
+            const type = (cls && cls.type) || '';
+            const isGreek = type.includes('greek');
+            const isPrep = type === 'latin-prep' || type === 'prep-latin';
+            const isAlevel = type.includes('alevel');
+            const out = { isVocab: false, isCiv: false, practice: '', lcwc: '' };
+
+            if (cp.startsWith('vocab?')) {
+                out.isVocab = true;
+                let params = cp.replace('vocab?', '');
+                // A-level pages use fromLetter/toLetter rather than fromChapter/toChapter
+                if (isAlevel) params = params.replace(/(^|&)fromChapter=/, '$1fromLetter=').replace(/(^|&)toChapter=/, '$1toLetter=');
+                let base;
+                if (isPrep) base = '../latin/prep-vocabulary-practice.html';
+                else if (isGreek && isAlevel) base = '../greek/a-level-vocabulary-practice.html';
+                else if (isGreek) base = '../greek/vocabulary-practice.html';
+                else if (isAlevel) base = '../latin/a-level-vocabulary-practice.html';
+                else base = '../latin/vocabulary-practice.html';
+                out.practice = `${base}?${params}&task_id=${task.id}`;
+                // Greek A-level has no LCWC page; all other variants do
+                if (!(isGreek && isAlevel)) {
+                    const lcwcBase = base.replace('-practice.html', '-lcwc.html');
+                    out.lcwc = `${lcwcBase}?${params}&task_id=${task.id}`;
+                }
+            } else if (cp.startsWith('civ?')) {
+                out.isCiv = true;
+                out.practice = `../classics/quiz.html?${cp.replace('civ?', '')}&task_id=${task.id}`;
+            } else if (cp) {
+                const sep = cp.includes('?') ? '&' : '?';
+                out.practice = `${cp}${sep}task_id=${task.id}`;
+            }
+            return out;
+        }
+
         // ===== Init =====
         async function init() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -915,25 +951,22 @@
                     statusClass = '';
                 }
 
-                // Type chip
-                const taskType = task.content_path.includes('vocabulary') ? 'Vocab' :
-                                 task.content_path.includes('quiz') ? 'Quiz' :
-                                 task.content_path.includes('classics') ? 'Content' : 'Task';
-
-                const sep = task.content_path.includes('?') ? '&' : '?';
-                const isVocab = task.content_path.includes('vocabulary-practice');
+                const urls = buildTaskUrls(task, currentClass);
+                const taskType = urls.isVocab ? 'Vocab' : urls.isCiv ? 'Content' : 'Task';
 
                 let actionHtml;
-                if (isVocab) {
-                    const lcwcPath = task.content_path.replace(/vocabulary-practice\.html/, 'vocabulary-lcwc.html');
+                if (urls.isVocab && urls.practice) {
+                    const lcwcHtml = urls.lcwc ? `<a href="${urls.lcwc}" class="btn btn-secondary btn-sm">LCWC</a>` : '';
                     actionHtml = `<div class="task-actions">
-                        <a href="${task.content_path}${sep}task_id=${task.id}" class="btn btn-primary btn-sm">Tester</a>
-                        <a href="${lcwcPath}${sep}task_id=${task.id}" class="btn btn-secondary btn-sm">LCWC</a>
+                        <a href="${urls.practice}" class="btn btn-primary btn-sm">Tester</a>
+                        ${lcwcHtml}
+                    </div>`;
+                } else if (urls.practice) {
+                    actionHtml = `<div class="task-actions">
+                        <a href="${urls.practice}" class="btn btn-primary btn-sm">${isCompleted ? 'Redo' : 'Start'}</a>
                     </div>`;
                 } else {
-                    actionHtml = `<div class="task-actions">
-                        <a href="${task.content_path}${sep}task_id=${task.id}" class="btn btn-primary btn-sm">${isCompleted ? 'Redo' : 'Start'}</a>
-                    </div>`;
+                    actionHtml = '';
                 }
 
                 return `
