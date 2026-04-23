@@ -451,8 +451,8 @@
                     <input type="email" id="settingsEmail" class="form-input" disabled>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Display Name</label>
-                    <input type="text" id="settingsName" class="form-input" placeholder="Your display name">
+                    <label class="form-label" for="settingsName">Display Name</label>
+                    <input type="text" id="settingsName" class="form-input" placeholder="Your display name" maxlength="80" autocomplete="name">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Academic Level</label>
@@ -467,7 +467,7 @@
                     <label class="form-label">New Password</label>
                     <input type="password" id="settingsPassword" class="form-input" placeholder="Leave blank to keep current">
                 </div>
-                <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
+                <button class="btn btn-primary" id="saveSettingsBtn" onclick="saveSettings()">Save Changes</button>
             </div>
         </div>
 
@@ -983,26 +983,63 @@
 
         // Account settings
         async function saveSettings() {
-            try {
-                const name = document.getElementById('settingsName').value.trim();
-                const password = document.getElementById('settingsPassword').value;
+            const nameInput = document.getElementById('settingsName');
+            const passwordInput = document.getElementById('settingsPassword');
+            const saveBtn = document.getElementById('saveSettingsBtn');
 
-                if (name) {
-                    await supabase.from('users').update({ full_name: name }).eq('id', currentUser.id);
+            const name = nameInput.value.trim();
+            const password = passwordInput.value;
+            const currentName = document.getElementById('userName').textContent.trim();
+
+            if (!name) {
+                showToast('Display name cannot be empty', 'error');
+                nameInput.focus();
+                return;
+            }
+            if (password && password.length < 6) {
+                showToast('Password must be at least 6 characters', 'error');
+                passwordInput.focus();
+                return;
+            }
+
+            const nameChanged = name !== currentName;
+            if (!nameChanged && !password) {
+                showToast('No changes to save', '');
+                return;
+            }
+
+            const originalLabel = saveBtn.textContent;
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+
+            try {
+                if (nameChanged) {
+                    const { error } = await supabase
+                        .from('users')
+                        .update({ full_name: name })
+                        .eq('id', currentUser.id);
+                    if (error) throw error;
+
+                    // Keep auth user_metadata in sync with the profile row.
+                    await supabase.auth.updateUser({ data: { full_name: name } });
+
                     document.getElementById('userName').textContent = name;
+                    nameInput.value = name;
                 }
 
-                if (password && password.length >= 6) {
-                    await supabase.auth.updateUser({ password });
-                    document.getElementById('settingsPassword').value = '';
-                } else if (password && password.length < 6) {
-                    showToast('Password must be at least 6 characters', 'error');
-                    return;
+                if (password) {
+                    const { error } = await supabase.auth.updateUser({ password });
+                    if (error) throw error;
+                    passwordInput.value = '';
                 }
 
                 showToast('Settings saved!', 'success');
             } catch (err) {
-                showToast('Error saving settings', 'error');
+                console.error('Save settings error:', err);
+                showToast(err.message || 'Error saving settings', 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalLabel;
             }
         }
 
