@@ -1191,21 +1191,26 @@ window.onclick = function(event) {
 };
 
 /* ── COUNTERS ── */
-function loadVisitCounter() {
-    fetch('https://api.counterapi.dev/v1/classicalia/visits/up')
-        .then(function(r){ return r.json(); })
-        .then(function(data){ document.getElementById('visit-counter').innerText = data.count.toLocaleString(); })
-        .catch(function(){ document.getElementById('visit-counter').innerText = '12,847'; });
+async function loadVisitCounter() {
+    var counter = document.getElementById('visit-counter');
+    if (!counter) return;
+    if (typeof supabase === 'undefined') { counter.innerText = '—'; return; }
+    try {
+        var result = await supabase.rpc('increment_site_stat', { stat_key: 'visits' });
+        if (result.error) throw result.error;
+        counter.innerText = Number(result.data).toLocaleString();
+    } catch (e) { counter.innerText = '—'; }
 }
 
 async function loadUserCounter() {
     var counter = document.getElementById('user-counter');
-    if (!counter || typeof supabase === 'undefined') { if (counter) counter.innerText = '400+'; return; }
+    if (!counter) return;
+    if (typeof supabase === 'undefined') { counter.innerText = '—'; return; }
     try {
-        var result = await supabase.from('users').select('*', { count: 'exact', head: true });
+        var result = await supabase.rpc('get_user_count');
         if (result.error) throw result.error;
-        counter.innerText = result.count ? result.count.toLocaleString() : '400+';
-    } catch (e) { counter.innerText = '400+'; }
+        counter.innerText = Number(result.data).toLocaleString();
+    } catch (e) { counter.innerText = '—'; }
 }
 
 /* ── INIT ── */
