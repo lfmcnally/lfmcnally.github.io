@@ -1273,7 +1273,14 @@ async function sendHw(){const sel=(hwTab==='civ'?'#c-classes':'#v-classes');cons
     const {data:task,error}=await supabase.from('tasks').insert({class_id:cid,title,type:hwTab==='civ'?'classics':'vocab',content_path:cp,due_date:dd?dd.toISOString():null}).select().single();
     if(error||!task){
       const clsName=(teacherClasses.find(c=>c.id===cid)||{}).name||cid;
-      failures.push(clsName+': '+(error&&error.message?error.message:'no row returned (likely an RLS policy blocking INSERT or SELECT on the tasks table)'));
+      const parts=[];
+      if(error){
+        if(error.message)parts.push('message: '+error.message);
+        if(error.code)parts.push('code: '+error.code);
+        if(error.details)parts.push('details: '+error.details);
+        if(error.hint)parts.push('hint: '+error.hint);
+      } else parts.push('no row returned (likely an RLS policy blocking INSERT or SELECT on the tasks table)');
+      failures.push(clsName+'\n  '+parts.join('\n  '));
       console.error('Task insert failed for class',cid,error);
       continue;
     }
