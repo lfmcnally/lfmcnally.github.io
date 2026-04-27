@@ -326,7 +326,16 @@ async function showClass(classId){
   if(tasks&&tasks.length){
     const taskIds=tasks.map(t=>t.id);
     const {data:myTaskAttempts}=await supabase.from('task_attempts').select('task_id, score, completed_at, time_spent_seconds, total_questions, started_at').eq('student_id',currentUser.id).in('task_id',taskIds);
-    const attMap={};(myTaskAttempts||[]).forEach(a=>attMap[a.task_id]=a);
+    // Multiple rows per task_id can exist (legacy placeholders + real attempts,
+    // or repeat practice). Keep the best one: prefer completed, then highest score.
+    const attMap={};
+    (myTaskAttempts||[]).forEach(a=>{
+      const cur=attMap[a.task_id];
+      if(!cur){attMap[a.task_id]=a;return;}
+      if(a.completed_at&&!cur.completed_at){attMap[a.task_id]=a;return;}
+      if(a.completed_at&&cur.completed_at&&(a.score??-1)>(cur.score??-1)){attMap[a.task_id]=a;return;}
+      if(!a.completed_at&&!cur.completed_at&&new Date(a.started_at||0)>new Date(cur.started_at||0)){attMap[a.task_id]=a;}
+    });
     hwHtml=tasks.map(t=>{
       const a=attMap[t.id];
       const due=t.due_date?new Date(t.due_date):null;
