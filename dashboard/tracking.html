@@ -917,22 +917,36 @@ async function renderLangCls(){
 
     hwHtml=tasks.map((t,ti)=>{
       const ta=attemptsByTask[t.id]||[];
-      const completed=ta.filter(a=>a.completed_at);
       const due=t.due_date?new Date(t.due_date):null;
       const overdue=due&&due<new Date();
       const dueStr=due?due.toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'no deadline';
-      const avgScore=completed.filter(a=>a.score!=null).length?Math.round(completed.filter(a=>a.score!=null).reduce((s,a)=>s+a.score,0)/completed.filter(a=>a.score!=null).length):null;
       const taskId='hw-task-'+ti;
 
-      // Build per-student rows
+      // Build per-student rows. There may be multiple task_attempts per student
+      // (legacy placeholder rows + real attempts, or repeated practice runs).
+      // Prefer a completed attempt over an in-progress one; among completed
+      // attempts pick the highest score; otherwise pick the latest started.
+      const pickAttempt=list=>{
+        if(!list||!list.length) return null;
+        const done=list.filter(a=>a.completed_at);
+        if(done.length){
+          return done.slice().sort((a,b)=>(b.score??-1)-(a.score??-1)
+            ||new Date(b.completed_at)-new Date(a.completed_at))[0];
+        }
+        return list.slice().sort((a,b)=>new Date(b.started_at||0)-new Date(a.started_at||0))[0];
+      };
       const stuRows=ss.map(s=>{
-        const att=ta.find(a=>a.student_id===s.id);
-        if(!att) return {name:s.name,status:'not-set',score:null,time:null,words:null,first:null,last:null};
-        if(!att.completed_at) return {name:s.name,status:overdue?'overdue':'not-started',score:null,time:att.time_spent_seconds?Math.round(att.time_spent_seconds/60):0,words:att.total_questions||0,first:att.started_at,last:null};
-        return {name:s.name,status:'done',score:att.score,time:att.time_spent_seconds?Math.round(att.time_spent_seconds/60):0,words:att.total_questions||0,first:att.started_at,last:att.completed_at};
+        const mine=ta.filter(a=>a.student_id===s.id);
+        const att=pickAttempt(mine);
+        const attempts=mine.filter(a=>a.completed_at).length;
+        if(!att) return {name:s.name,status:overdue?'overdue':'not-started',score:null,time:null,words:null,first:null,last:null,attempts:0};
+        if(!att.completed_at) return {name:s.name,status:overdue?'overdue':'in-progress',score:null,time:att.time_spent_seconds?Math.round(att.time_spent_seconds/60):0,words:att.total_questions||0,first:att.started_at,last:null,attempts:0};
+        return {name:s.name,status:'done',score:att.score,time:att.time_spent_seconds?Math.round(att.time_spent_seconds/60):0,words:att.total_questions||0,first:att.started_at,last:att.completed_at,attempts};
       });
       const doneCount=stuRows.filter(r=>r.status==='done').length;
       const overdueCount=stuRows.filter(r=>r.status==='overdue').length;
+      const scoredRows=stuRows.filter(r=>r.status==='done'&&r.score!=null);
+      const avgScore=scoredRows.length?Math.round(scoredRows.reduce((s,r)=>s+r.score,0)/scoredRows.length):null;
 
       const statusPill=doneCount===ss.length
         ?'<span class="pill pill-green">All done</span>'
@@ -948,16 +962,17 @@ async function renderLangCls(){
           '</div>'+
         '</div>'+
         '<div id="'+taskId+'" style="display:none;border-top:1px solid var(--g-border)">'+
-          '<table class="stu-table"><thead><tr><th>Student</th><th>Status</th><th>Score</th><th>Time</th><th>Words</th><th>First attempt</th><th>Last attempt</th></tr></thead><tbody>'+
+          '<table class="stu-table"><thead><tr><th>Student</th><th>Status</th><th>Score</th><th>Time</th><th>Words</th><th>Attempts</th><th>First attempt</th><th>Last attempt</th></tr></thead><tbody>'+
           stuRows.map(r=>{
-            const stCol=r.status==='done'?'pill-green':r.status==='overdue'?'pill-red':r.status==='not-started'?'pill-amber':'pill-blue';
-            const stLabel=r.status==='done'?'Done':r.status==='overdue'?'Overdue':r.status==='not-started'?'Not started':'—';
+            const stCol=r.status==='done'?'pill-green':r.status==='overdue'?'pill-red':r.status==='in-progress'?'pill-blue':'pill-amber';
+            const stLabel=r.status==='done'?'Done':r.status==='overdue'?'Overdue':r.status==='in-progress'?'In progress':'Not started';
             const fmtDate=d=>d?new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
             return '<tr><td style="font-weight:500">'+r.name+'</td>'+
               '<td><span class="pill '+stCol+'">'+stLabel+'</span></td>'+
               '<td>'+(r.score!=null?'<span class="pill '+scl(r.score)+'">'+r.score+'%</span>':'—')+'</td>'+
               '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+(r.time!=null?r.time+' min':'—')+'</td>'+
               '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+(r.words?r.words:'—')+'</td>'+
+              '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+(r.attempts?r.attempts:'—')+'</td>'+
               '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+fmtDate(r.first)+'</td>'+
               '<td style="color:var(--g-text-secondary);font-size:0.8rem">'+fmtDate(r.last)+'</td></tr>';
           }).join('')+
@@ -1278,12 +1293,10 @@ async function sendHw(){const sel=(hwTab==='civ'?'#c-classes':'#v-classes');cons
       continue;
     }
     createdAny=true;
-    const {data:members,error:mErr}=await supabase.from('class_members').select('student_id').eq('class_id',cid);
-    if(mErr) console.error('class_members query failed',mErr);
-    if(members&&members.length){
-      const {error:aErr}=await supabase.from('task_attempts').insert(members.map(m=>({task_id:task.id,student_id:m.student_id,started_at:new Date().toISOString()})));
-      if(aErr) console.error('task_attempts insert failed',aErr);
-    }
+    // No placeholder task_attempts rows — they are created by students when they
+    // start the task (see shared/task-tracker.js). Inserting placeholders here
+    // produced duplicate rows per (task_id, student_id) and caused the homework
+    // card to surface the empty placeholder instead of the real completed attempt.
   }
   if(failures.length) alert('Could not create homework for:\n\n'+failures.join('\n')+'\n\nOpen the browser console for details.');
   if(!createdAny) return;
