@@ -131,6 +131,15 @@ const __TWEAKS_STYLE = `
   .twk-swatch::-webkit-color-swatch-wrapper{padding:0}
   .twk-swatch::-webkit-color-swatch{border:0;border-radius:5.5px}
   .twk-swatch::-moz-color-swatch{border:0;border-radius:5.5px}
+
+  .twk-reopen{position:fixed;right:16px;bottom:16px;z-index:2147483646;
+    appearance:none;border:.5px solid rgba(255,255,255,.6);
+    background:rgba(250,249,247,.78);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border-radius:999px;padding:8px 14px;cursor:pointer;
+    font:11.5px/1 ui-sans-serif,system-ui,-apple-system,sans-serif;font-weight:600;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 8px 28px rgba(0,0,0,.18)}
+  .twk-reopen:hover{background:rgba(250,249,247,.92)}
 `;
 
 // ── useTweaks ───────────────────────────────────────────────────────────────
@@ -158,7 +167,10 @@ function useTweaks(defaults) {
 // flips off in lockstep; the host echoes __deactivate_edit_mode back which
 // is what actually hides the panel.
 function TweaksPanel({ title = 'Tweaks', children }) {
-  const [open, setOpen] = React.useState(false);
+  // Standalone (not in the design host iframe) → open by default and offer a
+  // re-open button after dismiss, so the panel is reachable without a host.
+  const standalone = typeof window !== 'undefined' && window.parent === window;
+  const [open, setOpen] = React.useState(standalone);
   const dragRef = React.useRef(null);
   const offsetRef = React.useRef({ x: 16, y: 16 });
   const PAD = 16;
@@ -227,7 +239,15 @@ function TweaksPanel({ title = 'Tweaks', children }) {
     window.addEventListener('mouseup', up);
   };
 
-  if (!open) return null;
+  if (!open) {
+    if (!standalone) return null;
+    return (
+      <>
+        <style>{__TWEAKS_STYLE}</style>
+        <button className="twk-reopen" onClick={() => setOpen(true)}>{title}</button>
+      </>
+    );
+  }
   return (
     <>
       <style>{__TWEAKS_STYLE}</style>
