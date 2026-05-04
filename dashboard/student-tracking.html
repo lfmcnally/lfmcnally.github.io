@@ -118,6 +118,7 @@ body { margin: 0; padding: 0; height: 100%; overflow: hidden !important; }
   <div class="sidebar-section">
     <p class="sidebar-label">My Classes</p>
     <div id="sidebar-classes"><div style="padding:8px 12px;font-size:0.8rem;color:var(--g-text-secondary)">Loading...</div></div>
+    <div class="nav-item" id="nav-join" onclick="showJoin()"><span class="nav-icon">+</span> Join a class</div>
   </div>
   <div class="sidebar-section">
     <p class="sidebar-label">Leaderboards</p>
@@ -146,6 +147,22 @@ body { margin: 0; padding: 0; height: 100%; overflow: hidden !important; }
   <div class="page" id="page-lb">
     <div class="topbar"><div class="topbar-left"><span class="topbar-title">Leaderboards</span><span class="topbar-sep">/</span><span class="topbar-sub">reading time by course</span></div></div>
     <div class="content" id="lb-content"><div style="text-align:center;padding:48px;color:var(--g-text-secondary)">Loading...</div></div>
+  </div>
+  <div class="page" id="page-join">
+    <div class="topbar"><div class="topbar-left"><span class="topbar-title">Join a class</span><span class="topbar-sep">/</span><span class="topbar-sub">enter the code from your teacher</span></div></div>
+    <div class="content">
+      <div class="card" style="max-width:520px">
+        <div class="card-hdr"><span class="card-t">Class code</span></div>
+        <div class="card-body">
+          <p style="margin:0 0 12px;color:var(--g-text-secondary);font-size:0.9rem">Ask your teacher for the code, then enter it below.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="text" id="join-code-input" placeholder="e.g. LATIN-7X" style="flex:1;min-width:180px;padding:10px 12px;border:1px solid var(--g-border);border-radius:var(--g-radius-sm);font:inherit;font-size:0.9rem;text-transform:uppercase" onkeydown="if(event.key==='Enter')joinClass()">
+            <button onclick="joinClass()" style="padding:10px 18px;background:var(--g-blue);color:white;border:none;border-radius:var(--g-radius-sm);font:inherit;font-size:0.9rem;font-weight:500;cursor:pointer">Join class</button>
+          </div>
+          <div id="join-msg" style="margin-top:12px;font-size:0.85rem;display:none"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 </div><!-- end .app -->
@@ -203,7 +220,7 @@ async function loadMyData(){
   const {data:memberships}=await supabase.from('class_members').select('class_id, classes(id, name, type)').eq('student_id',currentUser.id);
   if(!memberships||!memberships.length){
     document.getElementById('sidebar-classes').innerHTML='<div style="padding:8px 12px;font-size:0.8rem;color:var(--g-text-secondary)">No classes yet</div>';
-    document.getElementById('overview-content').innerHTML='<div style="text-align:center;padding:48px;color:var(--g-text-secondary)">Join a class to start tracking your progress.</div>';
+    document.getElementById('overview-content').innerHTML='<div style="text-align:center;padding:48px;color:var(--g-text-secondary)"><p style="margin:0 0 16px">Join a class to start tracking your progress.</p><button onclick="showJoin()" style="padding:10px 18px;background:var(--g-blue);color:white;border:none;border-radius:var(--g-radius-sm);font:inherit;font-size:0.9rem;font-weight:500;cursor:pointer">Join a class</button></div>';
     return;
   }
   myClasses=memberships.map(m=>m.classes).filter(Boolean);
@@ -549,6 +566,41 @@ function showPage(n){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+n).classList.add('active');
   if(n!=='lb') document.getElementById('nav-lb').classList.remove('active');
+  if(n!=='join') document.getElementById('nav-join').classList.remove('active');
+}
+
+function showJoin(){
+  document.getElementById('nav-all').classList.remove('active');
+  document.querySelectorAll('#sidebar-classes .nav-item').forEach(n=>n.classList.remove('active','active-civ'));
+  document.getElementById('nav-lb').classList.remove('active');
+  document.getElementById('nav-join').classList.add('active');
+  document.getElementById('join-msg').style.display='none';
+  document.getElementById('join-code-input').value='';
+  showPage('join');
+  setTimeout(()=>document.getElementById('join-code-input').focus(),50);
+}
+
+function showJoinMsg(text,type){
+  const el=document.getElementById('join-msg');
+  el.textContent=text;
+  el.style.display='block';
+  el.style.color=type==='success'?'#047857':'#b91c1c';
+}
+
+async function joinClass(){
+  const input=document.getElementById('join-code-input');
+  const code=input.value.trim().toUpperCase();
+  if(!code){showJoinMsg('Please enter a class code','error');return;}
+  const {data:cls,error:clsErr}=await supabase.from('classes').select('id, name').eq('join_code',code).single();
+  if(clsErr||!cls){showJoinMsg('Class not found. Check the code and try again.','error');return;}
+  const {data:existing}=await supabase.from('class_members').select('id').eq('class_id',cls.id).eq('student_id',currentUser.id).maybeSingle();
+  if(existing){showJoinMsg("You're already in this class.",'error');return;}
+  const {error:joinErr}=await supabase.from('class_members').insert({class_id:cls.id,student_id:currentUser.id});
+  if(joinErr){showJoinMsg('Error joining class. Please try again.','error');return;}
+  showJoinMsg('Joined "'+cls.name+'" — reloading...','success');
+  input.value='';
+  await loadMyData();
+  setTimeout(()=>showOverview(),600);
 }
 init();
 </script>
