@@ -52,30 +52,66 @@ const EPDF_TOOL = {
 // ── EmbedPDF init ────────────────────────────────────────────────────
 setStatus('Initialising viewer…');
 
+// We drive everything from our own toolbar — disable as much of EmbedPDF's
+// default UI as it'll let us. Categories from EmbedPDF's
+// disable-categories.html example.
+const HIDDEN_CATEGORIES = [
+  'annotation', 'panel', 'zoom',
+  'form', 'redaction', 'document-print', 'document-export',
+];
+
 const viewer = EmbedPDF.init({
   type: 'container',
   target: pdfViewerEl,
   theme: { preference: 'system' },
   tabBar: 'never',
   documentManager: { maxDocuments: 20 },
-  // Suppress EmbedPDF's redundant UI: we drive annotation tools from our
-  // own toolbar, and we don't want its right-side annotation panel.
-  disabledCategories: ['annotation', 'panel'],
+  disabledCategories: HIDDEN_CATEGORIES,
 });
 
-let registry, docManager, annotation, ui;
+let registry, docManager, annotation, ui, scrollPlugin, printPlugin, exportPlugin;
 try {
-  registry   = await viewer.registry;
-  docManager = registry.getPlugin('document-manager')?.provides();
-  annotation = registry.getPlugin('annotation')?.provides();
-  ui         = registry.getPlugin('ui')?.provides();
+  registry     = await viewer.registry;
+  docManager   = registry.getPlugin('document-manager')?.provides();
+  annotation   = registry.getPlugin('annotation')?.provides();
+  ui           = registry.getPlugin('ui')?.provides();
+  scrollPlugin = registry.getPlugin('scroll')?.provides();
+  printPlugin  = registry.getPlugin('print')?.provides();
+  exportPlugin = registry.getPlugin('export')?.provides();
 
   if (!docManager) throw new Error('document-manager plugin missing');
 
+  // Subscribe to page changes so our indicator stays in sync.
+  try {
+    scrollPlugin?.onPageChange?.(refreshPageIndicator);
+    scrollPlugin?.onLayoutReady?.(refreshPageIndicator);
+  } catch (e) { console.warn('onPageChange subscribe failed:', e); }
+
   // Belt-and-braces: also call setDisabledCategories at runtime in case
   // the init-level option got ignored by this build of EmbedPDF.
-  try { ui?.setDisabledCategories?.(['annotation', 'panel']); }
+  try { ui?.setDisabledCategories?.(HIDDEN_CATEGORIES); }
   catch (e) { console.warn('setDisabledCategories failed:', e); }
+
+  // Clear EmbedPDF's main top toolbar entirely — we have our own at the
+  // top of the page. Disabling categories blanks each item but leaves
+  // the toolbar bar visible; this empties it so it collapses, and CSS
+  // hides the host wrapper as a final backstop.
+  try {
+    ui?.mergeSchema?.({
+      toolbars: {
+        'main-toolbar':       { items: [], permanent: false },
+        'annotation-toolbar': { items: [], permanent: false },
+        'shapes-toolbar':     { items: [], permanent: false },
+        'form-toolbar':       { items: [], permanent: false },
+        'insert-toolbar':     { items: [], permanent: false },
+        'redaction-toolbar':  { items: [], permanent: false },
+      },
+    });
+  } catch (e) { console.warn('mergeSchema failed:', e); }
+
+  // Also try deactivating the top-main slot toolbar at runtime.
+  try { ui?.setActiveToolbar?.('top', 'main', null); }
+  catch (e) { /* not all builds expose this */ }
 
   applyToolState();
   setStatus('Ready');
@@ -147,6 +183,7 @@ function switchPage(idx) {
   applyToolState();
   renderPageList();
   updateEmptyState();
+  refreshPageIndicator();
 }
 
 function closePage(idx) {
@@ -284,6 +321,49 @@ document.getElementById('btn-redo').addEventListener('click', () => {
     registry?.getPlugin?.('history')?.provides?.()?.redo?.();
   }
 });
+
+// ── PDF page nav / download / print (only active for PDF pages) ──────
+const btnPrev      = document.getElementById('btn-prev-page');
+const btnNext      = document.getElementById('btn-next-page');
+const btnDownload  = document.getElementById('btn-download');
+const btnPrint     = document.getElementById('btn-print');
+const pageIndEl    = document.getElementById('page-indicator');
+
+btnPrev.addEventListener('click', () => {
+  try { scrollPlugin?.scrollToPreviousPage?.(); }
+  catch (e) { console.warn('prev page failed:', e); }
+});
+btnNext.addEventListener('click', () => {
+  try { scrollPlugin?.scrollToNextPage?.(); }
+  catch (e) { console.warn('next page failed:', e); }
+});
+btnDownload.addEventListener('click', () => {
+  try { exportPlugin?.download?.(); }
+  catch (e) { console.warn('download failed:', e); }
+});
+btnPrint.addEventListener('click', () => {
+  try { printPlugin?.print?.(); }
+  catch (e) { console.warn('print failed:', e); }
+});
+
+function refreshPageIndicator() {
+  const isPdf = pages[activeIdx]?.type === 'pdf';
+  btnPrev.disabled     = !isPdf;
+  btnNext.disabled     = !isPdf;
+  btnDownload.disabled = !isPdf;
+  btnPrint.disabled    = !isPdf;
+  if (!isPdf || !scrollPlugin) {
+    pageIndEl.textContent = '—';
+    return;
+  }
+  try {
+    const cur   = scrollPlugin.getCurrentPage?.() ?? '?';
+    const total = scrollPlugin.getTotalPages?.()  ?? '?';
+    pageIndEl.textContent = `${cur} / ${total}`;
+  } catch (e) {
+    pageIndEl.textContent = '—';
+  }
+}
 
 // ── Image insertion (blank pages only) ───────────────────────────────
 document.getElementById('btn-add-image').addEventListener('click', () => {
@@ -538,3 +618,4 @@ function loadImage(src) {
 // ── Initial render ───────────────────────────────────────────────────
 renderPageList();
 updateEmptyState();
+refreshPageIndicator();
