@@ -640,19 +640,97 @@ document.addEventListener('paste', async e => {
   }
 });
 
+// ── Clear-current-page (toolbar button) ──────────────────────────────
+document.getElementById('btn-clear').addEventListener('click', clearCurrentPage);
+
+async function clearCurrentPage() {
+  const p = pages[activeIdx];
+  if (!p) return;
+
+  if (p.type === 'blank') {
+    if (!p.strokes.length) {
+      setStatus('Nothing to clear');
+      return;
+    }
+    if (!confirm('Remove all strokes on this canvas? (Images stay.)')) return;
+    p.redo = [...p.strokes];
+    p.strokes = [];
+    replayStrokes(p);
+    schedThumb(activeIdx);
+    return;
+  }
+
+  if (p.type === 'pdf') {
+    if (!annotation || !p.embedDocId) return;
+    const pageIdx = Math.max(0, ((scrollPlugin?.getCurrentPage?.() ?? 1) - 1));
+    const human = pageIdx + 1;
+    if (!confirm(`Remove all annotations on page ${human}?`)) return;
+    try {
+      const got = annotation.getPageAnnotations?.({ pageIndex: pageIdx, documentId: p.embedDocId });
+      // Some EmbedPDF builds return a Task here, others a plain array.
+      const annos = Array.isArray(got) ? got : await taskToPromise(got).catch(() => []);
+      let n = 0;
+      for (const a of annos) {
+        try { annotation.deleteAnnotation(pageIdx, a.id); n++; }
+        catch (e) { console.warn('deleteAnnotation failed:', e); }
+      }
+      setStatus(`Removed ${n} annotation${n === 1 ? '' : 's'} on page ${human}`);
+    } catch (e) {
+      console.warn('clear page annotations failed:', e);
+      setStatus('Clear failed — see console');
+    }
+  }
+}
+
+// ── Delete selected (Delete / Backspace) ─────────────────────────────
+async function deleteSelected() {
+  const p = pages[activeIdx];
+  if (!p) return;
+  if (p.type === 'blank') {
+    if (selImg) {
+      deleteImage(selImg, p);
+      schedThumb(activeIdx);
+    }
+    return;
+  }
+  if (p.type === 'pdf' && annotation) {
+    let selected = [];
+    try { selected = annotation.getSelectedAnnotations?.() || []; }
+    catch (e) { console.warn('getSelectedAnnotations failed:', e); }
+    if (!selected.length) return;
+    for (const a of selected) {
+      try { annotation.deleteAnnotation(a.pageIndex, a.id); }
+      catch (e) { console.warn('deleteAnnotation failed:', e); }
+    }
+  }
+}
+
 // ── Keyboard shortcuts ───────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+// Capture phase + meta-key support so EmbedPDF doesn't swallow our
+// Ctrl/Cmd-Z and so Mac users get the same behaviour.
+window.addEventListener('keydown', e => {
+  if (['INPUT', 'TEXTAREA'].includes(e.target?.tagName)) return;
   const k = e.key.toLowerCase();
-  if (e.ctrlKey && k === 'z') { document.getElementById('btn-undo').click(); return; }
-  if (e.ctrlKey && k === 'y') { document.getElementById('btn-redo').click(); return; }
+  const meta = e.ctrlKey || e.metaKey;
+
+  if (meta && k === 'z') {
+    e.preventDefault();
+    document.getElementById('btn-undo').click();
+    return;
+  }
+  if ((meta && k === 'y') || (meta && e.shiftKey && k === 'z')) {
+    e.preventDefault();
+    document.getElementById('btn-redo').click();
+    return;
+  }
+  if (k === 'delete' || k === 'backspace') {
+    e.preventDefault();
+    deleteSelected();
+    return;
+  }
   const map = { p: 'pen', h: 'hl', e: 'er', t: 'text', s: 'select' };
   if (map[k]) setTool(map[k]);
-  if (e.key === 'Delete' && selImg) {
-    const p = pages[activeIdx];
-    if (p?.type === 'blank') deleteImage(selImg, p);
-  }
-});
+}, true);
 
 // ── Blank-canvas: drawing engine ─────────────────────────────────────
 // The blank "page" has an intrinsic logical size (baseW × baseH) and a
