@@ -17,9 +17,11 @@ const pdfViewerEl   = document.getElementById('pdf-viewer');
 const blankHostEl   = document.getElementById('blank-host');
 const blankContent  = document.getElementById('blank-content');
 const blankScroller = document.getElementById('blank-scroller');
+const blankSizer    = document.getElementById('blank-sizer');
 const drawCanvas    = document.getElementById('draw-canvas');
 const imgLayer      = document.getElementById('img-layer');
 const dctx          = drawCanvas.getContext('2d');
+const zoomIndicator = document.getElementById('zoom-indicator');
 
 const setStatus = msg => { statusEl.textContent = msg; };
 
@@ -69,15 +71,18 @@ const viewer = EmbedPDF.init({
   disabledCategories: HIDDEN_CATEGORIES,
 });
 
-let registry, docManager, annotation, ui, scrollPlugin, printPlugin, exportPlugin;
+let registry, docManager, annotation, ui, scrollPlugin, printPlugin, exportPlugin, zoomPlugin, thumbnailPlugin, renderPlugin;
 try {
-  registry     = await viewer.registry;
-  docManager   = registry.getPlugin('document-manager')?.provides();
-  annotation   = registry.getPlugin('annotation')?.provides();
-  ui           = registry.getPlugin('ui')?.provides();
-  scrollPlugin = registry.getPlugin('scroll')?.provides();
-  printPlugin  = registry.getPlugin('print')?.provides();
-  exportPlugin = registry.getPlugin('export')?.provides();
+  registry        = await viewer.registry;
+  docManager      = registry.getPlugin('document-manager')?.provides();
+  annotation      = registry.getPlugin('annotation')?.provides();
+  ui              = registry.getPlugin('ui')?.provides();
+  scrollPlugin    = registry.getPlugin('scroll')?.provides();
+  printPlugin     = registry.getPlugin('print')?.provides();
+  exportPlugin    = registry.getPlugin('export')?.provides();
+  zoomPlugin      = registry.getPlugin('zoom')?.provides();
+  thumbnailPlugin = registry.getPlugin('thumbnail')?.provides();
+  renderPlugin    = registry.getPlugin('render')?.provides();
 
   if (!docManager) throw new Error('document-manager plugin missing');
 
@@ -86,6 +91,11 @@ try {
     scrollPlugin?.onPageChange?.(refreshPageIndicator);
     scrollPlugin?.onLayoutReady?.(refreshPageIndicator);
   } catch (e) { console.warn('onPageChange subscribe failed:', e); }
+
+  // Subscribe to zoom changes so the zoom indicator updates while EmbedPDF
+  // changes zoom internally (e.g., user pinches).
+  try { zoomPlugin?.onStateChange?.(refreshZoomIndicator); }
+  catch (e) { /* not all builds expose this */ }
 
   // Belt-and-braces: also call setDisabledCategories at runtime in case
   // the init-level option got ignored by this build of EmbedPDF.
@@ -134,9 +144,12 @@ function renderPageList() {
     const el = document.createElement('div');
     el.className = 'pg-item' + (i === activeIdx ? ' active' : '');
     el.innerHTML = `
-      <span class="pg-icon"></span>
-      <span class="pg-name"></span>
-      <button class="pg-close" title="Close">×</button>
+      <canvas class="pg-thumb"></canvas>
+      <div class="pg-meta">
+        <span class="pg-icon"></span>
+        <span class="pg-name"></span>
+        <button class="pg-close" title="Close">×</button>
+      </div>
     `;
     el.querySelector('.pg-icon').textContent = p.type === 'pdf' ? '📄' : '🎨';
     el.querySelector('.pg-name').textContent = p.name;
@@ -149,7 +162,96 @@ function renderPageList() {
       closePage(i);
     });
     pageListEl.appendChild(el);
+
+    // Render the thumbnail asynchronously
+    const thumbCanvas = el.querySelector('.pg-thumb');
+    renderPageThumb(p, thumbCanvas).catch(err => {
+      console.warn('thumb render failed:', err);
+      thumbCanvas.classList.add('pg-thumb-fallback');
+      thumbCanvas.replaceWith(Object.assign(document.createElement('div'), {
+        className: 'pg-thumb pg-thumb-fallback',
+        textContent: p.type === 'pdf' ? '📄' : '🎨',
+      }));
+    });
   });
+}
+
+async function renderPageThumb(p, canvas) {
+  // Size the thumbnail canvas to its layout box
+  const rect = canvas.getBoundingClientRect();
+  const W = Math.max(120, Math.round(rect.width  || 160));
+  const H = Math.max(80,  Math.round(rect.height || 120));
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, H);
+
+  if (p.type === 'blank') {
+    const sx = W / p.baseW;
+    const sy = H / p.baseH;
+    const s = Math.min(sx, sy);
+    ctx.save();
+    ctx.scale(s, s);
+    // Images
+    for (const img of p.images) {
+      try {
+        const im = await loadImage(img.src);
+        ctx.drawImage(im, img.x, img.y, img.w, img.h);
+      } catch {}
+    }
+    // Strokes (re-uses the main drawStroke())
+    p.strokes.forEach(st => drawStroke(ctx, st));
+    ctx.restore();
+    return;
+  }
+
+  // PDF page → use the thumbnail plugin if available, else placeholder
+  if (p.type === 'pdf' && thumbnailPlugin?.renderThumb) {
+    try {
+      // EmbedPDF returns a Task<Blob>. Tasks expose a "toPromise()" method.
+      // (If they don't, the runtime check just lets the catch handle it.)
+      const task = thumbnailPlugin.forDocument
+        ? thumbnailPlugin.forDocument(p.embedDocId).renderThumb(0, 1)
+        : thumbnailPlugin.renderThumb(0, 1);
+      const blob = await taskToPromise(task);
+      const url = URL.createObjectURL(blob);
+      try {
+        const im = await loadImage(url);
+        const sx = W / im.naturalWidth;
+        const sy = H / im.naturalHeight;
+        const s = Math.min(sx, sy);
+        const dw = im.naturalWidth  * s;
+        const dh = im.naturalHeight * s;
+        ctx.drawImage(im, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      } finally { URL.revokeObjectURL(url); }
+      return;
+    } catch (err) {
+      console.warn('PDF thumb failed, falling back:', err);
+    }
+  }
+
+  // Fallback: just an icon
+  ctx.fillStyle = '#bbb';
+  ctx.font = '32px system-ui';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(p.type === 'pdf' ? '📄' : '🎨', W / 2, H / 2);
+}
+
+// EmbedPDF Tasks aren't standard Promises; cover common adapter shapes.
+function taskToPromise(task) {
+  if (!task) return Promise.reject(new Error('no task'));
+  if (typeof task.toPromise === 'function') return task.toPromise();
+  if (typeof task.then === 'function') return Promise.resolve(task);
+  if (typeof task.run === 'function') {
+    return new Promise((res, rej) => {
+      try { task.run((val, err) => err ? rej(err) : res(val)); }
+      catch (e) { rej(e); }
+    });
+  }
+  // Last resort: assume it has a .wait or similar.
+  return Promise.reject(new Error('unknown Task shape'));
 }
 
 function updateEmptyState() {
@@ -184,6 +286,7 @@ function switchPage(idx) {
   renderPageList();
   updateEmptyState();
   refreshPageIndicator();
+  refreshZoomIndicator();
 }
 
 function closePage(idx) {
@@ -204,10 +307,17 @@ function closePage(idx) {
 // ── Add page buttons ─────────────────────────────────────────────────
 document.getElementById('btn-add-pdf').addEventListener('click', () => filePdf.click());
 document.getElementById('btn-add-blank').addEventListener('click', () => {
+  // Lock the blank canvas size to the viewport at creation time so strokes
+  // stay anchored regardless of later resizes.
+  const baseW = Math.max(blankScroller.clientWidth  || 1200, 800);
+  const baseH = Math.max(blankScroller.clientHeight || 900, 600);
   pages.push({
     id: newId(),
     type: 'blank',
     name: `Blank ${pages.filter(x => x.type === 'blank').length + 1}`,
+    baseW,
+    baseH,
+    zoom: 1.0,
     strokes: [],
     images: [],
     redo: [],
@@ -322,6 +432,54 @@ document.getElementById('btn-redo').addEventListener('click', () => {
   }
 });
 
+// ── Zoom (works on both PDF and blank pages) ─────────────────────────
+document.getElementById('btn-zoom-in').addEventListener('click', () => zoomBy(+0.2));
+document.getElementById('btn-zoom-out').addEventListener('click', () => zoomBy(-0.2));
+document.getElementById('btn-zoom-fit').addEventListener('click', () => zoomFit());
+
+function zoomBy(delta) {
+  const p = pages[activeIdx];
+  if (p?.type === 'pdf') {
+    try { zoomPlugin?.requestZoomBy?.(delta); }
+    catch (e) { console.warn('PDF zoom failed:', e); }
+  } else if (p?.type === 'blank') {
+    p.zoom = Math.max(0.25, Math.min(5, (p.zoom || 1) + delta));
+    setupBlankCanvas();
+    replayStrokes(p);
+  }
+  refreshZoomIndicator();
+}
+
+function zoomFit() {
+  const p = pages[activeIdx];
+  if (p?.type === 'pdf') {
+    // EmbedPDF accepts string presets like 'FitWidth' (the source uses
+    // ZoomMode.FitWidth from a const, but the string also works).
+    try { zoomPlugin?.requestZoom?.('FitWidth'); }
+    catch (e) { console.warn('PDF fit-width failed:', e); }
+  } else if (p?.type === 'blank') {
+    p.zoom = 1.0;
+    setupBlankCanvas();
+    replayStrokes(p);
+  }
+  refreshZoomIndicator();
+}
+
+function refreshZoomIndicator() {
+  const p = pages[activeIdx];
+  let pct = 100;
+  if (p?.type === 'pdf') {
+    try {
+      const state = zoomPlugin?.getState?.();
+      const z = state?.currentZoomLevel ?? state?.zoom ?? state?.level;
+      if (typeof z === 'number') pct = Math.round(z * 100);
+    } catch {}
+  } else if (p?.type === 'blank') {
+    pct = Math.round((p.zoom || 1) * 100);
+  }
+  zoomIndicator.textContent = pct + '%';
+}
+
 // ── PDF page nav / download / print (only active for PDF pages) ──────
 const btnPrev      = document.getElementById('btn-prev-page');
 const btnNext      = document.getElementById('btn-next-page');
@@ -399,6 +557,45 @@ fileImg.addEventListener('change', async e => {
   e.target.value = '';
 });
 
+// ── Clipboard paste (image → blank page) ─────────────────────────────
+document.addEventListener('paste', async e => {
+  // Skip if the user is typing in a normal input
+  if (['INPUT', 'TEXTAREA'].includes(e.target?.tagName)) return;
+  const p = pages[activeIdx];
+  if (!p || p.type !== 'blank') return;
+  const items = e.clipboardData?.items || [];
+  for (const it of items) {
+    if (it.kind === 'file' && it.type.startsWith('image/')) {
+      e.preventDefault();
+      const file = it.getAsFile();
+      if (!file) continue;
+      try {
+        const src = await readDataURL(file);
+        const im  = await loadImage(src);
+        const mw = p.baseW * 0.45;
+        const mh = p.baseH * 0.45;
+        const s  = Math.min(mw / im.naturalWidth, mh / im.naturalHeight, 1);
+        p.images.push({
+          id: newId(),
+          src,
+          x: 60 + (blankScroller.scrollLeft || 0) / (p.zoom || 1),
+          y: 60 + (blankScroller.scrollTop  || 0) / (p.zoom || 1),
+          w: Math.round(im.naturalWidth * s),
+          h: Math.round(im.naturalHeight * s),
+        });
+        rebuildImgLayer(p);
+        selImg = p.images[p.images.length - 1].id;
+        setTool('select');
+        setStatus('Image pasted from clipboard');
+        renderPageList();
+      } catch (err) {
+        console.error('Clipboard paste failed:', err);
+      }
+      return;
+    }
+  }
+});
+
 // ── Keyboard shortcuts ───────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
@@ -414,25 +611,41 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Blank-canvas: drawing engine ─────────────────────────────────────
+// The blank "page" has an intrinsic logical size (baseW × baseH) and a
+// CSS scale applied for zoom. The sizer drives the scrollbar so when
+// zoomed in you can scroll to see the whole content.
 function setupBlankCanvas() {
-  const w = blankContent.clientWidth;
-  const h = blankContent.clientHeight;
+  const p = pages[activeIdx];
+  if (!p || p.type !== 'blank') return;
+  const w = p.baseW;
+  const h = p.baseH;
+  const z = p.zoom || 1.0;
+
+  blankContent.style.width  = w + 'px';
+  blankContent.style.height = h + 'px';
+  blankContent.style.transform = `scale(${z})`;
+  blankSizer.style.width  = (w * z) + 'px';
+  blankSizer.style.height = (h * z) + 'px';
+
+  // Draw canvas internal pixel buffer matches the unscaled logical size
+  // (×DPR for crispness). CSS transform scales it visually.
   drawCanvas.style.width  = w + 'px';
   drawCanvas.style.height = h + 'px';
   drawCanvas.width  = Math.round(w * DPR);
   drawCanvas.height = Math.round(h * DPR);
   dctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  imgLayer.style.width  = w + 'px';
+  imgLayer.style.height = h + 'px';
 }
-window.addEventListener('resize', () => {
-  setupBlankCanvas();
-  const p = pages[activeIdx];
-  if (p?.type === 'blank') replayStrokes(p);
-});
 
 function ptToBlankContent(e) {
+  // drawCanvas is css-scaled by the parent transform, so we must divide
+  // by zoom to get unscaled (logical) coordinates.
   const r = drawCanvas.getBoundingClientRect();
   const src = e.touches ? e.touches[0] : e;
-  return { x: src.clientX - r.left, y: src.clientY - r.top };
+  const z = pages[activeIdx]?.zoom || 1.0;
+  return { x: (src.clientX - r.left) / z, y: (src.clientY - r.top) / z };
 }
 
 drawCanvas.addEventListener('pointerdown', e => {
@@ -489,9 +702,25 @@ function endDraw() {
     if (p?.type === 'blank') {
       p.strokes.push(currentStroke);
       p.redo = [];
+      schedThumb(activeIdx);
     }
   }
   currentStroke = null;
+}
+
+// Throttled per-page thumbnail refresh after edits.
+const thumbTimers = new Map();
+function schedThumb(idx) {
+  clearTimeout(thumbTimers.get(idx));
+  thumbTimers.set(idx, setTimeout(() => {
+    const items = pageListEl.querySelectorAll('.pg-item');
+    const item = items[idx];
+    if (!item) return;
+    const canvas = item.querySelector('.pg-thumb');
+    if (canvas && canvas.tagName === 'CANVAS') {
+      renderPageThumb(pages[idx], canvas).catch(() => {});
+    }
+  }, 600));
 }
 drawCanvas.addEventListener('pointerup',    endDraw);
 drawCanvas.addEventListener('pointerleave', endDraw);
@@ -595,7 +824,11 @@ document.addEventListener('pointermove', e => {
     if (el) { el.style.width = resizeSt.d.w + 'px'; el.style.height = resizeSt.d.h + 'px'; }
   }
 });
-document.addEventListener('pointerup', () => { dragSt = null; resizeSt = null; });
+document.addEventListener('pointerup', () => {
+  if (dragSt || resizeSt) schedThumb(activeIdx);
+  dragSt = null;
+  resizeSt = null;
+});
 
 // ── Utilities ────────────────────────────────────────────────────────
 function readDataURL(file) {
