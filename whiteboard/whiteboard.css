@@ -7,6 +7,7 @@
   --ac2: #a78bfa;
   --tx: #e8e8f0;
   --txm: #888896;
+  --red: #f56c6c;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -149,31 +150,38 @@ input[type=range] {
   overflow: hidden;
 }
 #sb-hdr {
-  padding: 10px;
+  padding: 8px 10px;
   border-bottom: 1px solid var(--bd);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 6px;
 }
-#sb-hdr span {
+#sb-hdr > span {
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .08em;
   color: var(--txm);
 }
-#btn-add-pdf {
+.sb-add {
+  display: flex;
+  gap: 6px;
+}
+.sb-add button {
+  flex: 1;
   background: var(--ac);
   border: none;
   border-radius: 5px;
   color: #fff;
   font-size: 11px;
   font-weight: 600;
-  padding: 5px 9px;
+  padding: 5px 6px;
   cursor: pointer;
 }
-#btn-add-pdf:hover { background: var(--ac2); }
+.sb-add button:hover { background: var(--ac2); }
+#btn-add-blank { background: var(--sf2); border: 1px solid var(--bd); color: var(--tx); }
+#btn-add-blank:hover { background: var(--bd); }
 
 #page-list {
   flex: 1;
@@ -226,18 +234,110 @@ input[type=range] {
 .pg-item:hover .pg-close { display: flex; }
 .pg-item .pg-close:hover { color: var(--tx); background: rgba(255,255,255,.08); }
 
-/* ── Canvas area + EmbedPDF host ──────────────────────────────── */
+/* ── Canvas area ─────────────────────────────────────────────── */
 #canvas-area {
   flex: 1;
   position: relative;
   background: #e8e8e8;
   min-width: 0;
 }
-#pdf-viewer {
+#pdf-viewer { position: absolute; inset: 0; }
+#pdf-viewer.hidden { display: none; }
+
+/* Blank-canvas surface */
+#blank-host {
   position: absolute;
   inset: 0;
+  background: #d8d8d8;
 }
-#pdf-viewer:empty { display: none; }
+#blank-host.hidden { display: none; }
+#blank-scroller {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+}
+#blank-scroller::-webkit-scrollbar { width: 10px; height: 10px; }
+#blank-scroller::-webkit-scrollbar-track { background: #c8c8c8; }
+#blank-scroller::-webkit-scrollbar-thumb { background: #999; border-radius: 5px; }
+#blank-content {
+  position: relative;
+  background: #fff;
+  margin: 24px auto;
+  width: 1100px;
+  height: 1500px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+}
+#img-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+#draw-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  touch-action: none;
+  background-color: transparent !important;
+}
+
+.img-obj {
+  position: absolute;
+  cursor: move;
+  border: 2px solid transparent;
+  transition: border-color .1s;
+  pointer-events: auto;
+}
+.img-obj:hover { border-color: rgba(108,142,245,.5); }
+.img-obj.selected { border-color: var(--ac); }
+.img-obj img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+.rh {
+  position: absolute;
+  bottom: -7px;
+  right: -7px;
+  width: 16px;
+  height: 16px;
+  background: var(--ac);
+  border-radius: 3px;
+  cursor: se-resize;
+  display: none;
+  z-index: 5;
+  border: 2px solid #fff;
+}
+.img-obj.selected .rh { display: block; }
+.delbtn {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  width: 20px;
+  height: 20px;
+  background: var(--red);
+  border-radius: 50%;
+  cursor: pointer;
+  display: none;
+  z-index: 5;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: bold;
+  border: 2px solid #fff;
+  line-height: 1;
+}
+.img-obj.selected .delbtn { display: flex; }
 
 #empty-state {
   position: absolute;
@@ -254,24 +354,3 @@ input[type=range] {
 }
 #empty-state.hidden { display: none; }
 .empty-icon { font-size: 48px; opacity: 0.4; }
-
-/* ── Hide EmbedPDF's own toolbar / right-side panel / tab bar ─
-   (We drive the annotation tools from our own top toolbar.)
-   These selectors are best-effort — EmbedPDF may rename internal
-   classes between releases; if elements re-appear after an update
-   we'll need to adjust. */
-#pdf-viewer [data-embedpdf-region="topbar"],
-#pdf-viewer [data-embedpdf-region="rightSidebar"],
-#pdf-viewer [data-embedpdf-region="rightPanel"],
-#pdf-viewer [data-embedpdf-region="tabBar"],
-#pdf-viewer [data-embedpdf-region="header"],
-#pdf-viewer [data-region="topbar"],
-#pdf-viewer [data-region="rightSidebar"],
-#pdf-viewer [data-region="rightPanel"],
-#pdf-viewer [data-region="tabBar"],
-#pdf-viewer .epdf-topbar,
-#pdf-viewer .epdf-tabbar,
-#pdf-viewer .epdf-rightbar,
-#pdf-viewer .epdf-right-panel {
-  display: none !important;
-}
