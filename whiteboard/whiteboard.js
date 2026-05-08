@@ -92,6 +92,25 @@ try {
     scrollPlugin?.onLayoutReady?.(refreshPageIndicator);
   } catch (e) { console.warn('onPageChange subscribe failed:', e); }
 
+  // Backfill the real documentId onto the most recent PDF page entry whose
+  // id we couldn't determine from openDocumentBuffer's return shape.
+  try {
+    docManager?.onDocumentOpened?.(doc => {
+      const realId = doc?.documentId || doc?.id;
+      if (!realId) return;
+      // Find the most recent PDF page that doesn't yet have a confirmed id.
+      for (let i = pages.length - 1; i >= 0; i--) {
+        if (pages[i].type === 'pdf' && (pages[i].embedDocId == null || pages[i]._idGuessed)) {
+          pages[i].embedDocId = realId;
+          pages[i]._idGuessed = false;
+          // Re-render the thumbnail now that we have the right id.
+          schedThumb(i);
+          break;
+        }
+      }
+    });
+  } catch (e) { console.warn('onDocumentOpened subscribe failed:', e); }
+
   // Subscribe to zoom changes so the zoom indicator updates while EmbedPDF
   // changes zoom internally (e.g., user pinches).
   try { zoomPlugin?.onStateChange?.(refreshZoomIndicator); }
@@ -206,15 +225,13 @@ async function renderPageThumb(p, canvas) {
     return;
   }
 
-  // PDF page → use the thumbnail plugin if available, else placeholder
-  if (p.type === 'pdf' && thumbnailPlugin?.renderThumb) {
-    try {
-      // EmbedPDF returns a Task<Blob>. Tasks expose a "toPromise()" method.
-      // (If they don't, the runtime check just lets the catch handle it.)
-      const task = thumbnailPlugin.forDocument
-        ? thumbnailPlugin.forDocument(p.embedDocId).renderThumb(0, 1)
-        : thumbnailPlugin.renderThumb(0, 1);
-      const blob = await taskToPromise(task);
+  // PDF page → try thumbnail plugin first, then render plugin, else icon.
+  if (p.type === 'pdf' && p.embedDocId && !p._idGuessed) {
+    const blob = await getPdfFirstPageBlob(p.embedDocId).catch(err => {
+      console.warn(`PDF thumb failed for "${p.name}":`, err);
+      return null;
+    });
+    if (blob) {
       const url = URL.createObjectURL(blob);
       try {
         const im = await loadImage(url);
@@ -226,8 +243,6 @@ async function renderPageThumb(p, canvas) {
         ctx.drawImage(im, (W - dw) / 2, (H - dh) / 2, dw, dh);
       } finally { URL.revokeObjectURL(url); }
       return;
-    } catch (err) {
-      console.warn('PDF thumb failed, falling back:', err);
     }
   }
 
@@ -239,19 +254,42 @@ async function renderPageThumb(p, canvas) {
   ctx.fillText(p.type === 'pdf' ? '📄' : '🎨', W / 2, H / 2);
 }
 
-// EmbedPDF Tasks aren't standard Promises; cover common adapter shapes.
+// Render the first page of a PDF as a Blob, trying thumbnail plugin then
+// render plugin. Returns a Blob or throws.
+async function getPdfFirstPageBlob(docId) {
+  // 1) thumbnail plugin (preferred — caches results internally)
+  if (thumbnailPlugin?.renderThumb) {
+    const scope = thumbnailPlugin.forDocument?.(docId);
+    const task  = scope?.renderThumb
+      ? scope.renderThumb(0, 1)
+      : thumbnailPlugin.renderThumb(0, 1);
+    try { return await taskToPromise(task); }
+    catch (e) { console.warn('thumbnailPlugin.renderThumb failed:', e); }
+  }
+  // 2) render plugin fallback
+  if (renderPlugin?.renderPage) {
+    const scope = renderPlugin.forDocument?.(docId);
+    const opts  = { pageIndex: 0, options: { scaleFactor: 0.25, dpr: 1 } };
+    const task  = scope?.renderPage ? scope.renderPage(opts) : renderPlugin.renderPage(opts);
+    return await taskToPromise(task);
+  }
+  throw new Error('no thumbnail or render plugin available');
+}
+
+// EmbedPDF Tasks aren't standard Promises. Source confirms .toPromise() is
+// the canonical adapter; .wait(onResolve, onReject) is the lower-level
+// callback form. Cover both, plus thenable.
 function taskToPromise(task) {
   if (!task) return Promise.reject(new Error('no task'));
   if (typeof task.toPromise === 'function') return task.toPromise();
-  if (typeof task.then === 'function') return Promise.resolve(task);
-  if (typeof task.run === 'function') {
+  if (typeof task.then === 'function')      return Promise.resolve(task);
+  if (typeof task.wait === 'function') {
     return new Promise((res, rej) => {
-      try { task.run((val, err) => err ? rej(err) : res(val)); }
+      try { task.wait(res, rej); }
       catch (e) { rej(e); }
     });
   }
-  // Last resort: assume it has a .wait or similar.
-  return Promise.reject(new Error('unknown Task shape'));
+  return Promise.reject(new Error('unknown Task shape: ' + Object.keys(task || {}).join(',')));
 }
 
 function updateEmptyState() {
@@ -308,9 +346,12 @@ function closePage(idx) {
 document.getElementById('btn-add-pdf').addEventListener('click', () => filePdf.click());
 document.getElementById('btn-add-blank').addEventListener('click', () => {
   // Lock the blank canvas size to the viewport at creation time so strokes
-  // stay anchored regardless of later resizes.
-  const baseW = Math.max(blankScroller.clientWidth  || 1200, 800);
-  const baseH = Math.max(blankScroller.clientHeight || 900, 600);
+  // stay anchored regardless of later resizes. Measure #canvas-area
+  // (always visible) — measuring #blank-scroller here would return 0
+  // because the blank-host is still display:none until switchPage shows it.
+  const ca = document.getElementById('canvas-area');
+  const baseW = Math.max(ca.clientWidth  || 1200, 800);
+  const baseH = Math.max(ca.clientHeight || 900,  600);
   pages.push({
     id: newId(),
     type: 'blank',
@@ -336,12 +377,15 @@ filePdf.addEventListener('change', async e => {
       name: file.name,
       autoActivate: true,
     });
-    const embedDocId = result?.documentId || result?.id || file.name;
+    // openDocumentBuffer's return shape is build-dependent; we may need to
+    // backfill the real documentId via onDocumentOpened (see init code).
+    const embedDocId = result?.documentId || result?.id || result?.doc?.id || null;
     pages.push({
       id: newId(),
       type: 'pdf',
       name: file.name.replace(/\.pdf$/i, ''),
       embedDocId,
+      _idGuessed: !embedDocId,
     });
     setStatus(`Loaded: ${file.name}`);
     switchPage(pages.length - 1);
