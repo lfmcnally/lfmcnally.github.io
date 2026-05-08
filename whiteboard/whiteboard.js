@@ -1,9 +1,16 @@
 // Lesson Canvas — whiteboard with PDF support, drawing, multi-page lessons.
 // Depends on pdfjsLib (loaded via CDN script tag in whiteboard.html).
 
-// pdf.js needs an explicit worker URL. Use the matching version from cdnjs.
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// pdf.js needs an explicit worker URL plus cmap / standard-font URLs to
+// render PDFs that use embedded subset fonts. jsdelivr hosts the whole
+// pdfjs-dist tree so we get the worker, cmaps and standard_fonts together.
+const PDFJS_BASE = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174';
+pdfjsLib.GlobalWorkerOptions.workerSrc = `${PDFJS_BASE}/build/pdf.worker.min.js`;
+const PDF_LOAD_OPTS = {
+  cMapUrl: `${PDFJS_BASE}/cmaps/`,
+  cMapPacked: true,
+  standardFontDataUrl: `${PDFJS_BASE}/standard_fonts/`,
+};
 
 const STORAGE_KEY = 'lc_v8';
 const DPR = window.devicePixelRatio || 1;
@@ -205,26 +212,37 @@ async function renderPDF(p) {
   const GAP = 8;
 
   for (let pn = 1; pn <= doc.numPages; pn++) {
-    const page  = await doc.getPage(pn);
-    const vp0   = page.getViewport({ scale: 1 });
-    const scale = vpW / vp0.width;
-    const vp    = page.getViewport({ scale });
+    let cssW, cssH;
+    try {
+      const page  = await doc.getPage(pn);
+      const vp0   = page.getViewport({ scale: 1 });
+      const scale = vpW / vp0.width;
+      const vp    = page.getViewport({ scale });
 
-    const pc   = document.createElement('canvas');
-    const cssW = Math.round(vp.width);
-    const cssH = Math.round(vp.height);
-    pc.style.display = 'block';
-    pc.style.position = 'absolute';
-    pc.style.top  = totalH + 'px';
-    pc.style.left = '0';
-    pc.style.width  = cssW + 'px';
-    pc.style.height = cssH + 'px';
-    pc.width  = Math.round(cssW * DPR);
-    pc.height = Math.round(cssH * DPR);
-    const pctx = pc.getContext('2d');
-    const hiVp = page.getViewport({ scale: scale * DPR });
-    await page.render({ canvasContext: pctx, viewport: hiVp }).promise;
-    pdfPages.appendChild(pc);
+      const pc = document.createElement('canvas');
+      cssW = Math.round(vp.width);
+      cssH = Math.round(vp.height);
+      pc.style.display = 'block';
+      pc.style.position = 'absolute';
+      pc.style.top  = totalH + 'px';
+      pc.style.left = '0';
+      pc.style.width  = cssW + 'px';
+      pc.style.height = cssH + 'px';
+      pc.width  = Math.round(cssW * DPR);
+      pc.height = Math.round(cssH * DPR);
+      pdfPages.appendChild(pc); // attach first so the user sees progress
+      const pctx = pc.getContext('2d');
+      const hiVp = page.getViewport({ scale: scale * DPR });
+      await page.render({ canvasContext: pctx, viewport: hiVp }).promise;
+    } catch (err) {
+      console.error(`pdf.js render failed on page ${pn}:`, err);
+      // fall back to a placeholder block so layout stays consistent
+      if (!cssH) cssH = Math.round(vpW * 1.41); // A4-ish ratio
+      const ph = document.createElement('div');
+      ph.style.cssText = `position:absolute;top:${totalH}px;left:0;width:${vpW}px;height:${cssH}px;background:#fdd;display:flex;align-items:center;justify-content:center;color:#900;font-size:12px;`;
+      ph.textContent = `Page ${pn} failed to render`;
+      pdfPages.appendChild(ph);
+    }
 
     if (pn < doc.numPages) {
       const gap = document.createElement('div');
@@ -539,7 +557,11 @@ document.getElementById('file-pdf').addEventListener('change', async e => {
   try {
     const ab = await file.arrayBuffer();
     const saved = ab.slice(0); // pdf.js consumes the buffer; keep a copy for save/load
-    const doc = await pdfjsLib.getDocument({ data: ab }).promise;
+    // pass a Uint8Array — passing a bare ArrayBuffer is flaky in pdf.js v3
+    const doc = await pdfjsLib.getDocument({
+      data: new Uint8Array(ab),
+      ...PDF_LOAD_OPTS,
+    }).promise;
     const p = pages[cur];
     p.bgType = 'pdf';
     p.pdfDoc = doc;
@@ -672,7 +694,10 @@ async function deserialise(raw) {
     p.strokes = r.strokes || [];
     if (r.bgType === 'pdf' && r.pdfB64) {
       p.pdfB64 = r.pdfB64;
-      p.pdfDoc = await pdfjsLib.getDocument({ data: b642ab(r.pdfB64) }).promise;
+      p.pdfDoc = await pdfjsLib.getDocument({
+        data: new Uint8Array(b642ab(r.pdfB64)),
+        ...PDF_LOAD_OPTS,
+      }).promise;
     }
     res.push(p);
   }
