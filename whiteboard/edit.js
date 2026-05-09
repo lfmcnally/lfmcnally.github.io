@@ -1109,20 +1109,43 @@ async function saveLesson({ asNew = false } = {}) {
   const data = await serialiseLesson();
   const thumbnail = await buildLessonThumbnail();
 
+  // Diagnostic: show what we're about to send
+  const dataJson = JSON.stringify(data);
+  const thumbBytes = thumbnail ? thumbnail.length : 0;
+  console.log('[save] payload sizes — data JSON:', dataJson.length, 'bytes, thumbnail:', thumbBytes, 'bytes, page types:',
+    data.pages.map(p => `${p.type}${p.type === 'pdf' ? `(${p.pdfBase64?.length || 0}b64)` : ''}`).join(','));
+
   if (currentLessonId && !asNew) {
-    const { error } = await sb.from('whiteboard_lessons').update({
+    const { error, data: rows, status, statusText } = await sb.from('whiteboard_lessons').update({
       name, data, thumbnail, updated_at: new Date().toISOString(),
-    }).eq('id', currentLessonId);
-    if (error) { setStatus('Save failed: ' + error.message); console.error(error); return; }
+    }).eq('id', currentLessonId).select();
+    console.log('[save] update result — status:', status, statusText, 'rows:', rows?.length);
+    if (error) {
+      setStatus('Save failed: ' + error.message);
+      console.error('[save] supabase update error:', error);
+      console.error('[save] error details:', JSON.stringify(error, null, 2));
+      return;
+    }
+    if (!rows || rows.length === 0) {
+      setStatus('Save failed: no row updated (RLS? wrong id?)');
+      console.error('[save] update returned 0 rows — possibly RLS denial');
+      return;
+    }
     setStatus(`Saved "${name}"`);
     setLessonHeader(name);
   } else {
-    const { data: row, error } = await sb.from('whiteboard_lessons').insert({
+    const { data: row, error, status, statusText } = await sb.from('whiteboard_lessons').insert({
       user_id: usr.id,
       folder_id: currentLessonFolder,
       name, data, thumbnail,
     }).select().single();
-    if (error) { setStatus('Save failed: ' + error.message); console.error(error); return; }
+    console.log('[save] insert result — status:', status, statusText);
+    if (error) {
+      setStatus('Save failed: ' + error.message);
+      console.error('[save] supabase insert error:', error);
+      console.error('[save] error details:', JSON.stringify(error, null, 2));
+      return;
+    }
     currentLessonId = row.id;
     setLessonHeader(name);
     setStatus(`Saved "${name}"`);
