@@ -305,12 +305,16 @@ function switchPage(idx) {
   activeIdx = idx;
   const p = pages[idx];
   selImg = null;
+  console.log(`[switchPage] idx=${idx}, type=${p.type}, embedDocId=${p.embedDocId}`);
 
   if (p.type === 'pdf') {
     pdfViewerEl.classList.remove('hidden');
     blankHostEl.classList.add('hidden');
     if (p.embedDocId && docManager?.setActiveDocument) {
-      try { docManager.setActiveDocument(p.embedDocId); } catch (e) { console.warn(e); }
+      try { docManager.setActiveDocument(p.embedDocId); console.log('[switchPage] setActiveDocument →', p.embedDocId); }
+      catch (e) { console.warn('[switchPage] setActiveDocument failed:', e); }
+    } else {
+      console.warn('[switchPage] no embedDocId — cannot setActiveDocument');
     }
   } else {
     pdfViewerEl.classList.add('hidden');
@@ -440,8 +444,13 @@ function applyToolState() {
       annotation.setToolDefaults?.('inkHighlighter', hlPatch);
       annotation.setToolDefaults?.('freeText',       txtPatch);
     } catch (err) { console.warn('setToolDefaults failed:', err); }
-    try { annotation.setActiveTool?.(EPDF_TOOL[currentTool]); }
-    catch (err) { console.warn('setActiveTool failed:', err); }
+    // Only try setActiveTool when there's actually an active document —
+    // otherwise EmbedPDF throws "No active document", which is just noise
+    // before the first PDF is loaded.
+    if (docManager?.getActiveDocument?.()) {
+      try { annotation.setActiveTool?.(EPDF_TOOL[currentTool]); }
+      catch (err) { console.warn('setActiveTool failed:', err); }
+    }
   }
 
   // Blank-canvas input routing
@@ -1020,15 +1029,28 @@ async function serialiseLesson() {
     } else if (p.type === 'pdf') {
       let buffer = null;
       try {
+        // Make sure the right doc is active before global-scope export,
+        // and prefer the per-document scope if it's available.
+        if (p.embedDocId && docManager?.setActiveDocument) {
+          try { docManager.setActiveDocument(p.embedDocId); } catch {}
+        }
         const scope = exportPlugin?.forDocument?.(p.embedDocId);
         const task = scope?.saveAsCopyAndGetBufferAndName?.()
                   ?? exportPlugin?.saveAsCopyAndGetBufferAndName?.();
         if (task) {
           const result = await taskToPromise(task);
           buffer = result?.buffer || result;
+          if (buffer && !(buffer instanceof ArrayBuffer) && buffer.buffer) {
+            buffer = buffer.buffer; // Uint8Array → underlying ArrayBuffer
+          }
         }
       } catch (e) { console.warn('PDF export failed for', p.name, e); }
-      if (!buffer) continue;
+      const len = buffer?.byteLength ?? 0;
+      console.log(`[save] "${p.name}" PDF buffer:`, len, 'bytes');
+      if (!buffer || !len) {
+        console.warn(`[save] skipping "${p.name}" — empty buffer`);
+        continue;
+      }
       out.pages.push({
         type: 'pdf',
         name: p.name,
@@ -1090,9 +1112,11 @@ async function saveLesson({ asNew = false } = {}) {
 }
 
 async function loadLesson(id) {
+  console.log('[load] fetching lesson', id);
   const { data, error } = await sb.from('whiteboard_lessons')
     .select('id,name,folder_id,data').eq('id', id).single();
-  if (error) { setStatus('Load failed: ' + error.message); console.error(error); return; }
+  if (error) { setStatus('Load failed: ' + error.message); console.error('[load] fetch failed', error); return; }
+  console.log('[load] lesson:', data.name, 'pages:', data.data?.pages?.length);
 
   currentLessonId = data.id;
   currentLessonFolder = data.folder_id;
@@ -1114,8 +1138,6 @@ async function loadLesson(id) {
         redo: [],
       });
     } else if (sp.type === 'pdf' && sp.pdfBase64 && docManager) {
-      // Push the placeholder *before* opening so the onDocumentOpened
-      // backfill in init can find an unfilled page when its event fires.
       const placeholder = {
         id: newId(),
         type: 'pdf',
@@ -1126,21 +1148,24 @@ async function loadLesson(id) {
       pages.push(placeholder);
       try {
         const buffer = b642ab(sp.pdfBase64);
-        // autoActivate: true ensures the document is fully loaded and
-        // registered, so getActiveDocument() returns it right after.
+        console.log(`[load] opening "${sp.name}" (${buffer.byteLength} bytes)`);
         const result = await docManager.openDocumentBuffer({
           buffer, name: sp.name + '.pdf', autoActivate: true,
         });
-        // Try several places for the id; prefer the just-opened active doc.
+        console.log('[load] openDocumentBuffer returned:', result);
         const active = docManager.getActiveDocument?.();
+        console.log('[load] active doc after open:', active);
         const realId =
           result?.documentId || result?.id || result?.doc?.id ||
           active?.documentId || active?.id || null;
         if (realId) {
           placeholder.embedDocId = realId;
           placeholder._idGuessed = false;
+          console.log(`[load] captured embedDocId for "${sp.name}":`, realId);
+        } else {
+          console.warn(`[load] no embedDocId for "${sp.name}" — PDF may not display`);
         }
-      } catch (e) { console.warn('PDF reopen failed:', e); }
+      } catch (e) { console.warn('[load] PDF reopen failed:', e); }
     }
   }
 
@@ -1161,10 +1186,11 @@ window.addEventListener('keydown', e => {
 
 (async function loadFromUrl() {
   const params = new URLSearchParams(location.search);
+  console.log('[boot] URL params:', Object.fromEntries(params));
   if (params.get('lesson')) {
-    // Wait for EmbedPDF/registry to be ready before re-opening PDFs.
     let waited = 0;
     while (!docManager && waited < 5000) { await new Promise(r => setTimeout(r, 50)); waited += 50; }
+    if (!docManager) { console.error('[boot] docManager never became ready'); return; }
     await loadLesson(params.get('lesson'));
   } else if (params.get('folder')) {
     currentLessonFolder = params.get('folder');
