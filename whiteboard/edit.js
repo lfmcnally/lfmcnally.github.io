@@ -1040,6 +1040,15 @@ async function serialiseLesson() {
         if (p.embedDocId && docManager?.setActiveDocument) {
           try { docManager.setActiveDocument(p.embedDocId); } catch {}
         }
+        // Annotations live in EmbedPDF's in-memory state until they're
+        // committed to the underlying PDF document. Without this step,
+        // saveAsCopyAndGetBufferAndName exports the unmodified original.
+        try {
+          const cTask = annotation?.commit?.(p.embedDocId);
+          if (cTask) await taskToPromise(cTask).catch(() => {});
+          console.log('[save] annotation.commit done for', p.name);
+        } catch (e) { console.warn('[save] annotation.commit failed:', e); }
+
         const scope = exportPlugin?.forDocument?.(p.embedDocId);
         const task = scope?.saveAsCopyAndGetBufferAndName?.()
                   ?? exportPlugin?.saveAsCopyAndGetBufferAndName?.();
