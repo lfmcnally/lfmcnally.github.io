@@ -1114,19 +1114,32 @@ async function loadLesson(id) {
         redo: [],
       });
     } else if (sp.type === 'pdf' && sp.pdfBase64 && docManager) {
+      // Push the placeholder *before* opening so the onDocumentOpened
+      // backfill in init can find an unfilled page when its event fires.
+      const placeholder = {
+        id: newId(),
+        type: 'pdf',
+        name: sp.name,
+        embedDocId: null,
+        _idGuessed: true,
+      };
+      pages.push(placeholder);
       try {
         const buffer = b642ab(sp.pdfBase64);
+        // autoActivate: true ensures the document is fully loaded and
+        // registered, so getActiveDocument() returns it right after.
         const result = await docManager.openDocumentBuffer({
-          buffer, name: sp.name + '.pdf', autoActivate: false,
+          buffer, name: sp.name + '.pdf', autoActivate: true,
         });
-        const realId = result?.documentId || result?.id || null;
-        pages.push({
-          id: newId(),
-          type: 'pdf',
-          name: sp.name,
-          embedDocId: realId,
-          _idGuessed: !realId,
-        });
+        // Try several places for the id; prefer the just-opened active doc.
+        const active = docManager.getActiveDocument?.();
+        const realId =
+          result?.documentId || result?.id || result?.doc?.id ||
+          active?.documentId || active?.id || null;
+        if (realId) {
+          placeholder.embedDocId = realId;
+          placeholder._idGuessed = false;
+        }
       } catch (e) { console.warn('PDF reopen failed:', e); }
     }
   }
