@@ -1049,11 +1049,28 @@ async function serialiseLesson() {
           console.log('[save] annotation.commit done for', p.name);
         } catch (e) { console.warn('[save] annotation.commit failed:', e); }
 
-        const scope = exportPlugin?.forDocument?.(p.embedDocId);
-        const task = scope?.saveAsCopyAndGetBufferAndName?.()
-                  ?? exportPlugin?.saveAsCopyAndGetBufferAndName?.();
+        // Try a few export-plugin shapes — the API surface differs between
+        // builds. Prefer per-document scope, then explicit-id global, then
+        // active-document global.
+        let task = null;
+        let attempt = '';
+        if (p.embedDocId && exportPlugin?.forDocument) {
+          const scope = exportPlugin.forDocument(p.embedDocId);
+          if (scope?.saveAsCopy) { task = scope.saveAsCopy(); attempt = 'forDocument().saveAsCopy()'; }
+        }
+        if (!task && p.embedDocId && exportPlugin?.saveAsCopyAndGetBufferAndName) {
+          task = exportPlugin.saveAsCopyAndGetBufferAndName(p.embedDocId);
+          attempt = 'saveAsCopyAndGetBufferAndName(id)';
+        }
+        if (!task && exportPlugin?.saveAsCopy) {
+          task = exportPlugin.saveAsCopy();
+          attempt = 'saveAsCopy()';
+        }
+        console.log('[save] export attempt:', attempt || '(none)');
+
         if (task) {
           const result = await taskToPromise(task);
+          // result may be ArrayBuffer | Uint8Array | { buffer, name }
           buffer = result?.buffer || result;
           if (buffer && !(buffer instanceof ArrayBuffer) && buffer.buffer) {
             buffer = buffer.buffer;
