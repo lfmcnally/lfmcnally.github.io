@@ -3,141 +3,79 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lesson Whiteboard</title>
+<title>Lessons — Whiteboard</title>
 <link rel="stylesheet" href="whiteboard.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../auth/config.js"></script>
+<script src="../auth/auth.js"></script>
 </head>
 <body>
 
-<div id="toolbar">
-  <button class="tb-btn active" data-tool="pen" title="Pen (P)">
-    <svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
-  </button>
-  <button class="tb-btn" data-tool="hl" title="Highlighter (H)">
-    <svg viewBox="0 0 24 24"><path d="M9 11l-6 6v3h3l6-6"/><path d="M22 12l-4.5 4.5L9 8l4.5-4.5a2.121 2.121 0 0 1 3 0L22 9a2.121 2.121 0 0 1 0 3z"/></svg>
-  </button>
-  <button class="tb-btn" data-tool="er" title="Eraser (E) — blank pages only">
-    <svg viewBox="0 0 24 24"><path d="M20 20H7L3 16l10-10 7 7-3 4z"/><path d="M6 11l7 7"/></svg>
-  </button>
-  <button class="tb-btn" data-tool="text" title="Text (T)">
-    <svg viewBox="0 0 24 24"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-  </button>
-  <button class="tb-btn" data-tool="select" title="Select / move (S)">
-    <svg viewBox="0 0 24 24"><path d="M3 3l7 19 2-8 8-2z"/></svg>
-  </button>
-
-  <div class="sep"></div>
-
-  <span class="lbl">Size</span>
-  <input type="range" id="pen-size" min="1" max="40" value="6" style="width:90px">
-  <span class="val" id="pen-size-val">6</span>
-
-  <div class="sep"></div>
-
-  <div id="swatches">
-    <div class="swatch active" style="background:#1a1a1a" data-c="#1a1a1a"></div>
-    <div class="swatch" style="background:#ef4444" data-c="#ef4444"></div>
-    <div class="swatch" style="background:#f97316" data-c="#f97316"></div>
-    <div class="swatch" style="background:#eab308" data-c="#eab308"></div>
-    <div class="swatch" style="background:#22c55e" data-c="#22c55e"></div>
-    <div class="swatch" style="background:#3b82f6" data-c="#3b82f6"></div>
-    <div class="swatch" style="background:#a855f7" data-c="#a855f7"></div>
-    <div class="swatch" style="background:#ec4899" data-c="#ec4899"></div>
-    <div class="swatch" style="background:#fff;outline:1px solid #aaa;outline-offset:1px" data-c="#ffffff"></div>
-    <div id="cpick-wrap"><input type="color" id="colour-pick" value="#1a1a1a"></div>
+<!-- Top bar -->
+<header id="hdr">
+  <div class="hdr-left">
+    <h1>Lessons</h1>
+    <span id="path"></span>
   </div>
-
-  <div class="sep"></div>
-
-  <button class="tb-btn" id="btn-add-image" title="Add image (blank page)">
-    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-  </button>
-  <button class="tb-btn" id="btn-undo" title="Undo (Ctrl+Z)">
-    <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.39"/></svg>
-  </button>
-  <button class="tb-btn" id="btn-redo" title="Redo (Ctrl+Y)">
-    <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-4.39"/></svg>
-  </button>
-  <button class="tb-btn" id="btn-clear" title="Clear annotations on this page">
-    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-  </button>
-
-  <div class="sep"></div>
-
-  <!-- Zoom (works on both PDF and blank pages) -->
-  <button class="tb-btn" id="btn-zoom-out" title="Zoom out">
-    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-  </button>
-  <span id="zoom-indicator" class="page-ind">100%</span>
-  <button class="tb-btn" id="btn-zoom-in" title="Zoom in">
-    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-  </button>
-  <button class="tb-btn" id="btn-zoom-fit" title="Fit to width">
-    <svg viewBox="0 0 24 24"><polyline points="9 3 3 3 3 9"/><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><polyline points="15 21 21 21 21 15"/></svg>
-  </button>
-
-  <div class="sep"></div>
-
-  <!-- PDF page navigation (only useful on a PDF page) -->
-  <button class="tb-btn" id="btn-prev-page" title="Previous page" disabled>
-    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-  </button>
-  <span id="page-indicator" class="page-ind">—</span>
-  <button class="tb-btn" id="btn-next-page" title="Next page" disabled>
-    <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-  </button>
-
-  <div class="sep"></div>
-
-  <button class="tb-btn" id="btn-download" title="Download PDF (with annotations)" disabled>
-    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-  </button>
-  <button class="tb-btn" id="btn-print" title="Print (with annotations)" disabled>
-    <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-  </button>
-
-  <span id="status"></span>
-
-  <a class="tb-link" href="whiteboard-old.html" title="Old whiteboard">old</a>
-</div>
-
-<div id="main">
-  <div id="sidebar">
-    <div id="sb-hdr">
-      <span>Pages</span>
-      <div class="sb-add">
-        <button id="btn-add-blank" title="Add blank page">+ Blank</button>
-        <button id="btn-add-pdf" title="Load PDF">+ PDF</button>
-      </div>
-    </div>
-    <div id="page-list"></div>
+  <div class="hdr-right">
+    <button class="btn" id="btn-new-folder">+ Folder</button>
+    <button class="btn primary" id="btn-new-lesson">+ New lesson</button>
+    <span id="user-info"></span>
+    <a class="link-old" href="whiteboard-old.html">old</a>
   </div>
+</header>
 
-  <div id="canvas-area">
-    <!-- EmbedPDF mounts here; shown for PDF pages -->
-    <div id="pdf-viewer"></div>
-
-    <!-- Blank-canvas surface; shown for blank pages -->
-    <div id="blank-host" class="hidden">
-      <div id="blank-scroller">
-        <div id="blank-sizer">
-          <div id="blank-content">
-            <div id="img-layer"></div>
-            <canvas id="draw-canvas"></canvas>
-          </div>
-        </div>
-      </div>
+<!-- Main split: folder tree on left, files in main -->
+<main id="main">
+  <aside id="tree-pane">
+    <div id="tree-root">
+      <button class="tree-row root active" data-folder="">
+        <span class="tree-icon">🏠</span><span>All lessons</span>
+      </button>
+      <div id="tree"></div>
     </div>
+  </aside>
 
-    <!-- Empty state when no pages exist -->
-    <div id="empty-state">
-      <div class="empty-icon">📄</div>
-      <p>Click <strong>+ Blank</strong> or <strong>+ PDF</strong> on the left to start.</p>
+  <section id="files-pane">
+    <div id="files-grid"></div>
+    <div id="empty">
+      <p>No lessons here yet.</p>
+      <p>Click <strong>+ New lesson</strong> to start one, or <strong>+ Folder</strong> to organise.</p>
+    </div>
+  </section>
+</main>
+
+<!-- Auth-required overlay (shown if not logged in) -->
+<div id="auth-overlay" class="hidden">
+  <div class="auth-card">
+    <h2>Sign in to save lessons</h2>
+    <p>Lessons are saved to your Classicalia account so you can continue them on any device.</p>
+    <div class="auth-actions">
+      <a class="btn primary" id="btn-login" href="../auth/login.html">Sign in</a>
+      <a class="btn" id="btn-skip" href="edit.html?new=1">Continue without saving</a>
     </div>
   </div>
 </div>
 
-<input type="file" id="file-pdf" accept="application/pdf" style="display:none">
-<input type="file" id="file-img" accept="image/*" style="display:none">
+<!-- Save / rename / new-folder modal -->
+<div id="modal-overlay" class="hidden">
+  <div class="modal">
+    <h3 id="modal-title">Title</h3>
+    <input type="text" id="modal-input" placeholder="Name">
+    <div class="modal-actions">
+      <button class="btn" id="modal-cancel">Cancel</button>
+      <button class="btn primary" id="modal-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Right-click menu -->
+<div id="ctx-menu" class="hidden">
+  <button data-action="rename">Rename</button>
+  <button data-action="delete" class="danger">Delete</button>
+</div>
+
+<div id="toast"></div>
 
 <script type="module" src="whiteboard.js"></script>
 </body>
