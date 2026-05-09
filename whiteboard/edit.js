@@ -376,6 +376,11 @@ filePdf.addEventListener('change', async e => {
   setStatus(`Loading ${file.name}…`);
   try {
     const buffer = await file.arrayBuffer();
+    // Keep a copy of the original bytes so we can save the lesson even if
+    // EmbedPDF's exportPlugin isn't available / fails. openDocumentBuffer
+    // typically transfers/neuters the ArrayBuffer it's handed, so we slice
+    // here BEFORE passing it on.
+    const originalBytes = new Uint8Array(buffer.slice(0));
     const result = await docManager.openDocumentBuffer({
       buffer,
       name: file.name,
@@ -390,6 +395,7 @@ filePdf.addEventListener('change', async e => {
       name: file.name.replace(/\.pdf$/i, ''),
       embedDocId,
       _idGuessed: !embedDocId,
+      originalBytes,
     });
     setStatus(`Loaded: ${file.name}`);
     switchPage(pages.length - 1);
@@ -1027,10 +1033,10 @@ async function serialiseLesson() {
         images: p.images || [],
       });
     } else if (p.type === 'pdf') {
+      // First try EmbedPDF's exportPlugin so any annotations are baked in.
       let buffer = null;
+      let source = 'export';
       try {
-        // Make sure the right doc is active before global-scope export,
-        // and prefer the per-document scope if it's available.
         if (p.embedDocId && docManager?.setActiveDocument) {
           try { docManager.setActiveDocument(p.embedDocId); } catch {}
         }
@@ -1041,14 +1047,27 @@ async function serialiseLesson() {
           const result = await taskToPromise(task);
           buffer = result?.buffer || result;
           if (buffer && !(buffer instanceof ArrayBuffer) && buffer.buffer) {
-            buffer = buffer.buffer; // Uint8Array → underlying ArrayBuffer
+            buffer = buffer.buffer;
           }
         }
-      } catch (e) { console.warn('PDF export failed for', p.name, e); }
+      } catch (e) { console.warn('[save] PDF export failed for', p.name, e); }
+
+      // Fallback: the original PDF bytes captured at upload (unannotated).
+      // Better than dropping the page entirely.
+      if (!buffer || !buffer.byteLength) {
+        if (p.originalBytes?.byteLength) {
+          buffer = p.originalBytes.buffer.slice(
+            p.originalBytes.byteOffset,
+            p.originalBytes.byteOffset + p.originalBytes.byteLength,
+          );
+          source = 'original';
+        }
+      }
+
       const len = buffer?.byteLength ?? 0;
-      console.log(`[save] "${p.name}" PDF buffer:`, len, 'bytes');
+      console.log(`[save] "${p.name}" PDF buffer (${source}):`, len, 'bytes');
       if (!buffer || !len) {
-        console.warn(`[save] skipping "${p.name}" — empty buffer`);
+        console.warn(`[save] skipping "${p.name}" — no buffer available`);
         continue;
       }
       out.pages.push({
@@ -1138,16 +1157,20 @@ async function loadLesson(id) {
         redo: [],
       });
     } else if (sp.type === 'pdf' && sp.pdfBase64 && docManager) {
+      const decoded = b642ab(sp.pdfBase64);
       const placeholder = {
         id: newId(),
         type: 'pdf',
         name: sp.name,
         embedDocId: null,
         _idGuessed: true,
+        // Keep a copy of the bytes so subsequent saves can fall back to
+        // them if exportPlugin is broken on this build of EmbedPDF.
+        originalBytes: new Uint8Array(decoded.slice(0)),
       };
       pages.push(placeholder);
       try {
-        const buffer = b642ab(sp.pdfBase64);
+        const buffer = decoded;
         console.log(`[load] opening "${sp.name}" (${buffer.byteLength} bytes)`);
         const result = await docManager.openDocumentBuffer({
           buffer, name: sp.name + '.pdf', autoActivate: true,
