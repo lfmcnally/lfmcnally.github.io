@@ -454,7 +454,18 @@ function renderDashboard(words, recentlyPractised) {
 }
 
 // ── Initialise ──
+let observedUserId = null;   // tracked so onAuthStateChange can detect real transitions
+
 async function init() {
+  // Capture the current user id FIRST, before anything that could trigger
+  // an auth state change. Otherwise the SIGNED_IN event that supabase-js
+  // fires when it restores a session from localStorage looks like a real
+  // transition and we'd reload in a loop.
+  try {
+    const { data } = await window.supabase.auth.getUser();
+    observedUserId = data && data.user ? data.user.id : null;
+  } catch (_err) { observedUserId = null; }
+
   const canonical = getCanonicalWords();
 
   if (!window.ClassicaliaBKT) {
@@ -464,7 +475,7 @@ async function init() {
     return;
   }
 
-  // Open the store first — its mode is the source of truth for "signed in"
+  // Open the store — its mode is the source of truth for "signed in"
   const store = await window.ClassicaliaBKT.open({ vocabList: VOCAB_LIST_KEY });
 
   if (store.mode === 'cloud') {
@@ -500,18 +511,18 @@ async function init() {
   renderDashboard(words, recentlyPractised);
 }
 
-init();
-
-// Re-render if the user signs in/out in another tab.
-// IMPORTANT: onAuthStateChange fires immediately with INITIAL_SESSION on
-// subscription, so filter to only reload on actual transitions.
-if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
-  window.supabase.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
-      window.location.reload();
-    }
-  });
-}
+// Run init() first, then register the auth listener — this guarantees
+// observedUserId is set before the listener can fire.
+init().then(() => {
+  if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
+    window.supabase.auth.onAuthStateChange((_event, session) => {
+      const newUserId = session && session.user ? session.user.id : null;
+      if (newUserId !== observedUserId) {
+        window.location.reload();
+      }
+    });
+  }
+});
 </script>
 </body>
 </html>
