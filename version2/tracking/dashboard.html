@@ -290,12 +290,14 @@ function getCanonicalWords() {
 async function populateNavUser() {
   if (!window.supabase || !window.supabase.auth) return null;
   try {
-    const { data } = await window.supabase.auth.getSession();
-    const user = data && data.session && data.session.user;
-    if (!user) return null;
+    // getUser() validates against the API (more reliable than getSession()
+    // which can return null during the library's startup refresh)
+    const { data, error } = await window.supabase.auth.getUser();
+    if (error || !data || !data.user) return null;
+    const user = data.user;
 
     // Try to read full_name from the users table; fall back to email
-    let displayName = user.email;
+    let displayName = user.email || 'Student';
     try {
       const { data: profile } = await window.supabase
         .from('users')
@@ -303,19 +305,21 @@ async function populateNavUser() {
         .eq('id', user.id)
         .maybeSingle();
       if (profile && profile.full_name) displayName = profile.full_name;
-    } catch (err) { /* ignore — fall back to email */ }
+    } catch (_err) { /* ignore — fall back to email */ }
 
-    const initials = (displayName || '?')
+    const initials = String(displayName)
       .split(/[\s@.]+/)
       .filter(Boolean)
       .slice(0, 2)
       .map(s => s[0].toUpperCase())
       .join('') || '?';
 
+    const shortName = String(displayName).split('@')[0];
+
     const navUser = document.getElementById('navUser');
     navUser.innerHTML = `
       <div class="nav-avatar">${initials}</div>
-      <span class="nav-username">${displayName.split('@')[0]}</span>
+      <span class="nav-username">${shortName}</span>
     `;
     return user;
   } catch (err) {
@@ -451,22 +455,25 @@ function renderDashboard(words, recentlyPractised) {
 
 // ── Initialise ──
 async function init() {
-  const user = await populateNavUser();
-
-  // Show "you're not signed in" banner for anonymous users
-  if (!user) {
-    document.getElementById('anonBanner').style.display = 'flex';
-  }
-
   const canonical = getCanonicalWords();
 
   if (!window.ClassicaliaBKT) {
     console.warn('[dashboard] BKT store not available — rendering empty state');
+    document.getElementById('anonBanner').style.display = 'flex';
     renderDashboard(canonical.map(w => ({ ...w, p: 0.3, t: 0 })), []);
     return;
   }
 
+  // Open the store first — its mode is the source of truth for "signed in"
   const store = await window.ClassicaliaBKT.open({ vocabList: VOCAB_LIST_KEY });
+
+  if (store.mode === 'cloud') {
+    // Best-effort nav populate. If it fails, that's cosmetic — the data is fine.
+    populateNavUser();
+  } else {
+    document.getElementById('anonBanner').style.display = 'flex';
+  }
+
   const stored = await store.loadAll();
 
   // Merge canonical word list with stored BKT state
@@ -495,11 +502,14 @@ async function init() {
 
 init();
 
-// Re-render if the user signs in/out in another tab
+// Re-render if the user signs in/out in another tab.
+// IMPORTANT: onAuthStateChange fires immediately with INITIAL_SESSION on
+// subscription, so filter to only reload on actual transitions.
 if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
-  window.supabase.auth.onAuthStateChange(() => {
-    // Full page reload is simplest here — guarantees the right store + nav
-    window.location.reload();
+  window.supabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'USER_UPDATED') {
+      window.location.reload();
+    }
   });
 }
 </script>
