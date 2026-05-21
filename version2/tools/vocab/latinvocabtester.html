@@ -1111,6 +1111,53 @@ function renderMC() {
 }
 
 // ── Type answer ──
+// Normalise an answer string for tolerant comparison:
+//   lowercase, strip parenthetical glosses, replace hyphens / dots / ellipses
+//   with spaces, drop other punctuation, collapse whitespace.
+function normaliseAnswer(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')          // drop bracketed glosses, e.g. "go (irregular)"
+    .replace(/[\-./…]+/g, ' ')           // hyphens, periods, ellipses → space
+    .replace(/[^\p{L}\p{N}\s]/gu, '')    // drop remaining punctuation (commas etc.)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Decide whether the user's answer counts as correct for this word.
+// Layered acceptance, most-to-least strict:
+//   1. Exact match to any comma/semicolon-separated synonym, normalised
+//   2. Compact equality (hyphens/spaces don't matter)
+//      → "slavegirl" ≈ "slave-girl" ≈ "slave girl"
+//      → "both and" ≈ "both...and"
+//   3. Every word of the variant appears as a standalone word in the user input
+//      → "to be" matches "be" (extra particle is fine)
+//      → "embed" does NOT match "be" (no false-positive substring matches)
+//   4. Every word of the variant appears as a substring in the user's compact
+//      form, but only when each variant word is at least 4 chars long
+//      → "loves" matches "love" (slight morphology)
+//      → "is" does NOT match "be" (too short to risk it)
+function checkTypingMatch(userInput, correctText) {
+  const u = normaliseAnswer(userInput);
+  if (!u) return false;
+  const uCompact = u.replace(/\s/g, '');
+  const uWords = new Set(u.split(' ').filter(Boolean));
+
+  const variants = String(correctText).split(/[,;]/).map(normaliseAnswer).filter(Boolean);
+  for (const v of variants) {
+    if (u === v) return true;
+    const vCompact = v.replace(/\s/g, '');
+    if (uCompact === vCompact) return true;
+
+    const vWords = v.split(' ').filter(Boolean);
+    if (vWords.length > 0) {
+      if (vWords.every(w => uWords.has(w))) return true;
+      if (vWords.every(w => w.length >= 4 && uCompact.includes(w))) return true;
+    }
+  }
+  return false;
+}
+
 function renderType() {
   const area = document.getElementById('answerArea');
   area.innerHTML = `
@@ -1126,18 +1173,23 @@ function renderType() {
   function checkType() {
     if (answered) return;
     answered = true;
-    const userAnswer = input.value.trim().toLowerCase();
-    const correct = currentWord.english.toLowerCase();
-    // flexible match — check if any key word in the answer is present
-    const correctWords = correct.split(/[,\s]+/).filter(w => w.length > 2);
-    const isCorrect = correctWords.some(w => userAnswer.includes(w)) || correct.includes(userAnswer);
+    const isCorrect = checkTypingMatch(input.value, currentWord.english);
     input.classList.add(isCorrect ? 'correct' : 'wrong');
     submit.disabled = true;
+    // Blur so the next Enter is caught by the document-level handler
+    // and advances to the next word (rather than re-firing checkType).
+    input.blur();
     handleAnswer(isCorrect, null);
   }
 
   submit.addEventListener('click', checkType);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') checkType(); });
+  input.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    // Stop the Enter from bubbling to the document handler, which would
+    // immediately call nextWord() and wipe the feedback we're about to show.
+    e.stopPropagation();
+    checkType();
+  });
 }
 
 // ── Handle answer result ──
