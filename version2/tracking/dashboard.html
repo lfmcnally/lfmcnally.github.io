@@ -166,7 +166,7 @@ body { background: var(--cream); }
   </div>
 </div>
 <div class="dash-body">
-  <a href="/version2/tools/vocab/latinvocabtester.html" class="smart-btn">
+  <a href="/version2/tools/vocab/latinvocabtester.html?auto=1" class="smart-btn">
     <div>
       <div class="smart-btn-label">Recommended</div>
       <div class="smart-btn-title">Start a smart session</div>
@@ -199,7 +199,7 @@ body { background: var(--cream); }
     <div class="wordmap-body"><div class="wordmap" id="wordmap"></div></div>
   </div>
   <div class="queues">
-    <div class="queue-card" onclick="location='/version2/tools/vocab/latinvocabtester.html'">
+    <div class="queue-card" onclick="location='/version2/tools/vocab/latinvocabtester.html?queue=struggling'">
       <div class="queue-head">
         <div class="queue-label struggling">Struggling</div>
         <div class="queue-desc">Many attempts, still low confidence. These need focused work.</div>
@@ -208,19 +208,19 @@ body { background: var(--cream); }
       <div class="queue-words" id="qws"></div>
       <button class="queue-btn">Practise these →</button>
     </div>
-    <div class="queue-card" onclick="location='/version2/tools/vocab/latinvocabtester.html'">
+    <div class="queue-card" onclick="location='/version2/tools/vocab/latinvocabtester.html?queue=learning'">
       <div class="queue-head">
         <div class="queue-label learning">Learning</div>
-        <div class="queue-desc">Not seen often. Introducing these will grow your range.</div>
+        <div class="queue-desc">New words or only seen a few times. Build your range here.</div>
       </div>
       <div class="queue-count learning" id="qcl">0</div>
       <div class="queue-words" id="qwl"></div>
       <button class="queue-btn">Start learning →</button>
     </div>
-    <div class="queue-card" onclick="location='/version2/tools/vocab/latinvocabtester.html'">
+    <div class="queue-card" onclick="location='/version2/tools/vocab/latinvocabtester.html?queue=nearly'">
       <div class="queue-head">
         <div class="queue-label nearly">Nearly there</div>
-        <div class="queue-desc">Good confidence but not yet secure. A few more goes should do it.</div>
+        <div class="queue-desc">Building confidence but not yet secure. A few more goes should do it.</div>
       </div>
       <div class="queue-count nearly" id="qcn">0</div>
       <div class="queue-words" id="qwn"></div>
@@ -329,14 +329,14 @@ async function populateNavUser() {
 }
 
 
-// classify
+// classify — every word with t>0 lands in struggling, learning, nearly, or secure.
+// (Old version had a gap at 0.4 ≤ p < 0.6 where words disappeared from the queues.)
 function classify(w) {
-  if (w.t === 0)    return 'unseen';
+  if (w.t === 0)    return 'learning';   // unseen words start in the learning queue
   if (w.p >= 0.95)  return 'secure';
-  if (w.p >= 0.6)   return 'nearly';
-  if (w.p >= 0.4)   return 'mid';
-  if (w.t >= 4)     return 'struggling';
-  return 'learning';
+  if (w.t < 4)      return 'learning';   // recent words, regardless of confidence
+  if (w.p < 0.4)    return 'struggling';
+  return 'nearly';                        // t≥4 and 0.4 ≤ p < 0.95
 }
 function blockCls(w) {
   if (w.t === 0)   return 'p-unseen';
@@ -396,7 +396,7 @@ function renderDashboard(words, recentlyPractised) {
 
   // queues
   const struggling = words.filter(w => classify(w)==='struggling');
-  const learning   = words.filter(w => classify(w)==='learning'||classify(w)==='unseen');
+  const learning   = words.filter(w => classify(w)==='learning');
   const nearly     = words.filter(w => classify(w)==='nearly');
   const secure     = words.filter(w => classify(w)==='secure');
 

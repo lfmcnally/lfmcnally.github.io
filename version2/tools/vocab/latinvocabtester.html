@@ -896,10 +896,9 @@ document.getElementById('wordTo').addEventListener('change', updateWordCount);
 // ═══════════════════════════════════════════════════════
 // START
 // ═══════════════════════════════════════════════════════
-document.getElementById('startBtn').addEventListener('click', async () => {
-  const pool = getActivePool();
-
-  // Ensure we have the store for this list, then hydrate per-word BKT state
+// Shared session-starter. Used by the manual Start button and by the
+// auto-start paths (?auto=1 and ?queue=...).
+async function startSessionWithPool(pool, mode) {
   await refreshActiveStore();
   const stored = activeStore ? await activeStore.loadAll() : new Map();
 
@@ -913,7 +912,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     };
   });
 
-  currentMode = selectedMode;
+  currentMode = mode || selectedMode;
   streak = 0;
   totalCorrect = 0;
   totalAnswered = 0;
@@ -921,13 +920,85 @@ document.getElementById('startBtn').addEventListener('click', async () => {
   document.getElementById('setupScreen').style.display = 'none';
   document.getElementById('testerScreen').style.display = 'block';
 
-  // set mode toggle
   document.getElementById('toggleMC').classList.toggle('active', currentMode === 'mc');
   document.getElementById('toggleType').classList.toggle('active', currentMode === 'type');
 
   nextWord();
   updateStats();
+}
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  startSessionWithPool(getActivePool(), selectedMode);
 });
+
+// ═══════════════════════════════════════════════════════
+// AUTO-START from dashboard (?queue=struggling|learning|nearly, or ?auto=1)
+// ═══════════════════════════════════════════════════════
+// Must mirror dashboard.html's classify() exactly.
+function classifyForQueue(p, t) {
+  if (t === 0)   return 'learning';
+  if (p >= 0.95) return 'secure';
+  if (t < 4)     return 'learning';
+  if (p < 0.4)   return 'struggling';
+  return 'nearly';
+}
+
+function showAutoStartNotice(message) {
+  let bar = document.getElementById('autoNotice');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'autoNotice';
+    bar.style.cssText = 'max-width:680px;margin:24px auto -8px;padding:14px 18px;background:#fff7e6;border:1px solid #fde68a;border-radius:8px;font-size:13px;color:#7c4a03;line-height:1.5;';
+    const setup = document.getElementById('setupScreen');
+    setup.parentNode.insertBefore(bar, setup);
+  }
+  bar.textContent = message;
+}
+
+async function maybeAutoStart() {
+  const params = new URLSearchParams(window.location.search);
+  const queueName = params.get('queue');
+  const auto = params.get('auto');
+  if (!queueName && !auto) return;
+
+  // Wait for the store before we can classify
+  await refreshActiveStore();
+  const stored = activeStore ? await activeStore.loadAll() : new Map();
+
+  // Dedupe by latin headword (same word in different chapters → one entry)
+  const data = VOCAB_LATIN_GCSE.filter(w => w.chapter > 0);
+  const dedup = new Map();
+  for (const w of data) {
+    if (dedup.has(w.latin)) continue;
+    const state = stored.get(w.latin);
+    dedup.set(w.latin, {
+      ...w,
+      _p: state ? state.p_know : BKT.pL0,
+      _t: state ? state.trials : 0
+    });
+  }
+  const allWords = Array.from(dedup.values());
+
+  let pool;
+  if (queueName) {
+    const matching = allWords.filter(w => classifyForQueue(w._p, w._t) === queueName);
+    if (matching.length < 4) {
+      const labels = { struggling: 'struggling', learning: 'learning', nearly: 'nearly-there' };
+      const label = labels[queueName] || queueName;
+      showAutoStartNotice(`You don't have enough ${label} words yet to run a focused session (need 4, have ${matching.length}). Practise a bit first, then come back.`);
+      // strip query string so refresh doesn't loop the notice
+      history.replaceState(null, '', window.location.pathname);
+      return;
+    }
+    pool = matching;
+  } else {
+    pool = allWords;
+  }
+
+  // Strip the private _p/_t fields before passing into the session
+  const clean = pool.map(({ _p, _t, ...rest }) => rest);
+  await startSessionWithPool(clean, 'mc');
+}
 
 // ═══════════════════════════════════════════════════════
 // BKT UPDATE
@@ -1197,6 +1268,9 @@ let observedUserId = null;
     observedUserId = data && data.user ? data.user.id : null;
   } catch (_err) { observedUserId = null; }
   await refreshActiveStore();
+
+  // If the URL says ?queue=... or ?auto=1, jump straight into a session.
+  await maybeAutoStart();
 
   if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
     window.supabase.auth.onAuthStateChange((_event, session) => {
