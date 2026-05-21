@@ -1184,22 +1184,32 @@ window.addEventListener('pagehide', () => {
   if (activeStore && activeStore.flush) activeStore.flush();
 });
 
-// init word count + open BKT store for the default list
-updateWordCount();
-refreshActiveStore();
+// init word count + open BKT store for the default list. We capture the
+// current user id BEFORE registering the auth listener so the SIGNED_IN
+// event that supabase-js fires when it restores a session from localStorage
+// doesn't look like a real transition.
+let observedUserId = null;
 
-// React to sign-in/sign-out from another tab so the pill stays accurate.
-// IMPORTANT: onAuthStateChange fires immediately with INITIAL_SESSION on
-// subscription, so filter to only react to actual transitions.
-if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
-  window.supabase.auth.onAuthStateChange((event) => {
-    if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT' && event !== 'USER_UPDATED') return;
-    // Drop cached stores; they're tied to the previous auth state.
-    for (const k of Object.keys(bktStores)) delete bktStores[k];
-    activeStore = null;
-    refreshActiveStore();
-  });
-}
+(async function bootstrap() {
+  updateWordCount();
+  try {
+    const { data } = await window.supabase.auth.getUser();
+    observedUserId = data && data.user ? data.user.id : null;
+  } catch (_err) { observedUserId = null; }
+  await refreshActiveStore();
+
+  if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
+    window.supabase.auth.onAuthStateChange((_event, session) => {
+      const newUserId = session && session.user ? session.user.id : null;
+      if (newUserId === observedUserId) return;
+      observedUserId = newUserId;
+      // Drop cached stores; they're tied to the previous auth state.
+      for (const k of Object.keys(bktStores)) delete bktStores[k];
+      activeStore = null;
+      refreshActiveStore();
+    });
+  }
+})();
 </script>
 </body>
 </html>
