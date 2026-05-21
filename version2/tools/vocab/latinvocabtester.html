@@ -11,9 +11,49 @@
 <script src="data/latin-gcse.js"></script>
 <script src="data/latin-alevel.js"></script>
 <script src="data/suburani.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/bkt-store.js"></script>
 <style>
 
 body { background: var(--cream); }
+
+/* ── SYNC STATUS PILL ── */
+.sync-pill {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px 7px 11px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11.5px;
+  color: var(--muted);
+  box-shadow: 0 1px 4px rgba(14, 30, 63, 0.04);
+  z-index: 50;
+}
+.sync-pill .sync-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #cbd5e1;
+  flex-shrink: 0;
+}
+.sync-pill[data-mode="cloud"] .sync-dot { background: #16a34a; }
+.sync-pill[data-mode="local"] .sync-dot { background: #fbbf24; }
+.sync-pill[data-mode="error"] .sync-dot { background: #ef4444; }
+.sync-pill .sync-link {
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+}
+.sync-pill .sync-link:hover { text-decoration: underline; }
+@media (max-width: 540px) {
+  .sync-pill { top: 10px; right: 10px; font-size: 10.5px; padding: 5px 10px 5px 9px; }
+}
 
 /* ── SETUP SCREEN ── */
 /* ── SETUP SCREEN ── */
@@ -493,6 +533,13 @@ body { background: var(--cream); }
 <!-- MASTERED FLASH -->
 <div class="mastered-flash" id="masteredFlash">✓ Mastered!</div>
 
+<!-- SYNC STATUS PILL -->
+<div class="sync-pill" id="syncPill" data-mode="loading">
+  <span class="sync-dot"></span>
+  <span class="sync-text" id="syncText">Checking…</span>
+  <a href="/auth/login.html" class="sync-link" id="syncLink" style="display:none;">Sign in to sync</a>
+</div>
+
 <!-- ═══════════════════════════════════ SETUP SCREEN -->
 <div class="setup" id="setupScreen">
 
@@ -659,12 +706,58 @@ body { background: var(--cream); }
 // VOCAB LOOKUP — data loaded from external files
 // ═══════════════════════════════════════════════════════
 const VOCAB_LISTS = {
-  gcse:    { data: () => VOCAB_LATIN_GCSE,  label: 'OCR GCSE Latin (J282)' },
-  alevel:  { data: () => VOCAB_LATIN_ALEVEL, label: 'OCR A-Level Latin (H443)' },
-  suburani:{ data: () => VOCAB_SUBURANI,    label: 'Suburani' }
+  gcse:    { data: () => VOCAB_LATIN_GCSE,  label: 'OCR GCSE Latin (J282)', storageKey: 'latin-gcse' },
+  alevel:  { data: () => VOCAB_LATIN_ALEVEL, label: 'OCR A-Level Latin (H443)', storageKey: 'latin-alevel' },
+  suburani:{ data: () => VOCAB_SUBURANI,    label: 'Suburani', storageKey: 'latin-suburani' }
 };
 
 let selectedList = 'gcse';
+
+// ═══════════════════════════════════════════════════════
+// BKT STORE — loaded per vocab list. Opens once per list and is reopened
+// when the user switches between lists.
+// ═══════════════════════════════════════════════════════
+const bktStores = {};                   // storageKey -> store
+let activeStore = null;                 // store for selectedList
+
+function setSyncPill(mode, text, showSignInLink) {
+  const pill = document.getElementById('syncPill');
+  const textEl = document.getElementById('syncText');
+  const link = document.getElementById('syncLink');
+  if (!pill) return;
+  pill.dataset.mode = mode;
+  textEl.textContent = text;
+  link.style.display = showSignInLink ? '' : 'none';
+}
+
+async function ensureStoreFor(listId) {
+  const cfg = VOCAB_LISTS[listId];
+  if (!cfg || typeof cfg.data !== 'function') return null;
+  if (!cfg.data()) return null; // data file missing — silently skip
+  const key = cfg.storageKey;
+  if (bktStores[key]) return bktStores[key];
+  if (!window.ClassicaliaBKT) return null;
+  try {
+    bktStores[key] = await window.ClassicaliaBKT.open({ vocabList: key });
+  } catch (err) {
+    console.warn('[bkt] failed to open store', err);
+    return null;
+  }
+  return bktStores[key];
+}
+
+async function refreshActiveStore() {
+  activeStore = await ensureStoreFor(selectedList);
+  if (!activeStore) {
+    setSyncPill('error', 'Progress not saved', false);
+    return;
+  }
+  if (activeStore.mode === 'cloud') {
+    setSyncPill('cloud', 'Synced to your account', false);
+  } else {
+    setSyncPill('local', 'Saved on this device', true);
+  }
+}
 
 // ═══════════════════════════════════════════════════════
 // BKT PARAMETERS
@@ -702,6 +795,7 @@ document.querySelectorAll('.opt-row[data-list]').forEach(btn => {
     btn.classList.add('selected');
     selectedList = btn.dataset.list;
     updateWordCount();
+    refreshActiveStore();
   });
 });
 
@@ -802,16 +896,22 @@ document.getElementById('wordTo').addEventListener('change', updateWordCount);
 // ═══════════════════════════════════════════════════════
 // START
 // ═══════════════════════════════════════════════════════
-document.getElementById('startBtn').addEventListener('click', () => {
+document.getElementById('startBtn').addEventListener('click', async () => {
   const pool = getActivePool();
 
-  // initialise BKT state for each word
-  activeWords = pool.map(w => ({
-    ...w,
-    pKnow: BKT.pL0,
-    trials: 0,
-    correct: 0
-  }));
+  // Ensure we have the store for this list, then hydrate per-word BKT state
+  await refreshActiveStore();
+  const stored = activeStore ? await activeStore.loadAll() : new Map();
+
+  activeWords = pool.map(w => {
+    const prev = stored.get(w.latin);
+    return {
+      ...w,
+      pKnow:   prev ? prev.p_know  : BKT.pL0,
+      trials:  prev ? prev.trials  : 0,
+      correct: prev ? prev.correct : 0
+    };
+  });
 
   currentMode = selectedMode;
   streak = 0;
@@ -848,6 +948,15 @@ function bktUpdate(word, correct) {
   word.pKnow = posterior + (1 - posterior) * pT;
   word.trials++;
   if (correct) word.correct++;
+
+  // Persist (debounced inside the store)
+  if (activeStore) {
+    activeStore.update(word.latin, {
+      p_know:  word.pKnow,
+      trials:  word.trials,
+      correct: word.correct
+    });
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1065,12 +1174,29 @@ document.getElementById('toggleType').addEventListener('click', () => {
 // exit
 document.getElementById('exitBtn').addEventListener('click', e => {
   e.preventDefault();
+  if (activeStore && activeStore.flush) activeStore.flush();
   document.getElementById('testerScreen').style.display = 'none';
   document.getElementById('setupScreen').style.display = 'block';
 });
 
-// init word count
+// Flush any unsent BKT updates if the user closes the tab mid-session
+window.addEventListener('pagehide', () => {
+  if (activeStore && activeStore.flush) activeStore.flush();
+});
+
+// init word count + open BKT store for the default list
 updateWordCount();
+refreshActiveStore();
+
+// React to sign-in/sign-out from another tab so the pill stays accurate.
+if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
+  window.supabase.auth.onAuthStateChange(() => {
+    // Drop cached stores; they're tied to the previous auth state.
+    for (const k of Object.keys(bktStores)) delete bktStores[k];
+    activeStore = null;
+    refreshActiveStore();
+  });
+}
 </script>
 </body>
 </html>
