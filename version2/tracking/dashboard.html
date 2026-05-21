@@ -8,6 +8,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/bkt-store.js"></script>
 <style>
 body { background: var(--cream); }
 .nav-user { display: flex; align-items: center; gap: 10px; }
@@ -144,9 +148,8 @@ body { background: var(--cream); }
         <div class="nav-div"></div>
         <a href="#" class="nav-link">Tools</a>
         <a href="#" class="nav-link">About</a>
-        <div class="nav-user">
-          <div class="nav-avatar">EP</div>
-          <span class="nav-username">Eleanor</span>
+        <div class="nav-user" id="navUser">
+          <a href="/auth/login.html" class="nav-cta" id="navSignIn">Sign in</a>
         </div>
       </div>
     </div>
@@ -171,6 +174,11 @@ body { background: var(--cream); }
     </div>
     <div class="smart-btn-arrow">→</div>
   </a>
+  <div class="anon-banner" id="anonBanner" style="display:none;background:#fff7e6;border:1px solid #fde68a;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#7c4a03;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:240px;">
+      <strong style="color:#451a03;">You're not signed in.</strong> Progress is saved on this device only. <a href="/auth/login.html" style="color:#1A6FFF;font-weight:600;">Sign in</a> to sync across devices and let your teacher see your progress.
+    </div>
+  </div>
   <div class="wordmap-card">
     <div class="wordmap-head">
       <span class="wordmap-title">Word confidence map — all 460 words</span>
@@ -241,7 +249,7 @@ body { background: var(--cream); }
         <div class="secure-bar-wrap"><div class="secure-bar"><div class="secure-bar-fill" id="secureBarFill" style="width:0%"></div></div></div>
       </div>
       <div class="dash-card">
-        <div class="dash-card-head"><span class="dash-card-title">Recent sessions</span></div>
+        <div class="dash-card-head"><span class="dash-card-title">Recently practised</span></div>
         <div id="sessionList"></div>
       </div>
     </div>
@@ -259,161 +267,63 @@ body { background: var(--cream); }
   </div>
 </footer>
 <script>
-// ── Mock data: word, english, pKnow (0-1), trials ──
-// In production: replace with Supabase query on student_knowledge JOIN vocabulary_items
-const words = [
-  // Ch1 — secure
-  {l:'ad',e:'to, towards',p:0.97,t:24},{l:'ambulo',e:'walk',p:0.96,t:18},{l:'amicus',e:'friend',p:0.98,t:22},
-  {l:'amo',e:'love',p:0.97,t:20},{l:'ancilla',e:'slave-girl',p:0.95,t:16},{l:'cibus',e:'food',p:0.97,t:19},
-  {l:'circum',e:'around',p:0.96,t:15},{l:'clamo',e:'shout',p:0.98,t:21},{l:'contra',e:'against',p:0.95,t:14},
-  {l:'dea',e:'goddess',p:0.97,t:17},{l:'deus',e:'god',p:0.98,t:23},{l:'dominus',e:'master',p:0.96,t:20},
-  {l:'epistula',e:'letter',p:0.95,t:15},{l:'equus',e:'horse',p:0.97,t:18},{l:'et',e:'and',p:0.99,t:30},
-  {l:'femina',e:'woman',p:0.98,t:22},{l:'gladius',e:'sword',p:0.96,t:16},{l:'hortus',e:'garden',p:0.95,t:14},
-  {l:'in',e:'into, onto',p:0.97,t:25},{l:'insula',e:'island',p:0.96,t:17},{l:'laboro',e:'work',p:0.95,t:15},
-  {l:'navigo',e:'sail',p:0.97,t:18},{l:'neco',e:'kill',p:0.96,t:16},{l:'non',e:'not',p:0.99,t:28},
-  {l:'nunc',e:'now',p:0.97,t:19},{l:'nuntius',e:'messenger',p:0.95,t:14},{l:'paro',e:'prepare',p:0.96,t:16},
-  {l:'pecunia',e:'money',p:0.97,t:18},{l:'per',e:'through',p:0.98,t:22},{l:'porto',e:'carry',p:0.97,t:20},
-  {l:'puella',e:'girl',p:0.98,t:22},{l:'pugno',e:'fight',p:0.96,t:15},{l:'Roma',e:'Rome',p:0.99,t:20},
-  {l:'saluto',e:'greet',p:0.95,t:14},{l:'sed',e:'but',p:0.98,t:24},{l:'semper',e:'always',p:0.97,t:19},
-  {l:'servus',e:'slave',p:0.96,t:17},{l:'sum',e:'be',p:0.99,t:30},{l:'villa',e:'house',p:0.97,t:18},
-  {l:'voco',e:'call',p:0.96,t:16},
-  // Ch2 — mostly secure
-  {l:'a, ab',e:'from, by',p:0.94,t:18},{l:'ager',e:'field',p:0.92,t:15},{l:'annus',e:'year',p:0.90,t:14},
-  {l:'aqua',e:'water',p:0.95,t:17},{l:'arma',e:'weapons',p:0.88,t:13},{l:'audio',e:'hear',p:0.93,t:16},
-  {l:'auxilium',e:'help',p:0.91,t:14},{l:'bellum',e:'war',p:0.94,t:18},{l:'bibo',e:'drink',p:0.89,t:12},
-  {l:'cum',e:'with',p:0.95,t:20},{l:'custodio',e:'guard',p:0.87,t:11},{l:'de',e:'from, about',p:0.93,t:16},
-  {l:'do',e:'give',p:0.94,t:17},{l:'dormio',e:'sleep',p:0.90,t:13},{l:'donum',e:'gift',p:0.88,t:11},
-  {l:'duco',e:'lead',p:0.92,t:15},{l:'e, ex',e:'from, out of',p:0.93,t:16},{l:'habeo',e:'have',p:0.94,t:18},
-  {l:'hora',e:'hour',p:0.89,t:12},{l:'inquit',e:'he says',p:0.86,t:10},{l:'invenio',e:'find',p:0.90,t:13},
-  {l:'iubeo',e:'order',p:0.91,t:14},{l:'lego',e:'read',p:0.92,t:15},{l:'liber',e:'book',p:0.91,t:14},
-  {l:'mitto',e:'send',p:0.93,t:16},{l:'moneo',e:'warn',p:0.90,t:13},{l:'murus',e:'wall',p:0.89,t:12},
-  {l:'periculum',e:'danger',p:0.91,t:14},{l:'puer',e:'boy',p:0.94,t:17},{l:'punio',e:'punish',p:0.88,t:11},
-  {l:'quinque',e:'five',p:0.87,t:10},{l:'scribo',e:'write',p:0.92,t:15},{l:'sedeo',e:'sit',p:0.90,t:13},
-  {l:'taberna',e:'shop',p:0.88,t:11},{l:'templum',e:'temple',p:0.91,t:14},{l:'terreo',e:'frighten',p:0.89,t:12},
-  {l:'timeo',e:'fear',p:0.92,t:15},{l:'traho',e:'drag',p:0.87,t:10},{l:'venio',e:'come',p:0.93,t:16},
-  {l:'verbum',e:'word',p:0.90,t:13},{l:'video',e:'see',p:0.94,t:18},{l:'vinum',e:'wine',p:0.91,t:14},
-  {l:'vir',e:'man',p:0.93,t:16},
-  // Ch3 — strong to building
-  {l:'advenio',e:'arrive',p:0.84,t:12},{l:'aedifico',e:'build',p:0.82,t:11},{l:'bonus',e:'good',p:0.87,t:13},
-  {l:'cado',e:'fall',p:0.80,t:10},{l:'cena',e:'dinner',p:0.85,t:12},{l:'consilium',e:'plan',p:0.78,t:9},
-  {l:'consumo',e:'eat',p:0.82,t:11},{l:'curro',e:'run',p:0.86,t:13},{l:'debeo',e:'ought',p:0.81,t:10},
-  {l:'deinde',e:'then',p:0.79,t:9},{l:'deleo',e:'destroy',p:0.83,t:11},{l:'discedo',e:'depart',p:0.80,t:10},
-  {l:'diu',e:'for a long time',p:0.77,t:8},{l:'domina',e:'mistress',p:0.84,t:12},{l:'festino',e:'hurry',p:0.82,t:11},
-  {l:'forum',e:'forum',p:0.85,t:12},{l:'habito',e:'live',p:0.81,t:10},{l:'inter',e:'among',p:0.83,t:11},
-  {l:'invito',e:'invite',p:0.79,t:9},{l:'iratus',e:'angry',p:0.84,t:12},{l:'laetus',e:'happy',p:0.86,t:13},
-  {l:'libertus',e:'freedman',p:0.78,t:8},{l:'magnus',e:'big, great',p:0.87,t:14},{l:'malus',e:'bad',p:0.83,t:11},
-  {l:'maneo',e:'remain',p:0.80,t:10},{l:'miser',e:'miserable',p:0.82,t:11},{l:'multus',e:'many',p:0.85,t:12},
-  {l:'nauta',e:'sailor',p:0.84,t:12},{l:'novus',e:'new',p:0.83,t:11},{l:'oppugno',e:'attack',p:0.79,t:9},
-  {l:'parvus',e:'small',p:0.84,t:12},{l:'patria',e:'homeland',p:0.81,t:10},{l:'porta',e:'gate',p:0.85,t:12},
-  {l:'possum',e:'can, be able',p:0.82,t:11},{l:'pulcher',e:'beautiful',p:0.80,t:10},{l:'-que',e:'and',p:0.86,t:14},
-  {l:'quaero',e:'search for',p:0.78,t:8},{l:'Romanus',e:'Roman',p:0.85,t:12},{l:'statim',e:'immediately',p:0.83,t:11},
-  {l:'stultus',e:'stupid',p:0.79,t:9},{l:'subito',e:'suddenly',p:0.82,t:11},{l:'tandem',e:'at last',p:0.84,t:12},
-  {l:'terra',e:'land',p:0.83,t:11},{l:'via',e:'road',p:0.86,t:13},
-  // Ch4 — building
-  {l:'amor',e:'love',p:0.74,t:9},{l:'caelum',e:'sky',p:0.71,t:8},{l:'capio',e:'take',p:0.69,t:7},
-  {l:'caput',e:'head',p:0.72,t:8},{l:'clamor',e:'noise',p:0.68,t:7},{l:'cur?',e:'why?',p:0.75,t:9},
-  {l:'dux',e:'leader',p:0.70,t:8},{l:'ego',e:'I, me',p:0.76,t:10},{l:'frater',e:'brother',p:0.72,t:8},
-  {l:'fugio',e:'flee',p:0.69,t:7},{l:'iter',e:'journey',p:0.67,t:6},{l:'iuvenis',e:'young man',p:0.65,t:6},
-  {l:'longus',e:'long',p:0.73,t:8},{l:'mare',e:'sea',p:0.74,t:9},{l:'maritus',e:'husband',p:0.70,t:7},
-  {l:'mater',e:'mother',p:0.75,t:9},{l:'medius',e:'middle',p:0.68,t:7},{l:'meus',e:'my',p:0.76,t:10},
-  {l:'miles',e:'soldier',p:0.73,t:8},{l:'-ne',e:'(question)',p:0.67,t:6},{l:'navis',e:'ship',p:0.72,t:8},
-  {l:'nomen',e:'name',p:0.74,t:9},{l:'nox',e:'night',p:0.71,t:7},{l:'pater',e:'father',p:0.75,t:9},
-  {l:'peto',e:'seek',p:0.68,t:7},{l:'post',e:'after',p:0.73,t:8},{l:'primus',e:'first',p:0.74,t:9},
-  {l:'regina',e:'queen',p:0.72,t:8},{l:'regnum',e:'kingdom',p:0.69,t:7},{l:'relinquo',e:'leave',p:0.67,t:6},
-  {l:'rex',e:'king',p:0.75,t:9},{l:'rideo',e:'laugh',p:0.70,t:7},{l:'senex',e:'old man',p:0.68,t:7},
-  {l:'specto',e:'watch',p:0.72,t:8},{l:'tu',e:'you (sg)',p:0.76,t:10},{l:'turba',e:'crowd',p:0.70,t:7},
-  {l:'tuus',e:'your (sg)',p:0.74,t:9},{l:'ubi',e:'where',p:0.71,t:8},{l:'urbs',e:'city',p:0.73,t:8},
-  // Ch5 — low to mid
-  {l:'ascendo',e:'climb',p:0.58,t:6},{l:'bene',e:'well',p:0.62,t:7},{l:'celer',e:'quick',p:0.55,t:5},
-  {l:'civis',e:'citizen',p:0.53,t:5},{l:'cras',e:'tomorrow',p:0.60,t:6},{l:'credo',e:'believe',p:0.52,t:5},
-  {l:'defendo',e:'defend',p:0.57,t:6},{l:'difficilis',e:'difficult',p:0.54,t:5},{l:'ecce!',e:'look!',p:0.63,t:7},
-  {l:'facilis',e:'easy',p:0.58,t:6},{l:'ferox',e:'fierce',p:0.50,t:4},{l:'filia',e:'daughter',p:0.62,t:7},
-  {l:'filius',e:'son',p:0.63,t:7},{l:'forte',e:'by chance',p:0.49,t:4},{l:'fortis',e:'brave',p:0.60,t:6},
-  {l:'gravis',e:'heavy',p:0.54,t:5},{l:'heri',e:'yesterday',p:0.59,t:6},{l:'hodie',e:'today',p:0.63,t:7},
-  {l:'igitur',e:'therefore',p:0.57,t:6},{l:'is',e:'he, she, it',p:0.61,t:7},{l:'locus',e:'place',p:0.60,t:6},
-  {l:'mons',e:'mountain',p:0.56,t:5},{l:'mors',e:'death',p:0.58,t:6},{l:'mox',e:'soon',p:0.62,t:7},
-  {l:'nos',e:'we, us',p:0.63,t:7},{l:'noster',e:'our',p:0.61,t:6},{l:'numquam',e:'never',p:0.58,t:6},
-  {l:'olim',e:'once',p:0.55,t:5},{l:'omnis',e:'all',p:0.60,t:6},{l:'pax',e:'peace',p:0.62,t:7},
-  {l:'pono',e:'put',p:0.57,t:6},{l:'rego',e:'rule',p:0.54,t:5},{l:'rogo',e:'ask',p:0.59,t:6},
-  {l:'saepe',e:'often',p:0.63,t:7},{l:'se',e:'himself',p:0.60,t:6},{l:'silva',e:'wood',p:0.62,t:7},
-  {l:'supero',e:'overcome',p:0.55,t:5},{l:'suus',e:'his own',p:0.59,t:6},{l:'taceo',e:'be silent',p:0.53,t:4},
-  {l:'tamen',e:'however',p:0.61,t:7},{l:'teneo',e:'hold',p:0.57,t:5},{l:'trado',e:'hand over',p:0.52,t:4},
-  {l:'tristis',e:'sad',p:0.55,t:5},{l:'tum',e:'then',p:0.61,t:6},{l:'vester',e:'your (pl)',p:0.53,t:4},
-  {l:'vinco',e:'conquer',p:0.57,t:5},{l:'vos',e:'you (pl)',p:0.60,t:6},
-  // Ch6 — low, some struggling
-  {l:'absum',e:'be absent',p:0.38,t:6},{l:'accipio',e:'receive',p:0.42,t:7},{l:'adsum',e:'be present',p:0.40,t:6},
-  {l:'appropinquo',e:'approach',p:0.35,t:7},{l:'conspicio',e:'catch sight of',p:0.32,t:8},{l:'constituo',e:'decide',p:0.30,t:8},
-  {l:'convenio',e:'gather',p:0.36,t:7},{l:'cupio',e:'want',p:0.41,t:6},{l:'descendo',e:'go down',p:0.38,t:6},
-  {l:'dico',e:'say',p:0.44,t:8},{l:'effugio',e:'escape',p:0.33,t:7},{l:'emo',e:'buy',p:0.40,t:6},
-  {l:'eo',e:'go',p:0.43,t:7},{l:'exspecto',e:'wait for',p:0.37,t:6},{l:'hostis',e:'enemy',p:0.41,t:7},
-  {l:'iacio',e:'throw',p:0.35,t:6},{l:'intellego',e:'understand',p:0.32,t:8},{l:'interficio',e:'kill',p:0.38,t:7},
-  {l:'intro',e:'enter',p:0.42,t:6},{l:'ira',e:'anger',p:0.40,t:6},{l:'libero',e:'set free',p:0.36,t:7},
-  {l:'nuntio',e:'announce',p:0.38,t:6},{l:'pereo',e:'perish',p:0.33,t:7},{l:'perterritus',e:'terrified',p:0.35,t:6},
-  {l:'persuadeo',e:'persuade',p:0.29,t:8},{l:'postquam',e:'after',p:0.37,t:7},{l:'prope',e:'near',p:0.42,t:6},
-  {l:'quamquam',e:'although',p:0.30,t:8},{l:'qui',e:'who, which',p:0.40,t:7},{l:'quod',e:'because',p:0.41,t:7},
-  {l:'redeo',e:'return',p:0.36,t:7},{l:'respondeo',e:'reply',p:0.39,t:6},{l:'senator',e:'senator',p:0.43,t:6},
-  {l:'servo',e:'save',p:0.40,t:6},{l:'trans',e:'across',p:0.42,t:6},{l:'uxor',e:'wife',p:0.41,t:6},
-  {l:'vendo',e:'sell',p:0.35,t:6},
-  // Ch7 — very low
-  {l:'animus',e:'spirit, mind',p:0.25,t:4},{l:'audax',e:'bold',p:0.22,t:4},{l:'castra',e:'camp',p:0.28,t:5},
-  {l:'celo',e:'hide',p:0.20,t:4},{l:'clarus',e:'famous',p:0.26,t:4},{l:'comes',e:'companion',p:0.18,t:3},
-  {l:'consul',e:'consul',p:0.24,t:4},{l:'corpus',e:'body',p:0.27,t:5},{l:'crudelis',e:'cruel',p:0.21,t:4},
-  {l:'custos',e:'guard',p:0.19,t:3},{l:'flumen',e:'river',p:0.28,t:5},{l:'gero',e:'wage',p:0.22,t:4},
-  {l:'hic',e:'this',p:0.26,t:4},{l:'iam',e:'now, already',p:0.29,t:5},{l:'ibi',e:'there',p:0.24,t:4},
-  {l:'ille',e:'that',p:0.27,t:5},{l:'imperator',e:'emperor',p:0.23,t:4},{l:'incendo',e:'burn',p:0.19,t:3},
-  {l:'laudo',e:'praise',p:0.25,t:4},{l:'maior',e:'bigger',p:0.20,t:3},{l:'maximus',e:'greatest',p:0.22,t:4},
-  {l:'melior',e:'better',p:0.19,t:3},{l:'minimus',e:'smallest',p:0.18,t:3},{l:'minor',e:'smaller',p:0.20,t:3},
-  {l:'modus',e:'manner',p:0.24,t:4},{l:'moveo',e:'move',p:0.27,t:5},{l:'multo',e:'much',p:0.22,t:4},
-  {l:'narro',e:'tell',p:0.19,t:3},{l:'nihil',e:'nothing',p:0.26,t:4},{l:'optimus',e:'best',p:0.23,t:4},
-  {l:'pars',e:'part',p:0.25,t:4},{l:'pauci',e:'few',p:0.20,t:3},{l:'peior',e:'worse',p:0.17,t:2},
-  {l:'primo',e:'at first',p:0.24,t:4},{l:'resisto',e:'resist',p:0.19,t:3},{l:'sanguis',e:'blood',p:0.21,t:3},
-  {l:'sic',e:'in this way',p:0.23,t:4},{l:'sine',e:'without',p:0.26,t:4},{l:'solus',e:'alone',p:0.22,t:4},
-  {l:'sto',e:'stand',p:0.25,t:4},{l:'virtus',e:'courage',p:0.20,t:3},
-  // Ch8 — very low, first attempts
-  {l:'altus',e:'high, deep',p:0.12,t:1},{l:'aufero',e:'carry off',p:0.10,t:1},{l:'ceteri',e:'the rest',p:0.11,t:1},
-  {l:'coepi',e:'began',p:0.09,t:1},{l:'cogo',e:'compel',p:0.10,t:1},{l:'conficio',e:'finish',p:0.08,t:1},
-  {l:'doceo',e:'teach',p:0.12,t:2},{l:'fero',e:'carry, bear',p:0.11,t:1},{l:'frustra',e:'in vain',p:0.09,t:1},
-  {l:'homo',e:'human being',p:0.13,t:2},{l:'idem',e:'the same',p:0.10,t:1},{l:'imperium',e:'power',p:0.11,t:1},
-  {l:'inimicus',e:'enemy',p:0.09,t:1},{l:'ipse',e:'himself',p:0.10,t:1},{l:'labor',e:'toil',p:0.12,t:2},
-  {l:'malo',e:'prefer',p:0.08,t:1},{l:'nam',e:'for',p:0.13,t:2},{l:'nec/neque',e:'and not',p:0.11,t:1},
-  {l:'nisi',e:'unless',p:0.09,t:1},{l:'nolo',e:'not want',p:0.08,t:1},{l:'nullus',e:'no',p:0.10,t:1},
-  {l:'offero',e:'offer',p:0.09,t:1},{l:'ostendo',e:'show',p:0.11,t:1},{l:'postea',e:'afterwards',p:0.12,t:2},
-  {l:'praemium',e:'reward',p:0.10,t:1},{l:'proelium',e:'battle',p:0.12,t:2},{l:'promitto',e:'promise',p:0.09,t:1},
-  {l:'quoque',e:'also',p:0.10,t:1},{l:'rapio',e:'seize',p:0.11,t:1},{l:'refero',e:'carry back',p:0.09,t:1},
-  {l:'sacer',e:'sacred',p:0.10,t:1},{l:'scelus',e:'crime',p:0.10,t:1},{l:'si',e:'if',p:0.12,t:2},
-  {l:'sub',e:'under',p:0.11,t:1},{l:'summus',e:'highest',p:0.09,t:1},{l:'surgo',e:'get up',p:0.10,t:1},
-  {l:'tollo',e:'raise',p:0.09,t:1},{l:'totus',e:'whole',p:0.11,t:1},{l:'videor',e:'seem',p:0.10,t:1},
-  {l:'volo',e:'want',p:0.12,t:2},{l:'vox',e:'voice',p:0.10,t:1},
-  // Ch9-10 — unseen (prior only)
-  {l:'cognosco',e:'find out',p:0.30,t:0},{l:'conor',e:'try',p:0.30,t:0},{l:'copiae',e:'troops',p:0.30,t:0},
-  {l:'egredior',e:'go out',p:0.30,t:0},{l:'etiam',e:'also',p:0.30,t:0},{l:'fidelis',e:'faithful',p:0.30,t:0},
-  {l:'gaudeo',e:'rejoice',p:0.30,t:0},{l:'gens',e:'people',p:0.30,t:0},{l:'hortor',e:'urge',p:0.30,t:0},
-  {l:'ingredior',e:'enter',p:0.30,t:0},{l:'interea',e:'meanwhile',p:0.30,t:0},{l:'iterum',e:'again',p:0.30,t:0},
-  {l:'lentus',e:'slow',p:0.30,t:0},{l:'libenter',e:'willingly',p:0.30,t:0},{l:'loquor',e:'speak',p:0.30,t:0},
-  {l:'morior',e:'die',p:0.30,t:0},{l:'nemo',e:'nobody',p:0.30,t:0},{l:'nonnulli',e:'some',p:0.30,t:0},
-  {l:'opprimo',e:'overwhelm',p:0.30,t:0},{l:'patior',e:'suffer',p:0.30,t:0},{l:'proficiscor',e:'set out',p:0.30,t:0},
-  {l:'progredior',e:'advance',p:0.30,t:0},{l:'propter',e:'because of',p:0.30,t:0},{l:'puto',e:'think',p:0.30,t:0},
-  {l:'quidam',e:'a certain',p:0.30,t:0},{l:'reddo',e:'give back',p:0.30,t:0},{l:'regredior',e:'go back',p:0.30,t:0},
-  {l:'scio',e:'know',p:0.30,t:0},{l:'sentio',e:'feel',p:0.30,t:0},{l:'sequor',e:'follow',p:0.30,t:0},
-  {l:'soleo',e:'be accustomed',p:0.30,t:0},{l:'spero',e:'hope',p:0.30,t:0},{l:'tempestas',e:'storm',p:0.30,t:0},
-  {l:'victoria',e:'victory',p:0.30,t:0},{l:'vita',e:'life',p:0.30,t:0},{l:'vivo',e:'live',p:0.30,t:0},
-  {l:'vulnero',e:'wound',p:0.30,t:0},{l:'vulnus',e:'wound (n)',p:0.30,t:0},
-  {l:'adeo',e:'so greatly',p:0.30,t:0},{l:'brevis',e:'short',p:0.30,t:0},{l:'cogito',e:'think',p:0.30,t:0},
-  {l:'cura',e:'worry',p:0.30,t:0},{l:'dies',e:'day',p:0.30,t:0},{l:'diligens',e:'careful',p:0.30,t:0},
-  {l:'dirus',e:'dreadful',p:0.30,t:0},{l:'domus',e:'home',p:0.30,t:0},{l:'dum',e:'while',p:0.30,t:0},
-  {l:'exercitus',e:'army',p:0.30,t:0},{l:'faveo',e:'support',p:0.30,t:0},{l:'felix',e:'fortunate',p:0.30,t:0},
-  {l:'gaudium',e:'joy',p:0.30,t:0},{l:'iaceo',e:'lie',p:0.30,t:0},{l:'ianua',e:'door',p:0.30,t:0},
-  {l:'impero',e:'command',p:0.30,t:0},{l:'infelix',e:'unlucky',p:0.30,t:0},{l:'ita',e:'in this way',p:0.30,t:0},
-  {l:'itaque',e:'therefore',p:0.30,t:0},{l:'legio',e:'legion',p:0.30,t:0},{l:'lux',e:'light',p:0.30,t:0},
-  {l:'manus',e:'hand',p:0.30,t:0},{l:'nescio',e:'not know',p:0.30,t:0},{l:'occido',e:'kill',p:0.30,t:0},
-  {l:'oro',e:'beg',p:0.30,t:0},{l:'paene',e:'almost',p:0.30,t:0},{l:'pello',e:'drive',p:0.30,t:0},
-  {l:'pes',e:'foot',p:0.30,t:0},{l:'poena',e:'punishment',p:0.30,t:0},{l:'postridie',e:'next day',p:0.30,t:0},
-  {l:'princeps',e:'emperor',p:0.30,t:0},{l:'procedo',e:'advance',p:0.30,t:0},{l:'res',e:'thing',p:0.30,t:0},
-  {l:'simul',e:'at same time',p:0.30,t:0},{l:'simulac',e:'as soon as',p:0.30,t:0},{l:'spes',e:'hope',p:0.30,t:0},
-  {l:'talis',e:'such',p:0.30,t:0},{l:'tam',e:'so',p:0.30,t:0},{l:'tantus',e:'so great',p:0.30,t:0},
-  {l:'tempus',e:'time',p:0.30,t:0},{l:'umquam',e:'ever',p:0.30,t:0},{l:'ut',e:'so that',p:0.30,t:0},
-  {l:'validus',e:'strong',p:0.30,t:0},{l:'vehementer',e:'violently',p:0.30,t:0},
-];
+// ── Vocab data + BKT state loader ──
+// Words come from the static vocab data file (latin-gcse.js); BKT state for each
+// word comes from the shared BKT store (Supabase if signed-in, localStorage if not).
+// Anything not in the store renders as "Not seen" (p = prior, trials = 0).
+
+const VOCAB_LIST_KEY = 'latin-gcse';
+
+// Build the canonical word list for this course, deduped by latin headword.
+function getCanonicalWords() {
+  const seen = new Map();
+  for (const entry of VOCAB_LATIN_GCSE) {
+    if (entry.chapter <= 0) continue;
+    if (!seen.has(entry.latin)) {
+      seen.set(entry.latin, { l: entry.latin, e: entry.english });
+    }
+  }
+  return Array.from(seen.values());
+}
+
+// Populate the nav with the signed-in user, or leave the "Sign in" link.
+async function populateNavUser() {
+  if (!window.supabase || !window.supabase.auth) return null;
+  try {
+    const { data } = await window.supabase.auth.getSession();
+    const user = data && data.session && data.session.user;
+    if (!user) return null;
+
+    // Try to read full_name from the users table; fall back to email
+    let displayName = user.email;
+    try {
+      const { data: profile } = await window.supabase
+        .from('users')
+        .select('full_name')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (profile && profile.full_name) displayName = profile.full_name;
+    } catch (err) { /* ignore — fall back to email */ }
+
+    const initials = (displayName || '?')
+      .split(/[\s@.]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(s => s[0].toUpperCase())
+      .join('') || '?';
+
+    const navUser = document.getElementById('navUser');
+    navUser.innerHTML = `
+      <div class="nav-avatar">${initials}</div>
+      <span class="nav-username">${displayName.split('@')[0]}</span>
+    `;
+    return user;
+  } catch (err) {
+    console.warn('[dashboard] auth check failed', err);
+    return null;
+  }
+}
+
 
 // classify
 function classify(w) {
@@ -441,86 +351,157 @@ function confLabel(w) {
   return `Very low — ${Math.round(w.p*100)}% confidence`;
 }
 
-// word map
-const map = document.getElementById('wordmap');
-const tt  = document.getElementById('wordTooltip');
-words.forEach(w => {
-  const b = document.createElement('div');
-  b.className = `word-block ${blockCls(w)}`;
-  b.addEventListener('mouseenter', () => {
-    document.getElementById('ttLatin').textContent   = w.l;
-    document.getElementById('ttEnglish').textContent = w.e;
-    document.getElementById('ttConf').textContent    = confLabel(w);
-    tt.style.display = 'block';
+function timeAgo(iso) {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (!then) return '';
+  const diff = Date.now() - then;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1)   return 'just now';
+  if (mins < 60)  return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24)   return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 7)   return days + 'd ago';
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function renderDashboard(words, recentlyPractised) {
+  // word map
+  const map = document.getElementById('wordmap');
+  const tt  = document.getElementById('wordTooltip');
+  map.innerHTML = '';
+  words.forEach(w => {
+    const b = document.createElement('div');
+    b.className = `word-block ${blockCls(w)}`;
+    b.addEventListener('mouseenter', () => {
+      document.getElementById('ttLatin').textContent   = w.l;
+      document.getElementById('ttEnglish').textContent = w.e;
+      document.getElementById('ttConf').textContent    = confLabel(w);
+      tt.style.display = 'block';
+    });
+    b.addEventListener('mousemove', ev => {
+      let x = ev.clientX+14, y = ev.clientY+14;
+      if (x+230>window.innerWidth)  x = ev.clientX-240;
+      if (y+80>window.innerHeight)  y = ev.clientY-80;
+      tt.style.left = x+'px'; tt.style.top = y+'px';
+    });
+    b.addEventListener('mouseleave', () => { tt.style.display='none'; });
+    map.appendChild(b);
   });
-  b.addEventListener('mousemove', ev => {
-    let x = ev.clientX+14, y = ev.clientY+14;
-    if (x+230>window.innerWidth)  x = ev.clientX-240;
-    if (y+80>window.innerHeight)  y = ev.clientY-80;
-    tt.style.left = x+'px'; tt.style.top = y+'px';
+
+  // queues
+  const struggling = words.filter(w => classify(w)==='struggling');
+  const learning   = words.filter(w => classify(w)==='learning'||classify(w)==='unseen');
+  const nearly     = words.filter(w => classify(w)==='nearly');
+  const secure     = words.filter(w => classify(w)==='secure');
+
+  document.getElementById('qcs').textContent = struggling.length;
+  document.getElementById('qcl').textContent = learning.length;
+  document.getElementById('qcn').textContent = nearly.length;
+
+  const sample = (arr,n) => arr.slice(0,n).map(w=>w.l).join(', ') || 'None right now';
+  document.getElementById('qws').textContent = sample(struggling,4);
+  document.getElementById('qwl').textContent = sample(learning.filter(w=>w.t===0),4);
+  document.getElementById('qwn').textContent = sample(nearly,4);
+
+  // struggling list
+  document.getElementById('listStruggling').innerHTML = struggling.slice(0,8).map(w=>`
+    <div class="word-row">
+      <div><div class="word-row-latin">${w.l}</div><div class="word-row-english">${w.e}</div></div>
+      <span class="trials-badge many">${w.t} attempts</span>
+      <div class="conf-bar-wrap">
+        <div class="conf-bar"><div class="conf-bar-fill struggling" style="width:${Math.round(w.p*100)}%"></div></div>
+        <div class="conf-val">${Math.round(w.p*100)}%</div>
+      </div>
+    </div>`).join('') || '<div style="padding:16px 22px;color:var(--muted);font-size:13px;font-style:italic;">None right now — keep practising.</div>';
+
+  // nearly list
+  document.getElementById('listNearly').innerHTML = nearly.slice(0,8).map(w=>`
+    <div class="word-row">
+      <div><div class="word-row-latin">${w.l}</div><div class="word-row-english">${w.e}</div></div>
+      <div class="conf-bar-wrap">
+        <div class="conf-bar"><div class="conf-bar-fill nearly" style="width:${Math.round(w.p*100)}%"></div></div>
+        <div class="conf-val">${Math.round(w.p*100)}%</div>
+      </div>
+    </div>`).join('') || '<div style="padding:16px 22px;color:var(--muted);font-size:13px;font-style:italic;">Keep practising to get words here.</div>';
+
+  // secure
+  const pct = words.length ? Math.round(secure.length/words.length*100) : 0;
+  document.getElementById('secureCount').textContent = secure.length;
+  document.getElementById('secureTotal').textContent = `/ ${words.length} words`;
+  document.getElementById('secureDesc').textContent  = `${pct}% of your list. A word is secure when the model estimates ≥95% confidence from your full response history — not just two correct answers in a row.`;
+  setTimeout(()=>{ document.getElementById('secureBarFill').style.width=pct+'%'; },200);
+
+  // recently practised
+  if (recentlyPractised && recentlyPractised.length) {
+    document.getElementById('sessionList').innerHTML = recentlyPractised.slice(0,6).map(r=>`
+      <div class="session-row">
+        <div>
+          <div class="session-date">${timeAgo(r.last_seen_at)}</div>
+          <div class="session-detail"><em style="font-family:'Lora',serif;">${r.l}</em> — ${r.e}</div>
+        </div>
+        <div class="session-gain">${Math.round(r.p*100)}% conf.</div>
+      </div>`).join('');
+  } else {
+    document.getElementById('sessionList').innerHTML =
+      '<div style="padding:16px 22px;color:var(--muted);font-size:13px;font-style:italic;">No practice yet — start a session to see your activity here.</div>';
+  }
+}
+
+// ── Initialise ──
+async function init() {
+  const user = await populateNavUser();
+
+  // Show "you're not signed in" banner for anonymous users
+  if (!user) {
+    document.getElementById('anonBanner').style.display = 'flex';
+  }
+
+  const canonical = getCanonicalWords();
+
+  if (!window.ClassicaliaBKT) {
+    console.warn('[dashboard] BKT store not available — rendering empty state');
+    renderDashboard(canonical.map(w => ({ ...w, p: 0.3, t: 0 })), []);
+    return;
+  }
+
+  const store = await window.ClassicaliaBKT.open({ vocabList: VOCAB_LIST_KEY });
+  const stored = await store.loadAll();
+
+  // Merge canonical word list with stored BKT state
+  const words = canonical.map(w => {
+    const state = stored.get(w.l);
+    return {
+      l: w.l,
+      e: w.e,
+      p: state ? state.p_know : store.prior,
+      t: state ? state.trials : 0,
+      last_seen_at: state ? state.last_seen_at : null
+    };
   });
-  b.addEventListener('mouseleave', () => { tt.style.display='none'; });
-  map.appendChild(b);
-});
 
-// queues
-const struggling = words.filter(w => classify(w)==='struggling');
-const learning   = words.filter(w => classify(w)==='learning'||classify(w)==='unseen');
-const nearly     = words.filter(w => classify(w)==='nearly');
-const secure     = words.filter(w => classify(w)==='secure');
+  // Update the "all N words" label so it matches reality
+  const titleEl = document.querySelector('.wordmap-title');
+  if (titleEl) titleEl.textContent = `Word confidence map — all ${words.length} words`;
 
-document.getElementById('qcs').textContent = struggling.length;
-document.getElementById('qcl').textContent = learning.length;
-document.getElementById('qcn').textContent = nearly.length;
+  // Recently practised: words with any trial, sorted by most recent
+  const recentlyPractised = words
+    .filter(w => w.t > 0 && w.last_seen_at)
+    .sort((a, b) => new Date(b.last_seen_at) - new Date(a.last_seen_at));
 
-const sample = (arr,n) => arr.slice(0,n).map(w=>w.l).join(', ') || 'None right now';
-document.getElementById('qws').textContent = sample(struggling,4);
-document.getElementById('qwl').textContent = sample(learning.filter(w=>w.t===0),4);
-document.getElementById('qwn').textContent = sample(nearly,4);
+  renderDashboard(words, recentlyPractised);
+}
 
-// struggling list
-document.getElementById('listStruggling').innerHTML = struggling.slice(0,8).map(w=>`
-  <div class="word-row">
-    <div><div class="word-row-latin">${w.l}</div><div class="word-row-english">${w.e}</div></div>
-    <span class="trials-badge many">${w.t} attempts</span>
-    <div class="conf-bar-wrap">
-      <div class="conf-bar"><div class="conf-bar-fill struggling" style="width:${Math.round(w.p*100)}%"></div></div>
-      <div class="conf-val">${Math.round(w.p*100)}%</div>
-    </div>
-  </div>`).join('') || '<div style="padding:16px 22px;color:var(--muted);font-size:13px;font-style:italic;">None right now — keep practising.</div>';
+init();
 
-// nearly list
-document.getElementById('listNearly').innerHTML = nearly.slice(0,8).map(w=>`
-  <div class="word-row">
-    <div><div class="word-row-latin">${w.l}</div><div class="word-row-english">${w.e}</div></div>
-    <div class="conf-bar-wrap">
-      <div class="conf-bar"><div class="conf-bar-fill nearly" style="width:${Math.round(w.p*100)}%"></div></div>
-      <div class="conf-val">${Math.round(w.p*100)}%</div>
-    </div>
-  </div>`).join('') || '<div style="padding:16px 22px;color:var(--muted);font-size:13px;font-style:italic;">Keep practising to get words here.</div>';
-
-// secure
-const pct = Math.round(secure.length/words.length*100);
-document.getElementById('secureCount').textContent = secure.length;
-document.getElementById('secureTotal').textContent = `/ ${words.length} words`;
-document.getElementById('secureDesc').textContent  = `${pct}% of your list. A word is secure when the model estimates ≥95% confidence from your full response history — not just two correct answers in a row.`;
-setTimeout(()=>{ document.getElementById('secureBarFill').style.width=pct+'%'; },200);
-
-// sessions
-document.getElementById('sessionList').innerHTML = [
-  {date:'Today, 4:12pm',   words:22,gain:4},
-  {date:'Yesterday, 7:30pm',words:30,gain:6},
-  {date:'2 days ago',      words:18,gain:2},
-  {date:'3 days ago',      words:25,gain:5},
-  {date:'4 days ago',      words:20,gain:3},
-].map(s=>`
-  <div class="session-row">
-    <div>
-      <div class="session-date">${s.date}</div>
-      <div class="session-detail">${s.words} words practised</div>
-    </div>
-    <div class="session-gain">+${s.gain} words more confident</div>
-  </div>`).join('');
+// Re-render if the user signs in/out in another tab
+if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
+  window.supabase.auth.onAuthStateChange(() => {
+    // Full page reload is simplest here — guarantees the right store + nav
+    window.location.reload();
+  });
+}
 </script>
 </body>
 </html>
