@@ -38,7 +38,16 @@ body { background: var(--cream); }
 .wordmap-head { padding:14px 22px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap; }
 .wordmap-title { font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted); }
 .wordmap-body { padding:20px 22px; }
+.wordmap-sort { display:flex;align-items:center;gap:14px;padding:10px 22px;border-bottom:1px solid var(--rule-faint);background:var(--cream);flex-wrap:wrap; }
+.wordmap-sort-label { font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted); }
+.wordmap-sort-opts { display:flex;gap:4px; }
+.wordmap-sort-btn { font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:14px;border:1px solid var(--rule);background:var(--paper);color:var(--muted);cursor:pointer;transition:all 0.12s; }
+.wordmap-sort-btn:hover { color:var(--brand);border-color:var(--brand); }
+.wordmap-sort-btn.active { background:var(--brand);color:white;border-color:var(--brand); }
 .wordmap { display:flex;flex-wrap:wrap;gap:3px; }
+.wm-ch-label { flex-basis:100%;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px;display:flex;align-items:center;gap:8px; }
+.wm-ch-label:first-child { margin-top:0; }
+.wm-ch-count { font-weight:500;color:var(--rule);font-size:10px;letter-spacing:0.06em;text-transform:none; }
 .word-block { width:16px;height:16px;border-radius:3px;cursor:pointer;transition:transform 0.1s,box-shadow 0.1s;flex-shrink:0; }
 .word-block:hover { transform:scale(1.7);box-shadow:0 2px 8px rgba(0,0,0,0.2);z-index:10;position:relative; }
 .p-unseen  { background:#e8eaf0; }
@@ -196,6 +205,14 @@ body { background: var(--cream); }
         <span class="conf-legend-swatch p-secure"></span>Secure
       </div>
     </div>
+    <div class="wordmap-sort">
+      <span class="wordmap-sort-label">Sort by</span>
+      <div class="wordmap-sort-opts" id="wordmapSort">
+        <button class="wordmap-sort-btn active" data-sort="chapter">Chapter</button>
+        <button class="wordmap-sort-btn" data-sort="alpha">A–Z</button>
+        <button class="wordmap-sort-btn" data-sort="confidence">Confidence (low → high)</button>
+      </div>
+    </div>
     <div class="wordmap-body"><div class="wordmap" id="wordmap"></div></div>
   </div>
   <div class="queues">
@@ -275,12 +292,14 @@ body { background: var(--cream); }
 const VOCAB_LIST_KEY = 'latin-gcse';
 
 // Build the canonical word list for this course, deduped by latin headword.
+// Each word keeps the earliest chapter it appears in (so the wordmap can
+// group by chapter in a stable way).
 function getCanonicalWords() {
   const seen = new Map();
   for (const entry of VOCAB_LATIN_GCSE) {
     if (entry.chapter <= 0) continue;
     if (!seen.has(entry.latin)) {
-      seen.set(entry.latin, { l: entry.latin, e: entry.english });
+      seen.set(entry.latin, { l: entry.latin, e: entry.english, ch: entry.chapter });
     }
   }
   return Array.from(seen.values());
@@ -370,29 +389,82 @@ function timeAgo(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-function renderDashboard(words, recentlyPractised) {
-  // word map
-  const map = document.getElementById('wordmap');
-  const tt  = document.getElementById('wordTooltip');
-  map.innerHTML = '';
-  words.forEach(w => {
-    const b = document.createElement('div');
-    b.className = `word-block ${blockCls(w)}`;
-    b.addEventListener('mouseenter', () => {
-      document.getElementById('ttLatin').textContent   = w.l;
-      document.getElementById('ttEnglish').textContent = w.e;
-      document.getElementById('ttConf').textContent    = confLabel(w);
-      tt.style.display = 'block';
-    });
-    b.addEventListener('mousemove', ev => {
-      let x = ev.clientX+14, y = ev.clientY+14;
-      if (x+230>window.innerWidth)  x = ev.clientX-240;
-      if (y+80>window.innerHeight)  y = ev.clientY-80;
-      tt.style.left = x+'px'; tt.style.top = y+'px';
-    });
-    b.addEventListener('mouseleave', () => { tt.style.display='none'; });
-    map.appendChild(b);
+// Render the wordmap honouring the currently-selected sort mode.
+let currentWords = [];
+let currentSort = 'chapter';
+
+function attachBlockHandlers(b, w) {
+  const tt = document.getElementById('wordTooltip');
+  b.addEventListener('mouseenter', () => {
+    document.getElementById('ttLatin').textContent   = w.l;
+    document.getElementById('ttEnglish').textContent = w.e;
+    document.getElementById('ttConf').textContent    = confLabel(w) + (w.ch ? ` · Ch. ${w.ch}` : '');
+    tt.style.display = 'block';
   });
+  b.addEventListener('mousemove', ev => {
+    let x = ev.clientX+14, y = ev.clientY+14;
+    if (x+260>window.innerWidth)  x = ev.clientX-270;
+    if (y+80>window.innerHeight)  y = ev.clientY-80;
+    tt.style.left = x+'px'; tt.style.top = y+'px';
+  });
+  b.addEventListener('mouseleave', () => { tt.style.display='none'; });
+}
+
+function alphaCompare(a, b) {
+  return a.l.replace(/^-/, '').toLowerCase()
+    .localeCompare(b.l.replace(/^-/, '').toLowerCase());
+}
+
+function renderWordmap(words) {
+  currentWords = words;
+  const map = document.getElementById('wordmap');
+  map.innerHTML = '';
+
+  if (currentSort === 'chapter') {
+    // Group by chapter, alphabetical within each chapter
+    const byChapter = new Map();
+    for (const w of words) {
+      const ch = w.ch || 0;
+      if (!byChapter.has(ch)) byChapter.set(ch, []);
+      byChapter.get(ch).push(w);
+    }
+    const chapters = Array.from(byChapter.keys()).sort((a, b) => a - b);
+    for (const ch of chapters) {
+      const group = byChapter.get(ch).slice().sort(alphaCompare);
+      const label = document.createElement('div');
+      label.className = 'wm-ch-label';
+      label.innerHTML = `Chapter ${ch} <span class="wm-ch-count">${group.length} words</span>`;
+      map.appendChild(label);
+      for (const w of group) {
+        const b = document.createElement('div');
+        b.className = `word-block ${blockCls(w)}`;
+        attachBlockHandlers(b, w);
+        map.appendChild(b);
+      }
+    }
+  } else {
+    let ordered;
+    if (currentSort === 'alpha') {
+      ordered = words.slice().sort(alphaCompare);
+    } else { // confidence
+      // Unseen first, then low p ascending, then secure last
+      ordered = words.slice().sort((a, b) => {
+        if (a.t === 0 && b.t !== 0) return -1;
+        if (b.t === 0 && a.t !== 0) return 1;
+        return a.p - b.p;
+      });
+    }
+    for (const w of ordered) {
+      const b = document.createElement('div');
+      b.className = `word-block ${blockCls(w)}`;
+      attachBlockHandlers(b, w);
+      map.appendChild(b);
+    }
+  }
+}
+
+function renderDashboard(words, recentlyPractised) {
+  renderWordmap(words);
 
   // queues
   const struggling = words.filter(w => classify(w)==='struggling');
@@ -493,6 +565,7 @@ async function init() {
     return {
       l: w.l,
       e: w.e,
+      ch: w.ch,
       p: state ? state.p_know : store.prior,
       t: state ? state.trials : 0,
       last_seen_at: state ? state.last_seen_at : null
@@ -513,6 +586,19 @@ async function init() {
 
 // Run init() first, then register the auth listener — this guarantees
 // observedUserId is set before the listener can fire.
+// Sort toggle for the wordmap. Re-renders just the map; no need to refetch.
+document.getElementById('wordmapSort').addEventListener('click', (e) => {
+  const btn = e.target.closest('.wordmap-sort-btn');
+  if (!btn) return;
+  const next = btn.dataset.sort;
+  if (next === currentSort) return;
+  currentSort = next;
+  document.querySelectorAll('.wordmap-sort-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.sort === currentSort);
+  });
+  renderWordmap(currentWords);
+});
+
 init().then(() => {
   if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
     window.supabase.auth.onAuthStateChange((_event, session) => {
