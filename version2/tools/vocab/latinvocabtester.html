@@ -775,11 +775,33 @@ async function refreshActiveStore() {
 //   - Deeply-secure words (p≈0.99) barely move on a single slip.
 const BKT = {
   pL0: 0.30,  // prior probability of knowing before any attempts
-  pT:  0.15,  // probability of learning on a trial (slower → secure feels earned)
-  pG:  0.30,  // probability of guessing correctly (higher → correct is less informative)
+  pT:  0.12,  // probability of learning on a trial (slower → secure feels earned)
+  pG:  0.32,  // probability of guessing correctly (higher → correct is less informative)
   pS:  0.15,  // probability of slipping on a known word (higher → wrong less catastrophic)
   mastery: 0.95
 };
+
+// ═══════════════════════════════════════════════════════
+// MASTERY GATES — beyond raw BKT, a word becomes truly "Secure" only
+// after correct retrievals on at least this many distinct calendar days.
+// Once Secure, it enters spaced-repetition scheduling.
+// ═══════════════════════════════════════════════════════
+const MASTERY = {
+  daysRequired:        3,      // distinct days correct needed for Secure
+  firstReviewDays:     7,      // first review interval after reaching Secure
+  reviewIntervalCapDays: 180,  // intervals double on success but cap here
+  resetIntervalDays:   7,      // interval reset after a slip while Secure
+  resetReviewInDays:   1       // when the next review is due after a slip
+};
+
+// Compute today's local calendar date as 'YYYY-MM-DD' (for distinct-day tracking).
+function todayLocalISO() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 // ═══════════════════════════════════════════════════════
 // STATE
@@ -917,9 +939,13 @@ async function startSessionWithPool(pool, mode) {
     const prev = stored.get(w.latin);
     return {
       ...w,
-      pKnow:   prev ? prev.p_know  : BKT.pL0,
-      trials:  prev ? prev.trials  : 0,
-      correct: prev ? prev.correct : 0
+      pKnow:               prev ? prev.p_know  : BKT.pL0,
+      trials:              prev ? prev.trials  : 0,
+      correct:             prev ? prev.correct : 0,
+      distinctCorrectDays: prev ? (prev.distinct_correct_days | 0) : 0,
+      lastCorrectDate:     prev ? prev.last_correct_date : null,
+      nextReviewAt:        prev ? prev.next_review_at : null,
+      reviewIntervalDays:  prev ? prev.review_interval_days : null
     };
   });
 
@@ -946,9 +972,17 @@ document.getElementById('startBtn').addEventListener('click', () => {
 // AUTO-START from dashboard (?queue=struggling|learning|nearly, or ?auto=1)
 // ═══════════════════════════════════════════════════════
 // Must mirror dashboard.html's classify() exactly.
-function classifyForQueue(p, t) {
+// w expects: { p, t, distinctCorrectDays, nextReviewAt }
+function classifyForQueue(w) {
+  const p = w.p, t = w.t;
+  const days = w.distinctCorrectDays | 0;
   if (t === 0)   return 'learning';
-  if (p >= 0.95) return 'secure';
+  if (p >= 0.95) {
+    if (days < MASTERY.daysRequired) return 'building';
+    // Secure — but is it due for review?
+    if (w.nextReviewAt && Date.parse(w.nextReviewAt) <= Date.now()) return 'due';
+    return 'secure';
+  }
   if (t < 4)     return 'learning';
   if (p < 0.4)   return 'struggling';
   return 'nearly';
@@ -984,17 +1018,19 @@ async function maybeAutoStart() {
     const state = stored.get(w.latin);
     dedup.set(w.latin, {
       ...w,
-      _p: state ? state.p_know : BKT.pL0,
-      _t: state ? state.trials : 0
+      p: state ? state.p_know : BKT.pL0,
+      t: state ? state.trials : 0,
+      distinctCorrectDays: state ? (state.distinct_correct_days | 0) : 0,
+      nextReviewAt:        state ? state.next_review_at : null
     });
   }
   const allWords = Array.from(dedup.values());
 
   let pool;
   if (queueName) {
-    const matching = allWords.filter(w => classifyForQueue(w._p, w._t) === queueName);
+    const matching = allWords.filter(w => classifyForQueue(w) === queueName);
     if (matching.length < 4) {
-      const labels = { struggling: 'struggling', learning: 'learning', nearly: 'nearly-there' };
+      const labels = { struggling: 'struggling', learning: 'learning', nearly: 'nearly-there', building: 'building', due: 'due-for-review' };
       const label = labels[queueName] || queueName;
       showAutoStartNotice(`You don't have enough ${label} words yet to run a focused session (need 4, have ${matching.length}). Practise a bit first, then come back.`);
       // strip query string so refresh doesn't loop the notice
@@ -1006,46 +1042,117 @@ async function maybeAutoStart() {
     pool = allWords;
   }
 
-  // Strip the private _p/_t fields before passing into the session
-  const clean = pool.map(({ _p, _t, ...rest }) => rest);
+  // startSessionWithPool only needs {latin, english, info, chapter} from each;
+  // it will rehydrate p/t/SR state from the store itself.
+  const clean = pool.map(({ p, t, distinctCorrectDays, nextReviewAt, ...rest }) => rest);
   await startSessionWithPool(clean, 'mc');
 }
 
 // ═══════════════════════════════════════════════════════
-// BKT UPDATE
+// BKT UPDATE  (now with multi-day tracking + SR scheduling)
 // ═══════════════════════════════════════════════════════
+//
+// Mastery is no longer "p_know >= 0.95". A word is truly Secure only when
+//   p_know >= 0.95  AND  distinctCorrectDays >= MASTERY.daysRequired
+//
+// Returns metadata about the transition this attempt caused, so the caller
+// (handleAnswer) can flash "Mastered!" only when a word actually becomes
+// Secure (rather than just crossing the BKT threshold).
 function bktUpdate(word, correct) {
   const p = word.pKnow;
   const { pG, pS, pT } = BKT;
 
-  // posterior
+  // Snapshot pre-update state so we can detect transitions
+  const wasSecure = (p >= BKT.mastery) &&
+                    (word.distinctCorrectDays >= MASTERY.daysRequired);
+
+  // ── Bayesian posterior ──
   let posterior;
   if (correct) {
     posterior = (p * (1 - pS)) / (p * (1 - pS) + (1 - p) * pG);
   } else {
     posterior = (p * pS) / (p * pS + (1 - p) * (1 - pG));
   }
-
-  // learning update
   word.pKnow = posterior + (1 - posterior) * pT;
   word.trials++;
   if (correct) word.correct++;
 
-  // Persist (debounced inside the store)
+  // ── Distinct-day tracking ──
+  const today = todayLocalISO();
+  if (correct && word.lastCorrectDate !== today) {
+    word.distinctCorrectDays = (word.distinctCorrectDays | 0) + 1;
+    word.lastCorrectDate = today;
+  }
+
+  // ── Spaced-repetition scheduling ──
+  let becameSecure = false;
+  const nowSecure = (word.pKnow >= BKT.mastery) &&
+                    (word.distinctCorrectDays >= MASTERY.daysRequired);
+
+  if (correct && nowSecure) {
+    if (!wasSecure) {
+      // First time reaching Secure — schedule the first review
+      becameSecure = true;
+      word.reviewIntervalDays = MASTERY.firstReviewDays;
+      word.nextReviewAt = addDaysIso(MASTERY.firstReviewDays);
+    } else if (word.nextReviewAt && Date.parse(word.nextReviewAt) <= Date.now()) {
+      // Successful review at or after the due date — extend interval (double, capped)
+      const next = Math.min((word.reviewIntervalDays || MASTERY.firstReviewDays) * 2,
+                             MASTERY.reviewIntervalCapDays);
+      word.reviewIntervalDays = next;
+      word.nextReviewAt = addDaysIso(next);
+    }
+    // Practice before due-date is welcome but doesn't extend the interval
+  }
+
+  if (!correct && wasSecure) {
+    // Slipped on a Secure word — drop status and queue an immediate re-check.
+    // p_know already dropped via the posterior; we also reset the day counter
+    // and shorten the review interval so the word reappears soon.
+    word.distinctCorrectDays  = 0;
+    word.reviewIntervalDays   = MASTERY.resetIntervalDays;
+    word.nextReviewAt         = addDaysIso(MASTERY.resetReviewInDays);
+  }
+
+  // ── Persist (debounced inside the store) ──
   if (activeStore) {
     activeStore.update(word.latin, {
-      p_know:  word.pKnow,
-      trials:  word.trials,
-      correct: word.correct
+      p_know:                word.pKnow,
+      trials:                word.trials,
+      correct:               word.correct,
+      distinct_correct_days: word.distinctCorrectDays | 0,
+      last_correct_date:     word.lastCorrectDate || null,
+      next_review_at:        word.nextReviewAt || null,
+      review_interval_days:  word.reviewIntervalDays || null
     });
   }
+
+  return { becameSecure, wasSecure, nowSecure };
+}
+
+// Helper: a date N days from now, as ISO string (used for next_review_at)
+function addDaysIso(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + (days | 0));
+  return d.toISOString();
 }
 
 // ═══════════════════════════════════════════════════════
 // WORD SELECTION
 // ═══════════════════════════════════════════════════════
 function pickNextWord() {
-  // prioritise words below mastery, weighted by lowest pKnow
+  // 1. Highest priority: words that are Due for spaced-repetition review.
+  //    These are Secure words whose next_review_at has passed — surfacing
+  //    them is how we catch forgetting.
+  const now = Date.now();
+  const due = activeWords.filter(w =>
+    w.nextReviewAt && Date.parse(w.nextReviewAt) <= now &&
+    (w.distinctCorrectDays | 0) >= MASTERY.daysRequired);
+  if (due.length > 0) {
+    return due[Math.floor(Math.random() * due.length)];
+  }
+
+  // 2. Otherwise, prioritise words below mastery, weighted by lowest pKnow
   const unmastered = activeWords.filter(w => w.pKnow < BKT.mastery);
   if (unmastered.length === 0) return activeWords[Math.floor(Math.random() * activeWords.length)];
 
@@ -1207,10 +1314,8 @@ function renderType() {
 function handleAnswer(isCorrect, clickedBtn) {
   totalAnswered++;
 
-  // BKT update
-  const prevMastered = currentWord.pKnow >= BKT.mastery;
-  bktUpdate(currentWord, isCorrect);
-  const nowMastered = currentWord.pKnow >= BKT.mastery;
+  // BKT update — returns transition metadata for the flash logic below
+  const transition = bktUpdate(currentWord, isCorrect);
 
   // update dot
   const dot = document.getElementById('pKnowDot');
@@ -1242,10 +1347,11 @@ function handleAnswer(isCorrect, clickedBtn) {
     });
   }
 
-  // mastered flash
-  if (!prevMastered && nowMastered) {
+  // mastered flash — only fires when the word actually reaches Secure
+  // (i.e. p ≥ 0.95 AND distinct-correct-days threshold met for the first time)
+  if (transition && transition.becameSecure) {
     const flash = document.getElementById('masteredFlash');
-    flash.textContent = `✓ Mastered: ${currentWord.latin}`;
+    flash.textContent = `✓ Secure: ${currentWord.latin}`;
     flash.classList.add('show');
     setTimeout(() => flash.classList.remove('show'), 2000);
   }
