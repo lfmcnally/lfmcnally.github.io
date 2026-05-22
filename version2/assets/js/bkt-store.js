@@ -57,7 +57,7 @@
   async function fetchCloudRows(userId, vocabList) {
     const { data, error } = await global.supabase
       .from('vocab_bkt')
-      .select('word_latin, p_know, trials, correct, last_seen_at')
+      .select('word_latin, p_know, trials, correct, last_seen_at, distinct_correct_days, last_correct_date, next_review_at, review_interval_days')
       .eq('student_id', userId)
       .eq('vocab_list', vocabList);
 
@@ -68,10 +68,14 @@
     const map = {};
     for (const row of data) {
       map[row.word_latin] = {
-        p_know:       row.p_know,
-        trials:       row.trials,
-        correct:      row.correct,
-        last_seen_at: row.last_seen_at
+        p_know:                row.p_know,
+        trials:                row.trials,
+        correct:               row.correct,
+        last_seen_at:          row.last_seen_at,
+        distinct_correct_days: row.distinct_correct_days || 0,
+        last_correct_date:     row.last_correct_date || null,
+        next_review_at:        row.next_review_at || null,
+        review_interval_days:  row.review_interval_days || null
       };
     }
     return map;
@@ -85,13 +89,17 @@
     const payload = [];
     for (const [word, state] of pending.entries()) {
       payload.push({
-        student_id:   userId,
-        vocab_list:   vocabList,
-        word_latin:   word,
-        p_know:       state.p_know,
-        trials:       state.trials,
-        correct:      state.correct,
-        last_seen_at: state.last_seen_at || new Date().toISOString()
+        student_id:            userId,
+        vocab_list:            vocabList,
+        word_latin:            word,
+        p_know:                state.p_know,
+        trials:                state.trials,
+        correct:               state.correct,
+        last_seen_at:          state.last_seen_at || new Date().toISOString(),
+        distinct_correct_days: state.distinct_correct_days || 0,
+        last_correct_date:     state.last_correct_date || null,
+        next_review_at:        state.next_review_at || null,
+        review_interval_days:  state.review_interval_days || null
       });
     }
 
@@ -183,10 +191,14 @@
 
     function update(word, state) {
       const next = {
-        p_know:       Math.max(0, Math.min(1, state.p_know)),
-        trials:       state.trials | 0,
-        correct:      state.correct | 0,
-        last_seen_at: new Date().toISOString()
+        p_know:                Math.max(0, Math.min(1, state.p_know)),
+        trials:                state.trials | 0,
+        correct:               state.correct | 0,
+        last_seen_at:          new Date().toISOString(),
+        distinct_correct_days: state.distinct_correct_days | 0,
+        last_correct_date:     state.last_correct_date || null,
+        next_review_at:        state.next_review_at || null,
+        review_interval_days:  state.review_interval_days || null
       };
       table[word] = next;
       writeLocal(vocabList, table);
@@ -212,10 +224,14 @@
         const out = new Map();
         for (const [word, state] of Object.entries(table)) {
           out.set(word, {
-            p_know:  state.p_know,
-            trials:  state.trials | 0,
-            correct: state.correct | 0,
-            last_seen_at: state.last_seen_at
+            p_know:                state.p_know,
+            trials:                state.trials | 0,
+            correct:               state.correct | 0,
+            last_seen_at:          state.last_seen_at,
+            distinct_correct_days: state.distinct_correct_days | 0,
+            last_correct_date:     state.last_correct_date || null,
+            next_review_at:        state.next_review_at || null,
+            review_interval_days:  state.review_interval_days || null
           });
         }
         return out;
