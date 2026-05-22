@@ -519,7 +519,8 @@ body { background: var(--cream); }
         <div class="nav-div"></div>
         <a href="#" class="nav-link">Tools</a>
         <a href="#" class="nav-link">About</a>
-        <a href="#" class="nav-cta">Sign in</a>
+        <a href="/version2/tracking/dashboard.html" class="nav-cta" id="navMyProgress" style="display:none;">My progress &rarr;</a>
+        <a href="/auth/login.html" class="nav-cta" id="navSignIn">Sign in</a>
       </div>
     </div>
   </nav>
@@ -1320,12 +1321,20 @@ window.addEventListener('pagehide', () => {
 // doesn't look like a real transition.
 let observedUserId = null;
 
+function refreshAuthNav(signedIn) {
+  const myProgress = document.getElementById('navMyProgress');
+  const signIn     = document.getElementById('navSignIn');
+  if (myProgress) myProgress.style.display = signedIn ? '' : 'none';
+  if (signIn)     signIn.style.display     = signedIn ? 'none' : '';
+}
+
 (async function bootstrap() {
   updateWordCount();
   try {
     const { data } = await window.supabase.auth.getUser();
     observedUserId = data && data.user ? data.user.id : null;
   } catch (_err) { observedUserId = null; }
+  refreshAuthNav(!!observedUserId);
   await refreshActiveStore();
 
   // If the URL says ?queue=... or ?auto=1, jump straight into a session.
@@ -1336,6 +1345,7 @@ let observedUserId = null;
       const newUserId = session && session.user ? session.user.id : null;
       if (newUserId === observedUserId) return;
       observedUserId = newUserId;
+      refreshAuthNav(!!newUserId);
       // Drop cached stores; they're tied to the previous auth state.
       for (const k of Object.keys(bktStores)) delete bktStores[k];
       activeStore = null;
