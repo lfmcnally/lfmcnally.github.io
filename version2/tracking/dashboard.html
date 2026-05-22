@@ -616,12 +616,24 @@ async function init() {
     return;
   }
 
-  // Open the store — its mode is the source of truth for "signed in"
+  // The auth session (observedUserId from getUser()) is the source of truth
+  // for "is the student signed in?". The BKT store may still fall back to
+  // local mode if the cloud is unreachable or a schema migration hasn't run
+  // yet — but that's a sync problem, not an auth problem, and we shouldn't
+  // tell a signed-in student they're anonymous because of it.
   const store = await window.ClassicaliaBKT.open({ vocabList: VOCAB_LIST_KEY });
 
-  if (store.mode === 'cloud') {
-    // Best-effort nav populate. If it fails, that's cosmetic — the data is fine.
+  if (observedUserId) {
     populateNavUser();
+    if (store.mode !== 'cloud') {
+      // Signed in, but cloud isn't reachable — surface this clearly
+      const banner = document.getElementById('anonBanner');
+      banner.style.display = 'flex';
+      banner.style.background = '#fee2e2';
+      banner.style.borderColor = '#fca5a5';
+      banner.style.color = '#991b1b';
+      banner.innerHTML = '<div style="flex:1;min-width:240px;"><strong>Cloud sync is offline.</strong> Your progress is being saved locally for now. Reload in a minute, or check that database migration 037 has been applied.</div>';
+    }
   } else {
     document.getElementById('anonBanner').style.display = 'flex';
   }

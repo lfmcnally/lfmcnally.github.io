@@ -55,16 +55,29 @@
   }
 
   async function fetchCloudRows(userId, vocabList) {
-    const { data, error } = await global.supabase
+    // Try the full schema first (including the SR columns from migration 037).
+    let { data, error } = await global.supabase
       .from('vocab_bkt')
       .select('word_latin, p_know, trials, correct, last_seen_at, distinct_correct_days, last_correct_date, next_review_at, review_interval_days')
       .eq('student_id', userId)
       .eq('vocab_list', vocabList);
 
+    // If that fails because the migration hasn't been applied yet, retry
+    // with just the original columns so signed-in users still load.
     if (error) {
-      console.warn('[bkt-store] cloud fetch failed; falling back to local only', error);
-      return null;
+      console.warn('[bkt-store] full schema fetch failed, retrying with legacy columns', error);
+      const legacy = await global.supabase
+        .from('vocab_bkt')
+        .select('word_latin, p_know, trials, correct, last_seen_at')
+        .eq('student_id', userId)
+        .eq('vocab_list', vocabList);
+      if (legacy.error) {
+        console.warn('[bkt-store] cloud fetch failed; falling back to local only', legacy.error);
+        return null;
+      }
+      data = legacy.data;
     }
+
     const map = {};
     for (const row of data) {
       map[row.word_latin] = {
@@ -86,16 +99,27 @@
   async function pushBatch(userId, vocabList, pending) {
     if (!pending.size) return { ok: true };
 
-    const payload = [];
+    const fullPayload = [];
+    const legacyPayload = [];
     for (const [word, state] of pending.entries()) {
-      payload.push({
+      const last_seen_at = state.last_seen_at || new Date().toISOString();
+      legacyPayload.push({
+        student_id:   userId,
+        vocab_list:   vocabList,
+        word_latin:   word,
+        p_know:       state.p_know,
+        trials:       state.trials,
+        correct:      state.correct,
+        last_seen_at
+      });
+      fullPayload.push({
         student_id:            userId,
         vocab_list:            vocabList,
         word_latin:            word,
         p_know:                state.p_know,
         trials:                state.trials,
         correct:               state.correct,
-        last_seen_at:          state.last_seen_at || new Date().toISOString(),
+        last_seen_at,
         distinct_correct_days: state.distinct_correct_days || 0,
         last_correct_date:     state.last_correct_date || null,
         next_review_at:        state.next_review_at || null,
@@ -103,13 +127,22 @@
       });
     }
 
-    const { error } = await global.supabase
+    let { error } = await global.supabase
       .from('vocab_bkt')
-      .upsert(payload, { onConflict: 'student_id,vocab_list,word_latin' });
+      .upsert(fullPayload, { onConflict: 'student_id,vocab_list,word_latin' });
 
+    // If the new columns aren't there yet (migration 037 unapplied), retry
+    // with just the original columns. The SR fields stay in localStorage
+    // and will sync up once the migration is applied.
     if (error) {
-      console.warn('[bkt-store] upsert failed; keeping in queue', error);
-      return { ok: false, error };
+      console.warn('[bkt-store] full-schema upsert failed, retrying with legacy columns', error);
+      const legacy = await global.supabase
+        .from('vocab_bkt')
+        .upsert(legacyPayload, { onConflict: 'student_id,vocab_list,word_latin' });
+      if (legacy.error) {
+        console.warn('[bkt-store] upsert failed; keeping in queue', legacy.error);
+        return { ok: false, error: legacy.error };
+      }
     }
     return { ok: true };
   }
