@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My profile — Classicalia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<style>
+body { background:var(--cream); }
+.nav-user { display:flex;align-items:center;gap:10px; }
+.nav-avatar { width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.35);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white; }
+.nav-username { font-size:13px;color:rgba(255,255,255,0.8);font-weight:500; }
+.dash-header { background:var(--navy);position:relative;overflow:hidden;padding:80px 0 40px; }
+.dash-header-inner { max-width:880px;margin:0 auto;padding:0 40px;position:relative;z-index:2; }
+.dash-eyebrow { font-size:10.5px;letter-spacing:0.22em;text-transform:uppercase;color:#6ba0ff;font-weight:700;margin-bottom:8px; }
+.dash-title { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:36px;color:white;margin-bottom:4px;letter-spacing:-0.02em; }
+.dash-subtitle { font-size:13px;color:#8fa8cc; }
+.prof-body { max-width:880px;margin:-20px auto 80px;padding:0 40px;position:relative;z-index:5; }
+.prof-card { background:var(--paper);border:1px solid var(--rule);border-radius:8px;margin-bottom:20px;overflow:hidden; }
+.prof-card-head { padding:14px 22px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;gap:12px; }
+.prof-card-title { font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted); }
+.prof-card-body { padding:20px 22px; }
+.prof-field { display:grid;grid-template-columns:140px 1fr;gap:14px;align-items:start;padding:10px 0;border-bottom:1px solid var(--rule-faint); }
+.prof-field:last-child { border-bottom:none; }
+.prof-field-label { font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);padding-top:2px; }
+.prof-field-value { font-size:14px;color:var(--ink); }
+.prof-field-value em { font-family:'Lora',serif;font-style:italic;font-weight:600; }
+.code-box { display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
+.code-display { font-family:'DM Sans',sans-serif;font-weight:700;font-size:22px;letter-spacing:0.08em;color:var(--navy);background:var(--cream);border:1px solid var(--rule);border-radius:6px;padding:8px 14px;display:inline-block;cursor:text;user-select:all; }
+.code-btn { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;border-radius:5px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer;transition:all 0.12s; }
+.code-btn:hover { border-color:var(--brand);color:var(--brand); }
+.code-btn.primary { background:var(--brand);color:white;border-color:var(--brand); }
+.code-btn.primary:hover { background:#155ee0; }
+.code-help { font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.5; }
+.code-toast { font-size:11.5px;color:#16a34a;font-weight:600;display:none; }
+.code-toast.show { display:inline; }
+.teacher-row { display:flex;align-items:center;padding:12px 22px;border-bottom:1px solid var(--rule-faint);gap:14px; }
+.teacher-row:last-child { border-bottom:none; }
+.teacher-info { flex:1; }
+.teacher-name { font-family:'Lora',serif;font-style:italic;font-weight:600;font-size:15px;color:var(--navy); }
+.teacher-meta { font-size:11.5px;color:var(--muted);margin-top:2px; }
+.teacher-remove { font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:600;padding:5px 10px;border-radius:4px;border:1px solid var(--rule);background:var(--paper);color:#dc2626;cursor:pointer;transition:all 0.12s; }
+.teacher-remove:hover { background:#fee2e2;border-color:#fca5a5; }
+.empty-state { padding:24px;text-align:center;color:var(--muted);font-size:13px;font-style:italic; }
+.notice { background:#fff7e6;border:1px solid #fde68a;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#7c4a03;line-height:1.55; }
+.notice strong { color:#451a03; }
+</style>
+</head>
+<body>
+
+<div class="dash-header">
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo">Classicalia</a>
+      <div class="nav-links">
+        <a href="/version2/subjects/latin/" class="nav-link">Latin</a>
+        <a href="/version2/subjects/greek/" class="nav-link">Greek</a>
+        <a href="/version2/subjects/classical-civilisation/" class="nav-link">Class. Civ.</a>
+        <div class="nav-div"></div>
+        <a href="/version2/tracking/dashboard.html" class="nav-link">My progress</a>
+        <div class="nav-user" id="navUser">
+          <a href="/auth/login.html" class="nav-cta">Sign in</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+  <div class="dash-header-inner">
+    <div class="dash-eyebrow">My profile</div>
+    <div class="dash-title" id="profGreeting">Your account</div>
+    <div class="dash-subtitle">Account details, your sharing code, and the teachers who can see your progress.</div>
+  </div>
+</div>
+
+<div class="prof-body">
+
+  <div id="anonNotice" class="notice" style="display:none;">
+    <strong>You're not signed in.</strong> <a href="/auth/login.html" style="color:#1A6FFF;font-weight:600;">Sign in</a> to see your profile.
+  </div>
+
+  <!-- ACCOUNT -->
+  <div class="prof-card" id="cardAccount" style="display:none;">
+    <div class="prof-card-head"><span class="prof-card-title">Account</span></div>
+    <div class="prof-card-body">
+      <div class="prof-field">
+        <div class="prof-field-label">Name</div>
+        <div class="prof-field-value" id="profName">—</div>
+      </div>
+      <div class="prof-field">
+        <div class="prof-field-label">Email</div>
+        <div class="prof-field-value" id="profEmail">—</div>
+      </div>
+      <div class="prof-field">
+        <div class="prof-field-label">School</div>
+        <div class="prof-field-value" id="profSchool">—</div>
+      </div>
+      <div class="prof-field">
+        <div class="prof-field-label">Role</div>
+        <div class="prof-field-value" id="profRole">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHARING CODE -->
+  <div class="prof-card" id="cardCode" style="display:none;">
+    <div class="prof-card-head">
+      <span class="prof-card-title">Your sharing code</span>
+      <span class="code-toast" id="codeToast">Copied to clipboard</span>
+    </div>
+    <div class="prof-card-body">
+      <div class="code-box">
+        <span class="code-display" id="codeDisplay">—</span>
+        <button class="code-btn primary" id="codeCopy" type="button">Copy</button>
+        <button class="code-btn" id="codeRegen" type="button">Regenerate</button>
+      </div>
+      <div class="code-help">
+        Give this code to a teacher and they can add you to one of their classes. They'll then see your vocabulary progress. You can revoke their access at any time below. If you ever share the code too widely, hit <strong>Regenerate</strong> — the old code stops working immediately.
+      </div>
+    </div>
+  </div>
+
+  <!-- TEACHERS -->
+  <div class="prof-card" id="cardTeachers" style="display:none;">
+    <div class="prof-card-head"><span class="prof-card-title">Teachers who can see your progress</span></div>
+    <div id="teacherList"></div>
+  </div>
+
+</div>
+
+<script>
+async function loadProfile() {
+  // Auth check
+  let user = null;
+  try {
+    const { data } = await window.supabase.auth.getUser();
+    user = data && data.user ? data.user : null;
+  } catch (_err) { /* fall through */ }
+
+  if (!user) {
+    document.getElementById('anonNotice').style.display = 'block';
+    return;
+  }
+
+  // Show signed-in cards
+  document.getElementById('cardAccount').style.display = '';
+  document.getElementById('cardCode').style.display = '';
+  document.getElementById('cardTeachers').style.display = '';
+
+  // Nav avatar
+  const initials = (user.email || '?').split(/[\s@.]+/).filter(Boolean).slice(0,2).map(s => s[0].toUpperCase()).join('') || '?';
+  document.getElementById('navUser').innerHTML = `
+    <div class="nav-avatar">${initials}</div>
+    <span class="nav-username">${(user.email || '').split('@')[0]}</span>
+  `;
+
+  // Profile row
+  const { data: profile, error: profileErr } = await window.supabase
+    .from('users')
+    .select('full_name, email, school, role, share_code')
+    .eq('id', user.id)
+    .single();
+
+  if (profileErr || !profile) {
+    document.getElementById('profName').textContent = '(could not load)';
+    return;
+  }
+
+  document.getElementById('profGreeting').textContent = profile.full_name || 'Your account';
+  document.getElementById('profName').textContent = profile.full_name || '—';
+  document.getElementById('profEmail').textContent = profile.email || user.email || '—';
+  document.getElementById('profSchool').textContent = profile.school || '—';
+  document.getElementById('profRole').textContent = profile.role === 'teacher' ? 'Teacher' : 'Student';
+  document.getElementById('codeDisplay').textContent = profile.share_code || '—';
+
+  // Teachers (only relevant for students)
+  if (profile.role === 'student') {
+    await loadTeachers(user.id);
+  } else {
+    document.getElementById('teacherList').innerHTML =
+      '<div class="empty-state">Teachers don\'t need a sharing code — see your <a href="/version2/tracking/teacher.html" style="color:var(--brand);font-weight:600;">teacher dashboard</a>.</div>';
+  }
+}
+
+async function loadTeachers(studentId) {
+  const listEl = document.getElementById('teacherList');
+  // Classes the student is a member of, plus the teacher's name from `users`.
+  const { data, error } = await window.supabase
+    .from('class_members')
+    .select('class_id, classes (id, name, type, teacher_id, users:teacher_id (full_name, email))')
+    .eq('student_id', studentId);
+
+  if (error) {
+    console.warn('[profile] could not load classes', error);
+    listEl.innerHTML = '<div class="empty-state">Could not load your teachers right now.</div>';
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    listEl.innerHTML = '<div class="empty-state">No teachers can see your progress yet. Share your code above with a teacher to give them access.</div>';
+    return;
+  }
+
+  listEl.innerHTML = data.map(row => {
+    const cls = row.classes || {};
+    const teacher = cls.users || {};
+    const teacherName = teacher.full_name || teacher.email || 'Unknown teacher';
+    return `
+      <div class="teacher-row">
+        <div class="teacher-info">
+          <div class="teacher-name">${escapeHtml(teacherName)}</div>
+          <div class="teacher-meta">${escapeHtml(cls.name || 'Class')} · ${escapeHtml(cls.type || '')}</div>
+        </div>
+        <button class="teacher-remove" data-class-id="${cls.id}">Remove access</button>
+      </div>
+    `;
+  }).join('');
+
+  listEl.querySelectorAll('.teacher-remove').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Remove this teacher\'s access to your progress?')) return;
+      const classId = btn.dataset.classId;
+      const { error } = await window.supabase
+        .from('class_members')
+        .delete()
+        .eq('class_id', classId)
+        .eq('student_id', studentId);
+      if (error) {
+        alert('Could not remove access: ' + error.message);
+        return;
+      }
+      btn.closest('.teacher-row').remove();
+      if (!listEl.querySelector('.teacher-row')) {
+        listEl.innerHTML = '<div class="empty-state">No teachers can see your progress yet. Share your code above with a teacher to give them access.</div>';
+      }
+    });
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Copy code
+document.getElementById('codeCopy').addEventListener('click', async () => {
+  const code = document.getElementById('codeDisplay').textContent.trim();
+  if (!code || code === '—') return;
+  try {
+    await navigator.clipboard.writeText(code);
+    const toast = document.getElementById('codeToast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1500);
+  } catch (_err) {
+    // Fall back to selecting
+    const sel = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(document.getElementById('codeDisplay'));
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+});
+
+// Regenerate code
+document.getElementById('codeRegen').addEventListener('click', async () => {
+  if (!confirm('Generate a new sharing code? Your current code will stop working immediately — any teacher who already has access will keep it, but they can\'t be added again without the new code.')) return;
+  const btn = document.getElementById('codeRegen');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+  const { data, error } = await window.supabase.rpc('regenerate_share_code');
+  btn.disabled = false;
+  btn.textContent = 'Regenerate';
+  if (error) {
+    alert('Could not regenerate: ' + error.message);
+    return;
+  }
+  document.getElementById('codeDisplay').textContent = data;
+});
+
+loadProfile();
+</script>
+</body>
+</html>

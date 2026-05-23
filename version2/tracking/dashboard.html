@@ -444,15 +444,17 @@ async function populateNavUser() {
     if (error || !data || !data.user) return null;
     const user = data.user;
 
-    // Try to read full_name from the users table; fall back to email
+    // Try to read full_name + role from the users table; fall back to email
     let displayName = user.email || 'Student';
+    let role = 'student';
     try {
       const { data: profile } = await window.supabase
         .from('users')
-        .select('full_name')
+        .select('full_name, role')
         .eq('id', user.id)
         .maybeSingle();
       if (profile && profile.full_name) displayName = profile.full_name;
+      if (profile && profile.role)      role = profile.role;
     } catch (_err) { /* ignore — fall back to email */ }
 
     const initials = String(displayName)
@@ -464,10 +466,17 @@ async function populateNavUser() {
 
     const shortName = String(displayName).split('@')[0];
 
+    // Teachers get a link to their dashboard; everyone gets a profile link.
+    const teacherLink = role === 'teacher'
+      ? `<a href="/version2/tracking/teacher.html" class="nav-link" style="margin-right:6px;">Teacher dashboard</a>`
+      : '';
     const navUser = document.getElementById('navUser');
     navUser.innerHTML = `
-      <div class="nav-avatar">${initials}</div>
-      <span class="nav-username">${shortName}</span>
+      ${teacherLink}
+      <a href="/version2/profile.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
+        <div class="nav-avatar">${initials}</div>
+        <span class="nav-username">${shortName}</span>
+      </a>
     `;
     return user;
   } catch (err) {
