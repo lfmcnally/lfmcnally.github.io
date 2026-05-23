@@ -8,6 +8,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
 <style>
 body { background:var(--cream); }
 .nav-user { display:flex;align-items:center;gap:10px; }
@@ -141,6 +144,60 @@ body { background:var(--cream); }
 </head>
 <body>
 
+<!-- MODAL: Create class -->
+<div id="modalCreateClass" class="t-modal" style="display:none;position:fixed;inset:0;background:rgba(14,30,63,0.55);backdrop-filter:blur(2px);z-index:300;overflow-y:auto;padding:48px 16px;">
+  <div style="background:var(--paper);max-width:480px;margin:0 auto;border-radius:10px;overflow:hidden;box-shadow:0 24px 80px rgba(14,30,63,0.3);">
+    <div style="background:var(--navy);padding:24px 28px;position:relative;">
+      <button class="t-modal-close" data-modal="modalCreateClass" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1;">&times;</button>
+      <div style="font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:22px;color:white;">Create a new class</div>
+      <div style="font-size:12px;color:#8fa8cc;margin-top:4px;">Give it a name and pick the subject.</div>
+    </div>
+    <div style="padding:24px 28px;">
+      <label style="display:block;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Class name</label>
+      <input id="ccName" type="text" placeholder="e.g. Year 10 Latin Set 1" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;margin-bottom:16px;" autocomplete="off">
+
+      <label style="display:block;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Subject</label>
+      <select id="ccType" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;background:white;margin-bottom:20px;">
+        <option value="latin-gcse">GCSE Latin (J282)</option>
+        <option value="latin-alevel">A-Level Latin (H443)</option>
+        <option value="latin-prep">Prep Latin</option>
+        <option value="greek-gcse">GCSE Greek</option>
+        <option value="greek-alevel">A-Level Greek</option>
+        <option value="civ-gcse">GCSE Classical Civilisation</option>
+        <option value="civ-alevel">A-Level Classical Civilisation</option>
+      </select>
+
+      <div id="ccError" style="color:#dc2626;font-size:12.5px;margin-bottom:10px;display:none;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="t-modal-close" data-modal="modalCreateClass" type="button" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;padding:9px 16px;border-radius:5px;border:1px solid var(--rule);background:var(--cream);color:var(--ink);cursor:pointer;">Cancel</button>
+        <button id="ccSubmit" type="button" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;padding:9px 16px;border-radius:5px;border:none;background:var(--brand);color:white;cursor:pointer;">Create class</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add students -->
+<div id="modalAddStudents" class="t-modal" style="display:none;position:fixed;inset:0;background:rgba(14,30,63,0.55);backdrop-filter:blur(2px);z-index:300;overflow-y:auto;padding:48px 16px;">
+  <div style="background:var(--paper);max-width:520px;margin:0 auto;border-radius:10px;overflow:hidden;box-shadow:0 24px 80px rgba(14,30,63,0.3);">
+    <div style="background:var(--navy);padding:24px 28px;position:relative;">
+      <button class="t-modal-close" data-modal="modalAddStudents" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1;">&times;</button>
+      <div style="font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:22px;color:white;">Add students by code</div>
+      <div style="font-size:12px;color:#8fa8cc;margin-top:4px;" id="asClassLabel">to this class</div>
+    </div>
+    <div style="padding:24px 28px;">
+      <div style="font-size:13px;color:var(--ink);line-height:1.55;margin-bottom:14px;">
+        Ask each student for their sharing code from their <strong>Profile</strong> page. Paste one or more here — codes can be on separate lines, comma- or space-separated. Format looks like <code style="background:var(--cream);padding:2px 6px;border-radius:3px;font-family:monospace;">ABCD-1234</code>.
+      </div>
+      <textarea id="asCodes" rows="5" placeholder="ABCD-1234&#10;EFGH-5678" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--rule);border-radius:6px;font-family:'DM Sans',sans-serif;letter-spacing:0.04em;resize:vertical;margin-bottom:14px;"></textarea>
+      <div id="asResults" style="font-size:12.5px;margin-bottom:14px;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="t-modal-close" data-modal="modalAddStudents" type="button" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;padding:9px 16px;border-radius:5px;border:1px solid var(--rule);background:var(--cream);color:var(--ink);cursor:pointer;">Close</button>
+        <button id="asSubmit" type="button" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;padding:9px 16px;border-radius:5px;border:none;background:var(--brand);color:white;cursor:pointer;">Add students</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="word-tooltip" id="wordTooltip">
   <div class="word-tooltip-latin" id="ttLatin"></div>
   <div class="word-tooltip-english" id="ttEnglish"></div>
@@ -206,10 +263,9 @@ body { background:var(--cream); }
         <div class="nav-div"></div>
         <a href="#" class="nav-link">Tools</a>
         <a href="#" class="nav-link">About</a>
-        <div class="nav-user">
-          <div class="nav-avatar">LM</div>
-          <span class="nav-username">Lawrence</span>
-          <span class="nav-teacher-badge">Teacher</span>
+        <a href="/version2/profile.html" class="nav-link">Profile</a>
+        <div class="nav-user" id="navUser">
+          <a href="/auth/login.html" class="nav-cta">Sign in</a>
         </div>
       </div>
     </div>
@@ -217,7 +273,11 @@ body { background:var(--cream); }
   <div class="dash-header-inner">
     <div class="dash-eyebrow">Teacher dashboard</div>
     <div class="dash-title">Class confidence</div>
-    <div class="dash-subtitle">Vocabulary confidence scores across your classes — based on full response histories, not streaks.</div>
+    <div class="dash-subtitle">Vocabulary confidence across your classes. Students share their code with you; you paste it in to add them.</div>
+    <div class="dash-actions" style="display:flex;gap:10px;margin:14px 0 6px;flex-wrap:wrap;">
+      <button id="btnCreateClass" type="button" style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;border-radius:5px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.08);color:white;cursor:pointer;">+ Create class</button>
+      <button id="btnAddStudents" type="button" style="font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;border-radius:5px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.08);color:white;cursor:pointer;" disabled>+ Add students</button>
+    </div>
     <div class="class-tabs" id="classTabs"></div>
   </div>
 </div>
@@ -286,340 +346,507 @@ body { background:var(--cream); }
 </footer>
 
 <script>
-// ── Mock data ──
-// Each student has: words array of {l, e, p, t} matching the vocabulary list
-// p = p_know (0-1), t = trials
-// In production: Supabase query on student_knowledge JOIN vocabulary_items
+// ═══════════════════════════════════════════════════════
+// Teacher dashboard — real data
+// ═══════════════════════════════════════════════════════
+//
+// Pulls the teacher's classes from `classes` (where teacher_id = me),
+// their members from `class_members`, and each member's vocab BKT state
+// from `vocab_bkt`. Aggregates per-student to produce the same kind of
+// numbers the mock used to show — but for real.
 
-function genWords(profile) {
-  // profile = array of 10 chapter confidence levels (0-1 scale)
-  const chapterSizes = [40,45,44,41,47,37,42,43,50,31];
-  const words = [];
-  chapterSizes.forEach((size, ci) => {
-    const base = profile[ci];
-    for (let i = 0; i < size; i++) {
-      const noise = (Math.random() - 0.5) * 0.15;
-      const p = Math.max(0.08, Math.min(0.99, base + noise));
-      const t = base < 0.2 ? Math.floor(Math.random()*2) :
-                base < 0.4 ? Math.floor(Math.random()*4)+1 :
-                base < 0.7 ? Math.floor(Math.random()*6)+3 :
-                Math.floor(Math.random()*8)+8;
-      words.push({ p: Math.round(p*100)/100, t, ch: ci+1 });
+const DAYS_REQUIRED = 3;        // mirrors the dashboard's mastery rule
+
+// Subjects → vocab list IDs (only Latin GCSE has data wired up so far)
+const SUBJECT_VOCAB_LIST = {
+  'latin-gcse':   'latin-gcse',
+  'latin-alevel': 'latin-alevel',
+  'latin-prep':   'latin-suburani',
+  'greek-gcse':   'greek-gcse',
+  'greek-alevel': 'greek-alevel'
+  // civ-* have no vocab list (yet)
+};
+
+// Canonical word list (latin headword → english).
+function buildCanonical() {
+  const out = new Map();
+  if (typeof VOCAB_LATIN_GCSE !== 'undefined') {
+    for (const e of VOCAB_LATIN_GCSE) {
+      if (e.chapter > 0 && !out.has(e.latin)) out.set(e.latin, e.english);
     }
-  });
-  return words;
+  }
+  return out;
+}
+const CANONICAL = buildCanonical();
+
+function classifyWord(w) {
+  if (w.t === 0) return 'learning';
+  if (w.p >= 0.95) {
+    const days = w.distinct_correct_days | 0;
+    if (days < DAYS_REQUIRED) return 'building';
+    if (w.next_review_at && Date.parse(w.next_review_at) <= Date.now()) return 'due';
+    return 'secure';
+  }
+  if (w.t < 4) return 'learning';
+  if (w.p < 0.4) return 'struggling';
+  return 'nearly';
 }
 
-// word names (simplified — in production from vocabulary_items table)
-const wordNames = [
-  {l:'ad',e:'to, towards'},{l:'ambulo',e:'walk'},{l:'amicus',e:'friend'},{l:'amo',e:'love'},{l:'ancilla',e:'slave-girl'},
-  {l:'cibus',e:'food'},{l:'circum',e:'around'},{l:'clamo',e:'shout'},{l:'contra',e:'against'},{l:'dea',e:'goddess'},
-  {l:'deus',e:'god'},{l:'dominus',e:'master'},{l:'epistula',e:'letter'},{l:'equus',e:'horse'},{l:'et',e:'and'},
-  {l:'femina',e:'woman'},{l:'gladius',e:'sword'},{l:'hortus',e:'garden'},{l:'in',e:'into'},{l:'insula',e:'island'},
-  {l:'laboro',e:'work'},{l:'navigo',e:'sail'},{l:'neco',e:'kill'},{l:'non',e:'not'},{l:'nunc',e:'now'},
-  {l:'nuntius',e:'messenger'},{l:'paro',e:'prepare'},{l:'pecunia',e:'money'},{l:'per',e:'through'},{l:'porto',e:'carry'},
-  {l:'puella',e:'girl'},{l:'pugno',e:'fight'},{l:'Roma',e:'Rome'},{l:'saluto',e:'greet'},{l:'sed',e:'but'},
-  {l:'semper',e:'always'},{l:'servus',e:'slave'},{l:'sum',e:'be'},{l:'villa',e:'house'},{l:'voco',e:'call'},
-  {l:'a, ab',e:'from'},{l:'ager',e:'field'},{l:'annus',e:'year'},{l:'aqua',e:'water'},{l:'audio',e:'hear'},
-  {l:'bellum',e:'war'},{l:'bibo',e:'drink'},{l:'cum',e:'with'},{l:'do',e:'give'},{l:'duco',e:'lead'},
-  {l:'habeo',e:'have'},{l:'iubeo',e:'order'},{l:'lego',e:'read'},{l:'mitto',e:'send'},{l:'moneo',e:'warn'},
-  {l:'puer',e:'boy'},{l:'scribo',e:'write'},{l:'terreo',e:'frighten'},{l:'timeo',e:'fear'},{l:'venio',e:'come'},
-  {l:'video',e:'see'},{l:'vir',e:'man'},{l:'vinum',e:'wine'},{l:'traho',e:'drag'},{l:'punio',e:'punish'},
-  {l:'advenio',e:'arrive'},{l:'bonus',e:'good'},{l:'cado',e:'fall'},{l:'consilium',e:'plan'},{l:'curro',e:'run'},
-  {l:'debeo',e:'ought'},{l:'deleo',e:'destroy'},{l:'discedo',e:'depart'},{l:'festino',e:'hurry'},{l:'habito',e:'live'},
-  {l:'laetus',e:'happy'},{l:'magnus',e:'great'},{l:'malus',e:'bad'},{l:'maneo',e:'remain'},{l:'multus',e:'many'},
-  {l:'nauta',e:'sailor'},{l:'novus',e:'new'},{l:'porta',e:'gate'},{l:'possum',e:'can'},{l:'quaero',e:'search'},
-  {l:'statim',e:'immediately'},{l:'terra',e:'land'},{l:'via',e:'road'},{l:'-que',e:'and'},
-  {l:'amor',e:'love'},{l:'caelum',e:'sky'},{l:'capio',e:'take'},{l:'caput',e:'head'},{l:'dux',e:'leader'},
-  {l:'ego',e:'I'},{l:'frater',e:'brother'},{l:'fugio',e:'flee'},{l:'iter',e:'journey'},{l:'mare',e:'sea'},
-  {l:'mater',e:'mother'},{l:'meus',e:'my'},{l:'miles',e:'soldier'},{l:'nox',e:'night'},{l:'pater',e:'father'},
-  {l:'rex',e:'king'},{l:'regina',e:'queen'},{l:'urbs',e:'city'},{l:'tu',e:'you'},{l:'ubi',e:'where'},
-  {l:'ascendo',e:'climb'},{l:'bene',e:'well'},{l:'civis',e:'citizen'},{l:'fortis',e:'brave'},{l:'igitur',e:'therefore'},
-  {l:'mors',e:'death'},{l:'omnis',e:'all'},{l:'pax',e:'peace'},{l:'saepe',e:'often'},{l:'silva',e:'wood'},
-  {l:'tamen',e:'however'},{l:'teneo',e:'hold'},{l:'tristis',e:'sad'},{l:'vinco',e:'conquer'},{l:'vos',e:'you (pl)'},
-  {l:'absum',e:'be absent'},{l:'accipio',e:'receive'},{l:'conspicio',e:'notice'},{l:'constituo',e:'decide'},{l:'dico',e:'say'},
-  {l:'eo',e:'go'},{l:'hostis',e:'enemy'},{l:'intellego',e:'understand'},{l:'interficio',e:'kill'},{l:'ira',e:'anger'},
-  {l:'pereo',e:'perish'},{l:'persuadeo',e:'persuade'},{l:'qui',e:'who'},{l:'quod',e:'because'},{l:'redeo',e:'return'},
-  {l:'servo',e:'save'},{l:'uxor',e:'wife'},{l:'vendo',e:'sell'},
-  {l:'animus',e:'mind'},{l:'castra',e:'camp'},{l:'clarus',e:'famous'},{l:'corpus',e:'body'},{l:'flumen',e:'river'},
-  {l:'hic',e:'this'},{l:'iam',e:'now'},{l:'ille',e:'that'},{l:'imperator',e:'emperor'},{l:'moveo',e:'move'},
-  {l:'nihil',e:'nothing'},{l:'pars',e:'part'},{l:'sine',e:'without'},{l:'solus',e:'alone'},{l:'virtus',e:'courage'},
-  {l:'fero',e:'carry'},{l:'homo',e:'human'},{l:'idem',e:'same'},{l:'labor',e:'toil'},{l:'nam',e:'for'},
-  {l:'nisi',e:'unless'},{l:'nolo',e:'refuse'},{l:'nullus',e:'no'},{l:'ostendo',e:'show'},{l:'si',e:'if'},
-  {l:'totus',e:'whole'},{l:'volo',e:'want'},{l:'vox',e:'voice'},
-  {l:'cognosco',e:'find out'},{l:'conor',e:'try'},{l:'egredior',e:'go out'},{l:'fidelis',e:'faithful'},{l:'gens',e:'people'},
-  {l:'ingredior',e:'enter'},{l:'loquor',e:'speak'},{l:'morior',e:'die'},{l:'nemo',e:'nobody'},{l:'proficiscor',e:'set out'},
-  {l:'progredior',e:'advance'},{l:'regredior',e:'go back'},{l:'sequor',e:'follow'},{l:'vita',e:'life'},{l:'vivo',e:'live'},
-  {l:'dies',e:'day'},{l:'domus',e:'home'},{l:'exercitus',e:'army'},{l:'felix',e:'fortunate'},{l:'legio',e:'legion'},
-  {l:'manus',e:'hand'},{l:'poena',e:'punishment'},{l:'princeps',e:'emperor'},{l:'res',e:'thing'},{l:'simulac',e:'as soon as'},
-  {l:'tempus',e:'time'},{l:'ut',e:'so that'},
-];
-
-const classes = [
-  {
-    name:'Y10 Latin Set 1', course:'GCSE Latin (J282)',
-    students:[
-      {name:'Eleanor Pierce',  initials:'EP',colour:'#6366f1',lastActive:'Today',    status:'active',   profile:[0.97,0.91,0.83,0.72,0.61,0.39,0.25,0.11,0.30,0.30]},
-      {name:'James Okafor',    initials:'JO',colour:'#0891b2',lastActive:'Today',    status:'active',   profile:[0.97,0.89,0.80,0.68,0.55,0.35,0.21,0.09,0.30,0.30]},
-      {name:'Amara Diallo',    initials:'AD',colour:'#059669',lastActive:'Yesterday',status:'active',   profile:[0.98,0.94,0.90,0.82,0.72,0.55,0.38,0.20,0.30,0.30]},
-      {name:'Felix Hartmann',  initials:'FH',colour:'#d97706',lastActive:'3 days ago',status:'idle',   profile:[0.96,0.85,0.72,0.58,0.42,0.28,0.16,0.08,0.30,0.30]},
-      {name:'Isla Cameron',    initials:'IC',colour:'#7c3aed',lastActive:'Today',    status:'active',   profile:[0.98,0.95,0.91,0.86,0.78,0.66,0.50,0.32,0.30,0.30]},
-      {name:'Marcus Webb',     initials:'MW',colour:'#dc2626',lastActive:'1 week ago',status:'inactive',profile:[0.94,0.78,0.60,0.42,0.28,0.16,0.09,0.30,0.30,0.30]},
-      {name:'Priya Sharma',    initials:'PS',colour:'#be185d',lastActive:'Yesterday',status:'active',   profile:[0.97,0.92,0.84,0.73,0.63,0.48,0.32,0.15,0.30,0.30]},
-      {name:'Tom Nguyen',      initials:'TN',colour:'#0284c7',lastActive:'2 days ago',status:'idle',   profile:[0.96,0.88,0.76,0.62,0.48,0.32,0.18,0.08,0.30,0.30]},
-      {name:'Beatrice Adeyemi',initials:'BA',colour:'#7c3aed',lastActive:'Today',    status:'active',   profile:[0.98,0.94,0.89,0.80,0.70,0.58,0.42,0.24,0.30,0.30]},
-      {name:'Oliver Strauss',  initials:'OS',colour:'#0891b2',lastActive:'5 days ago',status:'inactive',profile:[0.93,0.82,0.66,0.48,0.32,0.18,0.08,0.30,0.30,0.30]},
-      {name:'Sophia Klein',    initials:'SK',colour:'#059669',lastActive:'2 days ago',status:'idle',   profile:[0.97,0.90,0.81,0.68,0.56,0.40,0.24,0.10,0.30,0.30]},
-      {name:'Rohan Patel',     initials:'RP',colour:'#d97706',lastActive:'Yesterday',status:'active',   profile:[0.98,0.93,0.87,0.76,0.66,0.52,0.38,0.20,0.30,0.30]},
-    ]
-  },
-  {
-    name:'Y11 Latin Set 2', course:'GCSE Latin (J282)',
-    students:[
-      {name:'Chloe Dubois',   initials:'CD',colour:'#6366f1',lastActive:'Today',    status:'active',   profile:[0.99,0.97,0.95,0.91,0.86,0.78,0.62,0.44,0.30,0.30]},
-      {name:'Ethan Brooks',   initials:'EB',colour:'#dc2626',lastActive:'4 days ago',status:'idle',   profile:[0.96,0.88,0.76,0.60,0.46,0.30,0.16,0.30,0.30,0.30]},
-      {name:'Nadia Kowalski', initials:'NK',colour:'#059669',lastActive:'Today',    status:'active',   profile:[0.98,0.95,0.92,0.87,0.80,0.70,0.55,0.36,0.30,0.30]},
-      {name:'Samuel Torres',  initials:'ST',colour:'#7c3aed',lastActive:'3 days ago',status:'idle',   profile:[0.97,0.91,0.82,0.70,0.58,0.44,0.28,0.30,0.30,0.30]},
-      {name:'Zara Ahmed',     initials:'ZA',colour:'#be185d',lastActive:'Today',    status:'active',   profile:[0.99,0.98,0.96,0.93,0.89,0.84,0.72,0.55,0.38,0.30]},
-    ]
-  },
-  {
-    name:'Y12 A-Level Latin', course:'A-Level Latin (H443)',
-    students:[
-      {name:'Hugo Laurent',   initials:'HL',colour:'#6366f1',lastActive:'Today',    status:'active',   profile:[0.98,0.94,0.88,0.80,0.70,0.58,0.44,0.28,0.30,0.30]},
-      {name:'Freya Johansson',initials:'FJ',colour:'#059669',lastActive:'Yesterday',status:'active',   profile:[0.99,0.96,0.91,0.84,0.75,0.64,0.50,0.33,0.30,0.30]},
-      {name:'Matteo Rossi',   initials:'MR',colour:'#d97706',lastActive:'1 week ago',status:'inactive',profile:[0.95,0.84,0.70,0.52,0.36,0.22,0.10,0.30,0.30,0.30]},
-    ]
-  }
-];
-
-// helpers
-function blockCls(p,t) {
-  if (t===0||p<=0.30) return 'p-unseen';
-  if (p>=0.95) return 'p-secure';
-  if (p>=0.70) return 'p-high';
-  if (p>=0.50) return 'p-mid';
-  if (p>=0.35) return 'p-low';
+function blockClsFromState(p, t) {
+  if (t === 0) return 'p-unseen';
+  if (p >= 0.95) return 'p-secure';
+  if (p >= 0.7)  return 'p-high';
+  if (p >= 0.5)  return 'p-mid';
+  if (p >= 0.3)  return 'p-low';
   return 'p-verylow';
 }
 function confBarColour(p) {
-  if (p>=0.95) return '#1A6FFF';
-  if (p>=0.70) return '#86efac';
-  if (p>=0.50) return '#fbbf24';
-  if (p>=0.35) return '#fb923c';
+  if (p >= 0.95) return '#1A6FFF';
+  if (p >= 0.70) return '#86efac';
+  if (p >= 0.50) return '#fbbf24';
+  if (p >= 0.35) return '#fb923c';
   return '#fca5a5';
 }
+function activityStatusFor(lastSeenIso) {
+  if (!lastSeenIso) return 'inactive';
+  const days = (Date.now() - new Date(lastSeenIso).getTime()) / 86400000;
+  if (days < 3) return 'active';
+  if (days < 7) return 'idle';
+  return 'inactive';
+}
 function statusPill(s) {
-  if (s==='active')   return '<span class="status-pill status-active">Active</span>';
-  if (s==='idle')     return '<span class="status-pill status-idle">Idle</span>';
+  if (s === 'active') return '<span class="status-pill status-active">Active</span>';
+  if (s === 'idle')   return '<span class="status-pill status-idle">Idle</span>';
   return '<span class="status-pill status-inactive">Inactive</span>';
 }
+function timeAgo(iso) {
+  if (!iso) return 'never';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < 0) return 'just now';
+  const mins = Math.floor(ms / 60000);
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return days + 'd ago';
+  return new Date(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+}
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function initialsFor(name) {
+  if (!name) return '?';
+  return name.split(/\s+/).filter(Boolean).slice(0,2).map(s => s[0].toUpperCase()).join('') || '?';
+}
+const COLOURS = ['#6366f1','#0891b2','#059669','#d97706','#7c3aed','#dc2626','#be185d','#0284c7'];
+function colourFor(id) {
+  let h = 0;
+  for (let i = 0; i < (id||'').length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  return COLOURS[Math.abs(h) % COLOURS.length];
+}
+function prettyType(type) {
+  return ({
+    'latin-prep':   'Prep Latin',
+    'latin-gcse':   'GCSE Latin (J282)',
+    'latin-alevel': 'A-Level Latin (H443)',
+    'greek-gcse':   'GCSE Greek',
+    'greek-alevel': 'A-Level Greek',
+    'civ-gcse':     'GCSE Classical Civilisation',
+    'civ-alevel':   'A-Level Classical Civilisation'
+  })[type] || type;
+}
 
-let currentClass = 0;
+let classes = [];
+let currentClassIdx = 0;
 const tt = document.getElementById('wordTooltip');
 
+async function init() {
+  const { data: authData } = await window.supabase.auth.getUser();
+  const user = authData && authData.user;
+  if (!user) {
+    showEmptyState('You need to be signed in to view the teacher dashboard. <a href="/auth/login.html" style="color:#1A6FFF;font-weight:600;">Sign in</a>.');
+    return;
+  }
+  const { data: profile } = await window.supabase
+    .from('users').select('full_name, email, role').eq('id', user.id).single();
+  if (!profile || profile.role !== 'teacher') {
+    showEmptyState('This page is for teachers. If you\'re a student, head to your <a href="/version2/tracking/dashboard.html" style="color:#1A6FFF;font-weight:600;">progress page</a> instead.');
+    return;
+  }
+  const displayName = profile.full_name || (user.email || '').split('@')[0];
+  document.getElementById('navUser').innerHTML = `
+    <div class="nav-avatar">${escapeHtml(initialsFor(displayName))}</div>
+    <span class="nav-username">${escapeHtml(displayName)}</span>
+    <span class="nav-teacher-badge">Teacher</span>
+  `;
+  await reloadClasses();
+  document.getElementById('btnCreateClass').addEventListener('click', () => openModal('modalCreateClass'));
+  document.getElementById('btnAddStudents').addEventListener('click', () => {
+    if (!classes.length) return;
+    document.getElementById('asClassLabel').textContent = 'to ' + classes[currentClassIdx].name;
+    document.getElementById('asCodes').value = '';
+    document.getElementById('asResults').innerHTML = '';
+    openModal('modalAddStudents');
+  });
+}
+
+async function reloadClasses() {
+  const { data: classRows, error: clsErr } = await window.supabase
+    .from('classes').select('id, name, type').order('created_at', { ascending: true });
+  if (clsErr) {
+    showEmptyState('Could not load your classes. ' + escapeHtml(clsErr.message));
+    return;
+  }
+  if (!classRows || classRows.length === 0) {
+    document.getElementById('btnAddStudents').disabled = true;
+    document.getElementById('classTabs').innerHTML = '';
+    showEmptyState('No classes yet. Click <strong>+ Create class</strong> to make one, then add students by their sharing code.');
+    return;
+  }
+  document.getElementById('btnAddStudents').disabled = false;
+
+  classes = [];
+  for (const c of classRows) {
+    const cls = { id: c.id, name: c.name, type: c.type, students: [] };
+    const { data: members } = await window.supabase
+      .from('class_members')
+      .select('student_id, users:student_id (id, full_name, email)')
+      .eq('class_id', c.id);
+    const vocabList = SUBJECT_VOCAB_LIST[c.type] || null;
+    for (const m of (members || [])) {
+      const u = m.users || {};
+      const student = {
+        id: m.student_id,
+        name: u.full_name || (u.email || '').split('@')[0] || 'Unnamed',
+        email: u.email,
+        words: new Map(),
+        lastSeen: null
+      };
+      if (vocabList) {
+        const { data: bkt } = await window.supabase
+          .from('vocab_bkt')
+          .select('word_latin, p_know, trials, correct, last_seen_at, distinct_correct_days, next_review_at')
+          .eq('student_id', m.student_id)
+          .eq('vocab_list', vocabList);
+        if (bkt) {
+          for (const row of bkt) {
+            student.words.set(row.word_latin, {
+              p: row.p_know,
+              t: row.trials,
+              correct: row.correct,
+              last_seen_at: row.last_seen_at,
+              distinct_correct_days: row.distinct_correct_days || 0,
+              next_review_at: row.next_review_at || null
+            });
+            if (!student.lastSeen || (row.last_seen_at && row.last_seen_at > student.lastSeen)) {
+              student.lastSeen = row.last_seen_at;
+            }
+          }
+        }
+      }
+      cls.students.push(student);
+    }
+    classes.push(cls);
+  }
+  renderClassTabs();
+  document.getElementById('overviewBand').style.display = '';
+  document.querySelector('.dash-grid').style.display = '';
+  hideEmptyState();
+  renderClass(Math.min(currentClassIdx, classes.length - 1));
+}
+
+function renderClassTabs() {
+  const tabsEl = document.getElementById('classTabs');
+  tabsEl.innerHTML = '';
+  classes.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'class-tab' + (i === currentClassIdx ? ' active' : '');
+    btn.textContent = `${c.name} (${c.students.length})`;
+    btn.dataset.idx = i;
+    btn.addEventListener('click', () => {
+      currentClassIdx = i;
+      document.querySelectorAll('.class-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      renderClass(i);
+    });
+    tabsEl.appendChild(btn);
+  });
+}
+
+function showEmptyState(html) {
+  document.getElementById('overviewBand').style.display = 'none';
+  document.querySelector('.dash-grid').style.display = 'none';
+  let el = document.getElementById('teacherEmpty');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'teacherEmpty';
+    el.style.cssText = 'background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:32px;text-align:center;color:var(--ink);font-size:14px;line-height:1.6;';
+    document.querySelector('.dash-body').prepend(el);
+  }
+  el.innerHTML = html;
+}
+function hideEmptyState() {
+  const el = document.getElementById('teacherEmpty');
+  if (el) el.remove();
+}
+
 function renderClass(idx) {
-  currentClass = idx;
+  currentClassIdx = idx;
   const cls = classes[idx];
   const students = cls.students;
+  const studentCount = students.length;
+  let totalSecure = 0, totalStruggling = 0, activeCount = 0, idleCount = 0, inactiveCount = 0;
+  const perWordSum = new Map(), perWordCount = new Map(), perWordStruggling = new Map();
 
-  // generate word data for each student
-  students.forEach(s => { if (!s.words) s.words = genWords(s.profile); });
+  for (const s of students) {
+    const a = activityStatusFor(s.lastSeen);
+    if (a === 'active')   activeCount++;
+    else if (a === 'idle') idleCount++;
+    else                   inactiveCount++;
 
-  // overview
-  const active   = students.filter(s=>s.status==='active').length;
-  const idle     = students.filter(s=>s.status==='idle').length;
-  const inactive = students.filter(s=>s.status==='inactive').length;
-
-  // class avg p_know per word position (average across students)
-  const wordCount = students[0].words.length;
-  const classAvg = students[0].words.map((_,i) => {
-    const avg = students.reduce((sum,s)=>sum+s.words[i].p,0) / students.length;
-    return avg;
-  });
-  const avgSecure    = classAvg.filter(p=>p>=0.95).length;
-  const avgStruggle  = students.reduce((sum,s)=>sum+s.words.filter(w=>w.t>=4&&w.p<0.4).length,0) / students.length;
+    let sSecure = 0, sStrug = 0;
+    for (const [latin, w] of s.words.entries()) {
+      const c2 = classifyWord(w);
+      if (c2 === 'secure')     sSecure++;
+      if (c2 === 'struggling') sStrug++;
+      perWordSum.set(latin,   (perWordSum.get(latin)   || 0) + w.p);
+      perWordCount.set(latin, (perWordCount.get(latin) || 0) + 1);
+      if (c2 === 'struggling') perWordStruggling.set(latin, (perWordStruggling.get(latin) || 0) + 1);
+    }
+    totalSecure += sSecure;
+    totalStruggling += sStrug;
+  }
+  const avgSecure = studentCount > 0 ? Math.round(totalSecure / studentCount) : 0;
+  const avgStruggling = studentCount > 0 ? Math.round(totalStruggling / studentCount) : 0;
 
   document.getElementById('overviewBand').innerHTML = `
-    <div class="ov-stat">
-      <div class="ov-n">${students.length}</div>
-      <div class="ov-label">Students</div>
-      <div class="ov-sub">${cls.course}</div>
-    </div>
-    <div class="ov-stat">
-      <div class="ov-n">${Math.round(classAvg.filter(p=>p>=0.95).length/wordCount*100)}%</div>
-      <div class="ov-label">Class secure avg</div>
-      <div class="ov-sub">${avgSecure} words secure on average</div>
-    </div>
-    <div class="ov-stat">
-      <div class="ov-n green">${active}</div>
-      <div class="ov-label">Active this week</div>
-      <div class="ov-sub">${idle} idle · ${inactive} inactive</div>
-    </div>
-    <div class="ov-stat">
-      <div class="ov-n amber">${Math.round(avgStruggle)}</div>
-      <div class="ov-label">Avg struggling words</div>
-      <div class="ov-sub">High attempts, low confidence</div>
-    </div>`;
+    <div class="ov-stat"><div class="ov-n">${studentCount}</div><div class="ov-label">Students</div><div class="ov-sub">${escapeHtml(prettyType(cls.type))}</div></div>
+    <div class="ov-stat"><div class="ov-n">${avgSecure}</div><div class="ov-label">Avg secure words</div><div class="ov-sub">across the class</div></div>
+    <div class="ov-stat"><div class="ov-n green">${activeCount}</div><div class="ov-label">Active this week</div><div class="ov-sub">${idleCount} idle · ${inactiveCount} inactive</div></div>
+    <div class="ov-stat"><div class="ov-n amber">${avgStruggling}</div><div class="ov-label">Avg struggling words</div><div class="ov-sub">high attempts, low confidence</div></div>
+  `;
 
-  document.getElementById('tableTitle').textContent = `${cls.name} · ${students.length} students`;
-
-  // student table
-  document.getElementById('studentTableBody').innerHTML = students.map(s => {
-    const secure    = s.words.filter(w=>w.p>=0.95).length;
-    const struggle  = s.words.filter(w=>w.t>=4&&w.p<0.4).length;
-    const avgP      = s.words.reduce((a,w)=>a+w.p,0)/s.words.length;
-    return `
-      <tr class="student-row" onclick="openStudent('${s.name}',${idx})">
-        <td>
-          <div class="student-name-cell">
-            <div class="student-avatar" style="background:${s.colour}">${s.initials}</div>
-            <div>
-              <div class="student-name">${s.name}</div>
-              <div class="student-sub">Last active: ${s.lastActive}</div>
+  document.getElementById('tableTitle').textContent = `${cls.name} · ${studentCount} student${studentCount === 1 ? '' : 's'}`;
+  const body = document.getElementById('studentTableBody');
+  if (studentCount === 0) {
+    body.innerHTML = `<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--muted);font-style:italic;font-size:13px;">No students yet. Click <strong>+ Add students</strong> above and paste their sharing codes.</td></tr>`;
+  } else {
+    body.innerHTML = students.map(s => {
+      let secure = 0, struggling = 0, sumP = 0, withP = 0;
+      for (const w of s.words.values()) {
+        const c2 = classifyWord(w);
+        if (c2 === 'secure') secure++;
+        if (c2 === 'struggling') struggling++;
+        if (w.t > 0) { sumP += w.p; withP++; }
+      }
+      const avgP = withP > 0 ? sumP / withP : 0;
+      const status = activityStatusFor(s.lastSeen);
+      return `
+        <tr class="student-row" data-student-id="${s.id}">
+          <td>
+            <div class="student-name-cell">
+              <div class="student-avatar" style="background:${colourFor(s.id)}">${escapeHtml(initialsFor(s.name))}</div>
+              <div>
+                <div class="student-name">${escapeHtml(s.name)}</div>
+                <div class="student-sub">${escapeHtml(s.email || '')}</div>
+              </div>
             </div>
-          </div>
-        </td>
-        <td>
-          <div class="mini-conf-wrap">
-            <div class="mini-conf-bar">
-              <div class="mini-conf-fill" style="width:${Math.round(avgP*100)}%;background:${confBarColour(avgP)}"></div>
+          </td>
+          <td>
+            <div class="mini-conf-wrap">
+              <div class="mini-conf-bar"><div class="mini-conf-fill" style="width:${Math.round(avgP*100)}%;background:${confBarColour(avgP)}"></div></div>
+              <span style="font-size:11px;font-weight:700;color:var(--muted)">${Math.round(avgP*100)}%</span>
             </div>
-            <span style="font-size:11px;font-weight:700;color:var(--muted)">${Math.round(avgP*100)}%</span>
-          </div>
-        </td>
-        <td><span style="font-size:13px;font-weight:700;color:#1A6FFF">${secure}</span><span style="font-size:11px;color:var(--muted)"> words</span></td>
-        <td><span style="font-size:13px;font-weight:700;color:${struggle>5?'#dc2626':'#d97706'}">${struggle}</span><span style="font-size:11px;color:var(--muted)"> words</span></td>
-        <td>${statusPill(s.status)}</td>
-        <td style="text-align:right;font-size:11px;color:var(--muted)">${s.lastActive}</td>
-        <td class="table-arrow">&rarr;</td>
-      </tr>`;
-  }).join('');
+          </td>
+          <td><span style="font-size:13px;font-weight:700;color:#1A6FFF">${secure}</span><span style="font-size:11px;color:var(--muted)"> words</span></td>
+          <td><span style="font-size:13px;font-weight:700;color:${struggling>5?'#dc2626':'#d97706'}">${struggling}</span><span style="font-size:11px;color:var(--muted)"> words</span></td>
+          <td>${statusPill(status)}</td>
+          <td style="text-align:right;font-size:11px;color:var(--muted)">${escapeHtml(timeAgo(s.lastSeen))}</td>
+          <td class="table-arrow">&rarr;</td>
+        </tr>`;
+    }).join('');
+    body.querySelectorAll('.student-row').forEach(row => {
+      row.addEventListener('click', () => openStudent(row.dataset.studentId));
+    });
+  }
 
-  // class word map (average p per word position)
   const cwmap = document.getElementById('classWordmap');
   cwmap.innerHTML = '';
-  classAvg.forEach((avg, i) => {
-    const wn = wordNames[i] || {l:'',e:''};
+  for (const latin of CANONICAL.keys()) {
+    const sum = perWordSum.get(latin), count = perWordCount.get(latin);
+    const avgP = count ? (sum / count) : 0;
     const b = document.createElement('div');
-    b.className = `cw-block ${blockCls(avg,1)}`;
-    b.addEventListener('mouseenter', ()=>{
-      document.getElementById('ttLatin').textContent   = wn.l;
-      document.getElementById('ttEnglish').textContent = wn.e;
-      document.getElementById('ttConf').textContent    = `Class avg: ${Math.round(avg*100)}% confidence`;
-      tt.style.display='block';
+    b.className = `cw-block ${blockClsFromState(avgP, count ? 1 : 0)}`;
+    b.addEventListener('mouseenter', () => {
+      document.getElementById('ttLatin').textContent   = latin;
+      document.getElementById('ttEnglish').textContent = CANONICAL.get(latin) || '';
+      document.getElementById('ttConf').textContent    = count
+        ? `Class avg: ${Math.round(avgP*100)}% · ${count}/${studentCount} students have tried it`
+        : 'Not yet attempted by anyone';
+      tt.style.display = 'block';
     });
-    b.addEventListener('mousemove', ev=>{
-      let x=ev.clientX+14,y=ev.clientY+14;
-      if (x+230>window.innerWidth) x=ev.clientX-240;
-      if (y+80>window.innerHeight) y=ev.clientY-80;
-      tt.style.left=x+'px'; tt.style.top=y+'px';
+    b.addEventListener('mousemove', ev => {
+      let x = ev.clientX+14, y = ev.clientY+14;
+      if (x+260>window.innerWidth) x = ev.clientX-270;
+      if (y+80>window.innerHeight) y = ev.clientY-80;
+      tt.style.left = x+'px'; tt.style.top = y+'px';
     });
-    b.addEventListener('mouseleave',()=>{ tt.style.display='none'; });
+    b.addEventListener('mouseleave', () => { tt.style.display='none'; });
     cwmap.appendChild(b);
-  });
+  }
 
-  // word heatmap — hardest words for the class
-  // find word positions where class avg is lowest (but not all unseen)
-  const attempted = classAvg.map((p,i)=>({p,i})).filter(w=>w.p<0.5&&w.p>0.1);
-  const hardest = attempted.sort((a,b)=>a.p-b.p).slice(0,8);
-  document.getElementById('wordHeatmap').innerHTML = hardest.map(w => {
-    const wn = wordNames[w.i]||{l:'???',e:''};
-    const pct = Math.round(w.p*100);
-    const struggling = students.filter(s=>s.words[w.i]&&s.words[w.i].t>=3&&s.words[w.i].p<0.4).length;
-    return `
+  const hardest = Array.from(CANONICAL.keys())
+    .filter(l => perWordCount.get(l) && (perWordSum.get(l) / perWordCount.get(l)) < 0.5)
+    .map(l => ({ latin: l, avgP: perWordSum.get(l) / perWordCount.get(l), strugglers: perWordStruggling.get(l) || 0 }))
+    .sort((a,b) => a.avgP - b.avgP)
+    .slice(0, 8);
+
+  document.getElementById('wordHeatmap').innerHTML = hardest.length === 0
+    ? '<div style="padding:8px 22px 18px;color:var(--muted);font-size:12.5px;font-style:italic;">No clearly-struggling words yet across the class.</div>'
+    : hardest.map(h => `
       <div class="heatmap-row">
-        <div class="heatmap-word">${wn.l}</div>
-        <div class="heatmap-bar">
-          <div class="heatmap-bar-fill" style="width:${pct}%;background:${confBarColour(w.p)}"></div>
-        </div>
-        <div class="heatmap-count">${struggling}/${students.length} struggling</div>
-      </div>`;
-  }).join('');
+        <div class="heatmap-word">${escapeHtml(h.latin)}</div>
+        <div class="heatmap-bar"><div class="heatmap-bar-fill" style="width:${Math.round(h.avgP*100)}%;background:${confBarColour(h.avgP)}"></div></div>
+        <div class="heatmap-count">${h.strugglers}/${studentCount} struggling</div>
+      </div>`).join('');
 }
 
-// student panel
-function openStudent(name, classIdx) {
-  const s = classes[classIdx].students.find(st=>st.name===name);
+function openStudent(studentId) {
+  const cls = classes[currentClassIdx];
+  const s = cls.students.find(x => x.id === studentId);
   if (!s) return;
-  if (!s.words) s.words = genWords(s.profile);
-
   document.getElementById('panelName').textContent = s.name;
-  document.getElementById('panelMeta').textContent = `${classes[classIdx].name} · ${classes[classIdx].course} · Last active: ${s.lastActive}`;
+  document.getElementById('panelMeta').textContent = `${cls.name} · ${prettyType(cls.type)} · last active ${timeAgo(s.lastSeen)}`;
 
-  const secure    = s.words.filter(w=>w.p>=0.95).length;
-  const nearly    = s.words.filter(w=>w.p>=0.6&&w.p<0.95).length;
-  const struggling= s.words.filter(w=>w.t>=4&&w.p<0.4);
-  const unseen    = s.words.filter(w=>w.t===0).length;
-
+  let secure = 0, nearly = 0, struggling = [], building = 0, due = 0;
+  for (const [latin, w] of s.words.entries()) {
+    const c2 = classifyWord(w);
+    if (c2 === 'secure') secure++;
+    else if (c2 === 'building') building++;
+    else if (c2 === 'due') due++;
+    else if (c2 === 'nearly') nearly++;
+    else if (c2 === 'struggling') struggling.push({ latin, ...w });
+  }
   document.getElementById('panelStats').innerHTML = `
     <div class="panel-stat"><div class="panel-stat-n green">${secure}</div><div class="panel-stat-label">Secure</div></div>
-    <div class="panel-stat"><div class="panel-stat-n">${nearly}</div><div class="panel-stat-label">Nearly there</div></div>
+    <div class="panel-stat"><div class="panel-stat-n">${nearly}</div><div class="panel-stat-label">Nearly</div></div>
     <div class="panel-stat"><div class="panel-stat-n amber">${struggling.length}</div><div class="panel-stat-label">Struggling</div></div>
-    <div class="panel-stat"><div class="panel-stat-n" style="color:var(--muted)">${unseen}</div><div class="panel-stat-label">Not seen</div></div>`;
+    <div class="panel-stat"><div class="panel-stat-n" style="color:#7c3aed">${due}</div><div class="panel-stat-label">Due review</div></div>
+  `;
 
-  // word map
   const wm = document.getElementById('panelWordmap');
   wm.innerHTML = '';
-  s.words.forEach((w,i)=>{
-    const b=document.createElement('div');
-    b.className=`panel-wm-block ${blockCls(w.p,w.t)}`;
-    const wn=wordNames[i]||{l:'',e:''};
-    b.title=`${wn.l} — ${Math.round(w.p*100)}%`;
+  for (const latin of CANONICAL.keys()) {
+    const w = s.words.get(latin);
+    const b = document.createElement('div');
+    b.className = `panel-wm-block ${w ? blockClsFromState(w.p, w.t) : 'p-unseen'}`;
+    b.title = w ? `${latin} — ${Math.round(w.p*100)}% · ${w.t} attempts` : `${latin} — not seen`;
     wm.appendChild(b);
-  });
+  }
 
-  // struggling words
-  document.getElementById('panelStruggling').innerHTML = struggling.slice(0,6).map((w,i)=>{
-    const wn=wordNames[s.words.indexOf(w)]||{l:'???',e:''};
-    const pct=Math.round(w.p*100);
-    return `
-      <div class="panel-word-row">
-        <div>
-          <div class="panel-word-latin">${wn.l}</div>
-          <div class="panel-word-english">${wn.e}</div>
-        </div>
-        <span style="font-size:11px;color:var(--muted);flex-shrink:0">${w.t} attempts</span>
-        <span class="conf-pill ${pct<25?'conf-low':'conf-mid'}">${pct}% confidence</span>
-      </div>`;
-  }).join('') || '<div style="padding:8px 0;color:var(--muted);font-size:13px;font-style:italic;">No struggling words — great!</div>';
+  document.getElementById('panelStruggling').innerHTML = struggling
+    .sort((a,b) => a.p - b.p)
+    .slice(0, 6)
+    .map(w => {
+      const eng = CANONICAL.get(w.latin) || '';
+      const pct = Math.round(w.p * 100);
+      return `
+        <div class="panel-word-row">
+          <div>
+            <div class="panel-word-latin">${escapeHtml(w.latin)}</div>
+            <div class="panel-word-english">${escapeHtml(eng)}</div>
+          </div>
+          <span style="font-size:11px;color:var(--muted);flex-shrink:0">${w.t} attempts</span>
+          <span class="conf-pill ${pct<25?'conf-low':'conf-mid'}">${pct}% confidence</span>
+        </div>`;
+    }).join('')
+    || '<div style="padding:8px 0;color:var(--muted);font-size:13px;font-style:italic;">No struggling words for this student right now.</div>';
 
   document.getElementById('studentPanel').classList.add('open');
-  document.body.style.overflow='hidden';
+  document.body.style.overflow = 'hidden';
 }
 
-document.getElementById('panelClose').addEventListener('click',()=>{
+document.getElementById('panelClose').addEventListener('click', () => {
   document.getElementById('studentPanel').classList.remove('open');
-  document.body.style.overflow='';
+  document.body.style.overflow = '';
 });
-document.getElementById('studentPanel').addEventListener('click',e=>{
-  if (e.target===document.getElementById('studentPanel')) {
+document.getElementById('studentPanel').addEventListener('click', e => {
+  if (e.target === document.getElementById('studentPanel')) {
     document.getElementById('studentPanel').classList.remove('open');
-    document.body.style.overflow='';
+    document.body.style.overflow = '';
   }
 });
+function exportPDF() { alert('PDF export coming soon.'); }
 
-function exportPDF() {
-  const name=document.getElementById('panelName').textContent;
-  alert(`PDF export for ${name} — will be wired up when Supabase is connected.`);
-}
-
-// class tabs
-const tabsEl = document.getElementById('classTabs');
-classes.forEach((c,i)=>{
-  const btn=document.createElement('button');
-  btn.className='class-tab'+(i===0?' active':'');
-  btn.textContent=c.name;
-  btn.dataset.class=i;
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.class-tab').forEach(t=>t.classList.remove('active'));
-    btn.classList.add('active');
-    renderClass(parseInt(btn.dataset.class));
-  });
-  tabsEl.appendChild(btn);
+// Modals
+function openModal(id)  { document.getElementById(id).style.display = 'block'; document.body.style.overflow = 'hidden'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none';  document.body.style.overflow = ''; }
+document.querySelectorAll('.t-modal-close').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn.dataset.modal));
+});
+document.querySelectorAll('.t-modal').forEach(modal => {
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal.id); });
 });
 
-renderClass(0);
+document.getElementById('ccSubmit').addEventListener('click', async () => {
+  const name = document.getElementById('ccName').value.trim();
+  const type = document.getElementById('ccType').value;
+  const err = document.getElementById('ccError');
+  err.style.display = 'none';
+  if (!name) { err.textContent = 'Please give the class a name.'; err.style.display = 'block'; return; }
+  const { data: authData } = await window.supabase.auth.getUser();
+  if (!authData || !authData.user) { err.textContent = 'You must be signed in.'; err.style.display = 'block'; return; }
+  const { error } = await window.supabase
+    .from('classes')
+    .insert({ name, type, teacher_id: authData.user.id });
+  if (error) {
+    err.textContent = 'Could not create class: ' + error.message;
+    err.style.display = 'block';
+    return;
+  }
+  closeModal('modalCreateClass');
+  document.getElementById('ccName').value = '';
+  await reloadClasses();
+});
+
+document.getElementById('asSubmit').addEventListener('click', async () => {
+  const text = document.getElementById('asCodes').value;
+  const results = document.getElementById('asResults');
+  const cls = classes[currentClassIdx];
+  if (!cls) return;
+  const codes = (text.match(/[A-Za-z0-9]{4,5}-?[A-Za-z0-9]{3,5}/g) || []).map(s => s.toUpperCase());
+  if (codes.length === 0) {
+    results.innerHTML = '<span style="color:#dc2626;">Paste at least one sharing code, e.g. <code>ABCD-1234</code>.</span>';
+    return;
+  }
+  const submitBtn = document.getElementById('asSubmit');
+  submitBtn.disabled = true; submitBtn.textContent = 'Adding…';
+  const lines = [];
+  for (const code of codes) {
+    const { data, error } = await window.supabase.rpc('add_student_to_class_by_code', { p_class_id: cls.id, p_code: code });
+    if (error) {
+      lines.push(`<div>❌ <code>${escapeHtml(code)}</code> — ${escapeHtml(error.message)}</div>`);
+    } else if (data && data.ok) {
+      lines.push(`<div>✓ <code>${escapeHtml(code)}</code> — added <strong>${escapeHtml(data.student_name || data.student_email || 'student')}</strong></div>`);
+    } else {
+      const reason = (data && data.reason) || 'unknown';
+      const human = ({
+        'code_not_found':  'no student found with that code',
+        'not_your_class':  'this isn\'t one of your classes',
+        'class_not_found': 'class not found',
+        'empty_code':      'empty code',
+        'not_signed_in':   'not signed in'
+      })[reason] || reason;
+      lines.push(`<div>❌ <code>${escapeHtml(code)}</code> — ${escapeHtml(human)}</div>`);
+    }
+  }
+  results.innerHTML = lines.join('');
+  submitBtn.disabled = false; submitBtn.textContent = 'Add students';
+  document.getElementById('asCodes').value = '';
+  await reloadClasses();
+});
+
+init();
 </script>
 </body>
 </html>
