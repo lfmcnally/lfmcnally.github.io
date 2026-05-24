@@ -960,21 +960,26 @@ function exportPDF() {
   const securePct = totalWords > 0 ? Math.round(secure / totalWords * 100) : 0;
   const seenWords = totalWords - unseen;
 
-  // Per-chapter breakdown rows
+  // Per-chapter breakdown rows. "Seen" = words actually attempted; the
+  // average confidence is only meaningful over those, so unattempted
+  // chapters show "—" rather than an invented score.
   const chapterRows = Array.from(chapterStats.keys()).sort((a,b)=>a-b).map(ch => {
     const cs = chapterStats.get(ch);
-    const avg = cs.withP > 0 ? Math.round(cs.sumP / cs.withP * 100) : 0;
+    const seen = cs.total - cs.unseen;
+    const avg = cs.withP > 0 ? Math.round(cs.sumP / cs.withP * 100) : null;
     const securePctCh = cs.total > 0 ? Math.round(cs.secure / cs.total * 100) : 0;
-    return `<tr>
+    const untouched = seen === 0;
+    const dim = untouched ? 'color:#cbd5e1;' : '';
+    return `<tr${untouched ? ' style="color:#94a3b8;"' : ''}>
       <td class="l">Ch. ${ch}</td>
       <td class="r">${cs.total}</td>
-      <td class="r" style="color:#1A6FFF;font-weight:700">${cs.secure}</td>
-      <td class="r" style="color:#0284c7">${cs.building}</td>
-      <td class="r" style="color:#059669">${cs.nearly}</td>
-      <td class="r" style="color:#d97706">${cs.struggling}</td>
-      <td class="r" style="color:#94a3b8">${cs.learning + cs.unseen}</td>
-      <td class="r">${cs.withP > 0 ? avg + '%' : '—'}</td>
-      <td class="r" style="font-weight:700">${securePctCh}%</td>
+      <td class="r" style="${untouched?'color:#cbd5e1;':'font-weight:700;'}">${seen}</td>
+      <td class="r" style="${untouched?dim:'color:#1A6FFF;font-weight:700;'}">${cs.secure}</td>
+      <td class="r" style="${untouched?dim:'color:#0284c7;'}">${cs.building}</td>
+      <td class="r" style="${untouched?dim:'color:#059669;'}">${cs.nearly}</td>
+      <td class="r" style="${untouched?dim:'color:#d97706;'}">${cs.struggling}</td>
+      <td class="r">${avg === null ? '—' : avg + '%'}</td>
+      <td class="r" style="${untouched?dim:'font-weight:700;'}">${untouched ? '—' : securePctCh + '%'}</td>
     </tr>`;
   }).join('');
 
@@ -989,6 +994,62 @@ function exportPDF() {
       <td class="r" style="font-weight:700;color:${w.p<0.25?'#dc2626':'#d97706'}">${Math.round(w.p*100)}%</td>
     </tr>`;
   }).join('') || '<tr><td colspan="6" style="padding:8px;color:#888;font-style:italic;">No struggling words — strong across the board.</td></tr>';
+
+  // ── Overall progress bar segments (proportions of the whole list) ──
+  const pctOf = n => totalWords > 0 ? (n / totalWords * 100) : 0;
+  const seg = (n, colour, label) => {
+    const pct = pctOf(n);
+    if (pct < 0.5) return '';
+    return `<div style="width:${pct}%;background:${colour};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:${colour==='#e8eaf0'?'#64748b':'#fff'};overflow:hidden;">${pct >= 7 ? n : ''}</div>`;
+  };
+  const progressBar = `
+    <div style="display:flex;height:20px;border-radius:4px;overflow:hidden;border:1px solid #cbd5e1;">
+      ${seg(secure,'#1A6FFF')}${seg(building,'#7dd3fc')}${seg(nearly,'#86efac')}${seg(struggling.length,'#fb923c')}${seg(learning+unseen,'#e8eaf0')}
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:5px;font-size:8.5px;color:#64748b;">
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#1A6FFF;vertical-align:middle;"></span> Secure ${secure}</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#7dd3fc;vertical-align:middle;"></span> Building ${building}</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#86efac;vertical-align:middle;"></span> Nearly ${nearly}</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#fb923c;vertical-align:middle;"></span> Struggling ${struggling.length}</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#e8eaf0;vertical-align:middle;"></span> Not yet learnt ${learning+unseen}</span>
+    </div>`;
+
+  // ── Strengths / areas-to-improve from per-chapter data (attempted chapters only) ──
+  const attemptedChapters = Array.from(chapterStats.entries())
+    .filter(([, cs]) => cs.withP > 0)
+    .map(([ch, cs]) => ({
+      ch,
+      avg: cs.sumP / cs.withP,
+      securePct: cs.secure / cs.total,
+      struggling: cs.struggling,
+      total: cs.total
+    }));
+
+  const strengths = attemptedChapters
+    .filter(c => c.securePct >= 0.6 || c.avg >= 0.75)
+    .sort((a, b) => b.securePct - a.securePct)
+    .slice(0, 4)
+    .map(c => `<li>Chapter ${c.ch} — ${Math.round(c.securePct*100)}% secure, ${Math.round(c.avg*100)}% avg confidence</li>`)
+    .join('') || '<li style="color:#94a3b8">Keep practising to build up secure chapters.</li>';
+
+  const areas = attemptedChapters
+    .filter(c => c.struggling > 0 || c.avg < 0.55)
+    .sort((a, b) => (b.struggling - a.struggling) || (a.avg - b.avg))
+    .slice(0, 4)
+    .map(c => `<li>Chapter ${c.ch} — ${c.struggling} struggling, ${Math.round(c.avg*100)}% avg confidence</li>`)
+    .join('') || '<li style="color:#94a3b8">No clear weak areas — well balanced.</li>';
+
+  // ── Recommended next steps ──
+  const recs = [];
+  if (due > 0) recs.push(`<strong>${due} word${due===1?' is':'s are'} due for spaced review</strong> — a short session will refresh ${due===1?'it':'them'} before ${due===1?'it slips':'they slip'}.`);
+  if (struggling.length > 0) {
+    const worstChapters = areas ? attemptedChapters.filter(c => c.struggling > 0).sort((a,b)=>b.struggling-a.struggling).slice(0,2).map(c=>'Ch. '+c.ch).join(' and ') : '';
+    recs.push(`Prioritise the ${struggling.length} struggling word${struggling.length===1?'':'s'} listed below${worstChapters ? ' (mostly '+worstChapters+')' : ''}.`);
+  }
+  if (building > 0) recs.push(`${building} word${building===1?' is':'s are'} close — answering ${building===1?'it':'them'} correctly on another day or two will lock ${building===1?'it':'them'} in as Secure.`);
+  if (unseen > 0) recs.push(`${unseen} word${unseen===1?'':'s'} not yet started.`);
+  if (recs.length === 0) recs.push('Excellent coverage — keep up the regular review sessions to maintain it.');
+  const recsHtml = recs.map(r => `<li>${r}</li>`).join('');
 
   const now = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
 
@@ -1007,6 +1068,14 @@ function exportPDF() {
     .stat-n { font-size:20px; font-weight:700; line-height:1; }
     .stat-l { font-size:8.5px; letter-spacing:0.06em; text-transform:uppercase; color:#64748b; margin-top:3px; }
     h2 { font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#64748b; margin:16px 0 6px; }
+    .two-col { display:flex; gap:16px; margin-bottom:4px; }
+    .two-col > div { flex:1; }
+    .insight-box { border:1px solid #e2e8f0; border-radius:5px; padding:8px 12px; }
+    .insight-box h3 { font-size:10px; letter-spacing:0.08em; text-transform:uppercase; margin:0 0 5px; }
+    .insight-box ul { margin:0; padding-left:16px; }
+    .insight-box li { margin-bottom:2px; line-height:1.4; }
+    .recs { border:1px solid #c7dbff; background:#f4f8ff; border-radius:5px; padding:8px 12px 8px 28px; margin-bottom:4px; }
+    .recs li { margin-bottom:3px; line-height:1.45; }
     table { width:100%; border-collapse:collapse; font-size:10.5px; }
     th { padding:4px 6px; border-bottom:1.5px solid #cbd5e1; font-size:8.5px; letter-spacing:0.05em; text-transform:uppercase; color:#64748b; text-align:left; }
     td { padding:3px 6px; border-bottom:1px solid #f1f5f9; }
@@ -1040,12 +1109,23 @@ function exportPDF() {
       <div class="stat"><div class="stat-n" style="color:#94a3b8">${learning + unseen}</div><div class="stat-l">Not yet learnt</div></div>
     </div>
 
+    <h2>Overall progress</h2>
+    ${progressBar}
+
+    <div class="two-col" style="margin-top:14px;">
+      <div class="insight-box"><h3 style="color:#059669;">Strengths</h3><ul>${strengths}</ul></div>
+      <div class="insight-box"><h3 style="color:#d97706;">Areas to improve</h3><ul>${areas}</ul></div>
+    </div>
+
+    <h2>Recommended next steps</h2>
+    <ul class="recs">${recsHtml}</ul>
+
     <h2>Progress by chapter</h2>
     <table>
       <thead><tr>
-        <th class="l">Chapter</th><th class="r">Words</th><th class="r">Secure</th>
+        <th class="l">Chapter</th><th class="r">Words</th><th class="r">Seen</th><th class="r">Secure</th>
         <th class="r">Building</th><th class="r">Nearly</th><th class="r">Struggling</th>
-        <th class="r">To learn</th><th class="r">Avg conf.</th><th class="r">% secure</th>
+        <th class="r">Avg conf.</th><th class="r">% secure</th>
       </tr></thead>
       <tbody>${chapterRows}</tbody>
     </table>
