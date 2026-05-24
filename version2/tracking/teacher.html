@@ -567,7 +567,9 @@ async function reloadClasses() {
         name: u.full_name || (u.email || '').split('@')[0] || 'Unnamed',
         email: u.email,
         words: new Map(),
-        lastSeen: null
+        lastSeen: null,
+        sessionCount: 0,
+        practiceDays: 0
       };
       if (vocabList) {
         const { data: bkt } = await window.supabase
@@ -589,6 +591,17 @@ async function reloadClasses() {
               student.lastSeen = row.last_seen_at;
             }
           }
+        }
+
+        // Session history (count + distinct days practised)
+        const { data: sessions } = await window.supabase
+          .from('vocab_sessions')
+          .select('started_at')
+          .eq('student_id', m.student_id)
+          .eq('vocab_list', vocabList);
+        if (sessions) {
+          student.sessionCount = sessions.length;
+          student.practiceDays = new Set(sessions.map(r => (r.started_at || '').slice(0, 10)).filter(Boolean)).size;
         }
       }
       cls.students.push(student);
@@ -763,7 +776,8 @@ function openStudent(studentId) {
   const s = cls.students.find(x => x.id === studentId);
   if (!s) return;
   document.getElementById('panelName').textContent = s.name;
-  document.getElementById('panelMeta').textContent = `${cls.name} · ${prettyType(cls.type)} · last active ${timeAgo(s.lastSeen)}`;
+  const sessionBit = s.sessionCount ? ` · ${s.sessionCount} session${s.sessionCount===1?'':'s'} over ${s.practiceDays} day${s.practiceDays===1?'':'s'}` : '';
+  document.getElementById('panelMeta').textContent = `${cls.name} · ${prettyType(cls.type)} · last active ${timeAgo(s.lastSeen)}${sessionBit}`;
 
   let secure = 0, nearly = 0, struggling = [], building = 0, due = 0;
   for (const [latin, w] of s.words.entries()) {
@@ -1097,7 +1111,7 @@ function exportPDF() {
     </div>
 
     <p class="summary-line"><b>${secure} of ${totalWords} words secure (${securePct}%).</b>
-       ${seenWords} words attempted, ${accuracy}% lifetime accuracy across ${totalAttempts} attempts.
+       ${seenWords} words attempted, ${accuracy}% lifetime accuracy across ${totalAttempts} answers${s.sessionCount ? `, in ${s.sessionCount} session${s.sessionCount===1?'':'s'} over ${s.practiceDays} day${s.practiceDays===1?'':'s'}` : ''}.
        Last active ${escapeHtml(timeAgo(s.lastSeen))}.</p>
 
     <div class="stats">
