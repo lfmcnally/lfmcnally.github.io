@@ -16,40 +16,32 @@
   const LINE_RGB = '155,188,255';            // pale blue
   const STAR_COLOURS = ['#ffffff', '#dbe7ff', '#9bbcff'];
 
-  // Constellation templates — normalised points in [0,1] and the edges that
-  // connect them. Chosen to look like real star patterns (zigzags, a plough,
-  // a kite, a branch) rather than random scribbles.
+  // Constellation shape templates — normalised points in [0,1] + connecting
+  // edges. A mix of real-looking patterns; placed at varied sizes, positions
+  // and rotations so the sky reads as an organic chart, not a grid.
   const TEMPLATES = [
-    { // Cassiopeia-style W
-      pts: [[0,0.55],[0.22,0.08],[0.46,0.5],[0.72,0.05],[1,0.46]],
-      edges: [[0,1],[1,2],[2,3],[3,4]]
-    },
-    { // the Plough — handle + bowl
-      pts: [[0,0.18],[0.24,0.28],[0.48,0.22],[0.7,0.4],[0.72,0.72],[0.46,0.78],[0.44,0.46]],
-      edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,3]]
-    },
-    { // triangle with a tail
-      pts: [[0.12,0.15],[0.62,0.04],[0.4,0.56],[1,0.34]],
-      edges: [[0,1],[1,2],[2,0],[1,3]]
-    },
-    { // line with a branch
-      pts: [[0,0.5],[0.3,0.4],[0.62,0.52],[0.92,0.34],[0.66,0.92]],
-      edges: [[0,1],[1,2],[2,3],[2,4]]
-    },
-    { // kite
-      pts: [[0.5,0],[0.18,0.42],[0.5,1],[0.86,0.46],[0.5,0.5]],
-      edges: [[0,1],[1,2],[2,3],[3,0],[0,4],[2,4]]
-    }
+    { pts: [[0,0.55],[0.22,0.08],[0.46,0.5],[0.72,0.05],[1,0.46]],                       // W
+      edges: [[0,1],[1,2],[2,3],[3,4]] },
+    { pts: [[0,0.18],[0.24,0.28],[0.48,0.22],[0.7,0.4],[0.72,0.72],[0.46,0.78],[0.44,0.46]], // plough
+      edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,3]] },
+    { pts: [[0.12,0.15],[0.62,0.04],[0.4,0.56],[1,0.34]],                                // triangle + tail
+      edges: [[0,1],[1,2],[2,0],[1,3]] },
+    { pts: [[0,0.5],[0.3,0.4],[0.62,0.52],[0.92,0.34],[0.66,0.92]],                      // line + branch
+      edges: [[0,1],[1,2],[2,3],[2,4]] },
+    { pts: [[0.5,0],[0.18,0.42],[0.5,1],[0.86,0.46],[0.5,0.5]],                          // kite
+      edges: [[0,1],[1,2],[2,3],[3,0],[0,4],[2,4]] },
+    { pts: [[0,0.3],[0.28,0.62],[0.5,0.2],[0.78,0.66],[1,0.28],[0.5,0.95]],              // crown + drop
+      edges: [[0,1],[1,2],[2,3],[3,4],[1,5],[3,5]] }
   ];
 
   function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
   function hexToRgb(hex) { const n = parseInt(hex.slice(1), 16); return [(n>>16)&255,(n>>8)&255,n&255]; }
 
   function create(canvas, opts) {
     opts = opts || {};
     const ctx = canvas.getContext('2d');
     const lineBase = opts.lineAlpha != null ? opts.lineAlpha : 0.3;
-    const cellSize = opts.cellSize || 360;       // ~one constellation per cell
     const reduced = global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let dpr = Math.min(global.devicePixelRatio || 1, 2);
@@ -59,46 +51,99 @@
     let rafId = null, lastT = 0;
     let shooting = null, nextShootIn = 4000 + Math.random() * 6000;
 
-    function buildConstellation(cx, cy, size) {
-      const tpl = pick(TEMPLATES);
-      const rot = (Math.random() - 0.5) * 0.5;            // ±0.25 rad
-      const mirror = Math.random() < 0.5 ? -1 : 1;
-      const cos = Math.cos(rot), sin = Math.sin(rot);
-      const verts = tpl.pts.map(([nx, ny]) => {
-        // centre the template on its own midpoint, scale, rotate, place
-        let x = (nx - 0.5) * size * mirror;
-        let y = (ny - 0.5) * size;
-        const rx = x * cos - y * sin;
-        const ry = x * sin + y * cos;
-        return {
-          bx: cx + rx, by: cy + ry,
-          r: 1.3 + Math.random() * 0.9,
-          base: 0.6 + Math.random() * 0.35,
-          twPhase: Math.random() * Math.PI * 2,
-          twSpeed: 0.4 + Math.random() * 1.0
-        };
-      });
+    function newVert(bx, by) {
       return {
-        verts, edges: tpl.edges,
+        bx, by,
+        r: 1.3 + Math.random() * 0.9,
+        base: 0.6 + Math.random() * 0.35,
+        twPhase: Math.random() * Math.PI * 2,
+        twSpeed: 0.4 + Math.random() * 1.0
+      };
+    }
+    function withSway(verts, edges) {
+      return {
+        verts, edges,
         swayAmpX: 5 + Math.random() * 9, swaySpeedX: 0.08 + Math.random() * 0.12, swayPhaseX: Math.random() * 6.28,
         swayAmpY: 4 + Math.random() * 7,  swaySpeedY: 0.07 + Math.random() * 0.11, swayPhaseY: Math.random() * 6.28
       };
     }
 
+    // A compact template shape, scaled/rotated/mirrored and dropped at (cx,cy)
+    function buildTemplate(cx, cy, size) {
+      const tpl = pick(TEMPLATES);
+      const rot = Math.random() * Math.PI * 2;
+      const mirror = Math.random() < 0.5 ? -1 : 1;
+      const cos = Math.cos(rot), sin = Math.sin(rot);
+      const verts = tpl.pts.map(([nx, ny]) => {
+        const x = (nx - 0.5) * size * mirror, y = (ny - 0.5) * size;
+        return newVert(cx + (x * cos - y * sin), cy + (x * sin + y * cos));
+      });
+      return withSway(verts, tpl.edges);
+    }
+
+    // A long, free-form constellation that sprawls across a wide span with a
+    // big zigzag and the odd branch — the "draws across the sky" piece.
+    function buildSprawl(cx, cy, span, height) {
+      const n = 7 + Math.floor(Math.random() * 5);     // 7–11 points
+      const rot = (Math.random() - 0.5) * 0.7;
+      const cos = Math.cos(rot), sin = Math.sin(rot);
+      const verts = [], edges = [];
+      let prevY = (Math.random() - 0.5) * height;
+      for (let i = 0; i < n; i++) {
+        const t = i / (n - 1);
+        const lx = (t - 0.5) * span;
+        // zigzag: alternate sides of the centre line, with wander
+        const dir = (i % 2 === 0) ? 1 : -1;
+        let ly = dir * height * (0.3 + Math.random() * 0.7) * 0.5;
+        ly = (ly + prevY) * 0.5 + (Math.random() - 0.5) * height * 0.25;
+        prevY = ly;
+        verts.push(newVert(cx + (lx * cos - ly * sin), cy + (lx * sin + ly * cos)));
+        if (i > 0) edges.push([i - 1, i]);
+      }
+      // occasional branch off a middle vertex
+      if (n >= 6 && Math.random() < 0.7) {
+        const anchor = 1 + Math.floor(Math.random() * (n - 2));
+        const a = verts[anchor];
+        verts.push(newVert(a.bx + (Math.random() - 0.5) * span * 0.18,
+                            a.by + (Math.random() < 0.5 ? -1 : 1) * height * (0.4 + Math.random() * 0.4)));
+        edges.push([anchor, verts.length - 1]);
+      }
+      return withSway(verts, edges);
+    }
+
     function build() {
       constellations = [];
-      const cols = Math.max(2, Math.round(W / cellSize));
-      const rows = Math.max(1, Math.round(H / (cellSize * 0.82)));
-      const cw = W / cols, ch = H / rows;
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          // jittered centre within the cell
-          const cx = (c + 0.5) * cw + (Math.random() - 0.5) * cw * 0.35;
-          const cy = (r + 0.5) * ch + (Math.random() - 0.5) * ch * 0.35;
-          const size = Math.min(cw, ch) * (0.62 + Math.random() * 0.3);
-          constellations.push(buildConstellation(cx, cy, size));
-        }
+
+      // 2–3 big sprawling constellations that span wide bands of the sky
+      const bigCount = W < 700 ? 1 : (W < 1100 ? 2 : 3);
+      for (let i = 0; i < bigCount; i++) {
+        const cx = W * (0.5) + (Math.random() - 0.5) * W * 0.2;
+        const cy = H * (0.18 + 0.64 * (i + Math.random() * 0.6) / bigCount);
+        const span = W * (0.55 + Math.random() * 0.35);
+        const height = H * (0.28 + Math.random() * 0.18);
+        constellations.push(buildSprawl(cx, cy, span, height));
       }
+
+      // a handful of smaller accent shapes scattered organically around them
+      const smallCount = clamp(Math.round((W * H) / 150000), 3, 7);
+      const placed = constellations.map(() => ({ x: W / 2, y: H / 2 }));
+      const minDist = Math.min(W, H) * 0.22;
+      const pad = 36;
+      for (let i = 0; i < smallCount; i++) {
+        let best = null, bestD = -1;
+        for (let tries = 0; tries < 26; tries++) {
+          const cx = pad + Math.random() * (W - 2 * pad);
+          const cy = pad + Math.random() * (H - 2 * pad);
+          let d = Infinity;
+          for (const p of placed) d = Math.min(d, Math.hypot(cx - p.x, cy - p.y));
+          if (d > bestD) { bestD = d; best = { x: cx, y: cy }; }
+          if (d > minDist) break;
+        }
+        placed.push(best);
+        const size = 90 + Math.random() * 110;
+        constellations.push(buildTemplate(best.x, best.y, size));
+      }
+
       // faint background sprinkle for depth (sparse — the lines are the star)
       bgStars = [];
       const n = Math.floor((W * H) / 16000);
