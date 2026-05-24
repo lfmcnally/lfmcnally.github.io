@@ -101,6 +101,7 @@ body { background:var(--cream); }
 .word-tooltip-latin { font-family:'Lora',serif;font-style:italic;font-weight:600;font-size:14px;margin-bottom:2px; }
 .word-tooltip-english { color:#8fa8cc;font-size:11.5px;margin-bottom:4px; }
 .word-tooltip-conf { font-size:10.5px;font-weight:600; }
+.word-tooltip-attempts { font-size:10.5px;color:#8fa8cc;margin-top:3px; }
 
 /* student panel */
 .student-panel { display:none;position:fixed;inset:0;z-index:200;background:rgba(14,30,63,0.55);backdrop-filter:blur(2px);overflow-y:auto; }
@@ -121,8 +122,16 @@ body { background:var(--cream); }
 
 /* panel word map */
 .panel-wordmap { display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px; }
-.panel-wm-block { width:13px;height:13px;border-radius:2px;cursor:pointer;flex-shrink:0;transition:transform 0.1s; }
+.panel-wm-block { width:14px;height:14px;border-radius:2px;cursor:pointer;flex-shrink:0;transition:transform 0.1s; }
 .panel-wm-block:hover { transform:scale(1.7);z-index:10;position:relative; }
+.panel-wm-ch-label { flex-basis:100%;font-size:9.5px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:12px 0 3px;display:flex;align-items:center;gap:8px; }
+.panel-wm-ch-label:first-child { margin-top:0; }
+.panel-wm-ch-count { font-weight:500;color:var(--rule);font-size:9.5px;letter-spacing:0.06em;text-transform:none; }
+.p-building { background:#7dd3fc; }
+.p-due { background:#a78bfa; }
+.panel-sort-btn { font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:12px;border:1px solid var(--rule);background:var(--paper);color:var(--muted);cursor:pointer;text-transform:none;letter-spacing:0;transition:all 0.12s; }
+.panel-sort-btn:hover { color:var(--brand);border-color:var(--brand); }
+.panel-sort-btn.active { background:var(--brand);color:white;border-color:var(--brand); }
 
 /* panel struggling */
 .panel-word-row { display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule-faint);gap:10px; }
@@ -202,6 +211,7 @@ body { background:var(--cream); }
   <div class="word-tooltip-latin" id="ttLatin"></div>
   <div class="word-tooltip-english" id="ttEnglish"></div>
   <div class="word-tooltip-conf" id="ttConf"></div>
+  <div class="word-tooltip-attempts" id="ttAttempts"></div>
 </div>
 
 <!-- STUDENT PANEL -->
@@ -214,23 +224,34 @@ body { background:var(--cream); }
     </div>
     <div class="panel-body">
       <div class="panel-stats" id="panelStats"></div>
-      <div class="panel-section">Word confidence map</div>
+      <div class="panel-section" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <span>Word confidence map</span>
+        <span class="panel-sort" id="panelSortOpts" style="display:flex;gap:4px;">
+          <button class="panel-sort-btn active" data-sort="chapter">Chapter</button>
+          <button class="panel-sort-btn" data-sort="alpha">A–Z</button>
+          <button class="panel-sort-btn" data-sort="confidence">Confidence</button>
+        </span>
+      </div>
       <div class="panel-wordmap" id="panelWordmap"></div>
-      <div class="conf-legend" style="padding:4px 0 12px;">
+      <div class="conf-legend" style="padding:4px 0 12px;flex-wrap:wrap;">
         <span class="conf-legend-swatch p-unseen"></span>Not seen
         <span class="conf-legend-sep">·</span>
         <span class="conf-legend-swatch p-verylow"></span>Very low
         <span class="conf-legend-sep">·</span>
-        <span class="conf-legend-swatch p-mid"></span>Building
+        <span class="conf-legend-swatch p-mid"></span>Mid
         <span class="conf-legend-sep">·</span>
         <span class="conf-legend-swatch p-high"></span>Strong
         <span class="conf-legend-sep">·</span>
+        <span class="conf-legend-swatch p-building"></span>Building
+        <span class="conf-legend-sep">·</span>
         <span class="conf-legend-swatch p-secure"></span>Secure
+        <span class="conf-legend-sep">·</span>
+        <span class="conf-legend-swatch p-due"></span>Due
       </div>
       <div class="panel-section">Struggling words — many attempts, low confidence</div>
       <div id="panelStruggling"></div>
       <div class="panel-actions">
-        <button class="panel-btn panel-btn-primary" onclick="exportPDF()">Export PDF summary</button>
+        <button class="panel-btn panel-btn-primary" id="panelExportBtn" type="button">Export PDF summary</button>
         <a href="/version2/tracking/dashboard.html" class="panel-btn panel-btn-secondary">View student dashboard</a>
       </div>
     </div>
@@ -367,17 +388,43 @@ const SUBJECT_VOCAB_LIST = {
   // civ-* have no vocab list (yet)
 };
 
-// Canonical word list (latin headword → english).
+// Canonical word list (latin headword → english) plus chapter lookup.
+const CHAPTER_OF = new Map();   // latin → earliest chapter
 function buildCanonical() {
   const out = new Map();
   if (typeof VOCAB_LATIN_GCSE !== 'undefined') {
     for (const e of VOCAB_LATIN_GCSE) {
-      if (e.chapter > 0 && !out.has(e.latin)) out.set(e.latin, e.english);
+      if (e.chapter > 0 && !out.has(e.latin)) {
+        out.set(e.latin, e.english);
+        CHAPTER_OF.set(e.latin, e.chapter);
+      }
     }
   }
   return out;
 }
 const CANONICAL = buildCanonical();
+
+// Confidence label for a word's state, mirroring the student dashboard.
+function confLabelForState(w) {
+  if (!w || w.t === 0) return 'Not yet seen';
+  if (w.p >= 0.95) {
+    const days = w.distinct_correct_days | 0;
+    if (days < DAYS_REQUIRED) return `Building — ${Math.round(w.p*100)}% (${days}/${DAYS_REQUIRED} days)`;
+    if (w.next_review_at && Date.parse(w.next_review_at) <= Date.now()) return `Due for review — ${Math.round(w.p*100)}%`;
+    return `Secure — ${Math.round(w.p*100)}%`;
+  }
+  if (w.p >= 0.7) return `Strong — ${Math.round(w.p*100)}%`;
+  if (w.p >= 0.5) return `Building — ${Math.round(w.p*100)}%`;
+  if (w.p >= 0.3) return `Low — ${Math.round(w.p*100)}%`;
+  return `Very low — ${Math.round(w.p*100)}%`;
+}
+
+function alphaCompareLatin(a, b) {
+  return a.replace(/^-/, '').toLowerCase().localeCompare(b.replace(/^-/, '').toLowerCase());
+}
+
+let panelSort = 'chapter';   // 'chapter' | 'alpha' | 'confidence'
+let panelStudent = null;     // current student shown in the panel
 
 function classifyWord(w) {
   if (w.t === 0) return 'learning';
@@ -734,15 +781,8 @@ function openStudent(studentId) {
     <div class="panel-stat"><div class="panel-stat-n" style="color:#7c3aed">${due}</div><div class="panel-stat-label">Due review</div></div>
   `;
 
-  const wm = document.getElementById('panelWordmap');
-  wm.innerHTML = '';
-  for (const latin of CANONICAL.keys()) {
-    const w = s.words.get(latin);
-    const b = document.createElement('div');
-    b.className = `panel-wm-block ${w ? blockClsFromState(w.p, w.t) : 'p-unseen'}`;
-    b.title = w ? `${latin} — ${Math.round(w.p*100)}% · ${w.t} attempts` : `${latin} — not seen`;
-    wm.appendChild(b);
-  }
+  panelStudent = s;
+  renderPanelWordmap();
 
   document.getElementById('panelStruggling').innerHTML = struggling
     .sort((a,b) => a.p - b.p)
@@ -766,6 +806,106 @@ function openStudent(studentId) {
   document.body.style.overflow = 'hidden';
 }
 
+// Colour class for a panel block, matching the student dashboard semantics.
+function panelBlockCls(w) {
+  if (!w || w.t === 0) return 'p-unseen';
+  const c = classifyWord(w);
+  if (c === 'secure')   return 'p-secure';
+  if (c === 'due')      return 'p-due';
+  if (c === 'building') return 'p-building';
+  if (w.p >= 0.7) return 'p-high';
+  if (w.p >= 0.5) return 'p-mid';
+  if (w.p >= 0.3) return 'p-low';
+  return 'p-verylow';
+}
+
+function attachPanelBlockHandlers(b, latin, w) {
+  b.addEventListener('mouseenter', () => {
+    document.getElementById('ttLatin').textContent   = latin;
+    document.getElementById('ttEnglish').textContent = CANONICAL.get(latin) || '';
+    const ch = CHAPTER_OF.get(latin);
+    document.getElementById('ttConf').textContent    = confLabelForState(w) + (ch ? ` · Ch. ${ch}` : '');
+    const total = w ? (w.t | 0) : 0;
+    const correct = w ? (w.correct | 0) : 0;
+    const wrong = Math.max(0, total - correct);
+    let attemptsText = '';
+    if (total > 0) {
+      attemptsText = `${total} attempt${total === 1 ? '' : 's'} · ${correct} ✓ · ${wrong} ✗`;
+      const days = w.distinct_correct_days | 0;
+      if (days) attemptsText += ` · ${days} day${days === 1 ? '' : 's'} correct`;
+    }
+    const ttA = document.getElementById('ttAttempts');
+    ttA.textContent = attemptsText;
+    ttA.style.display = attemptsText ? '' : 'none';
+    tt.style.display = 'block';
+  });
+  b.addEventListener('mousemove', ev => {
+    let x = ev.clientX+14, y = ev.clientY+14;
+    if (x+260>window.innerWidth) x = ev.clientX-270;
+    if (y+80>window.innerHeight) y = ev.clientY-80;
+    tt.style.left = x+'px'; tt.style.top = y+'px';
+  });
+  b.addEventListener('mouseleave', () => { tt.style.display='none'; });
+}
+
+function renderPanelWordmap() {
+  if (!panelStudent) return;
+  const wm = document.getElementById('panelWordmap');
+  wm.innerHTML = '';
+  const latins = Array.from(CANONICAL.keys());
+
+  if (panelSort === 'chapter') {
+    const byCh = new Map();
+    for (const latin of latins) {
+      const ch = CHAPTER_OF.get(latin) || 0;
+      if (!byCh.has(ch)) byCh.set(ch, []);
+      byCh.get(ch).push(latin);
+    }
+    for (const ch of Array.from(byCh.keys()).sort((a,b) => a-b)) {
+      const group = byCh.get(ch).slice().sort(alphaCompareLatin);
+      const label = document.createElement('div');
+      label.className = 'panel-wm-ch-label';
+      label.innerHTML = `Chapter ${ch} <span class="panel-wm-ch-count">${group.length} words</span>`;
+      wm.appendChild(label);
+      for (const latin of group) appendPanelBlock(wm, latin);
+    }
+  } else {
+    let ordered = latins.slice();
+    if (panelSort === 'alpha') {
+      ordered.sort(alphaCompareLatin);
+    } else { // confidence
+      ordered.sort((a, b) => {
+        const wa = panelStudent.words.get(a), wb = panelStudent.words.get(b);
+        const ta = wa ? wa.t : 0, tb = wb ? wb.t : 0;
+        if (ta === 0 && tb !== 0) return -1;
+        if (tb === 0 && ta !== 0) return 1;
+        const pa = wa ? wa.p : 0.3, pb = wb ? wb.p : 0.3;
+        return pa - pb;
+      });
+    }
+    for (const latin of ordered) appendPanelBlock(wm, latin);
+  }
+}
+
+function appendPanelBlock(wm, latin) {
+  const w = panelStudent.words.get(latin);
+  const b = document.createElement('div');
+  b.className = `panel-wm-block ${panelBlockCls(w)}`;
+  attachPanelBlockHandlers(b, latin, w);
+  wm.appendChild(b);
+}
+
+// Panel sort toggle
+document.getElementById('panelSortOpts').addEventListener('click', (e) => {
+  const btn = e.target.closest('.panel-sort-btn');
+  if (!btn) return;
+  const next = btn.dataset.sort;
+  if (next === panelSort) return;
+  panelSort = next;
+  document.querySelectorAll('.panel-sort-btn').forEach(b => b.classList.toggle('active', b.dataset.sort === panelSort));
+  renderPanelWordmap();
+});
+
 document.getElementById('panelClose').addEventListener('click', () => {
   document.getElementById('studentPanel').classList.remove('open');
   document.body.style.overflow = '';
@@ -776,7 +916,105 @@ document.getElementById('studentPanel').addEventListener('click', e => {
     document.body.style.overflow = '';
   }
 });
-function exportPDF() { alert('PDF export coming soon.'); }
+// Build a clean printable summary for the currently-open student and hand it
+// to the browser's print dialog (which offers "Save as PDF"). No dependencies.
+function exportPDF() {
+  if (!panelStudent) return;
+  const cls = classes[currentClassIdx];
+  const s = panelStudent;
+
+  // Tally buckets
+  let secure = 0, building = 0, due = 0, nearly = 0, learning = 0;
+  const struggling = [];
+  for (const [latin, w] of s.words.entries()) {
+    const c = classifyWord(w);
+    if (c === 'secure') secure++;
+    else if (c === 'building') building++;
+    else if (c === 'due') due++;
+    else if (c === 'nearly') nearly++;
+    else if (c === 'struggling') struggling.push({ latin, ...w });
+    else learning++;
+  }
+  struggling.sort((a, b) => a.p - b.p);
+
+  const totalAttempts = Array.from(s.words.values()).reduce((sum, w) => sum + (w.t | 0), 0);
+
+  // Wordmap as coloured cells, grouped by chapter
+  const COLOUR = { 'p-unseen':'#e8eaf0','p-verylow':'#fca5a5','p-low':'#fb923c','p-mid':'#fbbf24','p-high':'#86efac','p-building':'#7dd3fc','p-secure':'#1A6FFF','p-due':'#a78bfa' };
+  const byCh = new Map();
+  for (const latin of CANONICAL.keys()) {
+    const ch = CHAPTER_OF.get(latin) || 0;
+    if (!byCh.has(ch)) byCh.set(ch, []);
+    byCh.get(ch).push(latin);
+  }
+  let wordmapHtml = '';
+  for (const ch of Array.from(byCh.keys()).sort((a,b)=>a-b)) {
+    const cells = byCh.get(ch).sort(alphaCompareLatin).map(latin => {
+      const w = s.words.get(latin);
+      const colour = COLOUR[panelBlockCls(w)] || '#e8eaf0';
+      return `<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${colour};margin:1px;" title="${escapeHtml(latin)}"></span>`;
+    }).join('');
+    wordmapHtml += `<div style="margin:6px 0;"><div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:2px;">Chapter ${ch}</div>${cells}</div>`;
+  }
+
+  const strugglingRows = struggling.slice(0, 20).map(w => `
+    <tr>
+      <td style="padding:4px 8px;border-bottom:1px solid #eee;font-style:italic;">${escapeHtml(w.latin)}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #eee;color:#555;">${escapeHtml(CANONICAL.get(w.latin) || '')}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right;">${w.t}</td>
+      <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right;">${Math.round(w.p*100)}%</td>
+    </tr>`).join('') || '<tr><td colspan="4" style="padding:8px;color:#888;font-style:italic;">No struggling words.</td></tr>';
+
+  const now = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(s.name)} — vocabulary summary</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#1a2b52; margin:32px; }
+    h1 { font-size:22px; margin:0 0 2px; }
+    .meta { color:#64748b; font-size:13px; margin-bottom:20px; }
+    .stats { display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap; }
+    .stat { border:1px solid #e2e8f0; border-radius:6px; padding:10px 14px; min-width:80px; }
+    .stat-n { font-size:24px; font-weight:700; }
+    .stat-l { font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#64748b; }
+    h2 { font-size:13px; letter-spacing:0.1em; text-transform:uppercase; color:#64748b; margin:24px 0 8px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th { text-align:left; padding:4px 8px; border-bottom:2px solid #cbd5e1; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#64748b; }
+    @media print { body { margin:12mm; } .noprint { display:none; } }
+  </style></head><body>
+    <h1>${escapeHtml(s.name)}</h1>
+    <div class="meta">${escapeHtml(cls.name)} · ${escapeHtml(prettyType(cls.type))} · ${escapeHtml(s.email || '')} · generated ${now}</div>
+    <div class="stats">
+      <div class="stat"><div class="stat-n" style="color:#1A6FFF">${secure}</div><div class="stat-l">Secure</div></div>
+      <div class="stat"><div class="stat-n" style="color:#0284c7">${building}</div><div class="stat-l">Building</div></div>
+      <div class="stat"><div class="stat-n" style="color:#7c3aed">${due}</div><div class="stat-l">Due review</div></div>
+      <div class="stat"><div class="stat-n" style="color:#059669">${nearly}</div><div class="stat-l">Nearly</div></div>
+      <div class="stat"><div class="stat-n" style="color:#d97706">${struggling.length}</div><div class="stat-l">Struggling</div></div>
+      <div class="stat"><div class="stat-n">${learning}</div><div class="stat-l">Learning</div></div>
+    </div>
+    <div class="meta">${totalAttempts} total attempts across the list. Last active ${escapeHtml(timeAgo(s.lastSeen))}.</div>
+
+    <h2>Word confidence map</h2>
+    ${wordmapHtml}
+
+    <h2>Words to focus on</h2>
+    <table>
+      <thead><tr><th>Word</th><th>Meaning</th><th style="text-align:right">Attempts</th><th style="text-align:right">Confidence</th></tr></thead>
+      <tbody>${strugglingRows}</tbody>
+    </table>
+
+    <p class="noprint" style="margin-top:24px;color:#64748b;font-size:12px;">Use your browser's print dialog to save this as a PDF. It should open automatically.</p>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) { alert('Please allow pop-ups to export the summary.'); return; }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  // Give the new window a moment to render before printing
+  w.onload = () => { w.focus(); w.print(); };
+  setTimeout(() => { try { w.focus(); w.print(); } catch (_e) {} }, 400);
+}
+document.getElementById('panelExportBtn').addEventListener('click', exportPDF);
 
 // Modals
 function openModal(id)  { document.getElementById(id).style.display = 'block'; document.body.style.overflow = 'hidden'; }
