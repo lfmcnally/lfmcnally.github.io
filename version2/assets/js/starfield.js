@@ -42,11 +42,12 @@
     opts = opts || {};
     const ctx = canvas.getContext('2d');
     const excludeEls = opts.excludeEls || [];
-    const density = opts.density || 8000;           // one star per N css px²
-    const maxStars = opts.maxStars || 260;
-    const maxLink = opts.maxLink || 96;             // px distance to link stars
-    const exclusionPad = opts.exclusionPad || 26;   // px padding around excluded boxes
-    const exclusionFade = opts.exclusionFade || 70; // px falloff band
+    const density = opts.density || 6200;           // one star per N css px²
+    const maxStars = opts.maxStars || 340;
+    const maxLink = opts.maxLink || 92;             // px distance to link stars
+    const exclusionPad = opts.exclusionPad || 12;   // px padding around excluded boxes
+    const exclusionFade = opts.exclusionFade || 64; // px falloff band
+    const textFloor = opts.textFloor != null ? opts.textFloor : 0.22; // faint stars still show behind text
     const reduced = global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     let dpr = Math.min(global.devicePixelRatio || 1, 2);
@@ -123,25 +124,31 @@
       ctx.clearRect(0, 0, W, H);
       drawLinks(1);
       for (const s of stars) {
-        drawStar(s, s.base * exclusionFactor(s.x, s.y));
+        const ex = exclusionFactor(s.x, s.y);
+        drawStar(s, s.base * (textFloor + (1 - textFloor) * ex), ex);
       }
     }
 
-    function drawStar(s, alpha) {
+    // alpha = final dot brightness; ex = raw exclusion factor (0 = behind text),
+    // used to fade the glow halo fully so bright stars don't bloom over text.
+    function drawStar(s, alpha, ex) {
       if (alpha <= 0.01) return;
+      if (ex == null) ex = 1;
       const [r, g, b] = hexToRgb(s.colour);
-      if (s.glow) {
+      if (s.glow && ex > 0.15) {
         const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 4);
-        grad.addColorStop(0, `rgba(${r},${g},${b},${alpha * 0.5})`);
+        grad.addColorStop(0, `rgba(${r},${g},${b},${alpha * 0.5 * ex})`);
         grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.r * 4, 0, Math.PI * 2);
         ctx.fill();
       }
+      // Shrink the dot slightly behind text so the faint fill stays unobtrusive
+      const radius = s.r * (0.6 + 0.4 * ex);
       ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
       ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -220,7 +227,8 @@
         if (s.x < -5) s.x = W + 5; else if (s.x > W + 5) s.x = -5;
         if (s.y < -5) s.y = H + 5; else if (s.y > H + 5) s.y = -5;
         const twinkle = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(tw * s.twSpeed + s.twPhase));
-        drawStar(s, s.base * twinkle * exclusionFactor(s.x, s.y));
+        const ex = exclusionFactor(s.x, s.y);
+        drawStar(s, s.base * twinkle * (textFloor + (1 - textFloor) * ex), ex);
       }
 
       // shooting star
