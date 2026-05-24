@@ -931,6 +931,57 @@ document.getElementById('wordTo').addEventListener('change', updateWordCount);
 // ═══════════════════════════════════════════════════════
 // Shared session-starter. Used by the manual Start button and by the
 // auto-start paths (?auto=1 and ?queue=...).
+// ═══════════════════════════════════════════════════════
+// SESSION LOGGING — one vocab_sessions row per practice run, created on the
+// first answer (so abandoned sessions aren't counted). Signed-in users only;
+// anonymous practice isn't visible to teachers so it isn't logged.
+// ═══════════════════════════════════════════════════════
+let sessionLog = { id: null, list: null, answered: 0, correct: 0, creating: false };
+let sessionFlushTimer = null;
+
+function beginSessionLog(vocabListKey) {
+  // Flush any unsent counts from a previous session first
+  flushSessionLog();
+  sessionLog = { id: null, list: vocabListKey, answered: 0, correct: 0, creating: false };
+}
+
+function recordSessionAnswer(isCorrect) {
+  if (!observedUserId || !activeStore || activeStore.mode !== 'cloud') return;
+  sessionLog.answered++;
+  if (isCorrect) sessionLog.correct++;
+  if (!sessionFlushTimer) sessionFlushTimer = setTimeout(flushSessionLog, 1500);
+}
+
+async function flushSessionLog() {
+  if (sessionFlushTimer) { clearTimeout(sessionFlushTimer); sessionFlushTimer = null; }
+  if (!observedUserId || sessionLog.answered === 0) return;
+  const nowIso = new Date().toISOString();
+  try {
+    if (!sessionLog.id) {
+      if (sessionLog.creating) return;     // an insert is already in flight
+      sessionLog.creating = true;
+      const { data, error } = await window.supabase
+        .from('vocab_sessions')
+        .insert({
+          student_id: observedUserId,
+          vocab_list: sessionLog.list,
+          answered:   sessionLog.answered,
+          correct:    sessionLog.correct,
+          last_answer_at: nowIso
+        })
+        .select('id')
+        .single();
+      sessionLog.creating = false;
+      if (!error && data) sessionLog.id = data.id;
+    } else {
+      await window.supabase
+        .from('vocab_sessions')
+        .update({ answered: sessionLog.answered, correct: sessionLog.correct, last_answer_at: nowIso })
+        .eq('id', sessionLog.id);
+    }
+  } catch (_e) { sessionLog.creating = false; }
+}
+
 async function startSessionWithPool(pool, mode) {
   await refreshActiveStore();
   const stored = activeStore ? await activeStore.loadAll() : new Map();
@@ -953,6 +1004,9 @@ async function startSessionWithPool(pool, mode) {
   streak = 0;
   totalCorrect = 0;
   totalAnswered = 0;
+
+  // Begin a fresh session log (the row is created lazily on the first answer)
+  beginSessionLog(activeStore ? activeStore.vocabList : 'latin-gcse');
 
   document.getElementById('setupScreen').style.display = 'none';
   document.getElementById('testerScreen').style.display = 'block';
@@ -1316,6 +1370,7 @@ function handleAnswer(isCorrect, clickedBtn) {
 
   // BKT update — returns transition metadata for the flash logic below
   const transition = bktUpdate(currentWord, isCorrect);
+  recordSessionAnswer(isCorrect);
 
   // update dot
   const dot = document.getElementById('pKnowDot');
@@ -1415,13 +1470,15 @@ document.getElementById('toggleType').addEventListener('click', () => {
 document.getElementById('exitBtn').addEventListener('click', e => {
   e.preventDefault();
   if (activeStore && activeStore.flush) activeStore.flush();
+  flushSessionLog();
   document.getElementById('testerScreen').style.display = 'none';
   document.getElementById('setupScreen').style.display = 'block';
 });
 
-// Flush any unsent BKT updates if the user closes the tab mid-session
+// Flush any unsent BKT updates + session counts if the tab closes mid-session
 window.addEventListener('pagehide', () => {
   if (activeStore && activeStore.flush) activeStore.flush();
+  flushSessionLog();
 });
 
 // init word count + open BKT store for the default list. We capture the
