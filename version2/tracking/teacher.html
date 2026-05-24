@@ -97,7 +97,7 @@ body { background:var(--cream); }
 .p-high { background:#86efac; } .p-secure { background:#1A6FFF; }
 
 /* word tooltip */
-.word-tooltip { position:fixed;background:var(--navy);color:white;padding:8px 12px;border-radius:6px;font-size:12px;pointer-events:none;z-index:200;display:none;max-width:220px;box-shadow:0 4px 16px rgba(14,30,63,0.3); }
+.word-tooltip { position:fixed;background:var(--navy);color:white;padding:8px 12px;border-radius:6px;font-size:12px;pointer-events:none;z-index:500;display:none;max-width:280px;box-shadow:0 4px 16px rgba(14,30,63,0.3); }
 .word-tooltip-latin { font-family:'Lora',serif;font-style:italic;font-weight:600;font-size:14px;margin-bottom:2px; }
 .word-tooltip-english { color:#8fa8cc;font-size:11.5px;margin-bottom:4px; }
 .word-tooltip-conf { font-size:10.5px;font-weight:600; }
@@ -923,86 +923,146 @@ function exportPDF() {
   const cls = classes[currentClassIdx];
   const s = panelStudent;
 
-  // Tally buckets
-  let secure = 0, building = 0, due = 0, nearly = 0, learning = 0;
+  const totalWords = CANONICAL.size;
+
+  // Tally buckets + per-chapter stats + overall accuracy
+  let secure = 0, building = 0, due = 0, nearly = 0, learning = 0, unseen = 0;
+  let totalAttempts = 0, totalCorrect = 0;
   const struggling = [];
-  for (const [latin, w] of s.words.entries()) {
+  const chapterStats = new Map();   // ch → {total, secure, building, due, nearly, struggling, learning, unseen, sumP, withP}
+
+  for (const latin of CANONICAL.keys()) {
+    const ch = CHAPTER_OF.get(latin) || 0;
+    if (!chapterStats.has(ch)) chapterStats.set(ch, { total:0, secure:0, building:0, due:0, nearly:0, struggling:0, learning:0, unseen:0, sumP:0, withP:0 });
+    const cs = chapterStats.get(ch);
+    cs.total++;
+
+    const w = s.words.get(latin);
+    if (!w || w.t === 0) {
+      unseen++; cs.unseen++;
+      continue;
+    }
+    totalAttempts += (w.t | 0);
+    totalCorrect  += (w.correct | 0);
+    cs.sumP += w.p; cs.withP++;
+
     const c = classifyWord(w);
-    if (c === 'secure') secure++;
-    else if (c === 'building') building++;
-    else if (c === 'due') due++;
-    else if (c === 'nearly') nearly++;
-    else if (c === 'struggling') struggling.push({ latin, ...w });
-    else learning++;
+    if (c === 'secure')        { secure++;  cs.secure++; }
+    else if (c === 'building') { building++; cs.building++; }
+    else if (c === 'due')      { due++;     cs.due++; }
+    else if (c === 'nearly')   { nearly++;  cs.nearly++; }
+    else if (c === 'struggling') { struggling.push({ latin, ...w }); cs.struggling++; }
+    else { learning++; cs.learning++; }
   }
   struggling.sort((a, b) => a.p - b.p);
 
-  const totalAttempts = Array.from(s.words.values()).reduce((sum, w) => sum + (w.t | 0), 0);
+  const accuracy = totalAttempts > 0 ? Math.round(totalCorrect / totalAttempts * 100) : 0;
+  const securePct = totalWords > 0 ? Math.round(secure / totalWords * 100) : 0;
+  const seenWords = totalWords - unseen;
 
-  // Wordmap as coloured cells, grouped by chapter
-  const COLOUR = { 'p-unseen':'#e8eaf0','p-verylow':'#fca5a5','p-low':'#fb923c','p-mid':'#fbbf24','p-high':'#86efac','p-building':'#7dd3fc','p-secure':'#1A6FFF','p-due':'#a78bfa' };
-  const byCh = new Map();
-  for (const latin of CANONICAL.keys()) {
-    const ch = CHAPTER_OF.get(latin) || 0;
-    if (!byCh.has(ch)) byCh.set(ch, []);
-    byCh.get(ch).push(latin);
-  }
-  let wordmapHtml = '';
-  for (const ch of Array.from(byCh.keys()).sort((a,b)=>a-b)) {
-    const cells = byCh.get(ch).sort(alphaCompareLatin).map(latin => {
-      const w = s.words.get(latin);
-      const colour = COLOUR[panelBlockCls(w)] || '#e8eaf0';
-      return `<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:${colour};margin:1px;" title="${escapeHtml(latin)}"></span>`;
-    }).join('');
-    wordmapHtml += `<div style="margin:6px 0;"><div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:2px;">Chapter ${ch}</div>${cells}</div>`;
-  }
+  // Per-chapter breakdown rows
+  const chapterRows = Array.from(chapterStats.keys()).sort((a,b)=>a-b).map(ch => {
+    const cs = chapterStats.get(ch);
+    const avg = cs.withP > 0 ? Math.round(cs.sumP / cs.withP * 100) : 0;
+    const securePctCh = cs.total > 0 ? Math.round(cs.secure / cs.total * 100) : 0;
+    return `<tr>
+      <td class="l">Ch. ${ch}</td>
+      <td class="r">${cs.total}</td>
+      <td class="r" style="color:#1A6FFF;font-weight:700">${cs.secure}</td>
+      <td class="r" style="color:#0284c7">${cs.building}</td>
+      <td class="r" style="color:#059669">${cs.nearly}</td>
+      <td class="r" style="color:#d97706">${cs.struggling}</td>
+      <td class="r" style="color:#94a3b8">${cs.learning + cs.unseen}</td>
+      <td class="r">${cs.withP > 0 ? avg + '%' : '—'}</td>
+      <td class="r" style="font-weight:700">${securePctCh}%</td>
+    </tr>`;
+  }).join('');
 
-  const strugglingRows = struggling.slice(0, 20).map(w => `
-    <tr>
-      <td style="padding:4px 8px;border-bottom:1px solid #eee;font-style:italic;">${escapeHtml(w.latin)}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #eee;color:#555;">${escapeHtml(CANONICAL.get(w.latin) || '')}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right;">${w.t}</td>
-      <td style="padding:4px 8px;border-bottom:1px solid #eee;text-align:right;">${Math.round(w.p*100)}%</td>
-    </tr>`).join('') || '<tr><td colspan="4" style="padding:8px;color:#888;font-style:italic;">No struggling words.</td></tr>';
+  const strugglingRows = struggling.slice(0, 14).map(w => {
+    const wrong = Math.max(0, (w.t|0) - (w.correct|0));
+    return `<tr>
+      <td class="l" style="font-style:italic">${escapeHtml(w.latin)}</td>
+      <td class="l" style="color:#555">${escapeHtml(CANONICAL.get(w.latin) || '')}</td>
+      <td class="c">Ch. ${CHAPTER_OF.get(w.latin) || '—'}</td>
+      <td class="r">${w.t}</td>
+      <td class="r">${w.correct|0}✓ ${wrong}✗</td>
+      <td class="r" style="font-weight:700;color:${w.p<0.25?'#dc2626':'#d97706'}">${Math.round(w.p*100)}%</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="padding:8px;color:#888;font-style:italic;">No struggling words — strong across the board.</td></tr>';
 
   const now = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(s.name)} — vocabulary summary</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(s.name)} — vocabulary report</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#1a2b52; margin:32px; }
-    h1 { font-size:22px; margin:0 0 2px; }
-    .meta { color:#64748b; font-size:13px; margin-bottom:20px; }
-    .stats { display:flex; gap:10px; margin-bottom:24px; flex-wrap:wrap; }
-    .stat { border:1px solid #e2e8f0; border-radius:6px; padding:10px 14px; min-width:80px; }
-    .stat-n { font-size:24px; font-weight:700; }
-    .stat-l { font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#64748b; }
-    h2 { font-size:13px; letter-spacing:0.1em; text-transform:uppercase; color:#64748b; margin:24px 0 8px; }
-    table { width:100%; border-collapse:collapse; font-size:13px; }
-    th { text-align:left; padding:4px 8px; border-bottom:2px solid #cbd5e1; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:#64748b; }
-    @media print { body { margin:12mm; } .noprint { display:none; } }
+    * { box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#1a2b52; margin:0; padding:18mm 16mm; font-size:11px; }
+    .head { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #1a2b52; padding-bottom:8px; margin-bottom:12px; }
+    h1 { font-size:20px; margin:0; }
+    .sub { color:#64748b; font-size:11px; margin-top:2px; }
+    .brand { font-size:12px; font-weight:700; color:#1A6FFF; letter-spacing:0.04em; }
+    .summary-line { font-size:12px; margin:0 0 14px; }
+    .summary-line b { font-size:13px; }
+    .stats { display:flex; gap:8px; margin-bottom:16px; }
+    .stat { border:1px solid #e2e8f0; border-radius:5px; padding:7px 10px; flex:1; text-align:center; }
+    .stat-n { font-size:20px; font-weight:700; line-height:1; }
+    .stat-l { font-size:8.5px; letter-spacing:0.06em; text-transform:uppercase; color:#64748b; margin-top:3px; }
+    h2 { font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:#64748b; margin:16px 0 6px; }
+    table { width:100%; border-collapse:collapse; font-size:10.5px; }
+    th { padding:4px 6px; border-bottom:1.5px solid #cbd5e1; font-size:8.5px; letter-spacing:0.05em; text-transform:uppercase; color:#64748b; text-align:left; }
+    td { padding:3px 6px; border-bottom:1px solid #f1f5f9; }
+    td.r, th.r { text-align:right; }
+    td.c, th.c { text-align:center; }
+    td.l { text-align:left; }
+    .foot { margin-top:14px; color:#94a3b8; font-size:9px; line-height:1.5; border-top:1px solid #e2e8f0; padding-top:8px; }
+    @media print { body { padding:12mm; } .noprint { display:none; } @page { margin:0; } }
   </style></head><body>
-    <h1>${escapeHtml(s.name)}</h1>
-    <div class="meta">${escapeHtml(cls.name)} · ${escapeHtml(prettyType(cls.type))} · ${escapeHtml(s.email || '')} · generated ${now}</div>
+    <div class="head">
+      <div>
+        <h1>${escapeHtml(s.name)}</h1>
+        <div class="sub">${escapeHtml(cls.name)} · ${escapeHtml(prettyType(cls.type))}${s.email ? ' · ' + escapeHtml(s.email) : ''}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="brand">Classicalia</div>
+        <div class="sub">Vocabulary report · ${now}</div>
+      </div>
+    </div>
+
+    <p class="summary-line"><b>${secure} of ${totalWords} words secure (${securePct}%).</b>
+       ${seenWords} words attempted, ${accuracy}% lifetime accuracy across ${totalAttempts} attempts.
+       Last active ${escapeHtml(timeAgo(s.lastSeen))}.</p>
+
     <div class="stats">
       <div class="stat"><div class="stat-n" style="color:#1A6FFF">${secure}</div><div class="stat-l">Secure</div></div>
       <div class="stat"><div class="stat-n" style="color:#0284c7">${building}</div><div class="stat-l">Building</div></div>
       <div class="stat"><div class="stat-n" style="color:#7c3aed">${due}</div><div class="stat-l">Due review</div></div>
       <div class="stat"><div class="stat-n" style="color:#059669">${nearly}</div><div class="stat-l">Nearly</div></div>
       <div class="stat"><div class="stat-n" style="color:#d97706">${struggling.length}</div><div class="stat-l">Struggling</div></div>
-      <div class="stat"><div class="stat-n">${learning}</div><div class="stat-l">Learning</div></div>
+      <div class="stat"><div class="stat-n" style="color:#94a3b8">${learning + unseen}</div><div class="stat-l">Not yet learnt</div></div>
     </div>
-    <div class="meta">${totalAttempts} total attempts across the list. Last active ${escapeHtml(timeAgo(s.lastSeen))}.</div>
 
-    <h2>Word confidence map</h2>
-    ${wordmapHtml}
-
-    <h2>Words to focus on</h2>
+    <h2>Progress by chapter</h2>
     <table>
-      <thead><tr><th>Word</th><th>Meaning</th><th style="text-align:right">Attempts</th><th style="text-align:right">Confidence</th></tr></thead>
+      <thead><tr>
+        <th class="l">Chapter</th><th class="r">Words</th><th class="r">Secure</th>
+        <th class="r">Building</th><th class="r">Nearly</th><th class="r">Struggling</th>
+        <th class="r">To learn</th><th class="r">Avg conf.</th><th class="r">% secure</th>
+      </tr></thead>
+      <tbody>${chapterRows}</tbody>
+    </table>
+
+    <h2>Priority words to revise</h2>
+    <table>
+      <thead><tr>
+        <th class="l">Word</th><th class="l">Meaning</th><th class="c">Chapter</th>
+        <th class="r">Attempts</th><th class="r">Record</th><th class="r">Confidence</th>
+      </tr></thead>
       <tbody>${strugglingRows}</tbody>
     </table>
 
-    <p class="noprint" style="margin-top:24px;color:#64748b;font-size:12px;">Use your browser's print dialog to save this as a PDF. It should open automatically.</p>
+    <div class="foot">
+      Confidence is a Bayesian estimate updated after every answer. A word counts as <b>Secure</b> only once it has been answered correctly on at least three different days, after which it returns for spaced review. <b>Building</b> means high confidence not yet confirmed across days; <b>Struggling</b> means repeated attempts with persistently low confidence.
+    </div>
+    <p class="noprint" style="margin-top:14px;color:#64748b;font-size:11px;">The print dialog should open automatically — choose "Save as PDF" or print.</p>
   </body></html>`;
 
   const w = window.open('', '_blank');
