@@ -786,7 +786,6 @@ body.mode-vocab .wg[data-sf] .lat-w { border-bottom-color: transparent !importan
 
     <!-- ENGLISH COLUMN -->
     <div class="english-col" id="englishCol">
-
       <!-- Line 50 English -->
       <div class="line-row">
         <span class="line-num">50</span>
@@ -937,7 +936,7 @@ body.mode-vocab .wg[data-sf] .lat-w { border-bottom-color: transparent !importan
       <div class="line-row">
         <span class="line-num">61</span>
         <div class="words-wrap">
-          <span class="eng-w subject" data-order="61-1,61-2">‘Honest old man</span>
+          <span class="eng-w subject" data-order="61-1,61-2">'Honest old man</span>
           <span class="eng-w conjunction" data-order="61-3">and</span>
           <span class="eng-w subject" data-order="61-4">woman</span>
           <span class="eng-w subject" data-order="62-5">worthy</span>
@@ -951,7 +950,7 @@ body.mode-vocab .wg[data-sf] .lat-w { border-bottom-color: transparent !importan
         <div class="words-wrap">
           <span class="eng-w verb" data-order="61-8">tell me</span>
           <span class="eng-w object" data-order="62-9">what</span>
-          <span class="eng-w verb" data-order="62-10">you desire!’</span>
+          <span class="eng-w verb" data-order="62-10">you desire!'</span>
           <span class="eng-w verb" data-order="62-1">Having spoken</span>
           <span class="eng-w object" data-order="62-2">a few words</span>
           <span class="eng-w preposition" data-order="62-3">with</span>
@@ -1275,7 +1274,7 @@ function activateSf(sf, anchorEl) {
     highlightedOrders.add(el.dataset.order);
   });
   document.querySelectorAll('#englishCol .eng-w[data-order]').forEach(el => {
-    if (highlightedOrders.has(el.dataset.order)) {
+    if (el.dataset.order.split(',').some(o => highlightedOrders.has(o))) {
       el.classList.add('sf-active');
     }
   });
@@ -1289,7 +1288,7 @@ function activateVocab(order, anchorEl) {
   document.querySelectorAll('#latinCol .wg.vocab-active').forEach(el => el.classList.remove('vocab-active'));
   document.querySelectorAll('#englishCol .eng-w.vocab-active').forEach(el => el.classList.remove('vocab-active'));
   anchorEl.classList.add('vocab-active');
-  document.querySelectorAll(`#englishCol .eng-w[data-order="${order}"]`).forEach(el => el.classList.add('vocab-active'));
+  engEls(order).forEach(el => el.classList.add('vocab-active'));
   showVocab(order, anchorEl);
 }
 
@@ -1341,15 +1340,18 @@ let step = 0;
 let coloursHidden = false;
 const activeCategories = new Set();
 
+function engEls(order) {
+  return [...document.querySelectorAll('#englishCol .eng-w[data-order]')].filter(el => el.dataset.order.split(',').includes(order));
+}
 function revealOrder(order) {
   const latEl = document.querySelector(`#latinCol .wg[data-order="${order}"]`);
   if (latEl) latEl.classList.add('revealed');
-  document.querySelectorAll(`#englishCol .eng-w[data-order="${order}"]`).forEach(el => el.classList.add('revealed'));
+  engEls(order).forEach(el => el.classList.add('revealed'));
 }
 function hideOrder(order) {
   const latEl = document.querySelector(`#latinCol .wg[data-order="${order}"]`);
   if (latEl) latEl.classList.remove('revealed');
-  document.querySelectorAll(`#englishCol .eng-w[data-order="${order}"]`).forEach(el => el.classList.remove('revealed'));
+  engEls(order).forEach(el => el.classList.remove('revealed'));
 }
 function isRevealed(order) {
   const latEl = document.querySelector(`#latinCol .wg[data-order="${order}"]`);
@@ -1388,8 +1390,9 @@ document.querySelectorAll('#latinCol .wg[data-order]').forEach(el => {
 });
 document.querySelectorAll('#englishCol .eng-w[data-order]').forEach(el => {
   el.addEventListener('click', () => {
-    const o = el.dataset.order;
-    isRevealed(o) ? hideOrder(o) : revealOrder(o);
+    const orders = el.dataset.order.split(',');
+    const anyRev = orders.some(isRevealed);
+    orders.forEach(o => anyRev ? hideOrder(o) : revealOrder(o));
     step = allOrders.filter(o2 => isRevealed(o2)).length;
   });
 });
