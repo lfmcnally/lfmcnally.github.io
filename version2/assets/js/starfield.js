@@ -118,4 +118,26 @@
   }
 
   global.Starfield = { create };
+
+  // Auto-initialise any <canvas data-starfield> (header backgrounds on
+  // subject/dashboard pages). The homepage inits its hero/curtain manually,
+  // so those canvases don't carry the attribute.
+  function autoInit() {
+    const canvases = document.querySelectorAll('canvas[data-starfield]');
+    if (!canvases.length) return;
+    const instances = [];
+    canvases.forEach(c => {
+      instances.push(create(c, {
+        seed: parseInt(c.dataset.seed || '101', 10),
+        nodeRegion: parseFloat(c.dataset.region || '0.7')
+      }));
+    });
+    let t;
+    global.addEventListener('resize', () => {
+      clearTimeout(t);
+      t = setTimeout(() => instances.forEach(i => i.resize()), 150);
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', autoInit);
+  else autoInit();
 })(window);
