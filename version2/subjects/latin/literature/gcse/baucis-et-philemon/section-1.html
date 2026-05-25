@@ -360,6 +360,7 @@ body.hide-colours .eng-w.revealed { background: #eceef4 !important; }
 .wg[data-sf~="adiere"] .lat-w,
 .wg[data-sf~="clausere"] .lat-w,
 .wg[data-sf~="consenuere"] .lat-w,
+.wg[data-sf~="effecere"] .lat-w,
 .wg[data-sf~="parva"] .lat-w,
 .wg[data-sf~="pia"] .lat-w                  { border-bottom-color: #fbbf24; } /* word-choice — amber */
 .wg[data-sf~="mille"] .lat-w,
@@ -450,6 +451,39 @@ body.hide-colours .eng-w.revealed { background: #eceef4 !important; }
 .badge-sound       { background: #ede9fe; color: #6d28d9; }
 .badge-irony       { background: #fee2e2; color: #991b1b; }
 
+/* part-of-speech badges (vocab mode) */
+.badge-noun { background: #dff0e8; color: #1a5c3a; }
+.badge-verb { background: #ddeeff; color: #1a4a80; }
+.badge-adj  { background: #fef0d8; color: #7a4400; }
+.badge-adv  { background: #e8e4f8; color: #3a2a70; }
+.badge-prep { background: #fde8f4; color: #7a1a55; }
+.badge-conj { background: #e8f4e0; color: #2a5010; }
+.badge-pron { background: #ece8f8; color: #4a2a80; }
+.badge-num  { background: #faf5d8; color: #5a4a00; }
+.badge-part { background: #fde8dc; color: #7a2a10; }
+
+/* ── MODE TOGGLE (Vocab / Style) ── */
+.mode-toggle { display: flex; }
+.mode-toggle .mode-btn:first-child { border-radius: 4px 0 0 4px; }
+.mode-toggle .mode-btn:last-child  { border-radius: 0 4px 4px 0; margin-left: -1px; }
+
+/* hide the style underlines while in vocab mode */
+body.mode-vocab .wg[data-sf] .lat-w { border-bottom-color: transparent !important; }
+
+/* vocab hover highlight */
+.wg.vocab-active .lat-w {
+  background: #1A6FFF !important;
+  color: white !important;
+  border-bottom-color: transparent !important;
+  border-radius: 3px;
+}
+.wg.vocab-active .wg-num { color: rgba(255,255,255,0.6); }
+.eng-w.vocab-active {
+  background: #fff3b0 !important;
+  box-shadow: 0 1px 0 0 #f59e0b;
+  opacity: 1 !important;
+}
+
 .sp-rule { border: none; border-top: 1px solid var(--rule-faint); margin: 8px 0; }
 
 .sp-body {
@@ -527,12 +561,17 @@ body.hide-colours .eng-w.revealed { background: #eceef4 !important; }
 <div class="controls-bar">
   <div class="controls-bar-inner">
     <div class="controls-left">
+      <div class="mode-toggle">
+        <button class="ctrl-btn mode-btn" id="vocabModeBtn" data-mode="vocab">Vocab</button>
+        <button class="ctrl-btn mode-btn" id="styleModeBtn" data-mode="style">Style</button>
+      </div>
+      <div class="ctrl-div"></div>
       <button class="ctrl-btn" id="showAllBtn">Show all</button>
       <button class="ctrl-btn" id="hideAllBtn">Hide all</button>
       <div class="ctrl-div"></div>
       <button class="ctrl-btn" id="toggleColoursBtn">Hide colours</button>
       <div class="ctrl-div"></div>
-      <span class="key-hint"><kbd>←</kbd> <kbd>→</kbd> step &nbsp;·&nbsp; click any word to toggle</span>
+      <span class="key-hint"><kbd>←</kbd> <kbd>→</kbd> step &nbsp;·&nbsp; hover a word for help &nbsp;·&nbsp; click to reveal English</span>
     </div>
     <div class="controls-right">
       <div class="key-pills">
@@ -1004,6 +1043,12 @@ const styleData = {
     body: 'The <em>con-</em> prefix ("together, jointly") carries the emotional weight. They did not just age — they aged <em>as one</em>. A single syncopated perfect quietly contains their entire shared history.',
     exam: '<strong>In an exam:</strong> "The compound <em>cōnsenūēre</em>, with its <em>con-</em> prefix emphasising joint action, encapsulates the couple\'s lifelong partnership in a single syncopated perfect."'
   },
+  'effecere': {
+    quote: 'effēcēre levem', trans: 'they made (it) light',
+    badge: 'Syncopated Perfect', badgeClass: 'badge-word-choice',
+    body: 'A fourth syncopated perfect (<em>effēcērunt → effēcēre</em>), framed by two ablative gerunds — <em>fatendō</em> ("by acknowledging") and <em>ferendō</em> ("by bearing"). It is not wealth but attitude that makes their poverty <em>levem</em> ("light"): contentment is presented as a deliberate act, not an accident of circumstance.',
+    exam: '<strong>In an exam:</strong> "The syncopated perfect <em>effēcēre</em>, framed by the gerunds <em>fatendō</em> and <em>ferendō</em>, conveys that the couple actively render their poverty bearable through honest acceptance — defining contentment as a moral choice rather than a misfortune."'
+  },
   'tota-domus': {
     quote: 'tōta domus duo sunt', trans: 'the two are the whole house',
     badge: 'Hyperbole', badgeClass: 'badge-imagery',
@@ -1024,42 +1069,155 @@ const styleData = {
   }
 };
 
+// ── Vocab data — dictionary form, parse and a note, keyed by word order ──
+const vocabData = {
+  // Line 1
+  '01-01': { head: 'Iuppiter, Iovis', pos: 'noun', gloss: 'Jupiter', parse: 'Nominative singular — subject of <em>vēnit</em>.', note: 'King of the gods. Ovid puts him first for impact — the divine visitor opens the story.' },
+  '01-03': { head: 'hūc', pos: 'adverb', gloss: 'to here, to this place', parse: 'Adverb of place (motion towards), with <em>vēnit</em>.', note: 'Points to the destination — Phrygia, where the story is set.' },
+  '01-04': { head: 'speciēs, speciēī (f.)', pos: 'noun', gloss: 'appearance, form, shape', parse: 'Ablative singular — ablative of manner: “in the form of”, with <em>mortālī</em>.', note: '5th-declension noun (like <em>rēs</em>, <em>diēs</em>).' },
+  '01-05': { head: 'mortālis, mortāle', pos: 'adjective', gloss: 'mortal, human', parse: 'Ablative singular, agreeing with <em>speciē</em>.', note: 'From <em>mors</em> (“death”) — literally “subject to death”, i.e. human.' },
+  '01-07': { head: 'cum', pos: 'preposition', gloss: 'with (+ ablative)', parse: 'Preposition governing <em>parente</em>.', note: 'Don’t confuse with the conjunction <em>cum</em> (“when, since”) — here it takes the ablative and means “with”.' },
+  '01-06': { head: '-que', pos: 'conjunction', gloss: 'and', parse: 'Enclitic conjunction, attached to <em>cum</em>.', note: '<em>-que</em> tacks onto the end of a word and joins more tightly than <em>et</em>.' },
+  '01-08': { head: 'parēns, parentis (m./f.)', pos: 'noun', gloss: 'parent', parse: 'Ablative singular, with <em>cum</em>.', note: 'Here = Jupiter, the “parent” of Mercury, who travels at his side.' },
+  // Line 2
+  '01-02': { head: 'veniō, venīre, vēnī, ventum', pos: 'verb', gloss: 'come', parse: '3rd person singular, perfect indicative active: “(he) came”.', note: 'Perfect tense — the long <em>ē</em> of <em>vēnit</em> distinguishes it from present <em>venit</em>.' },
+  '01-11': { head: 'Atlantiadēs, -ae (m.)', pos: 'noun', gloss: 'descendant of Atlas (= Mercury)', parse: 'Nominative singular (Greek 1st declension) — the second subject of <em>vēnit</em>.', note: 'A patronymic: it names Mercury through his ancestor Atlas — grand, epic-sounding diction.' },
+  '01-12': { head: 'pōnō, pōnere, posuī, positum', pos: 'participle', gloss: 'put, place; (here) lay aside', parse: 'Perfect passive participle, ablative plural, with <em>ālīs</em> — together an ablative absolute: “with his wings laid aside”.', note: 'Forms the ablative absolute <em>positīs ālīs</em>.' },
+  '01-10': { head: 'caducifer, -fera, -ferum', pos: 'adjective', gloss: 'wand-bearing, the wand-bearer', parse: 'Nominative singular masculine, describing Mercury (<em>Atlantiadēs</em>).', note: 'A poetic compound: <em>cādūceus</em> (herald’s wand) + <em>ferō</em> (“carry”).' },
+  '01-13': { head: 'āla, ālae (f.)', pos: 'noun', gloss: 'wing', parse: 'Ablative plural, in the ablative absolute with <em>positīs</em>.', note: 'Mercury’s winged sandals — taken off so the gods can pass as ordinary mortals.' },
+  // Line 3
+  '03-02': { head: 'mīlle', pos: 'numeral', gloss: 'a thousand', parse: 'Indeclinable adjective, with <em>domōs</em> (accusative plural).', note: '“A thousand” often just means “countless” — here it stresses how many doors are shut.' },
+  '03-03': { head: 'domus, domūs (f.)', pos: 'noun', gloss: 'house, home', parse: 'Accusative plural (<em>domōs</em>) — object of <em>adiēre</em>.', note: '4th-declension noun with some 2nd-declension endings; accusative plural is <em>domōs</em>.' },
+  '03-01': { head: 'adeō, adīre, adiī, aditum', pos: 'verb', gloss: 'go to, approach', parse: '3rd person plural perfect, <em>adiēre</em> = <em>adiērunt</em> (syncopated): “they approached”.', note: 'Compound of <em>ad</em> + <em>eō</em> (“go”). Poets often shorten <em>-ērunt</em> to <em>-ēre</em>.' },
+  '03-05': { head: 'locus, locī (m.)', pos: 'noun', gloss: 'place, spot', parse: 'Accusative singular — object of <em>petentēs</em>.', note: 'Here “a place (to stay)”.' },
+  '03-07': { head: 'requiēs, requiētis (f.)', pos: 'noun', gloss: 'rest, repose', parse: 'Accusative singular (<em>requiem</em>) — object of <em>petentēs</em>.', note: 'From <em>re-</em> + <em>quiēs</em> (“rest”): the weary travellers want somewhere to stop.' },
+  '03-06': { head: '-que', pos: 'conjunction', gloss: 'and', parse: 'Enclitic conjunction, joining <em>locum</em> and <em>requiem</em>.', note: null },
+  '03-04': { head: 'petō, petere, petīvī, petītum', pos: 'participle', gloss: 'seek, make for, ask for', parse: 'Present active participle, nominative plural — describing the two gods: “seeking”.', note: '<em>petō</em> can also mean “attack, aim at” (a military sense); here it is the gentler “seek”.' },
+  // Line 4
+  '04-10': { head: 'mīlle', pos: 'numeral', gloss: 'a thousand', parse: 'Indeclinable adjective, with <em>domōs</em>.', note: 'The phrase <em>mīlle domōs</em> is repeated from line 3 — the same houses now shut their doors.' },
+  '04-11': { head: 'domus, domūs (f.)', pos: 'noun', gloss: 'house, home', parse: 'Accusative plural — object of <em>clausēre</em>.', note: null },
+  '04-09': { head: 'claudō, claudere, clausī, clausum', pos: 'verb', gloss: 'shut, close', parse: '3rd person plural perfect, <em>clausēre</em> = <em>clausērunt</em> (syncopated): “(they) shut”.', note: 'The subject is <em>serae</em> (“bolts”) — so literally the bolts shut the houses.' },
+  '04-08': { head: 'sera, serae (f.)', pos: 'noun', gloss: 'bar, bolt (of a door)', parse: 'Nominative plural — subject of <em>clausēre</em>.', note: 'Making the bolts the subject is vivid: the houses themselves seem to slam shut.' },
+  '04-01': { head: 'tamen', pos: 'adverb', gloss: 'however, nevertheless', parse: 'Adverb marking a contrast.', note: 'The turning point: after every door is shut, one will open.' },
+  '04-02': { head: 'ūnus, ūna, ūnum', pos: 'numeral', gloss: 'one; one alone', parse: 'Nominative singular feminine — “one (cottage)”, subject of <em>recēpit</em>.', note: 'Irregular: genitive <em>ūnīus</em>, dative <em>ūnī</em>. Here “one alone” welcomes them.' },
+  '04-03': { head: 'recipiō, recipere, recēpī, receptum', pos: 'verb', gloss: 'take in, receive, welcome', parse: '3rd person singular perfect: “(it) received (them)”.', note: 'Compound of <em>re-</em> + <em>capiō</em> (“take”); the regular verb for welcoming guests.' },
+  // Line 5
+  '04-04': { head: 'parvus, parva, parvum', pos: 'adjective', gloss: 'small, little', parse: 'Nominative singular feminine, describing the cottage.', note: 'Its small size is stressed — the contrast is with the great welcome inside.' },
+  '04-05': { head: 'quidem', pos: 'adverb', gloss: 'indeed, it is true, admittedly', parse: 'Adverb, conceding a point.', note: 'A concession: yes, the cottage is small — <em>but</em> (the contrast follows).' },
+  '04-07': { head: 'stipula, stipulae (f.)', pos: 'noun', gloss: 'stalk, straw', parse: 'Ablative plural — ablative of means with <em>tēcta</em>: “covered with straw”.', note: 'Humble thatching material — a poor person’s roof.' },
+  '05-01': { head: 'et', pos: 'conjunction', gloss: 'and', parse: 'Conjunction, joining <em>stipulīs</em> and <em>cannā</em>.', note: null },
+  '05-03': { head: 'canna, cannae (f.)', pos: 'noun', gloss: 'reed', parse: 'Ablative singular — ablative of means with <em>tēcta</em>.', note: 'Marsh reed, used with straw to thatch the roof.' },
+  '04-06': { head: 'tegō, tegere, tēxī, tēctum', pos: 'participle', gloss: 'cover, roof', parse: 'Perfect passive participle, nominative singular feminine, describing the cottage: “(having been) roofed”.', note: 'The noun <em>tēctum</em> (“roof, house”) comes from this verb.' },
+  '05-02': { head: 'palūster, palūstris, palūstre', pos: 'adjective', gloss: 'marshy, of the marsh', parse: 'Ablative singular feminine, agreeing with <em>cannā</em>.', note: 'From <em>palūs</em> (“marsh, swamp”) — the reeds grow in the wetlands.' },
+  // Line 6
+  '06-11': { head: 'sed', pos: 'conjunction', gloss: 'but', parse: 'Conjunction marking a contrast.', note: 'Shifts the focus from the building to the good people living inside it.' },
+  '06-12': { head: 'pius, pia, pium', pos: 'adjective', gloss: 'dutiful, devoted, pious', parse: 'Nominative singular feminine, describing <em>Baucis</em>.', note: '<em>pietās</em> — duty to gods, family and guests — is the great Roman virtue, flagged here at once.' },
+  '06-14': { head: 'Baucis, Baucidis (f.)', pos: 'noun', gloss: 'Baucis', parse: 'Nominative singular (Greek) — one of the subjects.', note: 'The old woman of the cottage; her Greek name suits the Phrygian setting.' },
+  '06-13': { head: 'anus, anūs (f.)', pos: 'noun', gloss: 'old woman', parse: 'Nominative singular, in apposition to <em>Baucis</em>.', note: 'A 4th-declension feminine noun — one of a small group (cf. <em>manus</em>, <em>domus</em>).' },
+  '06-17': { head: 'parilis, parile', pos: 'adjective', gloss: 'equal, alike', parse: 'Ablative singular, with <em>aetāte</em>: “equal in age”.', note: 'A poetic word for <em>pār</em> (“equal”) — the couple are perfectly matched.' },
+  '06-15': { head: '-que', pos: 'conjunction', gloss: 'and', parse: 'Enclitic conjunction, joining <em>Baucis</em> and <em>Philēmōn</em>.', note: null },
+  '06-18': { head: 'aetās, aetātis (f.)', pos: 'noun', gloss: 'age', parse: 'Ablative singular — ablative of respect with <em>parīlī</em>: “equal in age”.', note: null },
+  '06-16': { head: 'Philēmōn, Philēmonis (m.)', pos: 'noun', gloss: 'Philemon', parse: 'Nominative singular (Greek) — the second subject.', note: 'Baucis’s husband; the two are always named together.' },
+  // Line 7
+  '06-22': { head: 'ille, illa, illud', pos: 'pronoun', gloss: 'that', parse: 'Ablative singular feminine, with <em>casā</em>: “in that cottage”.', note: 'A demonstrative. It is repeated (<em>illā … illā</em>) to dwell on the one place that was their whole life.' },
+  '06-19': { head: 'iungō, iungere, iūnxī, iūnctum', pos: 'verb', gloss: 'join, unite', parse: '<em>sunt … iūnctī</em> = perfect passive, 3rd person plural: “(they) were united”.', note: '<em>sunt</em> + the participle <em>iūnctī</em> together make the perfect passive — “were joined (in marriage)”.' },
+  '06-21': { head: 'annus, annī (m.)', pos: 'noun', gloss: 'year', parse: 'Ablative plural, with <em>iuvenālibus</em>: “in (their) youthful years”.', note: null },
+  '06-19b': { head: 'iungō, iungere, iūnxī, iūnctum', pos: 'participle', gloss: 'join, unite', parse: 'Perfect passive participle, nominative plural masculine, with <em>sunt</em>: “united”.', note: '<em>iungō</em> is the usual verb for joining a couple in marriage (cf. <em>coniūnx</em>, “spouse”).' },
+  '06-20': { head: 'iuvenālis, iuvenāle', pos: 'adjective', gloss: 'youthful, of youth', parse: 'Ablative plural, with <em>annīs</em>.', note: 'From <em>iuvenis</em> (“a young person”) — they married when young.' },
+  '06-25': { head: 'ille, illa, illud', pos: 'pronoun', gloss: 'that', parse: 'Ablative singular feminine, with <em>casā</em>: “in that (same) cottage”.', note: 'The second <em>illā</em> — they married there and grew old there, in the one place.' },
+  // Line 8
+  '06-24': { head: 'cōnsenēscō, cōnsenēscere, cōnsenuī', pos: 'verb', gloss: 'grow old (together)', parse: '3rd person plural perfect, <em>cōnsenūēre</em> = <em>cōnsenuērunt</em> (syncopated): “they grew old together”.', note: 'The prefix <em>con-</em> (“together”) is the point: they aged side by side, as one.' },
+  '06-23': { head: 'casa, casae (f.)', pos: 'noun', gloss: 'cottage, hut', parse: 'Ablative singular, with <em>illā</em>: “in that cottage”.', note: 'A <em>casa</em> is a humble dwelling — very different from a grand <em>domus</em>.' },
+  '06-29': { head: 'paupertās, paupertātis (f.)', pos: 'noun', gloss: 'poverty', parse: 'Accusative singular — object of the gerund <em>fatendō</em>.', note: 'From <em>pauper</em> (“poor”). Roman moralists admired honest poverty borne with dignity.' },
+  '06-26': { head: '-que', pos: 'conjunction', gloss: 'and', parse: 'Enclitic conjunction, linking the clauses.', note: null },
+  '06-27': { head: 'fateor, fatērī, fassus sum', pos: 'gerund', gloss: 'confess, admit, acknowledge', parse: 'Gerund, ablative (<em>fatendō</em>) — ablative of means: “by acknowledging”.', note: 'A deponent verb: passive in form but active in meaning.' },
+  // Line 9
+  '06-31': { head: 'efficiō, efficere, effēcī, effectum', pos: 'verb', gloss: 'bring about, make, render', parse: '3rd person plural perfect, <em>effēcēre</em> = <em>effēcērunt</em> (syncopated): “(they) made (it)”.', note: 'Compound of <em>ex-</em> + <em>faciō</em> (“make”). With <em>levem</em>: “made (it) light”.' },
+  '06-32': { head: 'levis, leve', pos: 'adjective', gloss: 'light; slight; easy to bear', parse: 'Accusative singular, predicative with <em>effēcēre</em>: “made (it) light”.', note: 'Opposite of <em>gravis</em> (“heavy”). Here it means easy to bear — their poverty weighs nothing on them.' },
+  '06-30': { head: 'nec', pos: 'conjunction', gloss: 'and not, nor', parse: 'Conjunction, negating the phrase <em>inīquā mente</em>.', note: '<em>nec … ferendō</em> = “and by bearing it with no resentful spirit”.' },
+  '06-34': { head: 'inīquus, inīqua, inīquum', pos: 'adjective', gloss: 'unfair, resentful; uneven', parse: 'Ablative singular feminine, with <em>mente</em>.', note: 'From <em>in-</em> (“not”) + <em>aequus</em> (“level, fair”) — literally “not level”; here “resentful”.' },
+  '06-35': { head: 'mēns, mentis (f.)', pos: 'noun', gloss: 'mind, attitude, spirit', parse: 'Ablative singular — ablative of manner: “with (a) … attitude”.', note: '<em>nec inīquā mente</em> = “with no bitter frame of mind”.' },
+  '06-33': { head: 'ferō, ferre, tulī, lātum', pos: 'gerund', gloss: 'carry, bear, endure', parse: 'Gerund, ablative (<em>ferendō</em>) — ablative of means: “by bearing (it)”.', note: 'An irregular verb. Here “bear, put up with” — they endure poverty without complaint.' },
+  // Line 10
+  '10-01': { head: 'nec', pos: 'conjunction', gloss: 'and not, nor', parse: 'Conjunction joining this sentence to the last.', note: null },
+  '10-02': { head: 'rēfert, rēferre, rētulit', pos: 'verb', gloss: 'it matters, it makes a difference', parse: 'Impersonal verb, 3rd person singular present: “it matters”.', note: 'Used impersonally (no personal subject): <em>nec refert</em> = “and it makes no difference”.' },
+  '10-04': { head: 'dominus, dominī (m.)', pos: 'noun', gloss: 'master, lord (of a household)', parse: 'Accusative plural — object of <em>requīrās</em> in the indirect question.', note: 'The head of a household of slaves — but here there are none to look for.' },
+  '10-05': { head: 'illīc', pos: 'adverb', gloss: 'there, in that place', parse: 'Adverb of place.', note: '= “in that cottage”.' },
+  '10-07': { head: 'famulus, famulī (m.)', pos: 'noun', gloss: 'servant, household slave', parse: 'Accusative plural — object of <em>requīrās</em>.', note: 'Paired with <em>dominōs</em>: there is neither master nor servant to be found.' },
+  '10-06': { head: '-ne', pos: 'particle', gloss: 'whether (introduces a question)', parse: 'Enclitic question particle, attached to <em>famulōs</em>.', note: '<em>dominōs … famulōsne</em> = “whether masters or servants”.' },
+  '10-03': { head: 'requīrō, requīrere, requīsīvī, requīsītum', pos: 'verb', gloss: 'look for, search for, ask', parse: '2nd person singular present subjunctive: “(whether) you look for”.', note: 'Compound of <em>re-</em> + <em>quaerō</em> (“seek”). The subjunctive suits the indirect question.' },
+  // Line 11
+  '11-03': { head: 'tōtus, tōta, tōtum', pos: 'adjective', gloss: 'whole, entire', parse: 'Nominative singular feminine, with <em>domus</em>.', note: 'Irregular: genitive <em>tōtīus</em>, dative <em>tōtī</em>.' },
+  '11-04': { head: 'domus, domūs (f.)', pos: 'noun', gloss: 'house, household', parse: 'Nominative singular — “the whole household”.', note: 'Here <em>domus</em> means the household (the people), not the building.' },
+  '11-01': { head: 'duo, duae, duo', pos: 'numeral', gloss: 'two', parse: 'Nominative plural masculine — “the two (of them)”.', note: 'An irregular numeral. <em>duo sunt</em> = “are (just) the two”.' },
+  '11-02': { head: 'sum, esse, fuī', pos: 'verb', gloss: 'be', parse: '3rd person plural present: “(they) are”.', note: '<em>tōta domus duo sunt</em> = “the two are the whole household”.' },
+  '11-05': { head: 'īdem, eadem, idem', pos: 'pronoun', gloss: 'the same', parse: 'Nominative plural masculine — “the same (people)”.', note: 'From <em>is</em> + <em>-dem</em>. The same two are both masters and servants — equals in everything.' },
+  '11-07': { head: 'pāreō, pārēre, pāruī', pos: 'verb', gloss: 'obey (+ dative)', parse: '3rd person plural present: “they obey”.', note: 'Don’t confuse with <em>pariō</em> (“give birth”) or <em>appāreō</em> (“appear”).' },
+  '11-06': { head: '-que', pos: 'conjunction', gloss: 'and', parse: 'Enclitic conjunction (<em>pārentque</em>).', note: 'The pair <em>-que … -que</em> (“both … and”) links obeying and commanding into one idea.' },
+  '11-09': { head: 'iubeō, iubēre, iussī, iussum', pos: 'verb', gloss: 'order, command', parse: '3rd person plural present: “they command”.', note: 'Set against <em>pārent</em>: they both obey and give the orders — the paradox of two equals.' },
+  '11-08': { head: '-que', pos: 'conjunction', gloss: 'and', parse: 'Enclitic conjunction (<em>iubentque</em>).', note: null }
+};
+
 // ── Popover logic ──
 const popover = document.getElementById('stylePopover');
 let popoverLocked = false;
 let currentSf = null;
+let mode = 'vocab';          // 'vocab' (default) | 'style'
+let hideTimer = null;
+
+const posClassMap = {
+  noun: 'badge-noun', verb: 'badge-verb', adjective: 'badge-adj',
+  adverb: 'badge-adv', preposition: 'badge-prep', conjunction: 'badge-conj',
+  pronoun: 'badge-pron', numeral: 'badge-num', participle: 'badge-part',
+  gerund: 'badge-part', particle: 'badge-conj'
+};
+
+function positionPopover(anchorEl) {
+  const rect = anchorEl.getBoundingClientRect();
+  let left = rect.left + window.scrollX;
+  let top = rect.bottom + window.scrollY + 8;
+  const pw = 340;
+  if (left + pw > window.innerWidth - 16) left = window.innerWidth - pw - 16;
+  if (left < 8) left = 8;
+  popover.style.left = left + 'px';
+  popover.style.top = top + 'px';
+  popover.classList.add('visible');
+}
 
 function showPopover(sf, anchorEl) {
   const data = styleData[sf];
   if (!data) return;
-
   document.getElementById('spQuote').innerHTML = data.quote;
   document.getElementById('spTrans').innerHTML = data.trans;
   const badge = document.getElementById('spBadge');
   badge.textContent = data.badge;
   badge.className = 'sp-badge ' + data.badgeClass;
   document.getElementById('spBody').innerHTML = data.body;
-  document.getElementById('spExam').innerHTML = data.exam;
+  const exam = document.getElementById('spExam');
+  exam.style.display = '';
+  exam.innerHTML = data.exam;
+  positionPopover(anchorEl);
+}
 
-  // position near the word
-  const rect = anchorEl.getBoundingClientRect();
-  let left = rect.left + window.scrollX;
-  let top = rect.bottom + window.scrollY + 8;
-
-  // keep on screen
-  const pw = 340;
-  if (left + pw > window.innerWidth - 16) left = window.innerWidth - pw - 16;
-  if (left < 8) left = 8;
-
-  popover.style.left = left + 'px';
-  popover.style.top = top + 'px';
-  popover.classList.add('visible');
+function showVocab(order, anchorEl) {
+  const data = vocabData[order];
+  if (!data) return;
+  document.getElementById('spQuote').innerHTML = data.head;
+  document.getElementById('spTrans').innerHTML = data.gloss;
+  const badge = document.getElementById('spBadge');
+  badge.textContent = data.pos.charAt(0).toUpperCase() + data.pos.slice(1);
+  badge.className = 'sp-badge ' + (posClassMap[data.pos] || 'badge-grammar');
+  document.getElementById('spBody').innerHTML = data.parse;
+  const exam = document.getElementById('spExam');
+  if (data.note) { exam.style.display = ''; exam.innerHTML = data.note; }
+  else { exam.style.display = 'none'; exam.innerHTML = ''; }
+  positionPopover(anchorEl);
 }
 
 function hidePopover() {
   popover.classList.remove('visible');
-  document.querySelectorAll('#latinCol .wg.sf-active').forEach(el => el.classList.remove('sf-active'));
-  document.querySelectorAll('#englishCol .eng-w.sf-active').forEach(el => el.classList.remove('sf-active'));
+  document.querySelectorAll('#latinCol .wg.sf-active, #latinCol .wg.vocab-active').forEach(el => el.classList.remove('sf-active', 'vocab-active'));
+  document.querySelectorAll('#englishCol .eng-w.sf-active, #englishCol .eng-w.vocab-active').forEach(el => el.classList.remove('sf-active', 'vocab-active'));
   currentSf = null;
 }
 
@@ -1087,30 +1245,38 @@ function activateSf(sf, anchorEl) {
   currentSf = sf;
 }
 
-// attach to all style-marked word groups
-document.querySelectorAll('#latinCol .wg[data-sf]').forEach(el => {
-  el.addEventListener('mouseenter', () => {
-    if (popoverLocked) return;
-    const sf = el.dataset.sf.split(' ')[0]; // use first feature as key
-    activateSf(el.dataset.sf, el);
-  });
-  el.addEventListener('mouseleave', () => {
-    if (popoverLocked) return;
-    hidePopover();
-  });
-  el.addEventListener('click', e => {
-    e.stopPropagation();
-    const sf = el.dataset.sf;
-    if (popoverLocked && currentSf === sf) {
-      // unlock
-      popoverLocked = false;
-      hidePopover();
-    } else {
-      popoverLocked = true;
-      activateSf(sf, el);
-    }
-  });
-});
+function activateVocab(order, anchorEl) {
+  if (!vocabData[order]) return;
+  document.querySelectorAll('#latinCol .wg.vocab-active').forEach(el => el.classList.remove('vocab-active'));
+  document.querySelectorAll('#englishCol .eng-w.vocab-active').forEach(el => el.classList.remove('vocab-active'));
+  anchorEl.classList.add('vocab-active');
+  document.querySelectorAll(`#englishCol .eng-w[data-order="${order}"]`).forEach(el => el.classList.add('vocab-active'));
+  showVocab(order, anchorEl);
+}
+
+function scheduleHide() {
+  if (popoverLocked) return;
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(hidePopover, 140);
+}
+function cancelHide() { clearTimeout(hideTimer); }
+
+// keep the popover open while the cursor is on it
+popover.addEventListener('mouseenter', cancelHide);
+popover.addEventListener('mouseleave', scheduleHide);
+
+// ── Mode toggle (Vocab / Style) ──
+const modeButtons = document.querySelectorAll('.mode-btn');
+function setMode(m) {
+  mode = m;
+  popoverLocked = false;
+  hidePopover();
+  document.body.classList.toggle('mode-style', m === 'style');
+  document.body.classList.toggle('mode-vocab', m === 'vocab');
+  modeButtons.forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+}
+modeButtons.forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+setMode('vocab');
 
 // click elsewhere to close locked popover
 document.addEventListener('click', e => {
@@ -1158,8 +1324,24 @@ function stepBack() {
 }
 
 document.querySelectorAll('#latinCol .wg[data-order]').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    cancelHide();
+    if (popoverLocked) return;
+    if (mode === 'vocab') activateVocab(el.dataset.order, el);
+    else if (el.dataset.sf) activateSf(el.dataset.sf, el);
+    else hidePopover();
+  });
+  el.addEventListener('mouseleave', scheduleHide);
   el.addEventListener('click', e => {
-    if (el.dataset.sf) return; // handled by style click
+    // Style mode: clicking a style-marked word locks/unlocks its note
+    if (mode === 'style' && el.dataset.sf) {
+      e.stopPropagation();
+      const sf = el.dataset.sf;
+      if (popoverLocked && currentSf === sf) { popoverLocked = false; hidePopover(); }
+      else { popoverLocked = true; activateSf(sf, el); }
+      return;
+    }
+    // Otherwise: toggle the English reveal for this word
     const o = el.dataset.order;
     isRevealed(o) ? hideOrder(o) : revealOrder(o);
     step = allOrders.filter(o2 => isRevealed(o2)).length;
