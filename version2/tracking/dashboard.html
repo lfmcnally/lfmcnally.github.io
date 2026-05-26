@@ -894,6 +894,34 @@ init().then(() => {
     return Math.round(s.p * 100) + '% confidence';
   }
 
+  // Rich hover card, reusing the shared #wordTooltip element from the Latin view
+  function attachTip(el, s) {
+    const tt = document.getElementById('wordTooltip');
+    if (!tt) return;
+    el.addEventListener('mouseenter', () => {
+      document.getElementById('ttLatin').textContent   = s.q;
+      document.getElementById('ttEnglish').textContent = s.subtopic;
+      document.getElementById('ttConf').textContent    = confText(s);
+      const total = s.t | 0, correct = s.correct | 0, wrong = Math.max(0, total - correct);
+      let at = '';
+      if (total > 0) {
+        at = total + ' attempt' + (total === 1 ? '' : 's') + ' · ' + correct + ' ✓ · ' + wrong + ' ✗';
+        if (s.days) at += ' · ' + s.days + ' day' + (s.days === 1 ? '' : 's') + ' correct';
+      }
+      const ta = document.getElementById('ttAttempts');
+      ta.textContent = at;
+      ta.style.display = at ? '' : 'none';
+      tt.style.display = 'block';
+    });
+    el.addEventListener('mousemove', ev => {
+      let x = ev.clientX + 14, y = ev.clientY + 14;
+      if (x + 260 > window.innerWidth)  x = ev.clientX - 270;
+      if (y + 80 > window.innerHeight)  y = ev.clientY - 80;
+      tt.style.left = x + 'px'; tt.style.top = y + 'px';
+    });
+    el.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+  }
+
   async function renderMyth() {
     rendered = true;
     if (!TOPICS.length || !window.ClassicaliaBKT) return;
@@ -908,6 +936,7 @@ init().then(() => {
           id: q.id, topic: t.id, subtopic: q.subtopic, q: q.q,
           p:    st ? st.p_know : 0.30,
           t:    st ? (st.trials | 0) : 0,
+          correct: st ? (st.correct | 0) : 0,
           days: st ? (st.distinct_correct_days | 0) : 0
         });
       }
@@ -930,7 +959,7 @@ init().then(() => {
       for (const s of groups.get(key)) {
         const sq = document.createElement('div');
         sq.className = 'word-block ' + colourClass(s);
-        sq.title = s.q + ' — ' + confText(s);
+        attachTip(sq, s);
         map.appendChild(sq);
       }
     }
