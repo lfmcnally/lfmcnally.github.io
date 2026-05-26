@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/version2/assets/css/classicalia.css">
 <script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.1.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/bkt-store.js"></script>
@@ -48,6 +49,8 @@ body { background: var(--cream); }
 .help-key-label { font-size:13px;color:var(--ink);line-height:1.5; }
 .help-key-label b { font-family:'Lora',serif;font-style:italic;font-weight:700;color:var(--navy); }
 .course-tabs { display:flex; }
+.hidden { display:none !important; }
+.course-tab { cursor:pointer; }
 .course-tab { font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);padding:12px 22px;border-bottom:3px solid transparent;cursor:pointer;transition:all 0.12s;border-top:none;border-left:none;border-right:none;background:none;white-space:nowrap; }
 .course-tab:hover { color:rgba(255,255,255,0.8); }
 .course-tab.active { color:white;border-bottom-color:var(--brand); }
@@ -263,13 +266,15 @@ body { background: var(--cream); }
       <button class="help-btn" id="helpBtn" type="button">How does this work?</button>
     </div>
     <div class="course-tabs">
-      <button class="course-tab active">GCSE Latin</button>
+      <button class="course-tab active" id="tabLatin">GCSE Latin</button>
+      <button class="course-tab" id="tabMyth">Myth &amp; Religion</button>
       <button class="course-tab soon" disabled>GCSE Greek</button>
       <button class="course-tab soon" disabled>+ Add course</button>
     </div>
   </div>
 </div>
 <div class="dash-body">
+  <div id="course-latin">
   <a href="/version2/tools/vocab/latinvocabtester.html?auto=1" class="smart-btn">
     <div>
       <div class="smart-btn-label">Recommended</div>
@@ -385,6 +390,54 @@ body { background: var(--cream); }
       <div class="dash-card">
         <div class="dash-card-head"><span class="dash-card-title">Recently practised</span></div>
         <div id="sessionList"></div>
+      </div>
+    </div>
+  </div>
+  </div><!-- /course-latin -->
+
+  <div id="course-myth" class="hidden">
+    <a href="/version2/tools/quiz/myth-and-religion.html" class="smart-btn">
+      <div>
+        <div class="smart-btn-label">Practice</div>
+        <div class="smart-btn-title">Start a Myth &amp; Religion quiz</div>
+        <div class="smart-btn-desc">Multiple-choice questions, focused on the topics you find hardest.</div>
+      </div>
+      <div class="smart-btn-arrow">→</div>
+    </a>
+    <div class="wordmap-card">
+      <div class="wordmap-head">
+        <span class="wordmap-title" id="cmTitle">Question confidence map</span>
+        <div class="conf-legend">
+          <span class="conf-legend-swatch p-unseen"></span>Not seen
+          <span class="conf-legend-sep">·</span>
+          <span class="conf-legend-swatch p-verylow"></span>Low
+          <span class="conf-legend-sep">·</span>
+          <span class="conf-legend-swatch p-high"></span>Strong
+          <span class="conf-legend-sep">·</span>
+          <span class="conf-legend-swatch p-building"></span>Building
+          <span class="conf-legend-sep">·</span>
+          <span class="conf-legend-swatch p-secure"></span>Secure
+        </div>
+      </div>
+      <div class="wordmap-body"><div class="wordmap" id="cmMap"></div></div>
+    </div>
+    <div class="dash-grid">
+      <div>
+        <div class="dash-card">
+          <div class="dash-card-head"><span class="dash-card-title">Focus next — lowest confidence</span></div>
+          <div id="cmFocus"></div>
+        </div>
+      </div>
+      <div>
+        <div class="dash-card">
+          <div class="dash-card-head"><span class="dash-card-title">Secure questions</span></div>
+          <div class="secure-count-wrap">
+            <div class="secure-count" id="cmSecureCount">0</div>
+            <div class="secure-total" id="cmSecureTotal"></div>
+          </div>
+          <div class="secure-desc">A question becomes secure once you answer it correctly with high confidence on at least three different days.</div>
+          <div class="secure-bar-wrap"><div class="secure-bar"><div class="secure-bar-fill" id="cmSecureBar" style="width:0%"></div></div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -802,6 +855,109 @@ init().then(() => {
     });
   }
 });
+</script>
+<script>
+// ── Myth & Religion course view (self-contained; does not touch the Latin code) ──
+(function () {
+  const TOPICS = (window.CivQuiz && window.CivQuiz.topics) || [];
+  const tabLatin = document.getElementById('tabLatin');
+  const tabMyth  = document.getElementById('tabMyth');
+  const viewLatin = document.getElementById('course-latin');
+  const viewMyth  = document.getElementById('course-myth');
+  if (!tabMyth || !viewMyth) return;
+  let rendered = false;
+
+  function showCourse(which) {
+    const myth = which === 'myth';
+    viewLatin.classList.toggle('hidden', myth);
+    viewMyth.classList.toggle('hidden', !myth);
+    tabLatin.classList.toggle('active', !myth);
+    tabMyth.classList.toggle('active', myth);
+    if (myth && !rendered) renderMyth();
+  }
+  tabLatin.addEventListener('click', () => showCourse('latin'));
+  tabMyth.addEventListener('click', () => showCourse('myth'));
+
+  function esc(x) { return String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function colourClass(s) {
+    if (s.t === 0) return 'p-unseen';
+    if (s.p >= 0.95) return (s.days >= 3) ? 'p-secure' : 'p-building';
+    if (s.p >= 0.7) return 'p-high';
+    if (s.p >= 0.5) return 'p-mid';
+    if (s.p >= 0.3) return 'p-low';
+    return 'p-verylow';
+  }
+  function confText(s) {
+    if (s.t === 0) return 'Not seen yet';
+    if (s.p >= 0.95 && s.days >= 3) return 'Secure';
+    if (s.p >= 0.95) return 'Building — needs correct answers on more days';
+    return Math.round(s.p * 100) + '% confidence';
+  }
+
+  async function renderMyth() {
+    rendered = true;
+    if (!TOPICS.length || !window.ClassicaliaBKT) return;
+    const store = await window.ClassicaliaBKT.open({ vocabList: TOPICS[0].list });
+    const stored = await store.loadAll();
+
+    const states = [];
+    for (const t of TOPICS) {
+      for (const q of t.questions) {
+        const st = stored.get(q.id);
+        states.push({
+          id: q.id, topic: t.id, subtopic: q.subtopic, q: q.q,
+          p:    st ? st.p_know : 0.30,
+          t:    st ? (st.trials | 0) : 0,
+          days: st ? (st.distinct_correct_days | 0) : 0
+        });
+      }
+    }
+
+    // confidence map grouped by topic · subtopic
+    const map = document.getElementById('cmMap');
+    map.innerHTML = '';
+    const order = [], groups = new Map();
+    for (const s of states) {
+      const key = s.topic + ' · ' + s.subtopic;
+      if (!groups.has(key)) { groups.set(key, []); order.push(key); }
+      groups.get(key).push(s);
+    }
+    for (const key of order) {
+      const lab = document.createElement('div');
+      lab.className = 'wm-ch-label';
+      lab.textContent = key;
+      map.appendChild(lab);
+      for (const s of groups.get(key)) {
+        const sq = document.createElement('div');
+        sq.className = 'word-block ' + colourClass(s);
+        sq.title = s.q + ' — ' + confText(s);
+        map.appendChild(sq);
+      }
+    }
+
+    // secure count
+    const secure = states.filter(s => s.p >= 0.95 && s.days >= 3).length;
+    document.getElementById('cmSecureCount').textContent = secure;
+    document.getElementById('cmSecureTotal').textContent = '/ ' + states.length + ' questions';
+    document.getElementById('cmSecureBar').style.width = states.length ? Math.round(secure / states.length * 100) + '%' : '0%';
+    document.getElementById('cmTitle').textContent = 'Question confidence map — ' + states.length + ' questions';
+
+    // focus list: lowest-confidence, not-yet-secure
+    const focus = states.filter(s => !(s.p >= 0.95 && s.days >= 3)).sort((a, b) => a.p - b.p).slice(0, 12);
+    const fbox = document.getElementById('cmFocus');
+    fbox.innerHTML = '';
+    if (!focus.length) {
+      fbox.innerHTML = '<div style="padding:14px 16px;color:var(--muted);font-size:13px;">Everything is secure — nice work.</div>';
+    }
+    for (const s of focus) {
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:10px 16px;border-bottom:1px solid var(--rule-faint);';
+      row.innerHTML = '<div style="font-size:13px;color:var(--navy);line-height:1.4;">' + esc(s.q) +
+        '</div><div style="font-size:11px;color:var(--muted);margin-top:3px;">' + esc(s.subtopic) + ' &middot; ' + confText(s) + '</div>';
+      fbox.appendChild(row);
+    }
+  }
+})();
 </script>
 <script src="/version2/assets/js/starfield.js"></script>
 </body>
