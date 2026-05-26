@@ -301,6 +301,21 @@ function startQuiz() {
   nextQuestion();
 }
 
+// Smart review: skip setup and drill the questions you're weakest on
+// (everything not yet secure), across all subtopics of the topic.
+function startReview() {
+  selected = new Set(subtopics.map(st => st.label));
+  const all = topic.questions.map(q => stateById.get(q.id));
+  const unmastered = all.filter(s => !isSecure(s));
+  pool = unmastered.length ? unmastered : all;
+  if (!pool.length) return;
+  sessionAnswered = 0; sessionTarget = pool.length;
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('quiz').classList.remove('hidden');
+  current = null;
+  nextQuestion();
+}
+
 function nextQuestion() {
   let pick, tries = 0;
   do { pick = pickNext(); tries++; } while (pick === current && tries < 6 && pool.length > 1);
@@ -387,7 +402,8 @@ function init() {
     }
   });
 
-  loadTopic(0);
+  const reviewMode = new URLSearchParams(location.search).get('mode') === 'review';
+  loadTopic(0).then(() => { if (reviewMode) startReview(); });
 }
 
 async function loadTopic(i) {
