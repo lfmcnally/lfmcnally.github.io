@@ -73,6 +73,8 @@ body { background: var(--cream); }
 .wordmap-sort-btn.active { background:var(--brand);color:white;border-color:var(--brand); }
 .wordmap { display:flex;flex-wrap:wrap;gap:3px; }
 .wm-ch-label { flex-basis:100%;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px;display:flex;align-items:center;gap:8px; }
+.wm-topic-label { flex-basis:100%;font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:18px;color:var(--navy);margin:24px 0 4px;padding-bottom:7px;border-bottom:1px solid var(--rule); }
+.wm-topic-label:first-child { margin-top:4px; }
 .wm-ch-label:first-child { margin-top:0; }
 .wm-ch-count { font-weight:500;color:var(--rule);font-size:10px;letter-spacing:0.06em;text-transform:none; }
 .word-block { width:16px;height:16px;border-radius:3px;cursor:pointer;transition:transform 0.1s,box-shadow 0.1s;flex-shrink:0; }
@@ -894,6 +896,34 @@ init().then(() => {
     return Math.round(s.p * 100) + '% confidence';
   }
 
+  // Rich hover card, reusing the shared #wordTooltip element from the Latin view
+  function attachTip(el, s) {
+    const tt = document.getElementById('wordTooltip');
+    if (!tt) return;
+    el.addEventListener('mouseenter', () => {
+      document.getElementById('ttLatin').textContent   = s.q;
+      document.getElementById('ttEnglish').textContent = s.subtopic;
+      document.getElementById('ttConf').textContent    = confText(s);
+      const total = s.t | 0, correct = s.correct | 0, wrong = Math.max(0, total - correct);
+      let at = '';
+      if (total > 0) {
+        at = total + ' attempt' + (total === 1 ? '' : 's') + ' · ' + correct + ' ✓ · ' + wrong + ' ✗';
+        if (s.days) at += ' · ' + s.days + ' day' + (s.days === 1 ? '' : 's') + ' correct';
+      }
+      const ta = document.getElementById('ttAttempts');
+      ta.textContent = at;
+      ta.style.display = at ? '' : 'none';
+      tt.style.display = 'block';
+    });
+    el.addEventListener('mousemove', ev => {
+      let x = ev.clientX + 14, y = ev.clientY + 14;
+      if (x + 260 > window.innerWidth)  x = ev.clientX - 270;
+      if (y + 80 > window.innerHeight)  y = ev.clientY - 80;
+      tt.style.left = x + 'px'; tt.style.top = y + 'px';
+    });
+    el.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
+  }
+
   async function renderMyth() {
     rendered = true;
     if (!TOPICS.length || !window.ClassicaliaBKT) return;
@@ -908,30 +938,41 @@ init().then(() => {
           id: q.id, topic: t.id, subtopic: q.subtopic, q: q.q,
           p:    st ? st.p_know : 0.30,
           t:    st ? (st.trials | 0) : 0,
+          correct: st ? (st.correct | 0) : 0,
           days: st ? (st.distinct_correct_days | 0) : 0
         });
       }
     }
 
-    // confidence map grouped by topic · subtopic
+    // confidence map: topic heading, then a subheading per subtopic
+    const titleOf = {};
+    for (const t of TOPICS) titleOf[t.id] = t.title;
     const map = document.getElementById('cmMap');
     map.innerHTML = '';
-    const order = [], groups = new Map();
+    const topicOrder = [], byTopic = new Map();
     for (const s of states) {
-      const key = s.topic + ' · ' + s.subtopic;
-      if (!groups.has(key)) { groups.set(key, []); order.push(key); }
-      groups.get(key).push(s);
+      if (!byTopic.has(s.topic)) { byTopic.set(s.topic, { order: [], subs: new Map() }); topicOrder.push(s.topic); }
+      const tg = byTopic.get(s.topic);
+      if (!tg.subs.has(s.subtopic)) { tg.subs.set(s.subtopic, []); tg.order.push(s.subtopic); }
+      tg.subs.get(s.subtopic).push(s);
     }
-    for (const key of order) {
-      const lab = document.createElement('div');
-      lab.className = 'wm-ch-label';
-      lab.textContent = key;
-      map.appendChild(lab);
-      for (const s of groups.get(key)) {
-        const sq = document.createElement('div');
-        sq.className = 'word-block ' + colourClass(s);
-        sq.title = s.q + ' — ' + confText(s);
-        map.appendChild(sq);
+    for (const tid of topicOrder) {
+      const th = document.createElement('div');
+      th.className = 'wm-topic-label';
+      th.textContent = tid + (titleOf[tid] ? ' ' + titleOf[tid] : '');
+      map.appendChild(th);
+      const tg = byTopic.get(tid);
+      for (const sub of tg.order) {
+        const lab = document.createElement('div');
+        lab.className = 'wm-ch-label';
+        lab.textContent = sub;
+        map.appendChild(lab);
+        for (const s of tg.subs.get(sub)) {
+          const sq = document.createElement('div');
+          sq.className = 'word-block ' + colourClass(s);
+          attachTip(sq, s);
+          map.appendChild(sq);
+        }
       }
     }
 
