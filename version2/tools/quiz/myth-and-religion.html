@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Myth &amp; Religion — Quiz — Classicalia</title>
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="data/myth-1.1.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/bkt-store.js"></script>
+<style>
+.quiz-wrap { max-width: 760px; margin: 0 auto; padding: 32px 24px 80px; }
+
+/* sync pill */
+.sync-pill {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.04em; color: var(--muted); background: var(--cream);
+  border: 1px solid var(--rule); border-radius: 999px; padding: 5px 12px; margin-bottom: 22px;
+}
+.sync-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; }
+.sync-pill.cloud .dot { background: #22c55e; }
+.sync-pill a { color: var(--brand); text-decoration: none; font-weight: 700; }
+
+/* setup */
+.quiz-card { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 26px 28px; }
+.quiz-card h2 {
+  font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 22px;
+  color: var(--navy); margin: 0 0 4px;
+}
+.quiz-card .sub { font-size: 12.5px; color: var(--muted); margin-bottom: 22px; }
+.field-label { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 18px 0 10px; }
+.topic-select {
+  width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--navy);
+  padding: 10px 12px; border: 1px solid var(--rule); border-radius: 7px; background: var(--cream);
+}
+.subtopic-row {
+  display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 12px;
+  padding: 9px 0; border-bottom: 1px dotted var(--rule-faint); cursor: pointer;
+}
+.subtopic-row:last-child { border-bottom: none; }
+.subtopic-row input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+.subtopic-name { font-size: 13.5px; color: var(--ink); line-height: 1.4; }
+.subtopic-count { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.subtopic-meta { display: flex; align-items: center; gap: 10px; }
+.mini-bar { width: 70px; height: 5px; border-radius: 3px; background: var(--rule-faint); overflow: hidden; }
+.mini-bar span { display: block; height: 100%; background: var(--brand); border-radius: 3px; }
+.select-toggle { font-size: 11px; font-weight: 700; color: var(--brand); background: none; border: none; cursor: pointer; letter-spacing: 0.04em; }
+.start-btn {
+  margin-top: 22px; width: 100%; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700;
+  color: white; background: var(--brand); border: none; border-radius: 8px; padding: 14px; cursor: pointer;
+  transition: opacity 0.12s;
+}
+.start-btn:hover { opacity: 0.9; }
+.start-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* quiz */
+.quiz-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.quiz-meta .subtopic-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.quiz-meta .counter { font-size: 12px; font-weight: 600; color: var(--muted); }
+.q-progress { height: 5px; border-radius: 3px; background: var(--rule-faint); overflow: hidden; margin-bottom: 22px; }
+.q-progress span { display: block; height: 100%; background: var(--brand); width: 0; transition: width 0.3s; }
+.q-text {
+  font-family: 'Lora', serif; font-weight: 600; font-size: 19px; color: var(--navy);
+  line-height: 1.5; margin-bottom: 22px;
+}
+.mc-list { display: flex; flex-direction: column; gap: 10px; }
+.mc-btn {
+  text-align: left; font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.45; color: var(--ink);
+  background: var(--cream); border: 1.5px solid var(--rule); border-radius: 8px; padding: 13px 15px;
+  cursor: pointer; transition: border-color 0.12s, background 0.12s;
+  display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start;
+}
+.mc-btn .key { font-weight: 700; color: var(--muted); font-size: 12px; padding-top: 1px; }
+.mc-btn:hover:not(:disabled) { border-color: var(--brand); }
+.mc-btn:disabled { cursor: default; }
+.mc-btn.correct { border-color: #22c55e; background: #f0fdf4; color: #15803d; }
+.mc-btn.correct .key { color: #15803d; }
+.mc-btn.wrong { border-color: #f87171; background: #fef2f2; color: #b91c1c; }
+.mc-btn.wrong .key { color: #b91c1c; }
+.mc-btn.dim { opacity: 0.55; }
+.quiz-controls { display: flex; align-items: center; justify-content: space-between; margin-top: 22px; }
+.btn-ghost { font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; color: var(--muted); background: none; border: 1px solid var(--rule); padding: 9px 16px; border-radius: 7px; cursor: pointer; }
+.btn-ghost:hover { color: var(--navy); border-color: var(--navy); }
+.btn-next { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; color: white; background: var(--brand); border: none; padding: 10px 22px; border-radius: 7px; cursor: pointer; }
+.btn-next:disabled { opacity: 0.35; cursor: default; }
+.hidden { display: none !important; }
+.pk-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <canvas class="header-sky" data-starfield data-seed="121" data-region="0.8"></canvas>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo">Classicalia</a>
+      <div class="nav-links">
+        <a href="/version2/subjects/latin/" class="nav-link">Latin</a>
+        <a href="/version2/subjects/greek/" class="nav-link">Greek</a>
+        <a href="/version2/subjects/classical-civilisation/" class="nav-link active">Class. Civ.</a>
+        <div class="nav-div"></div>
+        <a href="#" class="nav-link">Tools</a>
+        <a href="#" class="nav-link">About</a>
+        <a href="#" class="nav-cta">Sign in</a>
+      </div>
+    </div>
+  </nav>
+  <div class="header-inner">
+    <div class="header-eyebrow">GCSE Classical Civilisation &middot; Myth and Religion</div>
+    <h1 class="header-title">Quiz</h1>
+    <p class="header-deck">Multiple-choice practice with progress tracking &mdash; pick a topic and the subtopics you want to revise</p>
+  </div>
+</div>
+
+<div class="quiz-wrap">
+
+  <div class="sync-pill" id="syncPill"><span class="dot"></span><span id="syncText">Saving progress on this device</span></div>
+
+  <!-- SETUP -->
+  <div class="quiz-card" id="setup">
+    <h2>Choose what to practise</h2>
+    <div class="sub" id="setupSub">Your answers are tracked question by question, so the quiz focuses on what you find hardest.</div>
+
+    <div class="field-label">Topic</div>
+    <select class="topic-select" id="topicSelect"></select>
+
+    <div class="field-label" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Subtopics</span>
+      <button class="select-toggle" id="toggleAll">Select none</button>
+    </div>
+    <div id="subtopicList"></div>
+
+    <button class="start-btn" id="startBtn">Start quiz</button>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="quiz-card hidden" id="quiz">
+    <div class="quiz-meta">
+      <span class="subtopic-tag" id="qSubtopic"></span>
+      <span class="counter" id="qCounter"></span>
+    </div>
+    <div class="q-progress"><span id="qProgressBar"></span></div>
+    <div class="q-text" id="qText"></div>
+    <div class="mc-list" id="qOptions"></div>
+    <div class="quiz-controls">
+      <button class="btn-ghost" id="backBtn">&larr; Menu</button>
+      <button class="btn-next" id="nextBtn" disabled>Next &rarr;</button>
+    </div>
+  </div>
+
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <a href="/version2/" class="footer-logo">Classicalia</a>
+    <div class="footer-links">
+      <a href="/version2/subjects/latin/" class="footer-link">Latin</a>
+      <a href="/version2/subjects/greek/" class="footer-link">Greek</a>
+      <a href="/version2/subjects/classical-civilisation/" class="footer-link">Classical Civilisation</a>
+    </div>
+    <span class="footer-copy">classicalia.co.uk &middot; Free for all</span>
+  </div>
+</footer>
+
+<script>
+// ── BKT model (identical to the vocabulary tester) ──
+const BKT = { pL0: 0.30, pT: 0.12, pG: 0.32, pS: 0.15, mastery: 0.95 };
+const MASTERY = { daysRequired: 3 };
+
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; }
+  return a;
+}
+function isSecure(s) { return s.pKnow >= BKT.mastery && (s.distinctCorrectDays|0) >= MASTERY.daysRequired; }
+
+const TOPICS = (window.CivQuiz && window.CivQuiz.topics) || [];
+let topic = null;          // active topic object
+let store = null;          // BKT store for the topic's list
+let stateById = new Map(); // id -> question state
+let subtopics = [];        // [{label, ids:[]}] in first-appearance order
+let selected = new Set();  // selected subtopic labels
+let pool = [];             // active question states
+let current = null;
+let answered = false;
+let sessionAnswered = 0, sessionTarget = 0;
+
+// ── store / state ──
+async function openStoreForTopic() {
+  if (!window.ClassicaliaBKT) return;
+  store = await window.ClassicaliaBKT.open({ vocabList: topic.list });
+  setSyncPill();
+  const stored = await store.loadAll();   // Map keyed by question id
+  stateById = new Map();
+  for (const q of topic.questions) {
+    const s = stored.get(q.id);
+    stateById.set(q.id, {
+      id: q.id, subtopic: q.subtopic, q: q.q, answers: q.answers,
+      pKnow:               s ? s.p_know : BKT.pL0,
+      trials:              s ? (s.trials|0) : 0,
+      correct:             s ? (s.correct|0) : 0,
+      distinctCorrectDays: s ? (s.distinct_correct_days|0) : 0,
+      lastCorrectDate:     s ? (s.last_correct_date||null) : null
+    });
+  }
+}
+
+function setSyncPill() {
+  const pill = document.getElementById('syncPill');
+  if (store && store.mode === 'cloud') {
+    pill.classList.add('cloud');
+    document.getElementById('syncText').innerHTML = 'Synced to your account';
+  } else {
+    pill.classList.remove('cloud');
+    document.getElementById('syncText').innerHTML =
+      'Saving on this device &middot; <a href="/version2/subjects/classical-civilisation/">sign in to sync</a>';
+  }
+}
+
+function buildSubtopics() {
+  subtopics = [];
+  const seen = new Map();
+  for (const q of topic.questions) {
+    if (!seen.has(q.subtopic)) { seen.set(q.subtopic, { label: q.subtopic, ids: [] }); subtopics.push(seen.get(q.subtopic)); }
+    seen.get(q.subtopic).ids.push(q.id);
+  }
+}
+
+// ── BKT update ──
+function bktUpdate(s, correct) {
+  const p = s.pKnow, { pG, pS, pT } = BKT;
+  const posterior = correct
+    ? (p*(1-pS)) / (p*(1-pS) + (1-p)*pG)
+    : (p*pS)     / (p*pS     + (1-p)*(1-pG));
+  s.pKnow = posterior + (1-posterior)*pT;
+  s.trials++;
+  if (correct) s.correct++;
+  const today = todayISO();
+  if (correct && s.lastCorrectDate !== today) { s.distinctCorrectDays = (s.distinctCorrectDays|0)+1; s.lastCorrectDate = today; }
+  if (store) {
+    store.update(s.id, {
+      p_know: s.pKnow, trials: s.trials, correct: s.correct,
+      distinct_correct_days: s.distinctCorrectDays|0, last_correct_date: s.lastCorrectDate||null
+    });
+  }
+}
+
+// ── selection: weighted toward lowest pKnow among unmastered ──
+function pickNext() {
+  const unmastered = pool.filter(s => !isSecure(s));
+  const list = unmastered.length ? unmastered : pool;
+  const weights = list.map(s => 1 - s.pKnow + 0.05); // small floor so secure items can still recur
+  const total = weights.reduce((a,b)=>a+b, 0);
+  let r = Math.random()*total;
+  for (let i=0;i<list.length;i++){ r -= weights[i]; if (r<=0) return list[i]; }
+  return list[list.length-1];
+}
+
+// ── setup rendering ──
+function renderSetup() {
+  const list = document.getElementById('subtopicList');
+  list.innerHTML = '';
+  for (const st of subtopics) {
+    const states = st.ids.map(id => stateById.get(id));
+    const avg = states.reduce((a,s)=>a+s.pKnow,0) / states.length;
+    const secure = states.filter(isSecure).length;
+    const row = document.createElement('label');
+    row.className = 'subtopic-row';
+    row.innerHTML =
+      '<input type="checkbox" ' + (selected.has(st.label)?'checked':'') + '>' +
+      '<span class="subtopic-name">' + st.label + '</span>' +
+      '<span class="subtopic-meta"><span class="mini-bar"><span style="width:' + Math.round(avg*100) + '%"></span></span>' +
+      '<span class="subtopic-count">' + secure + '/' + st.ids.length + '</span></span>';
+    row.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) selected.add(st.label); else selected.delete(st.label);
+      updateStartState();
+    });
+    list.appendChild(row);
+  }
+  updateStartState();
+}
+function updateStartState() {
+  const n = topic.questions.filter(q => selected.has(q.subtopic)).length;
+  document.getElementById('startBtn').disabled = n === 0;
+  document.getElementById('startBtn').textContent = n === 0 ? 'Select a subtopic' : 'Start quiz (' + n + ' questions)';
+  document.getElementById('toggleAll').textContent = selected.size === subtopics.length ? 'Select none' : 'Select all';
+}
+
+// ── quiz ──
+function startQuiz() {
+  pool = topic.questions.filter(q => selected.has(q.subtopic)).map(q => stateById.get(q.id));
+  if (!pool.length) return;
+  sessionAnswered = 0; sessionTarget = pool.length;
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('quiz').classList.remove('hidden');
+  current = null;
+  nextQuestion();
+}
+
+function nextQuestion() {
+  let pick, tries = 0;
+  do { pick = pickNext(); tries++; } while (pick === current && tries < 6 && pool.length > 1);
+  current = pick;
+  answered = false;
+
+  document.getElementById('qSubtopic').textContent = current.subtopic;
+  document.getElementById('qCounter').textContent = 'Answered: ' + sessionAnswered;
+  document.getElementById('qProgressBar').style.width = sessionTarget ? Math.min(100, Math.round(sessionAnswered/sessionTarget*100)) + '%' : '0%';
+  document.getElementById('qText').textContent = current.q;
+
+  const correctText = current.answers[0];
+  const opts = shuffle(current.answers.slice());
+  const box = document.getElementById('qOptions');
+  box.innerHTML = '';
+  opts.forEach((text, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'mc-btn';
+    btn.innerHTML = '<span class="key">' + (i+1) + '</span><span>' + escapeHtml(text) + '</span>';
+    btn.addEventListener('click', () => choose(btn, text === correctText, correctText));
+    box.appendChild(btn);
+  });
+  document.getElementById('nextBtn').disabled = true;
+}
+
+function choose(btn, correct, correctText) {
+  if (answered) return;
+  answered = true;
+  sessionAnswered++;
+  bktUpdate(current, correct);
+
+  const buttons = Array.from(document.querySelectorAll('#qOptions .mc-btn'));
+  buttons.forEach(b => {
+    b.disabled = true;
+    const label = b.querySelector('span:last-child').textContent;
+    if (label === correctText) b.classList.add('correct');
+    else if (b === btn) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  document.getElementById('qCounter').textContent = 'Answered: ' + sessionAnswered;
+  document.getElementById('nextBtn').disabled = false;
+}
+
+function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function backToMenu() {
+  document.getElementById('quiz').classList.add('hidden');
+  document.getElementById('setup').classList.remove('hidden');
+  if (store) store.flush();
+  renderSetup();
+}
+
+// ── init ──
+function init() {
+  if (!TOPICS.length) {
+    document.getElementById('setupSub').textContent = 'No question topics are loaded yet.';
+    document.getElementById('startBtn').disabled = true;
+    return;
+  }
+  const sel = document.getElementById('topicSelect');
+  TOPICS.forEach((t, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = 'Topic ' + t.id + ' — ' + t.title;
+    sel.appendChild(o);
+  });
+  sel.addEventListener('change', () => loadTopic(parseInt(sel.value)));
+
+  document.getElementById('toggleAll').addEventListener('click', () => {
+    if (selected.size === subtopics.length) selected.clear();
+    else subtopics.forEach(st => selected.add(st.label));
+    renderSetup();
+  });
+  document.getElementById('startBtn').addEventListener('click', startQuiz);
+  document.getElementById('backBtn').addEventListener('click', backToMenu);
+  document.getElementById('nextBtn').addEventListener('click', () => { if (answered) nextQuestion(); });
+
+  document.addEventListener('keydown', e => {
+    if (document.getElementById('quiz').classList.contains('hidden')) return;
+    if (!answered && e.key >= '1' && e.key <= '4') {
+      const b = document.querySelectorAll('#qOptions .mc-btn')[parseInt(e.key)-1];
+      if (b) b.click();
+    } else if (answered && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight')) {
+      e.preventDefault(); nextQuestion();
+    }
+  });
+
+  loadTopic(0);
+}
+
+async function loadTopic(i) {
+  topic = TOPICS[i];
+  buildSubtopics();
+  selected = new Set(subtopics.map(st => st.label));
+  await openStoreForTopic();
+  renderSetup();
+}
+
+// re-flush before leaving
+window.addEventListener('beforeunload', () => { if (store) store.flush(); });
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+</script>
+<script src="/version2/assets/js/starfield.js"></script>
+</body>
+</html>
