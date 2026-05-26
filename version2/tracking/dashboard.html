@@ -162,6 +162,16 @@ body { background: var(--cream); }
 .smart-btn-desc { font-size:12px;color:#8fa8cc;margin-top:3px; }
 .smart-btn-arrow { font-size:24px;color:rgba(255,255,255,0.4);transition:color 0.12s;flex-shrink:0; }
 .smart-btn:hover .smart-btn-arrow { color:white; }
+.smart-btn-row { display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px; }
+.smart-btn-row .smart-btn { margin-bottom:0; }
+.smart-btn.secondary { background:var(--paper);border:1px solid var(--rule); }
+.smart-btn.secondary:hover { background:var(--cream);border-color:var(--navy); }
+.smart-btn.secondary .smart-btn-label { color:var(--brand); }
+.smart-btn.secondary .smart-btn-title { color:var(--navy); }
+.smart-btn.secondary .smart-btn-desc { color:var(--muted); }
+.smart-btn.secondary .smart-btn-arrow { color:rgba(14,30,63,0.3); }
+.smart-btn.secondary:hover .smart-btn-arrow { color:var(--navy); }
+@media (max-width:560px){ .smart-btn-row { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -262,9 +272,9 @@ body { background: var(--cream); }
   </nav>
   <div class="dash-header-inner">
     <div class="dash-eyebrow">My progress</div>
-    <div class="dash-title">Vocabulary confidence</div>
+    <div class="dash-title">Your progress</div>
     <div class="dash-subtitle">
-      Each word has a confidence score based on your full response history — not just whether you got it right twice.
+      Everything you practise — vocabulary and quiz topics — earns a confidence score based on your full answer history, not just whether you got it right once or twice.
       <button class="help-btn" id="helpBtn" type="button">How does this work?</button>
     </div>
     <div class="course-tabs">
@@ -398,14 +408,24 @@ body { background: var(--cream); }
   </div><!-- /course-latin -->
 
   <div id="course-myth" class="hidden">
-    <a href="/version2/tools/quiz/myth-and-religion.html" class="smart-btn">
-      <div>
-        <div class="smart-btn-label">Practice</div>
-        <div class="smart-btn-title">Start a Myth &amp; Religion quiz</div>
-        <div class="smart-btn-desc">Multiple-choice questions, focused on the topics you find hardest.</div>
-      </div>
-      <div class="smart-btn-arrow">→</div>
-    </a>
+    <div class="smart-btn-row">
+      <a href="/version2/tools/quiz/myth-and-religion.html?mode=review" class="smart-btn">
+        <div>
+          <div class="smart-btn-label">Recommended</div>
+          <div class="smart-btn-title">Smart review</div>
+          <div class="smart-btn-desc">Jump straight into the questions you find hardest.</div>
+        </div>
+        <div class="smart-btn-arrow">→</div>
+      </a>
+      <a href="/version2/tools/quiz/myth-and-religion.html" class="smart-btn secondary">
+        <div>
+          <div class="smart-btn-label">Practice</div>
+          <div class="smart-btn-title">Practise everything</div>
+          <div class="smart-btn-desc">Pick a topic and the subtopics you want to revise.</div>
+        </div>
+        <div class="smart-btn-arrow">→</div>
+      </a>
+    </div>
     <div class="wordmap-card">
       <div class="wordmap-head">
         <span class="wordmap-title" id="cmTitle">Question confidence map</span>
@@ -879,6 +899,7 @@ init().then(() => {
   }
   tabLatin.addEventListener('click', () => showCourse('latin'));
   tabMyth.addEventListener('click', () => showCourse('myth'));
+  if (new URLSearchParams(location.search).get('course') === 'myth') showCourse('myth');
 
   function esc(x) { return String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function colourClass(s) {
@@ -983,12 +1004,16 @@ init().then(() => {
     document.getElementById('cmSecureBar').style.width = states.length ? Math.round(secure / states.length * 100) + '%' : '0%';
     document.getElementById('cmTitle').textContent = 'Question confidence map — ' + states.length + ' questions';
 
-    // focus list: lowest-confidence, not-yet-secure
-    const focus = states.filter(s => !(s.p >= 0.95 && s.days >= 3)).sort((a, b) => a.p - b.p).slice(0, 12);
+    // focus list: lowest-confidence among questions actually attempted
+    // (unseen questions aren't "weak", they just haven't been done yet)
+    const attempted = states.filter(s => s.t > 0);
+    const focus = attempted.filter(s => !(s.p >= 0.95 && s.days >= 3)).sort((a, b) => a.p - b.p).slice(0, 12);
     const fbox = document.getElementById('cmFocus');
     fbox.innerHTML = '';
     if (!focus.length) {
-      fbox.innerHTML = '<div style="padding:14px 16px;color:var(--muted);font-size:13px;">Everything is secure — nice work.</div>';
+      fbox.innerHTML = attempted.length
+        ? '<div style="padding:14px 16px;color:var(--muted);font-size:13px;">Everything you\'ve answered is secure — nice work.</div>'
+        : '<div style="padding:14px 16px;color:var(--muted);font-size:13px;">Answer some quiz questions and the ones you find hardest will show up here.</div>';
     }
     for (const s of focus) {
       const row = document.createElement('div');
