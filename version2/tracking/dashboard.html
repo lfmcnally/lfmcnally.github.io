@@ -1004,22 +1004,49 @@ init().then(() => {
     document.getElementById('cmSecureBar').style.width = states.length ? Math.round(secure / states.length * 100) + '%' : '0%';
     document.getElementById('cmTitle').textContent = 'Question confidence map — ' + states.length + ' questions';
 
-    // focus list: lowest-confidence among questions actually attempted
-    // (unseen questions aren't "weak", they just haven't been done yet)
-    const attempted = states.filter(s => s.t > 0);
-    const focus = attempted.filter(s => !(s.p >= 0.95 && s.days >= 3)).sort((a, b) => a.p - b.p).slice(0, 12);
+    // focus list: the subtopics with the lowest confidence, judged on the
+    // questions actually attempted (a subtopic you've never touched isn't
+    // "weak", just not started, so it doesn't appear here).
+    const groups = new Map();
+    for (const s of states) {
+      const key = s.topic + '|' + s.subtopic;
+      if (!groups.has(key)) groups.set(key, { topic: s.topic, subtopic: s.subtopic, qs: [] });
+      groups.get(key).qs.push(s);
+    }
+    const ranked = [];
+    for (const g of groups.values()) {
+      const attemptedQs = g.qs.filter(s => s.t > 0);
+      const weak = attemptedQs.filter(s => !(s.p >= 0.95 && s.days >= 3));
+      if (!weak.length) continue;
+      const avg = attemptedQs.reduce((a, s) => a + s.p, 0) / attemptedQs.length;
+      const secureN = g.qs.filter(s => s.p >= 0.95 && s.days >= 3).length;
+      ranked.push({ topic: g.topic, subtopic: g.subtopic, avg, secureN, total: g.qs.length });
+    }
+    ranked.sort((a, b) => a.avg - b.avg);
+    const focusGroups = ranked.slice(0, 3);
+
     const fbox = document.getElementById('cmFocus');
     fbox.innerHTML = '';
-    if (!focus.length) {
-      fbox.innerHTML = attempted.length
-        ? '<div style="padding:14px 16px;color:var(--muted);font-size:13px;">Everything you\'ve answered is secure — nice work.</div>'
-        : '<div style="padding:14px 16px;color:var(--muted);font-size:13px;">Answer some quiz questions and the ones you find hardest will show up here.</div>';
+    if (!focusGroups.length) {
+      fbox.innerHTML = states.some(s => s.t > 0)
+        ? '<div style="padding:14px 16px;color:var(--muted);font-size:13px;">Everything you\'ve worked on is secure — nice work.</div>'
+        : '<div style="padding:14px 16px;color:var(--muted);font-size:13px;">Answer some quiz questions and the topics you find hardest will show up here.</div>';
     }
-    for (const s of focus) {
+    function swatchClass(p) {
+      if (p >= 0.7) return 'p-high';
+      if (p >= 0.5) return 'p-mid';
+      if (p >= 0.3) return 'p-low';
+      return 'p-verylow';
+    }
+    for (const g of focusGroups) {
+      const pct = Math.round(g.avg * 100);
       const row = document.createElement('div');
-      row.style.cssText = 'padding:10px 16px;border-bottom:1px solid var(--rule-faint);';
-      row.innerHTML = '<div style="font-size:13px;color:var(--navy);line-height:1.4;">' + esc(s.q) +
-        '</div><div style="font-size:11px;color:var(--muted);margin-top:3px;">' + esc(s.subtopic) + ' &middot; ' + confText(s) + '</div>';
+      row.style.cssText = 'padding:11px 16px;border-bottom:1px solid var(--rule-faint);';
+      row.innerHTML =
+        '<div style="font-size:13px;color:var(--navy);line-height:1.4;display:flex;align-items:center;gap:8px;">' +
+          '<span class="conf-legend-swatch ' + swatchClass(g.avg) + '"></span>' + esc(g.subtopic) +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--muted);margin-top:3px;">Topic ' + esc(g.topic) + ' &middot; ' + pct + '% confidence &middot; ' + g.secureN + '/' + g.total + ' secure</div>';
       fbox.appendChild(row);
     }
   }
