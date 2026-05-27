@@ -301,14 +301,19 @@ function startQuiz() {
   nextQuestion();
 }
 
-// Smart review: skip setup and drill the questions you're weakest on
-// (everything not yet secure), across all subtopics of the topic.
+// Smart review: skip setup and drill only the questions you've already
+// attempted but not yet secured. Unseen questions (no trials) are left
+// out — review is for shoring up answers you keep getting wrong, not for
+// meeting new material.
 function startReview() {
   selected = new Set(subtopics.map(st => st.label));
   const all = topic.questions.map(q => stateById.get(q.id));
-  const unmastered = all.filter(s => !isSecure(s));
-  pool = unmastered.length ? unmastered : all;
-  if (!pool.length) return;
+  pool = all.filter(s => (s.trials | 0) > 0 && !isSecure(s));
+  if (!pool.length) {
+    document.getElementById('setupSub').textContent =
+      "Nothing to review yet — smart review drills questions you've answered before and keep getting wrong. Answer a few below first, then come back.";
+    return;
+  }
   sessionAnswered = 0; sessionTarget = pool.length;
   document.getElementById('setup').classList.add('hidden');
   document.getElementById('quiz').classList.remove('hidden');
