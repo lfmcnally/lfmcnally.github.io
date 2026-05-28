@@ -772,13 +772,16 @@ async function renderDoNowCard(cls) {
     const { error } = await window.supabase.from('v2_do_now').upsert(payload, { onConflict: 'class_id' });
     if (error) { status.textContent = 'Could not save: ' + error.message; status.style.color = '#dc2626'; return; }
     status.textContent = 'Active — just now'; status.style.color = '#059669';
+    renderDoNowSummary(cls);   // reset the panel to this new Do Now's window
   });
 
   host.querySelector('#dnClear').addEventListener('click', async () => {
     status.textContent = 'Stopping…'; status.style.color = 'var(--muted)';
-    const { error } = await window.supabase.from('v2_do_now').update({ active: false, updated_at: new Date().toISOString() }).eq('class_id', cls.id);
+    // Only flip active off — keep updated_at so the results window (and the
+    // final results) are preserved for review.
+    const { error } = await window.supabase.from('v2_do_now').update({ active: false }).eq('class_id', cls.id);
     if (error) { status.textContent = 'Could not stop: ' + error.message; status.style.color = '#dc2626'; return; }
-    status.textContent = 'Stopped — students can no longer start it'; status.style.color = 'var(--muted)';
+    status.textContent = 'Stopped — students have been cut off'; status.style.color = 'var(--muted)';
     renderDoNowSummary(cls);
   });
 
@@ -792,13 +795,24 @@ async function renderDoNowSummary(cls) {
   if (!host) return;
   const ids = cls.students.map(s => s.id);
   if (!ids.length) { host.innerHTML = '<div style="font-size:12.5px;color:var(--muted);">No students in this class yet — add them by their sharing codes.</div>'; return; }
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+
+  // The current assignment defines the tracking window: only count practice
+  // since it was set, so a fresh Do Now starts clean (no stale results).
+  let dn = null;
+  try {
+    const { data } = await window.supabase.from('v2_do_now')
+      .select('updated_at, active').eq('class_id', cls.id).maybeSingle();
+    dn = data;
+  } catch (_e) {}
+  if (!dn || !dn.updated_at) { host.innerHTML = '<div style="font-size:12.5px;color:var(--muted);">Set a Do Now above to start tracking the class.</div>'; return; }
+  const since = dn.updated_at;
+
   let sessions;
   try {
     const { data, error } = await window.supabase
       .from('vocab_sessions').select('student_id, answered, correct, last_answer_at')
       .eq('vocab_list', 'civ-myth-religion')
-      .gte('started_at', todayStart.toISOString())
+      .gte('started_at', since)
       .in('student_id', ids);
     if (error) { host.innerHTML = '<div style="font-size:12.5px;color:#dc2626;">Could not load results: ' + escapeHtml(error.message) + '</div>'; return; }
     sessions = data || [];
@@ -848,8 +862,8 @@ async function renderDoNowSummary(cls) {
 
   host.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Live tracking · today</div>
-      <span style="font-size:11px;color:var(--muted);">updates automatically · <button id="dnRefresh" type="button" style="font-family:inherit;font-size:11px;font-weight:600;color:var(--brand);background:none;border:none;cursor:pointer;padding:0;">refresh now</button></span>
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${dn.active ? '#059669' : 'var(--muted)'};">${dn.active ? 'Live tracking' : 'Stopped · final results'}</div>
+      <span style="font-size:11px;color:var(--muted);">${dn.active ? 'updates automatically · ' : ''}<button id="dnRefresh" type="button" style="font-family:inherit;font-size:11px;font-weight:600;color:var(--brand);background:none;border:none;cursor:pointer;padding:0;">refresh now</button></span>
     </div>
     <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:baseline;margin-bottom:12px;">
       <div><span style="font-size:26px;font-weight:700;color:var(--navy);">${done}</span><span style="font-size:13px;color:var(--muted);"> / ${cls.students.length} students in</span></div>
