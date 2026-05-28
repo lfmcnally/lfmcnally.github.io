@@ -699,9 +699,12 @@ function civSubtopicsOf(topicId) {
   return seen;
 }
 
+let doNowPoll = null;   // live-refresh timer for the Do Now results panel
+
 async function renderDoNowCard(cls) {
   const host = document.getElementById('doNowCard');
   if (!host) return;
+  if (doNowPoll) { clearInterval(doNowPoll); doNowPoll = null; }
   if (cls.type !== 'civ-gcse') { host.innerHTML = ''; return; }
   const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
 
@@ -713,7 +716,7 @@ async function renderDoNowCard(cls) {
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
           <select id="dnTopic" style="min-width:240px;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;font-size:13px;background:white;"></select>
           <button id="dnSet" type="button" style="font-family:inherit;font-size:13px;font-weight:700;padding:9px 16px;border-radius:6px;border:none;background:var(--brand);color:white;cursor:pointer;">Set as today's Do Now</button>
-          <button id="dnClear" type="button" style="font-family:inherit;font-size:12px;font-weight:600;padding:9px 14px;border-radius:6px;border:1px solid var(--rule);background:white;color:var(--muted);cursor:pointer;">Turn off</button>
+          <button id="dnClear" type="button" style="font-family:inherit;font-size:12px;font-weight:600;padding:9px 14px;border-radius:6px;border:1px solid var(--rule);background:white;color:var(--muted);cursor:pointer;">Stop &amp; show results</button>
           <span id="dnStatus" style="font-size:12px;color:var(--muted);"></span>
         </div>
         <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;">Subtopics (leave all ticked for the whole topic)</div>
@@ -772,13 +775,16 @@ async function renderDoNowCard(cls) {
   });
 
   host.querySelector('#dnClear').addEventListener('click', async () => {
-    status.textContent = 'Turning off…'; status.style.color = 'var(--muted)';
+    status.textContent = 'Stopping…'; status.style.color = 'var(--muted)';
     const { error } = await window.supabase.from('v2_do_now').update({ active: false, updated_at: new Date().toISOString() }).eq('class_id', cls.id);
-    if (error) { status.textContent = 'Could not update: ' + error.message; status.style.color = '#dc2626'; return; }
-    status.textContent = 'Not set'; status.style.color = 'var(--muted)';
+    if (error) { status.textContent = 'Could not stop: ' + error.message; status.style.color = '#dc2626'; return; }
+    status.textContent = 'Stopped — students can no longer start it'; status.style.color = 'var(--muted)';
+    renderDoNowSummary(cls);
   });
 
   renderDoNowSummary(cls);
+  // Live: refresh the results panel every 12s while this class is open
+  doNowPoll = setInterval(() => renderDoNowSummary(cls), 12000);
 }
 
 async function renderDoNowSummary(cls) {
@@ -790,34 +796,76 @@ async function renderDoNowSummary(cls) {
   let sessions;
   try {
     const { data, error } = await window.supabase
-      .from('vocab_sessions').select('student_id, answered, correct')
+      .from('vocab_sessions').select('student_id, answered, correct, last_answer_at')
       .eq('vocab_list', 'civ-myth-religion')
       .gte('started_at', todayStart.toISOString())
       .in('student_id', ids);
-    if (error) { host.innerHTML = ''; return; }
+    if (error) { host.innerHTML = '<div style="font-size:12.5px;color:#dc2626;">Could not load results: ' + escapeHtml(error.message) + '</div>'; return; }
     sessions = data || [];
   } catch (_e) { host.innerHTML = ''; return; }
 
-  const byStudent = new Map();
+  const byStudent = new Map();   // id → { answered, correct, last }
   let answered = 0, correct = 0;
   for (const r of sessions) {
     answered += r.answered | 0; correct += r.correct | 0;
-    const cur = byStudent.get(r.student_id) || 0;
-    byStudent.set(r.student_id, cur + (r.answered | 0));
+    const cur = byStudent.get(r.student_id) || { answered: 0, correct: 0, last: null };
+    cur.answered += r.answered | 0;
+    cur.correct  += r.correct | 0;
+    if (r.last_answer_at && (!cur.last || r.last_answer_at > cur.last)) cur.last = r.last_answer_at;
+    byStudent.set(r.student_id, cur);
   }
   const done = byStudent.size;
   const acc = answered > 0 ? Math.round(correct / answered * 100) : 0;
-  const notDone = cls.students.filter(s => !byStudent.has(s.id)).map(s => s.name);
   const accColour = acc >= 70 ? '#059669' : acc >= 50 ? '#d97706' : '#dc2626';
+
+  // one row per student: those who are in (most recently active first), then not yet
+  const rows = cls.students.map(s => {
+    const r = byStudent.get(s.id);
+    return {
+      name: s.name, in: !!r,
+      answered: r ? r.answered : 0,
+      correct:  r ? r.correct : 0,
+      acc: (r && r.answered > 0) ? Math.round(r.correct / r.answered * 100) : null,
+      last: r ? r.last : null
+    };
+  }).sort((a, b) => (b.in - a.in) || ((b.last || '') < (a.last || '') ? -1 : 1));
+
+  const rowHtml = rows.map(r => {
+    if (!r.in) {
+      return `<tr style="color:#94a3b8;">
+        <td style="padding:5px 8px;">${escapeHtml(r.name)}</td>
+        <td style="padding:5px 8px;text-align:right;">—</td>
+        <td style="padding:5px 8px;text-align:right;">—</td>
+        <td style="padding:5px 8px;text-align:right;">not in yet</td></tr>`;
+    }
+    const rc = r.acc >= 70 ? '#059669' : r.acc >= 50 ? '#d97706' : '#dc2626';
+    return `<tr>
+      <td style="padding:5px 8px;color:var(--navy);font-weight:600;">${escapeHtml(r.name)}</td>
+      <td style="padding:5px 8px;text-align:right;">${r.answered}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--muted);">${r.correct}/${r.answered}</td>
+      <td style="padding:5px 8px;text-align:right;font-weight:700;color:${rc};">${r.acc}%</td></tr>`;
+  }).join('');
+
   host.innerHTML = `
-    <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Today's practice</div>
-    <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:baseline;">
-      <div><span style="font-size:26px;font-weight:700;color:var(--navy);">${done}</span><span style="font-size:13px;color:var(--muted);"> / ${cls.students.length} practised today</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Live tracking · today</div>
+      <span style="font-size:11px;color:var(--muted);">updates automatically · <button id="dnRefresh" type="button" style="font-family:inherit;font-size:11px;font-weight:600;color:var(--brand);background:none;border:none;cursor:pointer;padding:0;">refresh now</button></span>
+    </div>
+    <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:baseline;margin-bottom:12px;">
+      <div><span style="font-size:26px;font-weight:700;color:var(--navy);">${done}</span><span style="font-size:13px;color:var(--muted);"> / ${cls.students.length} students in</span></div>
       <div><span style="font-size:26px;font-weight:700;color:${accColour};">${answered ? acc + '%' : '—'}</span><span style="font-size:13px;color:var(--muted);"> class accuracy${answered ? ' · ' + answered + ' answers' : ''}</span></div>
     </div>
-    ${notDone.length
-      ? `<div style="font-size:12.5px;color:var(--muted);margin-top:12px;"><strong>Not yet:</strong> ${notDone.map(escapeHtml).join(', ')}</div>`
-      : '<div style="font-size:12.5px;color:#059669;margin-top:12px;">Everyone has practised today.</div>'}`;
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px;">
+      <thead><tr style="color:var(--muted);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;text-align:left;border-bottom:1px solid var(--rule-faint);">
+        <th style="padding:4px 8px;font-weight:700;">Student</th>
+        <th style="padding:4px 8px;text-align:right;font-weight:700;">Answered</th>
+        <th style="padding:4px 8px;text-align:right;font-weight:700;">Correct</th>
+        <th style="padding:4px 8px;text-align:right;font-weight:700;">Accuracy</th>
+      </tr></thead>
+      <tbody>${rowHtml}</tbody>
+    </table>`;
+  const refresh = host.querySelector('#dnRefresh');
+  if (refresh) refresh.addEventListener('click', () => renderDoNowSummary(cls));
 }
 
 function renderClass(idx) {
