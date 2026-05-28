@@ -28,6 +28,14 @@
 .sync-pill.cloud .dot { background: #22c55e; }
 .sync-pill a { color: var(--brand); text-decoration: none; font-weight: 700; }
 
+/* do now banner */
+.donow-banner {
+  background: linear-gradient(120deg, #eef3ff, #f7f5ff); border: 1px solid var(--rule);
+  border-left: 3px solid var(--brand); border-radius: 8px; padding: 12px 16px;
+  font-size: 13px; color: var(--navy); line-height: 1.5; margin-bottom: 18px;
+}
+.donow-banner strong { font-weight: 700; }
+
 /* setup */
 .quiz-card { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 26px 28px; }
 .quiz-card h2 {
@@ -123,6 +131,8 @@
 
   <div class="sync-pill" id="syncPill"><span class="dot"></span><span id="syncText">Saving progress on this device</span></div>
 
+  <div class="donow-banner hidden" id="doNowBanner"></div>
+
   <!-- SETUP -->
   <div class="quiz-card" id="setup">
     <h2>Choose what to practise</h2>
@@ -194,6 +204,53 @@ let pool = [];             // active question states
 let current = null;
 let answered = false;
 let sessionAnswered = 0, sessionTarget = 0;
+let userId = null;         // signed-in user id (for session logging + Do Now)
+
+// ── session logging — one vocab_sessions row per run, created on first
+// answer (signed-in cloud users only; anonymous practice isn't logged) ──
+let sessionLog = { id: null, list: null, answered: 0, correct: 0, creating: false };
+let sessionFlushTimer = null;
+
+async function fetchUserId() {
+  if (!window.supabase || !window.supabase.auth) return null;
+  try {
+    const { data } = await window.supabase.auth.getSession();
+    return (data && data.session && data.session.user) ? data.session.user.id : null;
+  } catch (_e) { return null; }
+}
+
+function beginSessionLog(listKey) {
+  flushSessionLog();
+  sessionLog = { id: null, list: listKey, answered: 0, correct: 0, creating: false };
+}
+function recordSessionAnswer(isCorrect) {
+  if (!userId || !store || store.mode !== 'cloud') return;
+  sessionLog.answered++;
+  if (isCorrect) sessionLog.correct++;
+  if (!sessionFlushTimer) sessionFlushTimer = setTimeout(flushSessionLog, 1500);
+}
+async function flushSessionLog() {
+  if (sessionFlushTimer) { clearTimeout(sessionFlushTimer); sessionFlushTimer = null; }
+  if (!userId || sessionLog.answered === 0) return;
+  const nowIso = new Date().toISOString();
+  try {
+    if (!sessionLog.id) {
+      if (sessionLog.creating) return;
+      sessionLog.creating = true;
+      const { data, error } = await window.supabase
+        .from('vocab_sessions')
+        .insert({ student_id: userId, vocab_list: sessionLog.list, answered: sessionLog.answered, correct: sessionLog.correct, last_answer_at: nowIso })
+        .select('id').single();
+      sessionLog.creating = false;
+      if (!error && data) sessionLog.id = data.id;
+    } else {
+      await window.supabase
+        .from('vocab_sessions')
+        .update({ answered: sessionLog.answered, correct: sessionLog.correct, last_answer_at: nowIso })
+        .eq('id', sessionLog.id);
+    }
+  } catch (_e) { sessionLog.creating = false; }
+}
 
 // ── store / state ──
 async function openStoreForTopic() {
@@ -300,7 +357,9 @@ function updateStartState() {
 function startQuiz() {
   pool = topic.questions.filter(q => selected.has(q.subtopic)).map(q => stateById.get(q.id));
   if (!pool.length) return;
+  document.getElementById('doNowBanner').classList.add('hidden');
   sessionAnswered = 0; sessionTarget = pool.length;
+  beginSessionLog(topic.list);
   document.getElementById('setup').classList.add('hidden');
   document.getElementById('quiz').classList.remove('hidden');
   current = null;
@@ -320,7 +379,52 @@ function startReview() {
       "Nothing to review yet — smart review drills questions you've answered before and keep getting wrong. Answer a few below first, then come back.";
     return;
   }
+  document.getElementById('doNowBanner').classList.add('hidden');
   sessionAnswered = 0; sessionTarget = pool.length;
+  beginSessionLog(topic.list);
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('quiz').classList.remove('hidden');
+  current = null;
+  nextQuestion();
+}
+
+// ── Do Now: load the assignment the teacher set for this student's class,
+// and drill that topic (and any chosen subtopics) straight away ──
+function showDoNowMessage(msg) { document.getElementById('setupSub').textContent = msg; }
+
+function setDoNowBanner(className, t, selSet) {
+  const subs = Array.from(selSet);
+  const allSubs = subs.length === subtopics.length;
+  const banner = document.getElementById('doNowBanner');
+  banner.innerHTML = "<strong>Today's Do Now</strong> &middot; " + escapeHtml(className || 'your class') +
+    " &middot; Topic " + escapeHtml(t.id) + " &mdash; " + escapeHtml(t.title) +
+    (allSubs ? '' : " &middot; " + subs.map(escapeHtml).join(', '));
+  banner.classList.remove('hidden');
+}
+
+async function startDoNow() {
+  userId = userId || await fetchUserId();
+  if (!userId) { showDoNowMessage('Sign in to load your class’s Do Now, or pick a topic below to practise.'); return; }
+  let res = null;
+  try {
+    const { data } = await window.supabase.rpc('get_my_do_now', { p_vocab_list: 'civ-myth-religion' });
+    res = data;
+  } catch (_e) { res = null; }
+  if (!res || !res.ok) { showDoNowMessage('No Do Now has been set for your class yet — pick a topic below to practise.'); return; }
+  const idx = TOPICS.findIndex(t => t.id === res.topic_id);
+  if (idx < 0) { showDoNowMessage('Your teacher set a Do Now for a topic that isn’t available here yet.'); return; }
+  await loadTopic(idx);
+  if (Array.isArray(res.subtopics) && res.subtopics.length) {
+    const valid = res.subtopics.filter(l => subtopics.some(st => st.label === l));
+    selected = new Set(valid.length ? valid : subtopics.map(st => st.label));
+  } else {
+    selected = new Set(subtopics.map(st => st.label));
+  }
+  pool = topic.questions.filter(q => selected.has(q.subtopic)).map(q => stateById.get(q.id));
+  if (!pool.length) { showDoNowMessage('No questions found for today’s Do Now.'); return; }
+  setDoNowBanner(res.class_name, topic, selected);
+  sessionAnswered = 0; sessionTarget = pool.length;
+  beginSessionLog(topic.list);
   document.getElementById('setup').classList.add('hidden');
   document.getElementById('quiz').classList.remove('hidden');
   current = null;
@@ -357,6 +461,7 @@ function choose(btn, correct, correctText) {
   answered = true;
   sessionAnswered++;
   bktUpdate(current, correct);
+  recordSessionAnswer(correct);
 
   const buttons = Array.from(document.querySelectorAll('#qOptions .mc-btn'));
   buttons.forEach(b => {
@@ -374,8 +479,10 @@ function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 
 function backToMenu() {
   document.getElementById('quiz').classList.add('hidden');
+  document.getElementById('doNowBanner').classList.add('hidden');
   document.getElementById('setup').classList.remove('hidden');
   if (store) store.flush();
+  flushSessionLog();
   renderSetup();
 }
 
@@ -413,8 +520,12 @@ function init() {
     }
   });
 
-  const reviewMode = new URLSearchParams(location.search).get('mode') === 'review';
-  loadTopic(0).then(() => { if (reviewMode) startReview(); });
+  const mode = new URLSearchParams(location.search).get('mode');
+  fetchUserId().then(id => { userId = id; });
+  loadTopic(0).then(() => {
+    if (mode === 'donow') startDoNow();
+    else if (mode === 'review') startReview();
+  });
 }
 
 async function loadTopic(i) {
@@ -426,7 +537,7 @@ async function loadTopic(i) {
 }
 
 // re-flush before leaving
-window.addEventListener('beforeunload', () => { if (store) store.flush(); });
+window.addEventListener('beforeunload', () => { if (store) store.flush(); flushSessionLog(); });
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
