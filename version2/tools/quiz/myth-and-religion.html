@@ -36,6 +36,13 @@
 }
 .donow-banner strong { font-weight: 700; }
 
+/* do now finished screen */
+#doNowDone { text-align: center; }
+#doNowDone h2 { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:24px;color:var(--navy);margin:0 0 10px; }
+.dn-result-msg { font-size:14px;color:var(--ink);line-height:1.5;margin-bottom:18px; }
+.dn-result-score { font-size:14px;color:var(--muted);margin-bottom:22px; }
+.dn-result-score .dn-big { display:block;font-family:'Lora',serif;font-weight:700;font-size:42px;color:var(--brand);line-height:1.1;margin-bottom:4px; }
+
 /* setup */
 .quiz-card { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 26px 28px; }
 .quiz-card h2 {
@@ -165,6 +172,9 @@
     </div>
   </div>
 
+  <!-- DO NOW FINISHED -->
+  <div class="quiz-card hidden" id="doNowDone"></div>
+
 </div>
 
 <footer class="footer">
@@ -203,8 +213,10 @@ let selected = new Set();  // selected subtopic labels
 let pool = [];             // active question states
 let current = null;
 let answered = false;
-let sessionAnswered = 0, sessionTarget = 0;
+let sessionAnswered = 0, sessionTarget = 0, sessionCorrect = 0;
 let userId = null;         // signed-in user id (for session logging + Do Now)
+let doNowActive = null;    // { topicId, updatedAt } when in a Do Now session
+let doNowWatch = null;     // interval that watches for the teacher stopping it
 
 // ── session logging — one vocab_sessions row per run, created on first
 // answer (signed-in cloud users only; anonymous practice isn't logged) ──
@@ -423,12 +435,57 @@ async function startDoNow() {
   pool = topic.questions.filter(q => selected.has(q.subtopic)).map(q => stateById.get(q.id));
   if (!pool.length) { showDoNowMessage('No questions found for today’s Do Now.'); return; }
   setDoNowBanner(res.class_name, topic, selected);
-  sessionAnswered = 0; sessionTarget = pool.length;
+  sessionAnswered = 0; sessionTarget = pool.length; sessionCorrect = 0;
+  doNowActive = { topicId: res.topic_id, updatedAt: res.updated_at };
+  if (doNowWatch) clearInterval(doNowWatch);
+  doNowWatch = setInterval(checkDoNowStillActive, 12000);
   beginSessionLog(topic.list);
+  document.getElementById('doNowDone').classList.add('hidden');
   document.getElementById('setup').classList.add('hidden');
   document.getElementById('quiz').classList.remove('hidden');
   current = null;
   nextQuestion();
+}
+
+// While a Do Now is running, watch for the teacher stopping it (or setting a
+// new one). When that happens, end the student's session and show results so
+// they can't keep going.
+async function checkDoNowStillActive() {
+  if (!doNowActive) return;
+  let res = null;
+  try {
+    const { data } = await window.supabase.rpc('get_my_do_now', { p_vocab_list: 'civ-myth-religion' });
+    res = data;
+  } catch (_e) { return; }   // network blip — don't cut the student off on a transient error
+  if (!res) return;
+  if (!res.ok) { endDoNow('Your teacher has stopped the Do Now.'); return; }
+  if (res.updated_at !== doNowActive.updatedAt || res.topic_id !== doNowActive.topicId) {
+    endDoNow('Your teacher has started a new Do Now — reload the page to begin it.');
+  }
+}
+
+function endDoNow(reason) {
+  if (doNowWatch) { clearInterval(doNowWatch); doNowWatch = null; }
+  doNowActive = null;
+  flushSessionLog();
+  const total = sessionAnswered, correct = sessionCorrect;
+  const pct = total ? Math.round(correct / total * 100) : 0;
+  document.getElementById('quiz').classList.add('hidden');
+  document.getElementById('doNowBanner').classList.add('hidden');
+  const done = document.getElementById('doNowDone');
+  done.innerHTML =
+    '<h2>Do Now finished</h2>' +
+    '<div class="dn-result-msg">' + escapeHtml(reason || 'Your teacher has ended the Do Now.') + '</div>' +
+    '<div class="dn-result-score"><span class="dn-big">' + correct + ' / ' + total + '</span>' +
+    (total ? 'correct &middot; ' + pct + '%' : 'You didn’t answer any questions.') + '</div>' +
+    '<button class="btn-ghost" id="dnDoneMenu" type="button">Back to menu</button>';
+  done.classList.remove('hidden');
+  const mb = document.getElementById('dnDoneMenu');
+  if (mb) mb.addEventListener('click', () => {
+    done.classList.add('hidden');
+    document.getElementById('setup').classList.remove('hidden');
+    renderSetup();
+  });
 }
 
 function nextQuestion() {
@@ -460,6 +517,7 @@ function choose(btn, correct, correctText) {
   if (answered) return;
   answered = true;
   sessionAnswered++;
+  if (correct) sessionCorrect++;
   bktUpdate(current, correct);
   recordSessionAnswer(correct);
 
@@ -478,7 +536,10 @@ function choose(btn, correct, correctText) {
 function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function backToMenu() {
+  if (doNowWatch) { clearInterval(doNowWatch); doNowWatch = null; }
+  doNowActive = null;
   document.getElementById('quiz').classList.add('hidden');
+  document.getElementById('doNowDone').classList.add('hidden');
   document.getElementById('doNowBanner').classList.add('hidden');
   document.getElementById('setup').classList.remove('hidden');
   if (store) store.flush();
@@ -537,7 +598,7 @@ async function loadTopic(i) {
 }
 
 // re-flush before leaving
-window.addEventListener('beforeunload', () => { if (store) store.flush(); flushSessionLog(); });
+window.addEventListener('beforeunload', () => { if (doNowWatch) clearInterval(doNowWatch); if (store) store.flush(); flushSessionLog(); });
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
