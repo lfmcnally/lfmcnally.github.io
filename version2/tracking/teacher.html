@@ -9,6 +9,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/version2/assets/css/classicalia.css">
 <script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.1.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.2.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.3.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.4.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.5.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.7.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.8.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <style>
@@ -293,6 +300,7 @@ body { background:var(--cream); }
 <!-- BODY -->
 <div class="dash-body">
   <div class="overview-band" id="overviewBand"></div>
+  <div id="doNowCard"></div>
   <div class="dash-grid">
     <div>
       <div class="dash-card">
@@ -371,8 +379,8 @@ const SUBJECT_VOCAB_LIST = {
   'latin-alevel': 'latin-alevel',
   'latin-prep':   'latin-suburani',
   'greek-gcse':   'greek-gcse',
-  'greek-alevel': 'greek-alevel'
-  // civ-* have no vocab list (yet)
+  'greek-alevel': 'greek-alevel',
+  'civ-gcse':     'civ-myth-religion'
 };
 
 // Canonical word list (latin headword → english) plus chapter lookup.
@@ -390,6 +398,50 @@ function buildCanonical() {
   return out;
 }
 const CANONICAL = buildCanonical();
+
+// ── Per-subject "item model" ──────────────────────────────
+// The dashboard was built around Latin vocabulary (headword → english,
+// grouped by chapter). To render Civ quiz classes too, every place that
+// reached for CANONICAL / CHAPTER_OF now goes through the active model.
+// Latin behaves exactly as before; Civ keys are question ids whose
+// "label" is the question text and whose "group" is topic + subtopic.
+const LATIN_MODEL = {
+  itemNoun: 'word', itemNounPl: 'words', groupNoun: 'Chapter', subNoun: 'Meaning',
+  keys:       () => Array.from(CANONICAL.keys()),
+  mainLabel:  k => k,
+  subLabel:   k => CANONICAL.get(k) || '',
+  groupKeyOf: k => CHAPTER_OF.get(k) || 0,
+  groupLabel: g => 'Chapter ' + g,
+  groupShort: g => 'Ch. ' + g,
+  sortAlpha:  (a, b) => alphaCompareLatin(a, b),
+  groupSort:  (a, b) => a - b
+};
+
+function buildCivModel() {
+  const label = new Map(), group = new Map(), order = [];
+  const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
+  for (const t of topics) {
+    for (const q of t.questions) {
+      label.set(q.id, q.q);
+      group.set(q.id, t.id + ' ' + q.subtopic);   // group key: "1.1 Key ideas"
+      order.push(q.id);
+    }
+  }
+  return {
+    itemNoun: 'question', itemNounPl: 'questions', groupNoun: 'Topic', subNoun: 'Subtopic',
+    keys:       () => order,
+    mainLabel:  k => label.get(k) || k,
+    subLabel:   k => (group.get(k) || '').replace(/^\S+\s/, ''),  // drop topic prefix
+    groupKeyOf: k => group.get(k) || '',
+    groupLabel: g => g,
+    groupShort: g => g,
+    sortAlpha:  (a, b) => (label.get(a) || '').localeCompare(label.get(b) || ''),
+    groupSort:  (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true })
+  };
+}
+const CIV_MODEL = buildCivModel();
+function modelForType(type) { return type === 'civ-gcse' ? CIV_MODEL : LATIN_MODEL; }
+let activeModel = LATIN_MODEL;
 
 // Confidence label for a word's state, mirroring the student dashboard.
 function confLabelForState(w) {
@@ -468,6 +520,7 @@ function timeAgo(iso) {
 function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+function clip(s, n) { s = String(s == null ? '' : s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 function initialsFor(name) {
   if (!name) return '?';
   return name.split(/\s+/).filter(Boolean).slice(0,2).map(s => s[0].toUpperCase()).join('') || '?';
@@ -637,9 +690,141 @@ function hideEmptyState() {
   if (el) el.remove();
 }
 
+// ── Do Now (teacher side) — only for Civ classes ──────────
+function civSubtopicsOf(topicId) {
+  const t = ((window.CivQuiz && window.CivQuiz.topics) || []).find(x => x.id === topicId);
+  if (!t) return [];
+  const seen = [];
+  for (const q of t.questions) if (!seen.includes(q.subtopic)) seen.push(q.subtopic);
+  return seen;
+}
+
+async function renderDoNowCard(cls) {
+  const host = document.getElementById('doNowCard');
+  if (!host) return;
+  if (cls.type !== 'civ-gcse') { host.innerHTML = ''; return; }
+  const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
+
+  host.innerHTML = `
+    <div class="dash-card" style="margin-bottom:18px;">
+      <div class="dash-card-head"><span class="dash-card-title">Today's Do Now</span>
+        <span class="dash-card-note">The lesson-starter this class drops into</span></div>
+      <div style="padding:6px 22px 18px;">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+          <select id="dnTopic" style="min-width:240px;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;font-size:13px;background:white;"></select>
+          <button id="dnSet" type="button" style="font-family:inherit;font-size:13px;font-weight:700;padding:9px 16px;border-radius:6px;border:none;background:var(--brand);color:white;cursor:pointer;">Set as today's Do Now</button>
+          <button id="dnClear" type="button" style="font-family:inherit;font-size:12px;font-weight:600;padding:9px 14px;border-radius:6px;border:1px solid var(--rule);background:white;color:var(--muted);cursor:pointer;">Turn off</button>
+          <span id="dnStatus" style="font-size:12px;color:var(--muted);"></span>
+        </div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;">Subtopics (leave all ticked for the whole topic)</div>
+        <div id="dnSubs" style="display:flex;flex-wrap:wrap;gap:8px 18px;"></div>
+        <div id="dnSummary" style="margin-top:18px;border-top:1px solid var(--rule-faint);padding-top:14px;"></div>
+      </div>
+    </div>`;
+
+  const sel = host.querySelector('#dnTopic');
+  topics.forEach(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = 'Topic ' + t.id + ' — ' + t.title; sel.appendChild(o); });
+
+  function renderSubs(topicId, checkedSet) {
+    const box = host.querySelector('#dnSubs');
+    box.innerHTML = '';
+    civSubtopicsOf(topicId).forEach(label => {
+      const wrap = document.createElement('label');
+      wrap.style.cssText = 'font-size:13px;color:var(--ink);display:flex;align-items:center;gap:6px;cursor:pointer;';
+      const checked = !checkedSet || checkedSet.has(label);
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = checked; cb.value = label; cb.style.accentColor = 'var(--brand)';
+      wrap.appendChild(cb);
+      wrap.appendChild(document.createTextNode(' ' + label));
+      box.appendChild(wrap);
+    });
+  }
+
+  let current = null;
+  try {
+    const { data } = await window.supabase
+      .from('v2_do_now').select('topic_id, subtopics, active, updated_at')
+      .eq('class_id', cls.id).maybeSingle();
+    current = data;
+  } catch (_e) {}
+
+  const initialTopic = (current && current.active && current.topic_id && topics.some(t => t.id === current.topic_id))
+    ? current.topic_id : (topics[0] && topics[0].id);
+  if (initialTopic) sel.value = initialTopic;
+  const checkedSet = (current && current.active && Array.isArray(current.subtopics) && current.subtopics.length)
+    ? new Set(current.subtopics) : null;
+  renderSubs(initialTopic, checkedSet);
+  sel.addEventListener('change', () => renderSubs(sel.value, null));
+
+  const status = host.querySelector('#dnStatus');
+  if (current && current.active) { status.textContent = 'Active — set ' + timeAgo(current.updated_at); status.style.color = '#059669'; }
+  else { status.textContent = 'Not set'; }
+
+  host.querySelector('#dnSet').addEventListener('click', async () => {
+    const subs = Array.from(host.querySelectorAll('#dnSubs input:checked')).map(i => i.value);
+    if (!subs.length) { status.textContent = 'Tick at least one subtopic.'; status.style.color = '#dc2626'; return; }
+    const allSubs = subs.length === civSubtopicsOf(sel.value).length;
+    const payload = { class_id: cls.id, vocab_list: 'civ-myth-religion', topic_id: sel.value, subtopics: allSubs ? null : subs, active: true, updated_at: new Date().toISOString() };
+    status.textContent = 'Saving…'; status.style.color = 'var(--muted)';
+    const { error } = await window.supabase.from('v2_do_now').upsert(payload, { onConflict: 'class_id' });
+    if (error) { status.textContent = 'Could not save: ' + error.message; status.style.color = '#dc2626'; return; }
+    status.textContent = 'Active — just now'; status.style.color = '#059669';
+  });
+
+  host.querySelector('#dnClear').addEventListener('click', async () => {
+    status.textContent = 'Turning off…'; status.style.color = 'var(--muted)';
+    const { error } = await window.supabase.from('v2_do_now').update({ active: false, updated_at: new Date().toISOString() }).eq('class_id', cls.id);
+    if (error) { status.textContent = 'Could not update: ' + error.message; status.style.color = '#dc2626'; return; }
+    status.textContent = 'Not set'; status.style.color = 'var(--muted)';
+  });
+
+  renderDoNowSummary(cls);
+}
+
+async function renderDoNowSummary(cls) {
+  const host = document.getElementById('dnSummary');
+  if (!host) return;
+  const ids = cls.students.map(s => s.id);
+  if (!ids.length) { host.innerHTML = '<div style="font-size:12.5px;color:var(--muted);">No students in this class yet — add them by their sharing codes.</div>'; return; }
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  let sessions;
+  try {
+    const { data, error } = await window.supabase
+      .from('vocab_sessions').select('student_id, answered, correct')
+      .eq('vocab_list', 'civ-myth-religion')
+      .gte('started_at', todayStart.toISOString())
+      .in('student_id', ids);
+    if (error) { host.innerHTML = ''; return; }
+    sessions = data || [];
+  } catch (_e) { host.innerHTML = ''; return; }
+
+  const byStudent = new Map();
+  let answered = 0, correct = 0;
+  for (const r of sessions) {
+    answered += r.answered | 0; correct += r.correct | 0;
+    const cur = byStudent.get(r.student_id) || 0;
+    byStudent.set(r.student_id, cur + (r.answered | 0));
+  }
+  const done = byStudent.size;
+  const acc = answered > 0 ? Math.round(correct / answered * 100) : 0;
+  const notDone = cls.students.filter(s => !byStudent.has(s.id)).map(s => s.name);
+  const accColour = acc >= 70 ? '#059669' : acc >= 50 ? '#d97706' : '#dc2626';
+  host.innerHTML = `
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Today's practice</div>
+    <div style="display:flex;gap:30px;flex-wrap:wrap;align-items:baseline;">
+      <div><span style="font-size:26px;font-weight:700;color:var(--navy);">${done}</span><span style="font-size:13px;color:var(--muted);"> / ${cls.students.length} practised today</span></div>
+      <div><span style="font-size:26px;font-weight:700;color:${accColour};">${answered ? acc + '%' : '—'}</span><span style="font-size:13px;color:var(--muted);"> class accuracy${answered ? ' · ' + answered + ' answers' : ''}</span></div>
+    </div>
+    ${notDone.length
+      ? `<div style="font-size:12.5px;color:var(--muted);margin-top:12px;"><strong>Not yet:</strong> ${notDone.map(escapeHtml).join(', ')}</div>`
+      : '<div style="font-size:12.5px;color:#059669;margin-top:12px;">Everyone has practised today.</div>'}`;
+}
+
 function renderClass(idx) {
   currentClassIdx = idx;
   const cls = classes[idx];
+  activeModel = modelForType(cls.type);
+  renderDoNowCard(cls);
   const students = cls.students;
   const studentCount = students.length;
   let totalSecure = 0, totalStruggling = 0, activeCount = 0, idleCount = 0, inactiveCount = 0;
@@ -668,9 +853,9 @@ function renderClass(idx) {
 
   document.getElementById('overviewBand').innerHTML = `
     <div class="ov-stat"><div class="ov-n">${studentCount}</div><div class="ov-label">Students</div><div class="ov-sub">${escapeHtml(prettyType(cls.type))}</div></div>
-    <div class="ov-stat"><div class="ov-n">${avgSecure}</div><div class="ov-label">Avg secure words</div><div class="ov-sub">across the class</div></div>
+    <div class="ov-stat"><div class="ov-n">${avgSecure}</div><div class="ov-label">Avg secure ${activeModel.itemNounPl}</div><div class="ov-sub">across the class</div></div>
     <div class="ov-stat"><div class="ov-n green">${activeCount}</div><div class="ov-label">Active this week</div><div class="ov-sub">${idleCount} idle · ${inactiveCount} inactive</div></div>
-    <div class="ov-stat"><div class="ov-n amber">${avgStruggling}</div><div class="ov-label">Avg struggling words</div><div class="ov-sub">high attempts, low confidence</div></div>
+    <div class="ov-stat"><div class="ov-n amber">${avgStruggling}</div><div class="ov-label">Avg struggling ${activeModel.itemNounPl}</div><div class="ov-sub">high attempts, low confidence</div></div>
   `;
 
   document.getElementById('tableTitle').textContent = `${cls.name} · ${studentCount} student${studentCount === 1 ? '' : 's'}`;
@@ -719,14 +904,14 @@ function renderClass(idx) {
 
   const cwmap = document.getElementById('classWordmap');
   cwmap.innerHTML = '';
-  for (const latin of CANONICAL.keys()) {
+  for (const latin of activeModel.keys()) {
     const sum = perWordSum.get(latin), count = perWordCount.get(latin);
     const avgP = count ? (sum / count) : 0;
     const b = document.createElement('div');
     b.className = `cw-block ${blockClsFromState(avgP, count ? 1 : 0)}`;
     b.addEventListener('mouseenter', () => {
-      document.getElementById('ttLatin').textContent   = latin;
-      document.getElementById('ttEnglish').textContent = CANONICAL.get(latin) || '';
+      document.getElementById('ttLatin').textContent   = activeModel.mainLabel(latin);
+      document.getElementById('ttEnglish').textContent = activeModel.subLabel(latin);
       document.getElementById('ttConf').textContent    = count
         ? `Class avg: ${Math.round(avgP*100)}% · ${count}/${studentCount} students have tried it`
         : 'Not yet attempted by anyone';
@@ -742,17 +927,17 @@ function renderClass(idx) {
     cwmap.appendChild(b);
   }
 
-  const hardest = Array.from(CANONICAL.keys())
+  const hardest = Array.from(activeModel.keys())
     .filter(l => perWordCount.get(l) && (perWordSum.get(l) / perWordCount.get(l)) < 0.5)
-    .map(l => ({ latin: l, avgP: perWordSum.get(l) / perWordCount.get(l), strugglers: perWordStruggling.get(l) || 0 }))
+    .map(l => ({ latin: l, label: activeModel.mainLabel(l), avgP: perWordSum.get(l) / perWordCount.get(l), strugglers: perWordStruggling.get(l) || 0 }))
     .sort((a,b) => a.avgP - b.avgP)
     .slice(0, 8);
 
   document.getElementById('wordHeatmap').innerHTML = hardest.length === 0
-    ? '<div style="padding:8px 22px 18px;color:var(--muted);font-size:12.5px;font-style:italic;">No clearly-struggling words yet across the class.</div>'
+    ? `<div style="padding:8px 22px 18px;color:var(--muted);font-size:12.5px;font-style:italic;">No clearly-struggling ${activeModel.itemNounPl} yet across the class.</div>`
     : hardest.map(h => `
       <div class="heatmap-row">
-        <div class="heatmap-word">${escapeHtml(h.latin)}</div>
+        <div class="heatmap-word">${escapeHtml(clip(h.label, 64))}</div>
         <div class="heatmap-bar"><div class="heatmap-bar-fill" style="width:${Math.round(h.avgP*100)}%;background:${confBarColour(h.avgP)}"></div></div>
         <div class="heatmap-count">${h.strugglers}/${studentCount} struggling</div>
       </div>`).join('');
@@ -783,18 +968,20 @@ function openStudent(studentId) {
   `;
 
   panelStudent = s;
+  const chapBtn = document.querySelector('.panel-sort-btn[data-sort="chapter"]');
+  if (chapBtn) chapBtn.textContent = activeModel.groupNoun;
   renderPanelWordmap();
 
   document.getElementById('panelStruggling').innerHTML = struggling
     .sort((a,b) => a.p - b.p)
     .slice(0, 6)
     .map(w => {
-      const eng = CANONICAL.get(w.latin) || '';
+      const eng = activeModel.subLabel(w.latin);
       const pct = Math.round(w.p * 100);
       return `
         <div class="panel-word-row">
           <div>
-            <div class="panel-word-latin">${escapeHtml(w.latin)}</div>
+            <div class="panel-word-latin">${escapeHtml(clip(activeModel.mainLabel(w.latin), 90))}</div>
             <div class="panel-word-english">${escapeHtml(eng)}</div>
           </div>
           <span style="font-size:11px;color:var(--muted);flex-shrink:0">${w.t} attempts</span>
@@ -822,10 +1009,10 @@ function panelBlockCls(w) {
 
 function attachPanelBlockHandlers(b, latin, w) {
   b.addEventListener('mouseenter', () => {
-    document.getElementById('ttLatin').textContent   = latin;
-    document.getElementById('ttEnglish').textContent = CANONICAL.get(latin) || '';
-    const ch = CHAPTER_OF.get(latin);
-    document.getElementById('ttConf').textContent    = confLabelForState(w) + (ch ? ` · Ch. ${ch}` : '');
+    document.getElementById('ttLatin').textContent   = clip(activeModel.mainLabel(latin), 90);
+    document.getElementById('ttEnglish').textContent = activeModel.subLabel(latin);
+    const grp = activeModel.groupShort(activeModel.groupKeyOf(latin));
+    document.getElementById('ttConf').textContent    = confLabelForState(w) + (grp ? ` · ${grp}` : '');
     const total = w ? (w.t | 0) : 0;
     const correct = w ? (w.correct | 0) : 0;
     const wrong = Math.max(0, total - correct);
@@ -853,27 +1040,27 @@ function renderPanelWordmap() {
   if (!panelStudent) return;
   const wm = document.getElementById('panelWordmap');
   wm.innerHTML = '';
-  const latins = Array.from(CANONICAL.keys());
+  const latins = Array.from(activeModel.keys());
 
   if (panelSort === 'chapter') {
     const byCh = new Map();
     for (const latin of latins) {
-      const ch = CHAPTER_OF.get(latin) || 0;
+      const ch = activeModel.groupKeyOf(latin);
       if (!byCh.has(ch)) byCh.set(ch, []);
       byCh.get(ch).push(latin);
     }
-    for (const ch of Array.from(byCh.keys()).sort((a,b) => a-b)) {
-      const group = byCh.get(ch).slice().sort(alphaCompareLatin);
+    for (const ch of Array.from(byCh.keys()).sort(activeModel.groupSort)) {
+      const group = byCh.get(ch).slice().sort(activeModel.sortAlpha);
       const label = document.createElement('div');
       label.className = 'panel-wm-ch-label';
-      label.innerHTML = `Chapter ${ch} <span class="panel-wm-ch-count">${group.length} words</span>`;
+      label.innerHTML = `${escapeHtml(activeModel.groupLabel(ch))} <span class="panel-wm-ch-count">${group.length} ${activeModel.itemNounPl}</span>`;
       wm.appendChild(label);
       for (const latin of group) appendPanelBlock(wm, latin);
     }
   } else {
     let ordered = latins.slice();
     if (panelSort === 'alpha') {
-      ordered.sort(alphaCompareLatin);
+      ordered.sort(activeModel.sortAlpha);
     } else { // confidence
       ordered.sort((a, b) => {
         const wa = panelStudent.words.get(a), wb = panelStudent.words.get(b);
@@ -924,7 +1111,7 @@ function exportPDF() {
   const cls = classes[currentClassIdx];
   const s = panelStudent;
 
-  const totalWords = CANONICAL.size;
+  const totalWords = activeModel.keys().length;
 
   // Tally buckets + per-chapter stats + overall accuracy
   let secure = 0, building = 0, due = 0, nearly = 0, learning = 0, unseen = 0;
@@ -932,8 +1119,8 @@ function exportPDF() {
   const struggling = [];
   const chapterStats = new Map();   // ch → {total, secure, building, due, nearly, struggling, learning, unseen, sumP, withP}
 
-  for (const latin of CANONICAL.keys()) {
-    const ch = CHAPTER_OF.get(latin) || 0;
+  for (const latin of activeModel.keys()) {
+    const ch = activeModel.groupKeyOf(latin);
     if (!chapterStats.has(ch)) chapterStats.set(ch, { total:0, secure:0, building:0, due:0, nearly:0, struggling:0, learning:0, unseen:0, sumP:0, withP:0 });
     const cs = chapterStats.get(ch);
     cs.total++;
@@ -964,7 +1151,7 @@ function exportPDF() {
   // Per-chapter breakdown rows. "Seen" = words actually attempted; the
   // average confidence is only meaningful over those, so unattempted
   // chapters show "—" rather than an invented score.
-  const chapterRows = Array.from(chapterStats.keys()).sort((a,b)=>a-b).map(ch => {
+  const chapterRows = Array.from(chapterStats.keys()).sort(activeModel.groupSort).map(ch => {
     const cs = chapterStats.get(ch);
     const seen = cs.total - cs.unseen;
     const avg = cs.withP > 0 ? Math.round(cs.sumP / cs.withP * 100) : null;
@@ -972,7 +1159,7 @@ function exportPDF() {
     const untouched = seen === 0;
     const dim = untouched ? 'color:#cbd5e1;' : '';
     return `<tr${untouched ? ' style="color:#94a3b8;"' : ''}>
-      <td class="l">Ch. ${ch}</td>
+      <td class="l">${escapeHtml(activeModel.groupShort(ch))}</td>
       <td class="r">${cs.total}</td>
       <td class="r" style="${untouched?'color:#cbd5e1;':'font-weight:700;'}">${seen}</td>
       <td class="r" style="${untouched?dim:'color:#1A6FFF;font-weight:700;'}">${cs.secure}</td>
@@ -987,9 +1174,9 @@ function exportPDF() {
   const strugglingRows = struggling.slice(0, 14).map(w => {
     const wrong = Math.max(0, (w.t|0) - (w.correct|0));
     return `<tr>
-      <td class="l" style="font-style:italic">${escapeHtml(w.latin)}</td>
-      <td class="l" style="color:#555">${escapeHtml(CANONICAL.get(w.latin) || '')}</td>
-      <td class="c">Ch. ${CHAPTER_OF.get(w.latin) || '—'}</td>
+      <td class="l" style="font-style:italic">${escapeHtml(clip(activeModel.mainLabel(w.latin), 70))}</td>
+      <td class="l" style="color:#555">${escapeHtml(activeModel.subLabel(w.latin))}</td>
+      <td class="c">${escapeHtml(activeModel.groupShort(activeModel.groupKeyOf(w.latin)))}</td>
       <td class="r">${w.t}</td>
       <td class="r">${w.correct|0}✓ ${wrong}✗</td>
       <td class="r" style="font-weight:700;color:${w.p<0.25?'#dc2626':'#d97706'}">${Math.round(w.p*100)}%</td>
@@ -1030,21 +1217,21 @@ function exportPDF() {
     .filter(c => c.securePct >= 0.6 || c.avg >= 0.75)
     .sort((a, b) => b.securePct - a.securePct)
     .slice(0, 4)
-    .map(c => `<li>Chapter ${c.ch} — ${Math.round(c.securePct*100)}% secure, ${Math.round(c.avg*100)}% avg confidence</li>`)
-    .join('') || '<li style="color:#94a3b8">Keep practising to build up secure chapters.</li>';
+    .map(c => `<li>${escapeHtml(activeModel.groupLabel(c.ch))} — ${Math.round(c.securePct*100)}% secure, ${Math.round(c.avg*100)}% avg confidence</li>`)
+    .join('') || '<li style="color:#94a3b8">Keep practising to build up secure areas.</li>';
 
   const areas = attemptedChapters
     .filter(c => c.struggling > 0 || c.avg < 0.55)
     .sort((a, b) => (b.struggling - a.struggling) || (a.avg - b.avg))
     .slice(0, 4)
-    .map(c => `<li>Chapter ${c.ch} — ${c.struggling} struggling, ${Math.round(c.avg*100)}% avg confidence</li>`)
+    .map(c => `<li>${escapeHtml(activeModel.groupLabel(c.ch))} — ${c.struggling} struggling, ${Math.round(c.avg*100)}% avg confidence</li>`)
     .join('') || '<li style="color:#94a3b8">No clear weak areas — well balanced.</li>';
 
   // ── Recommended next steps ──
   const recs = [];
   if (due > 0) recs.push(`<strong>${due} word${due===1?' is':'s are'} due for spaced review</strong> — a short session will refresh ${due===1?'it':'them'} before ${due===1?'it slips':'they slip'}.`);
   if (struggling.length > 0) {
-    const worstChapters = areas ? attemptedChapters.filter(c => c.struggling > 0).sort((a,b)=>b.struggling-a.struggling).slice(0,2).map(c=>'Ch. '+c.ch).join(' and ') : '';
+    const worstChapters = areas ? attemptedChapters.filter(c => c.struggling > 0).sort((a,b)=>b.struggling-a.struggling).slice(0,2).map(c=>activeModel.groupShort(c.ch)).join(' and ') : '';
     recs.push(`Prioritise the ${struggling.length} struggling word${struggling.length===1?'':'s'} listed below${worstChapters ? ' (mostly '+worstChapters+')' : ''}.`);
   }
   if (building > 0) recs.push(`${building} word${building===1?' is':'s are'} close — answering ${building===1?'it':'them'} correctly on another day or two will lock ${building===1?'it':'them'} in as Secure.`);
@@ -1053,8 +1240,11 @@ function exportPDF() {
   const recsHtml = recs.map(r => `<li>${r}</li>`).join('');
 
   const now = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+  const ITEMS = activeModel.itemNounPl;
+  const GROUP = activeModel.groupNoun;
+  const cap = w => w.charAt(0).toUpperCase() + w.slice(1);
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(s.name)} — vocabulary report</title>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(s.name)} — progress report</title>
   <style>
     * { box-sizing:border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#1a2b52; margin:0; padding:18mm 16mm; font-size:11px; }
@@ -1097,8 +1287,8 @@ function exportPDF() {
       </div>
     </div>
 
-    <p class="summary-line"><b>${secure} of ${totalWords} words secure (${securePct}%).</b>
-       ${seenWords} words attempted, ${accuracy}% lifetime accuracy across ${totalAttempts} answers${s.sessionCount ? `, in ${s.sessionCount} session${s.sessionCount===1?'':'s'} over ${s.practiceDays} day${s.practiceDays===1?'':'s'}` : ''}.
+    <p class="summary-line"><b>${secure} of ${totalWords} ${ITEMS} secure (${securePct}%).</b>
+       ${seenWords} ${ITEMS} attempted, ${accuracy}% lifetime accuracy across ${totalAttempts} answers${s.sessionCount ? `, in ${s.sessionCount} session${s.sessionCount===1?'':'s'} over ${s.practiceDays} day${s.practiceDays===1?'':'s'}` : ''}.
        Last active ${escapeHtml(timeAgo(s.lastSeen))}.</p>
 
     <div class="stats">
@@ -1121,20 +1311,20 @@ function exportPDF() {
     <h2>Recommended next steps</h2>
     <ul class="recs">${recsHtml}</ul>
 
-    <h2>Progress by chapter</h2>
+    <h2>Progress by ${escapeHtml(GROUP.toLowerCase())}</h2>
     <table>
       <thead><tr>
-        <th class="l">Chapter</th><th class="r">Words</th><th class="r">Seen</th><th class="r">Secure</th>
+        <th class="l">${escapeHtml(GROUP)}</th><th class="r">${escapeHtml(cap(ITEMS))}</th><th class="r">Seen</th><th class="r">Secure</th>
         <th class="r">Building</th><th class="r">Nearly</th><th class="r">Struggling</th>
         <th class="r">Avg conf.</th><th class="r">% secure</th>
       </tr></thead>
       <tbody>${chapterRows}</tbody>
     </table>
 
-    <h2>Priority words to revise</h2>
+    <h2>Priority ${escapeHtml(ITEMS)} to revise</h2>
     <table>
       <thead><tr>
-        <th class="l">Word</th><th class="l">Meaning</th><th class="c">Chapter</th>
+        <th class="l">${escapeHtml(cap(activeModel.itemNoun))}</th><th class="l">${escapeHtml(activeModel.subNoun)}</th><th class="c">${escapeHtml(GROUP)}</th>
         <th class="r">Attempts</th><th class="r">Record</th><th class="r">Confidence</th>
       </tr></thead>
       <tbody>${strugglingRows}</tbody>
