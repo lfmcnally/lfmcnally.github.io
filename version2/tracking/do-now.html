@@ -146,20 +146,20 @@ function timeAgo(iso){ if(!iso) return ''; const ms=Date.now()-new Date(iso).get
 function civSubtopicsOf(topicId){ const t=((window.CivQuiz&&window.CivQuiz.topics)||[]).find(x=>x.id===topicId); if(!t) return []; const seen=[]; for(const q of t.questions) if(!seen.includes(q.subtopic)) seen.push(q.subtopic); return seen; }
 
 async function init(){
-  let session = null;
-  try { const { data } = await supabase.auth.getSession(); session = data.session; } catch (_e) {}
-  if (!session) { document.getElementById('classArea').innerHTML = '<div class="dn-empty">Please <a href="/auth/login.html">sign in</a> as a teacher to set a Do Now.</div>'; return; }
-  await loadClasses();
+  const area = document.getElementById('classArea');
+  area.innerHTML = '<div class="dn-empty">Loading your classes…</div>';
+  let user = null;
+  try { const { data } = await supabase.auth.getUser(); user = data && data.user; } catch (_e) {}
+  if (!user) { area.innerHTML = '<div class="dn-empty">You need to be signed in as a teacher. <a href="/auth/login.html">Sign in</a>.</div>'; return; }
+  try { await loadClasses(); }
+  catch (e) { area.innerHTML = '<div class="dn-empty">Couldn\'t load the Do Now page.<br><span style="font-size:12px;">' + escapeHtml((e && e.message) || e || '') + '</span></div>'; }
 }
 
 async function loadClasses(){
   const area = document.getElementById('classArea');
-  let rows;
-  try {
-    const { data, error } = await supabase.from('v2_classes').select('id, name, type').eq('type','civ-gcse').order('created_at', { ascending: true });
-    if (error) throw error;
-    rows = data || [];
-  } catch (e) { area.innerHTML = '<div class="dn-empty">Could not load your classes. ' + escapeHtml(e.message || '') + '</div>'; return; }
+  const { data, error } = await supabase.from('v2_classes').select('id, name, type').order('created_at', { ascending: true });
+  if (error) throw error;
+  const rows = (data || []).filter(c => c.type === 'civ-gcse');
   if (!rows.length) { area.innerHTML = '<div class="dn-empty">No Classical Civilisation classes yet.<br>Create one on your <a href="/version2/tracking/teacher.html">teacher dashboard</a>, then come back here.</div>'; return; }
   classes = [];
   for (const c of rows) {
@@ -168,8 +168,12 @@ async function loadClasses(){
     const students = members.map(m => ({ id: m.student_id, name: (m.users && m.users.full_name) || ((m.users && m.users.email) || '').split('@')[0] || 'Student' }));
     classes.push({ id: c.id, name: c.name, type: c.type, students });
   }
+  const wanted = new URLSearchParams(location.search).get('class');
+  let startIdx = classes.findIndex(c => c.id === wanted);
+  if (startIdx < 0) startIdx = 0;
+  currentClassIdx = startIdx;
   renderClassTabs();
-  renderClass(0);
+  renderClass(startIdx);
 }
 
 function renderClassTabs(){
