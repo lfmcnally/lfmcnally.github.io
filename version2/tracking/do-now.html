@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Do Now — Teacher — Classicalia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="/version2/tools/quiz/data/myth-1.1.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.2.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.3.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.4.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.5.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.7.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.8.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<style>
+.dn-wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 80px; }
+.dn-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+.dn-tab { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--muted);
+  background: var(--cream); border: 1px solid var(--rule); border-radius: 999px; padding: 8px 16px; cursor: pointer; }
+.dn-tab.active { background: var(--navy); color: white; border-color: var(--navy); }
+.dn-card { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 22px 24px; margin-bottom: 18px; }
+.dn-card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.dn-card-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 19px; color: var(--navy); }
+.dn-status { font-size: 12px; color: var(--muted); }
+.dn-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.dn-select { min-width: 240px; padding: 9px 11px; border: 1px solid var(--rule); border-radius: 7px; font-family: inherit; font-size: 14px; background: var(--cream); color: var(--navy); }
+.dn-btn { font-family: inherit; font-size: 13px; font-weight: 700; padding: 10px 16px; border-radius: 7px; border: 1px solid var(--rule); background: white; color: var(--ink); cursor: pointer; }
+.dn-btn:hover { border-color: var(--navy); }
+.dn-btn-primary { background: var(--brand); color: white; border-color: var(--brand); }
+.dn-btn-primary:hover { opacity: 0.9; border-color: var(--brand); }
+.dn-btn-danger { color: #dc2626; }
+.dn-btn-project { color: var(--brand); border-color: var(--brand); }
+.dn-sublabel { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 20px 0 10px; }
+.dn-subs { display: flex; flex-wrap: wrap; gap: 9px 20px; }
+.dn-subs label { font-size: 13.5px; color: var(--ink); display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.dn-subs input { accent-color: var(--brand); width: 15px; height: 15px; }
+.dn-empty { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 28px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.dn-empty a { color: var(--brand); font-weight: 700; }
+
+/* live results table */
+.dn-sum-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.dn-sum-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.dn-sum-meta { font-size: 11px; color: var(--muted); }
+.dn-sum-meta button { font-family: inherit; font-size: 11px; font-weight: 600; color: var(--brand); background: none; border: none; cursor: pointer; padding: 0; }
+.dn-totals { display: flex; gap: 30px; flex-wrap: wrap; align-items: baseline; margin-bottom: 12px; }
+.dn-totals .n { font-size: 26px; font-weight: 700; }
+.dn-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.dn-table th { padding: 4px 8px; color: var(--muted); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; text-align: left; border-bottom: 1px solid var(--rule-faint); font-weight: 700; }
+.dn-table td { padding: 5px 8px; }
+
+/* class view / live leaderboard */
+#classView { position: fixed; inset: 0; z-index: 500; background: var(--navy); color: white; display: none; flex-direction: column; }
+#classView.open { display: flex; }
+.lb-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 34px; border-bottom: 1px solid rgba(255,255,255,0.12); flex-wrap: wrap; }
+.lb-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 26px; line-height: 1.1; }
+.lb-sub { font-size: 13px; color: #8fa8cc; margin-top: 3px; }
+.lb-controls { display: flex; gap: 10px; flex-wrap: wrap; }
+.lb-btn { font-family: inherit; font-size: 13px; font-weight: 700; padding: 10px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); color: white; cursor: pointer; }
+.lb-btn:hover { background: rgba(255,255,255,0.16); }
+.lb-btn-stop { background: #dc2626; border-color: #dc2626; }
+.lb-btn-stop:hover { background: #b91c1c; }
+.lb-totals { padding: 14px 34px 4px; font-size: 14px; color: #8fa8cc; }
+.lb-totals b { color: white; font-size: 18px; }
+.lb-list { flex: 1; overflow-y: auto; padding: 14px 34px 34px; }
+.lb-row { display: flex; align-items: center; gap: 20px; padding: 14px 20px; margin-bottom: 11px; background: rgba(255,255,255,0.06); border-radius: 12px; transition: transform 0.6s cubic-bezier(.2,.8,.2,1), background 0.3s; }
+.lb-rank { font-family: 'Lora', serif; font-weight: 700; font-size: 26px; width: 48px; text-align: center; color: #6ba0ff; flex-shrink: 0; }
+.lb-name { flex: 1; font-size: 21px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-score { font-family: 'Lora', serif; font-weight: 700; font-size: 30px; min-width: 48px; text-align: right; }
+.lb-meta { font-size: 12.5px; color: #8fa8cc; width: 130px; text-align: right; flex-shrink: 0; }
+.lb-row.top1 { background: linear-gradient(90deg, rgba(107,160,255,0.28), rgba(107,160,255,0.08)); }
+.lb-row.top1 .lb-rank { color: #ffd766; }
+.lb-row.notin { opacity: 0.5; }
+.lb-row.notin .lb-score { color: #8fa8cc; font-size: 16px; font-family: inherit; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <canvas class="header-sky" data-starfield data-seed="318" data-region="0.8"></canvas>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo">Classicalia</a>
+      <div class="nav-links">
+        <a href="/version2/subjects/latin/" class="nav-link">Latin</a>
+        <a href="/version2/subjects/greek/" class="nav-link">Greek</a>
+        <a href="/version2/subjects/classical-civilisation/" class="nav-link active">Class. Civ.</a>
+        <div class="nav-div"></div>
+        <a href="/version2/tracking/teacher.html" class="nav-link">Teacher</a>
+        <a href="#" class="nav-link">About</a>
+      </div>
+    </div>
+  </nav>
+  <div class="header-inner">
+    <div class="header-eyebrow">Teacher &middot; GCSE Classical Civilisation</div>
+    <h1 class="header-title">Do Now</h1>
+    <p class="header-deck">Set a lesson starter for a class, then watch the room answer live &mdash; or project the leaderboard.</p>
+  </div>
+</div>
+
+<div class="dn-wrap">
+  <div class="dn-tabs" id="classTabs"></div>
+  <div id="classArea"></div>
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <a href="/version2/" class="footer-logo">Classicalia</a>
+    <div class="footer-links">
+      <a href="/version2/tracking/teacher.html" class="footer-link">Teacher dashboard</a>
+      <a href="/version2/subjects/classical-civilisation/" class="footer-link">Classical Civilisation</a>
+    </div>
+    <span class="footer-copy">classicalia.co.uk &middot; Free for all</span>
+  </div>
+</footer>
+
+<!-- CLASS VIEW / LIVE LEADERBOARD -->
+<div id="classView">
+  <div class="lb-top">
+    <div>
+      <div class="lb-title" id="lbTitle">Do Now leaderboard</div>
+      <div class="lb-sub" id="lbSub"></div>
+    </div>
+    <div class="lb-controls">
+      <button class="lb-btn lb-btn-stop" id="lbStop" type="button">Stop</button>
+      <button class="lb-btn" id="lbClear" type="button">Clear</button>
+      <button class="lb-btn" id="lbExit" type="button">Exit class view</button>
+    </div>
+  </div>
+  <div class="lb-totals" id="lbTotals"></div>
+  <div class="lb-list" id="lbList"></div>
+</div>
+
+<script>
+const supabase = window.supabase;
+let classes = [], currentClassIdx = 0, activeClass = null;
+let doNowPoll = null, doNowChannel = null, doNowDebounce = null;
+let classViewOpen = false, lbRows = new Map(), lbClass = null;
+
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function timeAgo(iso){ if(!iso) return ''; const ms=Date.now()-new Date(iso).getTime(); const m=Math.floor(ms/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }
+function civSubtopicsOf(topicId){ const t=((window.CivQuiz&&window.CivQuiz.topics)||[]).find(x=>x.id===topicId); if(!t) return []; const seen=[]; for(const q of t.questions) if(!seen.includes(q.subtopic)) seen.push(q.subtopic); return seen; }
+
+async function init(){
+  let session = null;
+  try { const { data } = await supabase.auth.getSession(); session = data.session; } catch (_e) {}
+  if (!session) { document.getElementById('classArea').innerHTML = '<div class="dn-empty">Please <a href="/auth/login.html">sign in</a> as a teacher to set a Do Now.</div>'; return; }
+  await loadClasses();
+}
+
+async function loadClasses(){
+  const area = document.getElementById('classArea');
+  let rows;
+  try {
+    const { data, error } = await supabase.from('v2_classes').select('id, name, type').eq('type','civ-gcse').order('created_at', { ascending: true });
+    if (error) throw error;
+    rows = data || [];
+  } catch (e) { area.innerHTML = '<div class="dn-empty">Could not load your classes. ' + escapeHtml(e.message || '') + '</div>'; return; }
+  if (!rows.length) { area.innerHTML = '<div class="dn-empty">No Classical Civilisation classes yet.<br>Create one on your <a href="/version2/tracking/teacher.html">teacher dashboard</a>, then come back here.</div>'; return; }
+  classes = [];
+  for (const c of rows) {
+    let members = [];
+    try { const { data } = await supabase.from('v2_class_members').select('student_id, users:student_id (full_name, email)').eq('class_id', c.id); members = data || []; } catch (_e) {}
+    const students = members.map(m => ({ id: m.student_id, name: (m.users && m.users.full_name) || ((m.users && m.users.email) || '').split('@')[0] || 'Student' }));
+    classes.push({ id: c.id, name: c.name, type: c.type, students });
+  }
+  renderClassTabs();
+  renderClass(0);
+}
+
+function renderClassTabs(){
+  const el = document.getElementById('classTabs'); el.innerHTML = '';
+  classes.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'dn-tab' + (i === currentClassIdx ? ' active' : '');
+    b.textContent = c.name + ' (' + c.students.length + ')';
+    b.addEventListener('click', () => { currentClassIdx = i; renderClassTabs(); renderClass(i); });
+    el.appendChild(b);
+  });
+}
+
+function renderClass(idx){
+  currentClassIdx = idx; activeClass = classes[idx];
+  const cls = activeClass;
+  if (doNowPoll) { clearInterval(doNowPoll); doNowPoll = null; }
+  if (doNowChannel) { try { supabase.removeChannel(doNowChannel); } catch (_e) {} doNowChannel = null; }
+
+  const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
+  const area = document.getElementById('classArea');
+  area.innerHTML = `
+    <div class="dn-card">
+      <div class="dn-card-head"><span class="dn-card-title">Set today's Do Now</span><span id="dnStatus" class="dn-status"></span></div>
+      <div class="dn-controls">
+        <select id="dnTopic" class="dn-select"></select>
+        <button id="dnSet" class="dn-btn dn-btn-primary" type="button">Set as today's Do Now</button>
+        <button id="dnClear" class="dn-btn" type="button">Stop &amp; show results</button>
+        <button id="dnReset" class="dn-btn dn-btn-danger" type="button">Clear</button>
+        <button id="dnProject" class="dn-btn dn-btn-project" type="button">Class view ↗</button>
+      </div>
+      <div class="dn-sublabel">Subtopics (leave all ticked for the whole topic)</div>
+      <div id="dnSubs" class="dn-subs"></div>
+    </div>
+    <div class="dn-card"><div id="dnSummary"></div></div>`;
+
+  const sel = document.getElementById('dnTopic');
+  topics.forEach(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = 'Topic ' + t.id + ' — ' + t.title; sel.appendChild(o); });
+
+  function renderSubs(topicId, checkedSet){
+    const box = document.getElementById('dnSubs'); box.innerHTML = '';
+    civSubtopicsOf(topicId).forEach(label => {
+      const wrap = document.createElement('label');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.value = label; cb.checked = !checkedSet || checkedSet.has(label);
+      wrap.appendChild(cb); wrap.appendChild(document.createTextNode(' ' + label));
+      box.appendChild(wrap);
+    });
+  }
+
+  (async () => {
+    let current = null;
+    try { const { data } = await supabase.from('v2_do_now').select('topic_id, subtopics, active, updated_at').eq('class_id', cls.id).maybeSingle(); current = data; } catch (_e) {}
+    const initialTopic = (current && current.active && current.topic_id && topics.some(t => t.id === current.topic_id)) ? current.topic_id : (topics[0] && topics[0].id);
+    if (initialTopic) sel.value = initialTopic;
+    const checkedSet = (current && current.active && Array.isArray(current.subtopics) && current.subtopics.length) ? new Set(current.subtopics) : null;
+    renderSubs(initialTopic, checkedSet);
+    const status = document.getElementById('dnStatus');
+    if (current && current.active) { status.textContent = 'Active — set ' + timeAgo(current.updated_at); status.style.color = '#059669'; }
+    else { status.textContent = 'Not set'; }
+  })();
+
+  sel.addEventListener('change', () => renderSubs(sel.value, null));
+
+  document.getElementById('dnSet').addEventListener('click', async () => {
+    const status = document.getElementById('dnStatus');
+    const subs = Array.from(document.querySelectorAll('#dnSubs input:checked')).map(i => i.value);
+    if (!subs.length) { status.textContent = 'Tick at least one subtopic.'; status.style.color = '#dc2626'; return; }
+    const allSubs = subs.length === civSubtopicsOf(sel.value).length;
+    const payload = { class_id: cls.id, vocab_list: 'civ-myth-religion', topic_id: sel.value, subtopics: allSubs ? null : subs, active: true, updated_at: new Date().toISOString() };
+    status.textContent = 'Saving…'; status.style.color = 'var(--muted)';
+    const { error } = await supabase.from('v2_do_now').upsert(payload, { onConflict: 'class_id' });
+    if (error) { status.textContent = 'Could not save: ' + error.message; status.style.color = '#dc2626'; return; }
+    status.textContent = 'Active — just now'; status.style.color = '#059669';
+    refreshDoNow(cls);
+  });
+  document.getElementById('dnClear').addEventListener('click', () => doNowStop(cls));
+  document.getElementById('dnReset').addEventListener('click', () => doNowClear(cls));
+  document.getElementById('dnProject').addEventListener('click', () => openClassView(cls));
+
+  refreshDoNow(cls);
+  try {
+    doNowChannel = supabase.channel('donow-' + cls.id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vocab_sessions' }, () => scheduleDoNowRefresh(cls))
+      .subscribe();
+  } catch (_e) {}
+  doNowPoll = setInterval(() => refreshDoNow(cls), 10000);
+}
+
+async function fetchDoNowData(cls){
+  const ids = cls.students.map(s => s.id);
+  let dn = null;
+  try { const { data } = await supabase.from('v2_do_now').select('updated_at, active, topic_id').eq('class_id', cls.id).maybeSingle(); dn = data; } catch (_e) {}
+  if (!dn || !dn.updated_at || !ids.length) return { dn: (dn && dn.updated_at) ? dn : null, rows: [] };
+  let sessions = [];
+  try {
+    const { data, error } = await supabase.from('vocab_sessions').select('student_id, answered, correct, last_answer_at')
+      .eq('vocab_list', 'civ-myth-religion').gte('started_at', dn.updated_at).in('student_id', ids);
+    if (!error) sessions = data || [];
+  } catch (_e) {}
+  const by = new Map();
+  for (const r of sessions) {
+    const cur = by.get(r.student_id) || { answered: 0, correct: 0, last: null };
+    cur.answered += r.answered | 0; cur.correct += r.correct | 0;
+    if (r.last_answer_at && (!cur.last || r.last_answer_at > cur.last)) cur.last = r.last_answer_at;
+    by.set(r.student_id, cur);
+  }
+  const rows = cls.students.map(s => {
+    const r = by.get(s.id);
+    return { id: s.id, name: s.name, in: !!r, answered: r ? r.answered : 0, correct: r ? r.correct : 0,
+             acc: (r && r.answered > 0) ? Math.round(r.correct / r.answered * 100) : null, last: r ? r.last : null };
+  });
+  return { dn, rows };
+}
+
+function refreshDoNow(cls){ if (classViewOpen) renderLeaderboard(cls); else renderDoNowSummary(cls); }
+function scheduleDoNowRefresh(cls){ if (doNowDebounce) clearTimeout(doNowDebounce); doNowDebounce = setTimeout(() => refreshDoNow(cls), 300); }
+
+async function doNowStop(cls){
+  const status = document.getElementById('dnStatus');
+  if (status) { status.textContent = 'Stopping…'; status.style.color = 'var(--muted)'; }
+  const { error } = await supabase.from('v2_do_now').update({ active: false }).eq('class_id', cls.id);
+  if (error) { if (status) { status.textContent = 'Could not stop: ' + error.message; status.style.color = '#dc2626'; } return; }
+  if (status) { status.textContent = 'Stopped — students have been cut off'; status.style.color = 'var(--muted)'; }
+  refreshDoNow(cls);
+}
+async function doNowClear(cls){
+  const { error } = await supabase.from('v2_do_now').delete().eq('class_id', cls.id);
+  if (error) { const st = document.getElementById('dnStatus'); if (st) { st.textContent = 'Could not clear: ' + error.message; st.style.color = '#dc2626'; } return; }
+  if (classViewOpen) closeClassView();
+  renderClass(currentClassIdx);
+}
+
+async function renderDoNowSummary(cls){
+  const host = document.getElementById('dnSummary');
+  if (!host) return;
+  if (!cls.students.length) { host.innerHTML = '<div style="font-size:12.5px;color:var(--muted);">No students in this class yet — add them on your teacher dashboard.</div>'; return; }
+  const { dn, rows: allRows } = await fetchDoNowData(cls);
+  if (!dn) { host.innerHTML = '<div style="font-size:12.5px;color:var(--muted);">Set a Do Now above to start tracking the class.</div>'; return; }
+  let answered = 0, correct = 0, done = 0;
+  for (const r of allRows) { answered += r.answered; correct += r.correct; if (r.in) done++; }
+  const acc = answered > 0 ? Math.round(correct / answered * 100) : 0;
+  const accColour = acc >= 70 ? '#059669' : acc >= 50 ? '#d97706' : '#dc2626';
+  const rows = allRows.slice().sort((a, b) => (b.in - a.in) || ((b.last || '') < (a.last || '') ? -1 : 1));
+  const rowHtml = rows.map(r => {
+    if (!r.in) return `<tr style="color:#94a3b8;"><td style="padding:5px 8px;">${escapeHtml(r.name)}</td><td style="padding:5px 8px;text-align:right;">—</td><td style="padding:5px 8px;text-align:right;">—</td><td style="padding:5px 8px;text-align:right;">not in yet</td></tr>`;
+    const rc = r.acc >= 70 ? '#059669' : r.acc >= 50 ? '#d97706' : '#dc2626';
+    return `<tr><td style="padding:5px 8px;color:var(--navy);font-weight:600;">${escapeHtml(r.name)}</td><td style="padding:5px 8px;text-align:right;">${r.answered}</td><td style="padding:5px 8px;text-align:right;color:var(--muted);">${r.correct}/${r.answered}</td><td style="padding:5px 8px;text-align:right;font-weight:700;color:${rc};">${r.acc}%</td></tr>`;
+  }).join('');
+  host.innerHTML = `
+    <div class="dn-sum-head">
+      <div class="dn-sum-label" style="color:${dn.active ? '#059669' : 'var(--muted)'};">${dn.active ? '● Live tracking' : 'Stopped · final results'}</div>
+      <span class="dn-sum-meta">updated ${new Date().toLocaleTimeString('en-GB')}${dn.active ? ' · live' : ''} · <button id="dnRefresh" type="button">refresh</button></span>
+    </div>
+    <div class="dn-totals">
+      <div><span class="n" style="color:var(--navy);">${done}</span><span style="font-size:13px;color:var(--muted);"> / ${cls.students.length} students in</span></div>
+      <div><span class="n" style="color:${accColour};">${answered ? acc + '%' : '—'}</span><span style="font-size:13px;color:var(--muted);"> class accuracy${answered ? ' · ' + answered + ' answers' : ''}</span></div>
+    </div>
+    <table class="dn-table">
+      <thead><tr><th>Student</th><th style="text-align:right;">Answered</th><th style="text-align:right;">Correct</th><th style="text-align:right;">Accuracy</th></tr></thead>
+      <tbody>${rowHtml}</tbody>
+    </table>`;
+  const refresh = host.querySelector('#dnRefresh');
+  if (refresh) refresh.addEventListener('click', () => renderDoNowSummary(cls));
+}
+
+function openClassView(cls){
+  lbClass = cls; lbRows = new Map(); classViewOpen = true;
+  document.getElementById('lbList').innerHTML = '';
+  document.getElementById('classView').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  renderLeaderboard(cls);
+}
+function closeClassView(){
+  classViewOpen = false; lbClass = null;
+  document.getElementById('classView').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function renderLeaderboard(cls){
+  if (!classViewOpen) return;
+  const { dn, rows } = await fetchDoNowData(cls);
+  document.getElementById('lbSub').textContent =
+    (dn ? (dn.active ? 'Live' : 'Stopped') : 'No Do Now set') + (dn && dn.topic_id ? ' · Topic ' + dn.topic_id : '') + ' · ' + cls.name;
+  let answered = 0, correct = 0, done = 0;
+  for (const r of rows) { answered += r.answered; correct += r.correct; if (r.in) done++; }
+  const acc = answered > 0 ? Math.round(correct / answered * 100) : 0;
+  document.getElementById('lbTotals').innerHTML = `<b>${done}</b> / ${cls.students.length} in · class accuracy <b>${answered ? acc + '%' : '—'}</b>`;
+  const ranked = rows.slice().sort((a, b) =>
+    (b.in - a.in) || (b.correct - a.correct) || ((b.acc || 0) - (a.acc || 0)) || (b.answered - a.answered) || a.name.localeCompare(b.name));
+  const list = document.getElementById('lbList');
+  const firstTop = new Map();
+  lbRows.forEach((el, id) => firstTop.set(id, el.getBoundingClientRect().top));
+  ranked.forEach((r, i) => {
+    let el = lbRows.get(r.id);
+    if (!el) { el = document.createElement('div'); lbRows.set(r.id, el); }
+    el.className = 'lb-row' + (i === 0 && r.in ? ' top1' : '') + (r.in ? '' : ' notin');
+    el.innerHTML = `<div class="lb-rank">${r.in ? (i + 1) : '·'}</div><div class="lb-name">${escapeHtml(r.name)}</div><div class="lb-score">${r.in ? r.correct : '–'}</div><div class="lb-meta">${r.in ? (r.acc + '% · ' + r.answered + ' done') : 'not in yet'}</div>`;
+    list.appendChild(el);
+  });
+  requestAnimationFrame(() => {
+    ranked.forEach(r => {
+      const el = lbRows.get(r.id); const first = firstTop.get(r.id);
+      if (first == null) return;
+      const dy = first - el.getBoundingClientRect().top;
+      if (dy) { el.style.transition = 'none'; el.style.transform = 'translateY(' + dy + 'px)'; requestAnimationFrame(() => { el.style.transition = ''; el.style.transform = ''; }); }
+    });
+  });
+}
+
+document.getElementById('lbExit').addEventListener('click', closeClassView);
+document.getElementById('lbStop').addEventListener('click', () => { if (lbClass) doNowStop(lbClass); });
+document.getElementById('lbClear').addEventListener('click', () => { if (lbClass) doNowClear(lbClass); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && classViewOpen) closeClassView(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && activeClass) refreshDoNow(activeClass); });
+window.addEventListener('focus', () => { if (activeClass) refreshDoNow(activeClass); });
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+</script>
+<script src="/version2/assets/js/starfield.js"></script>
+</body>
+</html>
