@@ -136,7 +136,10 @@
 </div>
 
 <script>
-const supabase = window.supabase;
+// Use window.supabase directly — the supabase-js UMD bundle already
+// occupies the global `supabase`, so a top-level `const supabase` here
+// collides ("already declared") and stops the whole script.
+const sb = window.supabase;
 let classes = [], currentClassIdx = 0, activeClass = null;
 let doNowPoll = null, doNowChannel = null, doNowDebounce = null;
 let classViewOpen = false, lbRows = new Map(), lbClass = null;
@@ -149,7 +152,7 @@ async function init(){
   const area = document.getElementById('classArea');
   area.innerHTML = '<div class="dn-empty">Loading your classes…</div>';
   let user = null;
-  try { const { data } = await supabase.auth.getUser(); user = data && data.user; } catch (_e) {}
+  try { const { data } = await sb.auth.getUser(); user = data && data.user; } catch (_e) {}
   if (!user) { area.innerHTML = '<div class="dn-empty">You need to be signed in as a teacher. <a href="/auth/login.html">Sign in</a>.</div>'; return; }
   try { await loadClasses(); }
   catch (e) { area.innerHTML = '<div class="dn-empty">Couldn\'t load the Do Now page.<br><span style="font-size:12px;">' + escapeHtml((e && e.message) || e || '') + '</span></div>'; }
@@ -157,14 +160,14 @@ async function init(){
 
 async function loadClasses(){
   const area = document.getElementById('classArea');
-  const { data, error } = await supabase.from('v2_classes').select('id, name, type').order('created_at', { ascending: true });
+  const { data, error } = await sb.from('v2_classes').select('id, name, type').order('created_at', { ascending: true });
   if (error) throw error;
   const rows = (data || []).filter(c => c.type === 'civ-gcse');
   if (!rows.length) { area.innerHTML = '<div class="dn-empty">No Classical Civilisation classes yet.<br>Create one on your <a href="/version2/tracking/teacher.html">teacher dashboard</a>, then come back here.</div>'; return; }
   classes = [];
   for (const c of rows) {
     let members = [];
-    try { const { data } = await supabase.from('v2_class_members').select('student_id, users:student_id (full_name, email)').eq('class_id', c.id); members = data || []; } catch (_e) {}
+    try { const { data } = await sb.from('v2_class_members').select('student_id, users:student_id (full_name, email)').eq('class_id', c.id); members = data || []; } catch (_e) {}
     const students = members.map(m => ({ id: m.student_id, name: (m.users && m.users.full_name) || ((m.users && m.users.email) || '').split('@')[0] || 'Student' }));
     classes.push({ id: c.id, name: c.name, type: c.type, students });
   }
@@ -191,7 +194,7 @@ function renderClass(idx){
   currentClassIdx = idx; activeClass = classes[idx];
   const cls = activeClass;
   if (doNowPoll) { clearInterval(doNowPoll); doNowPoll = null; }
-  if (doNowChannel) { try { supabase.removeChannel(doNowChannel); } catch (_e) {} doNowChannel = null; }
+  if (doNowChannel) { try { sb.removeChannel(doNowChannel); } catch (_e) {} doNowChannel = null; }
 
   const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
   const area = document.getElementById('classArea');
@@ -226,7 +229,7 @@ function renderClass(idx){
 
   (async () => {
     let current = null;
-    try { const { data } = await supabase.from('v2_do_now').select('topic_id, subtopics, active, updated_at').eq('class_id', cls.id).maybeSingle(); current = data; } catch (_e) {}
+    try { const { data } = await sb.from('v2_do_now').select('topic_id, subtopics, active, updated_at').eq('class_id', cls.id).maybeSingle(); current = data; } catch (_e) {}
     const initialTopic = (current && current.active && current.topic_id && topics.some(t => t.id === current.topic_id)) ? current.topic_id : (topics[0] && topics[0].id);
     if (initialTopic) sel.value = initialTopic;
     const checkedSet = (current && current.active && Array.isArray(current.subtopics) && current.subtopics.length) ? new Set(current.subtopics) : null;
@@ -245,7 +248,7 @@ function renderClass(idx){
     const allSubs = subs.length === civSubtopicsOf(sel.value).length;
     const payload = { class_id: cls.id, vocab_list: 'civ-myth-religion', topic_id: sel.value, subtopics: allSubs ? null : subs, active: true, updated_at: new Date().toISOString() };
     status.textContent = 'Saving…'; status.style.color = 'var(--muted)';
-    const { error } = await supabase.from('v2_do_now').upsert(payload, { onConflict: 'class_id' });
+    const { error } = await sb.from('v2_do_now').upsert(payload, { onConflict: 'class_id' });
     if (error) { status.textContent = 'Could not save: ' + error.message; status.style.color = '#dc2626'; return; }
     status.textContent = 'Active — just now'; status.style.color = '#059669';
     refreshDoNow(cls);
@@ -256,7 +259,7 @@ function renderClass(idx){
 
   refreshDoNow(cls);
   try {
-    doNowChannel = supabase.channel('donow-' + cls.id)
+    doNowChannel = sb.channel('donow-' + cls.id)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vocab_sessions' }, () => scheduleDoNowRefresh(cls))
       .subscribe();
   } catch (_e) {}
@@ -266,11 +269,11 @@ function renderClass(idx){
 async function fetchDoNowData(cls){
   const ids = cls.students.map(s => s.id);
   let dn = null;
-  try { const { data } = await supabase.from('v2_do_now').select('updated_at, active, topic_id').eq('class_id', cls.id).maybeSingle(); dn = data; } catch (_e) {}
+  try { const { data } = await sb.from('v2_do_now').select('updated_at, active, topic_id').eq('class_id', cls.id).maybeSingle(); dn = data; } catch (_e) {}
   if (!dn || !dn.updated_at || !ids.length) return { dn: (dn && dn.updated_at) ? dn : null, rows: [] };
   let sessions = [];
   try {
-    const { data, error } = await supabase.from('vocab_sessions').select('student_id, answered, correct, last_answer_at')
+    const { data, error } = await sb.from('vocab_sessions').select('student_id, answered, correct, last_answer_at')
       .eq('vocab_list', 'civ-myth-religion').gte('started_at', dn.updated_at).in('student_id', ids);
     if (!error) sessions = data || [];
   } catch (_e) {}
@@ -295,13 +298,13 @@ function scheduleDoNowRefresh(cls){ if (doNowDebounce) clearTimeout(doNowDebounc
 async function doNowStop(cls){
   const status = document.getElementById('dnStatus');
   if (status) { status.textContent = 'Stopping…'; status.style.color = 'var(--muted)'; }
-  const { error } = await supabase.from('v2_do_now').update({ active: false }).eq('class_id', cls.id);
+  const { error } = await sb.from('v2_do_now').update({ active: false }).eq('class_id', cls.id);
   if (error) { if (status) { status.textContent = 'Could not stop: ' + error.message; status.style.color = '#dc2626'; } return; }
   if (status) { status.textContent = 'Stopped — students have been cut off'; status.style.color = 'var(--muted)'; }
   refreshDoNow(cls);
 }
 async function doNowClear(cls){
-  const { error } = await supabase.from('v2_do_now').delete().eq('class_id', cls.id);
+  const { error } = await sb.from('v2_do_now').delete().eq('class_id', cls.id);
   if (error) { const st = document.getElementById('dnStatus'); if (st) { st.textContent = 'Could not clear: ' + error.message; st.style.color = '#dc2626'; } return; }
   if (classViewOpen) closeClassView();
   renderClass(currentClassIdx);
