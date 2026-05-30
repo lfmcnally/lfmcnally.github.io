@@ -176,10 +176,10 @@ async function loadProfile() {
   document.getElementById('cardCode').style.display = '';
   document.getElementById('cardTeachers').style.display = '';
 
-  // Profile row
+  // Profile row — fetch core columns first (these have existed since v1).
   const { data: profile, error: profileErr } = await window.supabase
     .from('users')
-    .select('full_name, email, school, role, share_code, tracked_courses')
+    .select('full_name, email, school, role, share_code')
     .eq('id', user.id)
     .single();
 
@@ -196,14 +196,32 @@ async function loadProfile() {
   document.getElementById('codeDisplay').textContent = profile.share_code || '—';
 
   if (profile.role === 'student') {
-    document.getElementById('cardCourses').style.display = '';
-    renderCoursePicker(profile.tracked_courses || []);
+    // tracked_courses is fetched separately so a missing column (migration
+    // not yet applied) doesn't blow up the rest of the page.
+    const tracked = await loadTrackedCourses(user.id);
+    if (tracked.available) {
+      document.getElementById('cardCourses').style.display = '';
+      renderCoursePicker(tracked.courses);
+    }
     await loadTeachers(user.id);
   } else {
     // Teachers don't have personal tracking — the courses picker stays hidden.
     document.getElementById('teacherList').innerHTML =
       '<div class="empty-state">Teachers don\'t need a sharing code — see your <a href="/version2/tracking/teacher.html" style="color:var(--brand);font-weight:600;">teacher dashboard</a>.</div>';
   }
+}
+
+// Returns { available: bool, courses: string[] }. `available: false` means
+// the column doesn't exist yet (migration 044 not applied) — caller should
+// hide the picker rather than show an error.
+async function loadTrackedCourses(userId) {
+  const { data, error } = await window.supabase
+    .from('users').select('tracked_courses').eq('id', userId).maybeSingle();
+  if (error) {
+    console.info('[profile] tracked_courses unavailable:', error.message);
+    return { available: false, courses: [] };
+  }
+  return { available: true, courses: (data && data.tracked_courses) || [] };
 }
 
 function renderCoursePicker(trackedCourses) {
@@ -265,6 +283,13 @@ async function onCourseToggle(ev) {
   if (error) {
     // Revert the checkbox if the write failed.
     input.checked = !input.checked;
+    // A missing column (migration not applied) gives an unfriendly message —
+    // explain instead and hide the picker for the rest of the session.
+    if (/column.*tracked_courses/i.test(error.message || '')) {
+      document.getElementById('cardCourses').style.display = 'none';
+      alert('Course tracking isn\'t available yet — the database update hasn\'t been applied. Ask Lawrence.');
+      return;
+    }
     alert('Could not save: ' + error.message);
     return;
   }

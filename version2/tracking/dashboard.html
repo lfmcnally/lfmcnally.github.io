@@ -851,16 +851,26 @@ function renderCourseTabs(allowedTypes, activeType) {
 async function resolveAllowedCourseTypes(userId) {
   if (!userId) return ['latin-gcse'];
   const types = new Set();
-  try {
-    const { data: profile } = await window.supabase
-      .from('users').select('tracked_courses').eq('id', userId).maybeSingle();
+  // tracked_courses may not exist yet if migration 044 isn't applied — treat
+  // that as "no preferences set" and fall back to the old default (Latin GCSE)
+  // at the end so signed-in students aren't dumped into the empty state.
+  let trackedColumnExists = true;
+  const { data: profile, error: profileErr } = await window.supabase
+    .from('users').select('tracked_courses').eq('id', userId).maybeSingle();
+  if (profileErr) {
+    trackedColumnExists = false;
+  } else {
     (profile && profile.tracked_courses || []).forEach(t => types.add(t));
-  } catch (_) { /* ignore — tracked_courses may not exist if migration 044 isn't applied */ }
+  }
   try {
     const { data: rows } = await window.supabase
       .from('v2_class_members').select('v2_classes(type)').eq('student_id', userId);
     (rows || []).forEach(r => { if (r.v2_classes && r.v2_classes.type) types.add(r.v2_classes.type); });
-  } catch (_) { /* ignore — student may not be in any class */ }
+  } catch (_) { /* student may not be in any class */ }
+
+  // Back-compat: if the tracked_courses feature isn't live AND the student
+  // isn't in any class, show Latin GCSE rather than the empty state.
+  if (!trackedColumnExists && types.size === 0) types.add('latin-gcse');
   return Array.from(types);
 }
 
