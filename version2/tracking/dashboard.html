@@ -19,6 +19,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/bkt-store.js"></script>
+<script src="/version2/assets/js/course-map.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
 <style>
 body { background: var(--cream); }
 .nav-user { display: flex; align-items: center; gap: 10px; }
@@ -316,9 +318,7 @@ body { background: var(--cream); }
         <div class="nav-div"></div>
         <a href="#" class="nav-link">Tools</a>
         <a href="#" class="nav-link">About</a>
-        <div class="nav-user" id="navUser">
-          <a href="/auth/login.html" class="nav-cta" id="navSignIn">Sign in</a>
-        </div>
+        <div data-account-menu></div>
       </div>
     </div>
   </nav>
@@ -329,12 +329,7 @@ body { background: var(--cream); }
       Everything you practise — vocabulary and quiz topics — earns a confidence score based on your full answer history, not just whether you got it right once or twice.
       <button class="help-btn" id="helpBtn" type="button">How does this work?</button>
     </div>
-    <div class="course-tabs">
-      <button class="course-tab active" id="tabLatin">GCSE Latin</button>
-      <button class="course-tab" id="tabMyth">Myth &amp; Religion</button>
-      <button class="course-tab soon" disabled>GCSE Greek</button>
-      <button class="course-tab soon" disabled>+ Add course</button>
-    </div>
+    <div class="course-tabs" id="courseTabs" hidden></div>
   </div>
 </div>
 <div class="dash-body">
@@ -527,6 +522,22 @@ body { background: var(--cream); }
       </div>
     </div>
   </div>
+
+  <div id="course-not-yet" class="hidden">
+    <div class="empty-state-dashboard">
+      <h2 id="notYetTitle">Coming soon</h2>
+      <p id="notYetBody">This course is on the roadmap. We'll switch tracking on for it as soon as it launches.</p>
+      <a href="/version2/profile.html#courses" class="btn-set-up">Manage my courses</a>
+    </div>
+  </div>
+
+  <div id="course-empty" class="hidden">
+    <div class="empty-state-dashboard">
+      <h2>Set up your tracking</h2>
+      <p>Pick the courses you want to track on your dashboard. You can change this any time — Latin, Myth &amp; Religion, and more as they launch.</p>
+      <a href="/version2/profile.html#courses" class="btn-set-up">Choose your courses →</a>
+    </div>
+  </div>
 </div>
 <footer class="footer">
   <div class="footer-inner">
@@ -561,56 +572,9 @@ function getCanonicalWords() {
   return Array.from(seen.values());
 }
 
-// Populate the nav with the signed-in user, or leave the "Sign in" link.
-async function populateNavUser() {
-  if (!window.supabase || !window.supabase.auth) return null;
-  try {
-    // getUser() validates against the API (more reliable than getSession()
-    // which can return null during the library's startup refresh)
-    const { data, error } = await window.supabase.auth.getUser();
-    if (error || !data || !data.user) return null;
-    const user = data.user;
-
-    // Try to read full_name + role from the users table; fall back to email
-    let displayName = user.email || 'Student';
-    let role = 'student';
-    try {
-      const { data: profile } = await window.supabase
-        .from('users')
-        .select('full_name, role')
-        .eq('id', user.id)
-        .maybeSingle();
-      if (profile && profile.full_name) displayName = profile.full_name;
-      if (profile && profile.role)      role = profile.role;
-    } catch (_err) { /* ignore — fall back to email */ }
-
-    const initials = String(displayName)
-      .split(/[\s@.]+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map(s => s[0].toUpperCase())
-      .join('') || '?';
-
-    const shortName = String(displayName).split('@')[0];
-
-    // Teachers get a link to their dashboard; everyone gets a profile link.
-    const teacherLink = role === 'teacher'
-      ? `<a href="/version2/tracking/teacher.html" class="nav-link" style="margin-right:6px;">Teacher dashboard</a>`
-      : '';
-    const navUser = document.getElementById('navUser');
-    navUser.innerHTML = `
-      ${teacherLink}
-      <a href="/version2/profile.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
-        <div class="nav-avatar">${initials}</div>
-        <span class="nav-username">${shortName}</span>
-      </a>
-    `;
-    return user;
-  } catch (err) {
-    console.warn('[dashboard] auth check failed', err);
-    return null;
-  }
-}
+// Nav user slot is rendered by /version2/assets/js/account-menu.js via the
+// <div data-account-menu> in the nav. Auth state for the dashboard body is
+// captured in init() via observedUserId.
 
 
 // classify — every word with t>0 lands in exactly one bucket. The model now
@@ -828,6 +792,101 @@ function renderDashboard(words, recentlyPractised) {
   }
 }
 
+// ── Course tab strip (driven by user's tracked courses + class memberships) ──
+// Each tab corresponds to a v2 course type. The body for that type is shown
+// when the tab is active; courses that aren't yet shipped (no bodyId in
+// course-map.js) route to the shared #course-not-yet placeholder.
+const COURSE_BODY_IDS = ['course-latin', 'course-myth', 'course-not-yet', 'course-empty'];
+
+function hideAllCourseBodies() {
+  COURSE_BODY_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
+}
+
+function showCourseBody(type) {
+  const map = window.ClassicaliaCourseMap;
+  if (!map) return;
+  hideAllCourseBodies();
+  const bodyId = map.bodyIdFor(type);
+  if (bodyId && document.getElementById(bodyId)) {
+    document.getElementById(bodyId).classList.remove('hidden');
+    // Lazy-render hook (e.g. Myth view defers building its DOM until first activation).
+    const lazy = window.ClassicaliaLazyRender && window.ClassicaliaLazyRender[type];
+    if (typeof lazy === 'function') lazy();
+  } else {
+    // Course exists in the catalogue but doesn't have a body yet — show the
+    // shared "coming soon" placeholder with the course's name swapped in.
+    const notYet = document.getElementById('course-not-yet');
+    if (notYet) {
+      notYet.classList.remove('hidden');
+      const title = document.getElementById('notYetTitle');
+      if (title) title.textContent = `${map.labelFor(type)} — coming soon`;
+    }
+  }
+  // Update active state on tab buttons.
+  document.querySelectorAll('#courseTabs .course-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.courseType === type);
+  });
+}
+
+function renderCourseTabs(allowedTypes, activeType) {
+  const map = window.ClassicaliaCourseMap;
+  const strip = document.getElementById('courseTabs');
+  if (!strip || !map) return;
+  strip.innerHTML = allowedTypes.map(type =>
+    `<button type="button" class="course-tab" data-course-type="${type}">${map.labelFor(type)}</button>`
+  ).join('');
+  strip.hidden = allowedTypes.length < 2;   // single course = no point showing one tab
+  strip.querySelectorAll('.course-tab').forEach(btn => {
+    btn.addEventListener('click', () => showCourseBody(btn.dataset.courseType));
+  });
+  if (activeType) showCourseBody(activeType);
+}
+
+// Compute the set of course types this user should see tabs for.
+// Signed-out: just Latin (matches the current local-only fallback).
+// Signed-in:  tracked_courses ∪ types of classes they're a member of.
+async function resolveAllowedCourseTypes(userId) {
+  if (!userId) return ['latin-gcse'];
+  const types = new Set();
+  try {
+    const { data: profile } = await window.supabase
+      .from('users').select('tracked_courses').eq('id', userId).maybeSingle();
+    (profile && profile.tracked_courses || []).forEach(t => types.add(t));
+  } catch (_) { /* ignore — tracked_courses may not exist if migration 044 isn't applied */ }
+  try {
+    const { data: rows } = await window.supabase
+      .from('v2_class_members').select('v2_classes(type)').eq('student_id', userId);
+    (rows || []).forEach(r => { if (r.v2_classes && r.v2_classes.type) types.add(r.v2_classes.type); });
+  } catch (_) { /* ignore — student may not be in any class */ }
+  return Array.from(types);
+}
+
+async function setupCourseStrip(userId) {
+  const params = new URLSearchParams(location.search);
+  const requested = params.get('course');
+  const allowed = await resolveAllowedCourseTypes(userId);
+
+  // Signed in but tracking nothing — empty state with a clear "go to profile" CTA.
+  if (userId && allowed.length === 0) {
+    document.getElementById('courseTabs').hidden = true;
+    hideAllCourseBodies();
+    document.getElementById('course-empty').classList.remove('hidden');
+    return;
+  }
+
+  // Pick the active tab: the URL hint if it's valid, otherwise the first
+  // shipped course in the allowed set (fall back to first if none shipped).
+  const map = window.ClassicaliaCourseMap;
+  const shipped = allowed.filter(t => map.isShipped(t));
+  let active = (requested && allowed.includes(requested)) ? requested
+            : (shipped[0] || allowed[0]);
+
+  renderCourseTabs(allowed, active);
+}
+
 // ── Initialise ──
 let observedUserId = null;   // tracked so onAuthStateChange can detect real transitions
 
@@ -840,6 +899,15 @@ async function init() {
     const { data } = await window.supabase.auth.getUser();
     observedUserId = data && data.user ? data.user.id : null;
   } catch (_err) { observedUserId = null; }
+
+  // Build the tab strip from the user's tracked courses + class memberships.
+  // For signed-in students with nothing tracked, this shows the empty state
+  // and we skip the Latin BKT render below.
+  await setupCourseStrip(observedUserId);
+  if (document.getElementById('course-empty') &&
+      !document.getElementById('course-empty').classList.contains('hidden')) {
+    return;
+  }
 
   const canonical = getCanonicalWords();
 
@@ -858,7 +926,6 @@ async function init() {
   const store = await window.ClassicaliaBKT.open({ vocabList: VOCAB_LIST_KEY });
 
   if (observedUserId) {
-    populateNavUser();
     if (store.mode !== 'cloud') {
       // Signed in, but cloud isn't reachable — surface this clearly
       const banner = document.getElementById('anonBanner');
@@ -958,27 +1025,24 @@ init().then(() => {
 });
 </script>
 <script>
-// ── Myth & Religion course view (self-contained; does not touch the Latin code) ──
+// ── Myth & Religion course view (self-contained content; the union-driven
+// tab strip in the main script decides when to show it and triggers the
+// first render via window.ClassicaliaLazyRender) ──
 (function () {
   const TOPICS = (window.CivQuiz && window.CivQuiz.topics) || [];
-  const tabLatin = document.getElementById('tabLatin');
-  const tabMyth  = document.getElementById('tabMyth');
-  const viewLatin = document.getElementById('course-latin');
-  const viewMyth  = document.getElementById('course-myth');
-  if (!tabMyth || !viewMyth) return;
+  const viewMyth = document.getElementById('course-myth');
+  if (!viewMyth) return;
   let rendered = false;
 
-  function showCourse(which) {
-    const myth = which === 'myth';
-    viewLatin.classList.toggle('hidden', myth);
-    viewMyth.classList.toggle('hidden', !myth);
-    tabLatin.classList.toggle('active', !myth);
-    tabMyth.classList.toggle('active', myth);
-    if (myth && !rendered) renderMyth();
+  function ensureRendered() {
+    if (rendered) return;
+    rendered = true;
+    renderMyth();
   }
-  tabLatin.addEventListener('click', () => showCourse('latin'));
-  tabMyth.addEventListener('click', () => showCourse('myth'));
-  if (new URLSearchParams(location.search).get('course') === 'myth') showCourse('myth');
+
+  // Register with the global lazy-render hook so the tab strip can invoke us
+  // the first time the user activates the Myth tab.
+  (window.ClassicaliaLazyRender = window.ClassicaliaLazyRender || {})['civ-gcse'] = ensureRendered;
 
   function esc(x) { return String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function colourClass(s) {

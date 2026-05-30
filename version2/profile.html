@@ -10,6 +10,8 @@
 <link rel="stylesheet" href="/version2/assets/css/classicalia.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/course-map.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
 <style>
 body { background:var(--cream); }
 .nav-user { display:flex;align-items:center;gap:10px; }
@@ -63,16 +65,14 @@ body { background:var(--cream); }
         <a href="/version2/subjects/classical-civilisation/" class="nav-link">Class. Civ.</a>
         <div class="nav-div"></div>
         <a href="/version2/tracking/dashboard.html" class="nav-link">My progress</a>
-        <div class="nav-user" id="navUser">
-          <a href="/auth/login.html" class="nav-cta">Sign in</a>
-        </div>
+        <div data-account-menu></div>
       </div>
     </div>
   </nav>
   <div class="dash-header-inner">
     <div class="dash-eyebrow">My profile</div>
     <div class="dash-title" id="profGreeting">Your account</div>
-    <div class="dash-subtitle">Account details, your sharing code, and the teachers who can see your progress.</div>
+    <div class="dash-subtitle">Account details, the courses you're tracking, your sharing code, and the teachers who can see your progress.</div>
   </div>
 </div>
 
@@ -88,7 +88,12 @@ body { background:var(--cream); }
     <div class="prof-card-body">
       <div class="prof-field">
         <div class="prof-field-label">Name</div>
-        <div class="prof-field-value" id="profName">—</div>
+        <div class="prof-field-value">
+          <div class="editable-field" id="nameField">
+            <span id="profName">—</span>
+            <button type="button" class="editable-btn" id="nameEditBtn" title="Edit name">Edit</button>
+          </div>
+        </div>
       </div>
       <div class="prof-field">
         <div class="prof-field-label">Email</div>
@@ -105,6 +110,21 @@ body { background:var(--cream); }
     </div>
   </div>
 
+  <!-- MY COURSES -->
+  <a id="courses" style="position:relative;top:-80px;"></a>
+  <div class="prof-card" id="cardCourses" style="display:none;">
+    <div class="prof-card-head">
+      <span class="prof-card-title">My courses</span>
+      <span class="code-toast" id="coursesToast">Saved</span>
+    </div>
+    <div class="prof-card-body">
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.5;">
+        Tick the courses you want to track on your dashboard. You don't need a teacher — pick whichever you're studying and your progress will be saved across devices.
+      </div>
+      <div class="course-picker" id="coursePicker"></div>
+    </div>
+  </div>
+
   <!-- SHARING CODE -->
   <div class="prof-card" id="cardCode" style="display:none;">
     <div class="prof-card-head">
@@ -118,20 +138,25 @@ body { background:var(--cream); }
         <button class="code-btn" id="codeRegen" type="button">Regenerate</button>
       </div>
       <div class="code-help">
-        Give this code to a teacher and they can add you to one of their classes. They'll then see your vocabulary progress. You can revoke their access at any time below. If you ever share the code too widely, hit <strong>Regenerate</strong> — the old code stops working immediately.
+        Optional — only needed if a teacher will track your progress. Give this code to them and they can add you to a class. You can revoke their access any time below. If you ever share the code too widely, hit <strong>Regenerate</strong> — the old code stops working immediately.
       </div>
     </div>
   </div>
 
-  <!-- TEACHERS -->
+  <!-- ACCESS -->
   <div class="prof-card" id="cardTeachers" style="display:none;">
-    <div class="prof-card-head"><span class="prof-card-title">Teachers who can see your progress</span></div>
+    <div class="prof-card-head"><span class="prof-card-title">Access</span></div>
+    <div style="padding:14px 22px 0;font-size:12.5px;color:var(--muted);line-height:1.5;">
+      Teachers and classes that can see your progress. Remove access to revoke at any time.
+    </div>
     <div id="teacherList"></div>
   </div>
 
 </div>
 
 <script>
+let CURRENT_USER_ID = null;
+
 async function loadProfile() {
   // Auth check
   let user = null;
@@ -144,23 +169,17 @@ async function loadProfile() {
     document.getElementById('anonNotice').style.display = 'block';
     return;
   }
+  CURRENT_USER_ID = user.id;
 
-  // Show signed-in cards
+  // Show signed-in cards (courses card is student-only and revealed below)
   document.getElementById('cardAccount').style.display = '';
   document.getElementById('cardCode').style.display = '';
   document.getElementById('cardTeachers').style.display = '';
 
-  // Nav avatar
-  const initials = (user.email || '?').split(/[\s@.]+/).filter(Boolean).slice(0,2).map(s => s[0].toUpperCase()).join('') || '?';
-  document.getElementById('navUser').innerHTML = `
-    <div class="nav-avatar">${initials}</div>
-    <span class="nav-username">${(user.email || '').split('@')[0]}</span>
-  `;
-
   // Profile row
   const { data: profile, error: profileErr } = await window.supabase
     .from('users')
-    .select('full_name, email, school, role, share_code')
+    .select('full_name, email, school, role, share_code, tracked_courses')
     .eq('id', user.id)
     .single();
 
@@ -176,13 +195,83 @@ async function loadProfile() {
   document.getElementById('profRole').textContent = profile.role === 'teacher' ? 'Teacher' : 'Student';
   document.getElementById('codeDisplay').textContent = profile.share_code || '—';
 
-  // Teachers (only relevant for students)
   if (profile.role === 'student') {
+    document.getElementById('cardCourses').style.display = '';
+    renderCoursePicker(profile.tracked_courses || []);
     await loadTeachers(user.id);
   } else {
+    // Teachers don't have personal tracking — the courses picker stays hidden.
     document.getElementById('teacherList').innerHTML =
       '<div class="empty-state">Teachers don\'t need a sharing code — see your <a href="/version2/tracking/teacher.html" style="color:var(--brand);font-weight:600;">teacher dashboard</a>.</div>';
   }
+}
+
+function renderCoursePicker(trackedCourses) {
+  const map = window.ClassicaliaCourseMap;
+  if (!map) return;
+  const picker = document.getElementById('coursePicker');
+  const tracked = new Set(trackedCourses);
+
+  // Shipped courses (selectable) first, then coming-soon as disabled chips.
+  const rows = [];
+  for (const c of map.shipped()) {
+    const checked = tracked.has(c.type);
+    rows.push(`
+      <label class="course-pick${checked ? ' is-checked' : ''}" data-course-type="${c.type}">
+        <input type="checkbox" data-course-toggle ${checked ? 'checked' : ''}>
+        <div class="course-pick-body">
+          <div class="course-pick-label">${escapeHtml(c.label)}</div>
+          <div class="course-pick-meta">Track vocabulary and quiz progress on your dashboard.</div>
+        </div>
+      </label>
+    `);
+  }
+  for (const c of map.comingSoon()) {
+    rows.push(`
+      <div class="course-pick is-soon" data-course-type="${c.type}">
+        <input type="checkbox" disabled>
+        <div class="course-pick-body">
+          <div class="course-pick-label">${escapeHtml(c.label)}</div>
+          <div class="course-pick-meta">Tracking will open when this course launches.</div>
+        </div>
+        <span class="course-pick-soon">Coming soon</span>
+      </div>
+    `);
+  }
+  picker.innerHTML = rows.join('');
+
+  picker.querySelectorAll('[data-course-toggle]').forEach(input => {
+    input.addEventListener('change', onCourseToggle);
+  });
+}
+
+async function onCourseToggle(ev) {
+  const input = ev.target;
+  const label = input.closest('.course-pick');
+  const type = label.dataset.courseType;
+  input.disabled = true;
+
+  // Read the latest set from the DOM (source of truth for what's checked now).
+  const checkedTypes = Array.from(
+    document.querySelectorAll('#coursePicker [data-course-toggle]:checked')
+  ).map(el => el.closest('.course-pick').dataset.courseType);
+
+  const { error } = await window.supabase
+    .from('users')
+    .update({ tracked_courses: checkedTypes })
+    .eq('id', CURRENT_USER_ID);
+
+  input.disabled = false;
+  if (error) {
+    // Revert the checkbox if the write failed.
+    input.checked = !input.checked;
+    alert('Could not save: ' + error.message);
+    return;
+  }
+  label.classList.toggle('is-checked', input.checked);
+  const toast = document.getElementById('coursesToast');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 1200);
 }
 
 async function loadTeachers(studentId) {
@@ -204,15 +293,17 @@ async function loadTeachers(studentId) {
     return;
   }
 
+  const map = window.ClassicaliaCourseMap;
   listEl.innerHTML = data.map(row => {
     const cls = row.v2_classes || {};
     const teacher = cls.users || {};
     const teacherName = teacher.full_name || teacher.email || 'Unknown teacher';
+    const typeLabel = map ? map.labelFor(cls.type) : (cls.type || '');
     return `
       <div class="teacher-row">
         <div class="teacher-info">
           <div class="teacher-name">${escapeHtml(teacherName)}</div>
-          <div class="teacher-meta">${escapeHtml(cls.name || 'Class')} · ${escapeHtml(cls.type || '')}</div>
+          <div class="teacher-meta">${escapeHtml(cls.name || 'Class')} · ${escapeHtml(typeLabel)}</div>
         </div>
         <button class="teacher-remove" data-class-id="${cls.id}">Remove access</button>
       </div>
@@ -262,6 +353,71 @@ document.getElementById('codeCopy').addEventListener('click', async () => {
     sel.addRange(range);
   }
 });
+
+// Inline name edit: swap the static name span for an input, save on commit.
+function bindNameEditButton() {
+  const btn = document.getElementById('nameEditBtn');
+  if (!btn) return;
+  btn.addEventListener('click', enterNameEditMode);
+}
+
+function exitNameEditMode(name) {
+  const wrap = document.getElementById('nameField');
+  wrap.innerHTML = `
+    <span id="profName">${escapeHtml(name || '—')}</span>
+    <button type="button" class="editable-btn" id="nameEditBtn" title="Edit name">Edit</button>
+  `;
+  bindNameEditButton();
+}
+
+function enterNameEditMode() {
+  if (!CURRENT_USER_ID) return;
+  const wrap = document.getElementById('nameField');
+  const nameSpan = document.getElementById('profName');
+  const currentName = nameSpan.textContent === '—' ? '' : nameSpan.textContent;
+
+  wrap.innerHTML = `
+    <input type="text" id="nameInput" value="${escapeHtml(currentName)}" maxlength="80">
+    <button type="button" class="editable-btn primary" id="nameSaveBtn">Save</button>
+    <button type="button" class="editable-btn" id="nameCancelBtn">Cancel</button>
+  `;
+  const input = document.getElementById('nameInput');
+  input.focus();
+  input.select();
+
+  document.getElementById('nameCancelBtn').addEventListener('click', () => {
+    exitNameEditMode(currentName);
+  });
+
+  document.getElementById('nameSaveBtn').addEventListener('click', async () => {
+    const newName = input.value.trim();
+    if (!newName) { alert('Name can\'t be empty.'); return; }
+    const saveBtn = document.getElementById('nameSaveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+    const { error } = await window.supabase
+      .from('users')
+      .update({ full_name: newName })
+      .eq('id', CURRENT_USER_ID);
+    if (error) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+      alert('Could not save: ' + error.message);
+      return;
+    }
+    document.getElementById('profGreeting').textContent = newName;
+    exitNameEditMode(newName);
+    // Tell the account menu to re-render its name without a page reload.
+    window.dispatchEvent(new CustomEvent('classicalia:name-changed', { detail: newName }));
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('nameSaveBtn').click();
+    if (e.key === 'Escape') document.getElementById('nameCancelBtn').click();
+  });
+}
+
+bindNameEditButton();
 
 // Regenerate code
 document.getElementById('codeRegen').addEventListener('click', async () => {
