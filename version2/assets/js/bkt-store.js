@@ -24,20 +24,43 @@
   const STORAGE_PREFIX = 'classicalia.bkt.';   // + vocabList
   const FLUSH_DELAY_MS = 600;                  // coalesce rapid answers
 
-  function readLocal(vocabList) {
+  // localStorage is tagged with the user it belongs to. When a different user
+  // signs in on the same browser, the cached table is discarded — otherwise
+  // the merge step below would treat the previous account's words as
+  // "anonymous-then-signed-in" progress and upload them under the new user's
+  // id. Legacy untagged entries are kept only for anonymous sessions (so a
+  // genuine anonymous-then-signed-in upgrade still works); for signed-in
+  // sessions they're discarded as untrusted.
+  function readLocal(vocabList, expectedOwner) {
     try {
       const raw = localStorage.getItem(STORAGE_PREFIX + vocabList);
       if (!raw) return {};
-      return JSON.parse(raw) || {};
+      const parsed = JSON.parse(raw);
+      if (!parsed) return {};
+      if (parsed && Object.prototype.hasOwnProperty.call(parsed, 'owner') && Object.prototype.hasOwnProperty.call(parsed, 'data')) {
+        // Tagged shape — only return data if owner matches OR cache is
+        // anonymous (eligible for upgrade) AND we're loading anonymously OR
+        // upgrading from anonymous to signed-in.
+        if (parsed.owner === expectedOwner) return parsed.data || {};
+        if (parsed.owner === null && expectedOwner) return parsed.data || {};   // upgrade
+        return {};   // owner mismatch — discard
+      }
+      // Legacy untagged shape (pre-this-fix). Treat as anonymous data only;
+      // for signed-in sessions discard it to avoid cross-user leakage.
+      if (!expectedOwner) return parsed || {};
+      return {};
     } catch (err) {
       console.warn('[bkt-store] failed to read localStorage', err);
       return {};
     }
   }
 
-  function writeLocal(vocabList, table) {
+  function writeLocal(vocabList, table, owner) {
     try {
-      localStorage.setItem(STORAGE_PREFIX + vocabList, JSON.stringify(table));
+      localStorage.setItem(
+        STORAGE_PREFIX + vocabList,
+        JSON.stringify({ owner: owner || null, data: table })
+      );
     } catch (err) {
       console.warn('[bkt-store] failed to write localStorage', err);
     }
@@ -154,7 +177,7 @@
     const userLabel = session && session.user ? (session.user.email || session.user.id) : null;
 
     let mode = userId ? 'cloud' : 'local';
-    let table = readLocal(vocabList);
+    let table = readLocal(vocabList, userId);
 
     if (mode === 'cloud') {
       const cloud = await fetchCloudRows(userId, vocabList);
@@ -182,7 +205,7 @@
           }
         }
         table = cloud;
-        writeLocal(vocabList, table);
+        writeLocal(vocabList, table, userId);
         if (localOnlyToPush.size) {
           // Fire-and-forget initial sync
           pushBatch(userId, vocabList, localOnlyToPush).catch(() => {});
@@ -234,7 +257,7 @@
         review_interval_days:  state.review_interval_days || null
       };
       table[word] = next;
-      writeLocal(vocabList, table);
+      writeLocal(vocabList, table, userId);
 
       if (mode === 'cloud') {
         pending.set(word, next);
