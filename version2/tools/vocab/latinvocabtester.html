@@ -546,17 +546,17 @@ body { background: var(--cream); }
         </div>
         <div class="opt-row-check"></div>
       </button>
-      <button class="opt-row" data-list="alevel" id="listAlevel" disabled style="opacity:0.4; cursor:default;">
+      <button class="opt-row" data-list="alevel" id="listAlevel">
         <div>
           <div class="opt-row-name">OCR A-Level Latin</div>
-          <div class="opt-row-desc">H443 defined vocabulary · coming soon</div>
+          <div class="opt-row-desc">H443 defined vocabulary · sets 1&ndash;23</div>
         </div>
         <div class="opt-row-check"></div>
       </button>
-      <button class="opt-row" data-list="suburani" id="listSuburani" disabled style="opacity:0.4; cursor:default;">
+      <button class="opt-row" data-list="suburani" id="listSuburani">
         <div>
           <div class="opt-row-name">Suburani</div>
-          <div class="opt-row-desc">Suburani textbook vocabulary · coming soon</div>
+          <div class="opt-row-desc">Suburani Book 1 vocabulary · chapters 1&ndash;16</div>
         </div>
         <div class="opt-row-check"></div>
       </button>
@@ -610,20 +610,10 @@ body { background: var(--cream); }
       </button>
       <div id="chapterControls" style="display:none;">
         <div class="chapter-controls">
-          <label>Chapter</label>
-          <select id="chapterFrom">
-            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-            <option value="10">10</option>
-          </select>
+          <label id="chapterLabel">Chapter</label>
+          <select id="chapterFrom"></select>
           <label>to</label>
-          <select id="chapterTo">
-            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
-            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
-            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
-            <option value="10" selected>10</option>
-          </select>
+          <select id="chapterTo"></select>
         </div>
         <!-- Alphabetical sub-range -->
         <div class="chapter-controls" style="border-top: 1px solid var(--rule-faint); gap: 8px; flex-wrap: wrap;">
@@ -808,6 +798,28 @@ let totalAnswered = 0;
 let selectedMode = 'mc';
 let selectedRange = 'all';
 
+// Rebuild the chapter-range dropdowns whenever the user switches lists, so
+// they reflect the max chapter of the chosen vocabulary (10 for GCSE, 16 for
+// Suburani, 23 for A-Level). The A-Level data calls these "sets" — we relabel
+// the dropdown so the language matches OCR's documentation.
+function rebuildChapterDropdowns() {
+  const data = VOCAB_LISTS[selectedList]?.data?.();
+  if (!Array.isArray(data) || !data.length) return;
+  const maxChapter = data.reduce((m, w) => (typeof w.chapter === 'number' && w.chapter > m) ? w.chapter : m, 1);
+  const fromSel = document.getElementById('chapterFrom');
+  const toSel   = document.getElementById('chapterTo');
+  fromSel.innerHTML = '';
+  toSel.innerHTML   = '';
+  for (let i = 1; i <= maxChapter; i++) {
+    const oF = document.createElement('option'); oF.value = String(i); oF.textContent = String(i); fromSel.appendChild(oF);
+    const oT = document.createElement('option'); oT.value = String(i); oT.textContent = String(i); toSel.appendChild(oT);
+  }
+  fromSel.value = '1';
+  toSel.value   = String(maxChapter);
+  const label = document.getElementById('chapterLabel');
+  if (label) label.textContent = selectedList === 'alevel' ? 'Set' : 'Chapter';
+}
+
 // list selection
 document.querySelectorAll('.opt-row[data-list]').forEach(btn => {
   if (btn.disabled) return;
@@ -815,10 +827,15 @@ document.querySelectorAll('.opt-row[data-list]').forEach(btn => {
     document.querySelectorAll('.opt-row[data-list]').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
     selectedList = btn.dataset.list;
+    rebuildChapterDropdowns();
+    if (selectedRange === 'chapter') populateWordDropdowns();
     updateWordCount();
     refreshActiveStore();
   });
 });
+
+// initial population
+rebuildChapterDropdowns();
 
 function getChapterPool() {
   const from = parseInt(document.getElementById('chapterFrom').value);
