@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Greek Vocabulary — Classicalia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="data/greek-gcse.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/bkt-store.js"></script>
+<style>
+
+body { background: var(--cream); }
+
+/* ── SYNC STATUS PILL ── */
+.sync-pill {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px 7px 11px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11.5px;
+  color: var(--muted);
+  box-shadow: 0 1px 4px rgba(14, 30, 63, 0.04);
+  z-index: 50;
+}
+.sync-pill .sync-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #cbd5e1;
+  flex-shrink: 0;
+}
+.sync-pill[data-mode="cloud"] .sync-dot { background: #16a34a; }
+.sync-pill[data-mode="local"] .sync-dot { background: #fbbf24; }
+.sync-pill[data-mode="error"] .sync-dot { background: #ef4444; }
+.sync-pill .sync-link {
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+}
+.sync-pill .sync-link:hover { text-decoration: underline; }
+@media (max-width: 540px) {
+  .sync-pill { top: 10px; right: 10px; font-size: 10.5px; padding: 5px 10px 5px 9px; }
+}
+
+/* ── SETUP SCREEN ── */
+/* ── SETUP SCREEN ── */
+.setup {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 48px 40px 80px;
+}
+
+.setup-card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.setup-card-head {
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.setup-card-num {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--brand);
+  opacity: 0.4;
+  line-height: 1;
+  min-width: 20px;
+}
+
+.setup-card-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.setup-card-body {
+  padding: 6px 0;
+}
+
+/* option rows — like comp-rows */
+.opt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 24px;
+  border-bottom: 1px solid var(--rule-faint);
+  cursor: pointer;
+  transition: background 0.1s;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  width: 100%;
+  text-align: left;
+  font-family: 'DM Sans', sans-serif;
+}
+.opt-row:last-child { border-bottom: none; }
+.opt-row:hover { background: var(--cream); }
+.opt-row.selected { background: #eef4ff; }
+.opt-row.selected .opt-row-name { color: var(--brand); }
+
+.opt-row-name {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--navy);
+  transition: color 0.1s;
+}
+
+.opt-row-desc {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.opt-row-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--rule);
+  flex-shrink: 0;
+  transition: all 0.12s;
+  position: relative;
+}
+.opt-row.selected .opt-row-check {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+.opt-row.selected .opt-row-check::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: white;
+}
+
+/* chapter range */
+.chapter-controls {
+  padding: 16px 24px;
+  background: var(--cream);
+  border-top: 1px solid var(--rule-faint);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.chapter-controls label {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+}
+.chapter-controls select {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1.5px solid var(--rule);
+  border-radius: 5px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+.chapter-controls select:focus { outline: none; border-color: var(--brand); }
+
+.word-count-note {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  padding: 10px 24px 14px;
+  border-top: 1px solid var(--rule-faint);
+}
+
+.start-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 15px 40px;
+  background: var(--brand);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s;
+  width: 100%;
+  margin-top: 8px;
+}
+.start-btn:hover { background: #155ee0; }
+.start-btn:disabled { background: var(--rule); color: var(--muted); cursor: default; }
+
+/* ── TESTER SCREEN ── */
+.tester {
+  display: none;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* progress strip */
+.progress-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+.progress-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--brand);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+  width: 0%;
+}
+.progress-text {
+  font-size: 11.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+/* word card */
+.word-card {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 40px 40px 32px;
+  text-align: center;
+  margin-bottom: 24px;
+  position: relative;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.word-card-greek {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 42px;
+  color: var(--navy);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.word-card-info {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.word-card-chapter {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rule);
+}
+
+/* p_know indicator — subtle dot in corner */
+.p-know-dot {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--rule);
+}
+.p-know-dot.low    { background: #f87171; }
+.p-know-dot.mid    { background: #fbbf24; }
+.p-know-dot.high   { background: #34d399; }
+.p-know-dot.master { background: var(--brand); }
+
+/* answer area */
+.answer-area { margin-bottom: 20px; }
+
+/* multiple choice */
+.mc-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mc-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  padding: 14px 16px;
+  border: 1.5px solid var(--rule);
+  border-radius: 7px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.12s;
+  text-align: left;
+  line-height: 1.4;
+}
+.mc-btn:hover:not(:disabled) { border-color: var(--brand); background: #f0f4ff; }
+.mc-btn.correct { border-color: #22c55e; background: #f0fdf4; color: #15803d; font-weight: 600; }
+.mc-btn.wrong   { border-color: #f87171; background: #fef2f2; color: #dc2626; }
+.mc-btn.reveal  { border-color: #22c55e; background: #f0fdf4; color: #15803d; }
+.mc-btn:disabled { cursor: default; }
+
+/* type input */
+.type-wrap {
+  display: flex;
+  gap: 10px;
+}
+.type-input {
+  flex: 1;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  padding: 13px 16px;
+  border: 1.5px solid var(--rule);
+  border-radius: 7px;
+  outline: none;
+  transition: border-color 0.12s;
+  color: var(--ink);
+}
+.type-input:focus { border-color: var(--brand); }
+.type-input.correct { border-color: #22c55e; background: #f0fdf4; }
+.type-input.wrong   { border-color: #f87171; background: #fef2f2; }
+
+.type-submit {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 13px 24px;
+  background: var(--brand);
+  color: white;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+.type-submit:hover { background: #155ee0; }
+.type-submit:disabled { background: var(--rule); color: var(--muted); cursor: default; }
+
+/* feedback */
+.feedback {
+  min-height: 28px;
+  text-align: center;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.feedback.correct { color: #15803d; }
+.feedback.wrong   { color: #dc2626; }
+.feedback .correct-answer { font-weight: 400; color: var(--muted); font-style: italic; }
+
+/* next button */
+.next-btn {
+  display: block;
+  width: 100%;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 13px;
+  background: var(--navy);
+  color: white;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 0.12s;
+  display: none;
+}
+.next-btn:hover { background: #1a2b52; }
+.next-btn.visible { display: block; }
+
+/* mode toggle */
+.mode-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 28px;
+}
+.mode-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 16px;
+  border-radius: 4px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mode-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+/* stats bar */
+.stats-bar {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.stat {
+  text-align: center;
+}
+.stat-n {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--navy);
+  line-height: 1;
+}
+.stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* exit link */
+.exit-link {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: none;
+  margin-top: 20px;
+}
+.exit-link:hover { color: var(--ink); }
+
+/* mastered flash */
+.mastered-flash {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--brand);
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 20px;
+  border-radius: 20px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 200;
+  white-space: nowrap;
+}
+.mastered-flash.show { opacity: 1; }
+
+</style>
+</head>
+<body>
+
+<!-- NAV / HEADER -->
+<div class="header">
+  <canvas class="header-sky" data-starfield data-seed="754" data-region="0.8"></canvas>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo">Classicalia</a>
+      <div class="nav-links">
+        <a href="/version2/subjects/latin/" class="nav-link">Latin</a>
+        <a href="/version2/subjects/greek/" class="nav-link active">Greek</a>
+        <a href="/version2/subjects/classical-civilisation/" class="nav-link">Class. Civ.</a>
+        <div class="nav-div"></div>
+        <a href="#" class="nav-link">Tools</a>
+        <a href="#" class="nav-link">About</a>
+        <a href="#" class="nav-cta">Sign in</a>
+      </div>
+    </div>
+  </nav>
+  <div class="header-inner">
+    <div class="header-eyebrow">Greek · Vocabulary</div>
+    <h1 class="header-title">Vocabulary tester</h1>
+    <p class="header-deck">OCR GCSE Classical Greek — J292 defined vocabulary list.</p>
+  </div>
+</div>
+
+<!-- MASTERED FLASH -->
+<div class="mastered-flash" id="masteredFlash">✓ Mastered!</div>
+
+<!-- SYNC STATUS PILL -->
+<div class="sync-pill" id="syncPill" data-mode="loading">
+  <span class="sync-dot"></span>
+  <span class="sync-text" id="syncText">Checking…</span>
+  <a href="/auth/login.html" class="sync-link" id="syncLink" style="display:none;">Sign in to sync</a>
+  <a href="/version2/tracking/dashboard.html" class="sync-link" id="syncProgressLink" style="display:none;">My progress →</a>
+</div>
+
+<!-- ═══════════════════════════════════ SETUP SCREEN -->
+<div class="setup" id="setupScreen">
+
+  <!-- Word list -->
+  <div class="setup-card">
+    <div class="setup-card-head">
+      <span class="setup-card-num">1</span>
+      <span class="setup-card-title">Choose a word list</span>
+    </div>
+    <div class="setup-card-body">
+      <button class="opt-row selected" data-list="gcse" id="listGCSE">
+        <div>
+          <div class="opt-row-name">OCR GCSE Classical Greek</div>
+          <div class="opt-row-desc">J292 defined vocabulary &middot; chapters 1&ndash;10</div>
+        </div>
+        <div class="opt-row-check"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mode -->
+  <div class="setup-card">
+    <div class="setup-card-head">
+      <span class="setup-card-num">2</span>
+      <span class="setup-card-title">Test mode</span>
+    </div>
+    <div class="setup-card-body">
+      <button class="opt-row selected" data-mode="mc" id="modemc">
+        <div>
+          <div class="opt-row-name">Multiple choice</div>
+          <div class="opt-row-desc">Choose the correct English translation from four options</div>
+        </div>
+        <div class="opt-row-check"></div>
+      </button>
+      <button class="opt-row" data-mode="type" id="modetype">
+        <div>
+          <div class="opt-row-name">Type answer</div>
+          <div class="opt-row-desc">Type the English translation yourself</div>
+        </div>
+        <div class="opt-row-check"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Range -->
+  <div class="setup-card">
+    <div class="setup-card-head">
+      <span class="setup-card-num">3</span>
+      <span class="setup-card-title">Word range</span>
+    </div>
+    <div class="setup-card-body">
+      <button class="opt-row selected" data-range="all" id="rangeAll">
+        <div>
+          <div class="opt-row-name">All words</div>
+          <div class="opt-row-desc">The full list — all chapters</div>
+        </div>
+        <div class="opt-row-check"></div>
+      </button>
+      <button class="opt-row" data-range="chapter" id="rangeChapter">
+        <div>
+          <div class="opt-row-name">By chapter</div>
+          <div class="opt-row-desc">Choose a chapter range to practise</div>
+        </div>
+        <div class="opt-row-check"></div>
+      </button>
+      <div id="chapterControls" style="display:none;">
+        <div class="chapter-controls">
+          <label id="chapterLabel">Chapter</label>
+          <select id="chapterFrom"></select>
+          <label>to</label>
+          <select id="chapterTo"></select>
+        </div>
+        <!-- Alphabetical sub-range -->
+        <div class="chapter-controls" style="border-top: 1px solid var(--rule-faint); gap: 8px; flex-wrap: wrap;">
+          <label style="font-weight:600; color: var(--ink);">Narrow by word:</label>
+          <select id="wordFrom" style="flex:1; min-width:140px;"></select>
+          <label>to</label>
+          <select id="wordTo" style="flex:1; min-width:140px;"></select>
+        </div>
+      </div>
+      <div class="word-count-note" id="wordCountNote">460 words in the full list</div>
+    </div>
+  </div>
+
+  <button class="start-btn" id="startBtn">Start testing</button>
+
+</div>
+
+<!-- ═══════════════════════════════════ TESTER SCREEN -->
+<div class="tester" id="testerScreen">
+
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-n" id="statMastered">0</div><div class="stat-label">Mastered</div></div>
+    <div class="stat"><div class="stat-n" id="statLearning">0</div><div class="stat-label">Learning</div></div>
+    <div class="stat"><div class="stat-n" id="statCorrect">0</div><div class="stat-label">Correct</div></div>
+    <div class="stat"><div class="stat-n" id="statStreak">0</div><div class="stat-label">Streak</div></div>
+  </div>
+
+  <div class="progress-bar-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">0%</div>
+  </div>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="toggleMC">Multiple choice</button>
+    <button class="mode-btn" id="toggleType">Type answer</button>
+  </div>
+
+  <div class="word-card" id="wordCard">
+    <div class="p-know-dot" id="pKnowDot"></div>
+    <div class="word-card-chapter" id="cardChapter"></div>
+    <div class="word-card-greek" id="cardGreek"></div>
+    <div class="word-card-info" id="cardInfo"></div>
+  </div>
+
+  <div class="answer-area" id="answerArea"></div>
+
+  <div class="feedback" id="feedback"></div>
+
+  <button class="next-btn" id="nextBtn">Next word →</button>
+
+  <a href="#" class="exit-link" id="exitBtn">← Back to setup</a>
+
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <a href="/version2/" class="footer-logo">Classicalia</a>
+    <div class="footer-links">
+      <a href="/version2/subjects/latin/" class="footer-link">Latin</a>
+      <a href="/version2/subjects/greek/" class="footer-link">Greek</a>
+      <a href="/version2/subjects/classical-civilisation/" class="footer-link">Classical Civilisation</a>
+    </div>
+    <div class="footer-copy">classicalia.co.uk · Free for all</div>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// VOCAB LOOKUP — data loaded from external files
+// ═══════════════════════════════════════════════════════
+const VOCAB_LISTS = {
+  gcse: { data: () => VOCAB_GREEK_GCSE, label: 'OCR GCSE Classical Greek (J292)', storageKey: 'greek-gcse' }
+};
+
+let selectedList = 'gcse';
+
+// ═══════════════════════════════════════════════════════
+// BKT STORE — loaded per vocab list. Opens once per list and is reopened
+// when the user switches between lists.
+// ═══════════════════════════════════════════════════════
+const bktStores = {};                   // storageKey -> store
+let activeStore = null;                 // store for selectedList
+
+function setSyncPill(mode, text, showSignInLink) {
+  const pill = document.getElementById('syncPill');
+  const textEl = document.getElementById('syncText');
+  const signInLink = document.getElementById('syncLink');
+  const progressLink = document.getElementById('syncProgressLink');
+  if (!pill) return;
+  pill.dataset.mode = mode;
+  textEl.textContent = text;
+  signInLink.style.display = showSignInLink ? '' : 'none';
+  // Show the "My progress" link only when actually synced (i.e. signed in).
+  progressLink.style.display = mode === 'cloud' ? '' : 'none';
+}
+
+async function ensureStoreFor(listId) {
+  const cfg = VOCAB_LISTS[listId];
+  if (!cfg || typeof cfg.data !== 'function') return null;
+  if (!cfg.data()) return null; // data file missing — silently skip
+  const key = cfg.storageKey;
+  if (bktStores[key]) return bktStores[key];
+  if (!window.ClassicaliaBKT) return null;
+  try {
+    bktStores[key] = await window.ClassicaliaBKT.open({ vocabList: key });
+  } catch (err) {
+    console.warn('[bkt] failed to open store', err);
+    return null;
+  }
+  return bktStores[key];
+}
+
+async function refreshActiveStore() {
+  activeStore = await ensureStoreFor(selectedList);
+  if (!activeStore) {
+    setSyncPill('error', 'Progress not saved', false);
+    return;
+  }
+  if (activeStore.mode === 'cloud') {
+    setSyncPill('cloud', 'Synced to your account', false);
+  } else {
+    setSyncPill('local', 'Saved on this device', true);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// BKT PARAMETERS
+// ═══════════════════════════════════════════════════════
+// Tuned so:
+//   - Four correct answers in a row reach "secure" (was three).
+//     Progression: 0.30 → 0.62 → 0.85 → 0.95 → 0.98
+//   - A single wrong answer in the "nearly there" band drops you
+//     within the band, not all the way back to "building".
+//     e.g. a ✗ at p=0.85 lands at ~0.62 (was ~0.53).
+//   - Deeply-secure words (p≈0.99) barely move on a single slip.
+const BKT = {
+  pL0: 0.30,  // prior probability of knowing before any attempts
+  pT:  0.12,  // probability of learning on a trial (slower → secure feels earned)
+  pG:  0.32,  // probability of guessing correctly (higher → correct is less informative)
+  pS:  0.15,  // probability of slipping on a known word (higher → wrong less catastrophic)
+  mastery: 0.95
+};
+
+// ═══════════════════════════════════════════════════════
+// MASTERY GATES — beyond raw BKT, a word becomes truly "Secure" only
+// after correct retrievals on at least this many distinct calendar days.
+// Once Secure, it enters spaced-repetition scheduling.
+// ═══════════════════════════════════════════════════════
+const MASTERY = {
+  daysRequired:        3,      // distinct days correct needed for Secure
+  firstReviewDays:     7,      // first review interval after reaching Secure
+  reviewIntervalCapDays: 180,  // intervals double on success but cap here
+  resetIntervalDays:   7,      // interval reset after a slip while Secure
+  resetReviewInDays:   1       // when the next review is due after a slip
+};
+
+// Compute today's local calendar date as 'YYYY-MM-DD' (for distinct-day tracking).
+function todayLocalISO() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let activeWords = [];      // current word pool with BKT state
+let currentWord = null;
+let currentMode = 'mc';    // 'mc' or 'type'
+let answered = false;
+let streak = 0;
+let totalCorrect = 0;
+let totalAnswered = 0;
+
+// ═══════════════════════════════════════════════════════
+// SETUP UI
+// ═══════════════════════════════════════════════════════
+let selectedMode = 'mc';
+let selectedRange = 'all';
+
+// Rebuild the chapter-range dropdowns whenever the user switches lists, so
+// they reflect the max chapter of the chosen vocabulary. For Greek the only
+// list at present is OCR GCSE (J292) with 10 chapters, but the helper is
+// list-agnostic so additional Greek lists (e.g. A-Level) can be added later.
+function rebuildChapterDropdowns() {
+  const data = VOCAB_LISTS[selectedList]?.data?.();
+  if (!Array.isArray(data) || !data.length) return;
+  const maxChapter = data.reduce((m, w) => (typeof w.chapter === 'number' && w.chapter > m) ? w.chapter : m, 1);
+  const fromSel = document.getElementById('chapterFrom');
+  const toSel   = document.getElementById('chapterTo');
+  fromSel.innerHTML = '';
+  toSel.innerHTML   = '';
+  for (let i = 1; i <= maxChapter; i++) {
+    const oF = document.createElement('option'); oF.value = String(i); oF.textContent = String(i); fromSel.appendChild(oF);
+    const oT = document.createElement('option'); oT.value = String(i); oT.textContent = String(i); toSel.appendChild(oT);
+  }
+  fromSel.value = '1';
+  toSel.value   = String(maxChapter);
+  const label = document.getElementById('chapterLabel');
+  if (label) label.textContent = selectedList === 'alevel' ? 'Set' : 'Chapter';
+}
+
+// list selection
+document.querySelectorAll('.opt-row[data-list]').forEach(btn => {
+  if (btn.disabled) return;
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.opt-row[data-list]').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedList = btn.dataset.list;
+    rebuildChapterDropdowns();
+    if (selectedRange === 'chapter') populateWordDropdowns();
+    updateWordCount();
+    refreshActiveStore();
+  });
+});
+
+// initial population
+rebuildChapterDropdowns();
+
+function getChapterPool() {
+  const from = parseInt(document.getElementById('chapterFrom').value);
+  const to   = parseInt(document.getElementById('chapterTo').value);
+    const data = VOCAB_LISTS[selectedList].data();
+  return data
+    .filter(w => w.chapter >= from && w.chapter <= to && w.chapter > 0)
+    .sort((a, b) => a.greek.replace(/^-/, "").toLowerCase().localeCompare(b.greek.replace(/^-/, "").toLowerCase()));
+}
+
+function populateWordDropdowns() {
+  const pool = getChapterPool();
+  const fromSel = document.getElementById('wordFrom');
+  const toSel   = document.getElementById('wordTo');
+  const prevFrom = fromSel.value;
+  const prevTo   = toSel.value;
+
+  fromSel.innerHTML = '';
+  toSel.innerHTML   = '';
+
+  pool.forEach((w, i) => {
+    const optF = document.createElement('option');
+    optF.value = i;
+    optF.textContent = w.greek;
+    fromSel.appendChild(optF);
+
+    const optT = document.createElement('option');
+    optT.value = i;
+    optT.textContent = w.greek;
+    toSel.appendChild(optT);
+  });
+
+  // restore or default: from = 0, to = last
+  fromSel.value = prevFrom && prevFrom < pool.length ? prevFrom : 0;
+  toSel.value   = prevTo && prevTo < pool.length ? prevTo : pool.length - 1;
+}
+
+function getActivePool() {
+  if (selectedRange === 'all') {
+    const data = VOCAB_LISTS[selectedList].data();
+    return data.filter(w => w.chapter > 0);
+  }
+  const pool = getChapterPool();
+  const fromIdx = parseInt(document.getElementById('wordFrom').value) || 0;
+  const toIdx   = parseInt(document.getElementById('wordTo').value) || pool.length - 1;
+  const start = Math.min(fromIdx, toIdx);
+  const end   = Math.max(fromIdx, toIdx);
+  return pool.slice(start, end + 1);
+}
+
+function updateWordCount() {
+  const pool = getActivePool();
+  document.getElementById('wordCountNote').textContent =
+    `${pool.length} word${pool.length !== 1 ? 's' : ''} in this range`;
+  document.getElementById('startBtn').disabled = pool.length < 4;
+}
+
+document.getElementById('modemc').addEventListener('click', () => {
+  selectedMode = 'mc';
+  document.getElementById('modemc').classList.add('selected');
+  document.getElementById('modetype').classList.remove('selected');
+});
+document.getElementById('modetype').addEventListener('click', () => {
+  selectedMode = 'type';
+  document.getElementById('modetype').classList.add('selected');
+  document.getElementById('modemc').classList.remove('selected');
+});
+
+document.getElementById('rangeAll').addEventListener('click', () => {
+  selectedRange = 'all';
+  document.getElementById('rangeAll').classList.add('selected');
+  document.getElementById('rangeChapter').classList.remove('selected');
+  document.getElementById('chapterControls').style.display = 'none';
+  updateWordCount();
+});
+document.getElementById('rangeChapter').addEventListener('click', () => {
+  selectedRange = 'chapter';
+  document.getElementById('rangeChapter').classList.add('selected');
+  document.getElementById('rangeAll').classList.remove('selected');
+  document.getElementById('chapterControls').style.display = 'block';
+  populateWordDropdowns();
+  updateWordCount();
+});
+
+document.getElementById('chapterFrom').addEventListener('change', () => {
+  populateWordDropdowns();
+  updateWordCount();
+});
+document.getElementById('chapterTo').addEventListener('change', () => {
+  populateWordDropdowns();
+  updateWordCount();
+});
+document.getElementById('wordFrom').addEventListener('change', updateWordCount);
+document.getElementById('wordTo').addEventListener('change', updateWordCount);
+
+// ═══════════════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════════════
+// Shared session-starter. Used by the manual Start button and by the
+// auto-start paths (?auto=1 and ?queue=...).
+// ═══════════════════════════════════════════════════════
+// SESSION LOGGING — one vocab_sessions row per practice run, created on the
+// first answer (so abandoned sessions aren't counted). Signed-in users only;
+// anonymous practice isn't visible to teachers so it isn't logged.
+// ═══════════════════════════════════════════════════════
+let sessionLog = { id: null, list: null, answered: 0, correct: 0, creating: false };
+let sessionFlushTimer = null;
+
+function beginSessionLog(vocabListKey) {
+  // Flush any unsent counts from a previous session first
+  flushSessionLog();
+  sessionLog = { id: null, list: vocabListKey, answered: 0, correct: 0, creating: false };
+}
+
+function recordSessionAnswer(isCorrect) {
+  if (!observedUserId || !activeStore || activeStore.mode !== 'cloud') return;
+  sessionLog.answered++;
+  if (isCorrect) sessionLog.correct++;
+  if (!sessionFlushTimer) sessionFlushTimer = setTimeout(flushSessionLog, 1500);
+}
+
+async function flushSessionLog() {
+  if (sessionFlushTimer) { clearTimeout(sessionFlushTimer); sessionFlushTimer = null; }
+  if (!observedUserId || sessionLog.answered === 0) return;
+  const nowIso = new Date().toISOString();
+  try {
+    if (!sessionLog.id) {
+      if (sessionLog.creating) return;     // an insert is already in flight
+      sessionLog.creating = true;
+      const { data, error } = await window.supabase
+        .from('vocab_sessions')
+        .insert({
+          student_id: observedUserId,
+          vocab_list: sessionLog.list,
+          answered:   sessionLog.answered,
+          correct:    sessionLog.correct,
+          last_answer_at: nowIso
+        })
+        .select('id')
+        .single();
+      sessionLog.creating = false;
+      if (!error && data) sessionLog.id = data.id;
+    } else {
+      await window.supabase
+        .from('vocab_sessions')
+        .update({ answered: sessionLog.answered, correct: sessionLog.correct, last_answer_at: nowIso })
+        .eq('id', sessionLog.id);
+    }
+  } catch (_e) { sessionLog.creating = false; }
+}
+
+async function startSessionWithPool(pool, mode) {
+  await refreshActiveStore();
+  const stored = activeStore ? await activeStore.loadAll() : new Map();
+
+  activeWords = pool.map(w => {
+    const prev = stored.get(w.greek);
+    return {
+      ...w,
+      pKnow:               prev ? prev.p_know  : BKT.pL0,
+      trials:              prev ? prev.trials  : 0,
+      correct:             prev ? prev.correct : 0,
+      distinctCorrectDays: prev ? (prev.distinct_correct_days | 0) : 0,
+      lastCorrectDate:     prev ? prev.last_correct_date : null,
+      nextReviewAt:        prev ? prev.next_review_at : null,
+      reviewIntervalDays:  prev ? prev.review_interval_days : null
+    };
+  });
+
+  currentMode = mode || selectedMode;
+  streak = 0;
+  totalCorrect = 0;
+  totalAnswered = 0;
+
+  // Begin a fresh session log (the row is created lazily on the first answer)
+  beginSessionLog(activeStore ? activeStore.vocabList : 'greek-gcse');
+
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('testerScreen').style.display = 'block';
+
+  document.getElementById('toggleMC').classList.toggle('active', currentMode === 'mc');
+  document.getElementById('toggleType').classList.toggle('active', currentMode === 'type');
+
+  nextWord();
+  updateStats();
+}
+
+document.getElementById('startBtn').addEventListener('click', () => {
+  startSessionWithPool(getActivePool(), selectedMode);
+});
+
+// ═══════════════════════════════════════════════════════
+// AUTO-START from dashboard (?queue=struggling|learning|nearly, or ?auto=1)
+// ═══════════════════════════════════════════════════════
+// Must mirror dashboard.html's classify() exactly.
+// w expects: { p, t, distinctCorrectDays, nextReviewAt }
+function classifyForQueue(w) {
+  const p = w.p, t = w.t;
+  const days = w.distinctCorrectDays | 0;
+  if (t === 0)   return 'learning';
+  if (p >= 0.95) {
+    if (days < MASTERY.daysRequired) return 'building';
+    // Secure — but is it due for review?
+    if (w.nextReviewAt && Date.parse(w.nextReviewAt) <= Date.now()) return 'due';
+    return 'secure';
+  }
+  if (t < 4)     return 'learning';
+  if (p < 0.4)   return 'struggling';
+  return 'nearly';
+}
+
+function showAutoStartNotice(message) {
+  let bar = document.getElementById('autoNotice');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'autoNotice';
+    bar.style.cssText = 'max-width:680px;margin:24px auto -8px;padding:14px 18px;background:#fff7e6;border:1px solid #fde68a;border-radius:8px;font-size:13px;color:#7c4a03;line-height:1.5;';
+    const setup = document.getElementById('setupScreen');
+    setup.parentNode.insertBefore(bar, setup);
+  }
+  bar.textContent = message;
+}
+
+async function maybeAutoStart() {
+  const params = new URLSearchParams(window.location.search);
+  const queueName = params.get('queue');
+  const auto = params.get('auto');
+  if (!queueName && !auto) return;
+
+  // Wait for the store before we can classify
+  await refreshActiveStore();
+  const stored = activeStore ? await activeStore.loadAll() : new Map();
+
+  // Dedupe by Greek headword (same word in different chapters → one entry)
+  const data = VOCAB_GREEK_GCSE.filter(w => w.chapter > 0);
+  const dedup = new Map();
+  for (const w of data) {
+    if (dedup.has(w.greek)) continue;
+    const state = stored.get(w.greek);
+    dedup.set(w.greek, {
+      ...w,
+      p: state ? state.p_know : BKT.pL0,
+      t: state ? state.trials : 0,
+      distinctCorrectDays: state ? (state.distinct_correct_days | 0) : 0,
+      nextReviewAt:        state ? state.next_review_at : null
+    });
+  }
+  const allWords = Array.from(dedup.values());
+
+  let pool;
+  if (queueName) {
+    const matching = allWords.filter(w => classifyForQueue(w) === queueName);
+    if (matching.length < 4) {
+      const labels = { struggling: 'struggling', learning: 'learning', nearly: 'nearly-there', building: 'building', due: 'due-for-review' };
+      const label = labels[queueName] || queueName;
+      showAutoStartNotice(`You don't have enough ${label} words yet to run a focused session (need 4, have ${matching.length}). Practise a bit first, then come back.`);
+      // strip query string so refresh doesn't loop the notice
+      history.replaceState(null, '', window.location.pathname);
+      return;
+    }
+    pool = matching;
+  } else {
+    pool = allWords;
+  }
+
+  // startSessionWithPool only needs {greek, english, info, chapter} from each;
+  // it will rehydrate p/t/SR state from the store itself.
+  const clean = pool.map(({ p, t, distinctCorrectDays, nextReviewAt, ...rest }) => rest);
+  await startSessionWithPool(clean, 'mc');
+}
+
+// ═══════════════════════════════════════════════════════
+// BKT UPDATE  (now with multi-day tracking + SR scheduling)
+// ═══════════════════════════════════════════════════════
+//
+// Mastery is no longer "p_know >= 0.95". A word is truly Secure only when
+//   p_know >= 0.95  AND  distinctCorrectDays >= MASTERY.daysRequired
+//
+// Returns metadata about the transition this attempt caused, so the caller
+// (handleAnswer) can flash "Mastered!" only when a word actually becomes
+// Secure (rather than just crossing the BKT threshold).
+function bktUpdate(word, correct) {
+  const p = word.pKnow;
+  const { pG, pS, pT } = BKT;
+
+  // Snapshot pre-update state so we can detect transitions
+  const wasSecure = (p >= BKT.mastery) &&
+                    (word.distinctCorrectDays >= MASTERY.daysRequired);
+
+  // ── Bayesian posterior ──
+  let posterior;
+  if (correct) {
+    posterior = (p * (1 - pS)) / (p * (1 - pS) + (1 - p) * pG);
+  } else {
+    posterior = (p * pS) / (p * pS + (1 - p) * (1 - pG));
+  }
+  word.pKnow = posterior + (1 - posterior) * pT;
+  word.trials++;
+  if (correct) word.correct++;
+
+  // ── Distinct-day tracking ──
+  const today = todayLocalISO();
+  if (correct && word.lastCorrectDate !== today) {
+    word.distinctCorrectDays = (word.distinctCorrectDays | 0) + 1;
+    word.lastCorrectDate = today;
+  }
+
+  // ── Spaced-repetition scheduling ──
+  let becameSecure = false;
+  const nowSecure = (word.pKnow >= BKT.mastery) &&
+                    (word.distinctCorrectDays >= MASTERY.daysRequired);
+
+  if (correct && nowSecure) {
+    if (!wasSecure) {
+      // First time reaching Secure — schedule the first review
+      becameSecure = true;
+      word.reviewIntervalDays = MASTERY.firstReviewDays;
+      word.nextReviewAt = addDaysIso(MASTERY.firstReviewDays);
+    } else if (word.nextReviewAt && Date.parse(word.nextReviewAt) <= Date.now()) {
+      // Successful review at or after the due date — extend interval (double, capped)
+      const next = Math.min((word.reviewIntervalDays || MASTERY.firstReviewDays) * 2,
+                             MASTERY.reviewIntervalCapDays);
+      word.reviewIntervalDays = next;
+      word.nextReviewAt = addDaysIso(next);
+    }
+    // Practice before due-date is welcome but doesn't extend the interval
+  }
+
+  if (!correct && wasSecure) {
+    // Slipped on a Secure word — drop status and queue an immediate re-check.
+    // p_know already dropped via the posterior; we also reset the day counter
+    // and shorten the review interval so the word reappears soon.
+    word.distinctCorrectDays  = 0;
+    word.reviewIntervalDays   = MASTERY.resetIntervalDays;
+    word.nextReviewAt         = addDaysIso(MASTERY.resetReviewInDays);
+  }
+
+  // ── Persist (debounced inside the store) ──
+  if (activeStore) {
+    activeStore.update(word.greek, {
+      p_know:                word.pKnow,
+      trials:                word.trials,
+      correct:               word.correct,
+      distinct_correct_days: word.distinctCorrectDays | 0,
+      last_correct_date:     word.lastCorrectDate || null,
+      next_review_at:        word.nextReviewAt || null,
+      review_interval_days:  word.reviewIntervalDays || null
+    });
+  }
+
+  return { becameSecure, wasSecure, nowSecure };
+}
+
+// Helper: a date N days from now, as ISO string (used for next_review_at)
+function addDaysIso(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + (days | 0));
+  return d.toISOString();
+}
+
+// ═══════════════════════════════════════════════════════
+// WORD SELECTION
+// ═══════════════════════════════════════════════════════
+function pickNextWord() {
+  // 1. Highest priority: words that are Due for spaced-repetition review.
+  //    These are Secure words whose next_review_at has passed — surfacing
+  //    them is how we catch forgetting.
+  const now = Date.now();
+  const due = activeWords.filter(w =>
+    w.nextReviewAt && Date.parse(w.nextReviewAt) <= now &&
+    (w.distinctCorrectDays | 0) >= MASTERY.daysRequired);
+  if (due.length > 0) {
+    return due[Math.floor(Math.random() * due.length)];
+  }
+
+  // 2. Otherwise, prioritise words below mastery, weighted by lowest pKnow
+  const unmastered = activeWords.filter(w => w.pKnow < BKT.mastery);
+  if (unmastered.length === 0) return activeWords[Math.floor(Math.random() * activeWords.length)];
+
+  // weighted random — lower pKnow = higher weight
+  const weights = unmastered.map(w => 1 - w.pKnow);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < unmastered.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return unmastered[i];
+  }
+  return unmastered[unmastered.length - 1];
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER WORD
+// ═══════════════════════════════════════════════════════
+function nextWord() {
+  // avoid repeating the same word twice in a row
+  let candidate;
+  let tries = 0;
+  do {
+    candidate = pickNextWord();
+    tries++;
+  } while (candidate === currentWord && tries < 5 && activeWords.length > 1);
+  currentWord = candidate;
+
+  answered = false;
+
+  // card
+  document.getElementById('cardGreek').textContent = currentWord.greek;
+  document.getElementById('cardInfo').textContent  = currentWord.info;
+  document.getElementById('cardChapter').textContent = `Ch. ${currentWord.chapter}`;
+
+  // p_know dot
+  const dot = document.getElementById('pKnowDot');
+  dot.className = 'p-know-dot';
+  const p = currentWord.pKnow;
+  if (p >= BKT.mastery)   dot.classList.add('master');
+  else if (p >= 0.7)      dot.classList.add('high');
+  else if (p >= 0.4)      dot.classList.add('mid');
+  else                    dot.classList.add('low');
+
+  // feedback + next
+  document.getElementById('feedback').innerHTML = '';
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('nextBtn').classList.remove('visible');
+
+  // render answer area
+  if (currentMode === 'mc') renderMC();
+  else renderType();
+}
+
+// ── Multiple choice ──
+function renderMC() {
+  // pick 3 wrong answers from same pool (different words)
+  const others = activeWords.filter(w => w.greek !== currentWord.greek);
+  const shuffled = [...others].sort(() => Math.random() - 0.5).slice(0, 3);
+  const options = [...shuffled, currentWord].sort(() => Math.random() - 0.5);
+
+  const area = document.getElementById('answerArea');
+  area.innerHTML = `<div class="mc-options">${options.map(w =>
+    `<button class="mc-btn" data-answer="${w.english.replace(/"/g,'&quot;')}">${w.english}</button>`
+  ).join('')}</div>`;
+
+  area.querySelectorAll('.mc-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (answered) return;
+      answered = true;
+      const isCorrect = btn.dataset.answer === currentWord.english;
+      handleAnswer(isCorrect, btn);
+    });
+  });
+}
+
+// ── Type answer ──
+// Normalise an answer string for tolerant comparison:
+//   lowercase, strip parenthetical glosses, replace hyphens / dots / ellipses
+//   with spaces, drop other punctuation, collapse whitespace.
+function normaliseAnswer(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, ' ')          // drop bracketed glosses, e.g. "go (irregular)"
+    .replace(/[\-./…]+/g, ' ')           // hyphens, periods, ellipses → space
+    .replace(/[^\p{L}\p{N}\s]/gu, '')    // drop remaining punctuation (commas etc.)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Decide whether the user's answer counts as correct for this word.
+// Layered acceptance, most-to-least strict:
+//   1. Exact match to any comma/semicolon-separated synonym, normalised
+//   2. Compact equality (hyphens/spaces don't matter)
+//      → "slavegirl" ≈ "slave-girl" ≈ "slave girl"
+//      → "both and" ≈ "both...and"
+//   3. Every word of the variant appears as a standalone word in the user input
+//      → "to be" matches "be" (extra particle is fine)
+//      → "embed" does NOT match "be" (no false-positive substring matches)
+//   4. Every word of the variant appears as a substring in the user's compact
+//      form, but only when each variant word is at least 4 chars long
+//      → "loves" matches "love" (slight morphology)
+//      → "is" does NOT match "be" (too short to risk it)
+function checkTypingMatch(userInput, correctText) {
+  const u = normaliseAnswer(userInput);
+  if (!u) return false;
+  const uCompact = u.replace(/\s/g, '');
+  const uWords = new Set(u.split(' ').filter(Boolean));
+
+  const variants = String(correctText).split(/[,;]/).map(normaliseAnswer).filter(Boolean);
+  for (const v of variants) {
+    if (u === v) return true;
+    const vCompact = v.replace(/\s/g, '');
+    if (uCompact === vCompact) return true;
+
+    const vWords = v.split(' ').filter(Boolean);
+    if (vWords.length > 0) {
+      if (vWords.every(w => uWords.has(w))) return true;
+      if (vWords.every(w => w.length >= 4 && uCompact.includes(w))) return true;
+    }
+  }
+  return false;
+}
+
+function renderType() {
+  const area = document.getElementById('answerArea');
+  area.innerHTML = `
+    <div class="type-wrap">
+      <input class="type-input" id="typeInput" type="text" placeholder="Type the English translation…" autocomplete="off">
+      <button class="type-submit" id="typeSubmit">Check</button>
+    </div>`;
+
+  const input = document.getElementById('typeInput');
+  const submit = document.getElementById('typeSubmit');
+  input.focus();
+
+  function checkType() {
+    if (answered) return;
+    answered = true;
+    const isCorrect = checkTypingMatch(input.value, currentWord.english);
+    input.classList.add(isCorrect ? 'correct' : 'wrong');
+    submit.disabled = true;
+    // Blur so the next Enter is caught by the document-level handler
+    // and advances to the next word (rather than re-firing checkType).
+    input.blur();
+    handleAnswer(isCorrect, null);
+  }
+
+  submit.addEventListener('click', checkType);
+  input.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    // Stop the Enter from bubbling to the document handler, which would
+    // immediately call nextWord() and wipe the feedback we're about to show.
+    e.stopPropagation();
+    checkType();
+  });
+}
+
+// ── Handle answer result ──
+function handleAnswer(isCorrect, clickedBtn) {
+  totalAnswered++;
+
+  // BKT update — returns transition metadata for the flash logic below
+  const transition = bktUpdate(currentWord, isCorrect);
+  recordSessionAnswer(isCorrect);
+
+  // update dot
+  const dot = document.getElementById('pKnowDot');
+  dot.className = 'p-know-dot';
+  const p = currentWord.pKnow;
+  if (p >= BKT.mastery)   dot.classList.add('master');
+  else if (p >= 0.7)      dot.classList.add('high');
+  else if (p >= 0.4)      dot.classList.add('mid');
+  else                    dot.classList.add('low');
+
+  if (isCorrect) {
+    totalCorrect++;
+    streak++;
+    document.getElementById('feedback').textContent = '✓ Correct';
+    document.getElementById('feedback').className = 'feedback correct';
+  } else {
+    streak = 0;
+    document.getElementById('feedback').innerHTML =
+      `✗ Incorrect <span class="correct-answer">— ${currentWord.english}</span>`;
+    document.getElementById('feedback').className = 'feedback wrong';
+  }
+
+  // colour MC buttons
+  if (currentMode === 'mc') {
+    document.querySelectorAll('.mc-btn').forEach(btn => {
+      btn.disabled = true;
+      if (btn.dataset.answer === currentWord.english) btn.classList.add('reveal');
+      if (btn === clickedBtn && !isCorrect) btn.classList.add('wrong');
+    });
+  }
+
+  // mastered flash — only fires when the word actually reaches Secure
+  // (i.e. p ≥ 0.95 AND distinct-correct-days threshold met for the first time)
+  if (transition && transition.becameSecure) {
+    const flash = document.getElementById('masteredFlash');
+    flash.textContent = `✓ Secure: ${currentWord.greek}`;
+    flash.classList.add('show');
+    setTimeout(() => flash.classList.remove('show'), 2000);
+  }
+
+  updateStats();
+  document.getElementById('nextBtn').classList.add('visible');
+}
+
+// ═══════════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════════
+function updateStats() {
+  const mastered = activeWords.filter(w => w.pKnow >= BKT.mastery).length;
+  const learning = activeWords.filter(w => w.pKnow < BKT.mastery).length;
+  const pct = Math.round((mastered / activeWords.length) * 100);
+
+  document.getElementById('statMastered').textContent = mastered;
+  document.getElementById('statLearning').textContent = learning;
+  document.getElementById('statCorrect').textContent  = totalCorrect;
+  document.getElementById('statStreak').textContent   = streak;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = pct + '%';
+}
+
+// ═══════════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════════
+document.getElementById('nextBtn').addEventListener('click', nextWord);
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'Enter') {
+    if (answered && document.getElementById('testerScreen').style.display !== 'none') {
+      e.preventDefault();
+      nextWord();
+    }
+  }
+  if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4') {
+    if (currentMode === 'mc' && !answered) {
+      const idx = parseInt(e.code.replace('Digit','')) - 1;
+      const btns = document.querySelectorAll('.mc-btn');
+      if (btns[idx]) btns[idx].click();
+    }
+  }
+});
+
+// mode toggle during session
+document.getElementById('toggleMC').addEventListener('click', () => {
+  currentMode = 'mc';
+  document.getElementById('toggleMC').classList.add('active');
+  document.getElementById('toggleType').classList.remove('active');
+  if (!answered) renderMC();
+});
+document.getElementById('toggleType').addEventListener('click', () => {
+  currentMode = 'type';
+  document.getElementById('toggleType').classList.add('active');
+  document.getElementById('toggleMC').classList.remove('active');
+  if (!answered) renderType();
+});
+
+// exit
+document.getElementById('exitBtn').addEventListener('click', e => {
+  e.preventDefault();
+  if (activeStore && activeStore.flush) activeStore.flush();
+  flushSessionLog();
+  document.getElementById('testerScreen').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'block';
+});
+
+// Flush any unsent BKT updates + session counts if the tab closes mid-session
+window.addEventListener('pagehide', () => {
+  if (activeStore && activeStore.flush) activeStore.flush();
+  flushSessionLog();
+});
+
+// init word count + open BKT store for the default list. We capture the
+// current user id BEFORE registering the auth listener so the SIGNED_IN
+// event that supabase-js fires when it restores a session from localStorage
+// doesn't look like a real transition.
+let observedUserId = null;
+
+(async function bootstrap() {
+  updateWordCount();
+  try {
+    const { data } = await window.supabase.auth.getUser();
+    observedUserId = data && data.user ? data.user.id : null;
+  } catch (_err) { observedUserId = null; }
+  await refreshActiveStore();
+
+  // If the URL says ?queue=... or ?auto=1, jump straight into a session.
+  await maybeAutoStart();
+
+  if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
+    window.supabase.auth.onAuthStateChange((_event, session) => {
+      const newUserId = session && session.user ? session.user.id : null;
+      if (newUserId === observedUserId) return;
+      observedUserId = newUserId;
+      // Drop cached stores; they're tied to the previous auth state.
+      for (const k of Object.keys(bktStores)) delete bktStores[k];
+      activeStore = null;
+      refreshActiveStore();
+    });
+  }
+})();
+</script>
+<script src="/version2/assets/js/starfield.js"></script>
+</body>
+</html>
