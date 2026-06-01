@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/version2/assets/css/classicalia.css">
 <script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="/version2/tools/vocab/data/greek-gcse.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.1.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.2.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.3.js"></script>
@@ -334,8 +335,8 @@ body { background: var(--cream); }
   </div>
 </div>
 <div class="dash-body">
-  <div id="course-latin">
-  <a href="/version2/tools/vocab/latinvocabtester.html?auto=1" class="smart-btn">
+  <div id="course-vocab">
+  <a href="/version2/tools/vocab/latinvocabtester.html?auto=1" class="smart-btn" data-vocab-tester data-tester-suffix="?auto=1">
     <div>
       <div class="smart-btn-label">Recommended</div>
       <div class="smart-btn-title">Start a smart session</div>
@@ -380,7 +381,7 @@ body { background: var(--cream); }
     <div class="wordmap-body"><div class="wordmap" id="wordmap"></div></div>
   </div>
   <div class="queues">
-    <div class="queue-card" onclick="location='/version2/tools/vocab/latinvocabtester.html?queue=due'">
+    <div class="queue-card" data-vocab-tester data-tester-suffix="?queue=due" onclick="location=this.dataset.testerHref">
       <div class="queue-head">
         <div class="queue-label due">Due for review</div>
         <div class="queue-desc">Secure words whose review date has passed. Keep them locked in.</div>
@@ -389,7 +390,7 @@ body { background: var(--cream); }
       <div class="queue-words" id="qwd"></div>
       <button class="queue-btn">Review now →</button>
     </div>
-    <div class="queue-card" onclick="location='/version2/tools/vocab/latinvocabtester.html?queue=struggling'">
+    <div class="queue-card" data-vocab-tester data-tester-suffix="?queue=struggling" onclick="location=this.dataset.testerHref">
       <div class="queue-head">
         <div class="queue-label struggling">Struggling</div>
         <div class="queue-desc">Many attempts, still low confidence. These need focused work.</div>
@@ -398,7 +399,7 @@ body { background: var(--cream); }
       <div class="queue-words" id="qws"></div>
       <button class="queue-btn">Practise these →</button>
     </div>
-    <div class="queue-card" onclick="location='/version2/tools/vocab/latinvocabtester.html?queue=learning'">
+    <div class="queue-card" data-vocab-tester data-tester-suffix="?queue=learning" onclick="location=this.dataset.testerHref">
       <div class="queue-head">
         <div class="queue-label learning">Learning</div>
         <div class="queue-desc">New words or only seen a few times. Build your range here.</div>
@@ -407,7 +408,7 @@ body { background: var(--cream); }
       <div class="queue-words" id="qwl"></div>
       <button class="queue-btn">Start learning →</button>
     </div>
-    <div class="queue-card" onclick="location='/version2/tools/vocab/latinvocabtester.html?queue=nearly'">
+    <div class="queue-card" data-vocab-tester data-tester-suffix="?queue=nearly" onclick="location=this.dataset.testerHref">
       <div class="queue-head">
         <div class="queue-label nearly">Nearly there</div>
         <div class="queue-desc">Building confidence but not yet secure. A few more goes should do it.</div>
@@ -416,7 +417,7 @@ body { background: var(--cream); }
       <div class="queue-words" id="qwn"></div>
       <button class="queue-btn">Push these over →</button>
     </div>
-    <div class="queue-card" onclick="location='/version2/tools/vocab/latinvocabtester.html?queue=building'">
+    <div class="queue-card" data-vocab-tester data-tester-suffix="?queue=building" onclick="location=this.dataset.testerHref">
       <div class="queue-head">
         <div class="queue-label building">Building</div>
         <div class="queue-desc">High confidence in one session — needs correct answers on more days to truly lock in.</div>
@@ -453,7 +454,7 @@ body { background: var(--cream); }
       </div>
     </div>
   </div>
-  </div><!-- /course-latin -->
+  </div><!-- /course-vocab -->
 
   <div id="course-myth" class="hidden">
     <a href="/version2/tools/quiz/myth-and-religion.html?mode=donow" class="smart-btn">
@@ -553,24 +554,69 @@ body { background: var(--cream); }
 </footer>
 <script>
 // ── Vocab data + BKT state loader ──
-// Words come from the static vocab data file (latin-gcse.js); BKT state for each
-// word comes from the shared BKT store (Supabase if signed-in, localStorage if not).
-// Anything not in the store renders as "Not seen" (p = prior, trials = 0).
+// Words come from the static vocab data files (latin-gcse.js, greek-gcse.js);
+// BKT state for each word comes from the shared BKT store (Supabase if
+// signed-in, localStorage if not). Anything not in the store renders as
+// "Not seen" (p = prior, trials = 0).
+//
+// The vocab body (#course-vocab) is shared between Latin and Greek courses —
+// switching tabs re-runs the loader against the active course's dataset.
 
-const VOCAB_LIST_KEY = 'latin-gcse';
+const VOCAB_COURSES = {
+  'latin-gcse': {
+    data: () => window.VOCAB_LATIN_GCSE,
+    headwordField: 'latin',
+    storageKey: 'latin-gcse',
+    testerBase: '/version2/tools/vocab/latinvocabtester.html'
+  },
+  'greek-gcse': {
+    data: () => window.VOCAB_GREEK_GCSE,
+    headwordField: 'greek',
+    storageKey: 'greek-gcse',
+    testerBase: '/version2/tools/vocab/greekvocabtester.html'
+  }
+};
 
-// Build the canonical word list for this course, deduped by latin headword.
+// Track which vocab course's data is currently rendered, so tab switches can
+// short-circuit when the same course is reselected.
+let currentVocabCourse = 'latin-gcse';
+
+function isVocabCourse(type) {
+  return Object.prototype.hasOwnProperty.call(VOCAB_COURSES, type);
+}
+
+function vocabCfg(type) {
+  return VOCAB_COURSES[type] || VOCAB_COURSES['latin-gcse'];
+}
+
+// Build the canonical word list for the given course, deduped by headword.
 // Each word keeps the earliest chapter it appears in (so the wordmap can
 // group by chapter in a stable way).
-function getCanonicalWords() {
+function getCanonicalWords(courseType) {
+  const cfg = vocabCfg(courseType || currentVocabCourse);
+  const data = cfg.data() || [];
+  const field = cfg.headwordField;
   const seen = new Map();
-  for (const entry of VOCAB_LATIN_GCSE) {
+  for (const entry of data) {
     if (entry.chapter <= 0) continue;
-    if (!seen.has(entry.latin)) {
-      seen.set(entry.latin, { l: entry.latin, e: entry.english, ch: entry.chapter });
+    const headword = entry[field];
+    if (!seen.has(headword)) {
+      seen.set(headword, { l: headword, e: entry.english, ch: entry.chapter });
     }
   }
   return Array.from(seen.values());
+}
+
+// Update the tester links inside #course-vocab to point at whichever language
+// the user is currently viewing. Called whenever currentVocabCourse changes.
+function updateVocabTesterLinks() {
+  const base = vocabCfg(currentVocabCourse).testerBase;
+  document.querySelectorAll('[data-vocab-tester]').forEach(el => {
+    const suffix = el.dataset.testerSuffix || '';
+    const href = base + suffix;
+    if (el.tagName === 'A') el.setAttribute('href', href);
+    el.dataset.testerHref = href;
+  });
 }
 
 // Nav user slot is rendered by /version2/assets/js/account-menu.js via the
@@ -797,7 +843,7 @@ function renderDashboard(words, recentlyPractised) {
 // Each tab corresponds to a v2 course type. The body for that type is shown
 // when the tab is active; courses that aren't yet shipped (no bodyId in
 // course-map.js) route to the shared #course-not-yet placeholder.
-const COURSE_BODY_IDS = ['course-latin', 'course-myth', 'course-not-yet', 'course-empty'];
+const COURSE_BODY_IDS = ['course-vocab', 'course-myth', 'course-not-yet', 'course-empty'];
 
 function hideAllCourseBodies() {
   COURSE_BODY_IDS.forEach(id => {
@@ -813,6 +859,16 @@ function showCourseBody(type) {
   const bodyId = map.bodyIdFor(type);
   if (bodyId && document.getElementById(bodyId)) {
     document.getElementById(bodyId).classList.remove('hidden');
+    // Vocab courses share a single body (#course-vocab) — when the active
+    // course changes we need to re-render against the new language's data.
+    if (isVocabCourse(type) && type !== currentVocabCourse) {
+      currentVocabCourse = type;
+      loadVocabCourse(type);
+    } else if (isVocabCourse(type)) {
+      // Same course re-selected — just make sure tester links are correct
+      // (handles the initial click from "shared with you" defaults etc.).
+      updateVocabTesterLinks();
+    }
     // Lazy-render hook (e.g. Myth view defers building its DOM until first activation).
     const lazy = window.ClassicaliaLazyRender && window.ClassicaliaLazyRender[type];
     if (typeof lazy === 'function') lazy();
@@ -920,7 +976,31 @@ async function init() {
     return;
   }
 
-  const canonical = getCanonicalWords();
+  // The vocab body is only rendered if the active tab is a vocab course.
+  // setupCourseStrip's call to showCourseBody will have set currentVocabCourse
+  // for us via the type !== currentVocabCourse branch — but on first load we
+  // need to seed it from the active tab so the initial render uses the right
+  // language.
+  const activeTab = document.querySelector('#courseTabs .course-tab.active');
+  if (activeTab && isVocabCourse(activeTab.dataset.courseType)) {
+    currentVocabCourse = activeTab.dataset.courseType;
+    await loadVocabCourse(currentVocabCourse);
+  } else if (document.getElementById('course-vocab') &&
+             !document.getElementById('course-vocab').classList.contains('hidden')) {
+    // No tabs visible (single-course mode) but vocab body is shown — render it.
+    await loadVocabCourse(currentVocabCourse);
+  }
+}
+
+// Render the #course-vocab body for the given course type (latin-gcse or
+// greek-gcse). Wraps the original init() vocab-loading block so it can be
+// re-run whenever the user switches between vocab tabs.
+async function loadVocabCourse(courseType) {
+  currentVocabCourse = courseType;
+  updateVocabTesterLinks();
+
+  const cfg = vocabCfg(courseType);
+  const canonical = getCanonicalWords(courseType);
 
   if (!window.ClassicaliaBKT) {
     console.warn('[dashboard] BKT store not available — rendering empty state');
@@ -934,7 +1014,7 @@ async function init() {
   // local mode if the cloud is unreachable or a schema migration hasn't run
   // yet — but that's a sync problem, not an auth problem, and we shouldn't
   // tell a signed-in student they're anonymous because of it.
-  const store = await window.ClassicaliaBKT.open({ vocabList: VOCAB_LIST_KEY });
+  const store = await window.ClassicaliaBKT.open({ vocabList: cfg.storageKey });
 
   if (observedUserId) {
     if (store.mode !== 'cloud') {
@@ -945,6 +1025,9 @@ async function init() {
       banner.style.borderColor = '#fca5a5';
       banner.style.color = '#991b1b';
       banner.innerHTML = '<div style="flex:1;min-width:240px;"><strong>Cloud sync is offline.</strong> Your progress is being saved locally for now. Reload in a minute, or check that database migration 037 has been applied.</div>';
+    } else {
+      // Clear any prior offline banner if we're now syncing fine.
+      document.getElementById('anonBanner').style.display = 'none';
     }
   } else {
     document.getElementById('anonBanner').style.display = 'flex';

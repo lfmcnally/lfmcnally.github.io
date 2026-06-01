@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/version2/assets/css/classicalia.css">
 <script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="/version2/tools/vocab/data/greek-gcse.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.1.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.2.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.3.js"></script>
@@ -378,21 +379,38 @@ const DAYS_REQUIRED = 3;        // mirrors the dashboard's mastery rule
 // profile course picker — see /version2/assets/js/course-map.js.
 const SUBJECT_VOCAB_LIST = window.ClassicaliaCourseMap.SUBJECT_VOCAB_LIST;
 
-// Canonical word list (latin headword → english) plus chapter lookup.
-const CHAPTER_OF = new Map();   // latin → earliest chapter
-function buildCanonical() {
+// Canonical word lists (headword → english) + chapter lookups, one per
+// vocab course. CANONICAL/CHAPTER_OF are kept for back-compat with any code
+// path that still reaches for the Latin-default; new code should go through
+// activeModel.
+const CHAPTER_OF = new Map();         // Latin: latin headword → chapter
+const GREEK_CHAPTER_OF = new Map();   // Greek: greek headword → chapter
+
+function buildCanonicalFromData(data, headwordField, chapterLookup) {
   const out = new Map();
-  if (typeof VOCAB_LATIN_GCSE !== 'undefined') {
-    for (const e of VOCAB_LATIN_GCSE) {
-      if (e.chapter > 0 && !out.has(e.latin)) {
-        out.set(e.latin, e.english);
-        CHAPTER_OF.set(e.latin, e.chapter);
+  if (!Array.isArray(data)) return out;
+  for (const e of data) {
+    if (e.chapter > 0) {
+      const headword = e[headwordField];
+      if (!out.has(headword)) {
+        out.set(headword, e.english);
+        chapterLookup.set(headword, e.chapter);
       }
     }
   }
   return out;
 }
-const CANONICAL = buildCanonical();
+
+const CANONICAL = buildCanonicalFromData(
+  typeof VOCAB_LATIN_GCSE !== 'undefined' ? VOCAB_LATIN_GCSE : [],
+  'latin',
+  CHAPTER_OF
+);
+const GREEK_CANONICAL = buildCanonicalFromData(
+  typeof VOCAB_GREEK_GCSE !== 'undefined' ? VOCAB_GREEK_GCSE : [],
+  'greek',
+  GREEK_CHAPTER_OF
+);
 
 // ── Per-subject "item model" ──────────────────────────────
 // The dashboard was built around Latin vocabulary (headword → english,
@@ -435,7 +453,25 @@ function buildCivModel() {
   };
 }
 const CIV_MODEL = buildCivModel();
-function modelForType(type) { return type === 'civ-gcse' ? CIV_MODEL : LATIN_MODEL; }
+// Greek model is structurally identical to the Latin one — same noun
+// vocabulary ("word", "Chapter"), just sourced from the Greek canonical map.
+const GREEK_MODEL = {
+  itemNoun: 'word', itemNounPl: 'words', groupNoun: 'Chapter', subNoun: 'Meaning',
+  keys:       () => Array.from(GREEK_CANONICAL.keys()),
+  mainLabel:  k => k,
+  subLabel:   k => GREEK_CANONICAL.get(k) || '',
+  groupKeyOf: k => GREEK_CHAPTER_OF.get(k) || 0,
+  groupLabel: g => 'Chapter ' + g,
+  groupShort: g => 'Ch. ' + g,
+  sortAlpha:  (a, b) => alphaCompareLatin(a, b),  // localeCompare works for Greek
+  groupSort:  (a, b) => a - b
+};
+
+function modelForType(type) {
+  if (type === 'civ-gcse')   return CIV_MODEL;
+  if (type === 'greek-gcse') return GREEK_MODEL;
+  return LATIN_MODEL;
+}
 let activeModel = LATIN_MODEL;
 
 // Confidence label for a word's state, mirroring the student dashboard.
