@@ -16,6 +16,7 @@
 <script src="/version2/tools/quiz/data/myth-1.6.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.7.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.8.js"></script>
+<script src="/version2/tools/vocab/data/latin-gcse.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <style>
@@ -97,9 +98,9 @@
     </div>
   </nav>
   <div class="header-inner">
-    <div class="header-eyebrow">Teacher &middot; GCSE Classical Civilisation</div>
+    <div class="header-eyebrow">Teacher &middot; Do Now</div>
     <h1 class="header-title">Do Now</h1>
-    <p class="header-deck">Set a lesson starter for a class, then watch the room answer live &mdash; or project the leaderboard.</p>
+    <p class="header-deck">Set a lesson starter for a class &mdash; a Classical Civ. topic or a chapter of Latin vocab &mdash; then watch the room answer live, or project the leaderboard.</p>
   </div>
 </div>
 
@@ -159,18 +160,23 @@ async function init(){
   catch (e) { area.innerHTML = '<div class="dn-empty">Couldn\'t load the Do Now page.<br><span style="font-size:12px;">' + escapeHtml((e && e.message) || e || '') + '</span></div>'; }
 }
 
+// Class types that support a Do Now, mapped to the vocab_list their sessions
+// are logged under. Civ classes drill a quiz topic; Latin classes drill a
+// chapter range of the J282 defined vocabulary.
+const DO_NOW_TYPES = { 'civ-gcse': 'civ-myth-religion', 'latin-gcse': 'latin-gcse' };
+
 async function loadClasses(){
   const area = document.getElementById('classArea');
   const { data, error } = await sb.from('v2_classes').select('id, name, type').order('created_at', { ascending: true });
   if (error) throw error;
-  const rows = (data || []).filter(c => c.type === 'civ-gcse');
-  if (!rows.length) { area.innerHTML = '<div class="dn-empty">No Classical Civilisation classes yet.<br>Create one on your <a href="/version2/tracking/teacher.html">teacher dashboard</a>, then come back here.</div>'; return; }
+  const rows = (data || []).filter(c => DO_NOW_TYPES[c.type]);
+  if (!rows.length) { area.innerHTML = '<div class="dn-empty">No classes that can run a Do Now yet.<br>Create a GCSE Latin or Myth &amp; Religion class on your <a href="/version2/tracking/teacher.html">teacher dashboard</a>, then come back here.</div>'; return; }
   classes = [];
   for (const c of rows) {
     let members = [];
     try { const { data } = await sb.from('v2_class_members').select('student_id, users:student_id (full_name, email)').eq('class_id', c.id); members = data || []; } catch (_e) {}
     const students = members.map(m => ({ id: m.student_id, name: (m.users && m.users.full_name) || ((m.users && m.users.email) || '').split('@')[0] || 'Student' }));
-    classes.push({ id: c.id, name: c.name, type: c.type, students });
+    classes.push({ id: c.id, name: c.name, type: c.type, vocabList: DO_NOW_TYPES[c.type], students });
   }
   const wanted = new URLSearchParams(location.search).get('class');
   let startIdx = classes.findIndex(c => c.id === wanted);
@@ -191,12 +197,28 @@ function renderClassTabs(){
   });
 }
 
+function dnKind(cls){ return cls.type === 'latin-gcse' ? 'latin' : 'civ'; }
+function latinMaxChapter(){ return ((window.VOCAB_LATIN_GCSE) || []).reduce((m, w) => (typeof w.chapter === 'number' && w.chapter > m) ? w.chapter : m, 1); }
+
 function renderClass(idx){
   currentClassIdx = idx; activeClass = classes[idx];
   const cls = activeClass;
   if (doNowPoll) { clearInterval(doNowPoll); doNowPoll = null; }
   if (doNowChannel) { try { sb.removeChannel(doNowChannel); } catch (_e) {} doNowChannel = null; }
 
+  if (dnKind(cls) === 'latin') renderLatinSetup(cls);
+  else renderCivSetup(cls);
+
+  refreshDoNow(cls);
+  try {
+    doNowChannel = sb.channel('donow-' + cls.id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vocab_sessions' }, () => scheduleDoNowRefresh(cls))
+      .subscribe();
+  } catch (_e) {}
+  doNowPoll = setInterval(() => refreshDoNow(cls), 10000);
+}
+
+function renderCivSetup(cls){
   const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
   const area = document.getElementById('classArea');
   area.innerHTML = `
@@ -257,14 +279,82 @@ function renderClass(idx){
   document.getElementById('dnClear').addEventListener('click', () => doNowStop(cls));
   document.getElementById('dnReset').addEventListener('click', () => doNowClear(cls));
   document.getElementById('dnProject').addEventListener('click', () => openClassView(cls));
+}
 
-  refreshDoNow(cls);
-  try {
-    doNowChannel = sb.channel('donow-' + cls.id)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'vocab_sessions' }, () => scheduleDoNowRefresh(cls))
-      .subscribe();
-  } catch (_e) {}
-  doNowPoll = setInterval(() => refreshDoNow(cls), 10000);
+// ── Latin: drill a chapter range of the GCSE defined vocabulary ──
+function renderLatinSetup(cls){
+  const area = document.getElementById('classArea');
+  const maxCh = latinMaxChapter();
+  area.innerHTML = `
+    <div class="dn-card">
+      <div class="dn-card-head"><span class="dn-card-title">Set today's Do Now</span><span id="dnStatus" class="dn-status"></span></div>
+      <div class="dn-controls">
+        <label style="font-size:13px;color:var(--muted);font-weight:600;">Chapter</label>
+        <select id="dnChFrom" class="dn-select" style="min-width:78px;"></select>
+        <label style="font-size:13px;color:var(--muted);">to</label>
+        <select id="dnChTo" class="dn-select" style="min-width:78px;"></select>
+        <button id="dnSet" class="dn-btn dn-btn-primary" type="button">Set as today's Do Now</button>
+        <button id="dnClear" class="dn-btn" type="button">Stop &amp; show results</button>
+        <button id="dnReset" class="dn-btn dn-btn-danger" type="button">Clear</button>
+        <button id="dnProject" class="dn-btn dn-btn-project" type="button">Class view ↗</button>
+      </div>
+      <div class="dn-sublabel">OCR GCSE Latin (J282) &middot; defined vocabulary &middot; multiple choice</div>
+      <div id="dnWordCount" class="dn-status"></div>
+    </div>
+    <div class="dn-card"><div id="dnSummary"></div></div>`;
+
+  const fromSel = document.getElementById('dnChFrom');
+  const toSel   = document.getElementById('dnChTo');
+  for (let i = 1; i <= maxCh; i++) {
+    const a = document.createElement('option'); a.value = String(i); a.textContent = String(i); fromSel.appendChild(a);
+    const b = document.createElement('option'); b.value = String(i); b.textContent = String(i); toSel.appendChild(b);
+  }
+  fromSel.value = '1'; toSel.value = '1';
+
+  function chaptersInRange(){
+    const lo = Math.min(+fromSel.value, +toSel.value), hi = Math.max(+fromSel.value, +toSel.value);
+    const out = []; for (let i = lo; i <= hi; i++) out.push(i); return out;
+  }
+  function updateCount(){
+    const set = new Set(chaptersInRange());
+    const n = ((window.VOCAB_LATIN_GCSE) || []).filter(w => w.chapter > 0 && set.has(w.chapter)).length;
+    document.getElementById('dnWordCount').textContent = n + ' word' + (n !== 1 ? 's' : '') + ' in this range';
+  }
+  fromSel.addEventListener('change', updateCount);
+  toSel.addEventListener('change', updateCount);
+  updateCount();
+
+  (async () => {
+    let current = null;
+    try { const { data } = await sb.from('v2_do_now').select('topic_id, subtopics, active, updated_at').eq('class_id', cls.id).maybeSingle(); current = data; } catch (_e) {}
+    if (current && current.active && Array.isArray(current.subtopics) && current.subtopics.length) {
+      const chs = current.subtopics.map(Number).filter(n => n >= 1 && n <= maxCh);
+      if (chs.length) { fromSel.value = String(Math.min(...chs)); toSel.value = String(Math.max(...chs)); }
+    } else if (current && current.active && current.subtopics == null) {
+      fromSel.value = '1'; toSel.value = String(maxCh);
+    }
+    updateCount();
+    const status = document.getElementById('dnStatus');
+    if (current && current.active) { status.textContent = 'Active — set ' + timeAgo(current.updated_at); status.style.color = '#059669'; }
+    else { status.textContent = 'Not set'; }
+  })();
+
+  document.getElementById('dnSet').addEventListener('click', async () => {
+    const status = document.getElementById('dnStatus');
+    const chs = chaptersInRange();
+    const lo = chs[0], hi = chs[chs.length - 1];
+    const allCh = lo === 1 && hi === maxCh;
+    const label = lo === hi ? ('Chapter ' + lo) : ('Chapters ' + lo + '–' + hi);
+    const payload = { class_id: cls.id, vocab_list: 'latin-gcse', topic_id: label, subtopics: allCh ? null : chs, active: true, updated_at: new Date().toISOString() };
+    status.textContent = 'Saving…'; status.style.color = 'var(--muted)';
+    const { error } = await sb.from('v2_do_now').upsert(payload, { onConflict: 'class_id' });
+    if (error) { status.textContent = 'Could not save: ' + error.message; status.style.color = '#dc2626'; return; }
+    status.textContent = 'Active — just now'; status.style.color = '#059669';
+    refreshDoNow(cls);
+  });
+  document.getElementById('dnClear').addEventListener('click', () => doNowStop(cls));
+  document.getElementById('dnReset').addEventListener('click', () => doNowClear(cls));
+  document.getElementById('dnProject').addEventListener('click', () => openClassView(cls));
 }
 
 async function fetchDoNowData(cls){
@@ -275,7 +365,7 @@ async function fetchDoNowData(cls){
   let sessions = [];
   try {
     const { data, error } = await sb.from('vocab_sessions').select('student_id, answered, correct, last_answer_at')
-      .eq('vocab_list', 'civ-myth-religion').gte('started_at', dn.updated_at).in('student_id', ids);
+      .eq('vocab_list', cls.vocabList).gte('started_at', dn.updated_at).in('student_id', ids);
     if (!error) sessions = data || [];
   } catch (_e) {}
   const by = new Map();
@@ -360,8 +450,9 @@ function closeClassView(){
 async function renderLeaderboard(cls){
   if (!classViewOpen) return;
   const { dn, rows } = await fetchDoNowData(cls);
+  const topicBit = (dn && dn.topic_id) ? ' · ' + (dnKind(cls) === 'civ' ? 'Topic ' + dn.topic_id : dn.topic_id) : '';
   document.getElementById('lbSub').textContent =
-    (dn ? (dn.active ? 'Live' : 'Stopped') : 'No Do Now set') + (dn && dn.topic_id ? ' · Topic ' + dn.topic_id : '') + ' · ' + cls.name;
+    (dn ? (dn.active ? 'Live' : 'Stopped') : 'No Do Now set') + topicBit + ' · ' + cls.name;
   let answered = 0, correct = 0, done = 0;
   for (const r of rows) { answered += r.answered; correct += r.correct; if (r.in) done++; }
   const acc = answered > 0 ? Math.round(correct / answered * 100) : 0;

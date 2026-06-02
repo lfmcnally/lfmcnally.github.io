@@ -18,6 +18,21 @@
 
 body { background: var(--cream); }
 
+/* ── DO NOW banner (shown when a student runs their class's Do Now) ── */
+.donow-banner {
+  max-width: 680px;
+  margin: 0 auto 18px;
+  padding: 12px 18px;
+  background: rgba(107,160,255,0.12);
+  border: 1px solid #6ba0ff;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
+  color: var(--navy);
+  line-height: 1.5;
+}
+.donow-banner strong { font-weight: 700; }
+
 /* ── SYNC STATUS PILL ── */
 .sync-pill {
   position: fixed;
@@ -634,6 +649,8 @@ body { background: var(--cream); }
 <!-- ═══════════════════════════════════ TESTER SCREEN -->
 <div class="tester" id="testerScreen">
 
+  <div class="donow-banner" id="doNowBanner" style="display:none;"></div>
+
   <div class="stats-bar">
     <div class="stat"><div class="stat-n" id="statMastered">0</div><div class="stat-label">Mastered</div></div>
     <div class="stat"><div class="stat-n" id="statLearning">0</div><div class="stat-label">Learning</div></div>
@@ -667,6 +684,9 @@ body { background: var(--cream); }
   <a href="#" class="exit-link" id="exitBtn">← Back to setup</a>
 
 </div>
+
+<!-- ═══════════════════════════════════ DO NOW FINISHED -->
+<div class="setup" id="doNowDone" style="display:none;"></div>
 
 <footer class="footer">
   <div class="footer-inner">
@@ -1026,6 +1046,93 @@ async function startSessionWithPool(pool, mode) {
 document.getElementById('startBtn').addEventListener('click', () => {
   startSessionWithPool(getActivePool(), selectedMode);
 });
+
+// ═══════════════════════════════════════════════════════
+// DO NOW — drill the chapter range the teacher set for the student's class
+// (?mode=donow). Reads get_my_do_now('latin-gcse'); the leaderboard on the
+// teacher's Do Now page reads the vocab_sessions this session logs.
+// ═══════════════════════════════════════════════════════
+let doNowActive = null;   // { updatedAt } while a Do Now session is running
+let doNowWatch  = null;   // interval watching for the teacher stopping it
+
+function escapeHtmlLite(s){ return String(s == null ? '' : s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function showDoNowNotice(message){ showAutoStartNotice(message); }
+
+function setDoNowBanner(className, topicLabel){
+  const b = document.getElementById('doNowBanner');
+  if (!b) return;
+  b.innerHTML = "<strong>Today's Do Now</strong> &middot; " + escapeHtmlLite(className || 'your class') +
+    (topicLabel ? ' &middot; ' + escapeHtmlLite(topicLabel) : '');
+  b.style.display = 'block';
+}
+
+async function startDoNow(){
+  if (!observedUserId) { showDoNowNotice('Sign in to load your class’s Do Now, then reload this page — or pick a list below to practise.'); return; }
+  // A Latin Do Now always drills the GCSE defined vocabulary.
+  selectedList = 'gcse';
+  let res = null;
+  try { const { data } = await window.supabase.rpc('get_my_do_now', { p_vocab_list: 'latin-gcse' }); res = data; }
+  catch (_e) { res = null; }
+  if (!res || !res.ok) { showDoNowNotice('No Do Now has been set for your class yet — pick a list below to practise.'); return; }
+
+  const all = (window.VOCAB_LATIN_GCSE || []).filter(w => w.chapter > 0);
+  let pool = all;
+  if (Array.isArray(res.subtopics) && res.subtopics.length) {
+    const set = new Set(res.subtopics.map(Number));
+    pool = all.filter(w => set.has(w.chapter));
+  }
+  // Dedupe by headword (a word can appear in several chapters).
+  const seen = new Set();
+  pool = pool.filter(w => { if (seen.has(w.latin)) return false; seen.add(w.latin); return true; });
+  if (pool.length < 4) { showDoNowNotice('There aren’t enough words in today’s Do Now to run a session.'); return; }
+
+  doNowActive = { updatedAt: res.updated_at };
+  if (doNowWatch) clearInterval(doNowWatch);
+  doNowWatch = setInterval(checkDoNowStillActive, 12000);
+  document.getElementById('doNowDone').style.display = 'none';
+  await startSessionWithPool(pool, 'mc');
+  setDoNowBanner(res.class_name, res.topic_id);
+}
+
+// While a Do Now runs, watch for the teacher stopping it (or setting a new
+// one). End the student's session when that happens so they can't keep going.
+async function checkDoNowStillActive(){
+  if (!doNowActive) return;
+  let res = null;
+  try { const { data } = await window.supabase.rpc('get_my_do_now', { p_vocab_list: 'latin-gcse' }); res = data; }
+  catch (_e) { return; }   // network blip — don't cut the student off on a transient error
+  if (!res) return;
+  if (!res.ok) { endDoNow('Your teacher has stopped the Do Now.'); return; }
+  if (res.updated_at !== doNowActive.updatedAt) {
+    endDoNow('Your teacher has started a new Do Now — reload the page to begin it.');
+  }
+}
+
+function endDoNow(reason){
+  if (doNowWatch) { clearInterval(doNowWatch); doNowWatch = null; }
+  doNowActive = null;
+  flushSessionLog();
+  const total = totalAnswered, correct = totalCorrect;
+  const pct = total ? Math.round(correct / total * 100) : 0;
+  document.getElementById('testerScreen').style.display = 'none';
+  document.getElementById('doNowBanner').style.display = 'none';
+  const done = document.getElementById('doNowDone');
+  done.innerHTML =
+    '<div class="setup-card" style="text-align:center;">' +
+      '<h2 style="font-family:\'Lora\',serif;font-style:italic;font-weight:700;font-size:24px;color:var(--navy);margin:0 0 10px;">Do Now finished</h2>' +
+      '<p style="color:var(--muted);font-size:14px;margin:0 0 16px;line-height:1.5;">' + escapeHtmlLite(reason || 'Your teacher has ended the Do Now.') + '</p>' +
+      '<div style="font-family:\'Lora\',serif;font-weight:700;font-size:36px;color:var(--navy);">' + correct + ' / ' + total + '</div>' +
+      '<p style="color:var(--muted);font-size:13px;margin:4px 0 0;">' + (total ? ('correct &middot; ' + pct + '%') : 'You didn’t answer any questions.') + '</p>' +
+      '<button class="start-btn" id="dnBackBtn" style="max-width:240px;margin:18px auto 0;">Back to setup</button>' +
+    '</div>';
+  done.style.display = 'block';
+  const back = document.getElementById('dnBackBtn');
+  if (back) back.addEventListener('click', () => {
+    done.style.display = 'none';
+    document.getElementById('setupScreen').style.display = 'block';
+  });
+}
 
 // ═══════════════════════════════════════════════════════
 // AUTO-START from dashboard (?queue=struggling|learning|nearly, or ?auto=1)
@@ -1476,6 +1583,9 @@ document.getElementById('exitBtn').addEventListener('click', e => {
   e.preventDefault();
   if (activeStore && activeStore.flush) activeStore.flush();
   flushSessionLog();
+  if (doNowWatch) { clearInterval(doNowWatch); doNowWatch = null; }
+  doNowActive = null;
+  document.getElementById('doNowBanner').style.display = 'none';
   document.getElementById('testerScreen').style.display = 'none';
   document.getElementById('setupScreen').style.display = 'block';
 });
@@ -1500,8 +1610,14 @@ let observedUserId = null;
   } catch (_err) { observedUserId = null; }
   await refreshActiveStore();
 
-  // If the URL says ?queue=... or ?auto=1, jump straight into a session.
-  await maybeAutoStart();
+  // If the URL says ?mode=donow, load the class's Do Now and start it.
+  // Otherwise, ?queue=... or ?auto=1 jumps straight into a focused session.
+  const bootParams = new URLSearchParams(window.location.search);
+  if (bootParams.get('mode') === 'donow') {
+    await startDoNow();
+  } else {
+    await maybeAutoStart();
+  }
 
   if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
     window.supabase.auth.onAuthStateChange((_event, session) => {
