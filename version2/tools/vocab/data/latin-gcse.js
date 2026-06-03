@@ -251,7 +251,7 @@ const VOCAB_LATIN_GCSE = [
     {latin: "nauta", english: "sailor", info: "nautae, m - noun 1", chapter: 3},
     {latin: "navigo", english: "sail", info: "navigare, navigavi - verb 1", chapter: 1},
     {latin: "navis", english: "ship", info: "navis, f - noun 3", chapter: 4},
-    {latin: "-ne", english: "(introduces question)", info: "indeclinable - particle", chapter: 4},
+    {latin: "-ne", english: "(introduces question)", accept: "introduces question, introduce question, introduces a question, question, asks question", info: "indeclinable - particle", chapter: 4},
     {latin: "ne", english: "that ... not, so that ... not, that, lest", info: "indeclinable + subjunctive - conjunction", chapter: 0},
     {latin: "nec, neque", english: "and not, nor, neither", info: "indeclinable - conjunction", chapter: 8},
     {latin: "nec/neque..nec/neque", english: "neither…..nor", info: "indeclinable - conjunction", chapter: 8},

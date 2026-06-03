@@ -1423,13 +1423,31 @@ function normaliseAnswer(s) {
 //      form, but only when each variant word is at least 4 chars long
 //      → "loves" matches "love" (slight morphology)
 //      → "is" does NOT match "be" (too short to risk it)
-function checkTypingMatch(userInput, correctText) {
+//
+// extraAccept (optional) supplies additional acceptable answers for awkward
+// entries — e.g. "-ne" whose only gloss "(introduces question)" is entirely
+// parenthetical and would otherwise normalise away to nothing.
+function checkTypingMatch(userInput, correctText, extraAccept) {
   const u = normaliseAnswer(userInput);
   if (!u) return false;
   const uCompact = u.replace(/\s/g, '');
   const uWords = new Set(u.split(' ').filter(Boolean));
 
-  const variants = String(correctText).split(/[,;]/).map(normaliseAnswer).filter(Boolean);
+  const sources = [correctText];
+  if (extraAccept) sources.push(extraAccept);
+  let variants = sources
+    .flatMap(s => String(s).split(/[,;]/))
+    .map(normaliseAnswer)
+    .filter(Boolean);
+  // Fallback: if every gloss was fully parenthetical (e.g. "(introduces
+  // question)"), normalising stripped it to nothing. Re-derive variants
+  // without dropping the bracketed text so the answer is still typeable.
+  if (variants.length === 0) {
+    variants = sources
+      .flatMap(s => String(s).replace(/[()\[\]]/g, ' ').split(/[,;]/))
+      .map(normaliseAnswer)
+      .filter(Boolean);
+  }
   for (const v of variants) {
     if (u === v) return true;
     const vCompact = v.replace(/\s/g, '');
@@ -1459,7 +1477,7 @@ function renderType() {
   function checkType() {
     if (answered) return;
     answered = true;
-    const isCorrect = checkTypingMatch(input.value, currentWord.english);
+    const isCorrect = checkTypingMatch(input.value, currentWord.english, currentWord.accept);
     input.classList.add(isCorrect ? 'correct' : 'wrong');
     submit.disabled = true;
     // Blur so the next Enter is caught by the document-level handler
