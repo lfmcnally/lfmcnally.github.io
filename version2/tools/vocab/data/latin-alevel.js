@@ -5550,6 +5550,7 @@ const VOCAB_LATIN_ALEVEL = [
     {
         latin: "-ne",
         english: "(makes open question, e.g.) is it (the case that)?",
+        accept: "introduces question, introduce question, introduces a question, question, asks question, is it, is it the case that",
         info: "… ? - particle",
         letter: "A",
         topic: "Miscellaneous",
