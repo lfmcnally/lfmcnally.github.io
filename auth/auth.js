@@ -115,10 +115,10 @@ async function redirectIfLoggedIn() {
     if (user) {
         const profile = await getUserProfile();
         if (profile && profile.role === 'teacher') {
-            window.location.href = '/dashboard/tracking.html';
+            window.location.href = '/version2/tracking/teacher.html';
             return true;
         } else if (profile && profile.role === 'student') {
-            window.location.href = '/dashboard/student-tracking.html';
+            window.location.href = '/version2/tracking/dashboard.html';
             return true;
         }
         // If no profile or unknown role, stay on the page
