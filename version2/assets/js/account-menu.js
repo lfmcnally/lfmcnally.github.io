@@ -66,13 +66,28 @@
     const pop = slot.querySelector('.account-menu-pop');
     const signOutBtn = slot.querySelector('[data-account-signout]');
 
+    // Anchor the (position:fixed) dropdown to the trigger. Fixed positioning
+    // keeps the panel on top and prevents it being clipped by ancestor
+    // headers that use overflow:hidden for their decorative backgrounds.
+    function position() {
+      const r = trigger.getBoundingClientRect();
+      pop.style.top = (r.bottom + 8) + 'px';
+      pop.style.left = 'auto';
+      pop.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+    }
+
     function close() {
       pop.hidden = true;
       trigger.setAttribute('aria-expanded', 'false');
+      window.removeEventListener('scroll', position, true);
+      window.removeEventListener('resize', position);
     }
     function open() {
+      position();
       pop.hidden = false;
       trigger.setAttribute('aria-expanded', 'true');
+      window.addEventListener('scroll', position, true);
+      window.addEventListener('resize', position);
     }
     function toggle(e) {
       e.stopPropagation();
