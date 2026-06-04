@@ -64,6 +64,10 @@ body { background:var(--cream); }
 .mc-confirm { display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;font-size:12.5px;color:var(--ink);flex-wrap:wrap; }
 .mc-confirm-actions { display:flex;gap:6px;flex-shrink:0; }
 .mc-error { color:#dc2626;font-size:12px;margin-top:6px;width:100%; }
+.mc-pill { font-size:10.5px;font-weight:600;color:var(--muted);background:var(--paper);border:1px solid var(--rule);border-radius:999px;padding:2px 8px;white-space:nowrap; }
+.mc-move { padding:5px 8px;line-height:1;font-size:13px; }
+.mc-move:disabled { opacity:0.3;cursor:default; }
+.mc-row-archived { opacity:0.9;background:var(--paper); }
 
 /* body */
 .dash-body { max-width:1200px;margin:0 auto;padding:32px 40px 80px; }
@@ -184,6 +188,8 @@ body { background:var(--cream); }
 .panel-btn-primary:hover { background:#155ee0; }
 .panel-btn-secondary { background:var(--cream);color:var(--ink);border:1px solid var(--rule); }
 .panel-btn-secondary:hover { border-color:var(--brand);color:var(--brand); }
+.panel-btn-danger { background:#fff;color:#b91c1c;border:1px solid #f0c5c5; }
+.panel-btn-danger:hover { background:#fef2f2; }
 </style>
 </head>
 <body>
@@ -307,6 +313,7 @@ body { background:var(--cream); }
       <div class="panel-actions">
         <button class="panel-btn panel-btn-primary" id="panelExportBtn" type="button">Export PDF summary</button>
         <a href="/version2/tracking/dashboard.html" class="panel-btn panel-btn-secondary">View student dashboard</a>
+        <button class="panel-btn panel-btn-danger" id="panelRemoveBtn" type="button">Remove from class</button>
       </div>
     </div>
   </div>
@@ -538,6 +545,7 @@ function alphaCompareLatin(a, b) {
 
 let panelSort = 'chapter';   // 'chapter' | 'alpha' | 'confidence'
 let panelStudent = null;     // current student shown in the panel
+let panelClassId = null;     // class the panel student is being viewed in
 
 function classifyWord(w) {
   if (w.t === 0) return 'learning';
@@ -618,6 +626,8 @@ function prettyType(type) {
 }
 
 let classes = [];
+let archivedClasses = [];
+let manageColsAvailable = false;
 let currentClassIdx = 0;
 const tt = document.getElementById('wordTooltip');
 
@@ -648,22 +658,57 @@ async function init() {
 }
 
 async function reloadClasses() {
+  // Remember which class is selected so reorder/rename/archive don't jump us
+  // to a different class.
+  const prevId = classes[currentClassIdx] && classes[currentClassIdx].id;
+
+  // select('*') so we tolerate the optional position/archived columns being
+  // absent (before migration 047 is applied) without erroring.
   const { data: classRows, error: clsErr } = await window.supabase
-    .from('v2_classes').select('id, name, type').order('created_at', { ascending: true });
+    .from('v2_classes').select('*');
   if (clsErr) {
     showEmptyState('Could not load your classes. ' + escapeHtml(clsErr.message));
     return;
   }
-  if (!classRows || classRows.length === 0) {
+
+  // Are the ordering/archiving columns available yet?
+  manageColsAvailable = !!(classRows && classRows.length && ('archived' in classRows[0]));
+
+  const allRows = (classRows || []).slice().sort((a, b) => {
+    const pa = (a.position == null) ? Infinity : a.position;
+    const pb = (b.position == null) ? Infinity : b.position;
+    if (pa !== pb) return pa - pb;
+    return String(a.created_at).localeCompare(String(b.created_at));
+  });
+  const activeRows   = allRows.filter(r => !r.archived);
+  const archivedRows = allRows.filter(r => !!r.archived);
+
+  // Archived classes only need a name + headcount for the manage modal.
+  archivedClasses = [];
+  for (const c of archivedRows) {
+    const { count } = await window.supabase
+      .from('v2_class_members').select('student_id', { count: 'exact', head: true })
+      .eq('class_id', c.id);
+    archivedClasses.push({ id: c.id, name: c.name, type: c.type, studentCount: count || 0 });
+  }
+
+  if (activeRows.length === 0) {
+    classes = [];
     document.getElementById('btnAddStudents').disabled = true;
     document.getElementById('classTabs').innerHTML = '';
-    showEmptyState('No classes yet. Click <strong>+ Create class</strong> to make one, then add students by their sharing code.');
+    if (archivedClasses.length) {
+      showEmptyState('No active classes. You have ' + archivedClasses.length + ' archived class' +
+        (archivedClasses.length === 1 ? '' : 'es') + ' — open <strong>Manage classes</strong> to restore one.');
+    } else {
+      showEmptyState('No classes yet. Click <strong>+ Create class</strong> to make one, then add students by their sharing code.');
+    }
+    if (document.getElementById('modalManageClasses').style.display === 'block') renderManageList();
     return;
   }
   document.getElementById('btnAddStudents').disabled = false;
 
   classes = [];
-  for (const c of classRows) {
+  for (const c of activeRows) {
     const cls = { id: c.id, name: c.name, type: c.type, students: [] };
     const { data: members } = await window.supabase
       .from('v2_class_members')
@@ -718,11 +763,16 @@ async function reloadClasses() {
     }
     classes.push(cls);
   }
+  // Restore the previously-selected class by id where possible.
+  const restored = classes.findIndex(c => c.id === prevId);
+  currentClassIdx = restored >= 0 ? restored : Math.min(currentClassIdx, classes.length - 1);
+
   renderClassTabs();
   document.getElementById('overviewBand').style.display = '';
   document.querySelector('.dash-grid').style.display = '';
   hideEmptyState();
-  renderClass(Math.min(currentClassIdx, classes.length - 1));
+  renderClass(currentClassIdx);
+  if (document.getElementById('modalManageClasses').style.display === 'block') renderManageList();
 }
 
 function renderClassTabs() {
@@ -891,6 +941,7 @@ function openStudent(studentId) {
   const cls = classes[currentClassIdx];
   const s = cls.students.find(x => x.id === studentId);
   if (!s) return;
+  panelClassId = cls.id;
   document.getElementById('panelName').textContent = s.name;
   const sessionBit = s.sessionCount ? ` · ${s.sessionCount} session${s.sessionCount===1?'':'s'} over ${s.practiceDays} day${s.practiceDays===1?'':'s'}` : '';
   document.getElementById('panelMeta').textContent = `${cls.name} · ${prettyType(cls.type)} · last active ${timeAgo(s.lastSeen)}${sessionBit}`;
@@ -1292,6 +1343,23 @@ function exportPDF() {
 }
 document.getElementById('panelExportBtn').addEventListener('click', exportPDF);
 
+document.getElementById('panelRemoveBtn').addEventListener('click', async () => {
+  if (!panelStudent || !panelClassId) return;
+  const cls = classes.find(c => c.id === panelClassId);
+  const name = panelStudent.name || 'this student';
+  if (!confirm('Remove ' + name + ' from ' + (cls ? cls.name : 'this class') + '? Their progress data is kept — they\'re only removed from your class roster.')) return;
+  const btn = document.getElementById('panelRemoveBtn');
+  btn.disabled = true; btn.textContent = 'Removing…';
+  const { error } = await window.supabase
+    .from('v2_class_members').delete()
+    .eq('class_id', panelClassId).eq('student_id', panelStudent.id);
+  btn.disabled = false; btn.textContent = 'Remove from class';
+  if (error) { alert('Could not remove student: ' + error.message); return; }
+  document.getElementById('studentPanel').classList.remove('open');
+  document.body.style.overflow = '';
+  await reloadClasses();
+});
+
 // Modals
 function openModal(id)  { document.getElementById(id).style.display = 'block'; document.body.style.overflow = 'hidden'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none';  document.body.style.overflow = ''; }
@@ -1370,38 +1438,66 @@ function openManageClasses() {
 function renderManageList() {
   const listEl = document.getElementById('mcList');
   const q = (document.getElementById('mcSearch').value || '').trim().toLowerCase();
-  if (!classes.length) {
+  if (!classes.length && !archivedClasses.length) {
     listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:6px 0;">No classes yet. Use <strong>+ Create class</strong> to make one.</div>';
     return;
   }
-  const groups = new Map();
-  classes.forEach((c, idx) => {
-    if (q && !c.name.toLowerCase().includes(q) && !prettyType(c.type).toLowerCase().includes(q)) return;
-    if (!groups.has(c.type)) groups.set(c.type, []);
-    groups.get(c.type).push({ c, idx });
-  });
-  if (groups.size === 0) {
-    listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:6px 0;">No classes match that search.</div>';
-    return;
-  }
+  const matches = (name, type) => !q || name.toLowerCase().includes(q) || prettyType(type).toLowerCase().includes(q);
   const html = [];
-  [...groups.keys()].sort((a, b) => prettyType(a).localeCompare(prettyType(b))).forEach(type => {
-    html.push(`<div class="mc-group-label">${escapeHtml(prettyType(type))}</div>`);
-    groups.get(type).sort((x, y) => x.c.name.localeCompare(y.c.name)).forEach(({ c, idx }) => {
+
+  // Active classes — shown in tab order, with reorder / archive controls.
+  const active = classes.map((c, idx) => ({ c, idx })).filter(({ c }) => matches(c.name, c.type));
+  html.push('<div class="mc-group-label">Your classes</div>');
+  if (active.length === 0) {
+    html.push('<div style="color:var(--muted);font-size:12.5px;padding:2px 0 4px;">No active classes match that search.</div>');
+  } else {
+    active.forEach(({ c, idx }) => {
       const n = c.students.length;
+      const canMove = !q && manageColsAvailable;  // reordering only makes sense on the full, unfiltered list
+      const moveBtns = canMove
+        ? `<button class="mc-act mc-move" type="button" data-up="${idx}" ${idx === 0 ? 'disabled' : ''} title="Move up">&uarr;</button>` +
+          `<button class="mc-act mc-move" type="button" data-down="${idx}" ${idx === classes.length - 1 ? 'disabled' : ''} title="Move down">&darr;</button>`
+        : '';
+      const archiveBtn = manageColsAvailable
+        ? `<button class="mc-act" type="button" data-archive="${c.id}" title="Hide from the dashboard but keep the data">Archive</button>`
+        : '';
       html.push(
         `<div class="mc-row" data-id="${c.id}">` +
           `<div class="mc-row-main">` +
+            moveBtns +
             `<button class="mc-name" type="button" data-jump="${idx}" title="Go to this class">${escapeHtml(c.name)}</button>` +
+            `<span class="mc-pill">${escapeHtml(prettyType(c.type))}</span>` +
             `<span class="mc-count">${n} student${n === 1 ? '' : 's'}</span>` +
           `</div>` +
           `<div class="mc-row-actions">` +
             `<button class="mc-act" type="button" data-rename="${c.id}">Rename</button>` +
+            archiveBtn +
             `<button class="mc-act mc-act-danger" type="button" data-delete="${c.id}">Delete</button>` +
           `</div>` +
         `</div>`);
     });
-  });
+  }
+
+  // Archived classes — hidden from the dashboard, restorable here.
+  const archived = archivedClasses.filter(c => matches(c.name, c.type));
+  if (archived.length) {
+    html.push('<div class="mc-group-label" style="margin-top:18px;">Archived</div>');
+    archived.forEach(c => {
+      const n = c.studentCount;
+      html.push(
+        `<div class="mc-row mc-row-archived" data-id="${c.id}">` +
+          `<div class="mc-row-main">` +
+            `<span class="mc-name" style="cursor:default;">${escapeHtml(c.name)}</span>` +
+            `<span class="mc-pill">${escapeHtml(prettyType(c.type))}</span>` +
+            `<span class="mc-count">${n} student${n === 1 ? '' : 's'}</span>` +
+          `</div>` +
+          `<div class="mc-row-actions">` +
+            `<button class="mc-act mc-act-primary" type="button" data-unarchive="${c.id}">Restore</button>` +
+            `<button class="mc-act mc-act-danger" type="button" data-delete="${c.id}">Delete</button>` +
+          `</div>` +
+        `</div>`);
+    });
+  }
   listEl.innerHTML = html.join('');
 }
 
@@ -1449,9 +1545,9 @@ async function saveRename(id, value) {
 
 function confirmDelete(id) {
   const row = document.querySelector('.mc-row[data-id="' + id + '"]');
-  const cls = classes.find(c => c.id === id);
+  const cls = classes.find(c => c.id === id) || archivedClasses.find(c => c.id === id);
   if (!row || !cls) return;
-  const n = cls.students.length;
+  const n = ('students' in cls) ? cls.students.length : (cls.studentCount || 0);
   row.innerHTML =
     `<div class="mc-confirm">` +
       `<span>Delete <strong>${escapeHtml(cls.name)}</strong>${n ? ` and remove its ${n} student${n === 1 ? '' : 's'}` : ''}? This can't be undone.</span>` +
@@ -1477,6 +1573,30 @@ async function doDelete(id) {
   renderManageList();
 }
 
+// Reorder the (active) class at idx by dir (-1 up, +1 down), persisting the
+// new position for every active class so the order is stable everywhere.
+async function moveClass(idx, dir) {
+  const j = idx + dir;
+  if (j < 0 || j >= classes.length) return;
+  const arr = classes.slice();
+  const tmp = arr[idx]; arr[idx] = arr[j]; arr[j] = tmp;
+  document.querySelectorAll('#mcList .mc-move').forEach(b => b.disabled = true);
+  const results = await Promise.all(
+    arr.map((c, i) => window.supabase.from('v2_classes').update({ position: i + 1 }).eq('id', c.id))
+  );
+  const failed = results.find(r => r.error);
+  if (failed) alert('Could not save the new order: ' + failed.error.message);
+  await reloadClasses();
+  renderManageList();
+}
+
+async function setArchived(id, val) {
+  const { error } = await window.supabase.from('v2_classes').update({ archived: val }).eq('id', id);
+  if (error) { alert('Could not ' + (val ? 'archive' : 'restore') + ' class: ' + error.message); return; }
+  await reloadClasses();
+  renderManageList();
+}
+
 document.getElementById('mcSearch').addEventListener('input', renderManageList);
 document.getElementById('mcList').addEventListener('click', (e) => {
   const jump = e.target.closest('[data-jump]');
@@ -1488,6 +1608,14 @@ document.getElementById('mcList').addEventListener('click', (e) => {
     renderClass(idx);
     return;
   }
+  const up = e.target.closest('[data-up]');
+  if (up) { moveClass(+up.getAttribute('data-up'), -1); return; }
+  const down = e.target.closest('[data-down]');
+  if (down) { moveClass(+down.getAttribute('data-down'), 1); return; }
+  const arch = e.target.closest('[data-archive]');
+  if (arch) { setArchived(arch.getAttribute('data-archive'), true); return; }
+  const unarch = e.target.closest('[data-unarchive]');
+  if (unarch) { setArchived(unarch.getAttribute('data-unarchive'), false); return; }
   const ren = e.target.closest('[data-rename]');
   if (ren) { startRename(ren.getAttribute('data-rename')); return; }
   const del = e.target.closest('[data-delete]');
