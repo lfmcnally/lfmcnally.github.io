@@ -17,6 +17,7 @@
 <script src="/version2/tools/quiz/data/myth-1.7.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.8.js"></script>
 <script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="/version2/tools/vocab/data/suburani.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <style>
@@ -166,7 +167,7 @@ async function init(){
 // Class types that support a Do Now, mapped to the vocab_list their sessions
 // are logged under. Civ classes drill a quiz topic; Latin classes drill a
 // chapter range of the J282 defined vocabulary.
-const DO_NOW_TYPES = { 'civ-gcse': 'civ-myth-religion', 'latin-gcse': 'latin-gcse' };
+const DO_NOW_TYPES = { 'civ-gcse': 'civ-myth-religion', 'latin-gcse': 'latin-gcse', 'latin-prep': 'latin-suburani' };
 
 async function loadClasses(){
   const area = document.getElementById('classArea');
@@ -200,11 +201,21 @@ function renderClassTabs(){
   });
 }
 
-function dnKind(cls){ return cls.type === 'latin-gcse' ? 'latin' : 'civ'; }
-// VOCAB_LATIN_GCSE is a top-level `const` in latin-gcse.js — a global lexical
-// binding, NOT a window property — so reference it by name, not via window.
-function latinVocab(){ return (typeof VOCAB_LATIN_GCSE !== 'undefined') ? VOCAB_LATIN_GCSE : []; }
-function latinMaxChapter(){ return latinVocab().reduce((m, w) => (typeof w.chapter === 'number' && w.chapter > m) ? w.chapter : m, 1); }
+function dnKind(cls){ return (cls.type === 'latin-gcse' || cls.type === 'latin-prep') ? 'latin' : 'civ'; }
+// The vocab datasets are top-level `const`s in their data files — global
+// lexical bindings, NOT window properties — so reference them by name. The
+// dataset is chosen by the class's vocab_list (GCSE J282 vs. Suburani).
+function latinVocab(vocabList){
+  if (vocabList === 'latin-suburani') return (typeof VOCAB_SUBURANI !== 'undefined') ? VOCAB_SUBURANI : [];
+  return (typeof VOCAB_LATIN_GCSE !== 'undefined') ? VOCAB_LATIN_GCSE : [];
+}
+function latinMaxChapter(vocabList){ return latinVocab(vocabList).reduce((m, w) => (typeof w.chapter === 'number' && w.chapter > m) ? w.chapter : m, 1); }
+// Sub-label under the Do Now controls, per vocab list.
+function latinSetupLabel(vocabList){
+  return vocabList === 'latin-suburani'
+    ? 'Suburani Book 1 &middot; vocabulary &middot; multiple choice'
+    : 'OCR GCSE Latin (J282) &middot; defined vocabulary &middot; multiple choice';
+}
 
 function renderClass(idx){
   currentClassIdx = idx; activeClass = classes[idx];
@@ -290,7 +301,7 @@ function renderCivSetup(cls){
 // ── Latin: drill a chapter range of the GCSE defined vocabulary ──
 function renderLatinSetup(cls){
   const area = document.getElementById('classArea');
-  const maxCh = latinMaxChapter();
+  const maxCh = latinMaxChapter(cls.vocabList);
   area.innerHTML = `
     <div class="dn-card">
       <div class="dn-card-head"><span class="dn-card-title">Set today's Do Now</span><span id="dnStatus" class="dn-status"></span></div>
@@ -304,7 +315,7 @@ function renderLatinSetup(cls){
         <button id="dnReset" class="dn-btn dn-btn-danger" type="button">Clear</button>
         <button id="dnProject" class="dn-btn dn-btn-project" type="button">Class view ↗</button>
       </div>
-      <div class="dn-sublabel">OCR GCSE Latin (J282) &middot; defined vocabulary &middot; multiple choice</div>
+      <div class="dn-sublabel">${latinSetupLabel(cls.vocabList)}</div>
       <div id="dnWordCount" class="dn-status"></div>
     </div>
     <div class="dn-card"><div id="dnSummary"></div></div>`;
@@ -323,7 +334,7 @@ function renderLatinSetup(cls){
   }
   function updateCount(){
     const set = new Set(chaptersInRange());
-    const n = latinVocab().filter(w => w.chapter > 0 && set.has(w.chapter)).length;
+    const n = latinVocab(cls.vocabList).filter(w => w.chapter > 0 && set.has(w.chapter)).length;
     document.getElementById('dnWordCount').textContent = n + ' word' + (n !== 1 ? 's' : '') + ' in this range';
   }
   fromSel.addEventListener('change', updateCount);
@@ -351,7 +362,7 @@ function renderLatinSetup(cls){
     const lo = chs[0], hi = chs[chs.length - 1];
     const allCh = lo === 1 && hi === maxCh;
     const label = lo === hi ? ('Chapter ' + lo) : ('Chapters ' + lo + '–' + hi);
-    const payload = { class_id: cls.id, vocab_list: 'latin-gcse', topic_id: label, subtopics: allCh ? null : chs, active: true, updated_at: new Date().toISOString() };
+    const payload = { class_id: cls.id, vocab_list: cls.vocabList, topic_id: label, subtopics: allCh ? null : chs, active: true, updated_at: new Date().toISOString() };
     status.textContent = 'Saving…'; status.style.color = 'var(--muted)';
     const { error } = await sb.from('v2_do_now').upsert(payload, { onConflict: 'class_id' });
     if (error) { status.textContent = 'Could not save: ' + error.message; status.style.color = '#dc2626'; return; }
