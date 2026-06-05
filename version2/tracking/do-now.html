@@ -133,6 +133,7 @@
       <div class="lb-sub" id="lbSub"></div>
     </div>
     <div class="lb-controls">
+      <button class="lb-btn" id="lbSortBtn" type="button" title="Switch between ranking by number correct and by accuracy">Sort: Correct</button>
       <button class="lb-btn lb-btn-stop" id="lbStop" type="button">Stop</button>
       <button class="lb-btn" id="lbClear" type="button">Clear</button>
       <button class="lb-btn" id="lbExit" type="button">Exit class view</button>
@@ -150,6 +151,7 @@ const sb = window.supabase;
 let classes = [], currentClassIdx = 0, activeClass = null;
 let doNowPoll = null, doNowChannel = null, doNowDebounce = null;
 let classViewOpen = false, lbRows = new Map(), lbClass = null, lbSky = null;
+let lbSort = 'correct';   // 'correct' (most correct) or 'accuracy' (highest %)
 
 function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function timeAgo(iso){ if(!iso) return ''; const ms=Date.now()-new Date(iso).getTime(); const m=Math.floor(ms/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }
@@ -486,8 +488,13 @@ async function renderLeaderboard(cls){
   for (const r of rows) { answered += r.answered; correct += r.correct; if (r.in) done++; }
   const acc = answered > 0 ? Math.round(correct / answered * 100) : 0;
   document.getElementById('lbTotals').innerHTML = `<b>${done}</b> / ${cls.students.length} in · class accuracy <b>${answered ? acc + '%' : '—'}</b>`;
+  const byAcc = lbSort === 'accuracy';
   const ranked = rows.slice().sort((a, b) =>
-    (b.in - a.in) || (b.correct - a.correct) || ((b.acc || 0) - (a.acc || 0)) || (b.answered - a.answered) || a.name.localeCompare(b.name));
+    (b.in - a.in) ||
+    (byAcc
+      ? (((b.acc || 0) - (a.acc || 0)) || (b.correct - a.correct))
+      : ((b.correct - a.correct) || ((b.acc || 0) - (a.acc || 0)))) ||
+    (b.answered - a.answered) || a.name.localeCompare(b.name));
   const list = document.getElementById('lbList');
   const firstTop = new Map();
   lbRows.forEach((el, id) => firstTop.set(id, el.getBoundingClientRect().top));
@@ -495,7 +502,9 @@ async function renderLeaderboard(cls){
     let el = lbRows.get(r.id);
     if (!el) { el = document.createElement('div'); lbRows.set(r.id, el); }
     el.className = 'lb-row' + (i === 0 && r.in ? ' top1' : '') + (r.in ? '' : ' notin');
-    el.innerHTML = `<div class="lb-rank">${r.in ? (i + 1) : '·'}</div><div class="lb-name">${escapeHtml(r.name)}</div><div class="lb-score">${r.in ? r.correct : '–'}</div><div class="lb-meta">${r.in ? (r.acc + '% · ' + r.answered + ' done') : 'not in yet'}</div>`;
+    const score = r.in ? (byAcc ? (r.acc + '%') : r.correct) : '–';
+    const meta  = r.in ? (byAcc ? (r.correct + '/' + r.answered + ' correct') : (r.acc + '% · ' + r.answered + ' done')) : 'not in yet';
+    el.innerHTML = `<div class="lb-rank">${r.in ? (i + 1) : '·'}</div><div class="lb-name">${escapeHtml(r.name)}</div><div class="lb-score">${score}</div><div class="lb-meta">${meta}</div>`;
     list.appendChild(el);
   });
   requestAnimationFrame(() => {
@@ -508,6 +517,11 @@ async function renderLeaderboard(cls){
   });
 }
 
+document.getElementById('lbSortBtn').addEventListener('click', () => {
+  lbSort = (lbSort === 'correct') ? 'accuracy' : 'correct';
+  document.getElementById('lbSortBtn').textContent = 'Sort: ' + (lbSort === 'accuracy' ? 'Accuracy' : 'Correct');
+  if (lbClass) renderLeaderboard(lbClass);
+});
 document.getElementById('lbExit').addEventListener('click', closeClassView);
 document.getElementById('lbStop').addEventListener('click', () => { if (lbClass) doNowStop(lbClass); });
 document.getElementById('lbClear').addEventListener('click', () => { if (lbClass) doNowClear(lbClass); });
