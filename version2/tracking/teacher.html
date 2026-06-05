@@ -628,6 +628,7 @@ function prettyType(type) {
 let classes = [];
 let archivedClasses = [];
 let manageColsAvailable = false;
+let myTeacherId = null;   // only classes I own can be managed (RLS)
 let currentClassIdx = 0;
 const tt = document.getElementById('wordTooltip');
 
@@ -645,6 +646,7 @@ async function init() {
     return;
   }
   // Nav avatar + dropdown handled by /version2/assets/js/account-menu.js.
+  myTeacherId = user.id;
   await reloadClasses();
   document.getElementById('btnCreateClass').addEventListener('click', () => openModal('modalCreateClass'));
   document.getElementById('btnManageClasses').addEventListener('click', openManageClasses);
@@ -680,8 +682,11 @@ async function reloadClasses() {
     if (pa !== pb) return pa - pb;
     return String(a.created_at).localeCompare(String(b.created_at));
   });
-  const activeRows   = allRows.filter(r => !r.archived);
-  const archivedRows = allRows.filter(r => !!r.archived);
+  // Only classes I own are manageable — RLS also surfaces classes I'm a
+  // member of, but rename/reorder/archive/Do-Now would fail their WITH CHECK.
+  const owned = allRows.filter(r => !myTeacherId || r.teacher_id === myTeacherId);
+  const activeRows   = owned.filter(r => !r.archived);
+  const archivedRows = owned.filter(r => !!r.archived);
 
   // Archived classes only need a name + headcount for the manage modal.
   archivedClasses = [];

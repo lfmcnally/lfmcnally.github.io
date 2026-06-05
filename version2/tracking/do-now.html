@@ -163,7 +163,7 @@ async function init(){
   let user = null;
   try { const { data } = await sb.auth.getUser(); user = data && data.user; } catch (_e) {}
   if (!user) { area.innerHTML = '<div class="dn-empty">You need to be signed in as a teacher. <a href="/auth/login.html">Sign in</a>.</div>'; return; }
-  try { await loadClasses(); }
+  try { await loadClasses(user.id); }
   catch (e) { area.innerHTML = '<div class="dn-empty">Couldn\'t load the Do Now page.<br><span style="font-size:12px;">' + escapeHtml((e && e.message) || e || '') + '</span></div>'; }
 }
 
@@ -172,11 +172,14 @@ async function init(){
 // chapter range of the J282 defined vocabulary.
 const DO_NOW_TYPES = { 'civ-gcse': 'civ-myth-religion', 'latin-gcse': 'latin-gcse', 'latin-prep': 'latin-suburani' };
 
-async function loadClasses(){
+async function loadClasses(myId){
   const area = document.getElementById('classArea');
-  const { data, error } = await sb.from('v2_classes').select('id, name, type').order('created_at', { ascending: true });
+  const { data, error } = await sb.from('v2_classes').select('id, name, type, teacher_id').order('created_at', { ascending: true });
   if (error) throw error;
-  const rows = (data || []).filter(c => DO_NOW_TYPES[c.type]);
+  // Only classes this teacher *owns* can have a Do Now set on them. RLS also
+  // lets a teacher see classes they're a member of (e.g. a test class), so
+  // filter those out — otherwise "Set Do Now" fails the v2_do_now WITH CHECK.
+  const rows = (data || []).filter(c => DO_NOW_TYPES[c.type] && (!myId || c.teacher_id === myId));
   if (!rows.length) { area.innerHTML = '<div class="dn-empty">No classes that can run a Do Now yet.<br>Create a GCSE Latin or Myth &amp; Religion class on your <a href="/version2/tracking/teacher.html">teacher dashboard</a>, then come back here.</div>'; return; }
   classes = [];
   for (const c of rows) {
