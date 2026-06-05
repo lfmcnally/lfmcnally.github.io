@@ -121,6 +121,11 @@
         <button class="btn-p" id="about-btn">About the project <span class="btn-p-arrow">&rarr;</span></button>
         <a href="/auth/register.html" class="btn-g" id="heroCta">Sign up free &nearr;</a>
       </div>
+      <div class="hero-stats" id="heroStats" style="display:none;">
+        <span><b id="statVisits">—</b> visits</span>
+        <span class="hero-stats-sep">&middot;</span>
+        <span><b id="statUsers">—</b> users</span>
+      </div>
     </div>
     <aside class="hero-legacy">
       <div class="hero-legacy-note">This is the new Classicalia. We're moving everything over to the new site soon &mdash; a few older resources still live on the old version.</div>
@@ -267,6 +272,23 @@
         heroCta.setAttribute('href', '/version2/tracking/dashboard.html');
       }
     } catch (_err) { /* leave the hero button as Sign up */ }
+  })();
+
+  // Subtle homepage counters — bumps the visit tally and shows registered
+  // users. Same RPCs the original homepage used; stays hidden if unavailable.
+  (async function loadHomeStats() {
+    if (!window.supabase || !window.supabase.rpc) return;
+    const wrap = document.getElementById('heroStats');
+    let shown = false;
+    try {
+      const { data, error } = await window.supabase.rpc('increment_site_stat', { stat_key: 'visits' });
+      if (!error && data != null) { document.getElementById('statVisits').textContent = Number(data).toLocaleString(); shown = true; }
+    } catch (_e) { /* ignore */ }
+    try {
+      const { data, error } = await window.supabase.rpc('get_user_count');
+      if (!error && data != null) { document.getElementById('statUsers').textContent = Number(data).toLocaleString(); shown = true; }
+    } catch (_e) { /* ignore */ }
+    if (shown && wrap) wrap.style.display = '';
   })();
 </script>
 
