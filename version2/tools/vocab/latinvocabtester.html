@@ -310,15 +310,19 @@ body { background: var(--cream); }
   color: var(--rule);
 }
 
-/* p_know indicator — subtle dot in corner */
+/* p_know indicator — subtle dot in corner (hover shows your confidence %) */
 .p-know-dot {
   position: absolute;
-  top: 16px;
-  left: 20px;
+  top: 10px;
+  left: 14px;
+  box-sizing: content-box;
   width: 8px;
   height: 8px;
+  padding: 6px;            /* transparent ring = a bigger, easier hover target */
   border-radius: 50%;
   background: var(--rule);
+  background-clip: content-box;
+  cursor: help;
 }
 .p-know-dot.low    { background: #f87171; }
 .p-know-dot.mid    { background: #fbbf24; }
@@ -1348,6 +1352,20 @@ function pickNextWord() {
 
 // ═══════════════════════════════════════════════════════
 // RENDER WORD
+// Colour the confidence dot and expose the % as a hover tooltip, so students
+// can see their confidence the same way teachers do on the dashboard.
+function paintPKnowDot(p) {
+  const dot = document.getElementById('pKnowDot');
+  if (!dot) return;
+  dot.className = 'p-know-dot';
+  if (p >= BKT.mastery)   dot.classList.add('master');
+  else if (p >= 0.7)      dot.classList.add('high');
+  else if (p >= 0.4)      dot.classList.add('mid');
+  else                    dot.classList.add('low');
+  dot.title = 'Your confidence: ' + Math.round(p * 100) + '%';
+  dot.setAttribute('aria-label', dot.title);
+}
+
 // ═══════════════════════════════════════════════════════
 function nextWord() {
   // avoid repeating the same word twice in a row
@@ -1366,14 +1384,8 @@ function nextWord() {
   document.getElementById('cardInfo').textContent  = currentWord.info;
   document.getElementById('cardChapter').textContent = `Ch. ${currentWord.chapter}`;
 
-  // p_know dot
-  const dot = document.getElementById('pKnowDot');
-  dot.className = 'p-know-dot';
-  const p = currentWord.pKnow;
-  if (p >= BKT.mastery)   dot.classList.add('master');
-  else if (p >= 0.7)      dot.classList.add('high');
-  else if (p >= 0.4)      dot.classList.add('mid');
-  else                    dot.classList.add('low');
+  // p_know dot — colour + a hover tooltip so students can see their % too.
+  paintPKnowDot(currentWord.pKnow);
 
   // feedback + next
   document.getElementById('feedback').innerHTML = '';
@@ -1515,14 +1527,8 @@ function handleAnswer(isCorrect, clickedBtn) {
   const transition = bktUpdate(currentWord, isCorrect);
   recordSessionAnswer(isCorrect);
 
-  // update dot
-  const dot = document.getElementById('pKnowDot');
-  dot.className = 'p-know-dot';
-  const p = currentWord.pKnow;
-  if (p >= BKT.mastery)   dot.classList.add('master');
-  else if (p >= 0.7)      dot.classList.add('high');
-  else if (p >= 0.4)      dot.classList.add('mid');
-  else                    dot.classList.add('low');
+  // update dot (colour + hover % tooltip)
+  paintPKnowDot(currentWord.pKnow);
 
   if (isCorrect) {
     totalCorrect++;

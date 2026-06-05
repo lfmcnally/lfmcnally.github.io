@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/version2/assets/css/classicalia.css">
 <script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="/version2/tools/vocab/data/suburani.js"></script>
 <script src="/version2/tools/vocab/data/greek-gcse.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.1.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.2.js"></script>
@@ -435,6 +436,7 @@ const SUBJECT_VOCAB_LIST = window.ClassicaliaCourseMap.SUBJECT_VOCAB_LIST;
 // activeModel.
 const CHAPTER_OF = new Map();         // Latin: latin headword → chapter
 const GREEK_CHAPTER_OF = new Map();   // Greek: greek headword → chapter
+const SUBURANI_CHAPTER_OF = new Map();// KS3/prep Latin (Suburani): latin → chapter
 
 function buildCanonicalFromData(data, headwordField, chapterLookup) {
   const out = new Map();
@@ -460,6 +462,11 @@ const GREEK_CANONICAL = buildCanonicalFromData(
   typeof VOCAB_GREEK_GCSE !== 'undefined' ? VOCAB_GREEK_GCSE : [],
   'greek',
   GREEK_CHAPTER_OF
+);
+const SUBURANI_CANONICAL = buildCanonicalFromData(
+  typeof VOCAB_SUBURANI !== 'undefined' ? VOCAB_SUBURANI : [],
+  'latin',
+  SUBURANI_CHAPTER_OF
 );
 
 // ── Per-subject "item model" ──────────────────────────────
@@ -517,9 +524,24 @@ const GREEK_MODEL = {
   groupSort:  (a, b) => a - b
 };
 
+// KS3/prep Latin classes drill the Suburani list, so render their progress
+// against the Suburani vocab (same shape as the GCSE Latin model).
+const SUBURANI_MODEL = {
+  itemNoun: 'word', itemNounPl: 'words', groupNoun: 'Chapter', subNoun: 'Meaning',
+  keys:       () => Array.from(SUBURANI_CANONICAL.keys()),
+  mainLabel:  k => k,
+  subLabel:   k => SUBURANI_CANONICAL.get(k) || '',
+  groupKeyOf: k => SUBURANI_CHAPTER_OF.get(k) || 0,
+  groupLabel: g => 'Chapter ' + g,
+  groupShort: g => 'Ch. ' + g,
+  sortAlpha:  (a, b) => alphaCompareLatin(a, b),
+  groupSort:  (a, b) => a - b
+};
+
 function modelForType(type) {
   if (type === 'civ-gcse')   return CIV_MODEL;
   if (type === 'greek-gcse') return GREEK_MODEL;
+  if (type === 'latin-prep') return SUBURANI_MODEL;
   return LATIN_MODEL;
 }
 let activeModel = LATIN_MODEL;
