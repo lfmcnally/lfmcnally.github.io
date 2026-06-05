@@ -111,6 +111,33 @@ body { background:var(--cream); }
     </div>
   </div>
 
+  <!-- PASSWORD -->
+  <div class="prof-card" id="cardPassword" style="display:none;">
+    <div class="prof-card-head"><span class="prof-card-title">Password</span></div>
+    <div class="prof-card-body">
+      <div id="pwMessage" class="auth-message"></div>
+      <div class="prof-field">
+        <div class="prof-field-label">New password</div>
+        <div class="prof-field-value">
+          <input type="password" id="pwNew" class="auth-input" placeholder="At least 6 characters" minlength="6" autocomplete="new-password" style="max-width:340px;">
+        </div>
+      </div>
+      <div class="prof-field">
+        <div class="prof-field-label">Confirm</div>
+        <div class="prof-field-value">
+          <input type="password" id="pwConfirm" class="auth-input" placeholder="Re-enter new password" minlength="6" autocomplete="new-password" style="max-width:340px;">
+        </div>
+      </div>
+      <div class="prof-field" style="border-bottom:none;">
+        <div class="prof-field-label"></div>
+        <div class="prof-field-value">
+          <button type="button" class="code-btn primary" id="pwSave">Update password</button>
+          <div class="code-help">Changes take effect immediately. You'll stay signed in on this device.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MY COURSES -->
   <a id="courses" style="position:relative;top:-80px;"></a>
   <div class="prof-card" id="cardCourses" style="display:none;">
@@ -174,6 +201,7 @@ async function loadProfile() {
 
   // Show signed-in cards (courses card is student-only and revealed below)
   document.getElementById('cardAccount').style.display = '';
+  document.getElementById('cardPassword').style.display = '';
   document.getElementById('cardCode').style.display = '';
   document.getElementById('cardTeachers').style.display = '';
 
@@ -444,6 +472,34 @@ function enterNameEditMode() {
 }
 
 bindNameEditButton();
+
+// Change password (for any signed-in user)
+(function bindPasswordChange() {
+  const saveBtn = document.getElementById('pwSave');
+  if (!saveBtn) return;
+  const newEl = document.getElementById('pwNew');
+  const confEl = document.getElementById('pwConfirm');
+  const msg = document.getElementById('pwMessage');
+  function show(text, type) { msg.textContent = text; msg.className = 'auth-message ' + type; }
+
+  saveBtn.addEventListener('click', async () => {
+    const pw = newEl.value;
+    const confirmPw = confEl.value;
+    if (pw.length < 6) { show('Password must be at least 6 characters.', 'error'); return; }
+    if (pw !== confirmPw) { show('Passwords do not match.', 'error'); return; }
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Updating…';
+    const { error } = await window.supabase.auth.updateUser({ password: pw });
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Update password';
+    if (error) { show('Could not update password: ' + error.message, 'error'); return; }
+    newEl.value = '';
+    confEl.value = '';
+    show('Password updated.', 'success');
+  });
+
+  confEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveBtn.click(); });
+})();
 
 // Regenerate code
 document.getElementById('codeRegen').addEventListener('click', async () => {
