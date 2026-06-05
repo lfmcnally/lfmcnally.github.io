@@ -484,6 +484,8 @@ body { background: var(--cream); }
   margin-top: 20px;
 }
 .exit-link:hover { color: var(--ink); }
+/* Top-of-screen placement so it isn't tapped by accident under "Next word". */
+.exit-link-top { text-align: left; margin-top: 0; margin-bottom: 14px; }
 
 /* mastered flash */
 .mastered-flash {
@@ -652,6 +654,8 @@ body { background: var(--cream); }
 
   <div class="donow-banner" id="doNowBanner" style="display:none;"></div>
 
+  <a href="#" class="exit-link exit-link-top" id="exitBtn">← Back to setup</a>
+
   <div class="stats-bar">
     <div class="stat"><div class="stat-n" id="statMastered">0</div><div class="stat-label">Mastered</div></div>
     <div class="stat"><div class="stat-n" id="statLearning">0</div><div class="stat-label">Learning</div></div>
@@ -681,8 +685,6 @@ body { background: var(--cream); }
   <div class="feedback" id="feedback"></div>
 
   <button class="next-btn" id="nextBtn">Next word →</button>
-
-  <a href="#" class="exit-link" id="exitBtn">← Back to setup</a>
 
 </div>
 
@@ -1070,16 +1072,24 @@ function setDoNowBanner(className, topicLabel){
 
 async function startDoNow(){
   if (!observedUserId) { showDoNowNotice('Sign in to load your class’s Do Now, then reload this page — or pick a list below to practise.'); return; }
-  // A Latin Do Now always drills the GCSE defined vocabulary.
-  selectedList = 'gcse';
-  let res = null;
-  try { const { data } = await window.supabase.rpc('get_my_do_now', { p_vocab_list: 'latin-gcse' }); res = data; }
-  catch (_e) { res = null; }
-  if (!res || !res.ok) { showDoNowNotice('No Do Now has been set for your class yet — pick a list below to practise.'); return; }
 
-  // VOCAB_LATIN_GCSE is a top-level `const` (global lexical binding, not a
-  // window property), so reference it by name rather than via window.
-  const all = (typeof VOCAB_LATIN_GCSE !== 'undefined' ? VOCAB_LATIN_GCSE : []).filter(w => w.chapter > 0);
+  // A student's Latin class might be GCSE (J282) or KS3/prep (Suburani), so
+  // look for an active Do Now under either list and use whichever is set.
+  // (Previously this only checked 'latin-gcse', so prep classes — whose Do
+  // Now is stored as 'latin-suburani' — always saw "no Do Now set".)
+  async function fetchDoNow(list){
+    try { const { data } = await window.supabase.rpc('get_my_do_now', { p_vocab_list: list }); return (data && data.ok) ? data : null; }
+    catch (_e) { return null; }
+  }
+  const found = (await Promise.all(['latin-gcse', 'latin-suburani'].map(fetchDoNow))).filter(Boolean);
+  if (!found.length) { showDoNowNotice('No Do Now has been set for your class yet — pick a list below to practise.'); return; }
+  // If a student is in more than one class with a live Do Now, take the most recent.
+  const res = found.sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')))[0];
+
+  // Map the Do Now's vocab_list to the tester's list + word pool.
+  const listKey = res.vocab_list === 'latin-suburani' ? 'suburani' : 'gcse';
+  selectedList = listKey;
+  const all = (VOCAB_LISTS[listKey].data() || []).filter(w => w.chapter > 0);
   let pool = all;
   if (Array.isArray(res.subtopics) && res.subtopics.length) {
     const set = new Set(res.subtopics.map(Number));
@@ -1090,7 +1100,7 @@ async function startDoNow(){
   pool = pool.filter(w => { if (seen.has(w.latin)) return false; seen.add(w.latin); return true; });
   if (pool.length < 4) { showDoNowNotice('There aren’t enough words in today’s Do Now to run a session.'); return; }
 
-  doNowActive = { updatedAt: res.updated_at };
+  doNowActive = { updatedAt: res.updated_at, vocabList: res.vocab_list };
   if (doNowWatch) clearInterval(doNowWatch);
   doNowWatch = setInterval(checkDoNowStillActive, 12000);
   document.getElementById('doNowDone').style.display = 'none';
@@ -1103,7 +1113,7 @@ async function startDoNow(){
 async function checkDoNowStillActive(){
   if (!doNowActive) return;
   let res = null;
-  try { const { data } = await window.supabase.rpc('get_my_do_now', { p_vocab_list: 'latin-gcse' }); res = data; }
+  try { const { data } = await window.supabase.rpc('get_my_do_now', { p_vocab_list: doNowActive.vocabList }); res = data; }
   catch (_e) { return; }   // network blip — don't cut the student off on a transient error
   if (!res) return;
   if (!res.ok) { endDoNow('Your teacher has stopped the Do Now.'); return; }
