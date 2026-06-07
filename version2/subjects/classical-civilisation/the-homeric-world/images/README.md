@@ -14,9 +14,9 @@ Lesson pages reference images as `../images/<file>` (shared) or `images/<file>`
 - ✗ `death-mask-agamemnon.jpg` (4.4 — gold "death mask of Agamemnon", Shaft Grave V)
 
 ## Section A (Culture) — prescribed sites
-- ✗ `mycenae.jpg` (1.2–1.3 — Mycenae: Lion Gate, Cyclopean walls, palace, cistern, sally port)
-- ✗ `tiryns.jpg` (1.4 — Tiryns: walls, gallery and defences)
-- ✗ `troy.jpg` (1.5 — Troy VI / VIIa)
+- → Mycenae (1.2) now uses per-lesson images in `1-2-mycenae/images/` — see the manifest there
+- ✗ `tiryns.jpg` (1.3 — Tiryns: walls, gallery and defences)
+- ✗ `troy.jpg` (1.4 — Troy VI / VIIa)
 
 ## Optional / supporting
 - ○ a Mycenaean palace/megaron plan (2.1); phi/psi/tau figurine images (3.4);
