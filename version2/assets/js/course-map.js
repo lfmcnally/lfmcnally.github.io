@@ -20,7 +20,7 @@
     { type: 'latin-prep',   label: 'KS3 Latin',                 vocabList: 'latin-suburani',    bodyId: 'course-vocab' },
     { type: 'latin-alevel', label: 'A-Level Latin',             vocabList: 'latin-alevel',      bodyId: 'course-vocab' },
     { type: 'greek-gcse',   label: 'GCSE Greek',                vocabList: 'greek-gcse',        bodyId: 'course-vocab' },
-    { type: 'greek-alevel', label: 'A-Level Greek',             vocabList: 'greek-alevel',      bodyId: null },
+    { type: 'greek-alevel', label: 'A-Level Greek',             vocabList: 'greek-alevel',      bodyId: 'course-vocab' },
     { type: 'civ-alevel',   label: 'A-Level Classical Civ.',    vocabList: null,                bodyId: null }
   ];
 

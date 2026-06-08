@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/version2/assets/css/classicalia.css">
 <script src="data/greek-gcse.js"></script>
+<script src="data/greek-alevel.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/bkt-store.js"></script>
@@ -519,7 +520,7 @@ body { background: var(--cream); }
   <div class="header-inner">
     <div class="header-eyebrow">Greek · Vocabulary</div>
     <h1 class="header-title">Vocabulary tester</h1>
-    <p class="header-deck">OCR GCSE Classical Greek — J292 defined vocabulary list.</p>
+    <p class="header-deck" id="headerDeck">OCR GCSE Classical Greek — J292 defined vocabulary list.</p>
   </div>
 </div>
 
@@ -548,6 +549,13 @@ body { background: var(--cream); }
         <div>
           <div class="opt-row-name">OCR GCSE Classical Greek</div>
           <div class="opt-row-desc">J292 defined vocabulary &middot; chapters 1&ndash;10</div>
+        </div>
+        <div class="opt-row-check"></div>
+      </button>
+      <button class="opt-row" data-list="alevel" id="listAlevel">
+        <div>
+          <div class="opt-row-name">OCR A-Level Classical Greek</div>
+          <div class="opt-row-desc">H444 defined vocabulary &middot; 23 randomised sets</div>
         </div>
         <div class="opt-row-check"></div>
       </button>
@@ -676,7 +684,8 @@ body { background: var(--cream); }
 // VOCAB LOOKUP — data loaded from external files
 // ═══════════════════════════════════════════════════════
 const VOCAB_LISTS = {
-  gcse: { data: () => VOCAB_GREEK_GCSE, label: 'OCR GCSE Classical Greek (J292)', storageKey: 'greek-gcse' }
+  gcse:   { data: () => VOCAB_GREEK_GCSE,   label: 'OCR GCSE Classical Greek (J292)',   storageKey: 'greek-gcse' },
+  alevel: { data: () => VOCAB_GREEK_ALEVEL, label: 'OCR A-Level Classical Greek (H444)', storageKey: 'greek-alevel' }
 };
 
 let selectedList = 'gcse';
@@ -810,16 +819,24 @@ function rebuildChapterDropdowns() {
   if (label) label.textContent = selectedList === 'alevel' ? 'Set' : 'Chapter';
 }
 
-// list selection
+// list selection — shared so the click handler and deep-link/dashboard
+// (?list=gcse|alevel) preselect a list the same way.
+function selectList(listId) {
+  if (!VOCAB_LISTS[listId]) return;
+  selectedList = listId;
+  document.querySelectorAll('.opt-row[data-list]').forEach(b =>
+    b.classList.toggle('selected', b.dataset.list === listId));
+  rebuildChapterDropdowns();
+  if (selectedRange === 'chapter') populateWordDropdowns();
+  updateWordCount();
+  const deck = document.getElementById('headerDeck');
+  if (deck && VOCAB_LISTS[listId].label) deck.textContent = VOCAB_LISTS[listId].label + ' defined vocabulary list.';
+}
+
 document.querySelectorAll('.opt-row[data-list]').forEach(btn => {
   if (btn.disabled) return;
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.opt-row[data-list]').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    selectedList = btn.dataset.list;
-    rebuildChapterDropdowns();
-    if (selectedRange === 'chapter') populateWordDropdowns();
-    updateWordCount();
+    selectList(btn.dataset.list);
     refreshActiveStore();
   });
 });
@@ -1060,8 +1077,9 @@ async function maybeAutoStart() {
   await refreshActiveStore();
   const stored = activeStore ? await activeStore.loadAll() : new Map();
 
-  // Dedupe by Greek headword (same word in different chapters → one entry)
-  const data = VOCAB_GREEK_GCSE.filter(w => w.chapter > 0);
+  // Dedupe by Greek headword. Use whichever list is selected (?list=alevel
+  // opens the A-Level vocabulary), not just GCSE.
+  const data = (VOCAB_LISTS[selectedList].data() || []).filter(w => w.chapter > 0);
   const dedup = new Map();
   for (const w of data) {
     if (dedup.has(w.greek)) continue;
@@ -1514,6 +1532,11 @@ window.addEventListener('pagehide', () => {
 let observedUserId = null;
 
 (async function bootstrap() {
+  // Preselect the list from ?list= (gcse|alevel) so dashboard links and deep
+  // links open the right vocabulary. Invalid/absent → default (gcse).
+  const listParam = (new URLSearchParams(window.location.search).get('list') || '').toLowerCase();
+  if (VOCAB_LISTS[listParam]) selectList(listParam);
+
   updateWordCount();
   try {
     const { data } = await window.supabase.auth.getUser();
