@@ -145,10 +145,10 @@
   </div>
   <div class="lb-totals" id="lbTotals"></div>
   <div class="lb-list" id="lbList"></div>
-  <!-- Looping background music for the projected view. Drop a royalty-free
-       lo-fi track at the path below (see version2/assets/audio/README). If the
-       file is missing the control hides itself. -->
-  <audio id="lbMusic" loop preload="none" src="/version2/assets/audio/lofi.mp3"></audio>
+  <!-- Background music for the projected view. Tracks come from
+       version2/assets/audio/tracks.json (shuffled); falls back to a single
+       lofi.mp3. See that folder's README. If nothing loads the control hides. -->
+  <audio id="lbMusic" preload="none"></audio>
 </div>
 
 <script>
@@ -543,9 +543,11 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && ac
 window.addEventListener('focus', () => { if (activeClass) refreshDoNow(activeClass); });
 
 // ── Background music for the projected class view ──────────────────────────
-// Loops a royalty-free lo-fi track with play/pause + volume. The teacher's
-// choice (on/off + volume) is remembered in localStorage. Browsers block
-// autoplay with sound, so we only auto-resume inside the click gesture that
+// Shuffles through a playlist of royalty-free lo-fi tracks, advancing to the
+// next when one ends and reshuffling each lap. Tracks are listed in
+// assets/audio/tracks.json; if that's absent it falls back to a single
+// lofi.mp3. Play/pause (= mute) + volume are remembered in localStorage.
+// Browsers block autoplay with sound, so we auto-resume inside the click that
 // opened the class view; if that's blocked the button just shows "off".
 const DoNowMusic = (function () {
   const audio = document.getElementById('lbMusic');
@@ -553,57 +555,103 @@ const DoNowMusic = (function () {
   const vol   = document.getElementById('lbMusicVol');
   if (!audio || !btn || !vol) return { onOpen(){}, pause(){} };
 
+  const BASE = '/version2/assets/audio/';
+  let playlist = [];     // resolved track URLs
+  let order = [];        // shuffled play order (indices into playlist)
+  let pos = 0;
+  let ready = false;
+  let intendPlay = false;   // is the teacher's intent "playing"?
+  let pendingPlay = false;  // asked to play before the playlist was ready
+  let errCount = 0;
+
   let wantOn = localStorage.getItem('classicalia.donow.music') === 'on';
   let savedVol = parseFloat(localStorage.getItem('classicalia.donow.musicVol'));
   if (isNaN(savedVol)) savedVol = 0.5;
   audio.volume = savedVol;
   vol.value = String(savedVol);
 
+  function hideControls() { btn.style.display = 'none'; vol.style.display = 'none'; }
   function setLabel() {
     const on = !audio.paused;
     btn.textContent = '♪ Music: ' + (on ? 'on' : 'off');
     btn.classList.toggle('is-on', on);
   }
 
-  // If the track is missing or can't load, hide the controls rather than show
-  // a broken button.
-  audio.addEventListener('error', () => {
-    btn.style.display = 'none';
-    vol.style.display = 'none';
-  });
+  function shuffle(n) {
+    const a = Array.from({ length: n }, (_, i) => i);
+    for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  }
+  function reshuffle() {
+    const last = order.length ? order[order.length - 1] : -1;
+    order = shuffle(playlist.length);
+    // Avoid replaying the same track twice across the lap boundary.
+    if (order.length > 1 && order[0] === last) { [order[0], order[1]] = [order[1], order[0]]; }
+    pos = 0;
+  }
+  function setSrc() { if (playlist.length) audio.src = playlist[order[pos]]; }
+  function advance() { pos++; if (pos >= order.length) reshuffle(); setSrc(); }
+  function tryPlay() { const p = audio.play(); if (p && p.catch) p.catch(() => {}); }
 
   function play() {
-    const p = audio.play();
-    if (p && p.catch) p.catch(() => { /* autoplay blocked — wait for a click */ });
+    if (!ready) { pendingPlay = true; intendPlay = true; return; }
+    intendPlay = true;
+    if (!audio.src) setSrc();
+    tryPlay();
   }
+  function stop() { intendPlay = false; audio.pause(); }
+
+  audio.addEventListener('ended', () => { if (playlist.length) { advance(); if (intendPlay) tryPlay(); } });
+  audio.addEventListener('playing', () => { errCount = 0; });
+  audio.addEventListener('play',  setLabel);
+  audio.addEventListener('pause', setLabel);
+  audio.addEventListener('error', () => {
+    if (!ready) return;
+    errCount++;
+    if (errCount > playlist.length) { hideControls(); return; }  // nothing loads
+    advance();
+    if (intendPlay) tryPlay();
+  });
 
   btn.addEventListener('click', () => {
     if (audio.paused) {
-      wantOn = true;
-      localStorage.setItem('classicalia.donow.music', 'on');
-      play();
+      wantOn = true; localStorage.setItem('classicalia.donow.music', 'on'); play();
     } else {
-      wantOn = false;
-      localStorage.setItem('classicalia.donow.music', 'off');
-      audio.pause();
+      wantOn = false; localStorage.setItem('classicalia.donow.music', 'off'); stop();
     }
     setLabel();
   });
-
   vol.addEventListener('input', () => {
     audio.volume = parseFloat(vol.value);
     localStorage.setItem('classicalia.donow.musicVol', vol.value);
   });
-
-  audio.addEventListener('play',  setLabel);
-  audio.addEventListener('pause', setLabel);
   setLabel();
+
+  // Load the playlist manifest (array of filenames/URLs). Falls back to a
+  // single lofi.mp3 so the older single-track setup keeps working.
+  (async function initPlaylist() {
+    let tracks = null;
+    try {
+      const r = await fetch(BASE + 'tracks.json', { cache: 'no-store' });
+      if (r.ok) {
+        const j = await r.json();
+        if (Array.isArray(j)) tracks = j.filter(t => typeof t === 'string' && t.trim());
+      }
+    } catch (_) { /* no manifest — fall back */ }
+    if (!tracks || !tracks.length) tracks = ['lofi.mp3'];
+    playlist = tracks.map(t => /^(https?:)?\//.test(t) ? t : BASE + t);
+    order = shuffle(playlist.length);
+    pos = 0;
+    ready = true;
+    setSrc();
+    if (pendingPlay && wantOn) { pendingPlay = false; tryPlay(); }
+  })();
 
   return {
     // Called from openClassView (inside the projecting click) so autoplay is
     // allowed when the teacher last left it on.
     onOpen() { if (wantOn) play(); },
-    pause()  { audio.pause(); }
+    pause()  { stop(); }
   };
 })();
 

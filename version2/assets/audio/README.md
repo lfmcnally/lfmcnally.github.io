@@ -1,32 +1,40 @@
 # Do Now background music
 
-The projected Do Now class view (`/version2/tracking/do-now.html`) can loop a
-background track while a class answers. To enable it, drop one audio file here:
+The projected Do Now class view (`/version2/tracking/do-now.html`) can play
+background music while a class answers — a **♪ Music** play/pause toggle (mute)
+and a volume slider sit in the class-view toolbar. The teacher's on/off and
+volume choice is remembered per browser. If nothing loads, the control hides
+itself, so nothing breaks.
 
-    version2/assets/audio/lofi.mp3
+## Recommended: a shuffled playlist of short tracks
 
-The player loops it, with a **♪ Music** play/pause toggle and a volume slider
-in the class-view toolbar. The teacher's on/off + volume choice is remembered
-per browser. If this file is missing, the music control hides itself, so
-nothing breaks.
+Drop several short (~2 min) royalty-free tracks in this folder and list them in
+`tracks.json`. The player shuffles through them, advancing to the next when one
+ends and reshuffling each lap.
 
-## Getting a track (royalty-free only)
+1. Add your files here, e.g. `lofi1.mp3`, `lofi2.mp3`, `lofi3.mp3` …
+2. Create `tracks.json` listing them:
 
-Use music you're licensed to use — ideally CC0 / royalty-free lo-fi. Good
-sources:
+   ```json
+   ["lofi1.mp3", "lofi2.mp3", "lofi3.mp3", "lofi4.mp3"]
+   ```
+
+   (Bare filenames resolve against this folder; full `/version2/...` paths or
+   `https://` URLs also work.)
+
+## Simple alternative: one track
+
+Skip `tracks.json` and just drop a single `lofi.mp3` here — the player falls
+back to looping/replaying that one file.
+
+## Getting tracks (royalty-free only)
+
+Use music you're licensed to use — ideally CC0 / royalty-free lo-fi:
 
 - **Pixabay Music** — https://pixabay.com/music/search/lofi/ (free, no attribution required)
 - **Chosic** — https://www.chosic.com/free-music/lofi/
 - **Free Music Archive** — https://freemusicarchive.org/ (check each track's licence)
 
-Download an MP3, rename it `lofi.mp3`, and place it in this folder. A long
-track (or one that loops cleanly) works best since it repeats.
-
 Do **not** embed YouTube "lofi radio" streams — autoplay is unreliable and it
-breaches their terms for classroom rebroadcast. A self-hosted royalty-free
-file is the robust choice.
-
-### Want a few tracks instead of one?
-
-Add them as `lofi.mp3`, `lofi2.mp3`, etc. and tell Claude — the player can be
-extended to shuffle through a small playlist.
+breaches their terms for classroom rebroadcast. Self-hosted royalty-free files
+are the robust choice.
