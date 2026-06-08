@@ -216,6 +216,23 @@ function initials(name) {
     .map(s => s[0].toUpperCase()).join('') || '?';
 }
 
+// Legible text colour (white or dark ink) for a hex avatar background, by WCAG
+// contrast. Mirrors the helper in profile.html / account-menu.js.
+function avatarTextColor(hex) {
+  const m = /^#([0-9a-fA-F]{6})$/.exec(hex || '');
+  if (!m) return '#ffffff';
+  const n = parseInt(m[1], 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  return (1.05 / (L + 0.05)) >= ((L + 0.05) / (0.0195 + 0.05)) ? '#ffffff' : '#1c2540';
+}
+
+// Inline style for an avatar given an optional hex colour ('' = use the CSS
+// default). Sets both background and a contrasting text colour.
+function avatarStyle(colour) {
+  return colour ? ` style="background:${colour};color:${avatarTextColor(colour)}"` : '';
+}
+
 // vocab_list → friendly course label, derived from the shared course map.
 function listLabel(vocabList) {
   const map = window.ClassicaliaCourseMap;
@@ -280,7 +297,7 @@ async function loadFriends() {
     const colour = (f.avatar_color && /^#[0-9A-Fa-f]{6}$/.test(f.avatar_color)) ? f.avatar_color : '';
     return `
       <div class="friend-row" data-friend-id="${f.friend_id}">
-        <div class="friend-av"${colour ? ` style="background:${colour}"` : ''}>${escapeHtml(initials(name))}</div>
+        <div class="friend-av"${avatarStyle(colour)}>${escapeHtml(initials(name))}</div>
         <div class="friend-info">
           <div class="friend-name">${escapeHtml(name)}</div>
           <div class="friend-meta">Friends since ${new Date(f.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</div>
@@ -459,6 +476,7 @@ function renderLeaderboard() {
   const body = rows.map((r, i) => {
     const name = r.full_name || (r.is_self ? 'You' : 'A student');
     const colour = (r.avatar_color && /^#[0-9A-Fa-f]{6}$/.test(r.avatar_color)) ? r.avatar_color : '';
+    const avStyle = avatarStyle(colour);
     const stat = (key) => {
       const m = CMP_METRICS[key];
       return `<div class="lb-stat${key === cmpSort ? ' is-active' : ''}">
@@ -469,7 +487,7 @@ function renderLeaderboard() {
     return `
       <div class="lb-row${r.is_self ? ' self' : ''}">
         <div class="lb-rank">${medal[i] || (i + 1)}</div>
-        <div class="lb-av"${colour ? ` style="background:${colour}"` : ''}>${escapeHtml(initials(name))}</div>
+        <div class="lb-av"${avStyle}>${escapeHtml(initials(name))}</div>
         <div class="lb-main">
           <div class="lb-name">${escapeHtml(name)}${r.is_self ? '<span class="lb-you">You</span>' : ''}</div>
           <div class="lb-track"><div class="lb-fill" style="width:${fillPct(r)}%"></div></div>

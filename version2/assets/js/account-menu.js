@@ -30,6 +30,17 @@
     }[c]));
   }
 
+  // Legible text colour (white or dark ink) for a hex avatar background, by
+  // WCAG contrast. Mirrors the helper in profile.html / friends.html.
+  function avatarTextColor(hex) {
+    const m = /^#([0-9a-fA-F]{6})$/.exec(hex || '');
+    if (!m) return '#ffffff';
+    const n = parseInt(m[1], 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+    const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+    return (1.05 / (L + 0.05)) >= ((L + 0.05) / (0.0195 + 0.05)) ? '#ffffff' : '#1c2540';
+  }
+
   function renderSignedOut(slot) {
     slot.innerHTML = `<a href="${SIGNIN_URL}" class="nav-cta">Sign in</a>`;
   }
@@ -39,7 +50,7 @@
     const email = user.email || '';
     const shortName = String(name).split('@')[0];
     const avatarStyle = (avatarColor && /^#[0-9A-Fa-f]{6}$/.test(avatarColor))
-      ? ` style="background:${avatarColor}"` : '';
+      ? ` style="background:${avatarColor};color:${avatarTextColor(avatarColor)}"` : '';
     const teacherItem = role === 'teacher'
       ? `<a href="${TEACHER_URL}" class="account-menu-item">Teacher dashboard</a>`
       : '';
@@ -181,6 +192,7 @@
     if (!/^#[0-9A-Fa-f]{6}$/.test(colour)) return;
     document.querySelectorAll('[data-account-menu] [data-account-initials]').forEach(el => {
       el.style.background = colour;
+      el.style.color = avatarTextColor(colour);
     });
   });
 
