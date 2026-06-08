@@ -774,6 +774,7 @@ function todayLocalISO() {
 // STATE
 // ═══════════════════════════════════════════════════════
 let activeWords = [];      // current word pool with BKT state
+let sessionStrategy = 'standard';  // 'standard' | 'smart' (frontier + throttle)
 let currentWord = null;
 let currentMode = 'mc';    // 'mc' or 'type'
 let answered = false;
@@ -976,7 +977,8 @@ async function flushSessionLog() {
   } catch (_e) { sessionLog.creating = false; }
 }
 
-async function startSessionWithPool(pool, mode) {
+async function startSessionWithPool(pool, mode, strategy) {
+  sessionStrategy = strategy || 'standard';
   await refreshActiveStore();
   const stored = activeStore ? await activeStore.loadAll() : new Map();
 
@@ -1093,7 +1095,9 @@ async function maybeAutoStart() {
   // startSessionWithPool only needs {greek, english, info, chapter} from each;
   // it will rehydrate p/t/SR state from the store itself.
   const clean = pool.map(({ p, t, distinctCorrectDays, nextReviewAt, ...rest }) => rest);
-  await startSessionWithPool(clean, 'mc');
+  // A focused queue is hand-picked, so it uses the standard selector; a plain
+  // smart session (?auto=1) gets the frontier + throttle strategy.
+  await startSessionWithPool(clean, 'mc', queueName ? 'standard' : 'smart');
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1188,10 +1192,25 @@ function addDaysIso(days) {
 // ═══════════════════════════════════════════════════════
 // WORD SELECTION
 // ═══════════════════════════════════════════════════════
+// Weighted random over a list — lower pKnow = higher weight. Null if empty.
+function pickWeightedByLowPKnow(list) {
+  if (!list.length) return null;
+  const weights = list.map(w => Math.max(0.02, 1 - w.pKnow));
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < list.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return list[i];
+  }
+  return list[list.length - 1];
+}
+
+const SMART_STRONG_P = 0.9;
+const SMART_ACTIVE_CAP = 12;
+const SMART_INTRODUCE_CHANCE = 0.35;
+
 function pickNextWord() {
-  // 1. Highest priority: words that are Due for spaced-repetition review.
-  //    These are Secure words whose next_review_at has passed — surfacing
-  //    them is how we catch forgetting.
+  // 1. Highest priority: words Due for spaced-repetition review (every strategy).
   const now = Date.now();
   const due = activeWords.filter(w =>
     w.nextReviewAt && Date.parse(w.nextReviewAt) <= now &&
@@ -1200,19 +1219,30 @@ function pickNextWord() {
     return due[Math.floor(Math.random() * due.length)];
   }
 
-  // 2. Otherwise, prioritise words below mastery, weighted by lowest pKnow
+  // 2. Smart strategy: grow a frontier set by set, introducing never-seen words
+  //    in set order but only while fewer than SMART_ACTIVE_CAP are still being
+  //    learned — so beginners ramp up gradually and consolidate.
+  if (sessionStrategy === 'smart') {
+    const active = activeWords.filter(w => w.trials > 0 && w.pKnow < SMART_STRONG_P);
+    const fresh = activeWords.filter(w => w.trials === 0).sort((a, b) =>
+      (a.chapter - b.chapter) ||
+      a.greek.replace(/^-/, '').toLowerCase().localeCompare(b.greek.replace(/^-/, '').toLowerCase()));
+
+    const canIntroduce = fresh.length > 0 && active.length < SMART_ACTIVE_CAP;
+    if (canIntroduce && (active.length === 0 || Math.random() < SMART_INTRODUCE_CHANCE)) {
+      return fresh[0];
+    }
+    if (active.length) return pickWeightedByLowPKnow(active);
+    if (fresh.length)  return fresh[0];
+    const unmasteredSmart = activeWords.filter(w => w.pKnow < BKT.mastery);
+    return pickWeightedByLowPKnow(unmasteredSmart) ||
+           activeWords[Math.floor(Math.random() * activeWords.length)];
+  }
+
+  // 3. Standard strategy: prioritise words below mastery, weighted by low pKnow.
   const unmastered = activeWords.filter(w => w.pKnow < BKT.mastery);
   if (unmastered.length === 0) return activeWords[Math.floor(Math.random() * activeWords.length)];
-
-  // weighted random — lower pKnow = higher weight
-  const weights = unmastered.map(w => 1 - w.pKnow);
-  const total = weights.reduce((a, b) => a + b, 0);
-  let r = Math.random() * total;
-  for (let i = 0; i < unmastered.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return unmastered[i];
-  }
-  return unmastered[unmastered.length - 1];
+  return pickWeightedByLowPKnow(unmastered);
 }
 
 // ═══════════════════════════════════════════════════════

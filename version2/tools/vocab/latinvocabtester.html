@@ -812,6 +812,7 @@ function todayLocalISO() {
 // STATE
 // ═══════════════════════════════════════════════════════
 let activeWords = [];      // current word pool with BKT state
+let sessionStrategy = 'standard';  // 'standard' | 'smart' (frontier + throttle)
 let currentWord = null;
 let currentMode = 'mc';    // 'mc' or 'type'
 let answered = false;
@@ -1022,7 +1023,8 @@ async function flushSessionLog() {
   } catch (_e) { sessionLog.creating = false; }
 }
 
-async function startSessionWithPool(pool, mode) {
+async function startSessionWithPool(pool, mode, strategy) {
+  sessionStrategy = strategy || 'standard';
   await refreshActiveStore();
   const stored = activeStore ? await activeStore.loadAll() : new Map();
 
@@ -1238,7 +1240,10 @@ async function maybeAutoStart() {
   // startSessionWithPool only needs {latin, english, info, chapter} from each;
   // it will rehydrate p/t/SR state from the store itself.
   const clean = pool.map(({ p, t, distinctCorrectDays, nextReviewAt, ...rest }) => rest);
-  await startSessionWithPool(clean, 'mc');
+  // A focused queue is already a hand-picked set, so it uses the standard
+  // selector. A plain smart session (?auto=1) gets the frontier + throttle
+  // strategy so beginners ramp up set-by-set instead of facing the whole list.
+  await startSessionWithPool(clean, 'mc', queueName ? 'standard' : 'smart');
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1333,10 +1338,31 @@ function addDaysIso(days) {
 // ═══════════════════════════════════════════════════════
 // WORD SELECTION
 // ═══════════════════════════════════════════════════════
+// Weighted random over a list — lower pKnow = higher weight (focus on weak
+// words). Returns null for an empty list.
+function pickWeightedByLowPKnow(list) {
+  if (!list.length) return null;
+  const weights = list.map(w => Math.max(0.02, 1 - w.pKnow));  // small floor
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < list.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return list[i];
+  }
+  return list[list.length - 1];
+}
+
+// Smart-session tuning: a word is "strong" (no longer needs active drilling)
+// at this confidence; only this many words are kept "in flight" at once so new
+// words are introduced gradually rather than all at once.
+const SMART_STRONG_P = 0.9;
+const SMART_ACTIVE_CAP = 12;
+const SMART_INTRODUCE_CHANCE = 0.35;
+
 function pickNextWord() {
   // 1. Highest priority: words that are Due for spaced-repetition review.
   //    These are Secure words whose next_review_at has passed — surfacing
-  //    them is how we catch forgetting.
+  //    them is how we catch forgetting. (Applies in every strategy.)
   const now = Date.now();
   const due = activeWords.filter(w =>
     w.nextReviewAt && Date.parse(w.nextReviewAt) <= now &&
@@ -1345,19 +1371,36 @@ function pickNextWord() {
     return due[Math.floor(Math.random() * due.length)];
   }
 
-  // 2. Otherwise, prioritise words below mastery, weighted by lowest pKnow
+  // 2. Smart strategy: grow a "frontier" set by set. Introduce never-seen
+  //    words in set order, but only while fewer than SMART_ACTIVE_CAP words
+  //    are still being learned — so a beginner ramps up through set 1 before
+  //    ever reaching set 2, and consolidates rather than scattering.
+  if (sessionStrategy === 'smart') {
+    const active = activeWords.filter(w => w.trials > 0 && w.pKnow < SMART_STRONG_P);
+    const fresh = activeWords.filter(w => w.trials === 0).sort((a, b) =>
+      (a.chapter - b.chapter) ||
+      a.latin.replace(/^-/, '').toLowerCase().localeCompare(b.latin.replace(/^-/, '').toLowerCase()));
+
+    const canIntroduce = fresh.length > 0 && active.length < SMART_ACTIVE_CAP;
+    // Introduce a new word when there's nothing in progress to drill, or as a
+    // steady trickle while there's room under the cap.
+    if (canIntroduce && (active.length === 0 || Math.random() < SMART_INTRODUCE_CHANCE)) {
+      return fresh[0];
+    }
+    if (active.length) return pickWeightedByLowPKnow(active);
+    if (fresh.length)  return fresh[0];
+    // Everything in range is strong — fall through to mop up anything left
+    // below full mastery, else revisit at random.
+    const unmasteredSmart = activeWords.filter(w => w.pKnow < BKT.mastery);
+    return pickWeightedByLowPKnow(unmasteredSmart) ||
+           activeWords[Math.floor(Math.random() * activeWords.length)];
+  }
+
+  // 3. Standard strategy (queues, manual ranges, Do Now): prioritise words
+  //    below mastery, weighted by lowest pKnow.
   const unmastered = activeWords.filter(w => w.pKnow < BKT.mastery);
   if (unmastered.length === 0) return activeWords[Math.floor(Math.random() * activeWords.length)];
-
-  // weighted random — lower pKnow = higher weight
-  const weights = unmastered.map(w => 1 - w.pKnow);
-  const total = weights.reduce((a, b) => a + b, 0);
-  let r = Math.random() * total;
-  for (let i = 0; i < unmastered.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return unmastered[i];
-  }
-  return unmastered[unmastered.length - 1];
+  return pickWeightedByLowPKnow(unmastered);
 }
 
 // ═══════════════════════════════════════════════════════
