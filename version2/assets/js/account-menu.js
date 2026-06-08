@@ -34,10 +34,12 @@
     slot.innerHTML = `<a href="${SIGNIN_URL}" class="nav-cta">Sign in</a>`;
   }
 
-  function renderSignedIn(slot, { user, displayName, role }) {
+  function renderSignedIn(slot, { user, displayName, role, avatarColor }) {
     const name = displayName || user.email || 'Student';
     const email = user.email || '';
     const shortName = String(name).split('@')[0];
+    const avatarStyle = (avatarColor && /^#[0-9A-Fa-f]{6}$/.test(avatarColor))
+      ? ` style="background:${avatarColor}"` : '';
     const teacherItem = role === 'teacher'
       ? `<a href="${TEACHER_URL}" class="account-menu-item">Teacher dashboard</a>`
       : '';
@@ -50,7 +52,7 @@
     slot.innerHTML = `
       <div class="account-menu">
         <button type="button" class="account-menu-trigger" aria-haspopup="menu" aria-expanded="false">
-          <span class="nav-avatar" data-account-initials>${escapeHtml(initials(name))}</span>
+          <span class="nav-avatar" data-account-initials${avatarStyle}>${escapeHtml(initials(name))}</span>
           <span class="nav-username" data-account-name>${escapeHtml(shortName)}</span>
         </button>
         <div class="account-menu-pop" role="menu" hidden>
@@ -146,7 +148,16 @@
       if (profile && profile.role)      role = profile.role;
     } catch (_) { /* fall back to email */ }
 
-    renderSignedIn(slot, { user, displayName, role });
+    // avatar_color is fetched separately and tolerantly: if the column doesn't
+    // exist yet (migration 050 unapplied) we just use the default background.
+    let avatarColor = null;
+    try {
+      const { data: c } = await window.supabase
+        .from('users').select('avatar_color').eq('id', user.id).maybeSingle();
+      if (c && c.avatar_color) avatarColor = c.avatar_color;
+    } catch (_) { /* default colour */ }
+
+    renderSignedIn(slot, { user, displayName, role, avatarColor });
   }
 
   // Live-update the displayed name when the profile page edits it, so the
@@ -161,6 +172,15 @@
       if (fullNameEl)  fullNameEl.textContent = newName;
       if (shortNameEl) shortNameEl.textContent = String(newName).split('@')[0];
       if (initialsEl)  initialsEl.textContent = initials(newName);
+    });
+  });
+
+  // Live-update the avatar colour when the profile page changes it.
+  window.addEventListener('classicalia:avatar-changed', (ev) => {
+    const colour = (ev && ev.detail) || '';
+    if (!/^#[0-9A-Fa-f]{6}$/.test(colour)) return;
+    document.querySelectorAll('[data-account-menu] [data-account-initials]').forEach(el => {
+      el.style.background = colour;
     });
   });
 

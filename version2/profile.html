@@ -52,6 +52,12 @@ body { background:var(--cream); }
 .empty-state { padding:24px;text-align:center;color:var(--muted);font-size:13px;font-style:italic; }
 .notice { background:#fff7e6;border:1px solid #fde68a;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#7c4a03;line-height:1.55; }
 .notice strong { color:#451a03; }
+.avatar-row { display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap; }
+.avatar-preview { width:56px;height:56px;border-radius:50%;background:var(--navy);color:white;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;flex-shrink:0;transition:background 0.15s; }
+.avatar-swatches { display:flex;flex-wrap:wrap;gap:9px; }
+.avatar-swatch { width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;box-shadow:0 0 0 1px var(--rule);transition:transform 0.1s; }
+.avatar-swatch:hover { transform:scale(1.12); }
+.avatar-swatch.active { border-color:white;box-shadow:0 0 0 2px var(--ink); }
 </style>
 </head>
 <body>
@@ -107,6 +113,23 @@ body { background:var(--cream); }
       <div class="prof-field">
         <div class="prof-field-label">Role</div>
         <div class="prof-field-value" id="profRole">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AVATAR -->
+  <div class="prof-card" id="cardAvatar" style="display:none;">
+    <div class="prof-card-head">
+      <span class="prof-card-title">Your avatar</span>
+      <span class="code-toast" id="avatarToast">Saved</span>
+    </div>
+    <div class="prof-card-body">
+      <div class="avatar-row">
+        <div class="avatar-preview" id="avatarPreview">?</div>
+        <div>
+          <div class="avatar-swatches" id="avatarSwatches"></div>
+          <div class="code-help" style="margin-top:10px;">Pick a colour for your initials. It shows in the menu up top and next to your name on the <a href="/version2/friends.html" style="color:var(--brand);font-weight:600;">friends leaderboard</a>.</div>
+        </div>
       </div>
     </div>
   </div>
@@ -223,6 +246,10 @@ async function loadProfile() {
   document.getElementById('profSchool').textContent = profile.school || '—';
   document.getElementById('profRole').textContent = profile.role === 'teacher' ? 'Teacher' : 'Student';
   document.getElementById('codeDisplay').textContent = profile.share_code || '—';
+
+  // Avatar colour picker — fetched separately so a missing column (migration
+  // 050 not yet applied) doesn't blow up the rest of the page.
+  await initAvatar(user.id, profile.full_name || profile.email || user.email);
 
   if (profile.role === 'student') {
     // tracked_courses is fetched separately so a missing column (migration
@@ -387,6 +414,68 @@ async function loadTeachers(studentId) {
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function avatarInitials(name) {
+  return String(name || '?').split(/[\s@.]+/).filter(Boolean).slice(0,2)
+    .map(s => s[0].toUpperCase()).join('') || '?';
+}
+
+// Avatar colour palette — all tones that read clearly with white initials.
+const AVATAR_COLORS = [
+  '#0E1E3F', '#1A6FFF', '#0d9488', '#16a34a', '#65a30d',
+  '#d97706', '#dc2626', '#db2777', '#7c3aed', '#475569'
+];
+
+// Renders the avatar card. Tolerant of a missing avatar_color column: if the
+// migration isn't applied, the card simply stays hidden.
+async function initAvatar(userId, name) {
+  let current = null;
+  const { data, error } = await window.supabase
+    .from('users').select('avatar_color').eq('id', userId).maybeSingle();
+  if (error) {
+    console.info('[profile] avatar_color unavailable:', error.message);
+    return;   // column not there yet — leave the card hidden
+  }
+  current = (data && data.avatar_color) || null;
+
+  const inits = avatarInitials(name);
+  const preview = document.getElementById('avatarPreview');
+  const swatchesEl = document.getElementById('avatarSwatches');
+  preview.textContent = inits;
+  if (current) preview.style.background = current;
+
+  swatchesEl.innerHTML = AVATAR_COLORS.map(c =>
+    `<div class="avatar-swatch${c === current ? ' active' : ''}" data-color="${c}" style="background:${c}" title="${c}"></div>`
+  ).join('');
+  document.getElementById('cardAvatar').style.display = '';
+
+  swatchesEl.querySelectorAll('.avatar-swatch').forEach(sw => {
+    sw.addEventListener('click', async () => {
+      const colour = sw.dataset.color;
+      const prev = current;
+      // Optimistic UI
+      swatchesEl.querySelectorAll('.avatar-swatch').forEach(s => s.classList.toggle('active', s === sw));
+      preview.style.background = colour;
+      current = colour;
+
+      const { error: upErr } = await window.supabase
+        .from('users').update({ avatar_color: colour }).eq('id', userId);
+      if (upErr) {
+        // Revert
+        current = prev;
+        preview.style.background = prev || '';
+        swatchesEl.querySelectorAll('.avatar-swatch').forEach(s => s.classList.toggle('active', s.dataset.color === prev));
+        alert('Could not save your colour: ' + upErr.message);
+        return;
+      }
+      const toast = document.getElementById('avatarToast');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 1200);
+      // Let the nav account menu update its avatar without a reload.
+      window.dispatchEvent(new CustomEvent('classicalia:avatar-changed', { detail: colour }));
+    });
+  });
 }
 
 // Copy code
