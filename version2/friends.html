@@ -9,6 +9,19 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<!-- Course data — used only to compute each course's total size, so the
+     "coverage" bars (Secure / Attempted) can fill against the whole list. -->
+<script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="/version2/tools/vocab/data/suburani.js"></script>
+<script src="/version2/tools/vocab/data/greek-gcse.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.1.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.2.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.3.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.4.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.5.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.6.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.7.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.8.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/course-map.js"></script>
@@ -169,6 +182,7 @@ body { background:var(--cream); }
         <div class="cmp-segs" id="cmpSort">
           <button type="button" class="cmp-seg active" data-sort="secure">Secure</button>
           <button type="button" class="cmp-seg" data-sort="practised">Attempted</button>
+          <button type="button" class="cmp-seg" data-sort="answered">Answered</button>
           <button type="button" class="cmp-seg" data-sort="accuracy">Accuracy</button>
         </div>
       </div>
@@ -263,9 +277,10 @@ async function loadFriends() {
   }
   listEl.innerHTML = data.map(f => {
     const name = f.full_name || 'A student';
+    const colour = (f.avatar_color && /^#[0-9A-Fa-f]{6}$/.test(f.avatar_color)) ? f.avatar_color : '';
     return `
       <div class="friend-row" data-friend-id="${f.friend_id}">
-        <div class="friend-av">${escapeHtml(initials(name))}</div>
+        <div class="friend-av"${colour ? ` style="background:${colour}"` : ''}>${escapeHtml(initials(name))}</div>
         <div class="friend-info">
           <div class="friend-name">${escapeHtml(name)}</div>
           <div class="friend-meta">Friends since ${new Date(f.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })}</div>
@@ -295,15 +310,37 @@ async function loadFriends() {
   });
 }
 
+// Total size of each course's list, used so the Secure / Attempted bars fill
+// against the whole course (coverage) rather than against the current leader.
+// Mirrors the dashboard: vocab dedupes headwords with chapter > 0; the quiz
+// counts every question across its topics. A 0 here means "unknown total" and
+// the bar falls back to leader-relative scaling.
+const COURSE_TOTALS = (function () {
+  const totals = {};
+  function vocabTotal(arr, field) {
+    if (!Array.isArray(arr)) return 0;
+    const seen = new Set();
+    for (const e of arr) { if (e.chapter > 0) seen.add(e[field]); }
+    return seen.size;
+  }
+  totals['latin-gcse']     = vocabTotal(typeof VOCAB_LATIN_GCSE !== 'undefined' ? VOCAB_LATIN_GCSE : null, 'latin');
+  totals['latin-suburani'] = vocabTotal(typeof VOCAB_SUBURANI   !== 'undefined' ? VOCAB_SUBURANI   : null, 'latin');
+  totals['greek-gcse']     = vocabTotal(typeof VOCAB_GREEK_GCSE !== 'undefined' ? VOCAB_GREEK_GCSE : null, 'greek');
+  const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
+  totals['civ-myth-religion'] = topics.reduce((n, t) => n + ((t.questions && t.questions.length) || 0), 0);
+  return totals;
+})();
+
 // Build the per-course leaderboard from the aggregate scores RPC.
 let cmpData = null;             // grouped { vocabList: [rows] }
 let cmpActiveList = null;
-let cmpSort = 'secure';         // 'secure' | 'practised' | 'accuracy'
+let cmpSort = 'secure';         // 'secure' | 'practised' | 'answered' | 'accuracy'
 
 // Each sort metric: how to read it off a row, how to format it, and the label.
 const CMP_METRICS = {
   secure:    { label: 'Secure',    get: r => r.secure,    fmt: v => String(v) },
   practised: { label: 'Attempted', get: r => r.practised, fmt: v => String(v) },
+  answered:  { label: 'Answered',  get: r => r.trials,    fmt: v => String(v) },
   accuracy:  { label: 'Accuracy',  get: r => r.accuracy,  fmt: (v, r) => r.trials > 0 ? Math.round(v * 100) + '%' : '—' }
 };
 
@@ -392,7 +429,7 @@ function renderLeaderboard() {
   const rows = (cmpData.get(cmpActiveList) || []).slice();
   const metric = CMP_METRICS[cmpSort] || CMP_METRICS.secure;
 
-  // Sort by the active metric, with the other two as tie-breakers so order is
+  // Sort by the active metric, with the others as tie-breakers so order is
   // always deterministic.
   rows.sort((a, b) =>
     metric.get(b) - metric.get(a) ||
@@ -402,11 +439,26 @@ function renderLeaderboard() {
   );
 
   const maxVal = Math.max(...rows.map(r => metric.get(r)), 0);
+  const courseTotal = COURSE_TOTALS[cmpActiveList] || 0;
   const medal = ['🥇', '🥈', '🥉'];
+
+  // Bar fill, by metric:
+  //   accuracy            → the percentage itself
+  //   secure / practised  → coverage of the whole course, if its total is known
+  //   answered (or total  → leader-relative (no natural ceiling)
+  //   unknown)
+  function fillPct(r) {
+    const v = metric.get(r);
+    if (cmpSort === 'accuracy') return Math.round((r.accuracy || 0) * 100);
+    if ((cmpSort === 'secure' || cmpSort === 'practised') && courseTotal > 0) {
+      return Math.round(Math.min(1, v / courseTotal) * 100);
+    }
+    return maxVal > 0 ? Math.round((v / maxVal) * 100) : 0;
+  }
 
   const body = rows.map((r, i) => {
     const name = r.full_name || (r.is_self ? 'You' : 'A student');
-    const fill = maxVal > 0 ? Math.round((metric.get(r) / maxVal) * 100) : 0;
+    const colour = (r.avatar_color && /^#[0-9A-Fa-f]{6}$/.test(r.avatar_color)) ? r.avatar_color : '';
     const stat = (key) => {
       const m = CMP_METRICS[key];
       return `<div class="lb-stat${key === cmpSort ? ' is-active' : ''}">
@@ -417,20 +469,21 @@ function renderLeaderboard() {
     return `
       <div class="lb-row${r.is_self ? ' self' : ''}">
         <div class="lb-rank">${medal[i] || (i + 1)}</div>
-        <div class="lb-av">${escapeHtml(initials(name))}</div>
+        <div class="lb-av"${colour ? ` style="background:${colour}"` : ''}>${escapeHtml(initials(name))}</div>
         <div class="lb-main">
           <div class="lb-name">${escapeHtml(name)}${r.is_self ? '<span class="lb-you">You</span>' : ''}</div>
-          <div class="lb-track"><div class="lb-fill" style="width:${fill}%"></div></div>
+          <div class="lb-track"><div class="lb-fill" style="width:${fillPct(r)}%"></div></div>
         </div>
         <div class="lb-stats">
-          ${stat('secure')}${stat('practised')}${stat('accuracy')}
+          ${stat('secure')}${stat('practised')}${stat('answered')}${stat('accuracy')}
         </div>
       </div>`;
   }).join('');
 
   const noun = itemNoun(cmpActiveList);
+  const totalNote = courseTotal > 0 ? ` (out of ${courseTotal})` : '';
   bodyEl.innerHTML = body + `
-    <div class="cmp-foot">A ${noun} is <strong>secure</strong> once you've answered it correctly on at least three different days. <strong>Attempted</strong> counts the ${noun}s you've tried; <strong>accuracy</strong> is correct answers across all your attempts.</div>`;
+    <div class="cmp-foot">A ${noun} is <strong>secure</strong> once you've answered it correctly on at least three different days. <strong>Attempted</strong> counts the distinct ${noun}s you've tried${totalNote}; <strong>answered</strong> is your total number of answers; <strong>accuracy</strong> is correct answers across all of them.</div>`;
 }
 
 // Copy your code
