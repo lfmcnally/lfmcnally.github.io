@@ -417,7 +417,11 @@ body { background:var(--cream); }
       <div class="dash-card">
         <div class="dash-card-head">
           <span class="dash-card-title" id="tableTitle">Students</span>
-          <span class="dash-card-note">Click a student for full detail</span>
+          <span style="display:flex;align-items:center;gap:10px;">
+            <span class="dash-card-note">Click a student for full detail</span>
+            <button id="exportCsvBtn" type="button" style="font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:5px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer;">Export CSV</button>
+            <button id="printReportBtn" type="button" style="font-family:'DM Sans',sans-serif;font-size:11.5px;font-weight:600;padding:6px 12px;border-radius:5px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer;">Print report</button>
+          </span>
         </div>
         <table class="student-table">
           <thead>
@@ -782,6 +786,8 @@ async function init() {
   document.getElementById('btnManageClasses').addEventListener('click', openManageClasses);
   document.getElementById('newAssignmentBtn').addEventListener('click', openNewAssignment);
   document.getElementById('asgSubmit').addEventListener('click', submitAssignment);
+  document.getElementById('exportCsvBtn').addEventListener('click', () => { const c = classes[currentClassIdx]; if (c) exportClassCSV(c); });
+  document.getElementById('printReportBtn').addEventListener('click', () => { const c = classes[currentClassIdx]; if (c) printClassReport(c); });
   document.getElementById('btnAddStudents').addEventListener('click', () => {
     if (!classes.length) return;
     document.getElementById('asClassLabel').textContent = 'to ' + classes[currentClassIdx].name;
@@ -1152,6 +1158,85 @@ async function submitAssignment() {
   }
   closeModal('modalAssign');
   renderAssignments(cls);
+}
+
+// ── Class export (CSV + printable report) ──────────────────────────────────
+function studentStatsFor(s) {
+  let secure = 0, struggling = 0, sumP = 0, withP = 0, attempted = 0;
+  for (const w of s.words.values()) {
+    const c = classifyWord(w);
+    if (c === 'secure') secure++;
+    if (c === 'struggling') struggling++;
+    if (w.t > 0) { attempted++; sumP += w.p; withP++; }
+  }
+  return {
+    secure, struggling, attempted,
+    avgP: withP ? sumP / withP : 0,
+    answeredThisWeek: s.answeredThisWeek | 0,
+    sessions: s.sessionCount | 0,
+    days: s.practiceDays | 0,
+    lastSeen: s.lastSeen
+  };
+}
+function csvCell(v) {
+  const s = String(v == null ? '' : v);
+  return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function safeFileName(s) { return String(s || 'class').replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '') || 'class'; }
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function lastActiveStr(iso) { return iso ? new Date(iso).toLocaleDateString('en-GB') : 'never'; }
+
+function classExportRows(cls) {
+  const head = ['Name', 'Email', 'Secure', 'Struggling', 'Attempted', 'Avg confidence %', 'Answered this week', 'Sessions', 'Days practised', 'Last active'];
+  const rows = cls.students.map(s => {
+    const st = studentStatsFor(s);
+    return [s.name, s.email || '', st.secure, st.struggling, st.attempted, Math.round(st.avgP * 100), st.answeredThisWeek, st.sessions, st.days, lastActiveStr(st.lastSeen)];
+  });
+  return { head, rows };
+}
+
+function exportClassCSV(cls) {
+  if (!cls.students.length) { alert('No students to export yet.'); return; }
+  const { head, rows } = classExportRows(cls);
+  const csv = [head, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${safeFileName(cls.name)}-progress-${todayStr()}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function printClassReport(cls) {
+  if (!cls.students.length) { alert('No students to report on yet.'); return; }
+  const { head, rows } = classExportRows(cls);
+  const nounPl = activeModel.itemNounPl;
+  const n = cls.students.length;
+  const avgSecure = Math.round(rows.reduce((a, r) => a + r[2], 0) / n);
+  const generated = new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const body = rows.map(r => `<tr>${r.map((c, i) => `<td class="${i === 0 ? 'l' : 'r'}">${esc(c)}</td>`).join('')}</tr>`).join('');
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(cls.name)} — progress</title>
+    <style>
+      body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1c2540;margin:32px;}
+      h1{font-size:22px;margin:0 0 2px;} .sub{color:#5e6a85;font-size:13px;margin-bottom:18px;}
+      .summary{font-size:13px;margin-bottom:16px;} .summary b{font-size:15px;}
+      table{width:100%;border-collapse:collapse;font-size:12.5px;}
+      th,td{padding:7px 9px;border-bottom:1px solid #e9ecf1;} th{text-align:left;text-transform:uppercase;font-size:9.5px;letter-spacing:0.08em;color:#5e6a85;border-bottom:1px solid #d8dde8;}
+      td.r,th.r{text-align:right;} td.l{font-weight:600;}
+      .noprint{margin-top:18px;} @media print{.noprint{display:none;}}
+      button{font:inherit;font-weight:600;padding:8px 16px;border:none;border-radius:6px;background:#1A6FFF;color:white;cursor:pointer;}
+    </style></head><body>
+    <h1>${esc(cls.name)}</h1>
+    <div class="sub">${esc(prettyType(cls.type))} · generated ${esc(generated)}</div>
+    <div class="summary"><b>${n}</b> students · <b>${avgSecure}</b> avg secure ${esc(nounPl)}</div>
+    <table><thead><tr>${head.map((h, i) => `<th class="${i === 0 ? 'l' : 'r'}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>
+    <p class="noprint"><button onclick="window.print()">Print / Save as PDF</button> <span style="color:#5e6a85;font-size:11px;margin-left:8px;">Review, then print or save when ready.</span></p>
+    </body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) { alert('Please allow pop-ups to open the report.'); return; }
+  w.document.open(); w.document.write(html); w.document.close(); w.focus();
 }
 
 function renderClass(idx) {
