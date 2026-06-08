@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/version2/assets/css/classicalia.css">
 <script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="/version2/tools/vocab/data/latin-alevel.js"></script>
 <script src="/version2/tools/vocab/data/suburani.js"></script>
 <script src="/version2/tools/vocab/data/greek-gcse.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.1.js"></script>
@@ -572,13 +573,22 @@ const VOCAB_COURSES = {
     data: () => (typeof VOCAB_LATIN_GCSE !== 'undefined' ? VOCAB_LATIN_GCSE : null),
     headwordField: 'latin',
     storageKey: 'latin-gcse',
-    testerBase: '/version2/tools/vocab/latinvocabtester.html'
+    testerBase: '/version2/tools/vocab/latinvocabtester.html',
+    testerList: 'gcse'
+  },
+  'latin-alevel': {
+    data: () => (typeof VOCAB_LATIN_ALEVEL !== 'undefined' ? VOCAB_LATIN_ALEVEL : null),
+    headwordField: 'latin',
+    storageKey: 'latin-alevel',
+    testerBase: '/version2/tools/vocab/latinvocabtester.html',
+    testerList: 'alevel'
   },
   'latin-prep': {
     data: () => (typeof VOCAB_SUBURANI !== 'undefined' ? VOCAB_SUBURANI : null),
     headwordField: 'latin',
     storageKey: 'latin-suburani',
-    testerBase: '/version2/tools/vocab/latinvocabtester.html'
+    testerBase: '/version2/tools/vocab/latinvocabtester.html',
+    testerList: 'suburani'
   },
   'greek-gcse': {
     data: () => (typeof VOCAB_GREEK_GCSE !== 'undefined' ? VOCAB_GREEK_GCSE : null),
@@ -621,10 +631,19 @@ function getCanonicalWords(courseType) {
 // Update the tester links inside #course-vocab to point at whichever language
 // the user is currently viewing. Called whenever currentVocabCourse changes.
 function updateVocabTesterLinks() {
-  const base = vocabCfg(currentVocabCourse).testerBase;
+  const cfg = vocabCfg(currentVocabCourse);
+  const base = cfg.testerBase;
+  const listId = cfg.testerList;   // gcse | alevel | suburani (latin tester only)
   document.querySelectorAll('[data-vocab-tester]').forEach(el => {
-    const suffix = el.dataset.testerSuffix || '';
-    const href = base + suffix;
+    const suffix = el.dataset.testerSuffix || '';   // e.g. '?auto=1' or '?queue=due'
+    // Carry the list through so the tester opens the right vocabulary, merging
+    // it into whatever query string the suffix already has.
+    let href;
+    if (listId) {
+      href = base + '?list=' + listId + (suffix ? '&' + suffix.replace(/^\?/, '') : '');
+    } else {
+      href = base + suffix;
+    }
     if (el.tagName === 'A') el.setAttribute('href', href);
     el.dataset.testerHref = href;
   });
