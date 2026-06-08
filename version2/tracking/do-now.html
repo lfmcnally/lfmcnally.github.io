@@ -156,7 +156,7 @@
 // occupies the global `supabase`, so a top-level `const supabase` here
 // collides ("already declared") and stops the whole script.
 const sb = window.supabase;
-let classes = [], currentClassIdx = 0, activeClass = null;
+let classes = [], currentClassIdx = 0, activeClass = null, myId = null;
 let doNowPoll = null, doNowChannel = null, doNowDebounce = null;
 let classViewOpen = false, lbRows = new Map(), lbClass = null, lbSky = null;
 let lbSort = 'correct';   // 'correct' (most correct) or 'accuracy' (highest %)
@@ -171,6 +171,7 @@ async function init(){
   let user = null;
   try { const { data } = await sb.auth.getUser(); user = data && data.user; } catch (_e) {}
   if (!user) { area.innerHTML = '<div class="dn-empty">You need to be signed in as a teacher. <a href="/auth/login.html">Sign in</a>.</div>'; return; }
+  myId = user.id;
   try { await loadClasses(user.id); }
   catch (e) { area.innerHTML = '<div class="dn-empty">Couldn\'t load the Do Now page.<br><span style="font-size:12px;">' + escapeHtml((e && e.message) || e || '') + '</span></div>'; }
 }
@@ -265,7 +266,8 @@ function renderCivSetup(cls){
       <div class="dn-sublabel">Subtopics (leave all ticked for the whole topic)</div>
       <div id="dnSubs" class="dn-subs"></div>
     </div>
-    <div class="dn-card"><div id="dnSummary"></div></div>`;
+    <div class="dn-card"><div id="dnSummary"></div></div>
+    <div class="dn-card" id="dnArchiveCard" style="display:none;"><div class="dn-card-head"><span class="dn-card-title">Past Do Nows</span></div><div id="dnArchive"></div></div>`;
 
   const sel = document.getElementById('dnTopic');
   topics.forEach(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = 'Topic ' + t.id + ' — ' + t.title; sel.appendChild(o); });
@@ -310,6 +312,7 @@ function renderCivSetup(cls){
   document.getElementById('dnClear').addEventListener('click', () => doNowStop(cls));
   document.getElementById('dnReset').addEventListener('click', () => doNowClear(cls));
   document.getElementById('dnProject').addEventListener('click', () => openClassView(cls));
+  renderDoNowArchive(cls);
 }
 
 // ── Latin: drill a chapter range of the GCSE defined vocabulary ──
@@ -332,7 +335,8 @@ function renderLatinSetup(cls){
       <div class="dn-sublabel">${latinSetupLabel(cls.vocabList)}</div>
       <div id="dnWordCount" class="dn-status"></div>
     </div>
-    <div class="dn-card"><div id="dnSummary"></div></div>`;
+    <div class="dn-card"><div id="dnSummary"></div></div>
+    <div class="dn-card" id="dnArchiveCard" style="display:none;"><div class="dn-card-head"><span class="dn-card-title">Past Do Nows</span></div><div id="dnArchive"></div></div>`;
 
   const fromSel = document.getElementById('dnChFrom');
   const toSel   = document.getElementById('dnChTo');
@@ -386,6 +390,7 @@ function renderLatinSetup(cls){
   document.getElementById('dnClear').addEventListener('click', () => doNowStop(cls));
   document.getElementById('dnReset').addEventListener('click', () => doNowClear(cls));
   document.getElementById('dnProject').addEventListener('click', () => openClassView(cls));
+  renderDoNowArchive(cls);
 }
 
 async function fetchDoNowData(cls){
@@ -420,10 +425,92 @@ function scheduleDoNowRefresh(cls){ if (doNowDebounce) clearTimeout(doNowDebounc
 async function doNowStop(cls){
   const status = document.getElementById('dnStatus');
   if (status) { status.textContent = 'Stopping…'; status.style.color = 'var(--muted)'; }
+  // Snapshot the leaderboard to the archive before cutting students off.
+  await archiveDoNow(cls);
   const { error } = await sb.from('v2_do_now').update({ active: false }).eq('class_id', cls.id);
   if (error) { if (status) { status.textContent = 'Could not stop: ' + error.message; status.style.color = '#dc2626'; } return; }
-  if (status) { status.textContent = 'Stopped — students have been cut off'; status.style.color = 'var(--muted)'; }
+  if (status) { status.textContent = 'Stopped & saved to Past Do Nows'; status.style.color = 'var(--muted)'; }
   refreshDoNow(cls);
+  renderDoNowArchive(cls);
+}
+
+// Freeze the current leaderboard into v2_do_now_archive. No-op if there's no
+// active Do Now, nobody took part, or the table isn't there yet.
+async function archiveDoNow(cls){
+  let dn = null;
+  try { const { data } = await sb.from('v2_do_now').select('topic_id, subtopics, vocab_list, updated_at, active').eq('class_id', cls.id).maybeSingle(); dn = data; } catch (_e) { return; }
+  if (!dn || !dn.updated_at) return;
+  const { rows } = await fetchDoNowData(cls);
+  const participants = rows.filter(r => r.in);
+  if (!participants.length) return;
+  const results = participants
+    .map(r => ({ name: r.name, answered: r.answered, correct: r.correct, acc: r.acc }))
+    .sort((a, b) => b.answered - a.answered);
+  const row = {
+    class_id: cls.id,
+    vocab_list: dn.vocab_list || cls.vocabList,
+    topic_id: dn.topic_id || null,
+    subtopics: dn.subtopics || null,
+    started_at: dn.updated_at,
+    results,
+    student_count: cls.students.length,
+    total_answered: participants.reduce((a, r) => a + (r.answered | 0), 0),
+    total_correct: participants.reduce((a, r) => a + (r.correct | 0), 0),
+    created_by: myId
+  };
+  try { await sb.from('v2_do_now_archive').insert(row); } catch (_e) { /* table not there yet */ }
+}
+
+async function renderDoNowArchive(cls){
+  const card = document.getElementById('dnArchiveCard');
+  const host = document.getElementById('dnArchive');
+  if (!card || !host) return;
+  let rows = null;
+  try {
+    const { data, error } = await sb.from('v2_do_now_archive')
+      .select('id, topic_id, started_at, saved_at, results, student_count, total_answered, total_correct')
+      .eq('class_id', cls.id).order('saved_at', { ascending: false }).limit(30);
+    if (error) { card.style.display = 'none'; return; }   // table not there yet
+    rows = data || [];
+  } catch (_e) { card.style.display = 'none'; return; }
+  if (!rows.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  host.innerHTML = rows.map(r => {
+    const when = new Date(r.saved_at).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) +
+                 ', ' + new Date(r.saved_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const took = Array.isArray(r.results) ? r.results.length : 0;
+    const acc = r.total_answered ? Math.round(r.total_correct / r.total_answered * 100) + '%' : '—';
+    return `
+      <div class="dna-row" data-id="${r.id}" style="border-bottom:1px solid var(--rule-faint);">
+        <button type="button" class="dna-head" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;background:none;border:none;cursor:pointer;text-align:left;font:inherit;">
+          <span>
+            <span style="font-weight:700;color:var(--ink);">${r.topic_id ? 'Topic ' + escapeHtml(String(r.topic_id)) : 'Do Now'}</span>
+            <span style="font-size:12px;color:var(--muted);"> · ${escapeHtml(when)}</span>
+          </span>
+          <span style="font-size:12px;color:var(--muted);flex-shrink:0;">${took} took part · ${r.total_answered} answered · ${acc}</span>
+        </button>
+        <div class="dna-body" style="display:none;padding:0 0 12px;"></div>
+      </div>`;
+  }).join('');
+
+  host.querySelectorAll('.dna-head').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const wrap = btn.closest('.dna-row');
+      const body = wrap.querySelector('.dna-body');
+      if (body.style.display !== 'none') { body.style.display = 'none'; return; }
+      const r = rows.find(x => x.id === wrap.dataset.id);
+      const list = (r && Array.isArray(r.results)) ? r.results : [];
+      body.innerHTML = list.length
+        ? list.map((p, i) => `<div style="display:flex;align-items:center;gap:12px;padding:5px 0;font-size:13px;">
+             <span style="width:22px;color:var(--muted);font-weight:700;">${i + 1}</span>
+             <span style="flex:1;">${escapeHtml(p.name || 'Student')}</span>
+             <span style="color:var(--muted);"><b style="color:var(--ink);">${p.answered | 0}</b> answered · ${p.acc != null ? p.acc + '%' : '—'}</span>
+           </div>`).join('')
+        : '<div style="font-size:12.5px;color:var(--muted);padding:6px 0;">No participants recorded.</div>';
+      body.style.display = '';
+    });
+  });
 }
 async function doNowClear(cls){
   const { error } = await sb.from('v2_do_now').delete().eq('class_id', cls.id);
