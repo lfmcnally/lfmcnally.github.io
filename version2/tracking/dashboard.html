@@ -581,7 +581,8 @@ const VOCAB_COURSES = {
     headwordField: 'latin',
     storageKey: 'latin-alevel',
     testerBase: '/version2/tools/vocab/latinvocabtester.html',
-    testerList: 'alevel'
+    testerList: 'alevel',
+    groupNoun: 'Set'   // A-Level groups by "set" rather than "chapter"
   },
   'latin-prep': {
     data: () => (typeof VOCAB_SUBURANI !== 'undefined' ? VOCAB_SUBURANI : null),
@@ -608,6 +609,13 @@ function isVocabCourse(type) {
 
 function vocabCfg(type) {
   return VOCAB_COURSES[type] || VOCAB_COURSES['latin-gcse'];
+}
+
+// What this course calls a group of words — "Chapter" by default, "Set" for
+// A-Level Latin. Keeps the word map, tooltip and sort button consistent with
+// the teacher view and the tester.
+function vocabGroupNoun() {
+  return vocabCfg(currentVocabCourse).groupNoun || 'Chapter';
 }
 
 // Build the canonical word list for the given course, deduped by headword.
@@ -726,7 +734,7 @@ function attachBlockHandlers(b, w) {
   b.addEventListener('mouseenter', () => {
     document.getElementById('ttLatin').textContent    = w.l;
     document.getElementById('ttEnglish').textContent  = w.e;
-    document.getElementById('ttConf').textContent     = confLabel(w) + (w.ch ? ` · Ch. ${w.ch}` : '');
+    document.getElementById('ttConf').textContent     = confLabel(w) + (w.ch ? ` · ${vocabGroupNoun()} ${w.ch}` : '');
     const total = w.t | 0;
     const correct = w.correct | 0;
     const wrong = Math.max(0, total - correct);
@@ -771,7 +779,7 @@ function renderWordmap(words) {
       const group = byChapter.get(ch).slice().sort(alphaCompare);
       const label = document.createElement('div');
       label.className = 'wm-ch-label';
-      label.innerHTML = `Chapter ${ch} <span class="wm-ch-count">${group.length} words</span>`;
+      label.innerHTML = `${vocabGroupNoun()} ${ch} <span class="wm-ch-count">${group.length} words</span>`;
       map.appendChild(label);
       for (const w of group) {
         const b = document.createElement('div');
@@ -1028,6 +1036,10 @@ async function init() {
 async function loadVocabCourse(courseType) {
   currentVocabCourse = courseType;
   updateVocabTesterLinks();
+
+  // Relabel the "Chapter" sort button to match the course's group noun.
+  const chapSortBtn = document.querySelector('#wordmapSort [data-sort="chapter"]');
+  if (chapSortBtn) chapSortBtn.textContent = vocabGroupNoun();
 
   const cfg = vocabCfg(courseType);
   const canonical = getCanonicalWords(courseType);
