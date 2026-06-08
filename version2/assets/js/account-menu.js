@@ -10,6 +10,7 @@
 (function () {
   const PROFILE_URL = '/version2/profile.html';
   const COURSES_URL = '/version2/profile.html#courses';
+  const FRIENDS_URL = '/version2/friends.html';
   const TEACHER_URL = '/version2/tracking/teacher.html';
   const SIGNIN_URL  = '/auth/login.html';
   const POST_SIGNOUT_URL = '/version2/';
@@ -40,6 +41,11 @@
     const teacherItem = role === 'teacher'
       ? `<a href="${TEACHER_URL}" class="account-menu-item">Teacher dashboard</a>`
       : '';
+    // Friends is a student-facing feature (peers comparing scores); teachers
+    // get the teacher dashboard instead.
+    const friendsItem = role === 'student'
+      ? `<a href="${FRIENDS_URL}" class="account-menu-item">Friends</a>`
+      : '';
 
     slot.innerHTML = `
       <div class="account-menu">
@@ -55,6 +61,7 @@
           <div class="account-menu-list">
             <a href="${PROFILE_URL}" class="account-menu-item">My profile</a>
             <a href="${COURSES_URL}" class="account-menu-item">My courses</a>
+            ${friendsItem}
             ${teacherItem}
             <button type="button" class="account-menu-item account-menu-signout" data-account-signout>Sign out</button>
           </div>
