@@ -71,6 +71,39 @@ body { background: var(--cream); }
 .course-tab.soon { opacity:0.3;cursor:default; }
 .dash-body { max-width:1080px;margin:0 auto;padding:32px 40px 80px; }
 
+/* weekly goal */
+.goal-card { background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:18px 22px;margin-bottom:20px; }
+.goal-head { display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap; }
+.goal-eyebrow { font-size:9.5px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);margin-bottom:4px; }
+.goal-figure { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:30px;color:var(--navy);line-height:1; }
+.goal-figure-sub { font-family:'DM Sans',sans-serif;font-style:normal;font-weight:600;font-size:13px;color:var(--muted); }
+.goal-set-btn { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 14px;border-radius:5px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer;transition:all 0.12s; }
+.goal-set-btn:hover { border-color:var(--brand);color:var(--brand); }
+.goal-bars { margin-top:14px;display:flex;flex-direction:column;gap:12px; }
+.goal-bar-row { }
+.goal-bar-top { display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:5px; }
+.goal-bar-label { font-weight:600;color:var(--ink); }
+.goal-bar-label .goal-tag { font-size:9px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;padding:2px 6px;border-radius:8px;margin-left:7px;vertical-align:middle; }
+.goal-tag.mine  { background:#e6efff;color:#155ee0; }
+.goal-tag.class { background:#ecfdf5;color:#047857; }
+.goal-bar-val { color:var(--muted);font-weight:600; }
+.goal-bar-val b { color:var(--navy); }
+.goal-track { height:9px;background:var(--rule);border-radius:5px;overflow:hidden; }
+.goal-fill { height:100%;border-radius:5px;transition:width 0.7s ease; }
+.goal-fill.mine  { background:var(--brand); }
+.goal-fill.class { background:#10b981; }
+.goal-fill.done  { background:#059669; }
+.goal-done-note { font-size:11.5px;font-weight:700;color:#047857;margin-top:3px; }
+.goal-edit { margin-top:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--rule-faint);padding-top:14px; }
+.goal-edit-label { font-size:12.5px;font-weight:600;color:var(--ink); }
+.goal-input { width:90px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;padding:7px 10px;border:1px solid var(--rule);border-radius:6px;color:var(--navy); }
+.goal-input:focus { outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(26,111,255,0.12); }
+.goal-edit-save { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;padding:7px 14px;border-radius:5px;border:none;background:var(--brand);color:white;cursor:pointer; }
+.goal-edit-clear { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 12px;border-radius:5px;border:1px solid var(--rule);background:var(--paper);color:#dc2626;cursor:pointer; }
+.goal-presets { display:inline-flex;gap:6px; }
+.goal-preset { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:6px 11px;border-radius:14px;border:1px solid var(--rule);background:var(--paper);color:var(--muted);cursor:pointer; }
+.goal-preset:hover { border-color:var(--brand);color:var(--brand); }
+
 /* word map */
 .conf-legend { display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);flex-wrap:wrap; }
 .conf-legend-swatch { width:10px;height:10px;border-radius:2px;flex-shrink:0; }
@@ -339,6 +372,26 @@ body { background: var(--cream); }
   </div>
 </div>
 <div class="dash-body">
+  <!-- Weekly goal — questions answered this week vs a personal and/or class
+       target. Hidden until we know the user is signed in and the column
+       exists. -->
+  <div class="goal-card" id="goalCard" style="display:none;">
+    <div class="goal-head">
+      <div>
+        <div class="goal-eyebrow">This week</div>
+        <div class="goal-figure"><span id="goalAnswered">0</span> <span class="goal-figure-sub">questions answered</span></div>
+      </div>
+      <button class="goal-set-btn" id="goalSetBtn" type="button">Set a goal</button>
+    </div>
+    <div class="goal-bars" id="goalBars"></div>
+    <div class="goal-edit" id="goalEdit" style="display:none;">
+      <span class="goal-edit-label">My weekly goal:</span>
+      <input type="number" id="goalInput" class="goal-input" min="1" max="100000" step="10" placeholder="200">
+      <button class="goal-edit-save" id="goalSave" type="button">Save</button>
+      <button class="goal-edit-clear" id="goalClear" type="button">Clear</button>
+      <span class="goal-presets" id="goalPresets"></span>
+    </div>
+  </div>
   <div id="course-vocab">
   <a href="/version2/tools/vocab/latinvocabtester.html?auto=1" class="smart-btn" data-vocab-tester data-tester-suffix="?auto=1">
     <div>
@@ -1014,6 +1067,9 @@ async function init() {
     observedUserId = data && data.user ? data.user.id : null;
   } catch (_err) { observedUserId = null; }
 
+  // Weekly goal card (signed-in only) — independent of the course render.
+  if (observedUserId) loadWeeklyGoal(observedUserId);
+
   // Build the tab strip from the user's tracked courses + class memberships.
   // For signed-in students with nothing tracked, this shows the empty state
   // and we skip the Latin BKT render below.
@@ -1157,6 +1213,126 @@ document.getElementById('wordmapSort').addEventListener('click', (e) => {
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.classList.contains('open')) close(); });
 })();
+
+// ── Weekly goal ────────────────────────────────────────────────────────────
+// "Questions answered this week" vs a personal target (editable here) and/or a
+// class target the teacher set. Progress = SUM(vocab_sessions.answered) since
+// the start of this week (local Monday). Degrades silently if the weekly_goal
+// column isn't there yet.
+let weeklyGoalUserId = null;
+let weeklyPersonalGoal = null;   // number | null
+
+function startOfThisWeekISO() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  const dow = (d.getDay() + 6) % 7;   // 0 = Monday
+  d.setDate(d.getDate() - dow);
+  return d.toISOString();
+}
+
+async function loadWeeklyGoal(userId) {
+  weeklyGoalUserId = userId;
+
+  // Personal goal — tolerate a missing column (migration 052 not applied).
+  let personal = null, columnOk = true;
+  try {
+    const { data, error } = await window.supabase
+      .from('users').select('weekly_goal').eq('id', userId).maybeSingle();
+    if (error) columnOk = false;
+    else personal = data && data.weekly_goal != null ? data.weekly_goal : null;
+  } catch (_) { columnOk = false; }
+  if (!columnOk) return;   // feature not live yet — leave the card hidden
+  weeklyPersonalGoal = personal;
+
+  // Highest class goal among the student's classes (if any).
+  let classGoal = null;
+  try {
+    const { data } = await window.supabase
+      .from('v2_class_members').select('v2_classes(weekly_goal)').eq('student_id', userId);
+    (data || []).forEach(r => {
+      const g = r.v2_classes && r.v2_classes.weekly_goal;
+      if (g != null && (classGoal == null || g > classGoal)) classGoal = g;
+    });
+  } catch (_) { /* not in a class, or column absent */ }
+
+  // Answered this week.
+  let answered = 0;
+  try {
+    const { data } = await window.supabase
+      .from('vocab_sessions').select('answered, started_at')
+      .eq('student_id', userId).gte('started_at', startOfThisWeekISO());
+    (data || []).forEach(s => { answered += (s.answered | 0); });
+  } catch (_) { /* leave 0 */ }
+
+  renderWeeklyGoal(answered, weeklyPersonalGoal, classGoal);
+}
+
+function renderWeeklyGoal(answered, personal, classGoal) {
+  const card = document.getElementById('goalCard');
+  card.style.display = '';
+  document.getElementById('goalAnswered').textContent = answered;
+
+  const bars = document.getElementById('goalBars');
+  function barRow(label, tagClass, tagText, value, target) {
+    const pct = Math.min(100, Math.round((value / target) * 100));
+    const done = value >= target;
+    return `
+      <div class="goal-bar-row">
+        <div class="goal-bar-top">
+          <span class="goal-bar-label">${label}<span class="goal-tag ${tagClass}">${tagText}</span></span>
+          <span class="goal-bar-val"><b>${value}</b> / ${target}${done ? ' ✓' : ''}</span>
+        </div>
+        <div class="goal-track"><div class="goal-fill ${done ? 'done' : tagClass}" style="width:${pct}%"></div></div>
+        ${done ? '<div class="goal-done-note">Goal reached — nice work!</div>' : ''}
+      </div>`;
+  }
+  const rows = [];
+  if (personal != null) rows.push(barRow('My goal', 'mine', 'You', answered, personal));
+  if (classGoal != null) rows.push(barRow('Class goal', 'class', 'Teacher', answered, classGoal));
+  bars.innerHTML = rows.join('');
+
+  const setBtn = document.getElementById('goalSetBtn');
+  setBtn.textContent = personal != null ? 'Edit my goal' : 'Set a goal';
+  if (personal == null && classGoal == null) {
+    bars.innerHTML = '<div style="font-size:12.5px;color:var(--muted);">Set a weekly goal to track how many questions you answer.</div>';
+  }
+}
+
+(function bindWeeklyGoalControls() {
+  const edit = document.getElementById('goalEdit');
+  const input = document.getElementById('goalInput');
+  const presets = document.getElementById('goalPresets');
+  if (!edit) return;
+  presets.innerHTML = [100, 200, 300, 500].map(n =>
+    `<button type="button" class="goal-preset" data-goal="${n}">${n}</button>`).join('');
+
+  document.getElementById('goalSetBtn').addEventListener('click', () => {
+    input.value = weeklyPersonalGoal != null ? weeklyPersonalGoal : '';
+    edit.style.display = edit.style.display === 'none' ? 'flex' : 'none';
+    if (edit.style.display === 'flex') input.focus();
+  });
+  presets.addEventListener('click', e => {
+    const b = e.target.closest('.goal-preset'); if (!b) return;
+    input.value = b.dataset.goal; saveWeeklyGoal(parseInt(b.dataset.goal, 10));
+  });
+  document.getElementById('goalSave').addEventListener('click', () => {
+    const n = parseInt(input.value, 10);
+    if (!n || n < 1) { alert('Enter a number of questions, e.g. 200.'); return; }
+    saveWeeklyGoal(n);
+  });
+  document.getElementById('goalClear').addEventListener('click', () => saveWeeklyGoal(null));
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('goalSave').click(); });
+})();
+
+async function saveWeeklyGoal(value) {
+  if (!weeklyGoalUserId) return;
+  const { error } = await window.supabase
+    .from('users').update({ weekly_goal: value }).eq('id', weeklyGoalUserId);
+  if (error) { alert('Could not save your goal: ' + error.message); return; }
+  weeklyPersonalGoal = value;
+  document.getElementById('goalEdit').style.display = 'none';
+  loadWeeklyGoal(weeklyGoalUserId);   // refresh bars
+}
 
 init().then(() => {
   if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {

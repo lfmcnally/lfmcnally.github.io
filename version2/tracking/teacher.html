@@ -76,7 +76,9 @@ body { background:var(--cream); }
 .dash-body { max-width:1200px;margin:0 auto;padding:32px 40px 80px; }
 
 /* overview */
-.overview-band { display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px; }
+.overview-band { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px; }
+.ov-stat.ov-goal:hover { border-color:var(--brand); }
+.ov-stat.ov-goal .ov-sub { color:var(--brand);font-weight:600; }
 .ov-stat { background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:18px 20px; }
 .ov-n { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:30px;color:var(--navy);line-height:1;margin-bottom:4px; }
 .ov-n.green { color:#16a34a; } .ov-n.amber { color:#d97706; } .ov-n.red { color:#dc2626; }
@@ -370,6 +372,7 @@ body { background:var(--cream); }
               <th>Confidence profile</th>
               <th>Secure</th>
               <th>Struggling</th>
+              <th>This week</th>
               <th>Last active</th>
               <th></th>
               <th></th>
@@ -641,6 +644,13 @@ function confBarColour(p) {
   if (p >= 0.35) return '#fb923c';
   return '#fca5a5';
 }
+function startOfThisWeekISO() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  const dow = (d.getDay() + 6) % 7;   // 0 = Monday
+  d.setDate(d.getDate() - dow);
+  return d.toISOString();
+}
 function activityStatusFor(lastSeenIso) {
   if (!lastSeenIso) return 'inactive';
   const days = (Date.now() - new Date(lastSeenIso).getTime()) / 86400000;
@@ -783,7 +793,7 @@ async function reloadClasses() {
   // member list) instead of two queries per student — the old N+1 that made
   // loading slow for teachers with several full classes.
   classes = await Promise.all(activeRows.map(async (c) => {
-    const cls = { id: c.id, name: c.name, type: c.type, students: [] };
+    const cls = { id: c.id, name: c.name, type: c.type, students: [], weeklyGoal: (c.weekly_goal != null ? c.weekly_goal : null) };
     const { data: members } = await window.supabase
       .from('v2_class_members')
       .select('student_id, users:student_id (id, full_name, email)')
@@ -804,7 +814,7 @@ async function reloadClasses() {
           .eq('vocab_list', vocabList),
         window.supabase
           .from('vocab_sessions')
-          .select('student_id, started_at')
+          .select('student_id, started_at, answered')
           .in('student_id', studentIds)
           .eq('vocab_list', vocabList)
       ]);
@@ -827,7 +837,8 @@ async function reloadClasses() {
         words: new Map(),
         lastSeen: null,
         sessionCount: 0,
-        practiceDays: 0
+        practiceDays: 0,
+        answeredThisWeek: 0
       };
       for (const row of (bktByStudent.get(m.student_id) || [])) {
         student.words.set(row.word_latin, {
@@ -845,6 +856,9 @@ async function reloadClasses() {
       const sess = sessByStudent.get(m.student_id) || [];
       student.sessionCount = sess.length;
       student.practiceDays = new Set(sess.map(r => (r.started_at || '').slice(0, 10)).filter(Boolean)).size;
+      const weekStart = startOfThisWeekISO();
+      student.answeredThisWeek = sess.reduce((n, r) =>
+        n + ((r.started_at && r.started_at >= weekStart) ? (r.answered | 0) : 0), 0);
       cls.students.push(student);
     }
     return cls;
@@ -899,6 +913,31 @@ function hideEmptyState() {
   if (el) el.remove();
 }
 
+async function editClassWeeklyGoal(cls) {
+  const cur = cls.weeklyGoal != null ? String(cls.weeklyGoal) : '';
+  const input = window.prompt(
+    'Class weekly goal — questions each student should answer this week.\nLeave blank to remove the goal.', cur);
+  if (input === null) return;            // cancelled
+  const trimmed = input.trim();
+  let value = null;
+  if (trimmed !== '') {
+    value = parseInt(trimmed, 10);
+    if (!value || value < 1) { alert('Enter a positive number, e.g. 200.'); return; }
+  }
+  const { error } = await window.supabase
+    .from('v2_classes').update({ weekly_goal: value }).eq('id', cls.id);
+  if (error) {
+    if (/column.*weekly_goal/i.test(error.message || '')) {
+      alert('Weekly goals aren\'t available yet — database migration 052 hasn\'t been applied.');
+    } else {
+      alert('Could not save the goal: ' + error.message);
+    }
+    return;
+  }
+  cls.weeklyGoal = value;
+  renderClass(currentClassIdx);
+}
+
 function renderClass(idx) {
   currentClassIdx = idx;
   const cls = classes[idx];
@@ -931,17 +970,26 @@ function renderClass(idx) {
   const avgSecure = studentCount > 0 ? Math.round(totalSecure / studentCount) : 0;
   const avgStruggling = studentCount > 0 ? Math.round(totalStruggling / studentCount) : 0;
 
+  const goal = cls.weeklyGoal;
+  const goalHit = goal != null ? students.filter(s => (s.answeredThisWeek | 0) >= goal).length : 0;
   document.getElementById('overviewBand').innerHTML = `
     <div class="ov-stat"><div class="ov-n">${studentCount}</div><div class="ov-label">Students</div><div class="ov-sub">${escapeHtml(prettyType(cls.type))}</div></div>
     <div class="ov-stat"><div class="ov-n">${avgSecure}</div><div class="ov-label">Avg secure ${activeModel.itemNounPl}</div><div class="ov-sub">across the class</div></div>
     <div class="ov-stat"><div class="ov-n green">${activeCount}</div><div class="ov-label">Active this week</div><div class="ov-sub">${idleCount} idle · ${inactiveCount} inactive</div></div>
     <div class="ov-stat"><div class="ov-n amber">${avgStruggling}</div><div class="ov-label">Avg struggling ${activeModel.itemNounPl}</div><div class="ov-sub">high attempts, low confidence</div></div>
+    <div class="ov-stat ov-goal" id="ovGoal" title="Set the class's weekly goal (questions answered)">
+      <div class="ov-n">${goal != null ? goal : '—'}</div>
+      <div class="ov-label">Weekly goal</div>
+      <div class="ov-sub">${goal != null ? `${goalHit}/${studentCount} hit · edit` : 'Click to set'}</div>
+    </div>
   `;
+  const ovGoal = document.getElementById('ovGoal');
+  if (ovGoal) ovGoal.addEventListener('click', () => editClassWeeklyGoal(cls));
 
   document.getElementById('tableTitle').textContent = `${cls.name} · ${studentCount} student${studentCount === 1 ? '' : 's'}`;
   const body = document.getElementById('studentTableBody');
   if (studentCount === 0) {
-    body.innerHTML = `<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--muted);font-style:italic;font-size:13px;">No students yet. Click <strong>+ Add students</strong> above and paste their sharing codes.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--muted);font-style:italic;font-size:13px;">No students yet. Click <strong>+ Add students</strong> above and paste their sharing codes.</td></tr>`;
   } else {
     body.innerHTML = students.map(s => {
       let secure = 0, struggling = 0, sumP = 0, withP = 0;
@@ -972,6 +1020,14 @@ function renderClass(idx) {
           </td>
           <td><span style="font-size:13px;font-weight:700;color:#1A6FFF">${secure}</span><span style="font-size:11px;color:var(--muted)"> words</span></td>
           <td><span style="font-size:13px;font-weight:700;color:${struggling>5?'#dc2626':'#d97706'}">${struggling}</span><span style="font-size:11px;color:var(--muted)"> words</span></td>
+          <td>${(function(){
+            const goal = cls.weeklyGoal, n = s.answeredThisWeek | 0, hit = goal != null && n >= goal;
+            const main = `<span style="font-size:13px;font-weight:700;color:${hit?'#047857':'var(--ink)'}">${n}</span>`;
+            const sub = goal != null
+              ? `<span style="font-size:11px;color:var(--muted)"> / ${goal}${hit?' ✓':''}</span>`
+              : `<span style="font-size:11px;color:var(--muted)"> answered</span>`;
+            return main + sub;
+          })()}</td>
           <td>${statusPill(status)}</td>
           <td style="text-align:right;font-size:11px;color:var(--muted)">${escapeHtml(timeAgo(s.lastSeen))}</td>
           <td class="table-arrow">&rarr;</td>
