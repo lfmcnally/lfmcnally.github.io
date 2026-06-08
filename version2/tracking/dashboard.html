@@ -401,7 +401,7 @@ body { background: var(--cream); }
   <div class="goal-card" id="goalCard" style="display:none;">
     <div class="goal-head">
       <div>
-        <div class="goal-eyebrow">This week</div>
+        <div class="goal-eyebrow" id="goalEyebrow">This week</div>
         <div class="goal-figure"><span id="goalAnswered">0</span> <span class="goal-figure-sub">questions answered</span></div>
       </div>
       <button class="goal-set-btn" id="goalSetBtn" type="button">Set a goal</button>
@@ -1014,6 +1014,11 @@ function showCourseBody(type) {
   document.querySelectorAll('#courseTabs .course-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.courseType === type);
   });
+
+  // The weekly-goal card tracks the course being viewed — re-scope its
+  // attempt count and class goal to this course.
+  weeklyGoalCourseType = type;
+  if (observedUserId) loadWeeklyGoal(observedUserId);
 }
 
 function renderCourseTabs(allowedTypes, activeType) {
@@ -1095,8 +1100,10 @@ async function init() {
     observedUserId = data && data.user ? data.user.id : null;
   } catch (_err) { observedUserId = null; }
 
-  // Weekly goal + homework cards (signed-in only) — independent of the render.
-  if (observedUserId) { loadWeeklyGoal(observedUserId); loadAssignments(); }
+  // Homework card (signed-in only). The weekly-goal card is loaded by
+  // showCourseBody once the active course tab is known, so it can scope its
+  // counts to that course.
+  if (observedUserId) { loadAssignments(); }
 
   // Build the tab strip from the user's tracked courses + class memberships.
   // For signed-in students with nothing tracked, this shows the empty state
@@ -1249,6 +1256,7 @@ document.getElementById('wordmapSort').addEventListener('click', (e) => {
 // column isn't there yet.
 let weeklyGoalUserId = null;
 let weeklyPersonalGoal = null;   // number | null
+let weeklyGoalCourseType = null; // course type the card is scoped to (active tab)
 
 function startOfThisWeekISO() {
   const d = new Date();
@@ -1261,6 +1269,13 @@ function startOfThisWeekISO() {
 async function loadWeeklyGoal(userId) {
   weeklyGoalUserId = userId;
 
+  // Goal tracking is per-course: count only attempts for the course the
+  // student is currently viewing, and use the goal of the class for that same
+  // course. Falls back to the active vocab course on first paint.
+  const courseType = weeklyGoalCourseType || currentVocabCourse;
+  const map = window.ClassicaliaCourseMap;
+  const vocabList = map ? map.vocabListFor(courseType) : null;
+
   // Personal goal — tolerate a missing column (migration 052 not applied).
   let personal = null, columnOk = true;
   try {
@@ -1272,25 +1287,28 @@ async function loadWeeklyGoal(userId) {
   if (!columnOk) return;   // feature not live yet — leave the card hidden
   weeklyPersonalGoal = personal;
 
-  // Highest class goal among the student's classes (if any).
+  // Class goal — only from this course's classes; highest among them.
   let classGoal = null;
   try {
     const { data } = await window.supabase
-      .from('v2_class_members').select('v2_classes(weekly_goal)').eq('student_id', userId);
+      .from('v2_class_members').select('v2_classes(type, weekly_goal)').eq('student_id', userId);
     (data || []).forEach(r => {
-      const g = r.v2_classes && r.v2_classes.weekly_goal;
-      if (g != null && (classGoal == null || g > classGoal)) classGoal = g;
+      const c = r.v2_classes;
+      if (c && c.type === courseType && c.weekly_goal != null &&
+          (classGoal == null || c.weekly_goal > classGoal)) classGoal = c.weekly_goal;
     });
   } catch (_) { /* not in a class, or column absent */ }
 
-  // Answered this week.
+  // Answered this week — only sessions for this course's vocab list.
   let answered = 0;
-  try {
-    const { data } = await window.supabase
-      .from('vocab_sessions').select('answered, started_at')
-      .eq('student_id', userId).gte('started_at', startOfThisWeekISO());
-    (data || []).forEach(s => { answered += (s.answered | 0); });
-  } catch (_) { /* leave 0 */ }
+  if (vocabList) {
+    try {
+      const { data } = await window.supabase
+        .from('vocab_sessions').select('answered, started_at')
+        .eq('student_id', userId).eq('vocab_list', vocabList).gte('started_at', startOfThisWeekISO());
+      (data || []).forEach(s => { answered += (s.answered | 0); });
+    } catch (_) { /* leave 0 */ }
+  }
 
   renderWeeklyGoal(answered, weeklyPersonalGoal, classGoal);
 }
@@ -1299,6 +1317,12 @@ function renderWeeklyGoal(answered, personal, classGoal) {
   const card = document.getElementById('goalCard');
   card.style.display = '';
   document.getElementById('goalAnswered').textContent = answered;
+
+  // Name the course this card is tracking (it follows the active tab).
+  const eyebrow = document.getElementById('goalEyebrow');
+  const map = window.ClassicaliaCourseMap;
+  const courseType = weeklyGoalCourseType || currentVocabCourse;
+  if (eyebrow) eyebrow.textContent = map ? `This week · ${map.labelFor(courseType)}` : 'This week';
 
   const bars = document.getElementById('goalBars');
   function barRow(label, tagClass, tagText, value, target) {
