@@ -43,7 +43,7 @@
 
     // ── SUBTOPIC B: The Centauromachy on the Parthenon ──
     { id: "1.6-B-01", subtopic: "The Centauromachy on the Parthenon", q: "How many metopes ran around the Parthenon?", answers: ["92", "60", "120", "150"] },
-    { id: "1.6-B-02", subtopic: "The Centauromachy on the Parthenon", q: "How many of the metopes depicted the Centauromachy?", answers: ["34", "12", "60", "92"] },
+    { id: "1.6-B-02", subtopic: "The Centauromachy on the Parthenon", q: "How many of the metopes depicted the Centauromachy?", answers: ["32", "12", "60", "92"] },
     { id: "1.6-B-03", subtopic: "The Centauromachy on the Parthenon", q: "When was the Parthenon built?", answers: ["447–432 BC", "490–480 BC", "510–500 BC", "404–400 BC"] },
     { id: "1.6-B-04", subtopic: "The Centauromachy on the Parthenon", q: "Approximately how high above the ground were the metopes positioned?", answers: ["around ten metres", "around three metres", "around twenty metres", "around fifty metres"] },
     { id: "1.6-B-05", subtopic: "The Centauromachy on the Parthenon", q: "When did the Persians sack Athens and destroy the earlier temple on the Acropolis?", answers: ["480 BC", "490 BC", "479 BC", "447 BC"] },
