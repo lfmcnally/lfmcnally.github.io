@@ -1221,6 +1221,12 @@ async function maybeAutoStart() {
   }
   const allWords = Array.from(dedup.values());
 
+  // Optional chapter/set range (?from=&to=), used by homework "Practise this"
+  // links to scope the session to the assigned sets.
+  const fromCh = parseInt(params.get('from'), 10);
+  const toCh   = parseInt(params.get('to'), 10);
+  const hasRange = Number.isFinite(fromCh) && Number.isFinite(toCh);
+
   let pool;
   if (queueName) {
     const matching = allWords.filter(w => classifyForQueue(w) === queueName);
@@ -1233,6 +1239,9 @@ async function maybeAutoStart() {
       return;
     }
     pool = matching;
+  } else if (hasRange) {
+    pool = allWords.filter(w => w.chapter >= fromCh && w.chapter <= toCh);
+    if (!pool.length) { showAutoStartNotice('No words found for that set range.'); return; }
   } else {
     pool = allWords;
   }
@@ -1240,10 +1249,9 @@ async function maybeAutoStart() {
   // startSessionWithPool only needs {latin, english, info, chapter} from each;
   // it will rehydrate p/t/SR state from the store itself.
   const clean = pool.map(({ p, t, distinctCorrectDays, nextReviewAt, ...rest }) => rest);
-  // A focused queue is already a hand-picked set, so it uses the standard
-  // selector. A plain smart session (?auto=1) gets the frontier + throttle
-  // strategy so beginners ramp up set-by-set instead of facing the whole list.
-  await startSessionWithPool(clean, 'mc', queueName ? 'standard' : 'smart');
+  // A queue or an assigned range is a focused set → standard selector. A plain
+  // smart session (?auto=1) gets the frontier + throttle strategy.
+  await startSessionWithPool(clean, 'mc', (queueName || hasRange) ? 'standard' : 'smart');
 }
 
 // ═══════════════════════════════════════════════════════
