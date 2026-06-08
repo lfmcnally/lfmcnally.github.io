@@ -138,6 +138,7 @@
       <button class="lb-btn" id="lbSortBtn" type="button" title="Switch between ranking by number correct and by accuracy">Sort: Correct</button>
       <button class="lb-btn" id="lbMusicBtn" type="button" title="Background lo-fi music">♪ Music: off</button>
       <input type="range" class="lb-vol" id="lbMusicVol" min="0" max="1" step="0.05" value="0.5" title="Music volume" aria-label="Music volume">
+      <button class="lb-btn" id="lbSave" type="button">Save results</button>
       <button class="lb-btn lb-btn-stop" id="lbStop" type="button">Stop</button>
       <button class="lb-btn" id="lbClear" type="button">Clear</button>
       <button class="lb-btn" id="lbExit" type="button">Exit class view</button>
@@ -260,6 +261,7 @@ function renderCivSetup(cls){
         <select id="dnTopic" class="dn-select"></select>
         <button id="dnSet" class="dn-btn dn-btn-primary" type="button">Set as today's Do Now</button>
         <button id="dnClear" class="dn-btn" type="button">Stop &amp; show results</button>
+        <button id="dnSave" class="dn-btn" type="button">Save results</button>
         <button id="dnReset" class="dn-btn dn-btn-danger" type="button">Clear</button>
         <button id="dnProject" class="dn-btn dn-btn-project" type="button">Class view ↗</button>
       </div>
@@ -311,6 +313,7 @@ function renderCivSetup(cls){
   });
   document.getElementById('dnClear').addEventListener('click', () => doNowStop(cls));
   document.getElementById('dnReset').addEventListener('click', () => doNowClear(cls));
+  document.getElementById('dnSave').addEventListener('click', () => archiveDoNowManual(cls));
   document.getElementById('dnProject').addEventListener('click', () => openClassView(cls));
   renderDoNowArchive(cls);
 }
@@ -329,6 +332,7 @@ function renderLatinSetup(cls){
         <select id="dnChTo" class="dn-select" style="min-width:78px;"></select>
         <button id="dnSet" class="dn-btn dn-btn-primary" type="button">Set as today's Do Now</button>
         <button id="dnClear" class="dn-btn" type="button">Stop &amp; show results</button>
+        <button id="dnSave" class="dn-btn" type="button">Save results</button>
         <button id="dnReset" class="dn-btn dn-btn-danger" type="button">Clear</button>
         <button id="dnProject" class="dn-btn dn-btn-project" type="button">Class view ↗</button>
       </div>
@@ -389,6 +393,7 @@ function renderLatinSetup(cls){
   });
   document.getElementById('dnClear').addEventListener('click', () => doNowStop(cls));
   document.getElementById('dnReset').addEventListener('click', () => doNowClear(cls));
+  document.getElementById('dnSave').addEventListener('click', () => archiveDoNowManual(cls));
   document.getElementById('dnProject').addEventListener('click', () => openClassView(cls));
   renderDoNowArchive(cls);
 }
@@ -425,24 +430,34 @@ function scheduleDoNowRefresh(cls){ if (doNowDebounce) clearTimeout(doNowDebounc
 async function doNowStop(cls){
   const status = document.getElementById('dnStatus');
   if (status) { status.textContent = 'Stopping…'; status.style.color = 'var(--muted)'; }
-  // Snapshot the leaderboard to the archive before cutting students off.
-  await archiveDoNow(cls);
   const { error } = await sb.from('v2_do_now').update({ active: false }).eq('class_id', cls.id);
   if (error) { if (status) { status.textContent = 'Could not stop: ' + error.message; status.style.color = '#dc2626'; } return; }
-  if (status) { status.textContent = 'Stopped & saved to Past Do Nows'; status.style.color = 'var(--muted)'; }
+  if (status) { status.textContent = 'Stopped — students have been cut off'; status.style.color = 'var(--muted)'; }
   refreshDoNow(cls);
+}
+
+// Manual save: freeze the current leaderboard into Past Do Nows.
+async function archiveDoNowManual(cls){
+  const status = document.getElementById('dnStatus');
+  const res = await archiveDoNow(cls);
+  if (status) {
+    if (res === 'empty')      { status.textContent = 'Nothing to save yet — no one has answered.'; status.style.color = 'var(--muted)'; }
+    else if (res === 'none')  { status.textContent = 'Set a Do Now first, then save its results.'; status.style.color = 'var(--muted)'; }
+    else if (res === true)    { status.textContent = 'Saved to Past Do Nows ✓'; status.style.color = '#059669'; }
+    else                      { status.textContent = 'Could not save results.'; status.style.color = '#dc2626'; }
+  }
   renderDoNowArchive(cls);
 }
 
-// Freeze the current leaderboard into v2_do_now_archive. No-op if there's no
-// active Do Now, nobody took part, or the table isn't there yet.
+// Freeze the current leaderboard into v2_do_now_archive. Returns true on save,
+// or a reason string ('none' = no active Do Now, 'empty' = nobody answered).
 async function archiveDoNow(cls){
   let dn = null;
-  try { const { data } = await sb.from('v2_do_now').select('topic_id, subtopics, vocab_list, updated_at, active').eq('class_id', cls.id).maybeSingle(); dn = data; } catch (_e) { return; }
-  if (!dn || !dn.updated_at) return;
+  try { const { data } = await sb.from('v2_do_now').select('topic_id, subtopics, vocab_list, updated_at, active').eq('class_id', cls.id).maybeSingle(); dn = data; } catch (_e) { return false; }
+  if (!dn || !dn.updated_at) return 'none';
   const { rows } = await fetchDoNowData(cls);
   const participants = rows.filter(r => r.in);
-  if (!participants.length) return;
+  if (!participants.length) return 'empty';
   const results = participants
     .map(r => ({ name: r.name, answered: r.answered, correct: r.correct, acc: r.acc }))
     .sort((a, b) => b.answered - a.answered);
@@ -458,7 +473,7 @@ async function archiveDoNow(cls){
     total_correct: participants.reduce((a, r) => a + (r.correct | 0), 0),
     created_by: myId
   };
-  try { await sb.from('v2_do_now_archive').insert(row); } catch (_e) { /* table not there yet */ }
+  try { const { error } = await sb.from('v2_do_now_archive').insert(row); return !error; } catch (_e) { return false; }
 }
 
 async function renderDoNowArchive(cls){
@@ -621,6 +636,14 @@ document.getElementById('lbSortBtn').addEventListener('click', () => {
   lbSort = (lbSort === 'correct') ? 'accuracy' : 'correct';
   document.getElementById('lbSortBtn').textContent = 'Sort: ' + (lbSort === 'accuracy' ? 'Accuracy' : 'Correct');
   if (lbClass) renderLeaderboard(lbClass);
+});
+document.getElementById('lbSave').addEventListener('click', async () => {
+  if (!lbClass) return;
+  const btn = document.getElementById('lbSave');
+  btn.disabled = true; const prev = btn.textContent; btn.textContent = 'Saving…';
+  const res = await archiveDoNow(lbClass);
+  btn.textContent = res === true ? 'Saved ✓' : (res === 'empty' ? 'No answers yet' : 'Not saved');
+  setTimeout(() => { btn.textContent = prev; btn.disabled = false; }, 1800);
 });
 document.getElementById('lbExit').addEventListener('click', closeClassView);
 document.getElementById('lbStop').addEventListener('click', () => { if (lbClass) doNowStop(lbClass); });
