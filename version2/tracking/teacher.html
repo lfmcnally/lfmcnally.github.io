@@ -315,6 +315,8 @@ body { background:var(--cream); }
       </div>
       <div class="panel-section">Struggling words — many attempts, low confidence</div>
       <div id="panelStruggling"></div>
+      <div class="panel-section">Practice history</div>
+      <div id="panelHistory"></div>
       <div class="panel-actions">
         <button class="panel-btn panel-btn-primary" id="panelExportBtn" type="button">View PDF summary</button>
         <a href="/version2/tracking/dashboard.html" class="panel-btn panel-btn-secondary">View student dashboard</a>
@@ -1430,8 +1432,70 @@ function openStudent(studentId) {
     }).join('')
     || '<div style="padding:8px 0;color:var(--muted);font-size:13px;font-style:italic;">No struggling words for this student right now.</div>';
 
+  document.getElementById('panelHistory').innerHTML =
+    '<div style="padding:8px 0;color:var(--muted);font-size:12.5px;">Loading…</div>';
+  loadStudentHistory(s);
+
   document.getElementById('studentPanel').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+// Per-student practice history: an 8-week answers sparkline + recent sessions.
+async function loadStudentHistory(s) {
+  const el = document.getElementById('panelHistory');
+  let rows = [];
+  try {
+    const { data, error } = await window.supabase
+      .from('vocab_sessions')
+      .select('started_at, answered, correct, vocab_list')
+      .eq('student_id', s.id)
+      .order('started_at', { ascending: false })
+      .limit(200);
+    if (error) { el.innerHTML = '<div style="padding:8px 0;color:var(--muted);font-size:12.5px;font-style:italic;">Could not load history.</div>'; return; }
+    rows = data || [];
+  } catch (_) {
+    el.innerHTML = '<div style="padding:8px 0;color:var(--muted);font-size:12.5px;font-style:italic;">Could not load history.</div>';
+    return;
+  }
+  if (!rows.length) {
+    el.innerHTML = '<div style="padding:8px 0;color:var(--muted);font-size:13px;font-style:italic;">No practice sessions logged yet.</div>';
+    return;
+  }
+
+  // Weekly answer totals for the last 8 weeks (oldest → newest).
+  const WEEK = 7 * 86400000;
+  const weekStart = (function () { const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); })();
+  const weeks = new Array(8).fill(0);
+  for (const r of rows) {
+    const t = Date.parse(r.started_at); if (!t) continue;
+    const idx = 7 - Math.floor((weekStart + WEEK - t) / WEEK);   // 7 = this week
+    if (idx >= 0 && idx < 8) weeks[idx] += (r.answered | 0);
+  }
+  const maxW = Math.max(1, ...weeks);
+  const bars = weeks.map((v, i) => {
+    const h = Math.round((v / maxW) * 44) + 2;
+    return `<div title="${v} answered" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;">
+      <div style="width:60%;height:${h}px;background:${i === 7 ? 'var(--brand)' : '#cbd5e1'};border-radius:3px 3px 0 0;"></div>
+      <div style="font-size:8.5px;color:var(--muted);">${i === 7 ? 'now' : (7 - i) + 'w'}</div>
+    </div>`;
+  }).join('');
+
+  const recent = rows.slice(0, 8).map(r => {
+    const d = new Date(r.started_at);
+    const when = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) +
+                 ', ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    const acc = r.answered ? Math.round((r.correct / r.answered) * 100) + '%' : '—';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--rule-faint);font-size:12.5px;">
+      <span style="color:var(--muted);">${escapeHtml(when)}</span>
+      <span style="color:var(--ink);"><b>${r.answered | 0}</b> answered · ${acc} correct</span>
+    </div>`;
+  }).join('');
+
+  const totalAns = rows.reduce((a, r) => a + (r.answered | 0), 0);
+  el.innerHTML = `
+    <div style="display:flex;align-items:flex-end;gap:4px;height:60px;margin:6px 0 4px;">${bars}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Questions answered per week (last 8 weeks) · ${totalAns} in the last ${rows.length} session${rows.length === 1 ? '' : 's'}</div>
+    ${recent}`;
 }
 
 // Colour class for a panel block, matching the student dashboard semantics.
