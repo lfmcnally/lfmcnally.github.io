@@ -104,6 +104,29 @@ body { background: var(--cream); }
 .goal-preset { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:6px 11px;border-radius:14px;border:1px solid var(--rule);background:var(--paper);color:var(--muted);cursor:pointer; }
 .goal-preset:hover { border-color:var(--brand);color:var(--brand); }
 
+/* homework */
+.hw-card { background:var(--paper);border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin-bottom:20px; }
+.hw-head { padding:14px 22px;border-bottom:1px solid var(--rule); }
+.hw-title { font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted); }
+.hw-row { display:flex;align-items:center;gap:16px;padding:14px 22px;border-bottom:1px solid var(--rule-faint);flex-wrap:wrap; }
+.hw-row:last-child { border-bottom:none; }
+.hw-row.done { background:#f0fdf4; }
+.hw-info { flex:1;min-width:200px; }
+.hw-scope { font-family:'Lora',serif;font-style:italic;font-weight:600;font-size:15px;color:var(--navy); }
+.hw-meta { font-size:11.5px;color:var(--muted);margin-top:2px; }
+.hw-meta .hw-due { font-weight:700; }
+.hw-meta .hw-due.soon { color:#d97706; }
+.hw-meta .hw-due.over { color:#dc2626; }
+.hw-prog { display:flex;align-items:center;gap:10px;min-width:160px; }
+.hw-track { flex:1;height:8px;background:var(--rule);border-radius:5px;overflow:hidden; }
+.hw-fill { height:100%;border-radius:5px;background:var(--brand);transition:width 0.6s ease; }
+.hw-fill.done { background:#059669; }
+.hw-pct { font-size:12px;font-weight:700;color:var(--muted);min-width:80px;text-align:right; }
+.hw-pct b { color:var(--navy); }
+.hw-btn { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;padding:8px 14px;border-radius:6px;border:none;background:var(--brand);color:white;cursor:pointer;text-decoration:none;white-space:nowrap; }
+.hw-btn:hover { background:#155ee0; }
+.hw-done-badge { font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:white;background:#059669;border-radius:10px;padding:3px 9px; }
+
 /* word map */
 .conf-legend { display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);flex-wrap:wrap; }
 .conf-legend-swatch { width:10px;height:10px;border-radius:2px;flex-shrink:0; }
@@ -391,6 +414,11 @@ body { background: var(--cream); }
       <button class="goal-edit-clear" id="goalClear" type="button">Clear</button>
       <span class="goal-presets" id="goalPresets"></span>
     </div>
+  </div>
+  <!-- Homework set by teachers for the student's classes. Hidden when none. -->
+  <div class="hw-card" id="hwCard" style="display:none;">
+    <div class="hw-head"><span class="hw-title">Homework</span></div>
+    <div id="hwList"></div>
   </div>
   <div id="course-vocab">
   <a href="/version2/tools/vocab/latinvocabtester.html?auto=1" class="smart-btn" data-vocab-tester data-tester-suffix="?auto=1">
@@ -1067,8 +1095,8 @@ async function init() {
     observedUserId = data && data.user ? data.user.id : null;
   } catch (_err) { observedUserId = null; }
 
-  // Weekly goal card (signed-in only) — independent of the course render.
-  if (observedUserId) loadWeeklyGoal(observedUserId);
+  // Weekly goal + homework cards (signed-in only) — independent of the render.
+  if (observedUserId) { loadWeeklyGoal(observedUserId); loadAssignments(); }
 
   // Build the tab strip from the user's tracked courses + class memberships.
   // For signed-in students with nothing tracked, this shows the empty state
@@ -1332,6 +1360,106 @@ async function saveWeeklyGoal(value) {
   weeklyPersonalGoal = value;
   document.getElementById('goalEdit').style.display = 'none';
   loadWeeklyGoal(weeklyGoalUserId);   // refresh bars
+}
+
+// ── Homework ───────────────────────────────────────────────────────────────
+// Lists assignments for the student's classes (RLS returns only theirs) and
+// computes live progress from their BKT state for each scope. Silent if the
+// v2_assignments table isn't there yet.
+function vocabCourseByList(list) {
+  for (const k in VOCAB_COURSES) if (VOCAB_COURSES[k].storageKey === list) return VOCAB_COURSES[k];
+  return null;
+}
+function courseLabelByList(list) {
+  const m = window.ClassicaliaCourseMap;
+  if (m && m.COURSE_TYPES) { const h = m.COURSE_TYPES.find(c => c.vocabList === list); if (h) return h.label; }
+  return list;
+}
+function hwScopeItems(a) {
+  if (a.scope_kind === 'topic') {
+    const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
+    const ids = [];
+    for (const t of topics) if (String(t.id) === String(a.topic_id)) for (const q of t.questions) ids.push(q.id);
+    return ids;
+  }
+  const cfg = vocabCourseByList(a.vocab_list);
+  if (!cfg || !cfg.data) return [];
+  const data = cfg.data() || [], field = cfg.headwordField, seen = new Set();
+  for (const e of data) if (e.chapter > 0 && e.chapter >= a.chapter_from && e.chapter <= a.chapter_to) seen.add(e[field]);
+  return Array.from(seen);
+}
+async function hwProgress(a) {
+  const items = hwScopeItems(a);
+  if (!items.length) return { pct: 0, total: 0, met: 0, done: false };
+  let stored = new Map();
+  try { const store = await window.ClassicaliaBKT.open({ vocabList: a.vocab_list }); stored = await store.loadAll(); } catch (_) {}
+  let met = 0;
+  for (const it of items) {
+    const s = stored.get(it);
+    if (!s) continue;
+    if (a.target_kind === 'secure') { if (s.p_know >= 0.95 && (s.distinct_correct_days | 0) >= 3) met++; }
+    else if ((s.trials | 0) > 0) met++;
+  }
+  const pct = Math.round(met / items.length * 100);
+  return { pct, total: items.length, met, done: pct >= a.target_pct };
+}
+function hwPractiseHref(a) {
+  if (a.scope_kind === 'topic') return '/version2/tools/quiz/myth-and-religion.html';
+  const cfg = vocabCourseByList(a.vocab_list) || {};
+  const base = cfg.testerBase || '/version2/tools/vocab/latinvocabtester.html';
+  const parts = [];
+  if (cfg.testerList) parts.push('list=' + cfg.testerList);
+  parts.push('from=' + a.chapter_from, 'to=' + a.chapter_to, 'auto=1');
+  return base + '?' + parts.join('&');
+}
+function hwScopeLabel(a) {
+  if (a.scope_kind === 'topic') return 'Myth & Religion · Topic ' + escapeHtml(String(a.topic_id));
+  const cfg = vocabCourseByList(a.vocab_list);
+  const noun = (cfg && cfg.groupNoun) || 'Chapter';
+  const rng = a.chapter_to > a.chapter_from ? `${noun}s ${a.chapter_from}–${a.chapter_to}` : `${noun} ${a.chapter_from}`;
+  return escapeHtml(courseLabelByList(a.vocab_list)) + ' · ' + rng;
+}
+function hwDue(a) {
+  if (!a.due_date) return { text: 'No due date', cls: '' };
+  const due = new Date(a.due_date + 'T23:59:59');
+  const days = Math.ceil((due - Date.now()) / 86400000);
+  const nice = due.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  if (days < 0) return { text: 'Overdue · ' + nice, cls: 'over' };
+  if (days <= 2) return { text: 'Due ' + nice, cls: 'soon' };
+  return { text: 'Due ' + nice, cls: '' };
+}
+
+async function loadAssignments() {
+  let rows = null;
+  try {
+    const { data, error } = await window.supabase.from('v2_assignments').select('*');
+    if (error) return;       // table not there yet
+    rows = data || [];
+  } catch (_) { return; }
+  if (!rows.length) return;
+  rows.sort((a, b) => (a.due_date || '9999') < (b.due_date || '9999') ? -1 : 1);
+
+  const progs = await Promise.all(rows.map(hwProgress));
+  const list = document.getElementById('hwList');
+  list.innerHTML = rows.map((a, i) => {
+    const pr = progs[i], due = hwDue(a);
+    const targetTxt = `${a.target_pct}% ${a.target_kind === 'secure' ? 'secure' : 'attempted'}`;
+    return `
+      <div class="hw-row${pr.done ? ' done' : ''}">
+        <div class="hw-info">
+          <div class="hw-scope">${hwScopeLabel(a)}</div>
+          <div class="hw-meta">Target: ${targetTxt} · <span class="hw-due ${due.cls}">${escapeHtml(due.text)}</span>${a.note ? ' · ' + escapeHtml(a.note) : ''}</div>
+        </div>
+        <div class="hw-prog">
+          <div class="hw-track"><div class="hw-fill${pr.done ? ' done' : ''}" style="width:${Math.min(100, pr.pct)}%"></div></div>
+          <div class="hw-pct"><b>${pr.met}</b>/${pr.total} · ${pr.pct}%</div>
+        </div>
+        ${pr.done
+          ? '<span class="hw-done-badge">Done ✓</span>'
+          : `<a class="hw-btn" href="${hwPractiseHref(a)}">Practise →</a>`}
+      </div>`;
+  }).join('');
+  document.getElementById('hwCard').style.display = '';
 }
 
 init().then(() => {
