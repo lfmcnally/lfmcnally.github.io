@@ -711,13 +711,13 @@ async function reloadClasses() {
   const archivedRows = owned.filter(r => !!r.archived);
 
   // Archived classes only need a name + headcount for the manage modal.
-  archivedClasses = [];
-  for (const c of archivedRows) {
+  // Counts run in parallel rather than one-after-another.
+  archivedClasses = await Promise.all(archivedRows.map(async (c) => {
     const { count } = await window.supabase
       .from('v2_class_members').select('student_id', { count: 'exact', head: true })
       .eq('class_id', c.id);
-    archivedClasses.push({ id: c.id, name: c.name, type: c.type, studentCount: count || 0 });
-  }
+    return { id: c.id, name: c.name, type: c.type, studentCount: count || 0 };
+  }));
 
   if (activeRows.length === 0) {
     classes = [];
@@ -734,15 +734,47 @@ async function reloadClasses() {
   }
   document.getElementById('btnAddStudents').disabled = false;
 
-  classes = [];
-  for (const c of activeRows) {
+  // Build each class in parallel. Within a class, the per-student BKT and
+  // session reads are batched into a single query each (filtered by the whole
+  // member list) instead of two queries per student — the old N+1 that made
+  // loading slow for teachers with several full classes.
+  classes = await Promise.all(activeRows.map(async (c) => {
     const cls = { id: c.id, name: c.name, type: c.type, students: [] };
     const { data: members } = await window.supabase
       .from('v2_class_members')
       .select('student_id, users:student_id (id, full_name, email)')
       .eq('class_id', c.id);
+    const memberRows = members || [];
     const vocabList = SUBJECT_VOCAB_LIST[c.type] || null;
-    for (const m of (members || [])) {
+    const studentIds = memberRows.map(m => m.student_id);
+
+    // One batched query each for the whole class, run together.
+    const bktByStudent = new Map();
+    const sessByStudent = new Map();
+    if (vocabList && studentIds.length) {
+      const [bktRes, sessRes] = await Promise.all([
+        window.supabase
+          .from('vocab_bkt')
+          .select('student_id, word_latin, p_know, trials, correct, last_seen_at, distinct_correct_days, next_review_at')
+          .in('student_id', studentIds)
+          .eq('vocab_list', vocabList),
+        window.supabase
+          .from('vocab_sessions')
+          .select('student_id, started_at')
+          .in('student_id', studentIds)
+          .eq('vocab_list', vocabList)
+      ]);
+      for (const row of (bktRes.data || [])) {
+        if (!bktByStudent.has(row.student_id)) bktByStudent.set(row.student_id, []);
+        bktByStudent.get(row.student_id).push(row);
+      }
+      for (const row of (sessRes.data || [])) {
+        if (!sessByStudent.has(row.student_id)) sessByStudent.set(row.student_id, []);
+        sessByStudent.get(row.student_id).push(row);
+      }
+    }
+
+    for (const m of memberRows) {
       const u = m.users || {};
       const student = {
         id: m.student_id,
@@ -753,43 +785,26 @@ async function reloadClasses() {
         sessionCount: 0,
         practiceDays: 0
       };
-      if (vocabList) {
-        const { data: bkt } = await window.supabase
-          .from('vocab_bkt')
-          .select('word_latin, p_know, trials, correct, last_seen_at, distinct_correct_days, next_review_at')
-          .eq('student_id', m.student_id)
-          .eq('vocab_list', vocabList);
-        if (bkt) {
-          for (const row of bkt) {
-            student.words.set(row.word_latin, {
-              p: row.p_know,
-              t: row.trials,
-              correct: row.correct,
-              last_seen_at: row.last_seen_at,
-              distinct_correct_days: row.distinct_correct_days || 0,
-              next_review_at: row.next_review_at || null
-            });
-            if (!student.lastSeen || (row.last_seen_at && row.last_seen_at > student.lastSeen)) {
-              student.lastSeen = row.last_seen_at;
-            }
-          }
-        }
-
-        // Session history (count + distinct days practised)
-        const { data: sessions } = await window.supabase
-          .from('vocab_sessions')
-          .select('started_at')
-          .eq('student_id', m.student_id)
-          .eq('vocab_list', vocabList);
-        if (sessions) {
-          student.sessionCount = sessions.length;
-          student.practiceDays = new Set(sessions.map(r => (r.started_at || '').slice(0, 10)).filter(Boolean)).size;
+      for (const row of (bktByStudent.get(m.student_id) || [])) {
+        student.words.set(row.word_latin, {
+          p: row.p_know,
+          t: row.trials,
+          correct: row.correct,
+          last_seen_at: row.last_seen_at,
+          distinct_correct_days: row.distinct_correct_days || 0,
+          next_review_at: row.next_review_at || null
+        });
+        if (!student.lastSeen || (row.last_seen_at && row.last_seen_at > student.lastSeen)) {
+          student.lastSeen = row.last_seen_at;
         }
       }
+      const sess = sessByStudent.get(m.student_id) || [];
+      student.sessionCount = sess.length;
+      student.practiceDays = new Set(sess.map(r => (r.started_at || '').slice(0, 10)).filter(Boolean)).size;
       cls.students.push(student);
     }
-    classes.push(cls);
-  }
+    return cls;
+  }));
   // Restore the previously-selected class by id where possible.
   const restored = classes.findIndex(c => c.id === prevId);
   currentClassIdx = restored >= 0 ? restored : Math.min(currentClassIdx, classes.length - 1);
