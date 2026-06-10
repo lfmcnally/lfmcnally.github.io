@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Latin Grammar Gym · Classicalia</title>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="data/latin-gcse-grammar.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/bkt-store.js"></script>
+<style>
+.gym { max-width: 760px; margin: -40px auto 80px; padding: 0 20px; position: relative; z-index: 2; }
+.sync-line { font-size: 12px; color: var(--muted); margin: 0 4px 14px; display: flex; align-items: center; gap: 8px; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; }
+.sync-line[data-mode="cloud"] .sync-dot { background: #16a34a; }
+.sync-line a { color: var(--brand); font-weight: 600; text-decoration: none; }
+
+.card { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 24px 26px; box-shadow: 0 1px 2px rgba(14,30,63,0.04); }
+.card + .card { margin-top: 18px; }
+.eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.card-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 22px; color: var(--navy); margin: 4px 0 0; }
+
+/* chapter chips */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 6px; }
+.chip { font-size: 12.5px; font-weight: 600; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--rule); background: var(--cream); color: var(--ink); cursor: pointer; transition: all .12s; }
+.chip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+/* mastery map */
+.map { margin-top: 18px; }
+.map-chapter { margin-top: 16px; }
+.map-chapter-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.map-points { display: flex; flex-direction: column; gap: 8px; }
+.point { display: flex; align-items: center; gap: 12px; }
+.point-sq { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; background: var(--rule); }
+.point-sq.building { background: #fcd34d; }
+.point-sq.strong   { background: #60a5fa; }
+.point-sq.secure   { background: #4ade80; }
+.point-label { font-size: 14px; color: var(--ink); }
+.point-state { font-size: 11.5px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+
+.progress-summary { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--rule-faint); display: flex; align-items: baseline; gap: 10px; }
+.progress-n { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 26px; color: var(--navy); }
+.progress-sub { font-size: 12.5px; color: var(--muted); }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--muted); margin-top: 14px; align-items: center; }
+.legend span.sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; vertical-align: -1px; margin-right: 4px; }
+
+.btn { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; padding: 12px 22px; border-radius: 7px; border: none; background: var(--brand); color: #fff; cursor: pointer; transition: filter .12s; }
+.btn:hover { filter: brightness(1.06); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn-ghost { background: var(--paper); color: var(--ink); border: 1px solid var(--rule); font-weight: 600; }
+.start-row { margin-top: 22px; }
+
+/* session */
+.qbar { display: flex; align-items: center; gap: 14px; font-size: 12.5px; color: var(--muted); margin: 0 4px 14px; }
+.qbar .point-tag { font-weight: 700; color: var(--navy); }
+.qbar .exit { margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12.5px; text-decoration: underline; }
+.q-type { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--brand); }
+.q-prompt { font-size: 16px; color: var(--ink); margin: 8px 0 4px; line-height: 1.5; }
+.q-latin { font-family: 'Lora', serif; font-size: 24px; font-weight: 600; color: var(--navy); margin: 14px 0; }
+.q-sentence { font-family: 'Lora', serif; font-size: 20px; color: var(--navy); margin: 14px 0; line-height: 1.6; }
+.q-lemma { font-family: 'Lora', serif; font-style: italic; font-size: 20px; color: var(--navy); }
+
+textarea.answer { width: 100%; font-family: inherit; font-size: 16px; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 8px; resize: vertical; min-height: 54px; color: var(--ink); }
+textarea.answer:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,111,255,.12); }
+
+.parse-fields { display: flex; flex-wrap: wrap; gap: 14px; margin: 16px 0; }
+.parse-field { display: flex; flex-direction: column; gap: 5px; }
+.parse-field label { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.parse-field select { font-family: inherit; font-size: 14px; padding: 9px 12px; border: 1px solid var(--rule); border-radius: 7px; background: #fff; color: var(--ink); min-width: 140px; }
+
+.choices { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+.choice { text-align: left; font-family: 'Lora', serif; font-size: 17px; padding: 13px 16px; border: 1px solid var(--rule); border-radius: 8px; background: var(--cream); color: var(--navy); cursor: pointer; transition: all .1s; }
+.choice:hover { border-color: var(--brand); }
+.choice.sel { border-color: var(--brand); background: #eef4ff; }
+.choice.correct { border-color: #16a34a; background: #ecfdf3; }
+.choice.wrong { border-color: #dc2626; background: #fef2f2; }
+.choice .mc-mark { float: right; font-weight: 700; }
+
+.tokens { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.token { font-family: 'Lora', serif; font-size: 20px; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 7px; background: var(--cream); color: var(--navy); cursor: pointer; transition: all .1s; }
+.token:hover { border-color: var(--brand); }
+.token.correct { border-color: #16a34a; background: #ecfdf3; }
+.token.wrong { border-color: #dc2626; background: #fef2f2; }
+
+.submit-row { display: flex; gap: 10px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
+.feedback { margin-top: 16px; padding: 16px 18px; border-radius: 9px; border: 1px solid var(--rule); }
+.feedback.right { background: #ecfdf3; border-color: #a7f3d0; }
+.feedback.wrong { background: #fef2f2; border-color: #fecaca; }
+.feedback-head { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+.feedback.right .feedback-head { color: #15803d; }
+.feedback.wrong .feedback-head { color: #b91c1c; }
+.feedback-ans { font-size: 14px; color: var(--ink); margin-bottom: 6px; }
+.feedback-ans b { font-family: 'Lora', serif; }
+.feedback-note { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.selfmark { display: flex; gap: 10px; margin-top: 12px; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <canvas class="header-sky" data-starfield data-seed="412" data-region="0.8"></canvas>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo">Classicalia</a>
+      <div class="nav-links">
+        <a href="/version2/subjects/latin/" class="nav-link active">Latin</a>
+        <a href="/version2/subjects/greek/" class="nav-link">Greek</a>
+        <a href="/version2/subjects/classical-civilisation/" class="nav-link">Class. Civ.</a>
+      </div>
+    </div>
+  </nav>
+  <div class="header-inner">
+    <div class="header-eyebrow">Latin · Grammar</div>
+    <h1 class="header-title">Grammar Gym</h1>
+    <p class="header-deck" id="headerDeck">Practise the grammar of each chapter — and watch your confidence build.</p>
+  </div>
+</div>
+
+<div class="gym">
+  <div class="sync-line" id="syncLine" data-mode="local">
+    <span class="sync-dot"></span>
+    <span id="syncText">Progress saves on this device.</span>
+    <a href="/auth/login.html" id="syncLink" hidden>Sign in to sync</a>
+    <a href="/version2/tracking/dashboard.html" id="progressLink" hidden>My progress →</a>
+  </div>
+
+  <!-- HOME / OVERVIEW -->
+  <section id="home">
+    <div class="card">
+      <div class="eyebrow" id="homeCourse">OCR GCSE Latin</div>
+      <h2 class="card-title">Your grammar so far</h2>
+      <div class="chips" id="chapterChips"></div>
+      <div class="map" id="masteryMap"></div>
+      <div class="progress-summary">
+        <span class="progress-n" id="secureN">0 / 0</span>
+        <span class="progress-sub">grammar points secure (correct on 3+ days)</span>
+      </div>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--rule)"></span>Not started</span>
+        <span><span class="sw" style="background:#fcd34d"></span>Building</span>
+        <span><span class="sw" style="background:#60a5fa"></span>Strong</span>
+        <span><span class="sw" style="background:#4ade80"></span>Secure</span>
+      </div>
+      <div class="start-row">
+        <button class="btn" id="startBtn">Start practising</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SESSION -->
+  <section id="session" hidden>
+    <div class="qbar">
+      <span>Answered <b id="statAnswered">0</b></span>
+      <span><b id="statAcc">—</b> correct</span>
+      <span class="point-tag" id="statPoint"></span>
+      <button class="exit" id="exitBtn">Finish</button>
+    </div>
+    <div class="card" id="qCard"></div>
+    <div class="feedback" id="feedback" hidden></div>
+  </section>
+</div>
+
+<script src="/version2/assets/js/starfield.js"></script>
+<script>
+'use strict';
+const DATA = window.LATIN_GRAMMAR_GCSE;
+const VOCAB_LIST = 'latin-gcse-grammar';
+
+// ── BKT (mirrors the vocab tester) ─────────────────────────────────────────
+const BKT = { pL0: 0.30, pT: 0.12, pG: 0.32, pS: 0.15, mastery: 0.95 };
+const MASTERY = { daysRequired: 3, firstReviewDays: 7, reviewIntervalCapDays: 180, resetIntervalDays: 7, resetReviewInDays: 1 };
+
+function todayLocalISO() {
+  const d = new Date(); d.setHours(0,0,0,0);
+  return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+}
+function addDaysIso(days) { return new Date(Date.now() + days*86400000).toISOString(); }
+
+function classify(s) {
+  if (!s || (s.trials | 0) === 0) return 'unseen';
+  if (s.pKnow >= BKT.mastery && (s.distinctCorrectDays | 0) >= MASTERY.daysRequired) return 'secure';
+  if (s.pKnow >= BKT.mastery) return 'strong';
+  return 'building';
+}
+const STATE_LABEL = { unseen: 'Not started', building: 'Building', strong: 'Almost there', secure: 'Secure' };
+
+// ── runtime state ───────────────────────────────────────────────────────────
+let store = null;
+let activeChapters = new Set(DATA.chapters.map(c => c.n));
+const pointState = {};      // pointId -> { pKnow, trials, correct, distinctCorrectDays, lastCorrectDate, nextReviewAt, reviewIntervalDays }
+let session = { answered: 0, correct: 0, lastQ: null, current: null };
+
+DATA.points.forEach(p => {
+  pointState[p.id] = { pKnow: BKT.pL0, trials: 0, correct: 0, distinctCorrectDays: 0, lastCorrectDate: null, nextReviewAt: null, reviewIntervalDays: null };
+});
+
+// ── init ─────────────────────────────────────────────────────────────────────
+(async function init() {
+  document.getElementById('homeCourse').textContent = DATA.course || 'Grammar';
+  try {
+    if (window.ClassicaliaBKT) {
+      store = await window.ClassicaliaBKT.open({ vocabList: VOCAB_LIST });
+      const rows = await store.loadAll();
+      rows.forEach((v, key) => {
+        if (pointState[key]) {
+          pointState[key] = {
+            pKnow: v.p_know, trials: v.trials | 0, correct: v.correct | 0,
+            distinctCorrectDays: v.distinct_correct_days | 0, lastCorrectDate: v.last_correct_date || null,
+            nextReviewAt: v.next_review_at || null, reviewIntervalDays: v.review_interval_days || null
+          };
+        }
+      });
+      setSync(store.mode, store.userLabel);
+    }
+  } catch (e) { console.warn('[gym] store init failed, local only', e); }
+  renderChips();
+  renderMap();
+})();
+
+function setSync(mode, label) {
+  const line = document.getElementById('syncLine');
+  line.dataset.mode = mode;
+  if (mode === 'cloud') {
+    document.getElementById('syncText').textContent = 'Synced' + (label ? ' · ' + label : '');
+    document.getElementById('progressLink').hidden = false;
+  } else {
+    document.getElementById('syncText').textContent = 'Progress saves on this device.';
+    document.getElementById('syncLink').hidden = false;
+  }
+}
+
+// ── overview rendering ────────────────────────────────────────────────────────
+function renderChips() {
+  const wrap = document.getElementById('chapterChips');
+  if (DATA.chapters.length < 2) { wrap.hidden = true; return; }
+  wrap.innerHTML = '';
+  DATA.chapters.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (activeChapters.has(c.n) ? ' on' : '');
+    b.textContent = c.label;
+    b.addEventListener('click', () => {
+      if (activeChapters.has(c.n)) { if (activeChapters.size > 1) activeChapters.delete(c.n); }
+      else activeChapters.add(c.n);
+      renderChips(); renderMap();
+    });
+    wrap.appendChild(b);
+  });
+}
+
+function pointsInScope() {
+  return DATA.points.filter(p => activeChapters.has(p.chapter));
+}
+
+function renderMap() {
+  const map = document.getElementById('masteryMap');
+  map.innerHTML = '';
+  let secure = 0, total = 0;
+  DATA.chapters.forEach(ch => {
+    if (!activeChapters.has(ch.n)) return;
+    const pts = DATA.points.filter(p => p.chapter === ch.n);
+    if (!pts.length) return;
+    const block = document.createElement('div');
+    block.className = 'map-chapter';
+    block.innerHTML = `<div class="map-chapter-label">${esc(ch.label)}</div>`;
+    const list = document.createElement('div');
+    list.className = 'map-points';
+    pts.forEach(p => {
+      total++;
+      const st = pointState[p.id];
+      const cls = classify(st);
+      if (cls === 'secure') secure++;
+      const row = document.createElement('div');
+      row.className = 'point';
+      row.innerHTML = `<span class="point-sq ${cls}"></span>
+        <span class="point-label">${esc(p.label)}</span>
+        <span class="point-state">${STATE_LABEL[cls]}${st.trials ? ` · ${Math.round(st.pKnow*100)}%` : ''}</span>`;
+      list.appendChild(row);
+    });
+    block.appendChild(list);
+    map.appendChild(block);
+  });
+  document.getElementById('secureN').textContent = `${secure} / ${total}`;
+}
+
+// ── BKT update ────────────────────────────────────────────────────────────────
+function bktUpdate(pointId, correct) {
+  const w = pointState[pointId];
+  const p = w.pKnow, { pG, pS, pT } = BKT;
+  const wasSecure = p >= BKT.mastery && w.distinctCorrectDays >= MASTERY.daysRequired;
+  let post = correct ? (p*(1-pS))/(p*(1-pS)+(1-p)*pG) : (p*pS)/(p*pS+(1-p)*(1-pG));
+  w.pKnow = post + (1-post)*pT;
+  w.trials++; if (correct) w.correct++;
+  const today = todayLocalISO();
+  if (correct && w.lastCorrectDate !== today) { w.distinctCorrectDays = (w.distinctCorrectDays|0)+1; w.lastCorrectDate = today; }
+  const nowSecure = w.pKnow >= BKT.mastery && w.distinctCorrectDays >= MASTERY.daysRequired;
+  if (correct && nowSecure) {
+    if (!wasSecure) { w.reviewIntervalDays = MASTERY.firstReviewDays; w.nextReviewAt = addDaysIso(MASTERY.firstReviewDays); }
+    else if (w.nextReviewAt && Date.parse(w.nextReviewAt) <= Date.now()) {
+      const nx = Math.min((w.reviewIntervalDays||MASTERY.firstReviewDays)*2, MASTERY.reviewIntervalCapDays);
+      w.reviewIntervalDays = nx; w.nextReviewAt = addDaysIso(nx);
+    }
+  }
+  if (!correct && wasSecure) { w.distinctCorrectDays = 0; w.reviewIntervalDays = MASTERY.resetIntervalDays; w.nextReviewAt = addDaysIso(MASTERY.resetReviewInDays); }
+  if (store) store.update(pointId, {
+    p_know: w.pKnow, trials: w.trials, correct: w.correct,
+    distinct_correct_days: w.distinctCorrectDays|0, last_correct_date: w.lastCorrectDate||null,
+    next_review_at: w.nextReviewAt||null, review_interval_days: w.reviewIntervalDays||null
+  });
+}
+
+// ── question selection ────────────────────────────────────────────────────────
+function pickPoint() {
+  const pts = pointsInScope();
+  // Weight toward the lowest confidence: sort ascending by pKnow, pick from the
+  // weakest third at random so practice concentrates on what's shaky.
+  const sorted = pts.slice().sort((a,b) => pointState[a.id].pKnow - pointState[b.id].pKnow);
+  const k = Math.max(1, Math.ceil(sorted.length / 3));
+  return sorted[Math.floor(Math.random()*k)];
+}
+function pickQuestion() {
+  const point = pickPoint();
+  let qs = DATA.questions.filter(q => q.point === point.id);
+  if (qs.length > 1 && session.lastQ) qs = qs.filter(q => q !== session.lastQ);
+  const q = qs[Math.floor(Math.random()*qs.length)];
+  session.lastQ = q;
+  return q;
+}
+
+// ── normalisation for typed answers ─────────────────────────────────────────
+function stripMacrons(s){ return String(s||'').replace(/[āĀ]/g,'a').replace(/[ēĒ]/g,'e').replace(/[īĪ]/g,'i').replace(/[ōŌ]/g,'o').replace(/[ūŪ]/g,'u').replace(/[ȳȲ]/g,'y'); }
+function norm(s){ return stripMacrons(String(s||'').toLowerCase()).replace(/[.,!?;:'"’\-]/g,'').replace(/\s+/g,' ').trim(); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ── session flow ──────────────────────────────────────────────────────────────
+document.getElementById('startBtn').addEventListener('click', startSession);
+document.getElementById('exitBtn').addEventListener('click', endSession);
+
+function startSession() {
+  session = { answered: 0, correct: 0, lastQ: null, current: null };
+  document.getElementById('home').hidden = true;
+  document.getElementById('session').hidden = false;
+  updateStats();
+  nextQuestion();
+}
+function endSession() {
+  document.getElementById('session').hidden = true;
+  document.getElementById('feedback').hidden = true;
+  document.getElementById('home').hidden = false;
+  renderMap();
+  if (store && store.flush) store.flush();
+}
+function updateStats() {
+  document.getElementById('statAnswered').textContent = session.answered;
+  document.getElementById('statAcc').textContent = session.answered ? Math.round(session.correct/session.answered*100)+'%' : '—';
+}
+
+function nextQuestion() {
+  document.getElementById('feedback').hidden = true;
+  const q = pickQuestion();
+  session.current = q;
+  const point = DATA.points.find(p => p.id === q.point);
+  document.getElementById('statPoint').textContent = point ? point.label : '';
+  renderQuestion(q);
+}
+
+const TYPE_LABEL = { translate:'Translate', parse:'Parse', chooseForm:'Choose the form', selectAll:'Select all', identify:'Identify', contextMC:'In context' };
+
+function renderQuestion(q) {
+  const card = document.getElementById('qCard');
+  let body = `<div class="q-type">${TYPE_LABEL[q.type]||''}</div>`;
+
+  if (q.type === 'translate') {
+    body += `<div class="q-prompt">Translate into English:</div>
+      <div class="q-latin">${esc(q.latin)}</div>
+      <textarea class="answer" id="ansInput" rows="2" placeholder="Type your translation…" autocomplete="off"></textarea>
+      <div class="submit-row"><button class="btn" id="submitBtn">Check</button></div>`;
+  } else if (q.type === 'parse') {
+    const fields = q.fields.map(([name]) => {
+      const opts = DATA.fieldSets[name].map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+      return `<div class="parse-field"><label>${esc(name)}</label>
+        <select data-field="${esc(name)}"><option value="">—</option>${opts}</select></div>`;
+    }).join('');
+    body += `<div class="q-prompt">${esc(q.prompt)}:</div>
+      <div class="q-latin">${esc(q.form)}</div>
+      <div class="parse-fields">${fields}</div>
+      <div class="submit-row"><button class="btn" id="submitBtn">Check</button></div>`;
+  } else if (q.type === 'chooseForm') {
+    body += `<div class="q-prompt">${esc(q.prompt)}</div>
+      <div class="choices">${q.options.map(o => `<button class="choice" data-val="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
+  } else if (q.type === 'contextMC') {
+    body += `<div class="q-sentence">${esc(q.sentence)}</div>
+      <div class="q-prompt">${esc(q.prompt)}</div>
+      <div class="choices">${q.options.map(o => `<button class="choice" data-val="${esc(o)}">${esc(o)}</button>`).join('')}</div>`;
+  } else if (q.type === 'selectAll') {
+    body += `<div class="q-prompt">${esc(q.prompt)}:</div>
+      <div class="choices">${q.choices.map((c,i) => `<button class="choice" data-i="${i}">${esc(c.text)}</button>`).join('')}</div>
+      <div class="submit-row"><button class="btn" id="submitBtn">Check</button></div>`;
+  } else if (q.type === 'identify') {
+    const toks = q.tokens.map((t,i) => {
+      const display = t.replace(/\*$/, '');
+      return `<button class="token" data-i="${i}">${esc(display)}</button>`;
+    }).join('');
+    body += `<div class="q-prompt">${esc(q.prompt)}:</div><div class="tokens">${toks}</div>`;
+  }
+  card.innerHTML = body;
+  wireQuestion(q);
+}
+
+function wireQuestion(q) {
+  if (q.type === 'translate' || q.type === 'parse' || q.type === 'selectAll') {
+    const submit = document.getElementById('submitBtn');
+    if (q.type === 'translate') {
+      const inp = document.getElementById('ansInput'); inp.focus();
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey||e.ctrlKey)) submit.click(); });
+      submit.addEventListener('click', () => gradeTranslate(q, inp.value));
+    } else if (q.type === 'parse') {
+      submit.addEventListener('click', () => gradeParse(q));
+    } else {
+      document.querySelectorAll('.choice').forEach(b => b.addEventListener('click', () => b.classList.toggle('sel')));
+      submit.addEventListener('click', () => gradeSelectAll(q));
+    }
+  } else if (q.type === 'chooseForm' || q.type === 'contextMC') {
+    document.querySelectorAll('.choice').forEach(b => b.addEventListener('click', () => gradeSingleMC(q, b)));
+  } else if (q.type === 'identify') {
+    document.querySelectorAll('.token').forEach(b => b.addEventListener('click', () => gradeIdentify(q, b)));
+  }
+}
+
+// ── grading ───────────────────────────────────────────────────────────────────
+function targetIndex(q) {
+  let idx = q.tokens.findIndex(t => /\*$/.test(t));
+  if (idx < 0 && typeof q.answerIndex === 'number') idx = q.answerIndex;
+  return idx;
+}
+
+function gradeTranslate(q, value) {
+  const ok = q.answers.some(a => norm(a) === norm(value));
+  const model = q.answers[0];
+  if (ok) { commit(q, true, { answerHtml: `<b>${esc(value.trim())}</b>` }); return; }
+  // Not an exact model match — let the student self-mark against the model answer.
+  showFeedback(false, {
+    answerHtml: `Model answer: <b>${esc(model)}</b>`, note: q.note, selfMark: true, q
+  });
+}
+
+function gradeParse(q) {
+  let allRight = true;
+  const sels = document.querySelectorAll('.parse-field select');
+  const answers = Object.fromEntries(q.fields);
+  sels.forEach(sel => { if (norm(sel.value) !== norm(answers[sel.dataset.field])) allRight = false; });
+  const ansStr = q.fields.map(([n,v]) => `${n}: <b>${esc(v)}</b>`).join(' · ');
+  commit(q, allRight, { answerHtml: ansStr });
+}
+
+function gradeSingleMC(q, btn) {
+  document.querySelectorAll('.choice').forEach(b => b.style.pointerEvents = 'none');
+  const chosen = btn.dataset.val;
+  const ok = norm(chosen) === norm(q.answer);
+  btn.classList.add(ok ? 'correct' : 'wrong');
+  if (!ok) document.querySelectorAll('.choice').forEach(b => { if (norm(b.dataset.val) === norm(q.answer)) b.classList.add('correct'); });
+  commit(q, ok, { answerHtml: `<b>${esc(q.answer)}</b>`, skipReveal: true });
+}
+
+function gradeSelectAll(q) {
+  document.querySelectorAll('.choice').forEach(b => b.style.pointerEvents = 'none');
+  let ok = true;
+  document.querySelectorAll('.choice').forEach(b => {
+    const c = q.choices[+b.dataset.i];
+    const picked = b.classList.contains('sel');
+    if (picked !== c.correct) ok = false;
+    if (c.correct) b.classList.add('correct');
+    else if (picked) b.classList.add('wrong');
+  });
+  commit(q, ok, { answerHtml: 'the highlighted items', skipReveal: true });
+}
+
+function gradeIdentify(q, btn) {
+  document.querySelectorAll('.token').forEach(b => b.style.pointerEvents = 'none');
+  const idx = targetIndex(q);
+  const ok = +btn.dataset.i === idx;
+  btn.classList.add(ok ? 'correct' : 'wrong');
+  if (!ok && idx >= 0) document.querySelectorAll('.token')[idx].classList.add('correct');
+  const word = (q.tokens[idx]||'').replace(/\*$/, '');
+  commit(q, ok, { answerHtml: `<b>${esc(word)}</b>`, skipReveal: true });
+}
+
+// commit records the result + shows feedback (unless the grader already revealed inline)
+function commit(q, correct, opts) {
+  opts = opts || {};
+  bktUpdate(q.point, correct);
+  session.answered++; if (correct) session.correct++;
+  updateStats();
+  showFeedback(correct, { answerHtml: opts.answerHtml, note: q.note });
+}
+
+function showFeedback(correct, opts) {
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback ' + (correct ? 'right' : 'wrong');
+  fb.hidden = false;
+  let html = `<div class="feedback-head">${correct ? '✓ Correct' : '✗ Not quite'}</div>`;
+  if (opts.answerHtml && !correct && !opts.selfMark) html += `<div class="feedback-ans">Answer — ${opts.answerHtml}</div>`;
+  if (opts.answerHtml && correct) html += `<div class="feedback-ans">${opts.answerHtml}</div>`;
+  if (opts.selfMark) html += `<div class="feedback-ans">${opts.answerHtml}</div>`;
+  if (opts.note) html += `<div class="feedback-note">${esc(opts.note)}</div>`;
+  if (opts.selfMark) {
+    html += `<div class="selfmark">
+      <button class="btn btn-ghost" id="smRight">I had it right</button>
+      <button class="btn" id="smNext">Got it — next</button></div>`;
+  } else {
+    html += `<div class="submit-row"><button class="btn" id="nextBtn">Next →</button></div>`;
+  }
+  fb.innerHTML = html;
+  if (opts.selfMark) {
+    const q = opts.q;
+    document.getElementById('smRight').addEventListener('click', () => { bktUpdate(q.point, true); session.answered++; session.correct++; updateStats(); nextQuestion(); });
+    document.getElementById('smNext').addEventListener('click', () => { bktUpdate(q.point, false); session.answered++; updateStats(); nextQuestion(); });
+  } else {
+    document.getElementById('nextBtn').addEventListener('click', nextQuestion);
+  }
+  fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>
+</body>
+</html>
