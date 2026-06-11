@@ -67,9 +67,41 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-// Try an exact match first; fall back to a whitespace-tolerant match so minor
-// indentation/newline differences between the rendered DOM and the source file
-// don't block an otherwise-unambiguous edit.
+// The browser's innerHTML decodes non-ASCII HTML entities to their literal
+// characters (e.g. the source's `&mdash;` arrives as "—"), while the source
+// file often keeps the entity form. For locating a snippet we let each such
+// character match either form. (We don't touch &amp;/&lt;/&gt;, which the DOM
+// keeps encoded, so they already line up.)
+const ENTITY_ALTS: Record<string, string> = {
+  "—": "(?:—|&mdash;)",
+  "–": "(?:–|&ndash;)",
+  "·": "(?:·|&middot;)",
+  "…": "(?:…|&hellip;)",
+  "←": "(?:←|&larr;)",
+  "→": "(?:→|&rarr;)",
+  "“": "(?:“|&ldquo;)",
+  "”": "(?:”|&rdquo;)",
+  "‘": "(?:‘|&lsquo;)",
+  "’": "(?:’|&rsquo;)",
+  "×": "(?:×|&times;)",
+  "°": "(?:°|&deg;)",
+  " ": "(?:\\s|&nbsp;)",
+};
+
+function tolerantPattern(old: string): string {
+  // Escape regex metacharacters, then relax whitespace runs and entity chars.
+  let pat = escapeRegex(old).replace(/\s+/g, "\\s+");
+  for (const [ch, alt] of Object.entries(ENTITY_ALTS)) {
+    pat = pat.split(ch).join(alt);
+  }
+  return pat;
+}
+
+// Try an exact literal match first (the common case); fall back to a
+// whitespace- and entity-tolerant match so minor serialization differences
+// between the rendered DOM and the source file don't block an otherwise
+// unambiguous edit. A function replacer is used so "$" in the new text is
+// never treated as a regex backreference.
 function applyEdit(
   content: string,
   oldText: string,
@@ -79,16 +111,16 @@ function applyEdit(
   if (!old) return { ok: false, reason: "empty original text" };
 
   const exact = countOccurrences(content, old);
-  if (exact === 1) return { ok: true, content: content.replace(old, newText) };
+  if (exact === 1) {
+    return { ok: true, content: content.replace(old, () => newText) };
+  }
   if (exact > 1) return { ok: false, reason: "text appears more than once" };
 
-  // Whitespace-tolerant fallback.
-  const pattern = escapeRegex(old).replace(/\s+/g, "\\s+");
-  const re = new RegExp(pattern, "g");
+  const re = new RegExp(tolerantPattern(old), "g");
   const matches = content.match(re);
   if (!matches) return { ok: false, reason: "text not found in file" };
   if (matches.length > 1) return { ok: false, reason: "text appears more than once" };
-  return { ok: true, content: content.replace(new RegExp(pattern), newText) };
+  return { ok: true, content: content.replace(re, () => newText) };
 }
 
 Deno.serve(async (req) => {
