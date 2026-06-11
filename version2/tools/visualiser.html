@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Visualiser — Classicalia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<style>
+  html, body { height: 100%; }
+  body { background: #07101f; display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* compact top bar */
+  .viz-top { background: var(--navy); flex-shrink: 0; }
+  .viz-top-inner { max-width: 1280px; margin: 0 auto; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .viz-brand { display: flex; align-items: center; gap: 12px; }
+  .viz-logo { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 18px; color: #fff; text-decoration: none; }
+  .viz-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #6ba0ff; }
+  .viz-back { font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,.75); text-decoration: none; border: 1px solid rgba(255,255,255,.25); padding: 6px 13px; border-radius: 999px; }
+  .viz-back:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+  /* camera stage */
+  .viz-stage { position: relative; flex: 1; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .viz-stage:fullscreen { width: 100vw; height: 100vh; }
+  #viz-video { max-width: 100%; max-height: 100%; transform-origin: center center; will-change: transform; display: block; }
+  .viz-stage.zoomed #viz-video { cursor: grab; }
+  .viz-stage.zoomed.panning #viz-video { cursor: grabbing; }
+
+  /* permission / error overlay */
+  .viz-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; z-index: 5; background: radial-gradient(ellipse at center, #0e1e3f 0%, #07101f 100%); }
+  .viz-overlay.hidden { display: none; }
+  .viz-card { max-width: 420px; }
+  .viz-card-icon { font-size: 40px; margin-bottom: 14px; }
+  .viz-card-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 24px; color: #fff; margin-bottom: 10px; }
+  .viz-card-text { font-size: 14px; color: #8fa8cc; line-height: 1.6; margin-bottom: 20px; }
+  .viz-card-btn { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; padding: 11px 22px; border-radius: 8px; border: none; background: var(--brand); color: #fff; cursor: pointer; }
+  .viz-card-btn:hover { background: #3b82ff; }
+
+  /* control bar */
+  .viz-controls { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 6;
+    display: flex; align-items: center; gap: 6px; padding: 8px; border-radius: 14px;
+    background: rgba(10,18,32,.72); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 10px 40px rgba(0,0,0,.5); transition: opacity .25s; font-family: 'DM Sans', sans-serif; max-width: calc(100% - 24px); flex-wrap: wrap; justify-content: center; }
+  .viz-stage.idle .viz-controls { opacity: 0; pointer-events: none; }
+  .viz-btn { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: #e8eefc;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 9px; padding: 9px 12px; cursor: pointer; white-space: nowrap; transition: background .12s; }
+  .viz-btn:hover { background: rgba(255,255,255,.18); }
+  .viz-btn.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .viz-btn .ic { font-size: 15px; line-height: 1; }
+  .viz-sep { width: 1px; align-self: stretch; background: rgba(255,255,255,.14); margin: 2px 4px; }
+  .viz-select { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #e8eefc;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 9px; padding: 9px 10px; cursor: pointer; max-width: 180px; }
+  .viz-select option { color: #0e1e3f; }
+  .viz-zoom-label { font-size: 12px; font-weight: 700; color: #9fb4d6; min-width: 38px; text-align: center; }
+  @media (max-width: 560px) {
+    .viz-btn span.tx { display: none; }
+    .viz-btn { padding: 9px 11px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="viz-top">
+  <div class="viz-top-inner">
+    <div class="viz-brand">
+      <a href="/version2/" class="viz-logo">Classicalia</a>
+      <span class="viz-eyebrow">Visualiser</span>
+    </div>
+    <a href="/version2/tools/" class="viz-back">&larr; All tools</a>
+  </div>
+</div>
+
+<div class="viz-stage" id="stage">
+  <video id="viz-video" playsinline autoplay muted></video>
+
+  <div class="viz-overlay" id="overlay">
+    <div class="viz-card">
+      <div class="viz-card-icon" id="ovIcon">&#128247;</div>
+      <div class="viz-card-title" id="ovTitle">Class visualiser</div>
+      <div class="viz-card-text" id="ovText">Use your webcam or a USB document camera to project anything to the class — freeze a frame, go fullscreen, zoom in, mirror or rotate.</div>
+      <button class="viz-card-btn" id="ovBtn">Start camera</button>
+    </div>
+  </div>
+
+  <div class="viz-controls" id="controls" style="display:none;">
+    <button class="viz-btn" id="btnFreeze" title="Freeze the current frame (Space)"><span class="ic">&#10073;&#10073;</span><span class="tx">Freeze</span></button>
+    <button class="viz-btn" id="btnFull" title="Fullscreen (F)"><span class="ic">&#9974;</span><span class="tx">Fullscreen</span></button>
+    <div class="viz-sep"></div>
+    <button class="viz-btn" id="btnZoomOut" title="Zoom out"><span class="ic">&#8722;</span></button>
+    <span class="viz-zoom-label" id="zoomLabel">100%</span>
+    <button class="viz-btn" id="btnZoomIn" title="Zoom in"><span class="ic">&#43;</span></button>
+    <div class="viz-sep"></div>
+    <button class="viz-btn" id="btnMirror" title="Mirror (M)"><span class="ic">&#8646;</span><span class="tx">Mirror</span></button>
+    <button class="viz-btn" id="btnRotate" title="Rotate (R)"><span class="ic">&#8635;</span><span class="tx">Rotate</span></button>
+    <button class="viz-btn" id="btnReset" title="Reset view"><span class="tx">Reset</span></button>
+    <div class="viz-sep"></div>
+    <select class="viz-select" id="camSelect" title="Choose camera"></select>
+  </div>
+</div>
+
+<script>
+(function () {
+  const stage = document.getElementById('stage');
+  const video = document.getElementById('viz-video');
+  const overlay = document.getElementById('overlay');
+  const controls = document.getElementById('controls');
+  const ovBtn = document.getElementById('ovBtn');
+  const ovIcon = document.getElementById('ovIcon');
+  const ovTitle = document.getElementById('ovTitle');
+  const ovText = document.getElementById('ovText');
+  const camSelect = document.getElementById('camSelect');
+  const zoomLabel = document.getElementById('zoomLabel');
+
+  let stream = null;
+  let state = { mirror: false, rot: 0, zoom: 1, panX: 0, panY: 0, frozen: false };
+  const ZOOM_MIN = 1, ZOOM_MAX = 8, ZOOM_STEP = 1.2;
+
+  // ── transform ────────────────────────────────────────────────────────
+  function applyTransform() {
+    const t = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom}) rotate(${state.rot}deg) scaleX(${state.mirror ? -1 : 1})`;
+    video.style.transform = t;
+    stage.classList.toggle('zoomed', state.zoom > 1.001);
+    zoomLabel.textContent = Math.round(state.zoom * 100) + '%';
+  }
+  function resetView() {
+    state.zoom = 1; state.panX = 0; state.panY = 0; state.rot = 0; state.mirror = false;
+    document.getElementById('btnMirror').classList.remove('on');
+    applyTransform();
+  }
+
+  // ── camera ───────────────────────────────────────────────────────────
+  async function startStream(deviceId) {
+    stopStream();
+    const constraints = {
+      audio: false,
+      video: deviceId ? { deviceId: { exact: deviceId } } : { width: { ideal: 1920 }, height: { ideal: 1080 } },
+    };
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    if (state.frozen) toggleFreeze(); // ensure live
+    await video.play();
+    await populateCameras(deviceId);
+  }
+  function stopStream() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  }
+  async function populateCameras(currentId) {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter(d => d.kind === 'videoinput');
+      const activeId = currentId ||
+        (stream && stream.getVideoTracks()[0] && stream.getVideoTracks()[0].getSettings().deviceId);
+      camSelect.innerHTML = '';
+      cams.forEach((c, i) => {
+        const o = document.createElement('option');
+        o.value = c.deviceId;
+        o.textContent = c.label || ('Camera ' + (i + 1));
+        if (c.deviceId === activeId) o.selected = true;
+        camSelect.appendChild(o);
+      });
+      camSelect.style.display = cams.length > 1 ? '' : 'none';
+    } catch (_) { camSelect.style.display = 'none'; }
+  }
+
+  async function begin() {
+    try {
+      ovBtn.disabled = true;
+      ovBtn.textContent = 'Starting…';
+      await startStream(null);
+      overlay.classList.add('hidden');
+      controls.style.display = 'flex';
+      applyTransform();
+    } catch (err) {
+      ovBtn.disabled = false;
+      ovBtn.textContent = 'Try again';
+      ovIcon.innerHTML = '&#9888;&#65039;';
+      ovTitle.textContent = 'Camera unavailable';
+      ovText.textContent = err && err.name === 'NotAllowedError'
+        ? 'Camera permission was blocked. Allow camera access for this site in your browser, then try again.'
+        : 'Could not start the camera. Check it isn\'t in use by another app, then try again.';
+      overlay.classList.remove('hidden');
+    }
+  }
+
+  // ── controls ─────────────────────────────────────────────────────────
+  function toggleFreeze() {
+    state.frozen = !state.frozen;
+    if (state.frozen) video.pause(); else video.play();
+    const b = document.getElementById('btnFreeze');
+    b.classList.toggle('on', state.frozen);
+    b.querySelector('.tx').textContent = state.frozen ? 'Live' : 'Freeze';
+    b.querySelector('.ic').innerHTML = state.frozen ? '&#9654;' : '&#10073;&#10073;';
+  }
+  function toggleFull() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else stage.requestFullscreen && stage.requestFullscreen();
+  }
+  function zoomBy(factor, cx, cy) {
+    const prev = state.zoom;
+    state.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, state.zoom * factor));
+    if (state.zoom <= 1.001) { state.panX = 0; state.panY = 0; }
+    else if (cx != null) {
+      // keep the cursor point roughly stable while zooming
+      const r = state.zoom / prev;
+      const rect = stage.getBoundingClientRect();
+      const ox = cx - rect.left - rect.width / 2;
+      const oy = cy - rect.top - rect.height / 2;
+      state.panX = ox - (ox - state.panX) * r;
+      state.panY = oy - (oy - state.panY) * r;
+    }
+    applyTransform();
+  }
+
+  document.getElementById('btnFreeze').addEventListener('click', toggleFreeze);
+  document.getElementById('btnFull').addEventListener('click', toggleFull);
+  document.getElementById('btnZoomIn').addEventListener('click', () => zoomBy(ZOOM_STEP));
+  document.getElementById('btnZoomOut').addEventListener('click', () => zoomBy(1 / ZOOM_STEP));
+  document.getElementById('btnReset').addEventListener('click', resetView);
+  document.getElementById('btnMirror').addEventListener('click', (e) => {
+    state.mirror = !state.mirror; e.currentTarget.classList.toggle('on', state.mirror); applyTransform();
+  });
+  document.getElementById('btnRotate').addEventListener('click', () => {
+    state.rot = (state.rot + 90) % 360; applyTransform();
+  });
+  ovBtn.addEventListener('click', begin);
+  camSelect.addEventListener('change', () => startStream(camSelect.value).catch(() => {}));
+
+  document.addEventListener('fullscreenchange', () => {
+    document.getElementById('btnFull').classList.toggle('on', !!document.fullscreenElement);
+  });
+
+  // wheel zoom
+  stage.addEventListener('wheel', (e) => {
+    if (overlay.classList.contains('hidden') === false) return;
+    e.preventDefault();
+    zoomBy(e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP, e.clientX, e.clientY);
+  }, { passive: false });
+
+  // drag to pan when zoomed
+  let dragging = false, lastX = 0, lastY = 0;
+  stage.addEventListener('pointerdown', (e) => {
+    if (state.zoom <= 1.001) return;
+    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    stage.classList.add('panning'); stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    state.panX += e.clientX - lastX; state.panY += e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY; applyTransform();
+  });
+  stage.addEventListener('pointerup', (e) => {
+    dragging = false; stage.classList.remove('panning');
+    try { stage.releasePointerCapture(e.pointerId); } catch (_) {}
+  });
+
+  // keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (!overlay.classList.contains('hidden')) return;
+    if (e.target.tagName === 'SELECT') return;
+    const k = e.key.toLowerCase();
+    if (e.code === 'Space') { e.preventDefault(); toggleFreeze(); }
+    else if (k === 'f') toggleFull();
+    else if (k === 'm') document.getElementById('btnMirror').click();
+    else if (k === 'r') document.getElementById('btnRotate').click();
+    else if (k === '0') resetView();
+    else if (k === '+' || k === '=') zoomBy(ZOOM_STEP);
+    else if (k === '-') zoomBy(1 / ZOOM_STEP);
+  });
+
+  // auto-hide controls when idle (only while fullscreen)
+  let idleTimer;
+  function poke() {
+    stage.classList.remove('idle');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      if (document.fullscreenElement) stage.classList.add('idle');
+    }, 3000);
+  }
+  stage.addEventListener('pointermove', poke);
+  stage.addEventListener('click', poke);
+
+  window.addEventListener('beforeunload', stopStream);
+})();
+</script>
+</body>
+</html>
