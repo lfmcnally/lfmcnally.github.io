@@ -26,17 +26,28 @@
   // No session stored → anonymous visitor → do nothing (zero overhead).
   if (!localStorage.getItem(TOKEN_KEY)) return;
 
-  // What can be edited: text-bearing blocks inside the content area. A block
-  // may contain inline formatting (highlighted keywords, bold, links) — but
-  // NOT block-level children — and must not live in an excluded zone.
-  const CONTENT_ROOTS = ".rev-main, .header-inner";
+  // What can be edited: text-bearing blocks inside the content areas below. A
+  // block may contain inline formatting (highlighted keywords, bold, links) —
+  // but NOT block-level children — and must not live in an excluded zone.
+  const CONTENT_ROOTS = [
+    ".rev-main", ".header-inner",                         // revision pages
+    ".hero-inner", ".curtain-inner", ".tiles-inner", ".types-inner", // v2 index
+  ].join(",");
   const EDITABLE_SELECTOR = [
     "p", "li", "h1", "h2", "h3", "h4", "h5", "h6",
     "blockquote", "figcaption", "td", "th", "dd", "dt", "caption",
+    // revision pages
     ".rev-title", ".rev-label", ".rev-lead", ".rev-note",
     ".header-title", ".header-deck", ".header-eyebrow",
     ".entry-def", ".analysis", ".explain-q", ".explain-label",
     ".term", ".term-gloss",
+    // v2 index
+    ".hero-eyebrow", ".hero-title", ".hero-deck", ".hero-subtitle",
+    ".hero-by", ".hero-legacy-note",
+    ".curtain-kicker", ".curtain-title", ".curtain-creds-head", ".cred-text",
+    ".curtain-stat-n", ".curtain-stat-l",
+    ".tile-title", ".tile-body", ".tile-cta",
+    ".type-title", ".type-body", ".type-n",
   ].join(",");
 
   // Inline tags allowed inside an editable block (and kept on save). Anything
