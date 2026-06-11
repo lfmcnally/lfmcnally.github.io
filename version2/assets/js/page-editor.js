@@ -119,21 +119,48 @@
     if (!window.supabase || !window.supabase.createClient) {
       await loadScript("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2");
     }
-    return window.supabase.createClient(
+    const client = window.supabase.createClient(
       `https://${PROJECT_REF}.supabase.co`,
       ANON_KEY,
     );
+    // Expose the instantiated client the way supabase-client.js would, so the
+    // shared account menu (which reads window.supabase) works on these pages.
+    window.supabaseClient = client;
+    window.supabase = client;
+    return client;
   }
 
-  // ── boot: only continue for signed-in admins ─────────────────────────
+  // Revision pages have a hard-coded "Sign in" CTA and never load the account
+  // system, so the nav shows "Sign in" even when logged in. Since we already
+  // have a Supabase client + signed-in user here, mount the shared account menu
+  // in place of that CTA — for any signed-in user, not just admins.
+  async function fixNavForSignedIn() {
+    const cta = document.querySelector(".nav .nav-cta, .nav-links .nav-cta");
+    if (!cta || cta.dataset.peAccount === "1") return;
+    cta.dataset.peAccount = "1";
+    const slot = document.createElement("div");
+    slot.setAttribute("data-account-menu", "");
+    cta.replaceWith(slot);
+    try {
+      if (!window.AccountMenu) {
+        await loadScript("/version2/assets/js/account-menu.js");
+      }
+      if (window.AccountMenu && window.AccountMenu.mount) {
+        window.AccountMenu.mount(slot);
+      }
+    } catch (_) { /* leave the slot empty rather than break the nav */ }
+  }
+
+  // ── boot ─────────────────────────────────────────────────────────────
   async function boot() {
     try {
       sb = await getClient();
       const { data: { user } } = await sb.auth.getUser();
-      if (!user) return;
+      if (!user) return;                 // stale token / not really signed in
+      fixNavForSignedIn();               // show account menu for any signed-in user
       const { data: isAdmin, error } = await sb.rpc("is_admin");
       if (error || isAdmin !== true) return;
-      injectUI();
+      injectUI();                        // edit button only for admins
     } catch (_) {
       /* never break the page for a content editor */
     }
