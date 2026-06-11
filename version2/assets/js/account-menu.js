@@ -12,6 +12,7 @@
   const COURSES_URL = '/version2/profile.html#courses';
   const FRIENDS_URL = '/version2/friends.html';
   const TEACHER_URL = '/version2/tracking/teacher.html';
+  const ADMIN_URL   = '/version2/admin/';
   const SIGNIN_URL  = '/auth/login.html';
   const POST_SIGNOUT_URL = '/version2/';
 
@@ -45,7 +46,7 @@
     slot.innerHTML = `<a href="${SIGNIN_URL}" class="nav-cta">Sign in</a>`;
   }
 
-  function renderSignedIn(slot, { user, displayName, role, avatarColor }) {
+  function renderSignedIn(slot, { user, displayName, role, avatarColor, isAdmin }) {
     const name = displayName || user.email || 'Student';
     const email = user.email || '';
     const shortName = String(name).split('@')[0];
@@ -58,6 +59,10 @@
     // get the teacher dashboard instead.
     const friendsItem = role === 'student'
       ? `<a href="${FRIENDS_URL}" class="account-menu-item">Friends</a>`
+      : '';
+    // Site admins get a link to the admin panel.
+    const adminItem = isAdmin
+      ? `<a href="${ADMIN_URL}" class="account-menu-item">Admin panel</a>`
       : '';
 
     slot.innerHTML = `
@@ -76,6 +81,7 @@
             <a href="${COURSES_URL}" class="account-menu-item">My courses</a>
             ${friendsItem}
             ${teacherItem}
+            ${adminItem}
             <button type="button" class="account-menu-item account-menu-signout" data-account-signout>Sign out</button>
           </div>
         </div>
@@ -149,14 +155,16 @@
 
     let displayName = user.email || 'Student';
     let role = 'student';
+    let isAdmin = false;
     try {
       const { data: profile } = await window.supabase
         .from('users')
-        .select('full_name, role')
+        .select('full_name, role, is_admin')
         .eq('id', user.id)
         .maybeSingle();
       if (profile && profile.full_name) displayName = profile.full_name;
       if (profile && profile.role)      role = profile.role;
+      if (profile && profile.is_admin)  isAdmin = true;
     } catch (_) { /* fall back to email */ }
 
     // avatar_color is fetched separately and tolerantly: if the column doesn't
@@ -168,7 +176,7 @@
       if (c && c.avatar_color) avatarColor = c.avatar_color;
     } catch (_) { /* default colour */ }
 
-    renderSignedIn(slot, { user, displayName, role, avatarColor });
+    renderSignedIn(slot, { user, displayName, role, avatarColor, isAdmin });
   }
 
   // Live-update the displayed name when the profile page edits it, so the
