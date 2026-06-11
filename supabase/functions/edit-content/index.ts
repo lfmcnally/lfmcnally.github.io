@@ -2,7 +2,7 @@
 // ---------------------------------------------------------------------------
 // Commit-broker for the on-page admin editor (/version2/assets/js/page-editor.js).
 //
-// Flow: an admin edits text on a content page → the browser POSTs
+// Flow: an admin edits text on a content page -> the browser POSTs
 //   { path, edits: [{ oldText, newText }] }
 // with their Supabase JWT. This function:
 //   1. verifies the JWT and re-checks is_admin() server-side (the real gate),
@@ -11,9 +11,9 @@
 //   4. commits the result straight to the default branch.
 //
 // Secrets to set (supabase secrets set ...):
-//   GH_TOKEN   — fine-grained PAT with "Contents: Read and write" on the repo
-//   GH_REPO    — "lfmcnally/lfmcnally.github.io"
-//   GH_BRANCH  — "main" (optional; defaults to main)
+//   GH_TOKEN   - fine-grained PAT with "Contents: Read and write" on the repo
+//   GH_REPO    - "lfmcnally/lfmcnally.github.io"
+//   GH_BRANCH  - "main" (optional; defaults to main)
 // SUPABASE_URL and SUPABASE_ANON_KEY are injected by the platform.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -34,7 +34,7 @@ function json(body: unknown, status = 200) {
   });
 }
 
-// Only allow editing site content files — never workflows, config, etc.
+// Only allow editing site content files - never workflows, config, etc.
 function pathAllowed(p: string): boolean {
   if (!p || p.includes("..") || p.startsWith("/")) return false;
   return /^version2\/[A-Za-z0-9/_.-]+\.html$/.test(p);
@@ -63,45 +63,103 @@ function countOccurrences(haystack: string, needle: string): number {
   return n;
 }
 
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-// The browser's innerHTML decodes non-ASCII HTML entities to their literal
-// characters (e.g. the source's `&mdash;` arrives as "—"), while the source
-// file often keeps the entity form. For locating a snippet we let each such
-// character match either form. (We don't touch &amp;/&lt;/&gt;, which the DOM
-// keeps encoded, so they already line up.)
-const ENTITY_ALTS: Record<string, string> = {
-  "—": "(?:—|&mdash;)",
-  "–": "(?:–|&ndash;)",
-  "·": "(?:·|&middot;)",
-  "…": "(?:…|&hellip;)",
-  "←": "(?:←|&larr;)",
-  "→": "(?:→|&rarr;)",
-  "“": "(?:“|&ldquo;)",
-  "”": "(?:”|&rdquo;)",
-  "‘": "(?:‘|&lsquo;)",
-  "’": "(?:’|&rsquo;)",
-  "×": "(?:×|&times;)",
-  "°": "(?:°|&deg;)",
-  " ": "(?:\\s|&nbsp;)",
+// Named HTML entities used across the site, mapped to the character the
+// browser's innerHTML produces. Anything numeric (&#8212; / &#x2014;) is
+// decoded too; unknown named entities are left as-is (and simply won't match,
+// safely). The point is that the file's entity form (e.g. "&mdash;") and the
+// browser's decoded form ("—") normalise to the same character.
+const NAMED: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ",
+  mdash: "—", ndash: "–", minus: "−", hellip: "…",
+  middot: "·", bull: "•",
+  larr: "←", rarr: "→", uarr: "↑", darr: "↓", harr: "↔",
+  ldquo: "“", rdquo: "”", lsquo: "‘", rsquo: "’",
+  laquo: "«", raquo: "»", times: "×", divide: "÷",
+  deg: "°", plusmn: "±",
+  frac12: "½", frac14: "¼", frac34: "¾",
+  prime: "′", Prime: "″",
+  copy: "©", reg: "®", trade: "™", sect: "§",
+  para: "¶", dagger: "†", Dagger: "‡",
+  euro: "€", pound: "£", cent: "¢", yen: "¥",
+  eacute: "é", egrave: "è", ecirc: "ê", agrave: "à",
+  acirc: "â", auml: "ä", ouml: "ö", uuml: "ü",
+  iuml: "ï", ccedil: "ç", ntilde: "ñ", aelig: "æ",
+  oelig: "œ", aacute: "á", iacute: "í", oacute: "ó",
+  uacute: "ú", oslash: "ø", szlig: "ß",
+  alpha: "α", beta: "β", gamma: "γ", delta: "δ",
+  epsilon: "ε", zeta: "ζ", eta: "η", theta: "θ",
+  iota: "ι", kappa: "κ", lambda: "λ", mu: "μ", nu: "ν",
+  xi: "ξ", omicron: "ο", pi: "π", rho: "ρ", sigma: "σ",
+  tau: "τ", upsilon: "υ", phi: "φ", chi: "χ",
+  psi: "ψ", omega: "ω",
 };
 
-function tolerantPattern(old: string): string {
-  // Escape regex metacharacters, then relax whitespace runs and entity chars.
-  let pat = escapeRegex(old).replace(/\s+/g, "\\s+");
-  for (const [ch, alt] of Object.entries(ENTITY_ALTS)) {
-    pat = pat.split(ch).join(alt);
+function decodeEntity(name: string): string | null {
+  if (name[0] === "#") {
+    const code = (name[1] === "x" || name[1] === "X")
+      ? parseInt(name.slice(2), 16)
+      : parseInt(name.slice(1), 10);
+    if (!isNaN(code)) {
+      try { return String.fromCodePoint(code); } catch { return null; }
+    }
+    return null;
   }
-  return pat;
+  return Object.prototype.hasOwnProperty.call(NAMED, name) ? NAMED[name] : null;
 }
 
-// Try an exact literal match first (the common case); fall back to a
-// whitespace- and entity-tolerant match so minor serialization differences
-// between the rendered DOM and the source file don't block an otherwise
-// unambiguous edit. A function replacer is used so "$" in the new text is
-// never treated as a regex backreference.
+// Normalise a string by decoding HTML entities and collapsing each run of
+// whitespace to a single space, while recording for every normalised character
+// the [start,end) range it came from in the original string. This lets us
+// locate a snippet despite entity/whitespace differences and then replace the
+// *exact* original bytes.
+function normalizeWithMap(
+  s: string,
+): { norm: string; starts: number[]; ends: number[] } {
+  const chars: string[] = [];
+  const starts: number[] = [];
+  const ends: number[] = [];
+  const entRe = /^&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z][a-zA-Z0-9]*);/;
+  const n = s.length;
+  let i = 0;
+  while (i < n) {
+    const c = s[i];
+    if (c === " " || c === "\t" || c === "\n" || c === "\r" || c === "\f") {
+      let j = i + 1;
+      while (j < n && /\s/.test(s[j])) j++;
+      chars.push(" ");
+      starts.push(i);
+      ends.push(j);
+      i = j;
+      continue;
+    }
+    if (c === "&") {
+      const m = s.slice(i, i + 40).match(entRe);
+      if (m) {
+        const dec = decodeEntity(m[1]);
+        if (dec !== null) {
+          const start = i, end = i + m[0].length;
+          for (const ch of dec) {
+            chars.push(ch);
+            starts.push(start);
+            ends.push(end);
+          }
+          i = end;
+          continue;
+        }
+      }
+    }
+    chars.push(c);
+    starts.push(i);
+    ends.push(i + 1);
+    i++;
+  }
+  return { norm: chars.join(""), starts, ends };
+}
+
+// Try an exact literal match first (the common, cheap case). Otherwise locate
+// the snippet in normalised space (entity- and whitespace-tolerant) and map
+// back to the original bytes. Requires an unambiguous single match either way,
+// so an edit never lands in the wrong place.
 function applyEdit(
   content: string,
   oldText: string,
@@ -116,18 +174,32 @@ function applyEdit(
   }
   if (exact > 1) return { ok: false, reason: "text appears more than once" };
 
-  const re = new RegExp(tolerantPattern(old), "g");
-  const matches = content.match(re);
-  if (!matches) return { ok: false, reason: "text not found in file" };
-  if (matches.length > 1) return { ok: false, reason: "text appears more than once" };
-  return { ok: true, content: content.replace(re, () => newText) };
+  const { norm, starts, ends } = normalizeWithMap(content);
+  const needle = normalizeWithMap(old).norm.trim();
+  if (!needle) return { ok: false, reason: "empty original text" };
+
+  let count = 0, first = -1, k = 0, idx: number;
+  while ((idx = norm.indexOf(needle, k)) !== -1) {
+    if (count === 0) first = idx;
+    count++;
+    k = idx + needle.length;
+  }
+  if (count === 0) return { ok: false, reason: "text not found in file" };
+  if (count > 1) return { ok: false, reason: "text appears more than once" };
+
+  const origStart = starts[first];
+  const origEnd = ends[first + needle.length - 1];
+  return {
+    ok: true,
+    content: content.slice(0, origStart) + newText + content.slice(origEnd),
+  };
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
-  // ── 1. Auth: verify JWT + admin ────────────────────────────────────────
+  // -- 1. Auth: verify JWT + admin ----------------------------------------
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader.startsWith("Bearer ")) {
     return json({ error: "missing bearer token" }, 401);
@@ -146,7 +218,7 @@ Deno.serve(async (req) => {
   if (adminErr) return json({ error: "admin check failed" }, 500);
   if (isAdmin !== true) return json({ error: "not authorised" }, 403);
 
-  // ── 2. Validate payload ────────────────────────────────────────────────
+  // -- 2. Validate payload ------------------------------------------------
   let payload: { path?: string; edits?: { oldText: string; newText: string }[] };
   try {
     payload = await req.json();
@@ -169,7 +241,7 @@ Deno.serve(async (req) => {
     "User-Agent": "classicalia-page-editor",
   };
 
-  // ── 3. Fetch the file ──────────────────────────────────────────────────
+  // -- 3. Fetch the file --------------------------------------------------
   const fileUrl = `${GH_API}/repos/${repo}/contents/${path}?ref=${branch}`;
   const getRes = await fetch(fileUrl, { headers: ghHeaders });
   if (getRes.status === 404) return json({ error: "file not found" }, 404);
@@ -180,7 +252,7 @@ Deno.serve(async (req) => {
   let content = b64ToText(fileJson.content);
   const sha = fileJson.sha;
 
-  // ── 4. Apply edits ─────────────────────────────────────────────────────
+  // -- 4. Apply edits -----------------------------------------------------
   const failures: { index: number; reason: string }[] = [];
   edits.forEach((e, i) => {
     const result = applyEdit(content, e.oldText, e.newText);
@@ -190,13 +262,10 @@ Deno.serve(async (req) => {
 
   if (failures.length) {
     // Nothing is committed unless every edit applies cleanly.
-    return json(
-      { error: "some edits could not be located", failures },
-      422,
-    );
+    return json({ error: "some edits could not be located", failures }, 422);
   }
 
-  // ── 5. Commit ──────────────────────────────────────────────────────────
+  // -- 5. Commit ----------------------------------------------------------
   const putRes = await fetch(`${GH_API}/repos/${repo}/contents/${path}`, {
     method: "PUT",
     headers: { ...ghHeaders, "Content-Type": "application/json" },
