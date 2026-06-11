@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Admin — Classicalia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<style>
+body { background:var(--cream); }
+.nav-user { display:flex;align-items:center;gap:10px; }
+
+/* header */
+.dash-header { background:var(--navy);position:relative;overflow:hidden;padding:80px 0 0; }
+.dash-header-inner { max-width:1280px;margin:0 auto;padding:0 40px 28px;position:relative;z-index:2; }
+.dash-eyebrow { font-size:10.5px;letter-spacing:0.22em;text-transform:uppercase;color:#6ba0ff;font-weight:700;margin-bottom:8px;opacity:0.85; }
+.dash-title { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:36px;color:white;margin-bottom:4px;letter-spacing:-0.02em; }
+.dash-subtitle { font-size:13px;color:#8fa8cc; }
+
+/* body */
+.dash-body { max-width:1280px;margin:0 auto;padding:32px 40px 80px; }
+
+/* overview stat cards */
+.overview-band { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:28px; }
+.ov-stat { background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:18px 20px; }
+.ov-n { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:30px;color:var(--navy);line-height:1;margin-bottom:4px; }
+.ov-n.green { color:#16a34a; } .ov-n.amber { color:#d97706; } .ov-n.blue { color:var(--brand); }
+.ov-label { font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted); }
+.ov-sub { font-size:11.5px;color:var(--muted);margin-top:3px; }
+
+/* cards */
+.dash-card { background:var(--paper);border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin-bottom:24px; }
+.dash-card-head { padding:14px 22px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap; }
+.dash-card-title { font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted); }
+
+/* controls */
+.controls { display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
+.adm-search { padding:8px 12px;font-size:13.5px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;min-width:220px; }
+.adm-select { padding:8px 12px;font-size:13px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;background:white; }
+.filter-chips { display:flex;gap:6px;flex-wrap:wrap; }
+.chip { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:6px 13px;border-radius:999px;border:1px solid var(--rule);background:white;color:var(--muted);cursor:pointer; }
+.chip.active { background:var(--brand);color:white;border-color:var(--brand); }
+.btn-light { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 13px;border-radius:6px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer; }
+.btn-light:hover { background:var(--cream); }
+
+/* accounts table */
+.adm-table { width:100%;border-collapse:collapse; }
+.adm-table th { font-size:9.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding:10px 18px;text-align:left;border-bottom:1px solid var(--rule);background:var(--cream);white-space:nowrap;cursor:pointer;user-select:none; }
+.adm-table th .sort-arrow { opacity:0.4;font-size:9px;margin-left:3px; }
+.adm-table th.sorted .sort-arrow { opacity:1;color:var(--brand); }
+.adm-row { border-bottom:1px solid var(--rule-faint);cursor:pointer;transition:background 0.1s; }
+.adm-row:last-child { border-bottom:none; }
+.adm-row:hover { background:#f5f8ff; }
+.adm-row td { padding:11px 18px;vertical-align:middle;font-size:13px;color:var(--ink); }
+.cell-name { display:flex;align-items:center;gap:10px; }
+.cell-avatar { width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0;background:var(--navy); }
+.cell-fullname { font-family:'Lora',serif;font-style:italic;font-weight:600;font-size:14px;color:var(--navy); }
+.cell-email { font-size:11.5px;color:var(--muted);margin-top:1px; }
+.role-pill { font-size:9.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:2px 8px;border-radius:10px;white-space:nowrap; }
+.role-teacher { background:#dbeafe;color:#1e40af; }
+.role-student { background:#e9ecf1;color:#475569; }
+.role-admin   { background:#fde68a;color:#92400e; }
+.muted-cell { color:var(--muted);font-size:12px; }
+.adm-empty { padding:40px 22px;text-align:center;color:var(--muted);font-size:13.5px; }
+.result-count { font-size:11.5px;color:var(--muted); }
+
+/* schools table */
+.schools-table { width:100%;border-collapse:collapse; }
+.schools-table th { font-size:9.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding:10px 18px;text-align:left;border-bottom:1px solid var(--rule);background:var(--cream); }
+.schools-table td { padding:10px 18px;border-bottom:1px solid var(--rule-faint);font-size:13px; }
+.schools-table tr:last-child td { border-bottom:none; }
+.school-name { font-weight:600;color:var(--navy); }
+
+/* gate / loading */
+.gate { max-width:520px;margin:80px auto;text-align:center;padding:0 24px; }
+.gate-card { background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:40px 32px;box-shadow:0 12px 40px rgba(14,30,63,0.06); }
+.gate-icon { font-size:34px;margin-bottom:12px; }
+.gate-title { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:24px;color:var(--navy);margin-bottom:8px; }
+.gate-text { font-size:14px;color:var(--muted);line-height:1.6; }
+.gate-text a { color:var(--brand);font-weight:600;text-decoration:none; }
+
+/* edit drawer */
+.drawer-overlay { display:none;position:fixed;inset:0;background:rgba(14,30,63,0.55);backdrop-filter:blur(2px);z-index:300; }
+.drawer { position:fixed;top:0;right:0;height:100%;width:420px;max-width:92vw;background:var(--paper);box-shadow:-10px 0 40px rgba(14,30,63,0.2);z-index:301;transform:translateX(100%);transition:transform 0.22s ease;display:flex;flex-direction:column; }
+.drawer.open { transform:translateX(0); }
+.drawer-head { background:var(--navy);padding:22px 26px;position:relative;flex-shrink:0; }
+.drawer-title { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:21px;color:white; }
+.drawer-sub { font-size:12px;color:#8fa8cc;margin-top:3px;word-break:break-all; }
+.drawer-close { position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1; }
+.drawer-body { padding:24px 26px;overflow-y:auto;flex:1; }
+.field { margin-bottom:18px; }
+.field-label { display:block;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px; }
+.field-input, .field-select { width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;background:white;box-sizing:border-box; }
+.toggle-row { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--rule);border-radius:8px;background:var(--cream); }
+.toggle-row .tr-text { font-size:13px;font-weight:600;color:var(--ink); }
+.toggle-row .tr-sub { font-size:11px;color:var(--muted);margin-top:2px;font-weight:400; }
+.switch { position:relative;width:42px;height:24px;flex-shrink:0; }
+.switch input { display:none; }
+.switch .slider { position:absolute;inset:0;background:var(--rule);border-radius:999px;transition:0.18s;cursor:pointer; }
+.switch .slider::before { content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:white;border-radius:50%;transition:0.18s;box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+.switch input:checked + .slider { background:var(--brand); }
+.switch input:checked + .slider::before { transform:translateX(18px); }
+.drawer-meta { border-top:1px solid var(--rule-faint);margin-top:6px;padding-top:16px; }
+.meta-row { display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px; }
+.meta-row .ml { color:var(--muted); } .meta-row .mv { color:var(--ink);font-weight:500; }
+.drawer-foot { padding:18px 26px;border-top:1px solid var(--rule);display:flex;gap:10px;align-items:center;flex-shrink:0; }
+.btn-primary { font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;padding:10px 18px;border-radius:6px;border:none;background:var(--brand);color:white;cursor:pointer; }
+.btn-primary:disabled { opacity:0.5;cursor:default; }
+.btn-danger { font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;padding:9px 14px;border-radius:6px;border:1px solid #f0c5c5;background:white;color:#b91c1c;cursor:pointer; }
+.btn-danger:hover { background:#fef2f2; }
+.drawer-msg { font-size:12.5px;margin-right:auto; }
+.drawer-msg.err { color:#dc2626; } .drawer-msg.ok { color:#16a34a; }
+
+@media (max-width:680px){
+  .dash-header-inner, .dash-body { padding-left:18px;padding-right:18px; }
+  .cell-email { display:none; }
+}
+</style>
+</head>
+<body>
+
+<div class="dash-header">
+  <canvas class="header-sky" data-starfield data-seed="512" data-region="0.8"></canvas>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo">Classicalia</a>
+      <div class="nav-links">
+        <a href="/version2/subjects/latin/" class="nav-link">Latin</a>
+        <a href="/version2/subjects/greek/" class="nav-link">Greek</a>
+        <a href="/version2/subjects/classical-civilisation/" class="nav-link">Class. Civ.</a>
+        <div class="nav-div"></div>
+        <a href="/version2/tracking/teacher.html" class="nav-link">Teacher</a>
+        <div data-account-menu></div>
+      </div>
+    </div>
+  </nav>
+  <div class="dash-header-inner">
+    <div class="dash-eyebrow">Admin</div>
+    <div class="dash-title">Site administration</div>
+    <div class="dash-subtitle">Accounts, schools and activity across Classicalia.</div>
+  </div>
+</div>
+
+<!-- Loading / access gate -->
+<div id="gate" class="gate" style="display:none;">
+  <div class="gate-card">
+    <div class="gate-icon" id="gateIcon">⏳</div>
+    <div class="gate-title" id="gateTitle">Checking access…</div>
+    <div class="gate-text" id="gateText">One moment.</div>
+  </div>
+</div>
+
+<!-- Main panel -->
+<div class="dash-body" id="panel" style="display:none;">
+
+  <div class="overview-band" id="overviewBand"></div>
+
+  <!-- Accounts -->
+  <div class="dash-card">
+    <div class="dash-card-head">
+      <span class="dash-card-title">All accounts</span>
+      <div class="controls">
+        <div class="filter-chips" id="roleChips">
+          <button class="chip active" data-role="all">All</button>
+          <button class="chip" data-role="student">Students</button>
+          <button class="chip" data-role="teacher">Teachers</button>
+          <button class="chip" data-role="admin">Admins</button>
+        </div>
+        <select class="adm-select" id="schoolFilter"><option value="">All schools</option></select>
+        <input type="search" class="adm-search" id="searchInput" placeholder="Search name, email or school…" autocomplete="off">
+        <button class="btn-light" id="exportBtn">Export CSV</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="adm-table" id="accountsTable">
+        <thead>
+          <tr>
+            <th data-sort="name">Account <span class="sort-arrow">▾</span></th>
+            <th data-sort="role">Role <span class="sort-arrow">▾</span></th>
+            <th data-sort="school">School <span class="sort-arrow">▾</span></th>
+            <th data-sort="created_at" class="sorted">Signed up <span class="sort-arrow">▾</span></th>
+            <th data-sort="last_sign_in_at">Last active <span class="sort-arrow">▾</span></th>
+            <th data-sort="xp">XP <span class="sort-arrow">▾</span></th>
+          </tr>
+        </thead>
+        <tbody id="accountsBody"></tbody>
+      </table>
+    </div>
+    <div class="adm-empty" id="accountsEmpty" style="display:none;">No accounts match your filters.</div>
+    <div style="padding:10px 18px;border-top:1px solid var(--rule-faint);"><span class="result-count" id="resultCount"></span></div>
+  </div>
+
+  <!-- Schools -->
+  <div class="dash-card">
+    <div class="dash-card-head"><span class="dash-card-title">Schools</span></div>
+    <div style="overflow-x:auto;">
+      <table class="schools-table">
+        <thead>
+          <tr><th>School</th><th>Teachers</th><th>Students</th><th>Total</th></tr>
+        </thead>
+        <tbody id="schoolsBody"></tbody>
+      </table>
+    </div>
+    <div class="adm-empty" id="schoolsEmpty" style="display:none;">No schools recorded yet.</div>
+  </div>
+
+</div>
+
+<!-- Edit drawer -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <button class="drawer-close" id="drawerClose" type="button">&times;</button>
+    <div class="drawer-title" id="drawerTitle">Account</div>
+    <div class="drawer-sub" id="drawerSub"></div>
+  </div>
+  <div class="drawer-body">
+    <div class="field">
+      <label class="field-label" for="edName">Full name</label>
+      <input class="field-input" id="edName" type="text" autocomplete="off">
+    </div>
+    <div class="field">
+      <label class="field-label" for="edRole">Role</label>
+      <select class="field-select" id="edRole">
+        <option value="student">Student</option>
+        <option value="teacher">Teacher</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label" for="edSchool">School</label>
+      <input class="field-input" id="edSchool" type="text" autocomplete="off" placeholder="(none)">
+    </div>
+    <div class="field">
+      <label class="field-label" for="edXp">XP</label>
+      <input class="field-input" id="edXp" type="number" min="0">
+    </div>
+    <div class="field">
+      <div class="toggle-row">
+        <div>
+          <div class="tr-text">Site admin</div>
+          <div class="tr-sub">Full access to this panel</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="edAdmin"><span class="slider"></span></label>
+      </div>
+    </div>
+    <div class="drawer-meta">
+      <div class="meta-row"><span class="ml">Signed up</span><span class="mv" id="metaCreated">—</span></div>
+      <div class="meta-row"><span class="ml">Last active</span><span class="mv" id="metaLast">—</span></div>
+      <div class="meta-row"><span class="ml">Lifetime XP</span><span class="mv" id="metaTotalXp">—</span></div>
+      <div class="meta-row"><span class="ml">User ID</span><span class="mv" id="metaId" style="font-size:10px;font-family:monospace;">—</span></div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <span class="drawer-msg" id="drawerMsg"></span>
+    <button class="btn-danger" id="deleteBtn" type="button">Delete</button>
+    <button class="btn-primary" id="saveBtn" type="button">Save changes</button>
+  </div>
+</aside>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <a href="/version2/" class="footer-logo">Classicalia</a>
+    <div class="footer-copy">classicalia.co.uk · Admin</div>
+  </div>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// Admin panel. All privileged reads/writes go through the
+// SECURITY DEFINER RPCs in migration 056 (admin_overview,
+// admin_list_users, admin_update_user, admin_delete_user),
+// each of which re-checks is_admin server-side. The gate
+// below is purely UX.
+// ═══════════════════════════════════════════════════════
+
+const $ = id => document.getElementById(id);
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+function initials(name, email) {
+  const base = String(name || email || '?');
+  return base.split(/[\s@.]+/).filter(Boolean).slice(0,2).map(s => s[0].toUpperCase()).join('') || '?';
+}
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  if (isNaN(d)) return '—';
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+function relTime(ts) {
+  if (!ts) return 'never';
+  const d = new Date(ts); if (isNaN(d)) return 'never';
+  const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 30) return days + 'd ago';
+  if (days < 365) return Math.floor(days/30) + 'mo ago';
+  return Math.floor(days/365) + 'y ago';
+}
+function effectiveRole(u) { return u.is_admin ? 'admin' : (u.role || 'student'); }
+
+let ALL = [];               // all users from admin_list_users
+let filtered = [];
+let roleFilter = 'all';
+let schoolFilter = '';
+let searchTerm = '';
+let sortKey = 'created_at';
+let sortDir = -1;           // -1 desc, 1 asc
+let editing = null;
+let LAST_OVERVIEW = {};     // last server overview, so local recounts keep server-only stats
+
+function showGate(icon, title, text) {
+  $('panel').style.display = 'none';
+  $('gate').style.display = 'block';
+  $('gateIcon').textContent = icon;
+  $('gateTitle').textContent = title;
+  $('gateText').innerHTML = text;
+}
+
+async function init() {
+  showGate('⏳', 'Checking access…', 'One moment.');
+
+  const { data: authData } = await window.supabase.auth.getUser();
+  const user = authData && authData.user;
+  if (!user) {
+    showGate('🔒', 'Sign in required', 'This area is for site administrators. <a href="/auth/login.html">Sign in</a>.');
+    return;
+  }
+
+  // admin_overview() raises (42501) if the caller isn't an admin.
+  const { data: overview, error: ovErr } = await window.supabase.rpc('admin_overview');
+  if (ovErr) {
+    showGate('🚫', 'No access', 'Your account doesn\'t have admin access. If that\'s a mistake, contact the site owner.');
+    return;
+  }
+
+  $('gate').style.display = 'none';
+  $('panel').style.display = 'block';
+  renderOverview(overview);
+
+  const { data: users, error: usersErr } = await window.supabase.rpc('admin_list_users');
+  if (usersErr) {
+    showGate('⚠️', 'Could not load accounts', escapeHtml(usersErr.message));
+    return;
+  }
+  ALL = users || [];
+  buildSchoolFilter();
+  renderSchools();
+  applyFilters();
+  wireControls();
+}
+
+function renderOverview(o) {
+  o = o || {};
+  LAST_OVERVIEW = Object.assign({}, LAST_OVERVIEW, o);
+  o = LAST_OVERVIEW;
+  const cards = [
+    { n:o.total_users, label:'Total accounts', sub:(o.signups_30d||0)+' in last 30 days', cls:'' },
+    { n:o.students, label:'Students', sub:'', cls:'blue' },
+    { n:o.teachers, label:'Teachers', sub:'', cls:'blue' },
+    { n:o.schools, label:'Schools', sub:'', cls:'green' },
+    { n:o.signups_7d, label:'New this week', sub:(o.signups_today||0)+' today', cls:'amber' },
+    { n:o.classes, label:'Classes', sub:'', cls:'' },
+    { n:o.admins, label:'Admins', sub:'', cls:'' },
+  ];
+  $('overviewBand').innerHTML = cards.map(c => `
+    <div class="ov-stat">
+      <div class="ov-n ${c.cls}">${c.n == null ? '—' : c.n}</div>
+      <div class="ov-label">${escapeHtml(c.label)}</div>
+      ${c.sub ? `<div class="ov-sub">${escapeHtml(c.sub)}</div>` : ''}
+    </div>`).join('');
+}
+
+function buildSchoolFilter() {
+  const schools = [...new Set(ALL.map(u => (u.school || '').trim()).filter(Boolean))]
+    .sort((a,b) => a.localeCompare(b));
+  const sel = $('schoolFilter');
+  sel.innerHTML = '<option value="">All schools</option>' +
+    schools.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+}
+
+function applyFilters() {
+  const term = searchTerm.trim().toLowerCase();
+  filtered = ALL.filter(u => {
+    if (roleFilter === 'admin' && !u.is_admin) return false;
+    if (roleFilter === 'teacher' && (u.is_admin || u.role !== 'teacher')) return false;
+    if (roleFilter === 'student' && (u.is_admin || (u.role && u.role !== 'student'))) return false;
+    if (schoolFilter && (u.school || '').trim() !== schoolFilter) return false;
+    if (term) {
+      const hay = `${u.full_name||''} ${u.email||''} ${u.school||''}`.toLowerCase();
+      if (!hay.includes(term)) return false;
+    }
+    return true;
+  });
+
+  filtered.sort((a,b) => {
+    let av, bv;
+    if (sortKey === 'name')      { av=(a.full_name||a.email||'').toLowerCase(); bv=(b.full_name||b.email||'').toLowerCase(); }
+    else if (sortKey === 'role') { av=effectiveRole(a); bv=effectiveRole(b); }
+    else if (sortKey === 'school'){ av=(a.school||'').toLowerCase(); bv=(b.school||'').toLowerCase(); }
+    else if (sortKey === 'xp')   { av=a.xp||0; bv=b.xp||0; }
+    else { av=a[sortKey]?new Date(a[sortKey]).getTime():0; bv=b[sortKey]?new Date(b[sortKey]).getTime():0; }
+    if (av < bv) return -1*sortDir;
+    if (av > bv) return 1*sortDir;
+    return 0;
+  });
+
+  renderAccounts();
+  document.querySelectorAll('#accountsTable th').forEach(th => {
+    th.classList.toggle('sorted', th.dataset.sort === sortKey);
+    const arr = th.querySelector('.sort-arrow');
+    if (arr) arr.textContent = th.dataset.sort === sortKey ? (sortDir === 1 ? '▴' : '▾') : '▾';
+  });
+}
+
+function renderAccounts() {
+  const body = $('accountsBody');
+  $('accountsEmpty').style.display = filtered.length ? 'none' : 'block';
+  body.innerHTML = filtered.map(u => {
+    const role = effectiveRole(u);
+    const roleCls = role === 'admin' ? 'role-admin' : role === 'teacher' ? 'role-teacher' : 'role-student';
+    const color = (/^#[0-9A-Fa-f]{6}$/.test(u.avatar_color||'')) ? u.avatar_color : '#0E1E3F';
+    return `
+      <tr class="adm-row" data-id="${u.id}">
+        <td>
+          <div class="cell-name">
+            <span class="cell-avatar" style="background:${color}">${escapeHtml(initials(u.full_name, u.email))}</span>
+            <span>
+              <span class="cell-fullname">${escapeHtml(u.full_name || '—')}</span>
+              <span class="cell-email">${escapeHtml(u.email || '')}</span>
+            </span>
+          </div>
+        </td>
+        <td><span class="role-pill ${roleCls}">${role}</span></td>
+        <td>${u.school ? escapeHtml(u.school) : '<span class="muted-cell">—</span>'}</td>
+        <td class="muted-cell">${fmtDate(u.created_at)}</td>
+        <td class="muted-cell">${relTime(u.last_sign_in_at)}</td>
+        <td class="muted-cell">${u.xp || 0}</td>
+      </tr>`;
+  }).join('');
+  body.querySelectorAll('.adm-row').forEach(r => {
+    r.addEventListener('click', () => openDrawer(r.dataset.id));
+  });
+  $('resultCount').textContent = `${filtered.length} of ${ALL.length} account${ALL.length === 1 ? '' : 's'}`;
+}
+
+function renderSchools() {
+  const map = new Map();
+  for (const u of ALL) {
+    const s = (u.school || '').trim();
+    if (!s) continue;
+    if (!map.has(s)) map.set(s, { teachers:0, students:0 });
+    const rec = map.get(s);
+    if (u.role === 'teacher') rec.teachers++; else rec.students++;
+  }
+  const rows = [...map.entries()].sort((a,b) => (b[1].teachers+b[1].students)-(a[1].teachers+a[1].students));
+  $('schoolsEmpty').style.display = rows.length ? 'none' : 'block';
+  $('schoolsBody').innerHTML = rows.map(([name, r]) => `
+    <tr>
+      <td class="school-name">${escapeHtml(name)}</td>
+      <td>${r.teachers}</td>
+      <td>${r.students}</td>
+      <td><strong>${r.teachers + r.students}</strong></td>
+    </tr>`).join('');
+}
+
+function wireControls() {
+  $('roleChips').querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      $('roleChips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      roleFilter = chip.dataset.role;
+      applyFilters();
+    });
+  });
+  $('schoolFilter').addEventListener('change', e => { schoolFilter = e.target.value; applyFilters(); });
+  let t;
+  $('searchInput').addEventListener('input', e => {
+    clearTimeout(t);
+    t = setTimeout(() => { searchTerm = e.target.value; applyFilters(); }, 150);
+  });
+  document.querySelectorAll('#accountsTable th').forEach(th => {
+    th.addEventListener('click', () => {
+      const k = th.dataset.sort;
+      if (sortKey === k) sortDir *= -1;
+      else { sortKey = k; sortDir = (k === 'name' || k === 'role' || k === 'school') ? 1 : -1; }
+      applyFilters();
+    });
+  });
+  $('exportBtn').addEventListener('click', exportCsv);
+
+  $('drawerClose').addEventListener('click', closeDrawer);
+  $('drawerOverlay').addEventListener('click', closeDrawer);
+  $('saveBtn').addEventListener('click', saveEdits);
+  $('deleteBtn').addEventListener('click', deleteAccount);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+}
+
+// ── Edit drawer ──────────────────────────────────────────
+function openDrawer(id) {
+  const u = ALL.find(x => x.id === id);
+  if (!u) return;
+  editing = u;
+  $('drawerTitle').textContent = u.full_name || 'Account';
+  $('drawerSub').textContent = u.email || u.id;
+  $('edName').value = u.full_name || '';
+  $('edRole').value = (u.role === 'teacher') ? 'teacher' : 'student';
+  $('edSchool').value = u.school || '';
+  $('edXp').value = u.xp || 0;
+  $('edAdmin').checked = !!u.is_admin;
+  $('metaCreated').textContent = fmtDate(u.created_at);
+  $('metaLast').textContent = u.last_sign_in_at ? (fmtDate(u.last_sign_in_at) + ' · ' + relTime(u.last_sign_in_at)) : 'never';
+  $('metaTotalXp').textContent = u.total_xp_earned || 0;
+  $('metaId').textContent = u.id;
+  setMsg('', '');
+  $('drawerOverlay').style.display = 'block';
+  $('drawer').classList.add('open');
+  $('drawer').setAttribute('aria-hidden', 'false');
+}
+function closeDrawer() {
+  editing = null;
+  $('drawer').classList.remove('open');
+  $('drawer').setAttribute('aria-hidden', 'true');
+  $('drawerOverlay').style.display = 'none';
+}
+function setMsg(text, kind) {
+  const el = $('drawerMsg');
+  el.textContent = text;
+  el.className = 'drawer-msg' + (kind ? ' ' + kind : '');
+}
+
+async function saveEdits() {
+  if (!editing) return;
+  const payload = {
+    target_id: editing.id,
+    new_full_name: $('edName').value.trim() || null,
+    new_role: $('edRole').value,
+    new_school: $('edSchool').value,                 // '' clears the school server-side
+    new_is_admin: $('edAdmin').checked,
+    new_xp: parseInt($('edXp').value, 10)
+  };
+  if (isNaN(payload.new_xp)) payload.new_xp = null;
+
+  $('saveBtn').disabled = true;
+  setMsg('Saving…', '');
+  const { error } = await window.supabase.rpc('admin_update_user', payload);
+  $('saveBtn').disabled = false;
+  if (error) { setMsg(error.message || 'Save failed', 'err'); return; }
+
+  // Reflect locally without a full reload.
+  Object.assign(editing, {
+    full_name: payload.new_full_name,
+    role: payload.new_role,
+    school: $('edSchool').value.trim() || null,
+    is_admin: payload.new_is_admin,
+    xp: payload.new_xp == null ? editing.xp : payload.new_xp
+  });
+  setMsg('Saved ✓', 'ok');
+  buildSchoolFilter();
+  renderSchools();
+  applyFilters();
+  refreshOverviewCounts();
+  setTimeout(closeDrawer, 600);
+}
+
+async function deleteAccount() {
+  if (!editing) return;
+  const name = editing.full_name || editing.email || 'this account';
+  if (!confirm(`Permanently delete ${name}?\n\nThis removes the account and all of its data. This cannot be undone.`)) return;
+
+  $('deleteBtn').disabled = true;
+  setMsg('Deleting…', '');
+  const { error } = await window.supabase.rpc('admin_delete_user', { target_id: editing.id });
+  $('deleteBtn').disabled = false;
+  if (error) { setMsg(error.message || 'Delete failed', 'err'); return; }
+
+  ALL = ALL.filter(u => u.id !== editing.id);
+  closeDrawer();
+  buildSchoolFilter();
+  renderSchools();
+  applyFilters();
+  refreshOverviewCounts();
+}
+
+// Recompute the headline cards locally after an edit/delete so they stay in
+// sync without another round-trip. Server-only stats (signups, classes) are
+// preserved via LAST_OVERVIEW inside renderOverview.
+function refreshOverviewCounts() {
+  renderOverview({
+    total_users: ALL.length,
+    students: ALL.filter(u => !u.is_admin && (!u.role || u.role === 'student')).length,
+    teachers: ALL.filter(u => !u.is_admin && u.role === 'teacher').length,
+    admins:   ALL.filter(u => u.is_admin).length,
+    schools:  new Set(ALL.map(u => (u.school||'').trim()).filter(Boolean)).size
+  });
+}
+
+function exportCsv() {
+  const cols = ['full_name','email','role','is_admin','school','xp','total_xp_earned','created_at','last_sign_in_at'];
+  const head = ['Name','Email','Role','Admin','School','XP','Lifetime XP','Signed up','Last active'];
+  const esc = v => {
+    const s = v == null ? '' : String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  };
+  const lines = [head.join(',')];
+  for (const u of filtered) {
+    lines.push(cols.map(c => esc(u[c])).join(','));
+  }
+  const blob = new Blob([lines.join('\n')], { type:'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'classicalia-accounts-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+init();
+</script>
+<script src="/version2/assets/js/starfield.js"></script>
+</body>
+</html>
