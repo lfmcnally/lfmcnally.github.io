@@ -26,25 +26,76 @@
   // No session stored → anonymous visitor → do nothing (zero overhead).
   if (!localStorage.getItem(TOKEN_KEY)) return;
 
-  // What can be edited: leaf, text-only blocks inside the content area.
+  // What can be edited: text-bearing blocks inside the content area. A block
+  // may contain inline formatting (highlighted keywords, bold, links) — but
+  // NOT block-level children — and must not live in an excluded zone.
   const CONTENT_ROOTS = ".rev-main, .header-inner";
   const EDITABLE_SELECTOR = [
     "p", "li", "h1", "h2", "h3", "h4", "h5", "h6",
-    "blockquote", "figcaption", "td", "th", "dd", "dt",
-    ".rev-title", ".rev-label", ".rev-lead",
+    "blockquote", "figcaption", "td", "th", "dd", "dt", "caption",
+    ".rev-title", ".rev-label", ".rev-lead", ".rev-note",
     ".header-title", ".header-deck", ".header-eyebrow",
+    ".entry-def", ".analysis", ".explain-q", ".explain-label",
+    ".term", ".term-gloss",
   ].join(",");
+
+  // Inline tags allowed inside an editable block (and kept on save). Anything
+  // else as a descendant means the element is a structural container → skip it.
+  const INLINE_OK = new Set([
+    "SPAN", "A", "B", "STRONG", "I", "EM", "U", "SUP", "SUB",
+    "BR", "WBR", "CODE", "MARK", "ABBR", "SMALL",
+  ]);
+  // Never edit inside these (nav, flashcards, generated widgets, etc.).
+  const EXCLUDE_ZONE = ".rev-sidebar, nav, footer, .fc-wrap, .fc, script, style, [contenteditable]";
 
   let sb = null;
   let editing = false;
   const tracked = new Map(); // el -> original innerHTML
 
   // ── helpers ──────────────────────────────────────────────────────────
-  function encodeMinimal(s) {
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+  // Can this element be edited? It must hold text, sit outside excluded
+  // zones, and contain only inline (formatting) descendants — no nested
+  // block-level structure that wouldn't map cleanly back to the source.
+  function isEditable(el) {
+    if (el.closest(EXCLUDE_ZONE)) return false;
+    if (el.closest("a, button")) return false;
+    if (!el.textContent.trim()) return false;
+    const kids = el.querySelectorAll("*");
+    for (let i = 0; i < kids.length; i++) {
+      if (!INLINE_OK.has(kids[i].tagName)) return false;
+    }
+    return true;
+  }
+
+  // Produce clean HTML to write back: keep only whitelisted inline tags and a
+  // minimal set of attributes (class, and href on links). This means a stray
+  // paste or editor-inserted markup can never reach the source file.
+  function sanitizeInline(el) {
+    const clone = el.cloneNode(true);
+    // Unwrap any non-whitelisted elements (repeat until none remain).
+    let changed = true;
+    while (changed) {
+      changed = false;
+      const all = clone.querySelectorAll("*");
+      for (let i = 0; i < all.length; i++) {
+        const node = all[i];
+        if (!INLINE_OK.has(node.tagName)) {
+          node.replaceWith(...node.childNodes);
+          changed = true;
+          break;
+        }
+      }
+    }
+    // Strip attributes down to the safe set.
+    clone.querySelectorAll("*").forEach((node) => {
+      Array.prototype.slice.call(node.attributes).forEach((a) => {
+        const keep =
+          a.name === "class" ||
+          (node.tagName === "A" && a.name === "href");
+        if (!keep) node.removeAttribute(a.name);
+      });
+    });
+    return clone.innerHTML;
   }
 
   function filePath() {
@@ -144,18 +195,26 @@
     editing = true;
     tracked.clear();
 
+    // Collect candidates, then drop any nested inside another candidate so we
+    // never make both a block and its inner span separately editable.
+    const candidates = [];
     document.querySelectorAll(CONTENT_ROOTS).forEach((root) => {
       root.querySelectorAll(EDITABLE_SELECTOR).forEach((el) => {
-        if (el.closest(".rev-sidebar, nav, footer")) return;
-        if (el.querySelector("*")) return;          // leaf text only
-        if (el.closest("a, button")) return;
-        if (!el.textContent.trim()) return;
-        if (tracked.has(el)) return;
-        tracked.set(el, el.innerHTML);
-        el.setAttribute("data-pe-editable", "1");
-        el.setAttribute("contenteditable", "true");
-        el.setAttribute("spellcheck", "true");
+        if (isEditable(el)) candidates.push(el);
       });
+    });
+    const candidateSet = new Set(candidates);
+    candidates.forEach((el) => {
+      let p = el.parentElement;
+      while (p) {
+        if (candidateSet.has(p)) return; // an ancestor is editable → skip this
+        p = p.parentElement;
+      }
+      if (tracked.has(el)) return;
+      tracked.set(el, el.innerHTML);
+      el.setAttribute("data-pe-editable", "1");
+      el.setAttribute("contenteditable", "true");
+      el.setAttribute("spellcheck", "true");
     });
 
     setBarEditing();
@@ -178,9 +237,9 @@
     const edits = [];
     const changedEls = [];
     tracked.forEach((originalHTML, el) => {
-      // Only ever write back plain (re-encoded) text, so a stray paste can't
-      // inject markup into the source file.
-      const newHTML = encodeMinimal(el.textContent);
+      // Keep inline formatting (highlighted keywords, bold, links) but strip
+      // anything outside the whitelist so the source stays clean.
+      const newHTML = sanitizeInline(el);
       if (newHTML !== originalHTML) {
         edits.push({ oldText: originalHTML, newText: newHTML });
         changedEls.push(el);
@@ -216,7 +275,7 @@
 
       if (res.ok && data.ok) {
         // Bank the new HTML as the baseline so a follow-up save diffs correctly.
-        changedEls.forEach((el) => tracked.set(el, encodeMinimal(el.textContent)));
+        changedEls.forEach((el) => tracked.set(el, sanitizeInline(el)));
         status("Saved ✓ Live in ~1 min.", "ok");
         setTimeout(() => exitEdit(false), 1400);
       } else if (res.status === 422 && data.failures) {
