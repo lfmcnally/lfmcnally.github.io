@@ -47,6 +47,17 @@
 
 /* setup */
 .quiz-card { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 26px 28px; }
+#quiz.quiz-card { position: relative; }
+/* per-question confidence dot (mirrors the Latin tester) */
+.p-know-dot {
+  position: absolute; top: 14px; left: 16px; box-sizing: content-box;
+  width: 8px; height: 8px; padding: 6px;     /* transparent ring = bigger hover target */
+  border-radius: 50%; background: var(--rule); background-clip: content-box; cursor: help;
+}
+.p-know-dot.low    { background: #f87171; }
+.p-know-dot.mid    { background: #fbbf24; }
+.p-know-dot.high   { background: #34d399; }
+.p-know-dot.master { background: var(--brand); }
 .quiz-card h2 {
   font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 22px;
   color: var(--navy); margin: 0 0 4px;
@@ -161,6 +172,7 @@
 
   <!-- QUIZ -->
   <div class="quiz-card hidden" id="quiz">
+    <div class="p-know-dot" id="qDot"></div>
     <div class="quiz-meta">
       <span class="subtopic-tag" id="qSubtopic"></span>
       <span class="counter" id="qCounter"></span>
@@ -540,12 +552,28 @@ function endDoNow(reason) {
   });
 }
 
+// Colour the confidence dot for the current question and expose the % on
+// hover — the same rating students see on the Latin tester and the dashboard.
+function paintPKnowDot(s) {
+  const dot = document.getElementById('qDot');
+  if (!dot) return;
+  const p = s.pKnow;
+  dot.className = 'p-know-dot';
+  if (p >= BKT.mastery)   dot.classList.add('master');
+  else if (p >= 0.7)      dot.classList.add('high');
+  else if (p >= 0.4)      dot.classList.add('mid');
+  else                    dot.classList.add('low');
+  dot.title = 'Your confidence: ' + Math.round(p * 100) + '%';
+  dot.setAttribute('aria-label', dot.title);
+}
+
 function nextQuestion() {
   let pick, tries = 0;
   do { pick = pickNext(); tries++; } while (pick === current && tries < 6 && pool.length > 1);
   current = pick;
   answered = false;
 
+  paintPKnowDot(current);
   document.getElementById('qSubtopic').textContent = current.subtopic;
   document.getElementById('qCounter').textContent = 'Answered: ' + sessionAnswered;
   document.getElementById('qProgressBar').style.width = sessionTarget ? Math.min(100, Math.round(sessionAnswered/sessionTarget*100)) + '%' : '0%';
@@ -572,6 +600,7 @@ function choose(btn, correct, correctText) {
   if (correct) sessionCorrect++;
   bktUpdate(current, correct);
   recordSessionAnswer(correct);
+  paintPKnowDot(current);   // reflect the updated confidence straight away
 
   const buttons = Array.from(document.querySelectorAll('#qOptions .mc-btn'));
   buttons.forEach(b => {
