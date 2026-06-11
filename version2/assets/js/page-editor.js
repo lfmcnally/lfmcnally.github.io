@@ -140,53 +140,76 @@
   }
 
   // ── UI ───────────────────────────────────────────────────────────────
+  // The trigger lives inside the page's top nav (styled to match it). The only
+  // floating element is a small status toast shown while saving. Falls back to
+  // a discreet fixed control if a nav can't be found.
   function injectUI() {
     const style = document.createElement("style");
     style.textContent = `
-      #pe-bar{position:fixed;right:18px;bottom:18px;z-index:99999;display:flex;gap:8px;align-items:center;
-        font-family:'DM Sans',system-ui,sans-serif;}
-      .pe-btn{font-size:13px;font-weight:600;padding:10px 16px;border-radius:999px;border:none;cursor:pointer;
-        box-shadow:0 6px 20px rgba(14,30,63,.25);}
-      .pe-edit{background:#1A6FFF;color:#fff;}
-      .pe-save{background:#16a34a;color:#fff;}
-      .pe-cancel{background:#fff;color:#1c2540;border:1px solid #d8dde8;}
-      .pe-status{font-size:12px;font-weight:600;background:#0E1E3F;color:#fff;padding:7px 12px;border-radius:8px;
-        box-shadow:0 6px 20px rgba(14,30,63,.25);max-width:280px;}
-      .pe-status.err{background:#b91c1c;} .pe-status.ok{background:#16a34a;}
-      [data-pe-editable]{outline:1.5px dashed rgba(26,111,255,.5);outline-offset:2px;border-radius:3px;
+      #pe-ctrl{display:inline-flex;gap:8px;align-items:center;margin-left:10px;
+        font-family:'DM Sans',system-ui,sans-serif;vertical-align:middle;}
+      .pe-nav-btn{font-family:'DM Sans',system-ui,sans-serif;font-size:12.5px;font-weight:600;
+        padding:6px 13px;border-radius:999px;cursor:pointer;line-height:1;letter-spacing:.01em;
+        border:1px solid rgba(255,255,255,.32);background:rgba(255,255,255,.1);color:#fff;
+        transition:background .12s,border-color .12s;}
+      .pe-nav-btn:hover{background:rgba(255,255,255,.2);}
+      .pe-nav-btn.primary{background:#1A6FFF;border-color:#1A6FFF;}
+      .pe-nav-btn.primary:hover{background:#3b82ff;border-color:#3b82ff;}
+      /* fallback when mounted on the body rather than a nav */
+      #pe-ctrl.pe-floating{position:fixed;right:18px;bottom:18px;z-index:99999;margin:0;
+        background:#0E1E3F;padding:8px 10px;border-radius:999px;box-shadow:0 6px 20px rgba(14,30,63,.25);}
+      #pe-toast{position:fixed;right:18px;bottom:18px;z-index:100000;display:none;max-width:300px;
+        font-family:'DM Sans',system-ui,sans-serif;font-size:12.5px;font-weight:600;
+        background:#0E1E3F;color:#fff;padding:9px 14px;border-radius:10px;
+        box-shadow:0 8px 24px rgba(14,30,63,.28);}
+      #pe-toast.show{display:block;}
+      #pe-toast.err{background:#b91c1c;} #pe-toast.ok{background:#16a34a;}
+      [data-pe-editable]{outline:1.5px dashed rgba(26,111,255,.45);outline-offset:2px;border-radius:3px;
         transition:outline-color .1s;cursor:text;}
       [data-pe-editable]:hover{outline-color:#1A6FFF;}
       [data-pe-editable]:focus{outline:2px solid #1A6FFF;background:rgba(26,111,255,.05);}
     `;
     document.head.appendChild(style);
 
-    const bar = document.createElement("div");
-    bar.id = "pe-bar";
-    bar.innerHTML = `<button type="button" class="pe-btn pe-edit" id="pe-toggle">&#9998; Edit page</button>`;
-    document.body.appendChild(bar);
-    document.getElementById("pe-toggle").addEventListener("click", enterEdit);
+    const ctrl = document.createElement("span");
+    ctrl.id = "pe-ctrl";
+    const navMount = document.querySelector(".nav .nav-links") ||
+      document.querySelector(".nav-links") || document.querySelector(".nav");
+    if (navMount) {
+      navMount.appendChild(ctrl);
+    } else {
+      ctrl.classList.add("pe-floating");
+      document.body.appendChild(ctrl);
+    }
+
+    const toast = document.createElement("div");
+    toast.id = "pe-toast";
+    document.body.appendChild(toast);
+
+    setBarIdle();
   }
 
   function setBarEditing() {
-    document.getElementById("pe-bar").innerHTML = `
-      <span class="pe-status" id="pe-status">Click any text to edit. Saving commits to the live site.</span>
-      <button type="button" class="pe-btn pe-cancel" id="pe-cancel">Cancel</button>
-      <button type="button" class="pe-btn pe-save" id="pe-save">Save changes</button>`;
+    document.getElementById("pe-ctrl").innerHTML = `
+      <button type="button" class="pe-nav-btn" id="pe-cancel">Cancel</button>
+      <button type="button" class="pe-nav-btn primary" id="pe-save">Save changes</button>`;
     document.getElementById("pe-cancel").addEventListener("click", () => exitEdit(true));
     document.getElementById("pe-save").addEventListener("click", save);
+    status("Click any text to edit, then Save.");
   }
 
   function setBarIdle() {
-    document.getElementById("pe-bar").innerHTML =
-      `<button type="button" class="pe-btn pe-edit" id="pe-toggle">&#9998; Edit page</button>`;
+    document.getElementById("pe-ctrl").innerHTML =
+      `<button type="button" class="pe-nav-btn" id="pe-toggle">&#9998; Edit page</button>`;
     document.getElementById("pe-toggle").addEventListener("click", enterEdit);
+    status("");
   }
 
   function status(msg, kind) {
-    const el = document.getElementById("pe-status");
+    const el = document.getElementById("pe-toast");
     if (!el) return;
-    el.textContent = msg;
-    el.className = "pe-status" + (kind ? " " + kind : "");
+    el.textContent = msg || "";
+    el.className = (msg ? "show" : "") + (kind ? " " + kind : "");
   }
 
   // ── edit mode ────────────────────────────────────────────────────────
