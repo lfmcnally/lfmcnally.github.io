@@ -215,6 +215,12 @@ let selected = new Set();  // selected subtopic labels
 let pool = [];             // active question states
 let current = null;
 let answered = false;
+// 'standard' = drill the chosen pool by confidence (manual quiz, Do Now)
+// 'order'    = work through the whole topic in subtopic order, introducing new
+//              questions only as earlier ones become Secure
+// 'review'   = consolidate everything answered-but-weak first, then introduce
+//              never-seen questions once those are securing
+let strategy = 'standard';
 let sessionAnswered = 0, sessionTarget = 0, sessionCorrect = 0;
 let userId = null;         // signed-in user id (for session logging + Do Now)
 let doNowActive = null;    // { topicId, updatedAt } when in a Do Now session
@@ -326,15 +332,56 @@ function bktUpdate(s, correct) {
   }
 }
 
-// ── selection: weighted toward lowest pKnow among unmastered ──
+// ── selection ──
+// Pick from `list` weighted toward lowest pKnow (a small floor lets secure
+// items still recur occasionally).
+function weightedPick(list) {
+  if (!list.length) return null;
+  const weights = list.map(s => 1 - s.pKnow + 0.05);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < list.length; i++) { r -= weights[i]; if (r <= 0) return list[i]; }
+  return list[list.length - 1];
+}
+
+// Smart-mode tuning: a question is "strong" (no longer actively drilled) at
+// this confidence; only this many are kept in flight before new ones come in.
+const SMART = { strongP: 0.9, activeCap: 12, introChance: 0.35 };
+
 function pickNext() {
+  const order = new Map(subtopics.map((st, i) => [st.label, i]));
+  const idxOf = s => (order.has(s.subtopic) ? order.get(s.subtopic) : 0);
+
+  // 'order' — work through the topic in subtopic order. Drill the earliest
+  // subtopic that still has unmastered questions (new and seen alike) before
+  // any later subtopic surfaces. As its questions become Secure they drop out,
+  // advancing the frontier.
+  if (strategy === 'order') {
+    const unmastered = pool.filter(s => !isSecure(s));
+    if (!unmastered.length) return weightedPick(pool);
+    let frontier = Infinity;
+    for (const s of unmastered) { const i = idxOf(s); if (i < frontier) frontier = i; }
+    const front = unmastered.filter(s => idxOf(s) === frontier);
+    return weightedPick(front.length ? front : unmastered);
+  }
+
+  // 'review' — consolidate everything answered-but-weak first; introduce
+  // never-seen questions (in subtopic order) only once fewer than the cap are
+  // still being learned, so new material arrives as old material secures.
+  if (strategy === 'review') {
+    const active = pool.filter(s => (s.trials | 0) > 0 && s.pKnow < SMART.strongP && !isSecure(s));
+    const fresh = pool.filter(s => (s.trials | 0) === 0).sort((a, b) => idxOf(a) - idxOf(b));
+    const canIntroduce = fresh.length > 0 && active.length < SMART.activeCap;
+    if (canIntroduce && (active.length === 0 || Math.random() < SMART.introChance)) return fresh[0];
+    if (active.length) return weightedPick(active);
+    if (fresh.length) return fresh[0];
+    const unmastered = pool.filter(s => !isSecure(s));
+    return unmastered.length ? weightedPick(unmastered) : pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // 'standard' — drill the chosen pool, weighted toward what's hardest.
   const unmastered = pool.filter(s => !isSecure(s));
-  const list = unmastered.length ? unmastered : pool;
-  const weights = list.map(s => 1 - s.pKnow + 0.05); // small floor so secure items can still recur
-  const total = weights.reduce((a,b)=>a+b, 0);
-  let r = Math.random()*total;
-  for (let i=0;i<list.length;i++){ r -= weights[i]; if (r<=0) return list[i]; }
-  return list[list.length-1];
+  return weightedPick(unmastered.length ? unmastered : pool);
 }
 
 // ── setup rendering ──
@@ -369,6 +416,7 @@ function updateStartState() {
 
 // ── quiz ──
 function startQuiz() {
+  strategy = 'standard';
   pool = topic.questions.filter(q => selected.has(q.subtopic)).map(q => stateById.get(q.id));
   if (!pool.length) return;
   document.getElementById('doNowBanner').classList.add('hidden');
@@ -380,19 +428,12 @@ function startQuiz() {
   nextQuestion();
 }
 
-// Smart review: skip setup and drill only the questions you've already
-// attempted but not yet secured. Unseen questions (no trials) are left
-// out — review is for shoring up answers you keep getting wrong, not for
-// meeting new material.
-function startReview() {
+// Shared launcher for the two smart modes: take the whole topic and start.
+function startSmart(mode) {
+  strategy = mode;                       // 'order' | 'review'
   selected = new Set(subtopics.map(st => st.label));
-  const all = topic.questions.map(q => stateById.get(q.id));
-  pool = all.filter(s => (s.trials | 0) > 0 && !isSecure(s));
-  if (!pool.length) {
-    document.getElementById('setupSub').textContent =
-      "Nothing to review yet — smart review drills questions you've answered before and keep getting wrong. Answer a few below first, then come back.";
-    return;
-  }
+  pool = topic.questions.map(q => stateById.get(q.id));
+  if (!pool.length) return;
   document.getElementById('doNowBanner').classList.add('hidden');
   sessionAnswered = 0; sessionTarget = pool.length;
   beginSessionLog(topic.list);
@@ -401,6 +442,14 @@ function startReview() {
   current = null;
   nextQuestion();
 }
+
+// Learn / work through: go through the whole topic in subtopic order,
+// introducing new questions only as earlier ones become Secure.
+function startLearn() { startSmart('order'); }
+
+// Smart review: consolidate everything you've answered-but-not-secured first,
+// then introduce never-seen questions once those are securing.
+function startReview() { startSmart('review'); }
 
 // ── Do Now: load the assignment the teacher set for this student's class,
 // and drill that topic (and any chosen subtopics) straight away ──
@@ -434,6 +483,7 @@ async function startDoNow() {
   } else {
     selected = new Set(subtopics.map(st => st.label));
   }
+  strategy = 'standard';
   pool = topic.questions.filter(q => selected.has(q.subtopic)).map(q => stateById.get(q.id));
   if (!pool.length) { showDoNowMessage('No questions found for today’s Do Now.'); return; }
   setDoNowBanner(res.class_name, topic, selected);
@@ -588,6 +638,7 @@ function init() {
   loadTopic(0).then(() => {
     if (mode === 'donow') startDoNow();
     else if (mode === 'review') startReview();
+    else if (mode === 'learn') startLearn();
   });
 }
 
