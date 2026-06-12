@@ -452,6 +452,9 @@ function loadModel(name) {
     }
     return modelCache.get(name);
 }
+// Models are wrapped in a container group and re-centred on their own
+// bounding box — several source GLBs were exported off-centre, which
+// otherwise renders them far from where they are placed.
 function placeModel(name, x, z, { h = 2, ry = 0, y = null, collide = 0, marble = false } = {}) {
     const p = loadModel(name).then(g => {
         const m = g.scene.clone(true);
@@ -463,10 +466,14 @@ function placeModel(name, x, z, { h = 2, ry = 0, y = null, collide = 0, marble =
         const size = bb.getSize(new THREE.Vector3());
         m.scale.setScalar(h / size.y);
         const bb2 = new THREE.Box3().setFromObject(m);
-        m.position.set(x, (y == null ? groundHeight(x, z) : y) - bb2.min.y, z);
-        m.rotation.y = ry;
-        scene.add(m);
-        return m;
+        const c = bb2.getCenter(new THREE.Vector3());
+        const wrap = new THREE.Group();
+        m.position.set(-c.x, -bb2.min.y, -c.z);
+        wrap.add(m);
+        wrap.position.set(x, (y == null ? groundHeight(x, z) : y), z);
+        wrap.rotation.y = ry;
+        scene.add(wrap);
+        return wrap;
     }).catch(e => console.warn('model failed:', name, e && e.message));
     if (collide) addCircle(x, z, collide);
     return p;
@@ -846,20 +853,29 @@ const HERD_KEYS = ['alpaca', 'bull', 'frog'];
 const animals = [];
 function placeAnimal(name, x, z, { h = 2, r = 7, speed = 1.1 } = {}) {
     loadModel(name).then(g => {
-        const m = g.scene.clone(true);
-        const bb = new THREE.Box3().setFromObject(m);
+        const inner = g.scene.clone(true);
+        const bb = new THREE.Box3().setFromObject(inner);
         const size = bb.getSize(new THREE.Vector3());
-        m.scale.setScalar(h / size.y);
-        const bb2 = new THREE.Box3().setFromObject(m);
-        m.position.set(x, -bb2.min.y, z);
+        inner.scale.setScalar(h / size.y);
+        const bb2 = new THREE.Box3().setFromObject(inner);
+        const c = bb2.getCenter(new THREE.Vector3());
+        const m = new THREE.Group();
+        inner.position.set(-c.x, -bb2.min.y, -c.z);
+        m.add(inner);
+        m.position.set(x, 0, z);
         scene.add(m);
         let mixer = null;
         if (g.animations && g.animations.length) {
-            mixer = new THREE.AnimationMixer(m);
-            const idle = g.animations.find(c => /idle|walk/i.test(c.name)) || g.animations[0];
-            mixer.clipAction(idle).play();
+            mixer = new THREE.AnimationMixer(inner);
+            const src = g.animations.find(c => /idle|walk/i.test(c.name)) || g.animations[0];
+            // strip translation tracks: some clips carry root motion that
+            // drags the mesh to the world origin (limbs animate via rotation)
+            const clip = src.clone();
+            clip.tracks = clip.tracks.filter(tr => !tr.name.endsWith('.position'));
+            if (clip.tracks.length) mixer.clipAction(clip).play();
+            else mixer = null;
         }
-        const a = { key: name.replace('.glb', ''), obj: m, mixer, home: { x, z }, r, speed, tx: x, tz: z, wait: Math.random() * 4, herd: false, penned: false, baseY: -bb2.min.y };
+        const a = { key: name.replace('.glb', ''), obj: m, mixer, home: { x, z }, r, speed, tx: x, tz: z, wait: Math.random() * 4, herd: false, penned: false, baseY: 0 };
         animals.push(a);
         if (save.ch1.step === 3 && HERD_KEYS.includes(a.key) && !save.ch1.sub.herded) scatterOne(a);
     }).catch(() => {});
@@ -1786,6 +1802,23 @@ updateHud();
 
 // debug hooks for automated testing
 window.__game = {
+    meshDump(cx, cz, r) {
+        const out = [];
+        scene.traverse(o => {
+            if (!o.isMesh && !o.isSkinnedMesh) return;
+            const bb = new THREE.Box3().setFromObject(o);
+            if (bb.isEmpty()) return;
+            const c = bb.getCenter(new THREE.Vector3());
+            if (Math.hypot(c.x - cx, c.z - cz) > r) return;
+            let root = o;
+            while (root.parent && root.parent !== scene) root = root.parent;
+            const sz = bb.getSize(new THREE.Vector3());
+            out.push({ mesh: o.name || o.type, root: root.name || root.type, skinned: !!o.isSkinnedMesh,
+                       cx: +c.x.toFixed(1), cy: +c.y.toFixed(1), cz: +c.z.toFixed(1), h: +sz.y.toFixed(1),
+                       rootPos: [+root.position.x.toFixed(1), +root.position.z.toFixed(1)] });
+        });
+        return out;
+    },
     sceneDump(cx, cz, r) {
         const out = [];
         for (const o of scene.children) {
