@@ -452,6 +452,9 @@ function loadModel(name) {
     }
     return modelCache.get(name);
 }
+// Models are wrapped in a container group and re-centred on their own
+// bounding box — several source GLBs were exported off-centre, which
+// otherwise renders them far from where they are placed.
 function placeModel(name, x, z, { h = 2, ry = 0, y = null, collide = 0, marble = false } = {}) {
     const p = loadModel(name).then(g => {
         const m = g.scene.clone(true);
@@ -463,10 +466,14 @@ function placeModel(name, x, z, { h = 2, ry = 0, y = null, collide = 0, marble =
         const size = bb.getSize(new THREE.Vector3());
         m.scale.setScalar(h / size.y);
         const bb2 = new THREE.Box3().setFromObject(m);
-        m.position.set(x, (y == null ? groundHeight(x, z) : y) - bb2.min.y, z);
-        m.rotation.y = ry;
-        scene.add(m);
-        return m;
+        const c = bb2.getCenter(new THREE.Vector3());
+        const wrap = new THREE.Group();
+        m.position.set(-c.x, -bb2.min.y, -c.z);
+        wrap.add(m);
+        wrap.position.set(x, (y == null ? groundHeight(x, z) : y), z);
+        wrap.rotation.y = ry;
+        scene.add(wrap);
+        return wrap;
     }).catch(e => console.warn('model failed:', name, e && e.message));
     if (collide) addCircle(x, z, collide);
     return p;
@@ -585,6 +592,92 @@ placeModel('rock_2.glb', 33, -16, { h: 1.4, ry: 2.1, collide: 1.2 });
         addBox(34.7, rz - 0.3, 45.3, rz + 0.3);
     }
 }
+
+// ---------- The Bay of Naples: Vesuvius and the sea ----------
+// The mountain smokes quietly on the horizon (it is AD 78, after all)
+const smokePuffs = [];
+{
+    const mons = new THREE.Mesh(new THREE.ConeGeometry(58, 62, 9), flat(0x6e7488, 1));
+    mons.position.set(48, 0, -115);
+    scene.add(mons);
+    const monsFoot = new THREE.Mesh(new THREE.ConeGeometry(98, 26, 9), flat(0x7c8294, 1));
+    monsFoot.position.set(48, 0, -112);
+    scene.add(monsFoot);
+    for (let i = 0; i < 4; i++) {
+        const puff = new THREE.Mesh(new THREE.SphereGeometry(4.5 + i * 2.2, 8, 6),
+            new THREE.MeshBasicMaterial({ color: 0xb8bcc8, transparent: true, opacity: 0.5 - i * 0.08, fog: false }));
+        puff.position.set(48 + i * 4, 64 + i * 7, -115);
+        scene.add(puff);
+        smokePuffs.push({ obj: puff, base: 64 + i * 7, ph: i * 1.7 });
+    }
+    // the sea, far to the east beyond the river
+    const sea = new THREE.Mesh(new THREE.PlaneGeometry(420, 480), new THREE.MeshStandardMaterial({
+        color: 0x3e7fc4, roughness: 0.3,
+    }));
+    sea.rotation.x = -Math.PI / 2;
+    sea.position.set(300, 0.5, 4);
+    scene.add(sea);
+}
+
+// ---------- A denser town: more houses, clutter, life ----------
+romanBuilding(-36, 12, 1.1, { w: 8, d: 6, h: 4.2, wall: 0xe3d3b4 });
+romanBuilding(12, -36, 0.1, { w: 9, d: 6.5, h: 4.4, wall: 0xead9b8 });
+romanBuilding(-12, -36, -0.15, { w: 8, d: 6, h: 4.2, wall: 0xddc9a8, awning: 0x3e7d8c });
+romanBuilding(33, 20, -0.9, { w: 8.5, d: 6.5, h: 4.3, wall: 0xe8dcc0 });
+romanBuilding(8, 34, 0.3, { w: 8, d: 6, h: 4.0, wall: 0xe3d3b4, awning: 0x7a9c4f });
+
+// amphorae (tall two-handled jars), benches, a laundry line
+function amphora(x, z, s = 1) {
+    const g = new THREE.Group();
+    g.position.set(x, 0, z);
+    g.scale.setScalar(s);
+    scene.add(g);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 9), flat(0xb5703c, 0.85));
+    body.position.y = 0.62; body.scale.y = 1.5; body.castShadow = true;
+    g.add(body);
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.24, 0.4, 8), flat(0xa3622f, 0.85));
+    neck.position.y = 1.35;
+    g.add(neck);
+    addCircle(x, z, 0.5 * s);
+}
+amphora(-15.6, 11.2); amphora(-14.8, 12.1, 0.85); amphora(12.2, 11.4); amphora(26.8, 4.2, 0.9);
+amphora(-2.2, -12.6, 0.9); amphora(2.2, -12.6, 0.9);
+function bench(x, z, ry) {
+    const g = new THREE.Group();
+    g.position.set(x, 0, z); g.rotation.y = ry;
+    scene.add(g);
+    box3(2.4, 0.16, 0.8, flat(0xd8d2c4, 0.8), 0, 0.55, 0, g);
+    box3(0.5, 0.5, 0.6, flat(0xc9c2b0, 0.8), -0.85, 0.27, 0, g);
+    box3(0.5, 0.5, 0.6, flat(0xc9c2b0, 0.8), 0.85, 0.27, 0, g);
+    addCircle(x, z, 1.1);
+}
+bench(-6.5, 0, 0.5); bench(13.2, 0.5, -0.6); bench(2, 12.8, 0);
+{   // laundry line behind the bakery
+    const p1 = [-27.5, 11.5], p2 = [-20.5, 13.5];
+    box3(0.12, 2.6, 0.12, flat(0x7c5430, 0.9), p1[0], 1.3, p1[1]);
+    box3(0.12, 2.6, 0.12, flat(0x7c5430, 0.9), p2[0], 1.3, p2[1]);
+    const colors = [0xc94f3d, 0xe8e0d0, 0x7a9c4f, 0x5e7ba0];
+    for (let i = 0; i < 4; i++) {
+        const f = 0.15 + i * 0.23;
+        const cloth = box3(1.1, 0.9, 0.04, flat(colors[i], 0.95),
+            p1[0] + (p2[0] - p1[0]) * f, 1.9, p1[1] + (p2[1] - p1[1]) * f);
+        cloth.rotation.y = Math.atan2(p2[0] - p1[0], p2[1] - p1[1]) + Math.PI / 2;
+    }
+}
+
+// villagers and children strolling about
+const wanderers = [];
+function villager(cfg, x, z, r, speed, scale = 1) {
+    const obj = makeRoman(cfg);
+    obj.scale.setScalar(scale);
+    obj.position.set(x, 0, z);
+    scene.add(obj);
+    wanderers.push({ obj, home: { x, z }, r, speed, tx: x, tz: z, wait: Math.random() * 4, walkT: Math.random() * 7, scale });
+}
+villager({ tunic: 0x8aa0b8, trim: 0x5e7488, hair: 0x2e2018, skin: 0xd9a06b, acc: 'none' }, -4, 5, 9, 1.6);
+villager({ tunic: 0xc9b27a, trim: 0x9c8650, hair: 0x6e5538, skin: 0xe8b48a, acc: 'long' }, 8, 7, 9, 1.4);
+villager({ tunic: 0xa0b88a, trim: 0x748858, hair: 0x4a3220, skin: 0xe0a878, acc: 'none' }, -3, 13, 7, 2.6, 0.62);
+villager({ tunic: 0xb88aa0, trim: 0x885e74, hair: 0x2e2018, skin: 0xe8b48a, acc: 'long' }, 4, 14, 7, 2.8, 0.58);
 
 // ---------- World labels (ambient Lexicon) ----------
 const LABELS = [
@@ -760,20 +853,29 @@ const HERD_KEYS = ['alpaca', 'bull', 'frog'];
 const animals = [];
 function placeAnimal(name, x, z, { h = 2, r = 7, speed = 1.1 } = {}) {
     loadModel(name).then(g => {
-        const m = g.scene.clone(true);
-        const bb = new THREE.Box3().setFromObject(m);
+        const inner = g.scene.clone(true);
+        const bb = new THREE.Box3().setFromObject(inner);
         const size = bb.getSize(new THREE.Vector3());
-        m.scale.setScalar(h / size.y);
-        const bb2 = new THREE.Box3().setFromObject(m);
-        m.position.set(x, -bb2.min.y, z);
+        inner.scale.setScalar(h / size.y);
+        const bb2 = new THREE.Box3().setFromObject(inner);
+        const c = bb2.getCenter(new THREE.Vector3());
+        const m = new THREE.Group();
+        inner.position.set(-c.x, -bb2.min.y, -c.z);
+        m.add(inner);
+        m.position.set(x, 0, z);
         scene.add(m);
         let mixer = null;
         if (g.animations && g.animations.length) {
-            mixer = new THREE.AnimationMixer(m);
-            const idle = g.animations.find(c => /idle|walk/i.test(c.name)) || g.animations[0];
-            mixer.clipAction(idle).play();
+            mixer = new THREE.AnimationMixer(inner);
+            const src = g.animations.find(c => /idle|walk/i.test(c.name)) || g.animations[0];
+            // strip translation tracks: some clips carry root motion that
+            // drags the mesh to the world origin (limbs animate via rotation)
+            const clip = src.clone();
+            clip.tracks = clip.tracks.filter(tr => !tr.name.endsWith('.position'));
+            if (clip.tracks.length) mixer.clipAction(clip).play();
+            else mixer = null;
         }
-        const a = { key: name.replace('.glb', ''), obj: m, mixer, home: { x, z }, r, speed, tx: x, tz: z, wait: Math.random() * 4, herd: false, penned: false, baseY: -bb2.min.y };
+        const a = { key: name.replace('.glb', ''), obj: m, mixer, home: { x, z }, r, speed, tx: x, tz: z, wait: Math.random() * 4, herd: false, penned: false, baseY: 0 };
         animals.push(a);
         if (save.ch1.step === 3 && HERD_KEYS.includes(a.key) && !save.ch1.sub.herded) scatterOne(a);
     }).catch(() => {});
@@ -965,11 +1067,19 @@ function hideScroll() { if (scrollEl) scrollEl.classList.remove('open'); }
 if (scrollEl) scrollEl.querySelector('.scroll-close').addEventListener('click', hideScroll);
 if (bannerScroll) bannerScroll.addEventListener('click', showScroll);
 
+const INTERLUDES = {
+    2: '💭 Food first, mystery later. Your stomach agrees loudly.',
+    3: '💭 The bread was the best you\'ve ever tasted. You\'re starting to feel less like a ghost here.',
+    4: '💭 The whole town seems to know about you already. A boy points at your amulet and whispers.',
+    5: '💭 AD 78. The number sits in your stomach like a stone. Why does that mountain look familiar…?',
+    6: '💭 The sun is sinking behind Vesuvius. Time to meet someone who "sees through time".',
+};
 function setStep(n) {
     CH1.step = n;
     persist();
     updateHud();
     applyStep();
+    if (INTERLUDES[n]) setTimeout(() => toast(INTERLUDES[n], 5200), 900);
 }
 function objective(text, showScrollBtn) {
     if (bannerText) bannerText.innerHTML = text;
@@ -1065,13 +1175,45 @@ function scatterAnimals() {
     for (const a of animals) if (HERD_KEYS.includes(a.key)) scatterOne(a);
 }
 function pennedCount() { return animals.filter(a => a.herd && a.penned).length; }
+function followingCount() { return animals.filter(a => a.following).length; }
 function herdObjective() {
     if (CH1.sub.herded || pennedCount() >= 3) {
         objective('🐑 All the animals are home — tell <b>Marcus</b>!');
         setBeacons([[npcById.get('marcus').x, npcById.get('marcus').z]]);
-    } else {
-        objective(`🐑 Shoo Marcus' runaway animals into the farm pen: <b>${pennedCount()}</b>/3 (walk up behind them!)`);
+    } else if (!CH1.sub.feed) {
+        objective('🐑 Talk to <b>Marcus</b> about his runaway animals');
+        setBeacons([[npcById.get('marcus').x, npcById.get('marcus').z]]);
+    } else if (followingCount() > 0) {
+        objective(`🐑 They're following you! Lead them to the farm pen — <b>${pennedCount()}</b>/3 home`);
         setBeacons([[(PEN.x1 + PEN.x2) / 2, (PEN.z1 + PEN.z2) / 2]]);
+    } else {
+        objective(`🐑 Offer food to the runaways (walk up & press E): <b>${pennedCount()}</b>/3 home`);
+        setBeacons(animals.filter(a => a.herd && !a.penned).map(a => [a.obj.position.x, a.obj.position.z]));
+    }
+}
+// feeding interactables: one per runaway animal (positions sync each frame)
+for (const key of HERD_KEYS) {
+    addInteract('feed_' + key, 0, 0, 'Offer food to the ' + (key === 'bull' ? 'bos' : key === 'frog' ? 'rana' : 'alpaca'), 2.8,
+        () => {
+            if (CH1.step !== 3 || !CH1.sub.feed) return false;
+            const a = animals.find(an => an.key === key);
+            return !!a && a.herd && !a.penned && !a.following;
+        },
+        () => {
+            const a = animals.find(an => an.key === key);
+            if (!a) return;
+            a.following = true;
+            sfx.yes();
+            const nm = key === 'bull' ? 'bos' : key === 'frog' ? 'rana' : 'alpaca';
+            toast(`🥕 The <b>${nm}</b> sniffs the feed… and trots after you! Lead it to the pen.`);
+            herdObjective();
+        });
+}
+function syncFeedInteracts() {
+    for (const it of interactables) {
+        if (!it.id.startsWith('feed_')) continue;
+        const a = animals.find(an => 'feed_' + an.key === it.id);
+        if (a) { it.x = a.obj.position.x; it.z = a.obj.position.z; }
     }
 }
 
@@ -1175,9 +1317,10 @@ function finaleSibyl() {
     setBeacons([]);
     setTimeout(() => {
         document.getElementById('victory-text').innerHTML =
-            `You know <b>where</b> you are: Parva Roma, a little town of the Roman empire. You know <b>when</b>: ` +
-            `the ninth year of Emperor Vespasian. And now you know the <b>way home</b>: the Sibyl's prophecy — ` +
-            `<em>"learn this world's words, chapter by chapter, and the mists will open."</em>` +
+            `You know <b>where</b> you are: Parva Roma, in the shadow of Vesuvius. You know <b>when</b>: ` +
+            `the ninth year of Vespasian — AD 78. You know your amulet was made <em>here</em>, in a year yet to come, ` +
+            `and that someone <b>brought you</b> across the centuries on purpose. And you know the way home: ` +
+            `<em>"learn this world's words, chapter by chapter, and the mists will open."</em> The Sibyl has seen fire on the mountain…` +
             `<br><br>📖 Words discovered: <b>${save.lexicon.length}/${LABELS.length}</b> · ⚡ XP: <b>${save.xp}</b>` +
             `<br><br><em>finis capituli primi</em> — Chapter II is coming soon.`;
         document.getElementById('victory').classList.add('open');
@@ -1190,7 +1333,7 @@ function npcTalk(npc) {
     switch (npc.id) {
         case 'titus':
             if (s <= 1) {
-                say(npc, 'By Jupiter — what <em>are</em> you wearing?! …Forgive me. salve, stranger. You look as lost as a fish in the forum. Strange — your words are foreign, yet somehow I understand you, and you me. The gods are at work here.<br><br>You need food, clothes, and answers, in that order. <b>Livia</b> at the bakery will feed you — if you make yourself useful. Off you go — follow the golden light!', 'Er… salve?', () => {
+                say(npc, 'By Jupiter — what <em>are</em> you wearing?! …Forgive me. salve, stranger. You look as lost as a fish in the forum. Strange — your words are foreign, yet somehow I understand you, and you me. The gods are at work here.<br><br>…And what is <em>that</em> in your hand? A bronze <b>amulet</b> — old workmanship. <em>Very</em> old. Hm. Keep it close and show it to no fool.<br><br>You need food, clothes, and answers, in that order. <b>Livia</b> at the bakery will feed you — if you make yourself useful. Off you go — follow the golden light!', 'Er… salve?', () => {
                     sessionStart();
                     setStep(2);
                 });
@@ -1199,7 +1342,7 @@ function npcTalk(npc) {
         case 'livia':
             if (s === 2) {
                 if (liviaNeedsLeft().length === 0) {
-                    say(npc, 'aqua, cibus, vinum — <b>perfectum!</b> Here — warm bread, and take this <b>tunic</b>. You can\'t walk around Parva Roma dressed like… whatever that is.<br><br>Now, if you want to know <em>where</em> you\'ve washed up — help <b>Marcus</b> first. His animals have bolted and he\'s in no state to answer anything.', 'A tunic! Thank you!', () => {
+                    say(npc, 'aqua, cibus, vinum — <b>perfectum!</b> Here — warm bread, and take this <b>tunic</b>. You can\'t walk around Parva Roma dressed like… whatever that is.<br><br>My husband would have liked you — he sails out of <b>Pompeii</b>, the great port south of the mountain. Three weeks gone, this time…<br><br>Now — if you want to know <em>where</em> you\'ve washed up, help <b>Marcus</b> first. His animals have bolted and he\'s in no state to answer anything.', 'A tunic! Thank you!', () => {
                         CH1.sub.tunic = true;
                         persist();
                         setOutfit('roman');
@@ -1217,15 +1360,22 @@ function npcTalk(npc) {
                     CH1.sub.herded = true;
                     persist();
                     say(npc, 'optime! alpaca, bos, rana — all home. You\'ve a farmer\'s patience, stranger. You want to know <em>when</em> you are? Pah — ask <b>Magistra Gaia</b> at the school. She reads. She <em>counts</em>. She\'ll know to the very day.', 'To the school!', () => setStep(4));
+                } else if (!CH1.sub.feed) {
+                    say(npc, 'di immortales! The gate blew open and my animals are loose — the alpaca\'s in the forum, the <em>bos</em> wandered toward the bridge, and the <em>rana</em>… somewhere damp, knowing him.<br><br>Here — take this <b>basket of feed</b>. Offer them a handful and they\'ll follow you anywhere. Lead them home to my pen!', 'Take the basket', () => {
+                        CH1.sub.feed = true;
+                        persist();
+                        toast('🥕 You\'re carrying Marcus\' feed basket. The animals will follow whoever feeds them!');
+                        herdObjective();
+                    });
                 } else {
-                    say(npc, 'di immortales! The gate blew open and my animals are loose — the alpaca\'s in the forum, the <em>bos</em> wandered toward the bridge, and the <em>rana</em>… somewhere damp, knowing him. Walk up <b>behind them</b> and shoo them home into my pen, would you?', 'I\'ll round them up');
+                    say(npc, 'Found them yet? A handful of feed and they\'ll trail you like ducklings. The <em>rana</em> too — he\'s greedier than the bos.', 'On it!');
                 }
             } else say(npc, s < 3 ? 'These fields won\'t plough themselves…' : 'The animals like you. Animals know.');
             break;
         case 'gaia':
             if (s === 4) {
                 if (pagesGot() >= 3) {
-                    say(npc, 'My calendar pages! gratias. Now, let me see… by the consuls, this is the <b>ninth year of Emperor Vespasian</b>. You\'ve gone pale — sit down! Whatever year you came from, you\'re in <em>ours</em> now.<br><br>As for <em>where</em> — talk to <b>Quintus</b> by the bridge. He\'s travelled everywhere… though he\'s just lost half his cargo, so bring patience.', 'The year 78?!', () => setStep(5));
+                    say(npc, 'My calendar pages! gratias. Now, let me see… by the consuls, this is the <b>ninth year of Emperor Vespasian</b>. You\'ve gone pale — sit down! Whatever year you came from, you\'re in <em>ours</em> now.<br><br>…Why do you keep staring at the mountain? It\'s only <b>Vesuvius</b>. It\'s always smoked a little.<br><br>As for <em>where</em> — talk to <b>Quintus</b> by the bridge. He\'s travelled everywhere… though he\'s just lost half his cargo, so bring patience.', 'The year 78?!', () => setStep(5));
                 } else if (CH1.sub.pages) {
                     say(npc, 'The wind took them toward the forum — three pages! My calendar is useless without them.', 'Chasing paper!');
                 } else {
@@ -1270,7 +1420,7 @@ function npcTalk(npc) {
             break;
         case 'sibyl':
             if (s === 6 && nightFx.visible) {
-                say(npc, 'I have watched you in the smoke, child of a far tomorrow. You fell through time as a leaf falls through branches.<br><br>Hear the prophecy: <em>the road home is built of words</em>. Learn this world\'s tongue — its names, its voices, <b>chapter by chapter</b> — and when the last word is yours, the mists will open.<br><br>Tonight, rest. You have made a whole town of friends in a single day.', 'finis capituli primi', () => finaleSibyl());
+                say(npc, 'I have watched you in the smoke, child of a far tomorrow. You fell through time as a leaf falls through branches.<br><br>Show me your hand. <em>Yes.</em> That amulet was struck <b>in this very town</b>, in a year that has not yet come. Do you understand? You did not fall — you were <b>brought</b>. And whoever reached across the years to fetch you paid dearly for it.<br><br>Hear the prophecy: <em>the road home is built of words</em>. Learn this world\'s tongue, <b>chapter by chapter</b>, and the mists will open. And child — learn quickly. <b>I have seen fire on the mountain.</b><br><br>Tonight, rest. You have made a whole town of friends in a single day.', 'finis capituli primi', () => finaleSibyl());
             } else if (save.ch1.done) {
                 say(npc, 'Rest, time-walker. The second chapter of your road is already being written…');
             } else {
@@ -1302,7 +1452,7 @@ function applyStep() {
         setBeacons([[npcById.get('titus').x, npcById.get('titus').z]]);
         npcMark('titus');
         if (s === 0) {
-            setTimeout(() => toast('💫 One minute you were on a school trip… now: birdsong, sandals, and a very large temple.', 5600), 1200);
+            setTimeout(() => toast('💫 One minute you were reaching toward a bronze amulet in a museum case… a flash of light — and now: birdsong, sandals, and a very large temple. The amulet is still warm in your hand.', 6500), 1200);
             CH1.step = 1;
             persist();
         }
@@ -1520,8 +1670,8 @@ function update(dt, t) {
 
     camX += (player.x - camX) * Math.min(1, dt * 3);
     camZ += (player.z - camZ) * Math.min(1, dt * 3);
-    camera.position.set(camX, py + 11.5, camZ + 13.5);
-    camTarget.set(camX, py + 1.6, camZ - 2.5);
+    camera.position.set(camX, py + 9.5, camZ + 12.5);
+    camTarget.set(camX, py + 3.2, camZ - 7);
     camera.lookAt(camTarget);
 
     for (const n of npcs) {
@@ -1552,29 +1702,33 @@ function update(dt, t) {
     for (const a of animals) {
         if (a.mixer) a.mixer.update(dt);
         const px = a.obj.position.x, pz = a.obj.position.z;
-        if (a.herd && !a.penned && CH1.step === 3) {
-            const dpx = px - player.x, dpz = pz - player.z;
-            const dp = Math.hypot(dpx, dpz);
-            if (dp < 5.5 && dp > 0.01) {
-                let nx = px + (dpx / dp) * 3.6 * dt;
-                let nz = pz + (dpz / dp) * 3.6 * dt;
-                nx = Math.max(BOUNDS.x1 + 2, Math.min(BOUNDS.x2 - 2, nx));
-                nz = Math.max(BOUNDS.z1 + 2, Math.min(BOUNDS.z2 - 2, nz));
-                if (!(nx > 35 && nx < 45 && (nz < 1 || nz > 8))) {
-                    a.obj.position.x = nx;
-                    a.obj.position.z = nz;
-                }
-                a.obj.rotation.y = Math.atan2(dpx, dpz);
+        if (a.following && !a.penned && CH1.step === 3) {
+            // trail behind the player in a little parade
+            const idx = animals.filter(an => an.following && !an.penned).indexOf(a);
+            const trail = 2.2 + idx * 1.6;
+            const tx2 = player.x - Math.sin(player.ry) * trail;
+            const tz2 = player.z - Math.cos(player.ry) * trail;
+            const dxf = tx2 - px, dzf = tz2 - pz;
+            const df = Math.hypot(dxf, dzf);
+            if (df > 0.4) {
+                const sp3 = Math.min(8.5, 2.5 + df * 1.6);
+                a.obj.position.x += dxf / df * sp3 * dt;
+                a.obj.position.z += dzf / df * sp3 * dt;
+                a.obj.rotation.y = Math.atan2(dxf, dzf);
             }
-            if (px > PEN.x1 && px < PEN.x2 && pz > PEN.z1 && pz < PEN.z2) {
+            const ax = a.obj.position.x, az = a.obj.position.z;
+            const playerInPen = player.x > PEN.x1 && player.x < PEN.x2 && player.z > PEN.z1 && player.z < PEN.z2;
+            const animalInPen = ax > PEN.x1 && ax < PEN.x2 && az > PEN.z1 && az < PEN.z2;
+            if (animalInPen || (playerInPen && df < 4.5)) {
                 a.penned = true;
-                a.home = { x: px, z: pz };
+                a.following = false;
+                a.home = { x: ax, z: az };
                 a.r = 2.5;
                 sfx.yes();
                 toast(`🐾 <b>${a.key === 'bull' ? 'bos' : a.key === 'frog' ? 'rana' : 'alpaca'}</b> is home! ${pennedCount()}/3`);
                 herdObjective();
             }
-        } else {
+        } else if (!(a.herd && !a.penned && CH1.step === 3)) {
             a.wait -= dt;
             const dxa = a.tx - px, dza = a.tz - pz;
             const da = Math.hypot(dxa, dza);
@@ -1591,6 +1745,31 @@ function update(dt, t) {
         }
     }
 
+    // strolling villagers & children
+    for (const wv of wanderers) {
+        wv.wait -= dt;
+        const dxw = wv.tx - wv.obj.position.x, dzw = wv.tz - wv.obj.position.z;
+        const dw = Math.hypot(dxw, dzw);
+        if (dw > 0.4) {
+            wv.obj.position.x += dxw / dw * wv.speed * dt;
+            wv.obj.position.z += dzw / dw * wv.speed * dt;
+            wv.obj.rotation.y = Math.atan2(dxw, dzw);
+            wv.walkT += dt * 11;
+            wv.obj.position.y = Math.abs(Math.sin(wv.walkT)) * 0.1 * wv.scale;
+        } else if (wv.wait <= 0) {
+            const ang = Math.random() * Math.PI * 2;
+            wv.tx = wv.home.x + Math.cos(ang) * Math.random() * wv.r;
+            wv.tz = wv.home.z + Math.sin(ang) * Math.random() * wv.r;
+            wv.wait = 1.5 + Math.random() * 5;
+        }
+    }
+    // Vesuvius smoke drifts
+    for (const sp2 of smokePuffs) {
+        sp2.ph += dt * 0.4;
+        sp2.obj.position.y = sp2.base + Math.sin(sp2.ph) * 2.5;
+        sp2.obj.position.x = 48 + (sp2.base - 64) * 0.6 + Math.sin(sp2.ph * 0.7) * 3;
+    }
+
     const night = skyCurrent > 1.3;
     for (const b of butterflies) {
         b.obj.visible = !night;
@@ -1605,6 +1784,7 @@ function update(dt, t) {
 
     beaconMat.opacity = 0.2 + Math.sin(t * 3) * 0.1;
     sparkleTick(t);
+    syncFeedInteracts();
     checkLabels();
 }
 
@@ -1622,6 +1802,23 @@ updateHud();
 
 // debug hooks for automated testing
 window.__game = {
+    meshDump(cx, cz, r) {
+        const out = [];
+        scene.traverse(o => {
+            if (!o.isMesh && !o.isSkinnedMesh) return;
+            const bb = new THREE.Box3().setFromObject(o);
+            if (bb.isEmpty()) return;
+            const c = bb.getCenter(new THREE.Vector3());
+            if (Math.hypot(c.x - cx, c.z - cz) > r) return;
+            let root = o;
+            while (root.parent && root.parent !== scene) root = root.parent;
+            const sz = bb.getSize(new THREE.Vector3());
+            out.push({ mesh: o.name || o.type, root: root.name || root.type, skinned: !!o.isSkinnedMesh,
+                       cx: +c.x.toFixed(1), cy: +c.y.toFixed(1), cz: +c.z.toFixed(1), h: +sz.y.toFixed(1),
+                       rootPos: [+root.position.x.toFixed(1), +root.position.z.toFixed(1)] });
+        });
+        return out;
+    },
     sceneDump(cx, cz, r) {
         const out = [];
         for (const o of scene.children) {
