@@ -88,6 +88,7 @@
 /* game-mode projection (reuses .lb-* row styles) */
 #gameView { position: fixed; inset: 0; z-index: 600; background: radial-gradient(circle at 50% -10%, #1b3160, var(--navy) 60%); color: #fff; display: none; flex-direction: column; }
 #gameView.open { display: flex; }
+#gameView > .lb-top, #gameView > .gv-join, #gameView > .lb-list { position: relative; z-index: 1; }
 #gameView .lb-title { color: #ffd766; }
 .gv-join { padding: 10px 34px; font-size: 16px; color: #cfe0ff; }
 .gv-join b { color: #ffd766; }
@@ -163,12 +164,15 @@
 
 <!-- GAME MODE PROJECTION -->
 <div id="gameView">
+  <canvas class="lb-sky" id="gvSky"></canvas>
   <div class="lb-top">
     <div>
       <div class="lb-title">🎮 Gold Rush</div>
       <div class="lb-sub" id="gvSub"></div>
     </div>
     <div class="lb-controls">
+      <button class="lb-btn" id="gvMusicBtn" type="button" title="Background lo-fi music">♪ Music: off</button>
+      <input type="range" class="lb-vol" id="gvMusicVol" min="0" max="1" step="0.05" value="0.5" title="Music volume" aria-label="Music volume">
       <button class="lb-btn" id="gvExit" type="button">Exit</button>
     </div>
   </div>
@@ -184,6 +188,7 @@ const sb = window.supabase;
 let classes = [], currentClassIdx = 0, activeClass = null, myId = null;
 let doNowPoll = null, doNowChannel = null, doNowDebounce = null;
 let dngChannel = null;   // game-mode leaderboard realtime channel
+let dngPoll = null;      // game-mode leaderboard polling fallback
 let gameViewOpen = false, gvClass = null;
 let classViewOpen = false, lbRows = new Map(), lbClass = null, lbSky = null;
 let lbSort = 'correct';   // 'correct' (most correct) or 'accuracy' (highest %)
@@ -472,23 +477,39 @@ function mountGamePanel(cls){
   document.getElementById('dngProject').addEventListener('click', () => openGameProjection(cls));
 }
 
+let gvSky = null;
 function openGameProjection(cls){
   gvClass = cls; gameViewOpen = true;
   document.getElementById('gvSub').textContent = cls.name || '';
   const url = location.origin + '/version2/tools/game/gold-rush.html';
   document.getElementById('gvJoin').innerHTML = 'Join at <b>' + escapeHtml(url) + '</b>';
   document.getElementById('gameView').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  drawGameSky();
+  DoNowMusic.onOpen();   // resume music if the teacher had it on
   startGameBoard(cls);   // ensure realtime + initial load
   loadGameBoard(cls);
 }
-function closeGameProjection(){ gameViewOpen = false; document.getElementById('gameView').classList.remove('open'); }
+function drawGameSky(){
+  const c = document.getElementById('gvSky');
+  if (!c || !window.Starfield) return;
+  if (!gvSky) gvSky = Starfield.create(c, { seed: 918, nodeRegion: 0.9 });
+  else gvSky.resize();
+}
+window.addEventListener('resize', () => { if (gameViewOpen) drawGameSky(); });
+function closeGameProjection(){
+  gameViewOpen = false;
+  document.getElementById('gameView').classList.remove('open');
+  document.body.style.overflow = '';
+  DoNowMusic.pause();
+}
 document.getElementById('gvExit').addEventListener('click', closeGameProjection);
 
 function setGameStatus(live){
   const s = document.getElementById('dngStatus');
   if (!s) return;
   if (live) { s.textContent = '● Live'; s.style.color = '#059669'; }
-  else { s.textContent = 'Not running'; s.style.color = 'var(--muted)'; if (dngChannel) { try { sb.removeChannel(dngChannel); } catch (_e) {} dngChannel = null; } renderGameBoard([]); }
+  else { s.textContent = 'Not running'; s.style.color = 'var(--muted)'; if (dngChannel) { try { sb.removeChannel(dngChannel); } catch (_e) {} dngChannel = null; } if (dngPoll) { clearInterval(dngPoll); dngPoll = null; } renderGameBoard([]); }
 }
 
 async function loadGameBoard(cls){
@@ -519,6 +540,11 @@ function renderGameBoard(rows){
 }
 function startGameBoard(cls){
   loadGameBoard(cls);
+  // Poll as well as subscribe — realtime needs the table in the
+  // supabase_realtime publication, so polling guarantees a live-feeling board
+  // even if that isn't set up.
+  if (dngPoll) clearInterval(dngPoll);
+  dngPoll = setInterval(() => loadGameBoard(cls), 4000);
   if (dngChannel) return;
   try {
     dngChannel = sb.channel('dng-' + cls.id)
@@ -790,9 +816,11 @@ window.addEventListener('focus', () => { if (activeClass) refreshDoNow(activeCla
 // opened the class view; if that's blocked the button just shows "off".
 const DoNowMusic = (function () {
   const audio = document.getElementById('lbMusic');
-  const btn   = document.getElementById('lbMusicBtn');
-  const vol   = document.getElementById('lbMusicVol');
-  if (!audio || !btn || !vol) return { onOpen(){}, pause(){} };
+  // The class view and the game projection each have their own button + slider;
+  // drive both so music works from whichever view is open.
+  const btns = ['lbMusicBtn', 'gvMusicBtn'].map(id => document.getElementById(id)).filter(Boolean);
+  const vols = ['lbMusicVol', 'gvMusicVol'].map(id => document.getElementById(id)).filter(Boolean);
+  if (!audio || !btns.length || !vols.length) return { onOpen(){}, pause(){} };
 
   const BASE = '/version2/assets/audio/';
   let playlist = [];     // resolved track URLs
@@ -807,13 +835,12 @@ const DoNowMusic = (function () {
   let savedVol = parseFloat(localStorage.getItem('classicalia.donow.musicVol'));
   if (isNaN(savedVol)) savedVol = 0.5;
   audio.volume = savedVol;
-  vol.value = String(savedVol);
+  vols.forEach(v => v.value = String(savedVol));
 
-  function hideControls() { btn.style.display = 'none'; vol.style.display = 'none'; }
+  function hideControls() { btns.forEach(b => b.style.display = 'none'); vols.forEach(v => v.style.display = 'none'); }
   function setLabel() {
     const on = !audio.paused;
-    btn.textContent = '♪ Music: ' + (on ? 'on' : 'off');
-    btn.classList.toggle('is-on', on);
+    btns.forEach(b => { b.textContent = '♪ Music: ' + (on ? 'on' : 'off'); b.classList.toggle('is-on', on); });
   }
 
   function shuffle(n) {
@@ -852,18 +879,19 @@ const DoNowMusic = (function () {
     if (intendPlay) tryPlay();
   });
 
-  btn.addEventListener('click', () => {
+  btns.forEach(btn => btn.addEventListener('click', () => {
     if (audio.paused) {
       wantOn = true; localStorage.setItem('classicalia.donow.music', 'on'); play();
     } else {
       wantOn = false; localStorage.setItem('classicalia.donow.music', 'off'); stop();
     }
     setLabel();
-  });
-  vol.addEventListener('input', () => {
+  }));
+  vols.forEach(vol => vol.addEventListener('input', () => {
     audio.volume = parseFloat(vol.value);
     localStorage.setItem('classicalia.donow.musicVol', vol.value);
-  });
+    vols.forEach(o => { if (o !== vol) o.value = vol.value; });
+  }));
   setLabel();
 
   // Load the playlist manifest (array of filenames/URLs). Falls back to a
