@@ -123,6 +123,89 @@ html, body {
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 #toast em { font-family: 'Lora', Georgia, serif; font-style: italic; color: #ffe9a8; }
 
+/* ===== Quest banner ===== */
+#quest-banner {
+    position: fixed;
+    top: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    gap: 0.55rem;
+    background: rgba(20, 26, 20, 0.82);
+    border: 1px solid rgba(245, 200, 66, 0.45);
+    color: #f3ead2;
+    border-radius: 999px;
+    padding: 0.45rem 1.1rem;
+    font-size: 0.85rem;
+    z-index: 20;
+    max-width: min(640px, 92vw);
+    text-align: center;
+}
+#quest-banner em { font-family: 'Lora', Georgia, serif; font-style: italic; color: #ffe9a8; }
+#quest-banner s { opacity: 0.55; }
+#quest-banner-scroll {
+    display: none;
+    background: rgba(245, 200, 66, 0.9);
+    color: #3a2c0a;
+    border: none;
+    border-radius: 999px;
+    padding: 0.2rem 0.7rem;
+    font-family: inherit;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* ===== Clue scroll overlay ===== */
+#scroll-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(12, 18, 24, 0.55);
+    z-index: 35;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+#scroll-overlay.open { display: flex; }
+.scroll-panel {
+    width: min(440px, 100%);
+    background: linear-gradient(180deg, #f5ecd2 0%, #ead9b4 100%);
+    border: 3px solid #8a6a3b;
+    border-radius: 14px;
+    padding: 1.1rem 1.2rem 1.2rem;
+    box-shadow: 0 12px 44px rgba(0,0,0,0.5);
+}
+.scroll-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #5a4218;
+}
+.scroll-close { background: none; border: none; font-size: 1rem; color: #8a6a3b; cursor: pointer; }
+.scroll-hint { font-size: 0.74rem; color: #8a6a3b; margin: 0.25rem 0 0.7rem; }
+.scroll-clue {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.8rem;
+    background: rgba(255, 252, 240, 0.65);
+    border: 1.5px solid #c8ad75;
+    border-radius: 9px;
+    padding: 0.55rem 0.8rem;
+    margin-bottom: 0.45rem;
+    cursor: pointer;
+}
+.scroll-clue.found { opacity: 0.6; }
+.scroll-latin { font-family: 'Lora', Georgia, serif; font-size: 0.98rem; color: #3a2c0a; }
+.scroll-gloss { font-size: 0.72rem; color: #8a6a3b; text-align: right; }
+
 /* ===== Dialog / quiz panel ===== */
 #dialog {
     position: fixed;
@@ -358,7 +441,7 @@ body.touch #touch-controls { display: block; }
 
 <div id="hud">
     <div class="hud-group">
-        <div class="hud-pill">🏆 <span class="gold" id="hud-laurels">0</span>/10</div>
+        <div class="hud-pill">📜 <span class="gold" id="hud-quest">Cap. I</span></div>
         <div class="hud-pill">⚡ <span class="gold" id="hud-xp">0</span> XP</div>
         <div class="hud-pill" id="hud-words-pill">📜 <span class="gold" id="hud-words">0</span> words</div>
         <div class="hud-pill" title="Latin names discovered in the world">📖 <span class="gold" id="hud-lex">0</span> found</div>
@@ -372,6 +455,22 @@ body.touch #touch-controls { display: block; }
 
 <div id="prompt"><kbd>E</kbd><span id="prompt-text">Talk</span></div>
 <div id="toast"></div>
+
+<div id="quest-banner">
+    <span id="quest-banner-text"></span>
+    <button id="quest-banner-scroll" title="View the clue scroll">📜 scroll</button>
+</div>
+
+<div id="scroll-overlay">
+    <div class="scroll-panel">
+        <div class="scroll-head">
+            <span>A soggy scroll…</span>
+            <button class="scroll-close">✕</button>
+        </div>
+        <p class="scroll-hint">Someone scribbled where the crates fell. Tap a clue to translate it.</p>
+        <div class="scroll-clues"></div>
+    </div>
+</div>
 
 <div id="dialog">
     <div class="dlg-head">
@@ -387,16 +486,16 @@ body.touch #touch-controls { display: block; }
 <div class="overlay open" id="intro">
     <div class="panel">
         <h1>Latin Quest</h1>
-        <div class="tagline">Verba per viam &middot; OCR GCSE vocabulary</div>
-        <p>Welcome to <em>Parva Roma</em>! Wander a little Roman town where everything has its Latin name. Ten townsfolk each guard a laurel wreath — and each will test you on a chapter of the OCR GCSE word list. Earn all ten, then face the Sibyl at the temple.</p>
+        <div class="tagline">Chapter I &middot; Lost in Time</div>
+        <p>One minute you were on a school trip. A flash of light — and now you're standing under an oak tree in a little Roman town, two thousand years from home. Explore, talk to the townsfolk, and piece together <b>where</b> you are, <b>when</b> you are… and how you might ever get back.</p>
         <div class="controls-grid">
-            <kbd>W A S D / arrows</kbd><span>Walk around the town</span>
-            <kbd>📖</kbd><span>Walk up to things to discover their Latin names</span>
-            <kbd>E / Space</kbd><span>Talk to someone nearby</span>
+            <kbd>W A S D / arrows</kbd><span>Walk &amp; explore</span>
+            <kbd>E / Space</kbd><span>Talk &middot; pick up &middot; dig &middot; use</span>
+            <kbd>📖</kbd><span>Walk up to things to learn their Latin names</span>
             <kbd>Esc</kbd><span>Close a conversation</span>
         </div>
         <p style="font-size:0.78rem;color:#8a6a3b;">On a phone or tablet? Use the joystick and the <b>loquere</b> button.</p>
-        <button class="big-btn" id="btn-start">Enter Parva Roma</button>
+        <button class="big-btn" id="btn-start">Open your eyes…</button>
         <br>
         <a class="back-link" href="/version2/tools/">&larr; Back to Classicalia Tools</a>
     </div>
@@ -406,10 +505,11 @@ body.touch #touch-controls { display: block; }
     <div class="panel">
         <h1>How to play</h1>
         <div class="tagline">Latin Quest</div>
-        <p style="text-align:left;">🗣️ <b>Talk to the townsfolk.</b> A gold <b>!</b> above someone's head means they have a challenge for you. Each person tests one chapter of the OCR GCSE vocabulary list.</p>
+        <p style="text-align:left;">🗣️ <b>Follow the story.</b> The golden beam of light and the banner at the top always show where to go next. A gold <b>!</b> marks the person who needs you.</p>
         <p style="text-align:left;">📖 <b>Discover the world's words.</b> Walk up to the well, the river, the temple, the animals — their Latin names appear, and first finds go into your Lexicon for bonus XP.</p>
-        <p style="text-align:left;">🏆 <b>Earn laurels.</b> Answer 8 questions correctly to win a laurel. Missed words come back around until you get them right — and your accuracy decides your stars, so you can return any time to improve them.</p>
-        <p style="text-align:left;">🔮 <b>Face the Sibyl.</b> Once you hold all ten laurels, the Sibyl in the temple will set you a final trial drawn from the whole word list.</p>
+        <p style="text-align:left;">🐑 <b>Help the townsfolk.</b> Fetch what Livia asks for (read the crate labels carefully!), shoo the runaway animals home, chase windblown pages, and dig where a Latin scroll says the lost cargo fell.</p>
+        <p style="text-align:left;">🌙 <b>Find the Sibyl.</b> When the town trusts you, the Oracle will tell you what the way home will cost…</p>
+        <p style="text-align:left;"><button class="dlg-btn secondary" id="btn-replay" style="width:100%;">↺ Restart Chapter I</button></p>
         <p style="text-align:left;">💾 Your progress is saved on this device automatically — and if you're signed in to Classicalia, every answer feeds the same smart tracking as the vocabulary tester, so your teacher can see your progress.</p>
         <p style="font-size:0.7rem;color:#a78648;">3D art (CC0): <a href="https://kaylousberg.com" target="_blank" rel="noopener" style="color:#8a6a3b;">KayKit</a>, <a href="https://quaternius.com" target="_blank" rel="noopener" style="color:#8a6a3b;">Quaternius</a>, <a href="https://ambientcg.com" target="_blank" rel="noopener" style="color:#8a6a3b;">ambientCG</a>, <a href="https://polyhaven.com" target="_blank" rel="noopener" style="color:#8a6a3b;">Poly Haven</a> · engine: three.js</p>
         <button class="big-btn" id="btn-help-close">Back to the town</button>
