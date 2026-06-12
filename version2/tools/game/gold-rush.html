@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gold Rush · Classicalia Do Now</title>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<!-- question banks -->
+<script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="/version2/tools/vocab/data/latin-alevel.js"></script>
+<script src="/version2/tools/vocab/data/suburani.js"></script>
+<script src="/version2/tools/vocab/data/greek-gcse.js"></script>
+<script src="/version2/tools/vocab/data/greek-alevel.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.1.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.2.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.3.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.4.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.5.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.6.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.7.js"></script>
+<script src="/version2/tools/quiz/data/myth-1.8.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<style>
+body { background: #0b1733; }
+.gr { max-width: 940px; margin: 0 auto; padding: 24px 18px 80px; position: relative; z-index: 2; }
+.gr-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 4px; }
+.gr-logo { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 20px; color: #fff; text-decoration: none; }
+.gr-class { font-size: 12.5px; color: #9fb3d8; }
+
+.panel { background: #13234a; border: 1px solid #25406e; border-radius: 14px; padding: 26px; color: #eaf0fb; box-shadow: 0 12px 40px rgba(0,0,0,.35); }
+.panel.center { text-align: center; }
+.eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #f5c14b; }
+h1.title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 30px; margin: 6px 0 8px; color: #fff; }
+.muted { color: #9fb3d8; font-size: 14px; line-height: 1.5; }
+.btn { font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 800; padding: 14px 28px; border-radius: 10px; border: none; background: linear-gradient(180deg,#ffd566,#f5b220); color: #3a2700; cursor: pointer; transition: transform .08s, filter .12s; box-shadow: 0 4px 0 #c98a08; }
+.btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #c98a08; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn-ghost { background: transparent; color: #cfe0ff; border: 1px solid #36568c; box-shadow: none; font-weight: 600; }
+
+/* layout while playing */
+.play-grid { display: grid; grid-template-columns: 1fr 280px; gap: 18px; align-items: start; }
+@media (max-width: 760px) { .play-grid { grid-template-columns: 1fr; } .lb { order: -1; } }
+
+.hud { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+.xp-badge { background: linear-gradient(180deg,#ffd566,#f5b220); color: #3a2700; font-weight: 900; font-size: 22px; padding: 8px 18px; border-radius: 999px; box-shadow: 0 4px 0 #c98a08; transition: transform .15s; }
+.xp-badge.bump { transform: scale(1.14); }
+.xp-label { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #9fb3d8; }
+.streak { font-size: 13px; color: #f5c14b; font-weight: 700; }
+.chest-meter { font-size: 12px; color: #9fb3d8; margin-left: auto; }
+
+.q-card { background: #fff; border-radius: 14px; padding: 26px; color: var(--ink); }
+.q-prompt-label { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--brand); }
+.q-prompt { font-family: 'Lora', serif; font-size: 26px; font-weight: 600; color: var(--navy); margin: 10px 0 20px; line-height: 1.35; }
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .opts { grid-template-columns: 1fr; } }
+.opt { text-align: left; font-family: 'Lora', serif; font-size: 18px; padding: 16px 18px; border: 2px solid var(--rule); border-radius: 11px; background: var(--cream); color: var(--navy); cursor: pointer; transition: all .1s; }
+.opt:hover:not(:disabled) { border-color: var(--brand); transform: translateY(-1px); }
+.opt:disabled { cursor: default; }
+.opt.correct { border-color: #16a34a; background: #ecfdf3; color: #15803d; }
+.opt.wrong { border-color: #dc2626; background: #fef2f2; color: #b91c1c; }
+
+/* leaderboard */
+.lb { background: #13234a; border: 1px solid #25406e; border-radius: 14px; padding: 16px 16px 10px; }
+.lb h3 { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #9fb3d8; margin-bottom: 10px; }
+.lb-row { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; font-size: 14px; color: #eaf0fb; }
+.lb-row.me { background: rgba(245,193,75,.14); }
+.lb-rank { width: 18px; color: #9fb3d8; font-weight: 700; text-align: right; }
+.lb-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-xp { font-weight: 800; color: #f5c14b; }
+
+/* chest overlay */
+.overlay { position: fixed; inset: 0; background: rgba(6,14,32,.86); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+.chest-stage { text-align: center; max-width: 560px; width: 100%; }
+.chest-stage .eyebrow { color: #f5c14b; }
+.chest-stage h2 { font-family: 'Lora', serif; font-style: italic; color: #fff; font-size: 26px; margin: 6px 0 22px; }
+.chests { display: flex; gap: 18px; justify-content: center; }
+.chest { font-size: 64px; cursor: pointer; transition: transform .12s; filter: drop-shadow(0 8px 14px rgba(0,0,0,.5)); background: none; border: none; }
+.chest:hover { transform: translateY(-6px) scale(1.06); }
+.chest:disabled { cursor: default; }
+.chest.dim { opacity: .25; filter: none; }
+.chest.shake { animation: shake .4s; }
+@keyframes shake { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-8deg)} 75%{transform:rotate(8deg)} }
+.reveal { color: #fff; }
+.reveal-emoji { font-size: 72px; margin-bottom: 6px; }
+.reveal-headline { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 28px; margin-bottom: 6px; }
+.reveal-headline.good { color: #6ee7a8; }
+.reveal-headline.bad { color: #fca5a5; }
+.reveal-headline.wild { color: #f5c14b; }
+.reveal-sub { color: #cfe0ff; font-size: 15px; margin-bottom: 22px; }
+
+/* final standings */
+.standing { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; background: #13234a; border: 1px solid #25406e; margin-bottom: 8px; color: #eaf0fb; }
+.standing.top { background: linear-gradient(180deg,#3a2f12,#2a2a14); border-color: #f5c14b; }
+.standing .medal { font-size: 22px; width: 28px; }
+.standing .nm { flex: 1; font-weight: 700; }
+.standing .xp { font-weight: 900; color: #f5c14b; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<canvas data-starfield data-seed="918" data-region="1" style="position:fixed;inset:0;width:100%;height:100%;z-index:0;"></canvas>
+<div class="gr">
+  <div class="gr-top">
+    <a href="/version2/" class="gr-logo">Classicalia</a>
+    <span class="gr-class" id="topClass"></span>
+  </div>
+
+  <!-- LOADING -->
+  <section id="sLoading"><div class="panel center"><div class="muted">Looking for a game…</div></div></section>
+
+  <!-- SIGNED OUT -->
+  <section id="sSignedOut" hidden>
+    <div class="panel center">
+      <div class="eyebrow">Gold Rush</div>
+      <h1 class="title">Sign in to play</h1>
+      <p class="muted">Game mode is for students in a class. Sign in, then your teacher's live game will appear here.</p>
+      <p style="margin-top:18px"><a class="btn" href="/auth/login.html">Sign in</a></p>
+    </div>
+  </section>
+
+  <!-- NO GAME -->
+  <section id="sNoGame" hidden>
+    <div class="panel center">
+      <div class="eyebrow">Gold Rush</div>
+      <h1 class="title">No game running yet</h1>
+      <p class="muted">When your teacher launches a game for your class, it'll start right here.</p>
+      <p style="margin-top:18px"><button class="btn" id="recheckBtn">Check again</button></p>
+    </div>
+  </section>
+
+  <!-- INTRO -->
+  <section id="sIntro" hidden>
+    <div class="panel center">
+      <div class="eyebrow">Gold Rush · <span id="introScope"></span></div>
+      <h1 class="title">Ready?</h1>
+      <p class="muted">Every correct answer earns <b style="color:#f5c14b">XP</b>. Every few in a row, you crack open a <b style="color:#f5c14b">chest</b> — they can boost you, burn you, or shake up the whole leaderboard. Fastest, sharpest player wins.</p>
+      <p style="margin-top:20px"><button class="btn" id="startBtn">Start grabbing XP →</button></p>
+    </div>
+  </section>
+
+  <!-- PLAY -->
+  <section id="sPlay" hidden>
+    <div class="play-grid">
+      <div>
+        <div class="hud">
+          <div><div class="xp-label">Your XP</div><div class="xp-badge" id="xpBadge">0</div></div>
+          <div class="streak" id="streak"></div>
+          <div class="chest-meter" id="chestMeter"></div>
+        </div>
+        <div class="q-card" id="qCard"></div>
+      </div>
+      <div class="lb">
+        <h3>Leaderboard</h3>
+        <div id="lbList"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAME OVER -->
+  <section id="sOver" hidden>
+    <div class="panel">
+      <div class="eyebrow center" style="text-align:center">Game over</div>
+      <h1 class="title" style="text-align:center">Final standings</h1>
+      <div id="standings" style="margin-top:16px"></div>
+      <p class="muted" style="text-align:center;margin-top:14px">You finished with <b style="color:#f5c14b" id="finalXp">0</b> XP.</p>
+    </div>
+  </section>
+</div>
+
+<!-- CHEST OVERLAY -->
+<div class="overlay" id="chestOverlay" hidden>
+  <div class="chest-stage" id="chestStage"></div>
+</div>
+
+<script src="/version2/assets/js/starfield.js"></script>
+<script>
+'use strict';
+const sb = window.supabase;
+const CHEST_EVERY = 3;        // chests every N correct answers
+const BASE_XP = 100;
+
+let game = null, classId = null, myId = null;
+let questions = [], qIdx = 0, lastPromptKey = null;
+let myXp = 0, streak = 0, correctSinceChest = 0;
+let qStart = 0, locked = false;
+let lbChannel = null, statusPoll = null, gameOver = false;
+
+const $ = id => document.getElementById(id);
+function show(id) { ['sLoading','sSignedOut','sNoGame','sIntro','sPlay','sOver'].forEach(s => $(s).hidden = (s !== id)); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function clip(s,n){ s=String(s||''); return s.length>n ? s.slice(0,n-1)+'…' : s; }
+
+// ── init ──────────────────────────────────────────────────────────────────────
+(async function init() {
+  let user = null;
+  try { const { data } = await sb.auth.getUser(); user = data && data.user; } catch (_e) {}
+  if (!user) { show('sSignedOut'); return; }
+  myId = user.id;
+  await checkForGame();
+})();
+
+$('recheckBtn').addEventListener('click', checkForGame);
+
+async function checkForGame() {
+  show('sLoading');
+  let res = null;
+  try { const { data } = await sb.rpc('get_my_do_now_game'); res = data; } catch (_e) {}
+  if (!res || !res.ok) { show('sNoGame'); return; }
+  game = res; classId = res.class_id; gameOver = false;
+  $('topClass').textContent = res.class_name || '';
+  $('introScope').textContent = scopeLabel(res);
+  questions = buildQuestions(res);
+  if (!questions.length) { show('sNoGame'); $('sNoGame').querySelector('.muted').textContent = 'Your teacher started a game, but no questions could be loaded for its topic.'; return; }
+  try { await sb.rpc('do_now_game_join', { p_class_id: classId }); } catch (_e) {}
+  show('sIntro');
+}
+
+function scopeLabel(g) {
+  if (g.vocab_list === 'civ-myth-religion') return 'Topic ' + (g.topic_id || '');
+  return g.topic_id || 'Vocabulary';
+}
+
+// ── question building (vocab MC + Civ MC) ──────────────────────────────────────
+const VOCAB_BY_LIST = {
+  'latin-gcse':     typeof VOCAB_LATIN_GCSE     !== 'undefined' ? VOCAB_LATIN_GCSE     : null,
+  'latin-alevel':   typeof VOCAB_LATIN_ALEVEL   !== 'undefined' ? VOCAB_LATIN_ALEVEL   : null,
+  'latin-suburani': typeof VOCAB_SUBURANI       !== 'undefined' ? VOCAB_SUBURANI       : null,
+  'greek-gcse':     typeof VOCAB_GREEK_GCSE     !== 'undefined' ? VOCAB_GREEK_GCSE     : null,
+  'greek-alevel':   typeof VOCAB_GREEK_ALEVEL   !== 'undefined' ? VOCAB_GREEK_ALEVEL   : null
+};
+
+function buildQuestions(g) {
+  if (g.vocab_list === 'civ-myth-religion') return buildCivQuestions(g);
+  return buildVocabQuestions(g);
+}
+
+function buildVocabQuestions(g) {
+  let words = (VOCAB_BY_LIST[g.vocab_list] || []).filter(w => w && w.latin && w.english);
+  if (Array.isArray(g.subtopics) && g.subtopics.length) {
+    const chs = new Set(g.subtopics.map(Number));
+    const inScope = words.filter(w => chs.has(Number(w.chapter)));
+    if (inScope.length >= 4) words = inScope;
+  }
+  if (words.length < 4) return [];
+  const pool = words.slice();
+  return pool.map(w => {
+    const askLatin = Math.random() < 0.5;   // mix direction
+    const others = shuffle(words.filter(x => x.english !== w.english && x.latin !== w.latin)).slice(0, 3);
+    const correctText = askLatin ? w.latin : firstSense(w.english);
+    const opts = shuffle([{ text: correctText, correct: true }]
+      .concat(others.map(o => ({ text: askLatin ? o.latin : firstSense(o.english), correct: false }))));
+    return { promptLabel: askLatin ? 'What is the Latin for…' : 'What does this mean?',
+             prompt: askLatin ? firstSense(w.english) : w.latin, options: opts, key: w.latin + '|' + w.english };
+  });
+}
+function firstSense(eng){ return String(eng).split(/[,;/]/)[0].trim(); }
+
+function buildCivQuestions(g) {
+  const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
+  const topic = topics.find(t => String(t.id) === String(g.topic_id));
+  if (!topic || !Array.isArray(topic.questions)) return [];
+  let qs = topic.questions;
+  if (Array.isArray(g.subtopics) && g.subtopics.length) {
+    const set = new Set(g.subtopics);
+    const inScope = qs.filter(q => set.has(q.subtopic));
+    if (inScope.length) qs = inScope;
+  }
+  return qs.filter(q => Array.isArray(q.answers) && q.answers.length >= 2).map(q => {
+    const opts = shuffle(q.answers.map((a, i) => ({ text: a, correct: i === 0 })));
+    return { promptLabel: q.subtopic || 'Question', prompt: q.q, options: opts, key: q.id };
+  });
+}
+
+// ── play ────────────────────────────────────────────────────────────────────
+$('startBtn').addEventListener('click', () => { show('sPlay'); startLeaderboard(); startStatusPoll(); nextQuestion(); });
+
+function nextQuestion() {
+  if (gameOver) return;
+  locked = false;
+  // pick a question, avoiding an immediate repeat
+  let q, guard = 0;
+  do { q = questions[Math.floor(Math.random() * questions.length)]; guard++; }
+  while (questions.length > 1 && q.key === lastPromptKey && guard < 8);
+  lastPromptKey = q.key;
+  qStart = Date.now();
+  renderQuestion(q);
+  updateHud();
+}
+
+function renderQuestion(q) {
+  const opts = q.options.map((o, i) =>
+    `<button class="opt" data-i="${i}">${esc(o.text)}</button>`).join('');
+  $('qCard').innerHTML =
+    `<div class="q-prompt-label">${esc(q.promptLabel)}</div>
+     <div class="q-prompt">${esc(q.prompt)}</div>
+     <div class="opts">${opts}</div>`;
+  $('qCard').querySelectorAll('.opt').forEach(b =>
+    b.addEventListener('click', () => answer(q, +b.dataset.i, b)));
+}
+
+async function answer(q, i, btn) {
+  if (locked) return; locked = true;
+  const correct = !!q.options[i].correct;
+  $('qCard').querySelectorAll('.opt').forEach((b, j) => {
+    b.disabled = true;
+    if (q.options[j].correct) b.classList.add('correct');
+    else if (j === i) b.classList.add('wrong');
+  });
+  if (correct) {
+    const secs = (Date.now() - qStart) / 1000;
+    const bonus = Math.max(0, Math.round((1 - Math.min(secs, 8) / 8) * 60));
+    const gained = BASE_XP + bonus;
+    streak++; correctSinceChest++;
+    try { const { data } = await sb.rpc('do_now_game_earn', { p_class_id: classId, p_xp: gained }); if (data && data.ok) setXp(data.xp); else setXp(myXp + gained); }
+    catch (_e) { setXp(myXp + gained); }
+    updateHud();
+    if (correctSinceChest >= CHEST_EVERY) { correctSinceChest = 0; setTimeout(openChest, 650); return; }
+  } else {
+    streak = 0; updateHud();
+  }
+  setTimeout(nextQuestion, correct ? 850 : 1300);
+}
+
+function setXp(v) {
+  myXp = v | 0;
+  const b = $('xpBadge'); b.textContent = myXp.toLocaleString();
+  b.classList.add('bump'); setTimeout(() => b.classList.remove('bump'), 160);
+}
+function updateHud() {
+  $('streak').textContent = streak >= 2 ? `🔥 ${streak} streak` : '';
+  const left = CHEST_EVERY - correctSinceChest;
+  $('chestMeter').textContent = `🎁 chest in ${left} correct`;
+}
+
+// ── chest ───────────────────────────────────────────────────────────────────
+function openChest() {
+  if (gameOver) { nextQuestion(); return; }
+  const stage = $('chestStage');
+  stage.innerHTML =
+    `<div class="eyebrow">A chest appears!</div>
+     <h2>Pick one…</h2>
+     <div class="chests">${[0,1,2].map(i => `<button class="chest" data-i="${i}">🎁</button>`).join('')}</div>`;
+  $('chestOverlay').hidden = false;
+  stage.querySelectorAll('.chest').forEach(c => c.addEventListener('click', () => pickChest(c)));
+}
+
+async function pickChest(chosen) {
+  $('chestStage').querySelectorAll('.chest').forEach(c => { c.disabled = true; if (c !== chosen) c.classList.add('dim'); });
+  chosen.classList.add('shake');
+  let res = null;
+  try { const { data } = await sb.rpc('do_now_game_open_chest', { p_class_id: classId }); res = data; } catch (_e) {}
+  setTimeout(() => revealChest(res), 420);
+}
+
+const CHEST_VIEW = {
+  empty:      { emoji: '💨', tone: 'bad',  head: 'Empty!',        sub: () => 'Nothing inside. Onwards…' },
+  bonus_s:    { emoji: '✨', tone: 'good', head: '+150 XP',       sub: () => 'A tidy little haul.' },
+  bonus_m:    { emoji: '💰', tone: 'good', head: '+350 XP',       sub: () => 'Now we’re talking.' },
+  jackpot:    { emoji: '🏆', tone: 'wild', head: 'JACKPOT! +800', sub: () => 'A small fortune!' },
+  lose:       { emoji: '💥', tone: 'bad',  head: 'Lost XP!',      sub: r => `Dropped ${Math.abs(r.delta)} XP. Ouch.` },
+  multiplier: { emoji: '⚡', tone: 'wild', head: 'DOUBLE XP!',    sub: r => `Your total doubled to ${r.your_xp.toLocaleString()}.` },
+  swap:       { emoji: '🔄', tone: 'wild', head: 'XP SWAP!',      sub: r => `Swapped totals with ${esc(r.target_name||'a rival')}.` },
+  steal:      { emoji: '🦝', tone: 'wild', head: 'HEIST!',        sub: r => `Stole ${r.delta} XP from ${esc(r.target_name||'the leader')}.` }
+};
+
+function revealChest(res) {
+  const stage = $('chestStage');
+  if (!res || !res.ok) { $('chestOverlay').hidden = true; setXp(myXp); nextQuestion(); return; }
+  const v = CHEST_VIEW[res.effect] || CHEST_VIEW.empty;
+  setXp(res.your_xp);
+  stage.innerHTML =
+    `<div class="reveal">
+       <div class="reveal-emoji">${v.emoji}</div>
+       <div class="reveal-headline ${v.tone}">${v.head}</div>
+       <div class="reveal-sub">${v.sub(res)}</div>
+       <button class="btn" id="chestContinue">Continue →</button>
+     </div>`;
+  $('chestContinue').addEventListener('click', () => { $('chestOverlay').hidden = true; nextQuestion(); });
+}
+
+// ── leaderboard (realtime) ────────────────────────────────────────────────────
+async function loadLeaderboard() {
+  let rows = [];
+  try { const { data } = await sb.from('v2_do_now_game').select('student_id, display_name, xp').eq('class_id', classId).order('xp', { ascending: false }); rows = data || []; }
+  catch (_e) {}
+  renderLeaderboard(rows);
+  return rows;
+}
+function renderLeaderboard(rows) {
+  const top = rows.slice(0, 8);
+  $('lbList').innerHTML = top.map((r, i) =>
+    `<div class="lb-row ${r.student_id === myId ? 'me' : ''}">
+       <span class="lb-rank">${i + 1}</span>
+       <span class="lb-name">${esc(clip(r.display_name || 'Player', 18))}${r.student_id === myId ? ' (you)' : ''}</span>
+       <span class="lb-xp">${(r.xp|0).toLocaleString()}</span>
+     </div>`).join('') || '<div class="muted" style="padding:6px">No scores yet.</div>';
+}
+function startLeaderboard() {
+  loadLeaderboard();
+  if (lbChannel) return;
+  try {
+    lbChannel = sb.channel('gr-' + classId)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'v2_do_now_game', filter: 'class_id=eq.' + classId }, () => loadLeaderboard())
+      .subscribe();
+  } catch (_e) {}
+}
+
+// ── detect game end ───────────────────────────────────────────────────────────
+function startStatusPoll() {
+  if (statusPoll) return;
+  statusPoll = setInterval(async () => {
+    let res = null;
+    try { const { data } = await sb.rpc('get_my_do_now_game'); res = data; } catch (_e) {}
+    if (!res || !res.ok || res.class_id !== classId) endGame();
+  }, 6000);
+}
+async function endGame() {
+  if (gameOver) return;
+  gameOver = true;
+  if (statusPoll) { clearInterval(statusPoll); statusPoll = null; }
+  if (lbChannel) { try { sb.removeChannel(lbChannel); } catch (_e) {} lbChannel = null; }
+  $('chestOverlay').hidden = true;
+  const rows = await loadLeaderboard();
+  const medals = ['🥇','🥈','🥉'];
+  $('standings').innerHTML = rows.slice(0, 10).map((r, i) =>
+    `<div class="standing ${i === 0 ? 'top' : ''} ${r.student_id === myId ? '' : ''}">
+       <span class="medal">${medals[i] || (i + 1)}</span>
+       <span class="nm">${esc(clip(r.display_name || 'Player', 22))}${r.student_id === myId ? ' (you)' : ''}</span>
+       <span class="xp">${(r.xp|0).toLocaleString()} XP</span>
+     </div>`).join('') || '<div class="muted">No scores recorded.</div>';
+  const me = rows.find(r => r.student_id === myId);
+  $('finalXp').textContent = (me ? me.xp : myXp).toLocaleString();
+  show('sOver');
+}
+</script>
+</body>
+</html>

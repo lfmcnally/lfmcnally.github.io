@@ -395,6 +395,19 @@ body { background: var(--cream); }
   </div>
 </div>
 <div class="dash-body">
+  <!-- Live game banner — appears when the student's teacher has launched a
+       Do Now game (Gold Rush). Hidden otherwise. -->
+  <a id="gameBanner" href="/version2/tools/game/gold-rush.html"
+     style="display:none;align-items:center;gap:14px;text-decoration:none;margin-bottom:20px;padding:16px 20px;border-radius:12px;
+            background:linear-gradient(100deg,#13234a,#2a1c4a);border:1px solid #f5c14b;box-shadow:0 6px 20px rgba(0,0,0,.18);">
+    <span style="font-size:28px;">🎮</span>
+    <span style="flex:1;min-width:0;">
+      <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#f5c14b;">Live game</span>
+      <span style="display:block;font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:19px;color:#fff;" id="gameBannerText">A game is running — play now</span>
+    </span>
+    <span style="font-family:'DM Sans',sans-serif;font-size:14px;font-weight:800;padding:11px 20px;border-radius:9px;background:linear-gradient(180deg,#ffd566,#f5b220);color:#3a2700;white-space:nowrap;">Play →</span>
+  </a>
+
   <!-- Weekly goal — questions answered this week vs a personal and/or class
        target. Hidden until we know the user is signed in and the column
        exists. -->
@@ -1111,7 +1124,7 @@ async function init() {
   // Homework card (signed-in only). The weekly-goal card is loaded by
   // showCourseBody once the active course tab is known, so it can scope its
   // counts to that course.
-  if (observedUserId) { loadAssignments(); }
+  if (observedUserId) { loadAssignments(); checkLiveGame(); }
 
   // Build the tab strip from the user's tracked courses + class memberships.
   // For signed-in students with nothing tracked, this shows the empty state
@@ -1272,6 +1285,19 @@ function startOfThisWeekISO() {
   const dow = (d.getDay() + 6) % 7;   // 0 = Monday
   d.setDate(d.getDate() - dow);
   return d.toISOString();
+}
+
+// Show the "live game" banner if the student's teacher has launched a Do Now
+// game. Silent (and harmless) if the RPC isn't there yet / nothing is running.
+async function checkLiveGame() {
+  let res = null;
+  try { const { data } = await window.supabase.rpc('get_my_do_now_game'); res = data; } catch (_) { return; }
+  if (!res || !res.ok) return;
+  const banner = document.getElementById('gameBanner');
+  if (!banner) return;
+  document.getElementById('gameBannerText').textContent =
+    (res.class_name ? res.class_name + ' — ' : '') + 'a game is running. Tap to play!';
+  banner.style.display = 'flex';
 }
 
 async function loadWeeklyGoal(userId) {
