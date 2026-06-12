@@ -292,6 +292,50 @@ if (typeof document !== 'undefined') (function () {
     const vocabOK = typeof vocabularyData !== 'undefined' && Array.isArray(vocabularyData) && vocabularyData.length > 0;
     const { pools, all } = vocabOK ? buildPools(vocabularyData) : { pools: {}, all: [] };
 
+    // ---------- Supabase progress tracking ----------
+    // Logged-in students record to word_mastery / task_attempts and earn
+    // real XP via taskTracker + xpSystem, exactly like the practice pages.
+    // Logged-out players still get the full game with localStorage only.
+    const tracker = (typeof taskTracker !== 'undefined') ? taskTracker : null;
+    let cloudUser = false;
+    async function initTracking() {
+        const pill = document.getElementById('hud-sync');
+        if (!tracker || typeof supabase === 'undefined') return;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            cloudUser = !!user;
+        } catch (e) { cloudUser = false; }
+        if (cloudUser) {
+            tracker.setLanguage('latin');
+            try {
+                if (typeof xpSystem !== 'undefined' && !xpSystem.userId) await xpSystem.init();
+            } catch (e) { /* XP display falls back to local */ }
+            pill.textContent = '☁️ progress synced';
+            pill.removeAttribute('href');
+            pill.style.cursor = 'default';
+        } else {
+            pill.innerHTML = '☁️ <span class="gold">log in</span> to track';
+        }
+        pill.style.display = '';
+        updateHud();
+    }
+    function trackQuestStart(npc) {
+        if (!cloudUser || !tracker) return;
+        tracker.setContentPath('/games/latin-quest/' + (npc.final ? 'final-trial' : 'chapter-' + npc.chapter));
+        Promise.resolve(tracker.start()).catch(() => {});
+    }
+    function trackAnswer(w, right) {
+        if (!cloudUser || !tracker) return;
+        Promise.resolve(tracker.recordWordAnswer(
+            { latin: w.latin, english: w.english, chapter: w.chapter, info: w.info }, right
+        )).then(updateHud).catch(() => {});
+    }
+    function trackQuestEnd(correct, attempts) {
+        if (!cloudUser || !tracker || !tracker.isTracking || !attempts) return;
+        const score = Math.round((correct / attempts) * 100);
+        Promise.resolve(tracker.complete(score, attempts, correct)).then(updateHud).catch(() => {});
+    }
+
     // ---------- DOM ----------
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas.getContext('2d');
@@ -710,7 +754,8 @@ if (typeof document !== 'undefined') (function () {
     }
     function updateHud() {
         hudLaurels.textContent = laurelCount();
-        hudXp.textContent = save.xp;
+        const cloudXp = (typeof xpSystem !== 'undefined' && xpSystem.userId) ? xpSystem.userXp : null;
+        hudXp.textContent = cloudXp !== null ? cloudXp : save.xp;
         hudWords.textContent = masteredCount() + '/' + all.length;
         document.getElementById('btn-sound').textContent = save.muted ? '🔇' : '🔊';
     }
@@ -725,6 +770,7 @@ if (typeof document !== 'undefined') (function () {
     document.getElementById('btn-victory-close').addEventListener('click', () => document.getElementById('victory').classList.remove('open'));
     if (save.seenIntro) document.getElementById('intro').classList.remove('open');
     updateHud();
+    initTracking();
 
     // ---------- Interaction ----------
     function nearestNpc() {
@@ -780,6 +826,7 @@ if (typeof document !== 'undefined') (function () {
         document.getElementById('dlg-leave').addEventListener('click', closeDialog);
     }
     function closeDialog() {
+        if (quiz && quiz.results.length && !quiz.tracked) trackQuestEnd(quiz.correct, quiz.results.length);
         dialogOpen = false;
         quiz = null;
         dialogEl.classList.remove('open');
@@ -798,6 +845,7 @@ if (typeof document !== 'undefined') (function () {
             correct: 0,
             done: false,
         };
+        trackQuestStart(npc);
         nextQuestion();
     }
 
@@ -862,6 +910,7 @@ if (typeof document !== 'undefined') (function () {
         }
         persist();
         updateHud();
+        trackAnswer(w, right);
         setTimeout(() => { if (quiz === q) { q.answered = false; nextQuestion(); } }, right ? 1100 : 2200);
     }
 
@@ -870,6 +919,8 @@ if (typeof document !== 'undefined') (function () {
         const npc = q.npc;
         const attempts = q.results.length;
         const acc = attempts ? q.correct / attempts : 0;
+        q.tracked = true;
+        trackQuestEnd(q.correct, attempts);
         if (npc.final) {
             if (q.correct >= q.target) {
                 const first = !save.final;
