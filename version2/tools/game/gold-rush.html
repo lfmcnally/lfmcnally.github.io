@@ -400,8 +400,12 @@ function renderLeaderboard(rows) {
        <span class="lb-xp">${(r.xp|0).toLocaleString()}</span>
      </div>`).join('') || '<div class="muted" style="padding:6px">No scores yet.</div>';
 }
+let lbPoll = null;
 function startLeaderboard() {
   loadLeaderboard();
+  // Poll alongside realtime so the board feels live even if the table isn't in
+  // the supabase_realtime publication.
+  if (!lbPoll) lbPoll = setInterval(loadLeaderboard, 4000);
   if (lbChannel) return;
   try {
     lbChannel = sb.channel('gr-' + classId)
@@ -423,6 +427,7 @@ async function endGame() {
   if (gameOver) return;
   gameOver = true;
   if (statusPoll) { clearInterval(statusPoll); statusPoll = null; }
+  if (lbPoll) { clearInterval(lbPoll); lbPoll = null; }
   if (lbChannel) { try { sb.removeChannel(lbChannel); } catch (_e) {} lbChannel = null; }
   $('chestOverlay').hidden = true;
   const rows = await loadLeaderboard();
