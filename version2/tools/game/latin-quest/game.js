@@ -3,10 +3,13 @@
 // ============================================================
 // Walk around Parva Roma, talk to ten townsfolk (one per OCR
 // chapter), answer their vocabulary challenges and earn laurels.
+// Vocabulary comes from version2/tools/vocab/data/latin-gcse.js and
+// progress flows through the shared v2 bkt-store (vocab_bkt), with
+// one vocab_sessions row per quest for the teacher dashboard.
 // Graphics: vendored CC0 sprites from Kenney.nl (see assets/LICENSE.txt).
 //
-// The GameCore section below has no DOM dependencies so it can
-// be sanity-checked in Node (see scripts/test-latin-quest.js).
+// The GameCore section below has no DOM dependencies so it can be
+// sanity-checked in Node.
 
 const GameCore = (function () {
     'use strict';
@@ -216,11 +219,14 @@ const GameCore = (function () {
         return 'other';
     }
 
-    // Weighted pick: prefer words the player hasn't got right yet
-    function pickWords(pool, stats, count) {
+    // Weighted pick: prefer unseen words and words with a low BKT
+    // p(know), so the game chases the same mastery as the tester.
+    function pickWords(pool, states, count) {
         const scored = pool.map(w => {
-            const s = stats[wordKey(w)] || { s: 0, c: 0 };
-            const weight = (s.s === 0 ? 3 : 1) + 2 / (1 + s.c * 2) + Math.random() * 1.5;
+            const s = states && states.get ? states.get(w.latin) : null;
+            const trials = s ? (s.trials | 0) : 0;
+            const pKnow = s ? (s.pKnow != null ? s.pKnow : s.p_know) : 0.3;
+            const weight = (trials === 0 ? 2.5 : 0) + (1 - pKnow) * 3 + Math.random() * 1.5;
             return { w, weight };
         });
         scored.sort((a, b) => b.weight - a.weight);
@@ -281,59 +287,164 @@ if (typeof document !== 'undefined') (function () {
     function loadSave() {
         try {
             const s = JSON.parse(localStorage.getItem(SAVE_KEY));
-            if (s && typeof s === 'object') return Object.assign({ xp: 0, quests: {}, words: {}, final: false, muted: false, seenIntro: false }, s);
+            if (s && typeof s === 'object') return Object.assign({ xp: 0, quests: {}, final: false, muted: false, seenIntro: false }, s);
         } catch (e) { /* corrupt save: start fresh */ }
-        return { xp: 0, quests: {}, words: {}, final: false, muted: false, seenIntro: false };
+        return { xp: 0, quests: {}, final: false, muted: false, seenIntro: false };
     }
     const save = loadSave();
     function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* storage full or blocked */ } }
 
     // ---------- Vocabulary ----------
-    const vocabOK = typeof vocabularyData !== 'undefined' && Array.isArray(vocabularyData) && vocabularyData.length > 0;
-    const { pools, all } = vocabOK ? buildPools(vocabularyData) : { pools: {}, all: [] };
+    const vocabOK = typeof VOCAB_LATIN_GCSE !== 'undefined' && Array.isArray(VOCAB_LATIN_GCSE) && VOCAB_LATIN_GCSE.length > 0;
+    const { pools, all } = vocabOK ? buildPools(VOCAB_LATIN_GCSE) : { pools: {}, all: [] };
 
-    // ---------- Supabase progress tracking ----------
-    // Logged-in students record to word_mastery / task_attempts and earn
-    // real XP via taskTracker + xpSystem, exactly like the practice pages.
-    // Logged-out players still get the full game with localStorage only.
-    const tracker = (typeof taskTracker !== 'undefined') ? taskTracker : null;
-    let cloudUser = false;
+    // ---------- Progress tracking (Classicalia v2) ----------
+    // Per-word Bayesian Knowledge Tracing through the shared bkt-store
+    // (vocab_bkt for signed-in students, localStorage for anonymous
+    // players), using the same parameters and mastery gates as the
+    // vocabulary tester, plus one vocab_sessions row per NPC quest so
+    // quests show on the teacher dashboard like tester sessions.
+    const BKT = { pL0: 0.30, pT: 0.12, pG: 0.32, pS: 0.15, mastery: 0.95 };
+    const MASTERY = {
+        daysRequired: 3, firstReviewDays: 7, reviewIntervalCapDays: 180,
+        resetIntervalDays: 7, resetReviewInDays: 1,
+    };
+    let store = null;
+    const wordState = new Map(); // word_latin -> mutable BKT state
+
+    function todayLocalISO() {
+        const d = new Date();
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+    const addDaysIso = days => new Date(Date.now() + days * 86400000).toISOString();
+
+    function stateFor(latin) {
+        let st = wordState.get(latin);
+        if (!st) {
+            st = { pKnow: BKT.pL0, trials: 0, correct: 0, distinctCorrectDays: 0,
+                   lastCorrectDate: null, nextReviewAt: null, reviewIntervalDays: null };
+            wordState.set(latin, st);
+        }
+        return st;
+    }
+    const isSecure = st => st.pKnow >= BKT.mastery && (st.distinctCorrectDays | 0) >= MASTERY.daysRequired;
+
     async function initTracking() {
         const pill = document.getElementById('hud-sync');
-        if (!tracker || typeof supabase === 'undefined') return;
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            cloudUser = !!user;
-        } catch (e) { cloudUser = false; }
-        if (cloudUser) {
-            tracker.setLanguage('latin');
+        if (typeof ClassicaliaBKT !== 'undefined') {
             try {
-                if (typeof xpSystem !== 'undefined' && !xpSystem.userId) await xpSystem.init();
-            } catch (e) { /* XP display falls back to local */ }
+                store = await ClassicaliaBKT.open({ vocabList: 'latin-gcse' });
+                const stored = await store.loadAll();
+                for (const [latin, st] of stored) {
+                    wordState.set(latin, {
+                        pKnow: st.p_know, trials: st.trials | 0, correct: st.correct | 0,
+                        distinctCorrectDays: st.distinct_correct_days | 0,
+                        lastCorrectDate: st.last_correct_date || null,
+                        nextReviewAt: st.next_review_at || null,
+                        reviewIntervalDays: st.review_interval_days || null,
+                    });
+                }
+            } catch (e) { store = null; }
+        }
+        if (store && store.mode === 'cloud') {
             pill.textContent = '☁️ progress synced';
             pill.removeAttribute('href');
             pill.style.cursor = 'default';
         } else {
-            pill.innerHTML = '☁️ <span class="gold">log in</span> to track';
+            pill.innerHTML = '☁️ <span class="gold">sign in</span> to track';
         }
         pill.style.display = '';
         updateHud();
+        window.addEventListener('pagehide', () => { if (store) store.flush(); });
     }
-    function trackQuestStart(npc) {
-        if (!cloudUser || !tracker) return;
-        tracker.setContentPath('/games/latin-quest/' + (npc.final ? 'final-trial' : 'chapter-' + npc.chapter));
-        Promise.resolve(tracker.start()).catch(() => {});
+
+    // Mirrors the vocabulary tester's bktUpdate: Bayesian posterior +
+    // learning step, distinct-day gate, spaced-repetition scheduling.
+    function bktAnswer(word, right) {
+        const st = stateFor(word.latin);
+        const wasSecure = isSecure(st);
+        const p = st.pKnow;
+        const posterior = right
+            ? (p * (1 - BKT.pS)) / (p * (1 - BKT.pS) + (1 - p) * BKT.pG)
+            : (p * BKT.pS) / (p * BKT.pS + (1 - p) * (1 - BKT.pG));
+        st.pKnow = posterior + (1 - posterior) * BKT.pT;
+        st.trials++;
+        if (right) st.correct++;
+        const today = todayLocalISO();
+        if (right && st.lastCorrectDate !== today) {
+            st.distinctCorrectDays = (st.distinctCorrectDays | 0) + 1;
+            st.lastCorrectDate = today;
+        }
+        if (right && isSecure(st)) {
+            if (!wasSecure) {
+                st.reviewIntervalDays = MASTERY.firstReviewDays;
+                st.nextReviewAt = addDaysIso(MASTERY.firstReviewDays);
+            } else if (st.nextReviewAt && Date.parse(st.nextReviewAt) <= Date.now()) {
+                const next = Math.min((st.reviewIntervalDays || MASTERY.firstReviewDays) * 2,
+                    MASTERY.reviewIntervalCapDays);
+                st.reviewIntervalDays = next;
+                st.nextReviewAt = addDaysIso(next);
+            }
+        }
+        if (!right && wasSecure) {
+            st.distinctCorrectDays = 0;
+            st.reviewIntervalDays = MASTERY.resetIntervalDays;
+            st.nextReviewAt = addDaysIso(MASTERY.resetReviewInDays);
+        }
+        if (store) store.update(word.latin, {
+            p_know: st.pKnow, trials: st.trials, correct: st.correct,
+            distinct_correct_days: st.distinctCorrectDays | 0,
+            last_correct_date: st.lastCorrectDate || null,
+            next_review_at: st.nextReviewAt || null,
+            review_interval_days: st.reviewIntervalDays || null,
+        });
+    }
+
+    // Session logging: lazily insert one vocab_sessions row per quest,
+    // then keep its counters fresh (debounced like the tester).
+    let sessionLog = null, sessionTimer = null;
+    async function flushLog(log) {
+        if (!log || !store || store.mode !== 'cloud' || !window.supabase || !window.supabase.from) return;
+        if (log.busy) { log.dirty = true; return; }
+        log.busy = true;
+        do {
+            log.dirty = false;
+            const payload = { answered: log.answered, correct: log.correct, last_answer_at: new Date().toISOString() };
+            try {
+                if (!log.id) {
+                    const { data: { user } } = await window.supabase.auth.getUser();
+                    if (!user) break;
+                    const { data, error } = await window.supabase
+                        .from('vocab_sessions')
+                        .insert(Object.assign({ student_id: user.id, vocab_list: 'latin-gcse' }, payload))
+                        .select('id')
+                        .single();
+                    if (error || !data) break;
+                    log.id = data.id;
+                } else {
+                    await window.supabase.from('vocab_sessions').update(payload).eq('id', log.id);
+                }
+            } catch (e) { break; }
+        } while (log.dirty);
+        log.busy = false;
+    }
+    function trackQuestStart() {
+        sessionLog = { id: null, answered: 0, correct: 0, busy: false, dirty: false };
     }
     function trackAnswer(w, right) {
-        if (!cloudUser || !tracker) return;
-        Promise.resolve(tracker.recordWordAnswer(
-            { latin: w.latin, english: w.english, chapter: w.chapter, info: w.info }, right
-        )).then(updateHud).catch(() => {});
+        bktAnswer(w, right);
+        if (!sessionLog) return;
+        sessionLog.answered++;
+        if (right) sessionLog.correct++;
+        clearTimeout(sessionTimer);
+        const log = sessionLog;
+        sessionTimer = setTimeout(() => flushLog(log), 1200);
     }
-    function trackQuestEnd(correct, attempts) {
-        if (!cloudUser || !tracker || !tracker.isTracking || !attempts) return;
-        const score = Math.round((correct / attempts) * 100);
-        Promise.resolve(tracker.complete(score, attempts, correct)).then(updateHud).catch(() => {});
+    function trackQuestEnd() {
+        clearTimeout(sessionTimer);
+        const log = sessionLog;
+        sessionLog = null;
+        if (log && log.answered) flushLog(log);
     }
 
     // ---------- DOM ----------
@@ -748,13 +859,12 @@ if (typeof document !== 'undefined') (function () {
     }
     function masteredCount() {
         let n = 0;
-        for (const k in save.words) if (save.words[k].c >= 2) n++;
+        for (const st of wordState.values()) if (isSecure(st)) n++;
         return n;
     }
     function updateHud() {
         hudLaurels.textContent = laurelCount();
-        const cloudXp = (typeof xpSystem !== 'undefined' && xpSystem.userId) ? xpSystem.userXp : null;
-        hudXp.textContent = cloudXp !== null ? cloudXp : save.xp;
+        hudXp.textContent = save.xp;
         hudWords.textContent = masteredCount() + '/' + all.length;
         document.getElementById('btn-sound').textContent = save.muted ? '🔇' : '🔊';
     }
@@ -836,7 +946,7 @@ if (typeof document !== 'undefined') (function () {
         const pool = npc.final ? all : pools[npc.chapter] || [];
         if (pool.length < 4) { closeDialog(); return; }
         const target = npc.final ? 12 : 8;
-        const words = pickWords(pool, save.words, npc.final ? 15 : 8);
+        const words = pickWords(pool, wordState, npc.final ? 15 : 8);
         quiz = {
             npc, pool, target,
             queue: words.slice(),
@@ -844,7 +954,7 @@ if (typeof document !== 'undefined') (function () {
             correct: 0,
             done: false,
         };
-        trackQuestStart(npc);
+        trackQuestStart();
         nextQuestion();
     }
 
@@ -881,9 +991,6 @@ if (typeof document !== 'undefined') (function () {
         const cur = q.current;
         const right = cur.options[i] === cur.answer;
         const w = cur.word;
-        const key = wordKey(w);
-        const st = save.words[key] || (save.words[key] = { s: 0, c: 0 });
-        st.s++;
         q.results.push(right);
         const info = document.getElementById('quiz-info');
         const btns = dlgBody.querySelectorAll('.quiz-opt');
@@ -894,7 +1001,6 @@ if (typeof document !== 'undefined') (function () {
             else b.classList.add('dim');
         });
         if (right) {
-            st.c++;
             q.correct++;
             save.xp += 5;
             sfx.correct();
