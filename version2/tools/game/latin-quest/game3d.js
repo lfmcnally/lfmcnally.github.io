@@ -864,17 +864,10 @@ function placeAnimal(name, x, z, { h = 2, r = 7, speed = 1.1 } = {}) {
         m.add(inner);
         m.position.set(x, 0, z);
         scene.add(m);
-        let mixer = null;
-        if (g.animations && g.animations.length) {
-            mixer = new THREE.AnimationMixer(inner);
-            const src = g.animations.find(c => /idle|walk/i.test(c.name)) || g.animations[0];
-            // strip translation tracks: some clips carry root motion that
-            // drags the mesh to the world origin (limbs animate via rotation)
-            const clip = src.clone();
-            clip.tracks = clip.tracks.filter(tr => !tr.name.endsWith('.position'));
-            if (clip.tracks.length) mixer.clipAction(clip).play();
-            else mixer = null;
-        }
+        // No AnimationMixer at all: on some hardware the skinned clips'
+        // root motion teleported every creature to the world origin.
+        // Life comes from procedural bobbing + wandering instead.
+        const mixer = null;
         const a = { key: name.replace('.glb', ''), obj: m, mixer, home: { x, z }, r, speed, tx: x, tz: z, wait: Math.random() * 4, herd: false, penned: false, baseY: 0 };
         animals.push(a);
         if (save.ch1.step === 3 && HERD_KEYS.includes(a.key) && !save.ch1.sub.herded) scatterOne(a);
@@ -1022,22 +1015,127 @@ function sparkleTick(t) {
     }
 }
 
-function say(npc, html, buttonText, onNext) {
+// ============ Visual-novel scene player ============
+// A scene is an array of entries:
+//   { t: 'html' }                     — the NPC speaks
+//   { me: 'html' }                    — you speak
+//   { who: 'Name', t: 'html' }        — someone else / narration
+//   { choice: [{ label, say:[...], xp, flag, then }] } — a decision
+//   { do: fn }                        — side effect, auto-advances
+let vn = null;
+let typeTimer = null;
+if (!save.flags || typeof save.flags !== 'object') save.flags = {};
+
+function runScene(npc, lines, onDone) {
     dialogOpen = true;
+    vn = { npc, lines: lines.slice(), i: -1, onDone, typing: false };
     dialogEl.classList.add('open');
-    dlgName.textContent = npc.name;
-    dlgSub.textContent = npc.title;
+    document.body.classList.add('vn');
+    if (npc) {
+        // face each other
+        player.ry = Math.atan2(npc.x - player.x, npc.z - player.z);
+    }
     sfx.talk();
-    dlgBody.innerHTML = `<div class="dlg-text">${html}</div>
-        <div class="dlg-actions"><button class="dlg-btn" id="dlg-next">${buttonText || 'Continue'}</button></div>`;
-    document.getElementById('dlg-next').addEventListener('click', () => {
-        closeDialog();
-        if (onNext) onNext();
+    advanceScene();
+}
+function advanceScene() {
+    const v = vn;
+    if (!v) return;
+    v.i++;
+    if (v.i >= v.lines.length) { const done = v.onDone; closeDialog(); if (done) done(); return; }
+    const L = v.lines[v.i];
+    if (L.do) { L.do(); return advanceScene(); }
+    if (L.choice) { renderChoice(L.choice); return; }
+    renderLine(L);
+}
+function renderLine(L) {
+    const v = vn;
+    const who = L.who || (L.me != null ? 'You' : (v.npc ? v.npc.name : ''));
+    const sub = (L.me != null || L.who) ? '' : (v.npc ? v.npc.title : '');
+    dlgName.textContent = who;
+    dlgSub.textContent = sub;
+    const html = L.me != null ? L.me : L.t;
+    dlgBody.innerHTML = `<div class="dlg-text vn-text"></div><div class="vn-next">▸</div>`;
+    const target = dlgBody.querySelector('.vn-text');
+    const arrow = dlgBody.querySelector('.vn-next');
+    arrow.style.visibility = 'hidden';
+    // typewriter over HTML: reveal by walking a detached copy
+    const full = html;
+    const probe = document.createElement('div');
+    probe.innerHTML = full;
+    const plain = probe.textContent;
+    let n = 0;
+    v.typing = true;
+    clearInterval(typeTimer);
+    typeTimer = setInterval(() => {
+        n += 2;
+        if (n >= plain.length) {
+            clearInterval(typeTimer);
+            target.innerHTML = full;
+            arrow.style.visibility = 'visible';
+            v.typing = false;
+            return;
+        }
+        // cheap reveal: show full HTML but clip via text slice fallback
+        target.textContent = plain.slice(0, n);
+    }, 16);
+}
+function finishTyping() {
+    const v = vn;
+    if (!v) return;
+    clearInterval(typeTimer);
+    const L = v.lines[v.i];
+    const html = L.me != null ? L.me : L.t;
+    const target = dlgBody.querySelector('.vn-text');
+    if (target) target.innerHTML = html;
+    const arrow = dlgBody.querySelector('.vn-next');
+    if (arrow) arrow.style.visibility = 'visible';
+    v.typing = false;
+}
+function renderChoice(options) {
+    const v = vn;
+    dlgName.textContent = 'You';
+    dlgSub.textContent = '';
+    dlgBody.innerHTML = `<div class="vn-choices">` + options.map((o, i) =>
+        `<button class="vn-choice" data-i="${i}">${o.label}</button>`).join('') + `</div>`;
+    dlgBody.querySelectorAll('.vn-choice').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const o = options[parseInt(btn.dataset.i, 10)];
+            if (o.flag) { save.flags[o.flag] = true; persist(); }
+            if (o.xp) { save.xp += o.xp; persist(); updateHud(); }
+            if (o.say && o.say.length) v.lines.splice(v.i + 1, 0, ...o.say);
+            if (o.then) v.lines.splice(v.i + 1 + (o.say ? o.say.length : 0), 0, { do: o.then });
+            sfx.pick();
+            advanceScene();
+        });
     });
+}
+// click / key advances the scene
+dialogEl.addEventListener('click', e => {
+    if (!vn) return;
+    if (e.target.closest('.vn-choice') || e.target.closest('.dlg-close')) return;
+    if (vn.typing) finishTyping();
+    else if (!dlgBody.querySelector('.vn-choices')) advanceScene();
+});
+window.addEventListener('keydown', e => {
+    if (!vn || !dialogOpen) return;
+    if (e.key === ' ' || e.key === 'Enter' || e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        if (vn.typing) finishTyping();
+        else if (!dlgBody.querySelector('.vn-choices')) advanceScene();
+    }
+});
+// legacy one-liner helper for ambient chatter
+function say(npc, html, buttonText, onNext) {
+    runScene(npc, [{ t: html }], onNext);
 }
 function closeDialog() {
     dialogOpen = false;
+    vn = null;
+    clearInterval(typeTimer);
     dialogEl.classList.remove('open');
+    document.body.classList.remove('vn');
 }
 document.getElementById('dlg-close').addEventListener('click', closeDialog);
 
@@ -1327,59 +1425,134 @@ function finaleSibyl() {
     }, 1800);
 }
 
-// ---------- NPC story dialogs ----------
+// ---------- NPC story dialogs (visual-novel scenes) ----------
 function npcTalk(npc) {
     const s = CH1.step;
+    const F = save.flags;
     switch (npc.id) {
         case 'titus':
             if (s <= 1) {
-                say(npc, 'By Jupiter — what <em>are</em> you wearing?! …Forgive me. salve, stranger. You look as lost as a fish in the forum. Strange — your words are foreign, yet somehow I understand you, and you me. The gods are at work here.<br><br>…And what is <em>that</em> in your hand? A bronze <b>amulet</b> — old workmanship. <em>Very</em> old. Hm. Keep it close and show it to no fool.<br><br>You need food, clothes, and answers, in that order. <b>Livia</b> at the bakery will feed you — if you make yourself useful. Off you go — follow the golden light!', 'Er… salve?', () => {
-                    sessionStart();
-                    setStep(2);
-                });
-            } else say(npc, s >= 7 ? 'Our visitor from nowhere! Or should I say — from <em>somewhen</em>.' : 'Still in one piece? Good. The town is warming to you.');
+                runScene(npc, [
+                    { t: 'By Jupiter and all his relatives — what <em>are</em> you wearing?!' },
+                    { me: '(He\'s staring at your hoodie like it personally insulted him.)' },
+                    { t: 'Forgive me. salve, stranger. I am <b>Titus</b>, senator of this town. And you are… lost. Profoundly, historically lost, by the look of you.' },
+                    { t: 'Strange. Your words are foreign — yet I understand you perfectly, and you me. The gods are meddling today. So tell me honestly: <b>what are you?</b>' },
+                    { choice: [
+                        { label: '“I\'m from the future. Two thousand years from now.”', flag: 'truth', xp: 2, say: [
+                            { t: '…' },
+                            { t: 'Most people open with a false name, you know. Not the collapse of the natural order.' },
+                            { t: 'And yet — you don\'t look mad. And <em>that</em> doesn\'t look like a toy.' },
+                        ]},
+                        { label: '“I\'m a traveller! From… Britannia. Very far Britannia.”', flag: 'lied', say: [
+                            { t: 'Britannia! That explains the clothes. Nothing civilised has ever come out of Britannia.' },
+                            { me: '(Rude. But the lie seems to be working.)' },
+                        ]},
+                        { label: '(Say nothing. Slowly look down at the amulet in your hand.)', flag: 'silent', say: [
+                            { t: '…Not the talkative kind. Fine. But I see what you\'re holding, friend.' },
+                        ]},
+                    ]},
+                    { t: 'That <b>amulet</b>. Bronze, old workmanship — <em>very</em> old, though it shines like it was struck yesterday. Where a thing like that leads, trouble follows. Keep it close, and show it to no fool.' },
+                    { t: 'Now. Whatever you are, you need food, proper clothes, and answers — <b>in that order</b>. Livia at the bakery will feed you, if you make yourself useful. Off you go. Follow the golden light.' },
+                    { me: '(Food does sound good. The golden light it is.)' },
+                ], () => { sessionStart(); setStep(2); });
+            } else if (s >= 7) {
+                runScene(npc, [
+                    { t: F.truth ? 'Our visitor from <em>tomorrow</em>. I\'ve decided to believe you, by the way. It\'s more interesting than the alternative.' : 'Our mysterious visitor! The town has quite taken to you — whoever you really are.' },
+                ]);
+            } else {
+                say(npc, 'Still in one piece? Good. The town is warming to you, stranger.');
+            }
             break;
         case 'livia':
             if (s === 2) {
                 if (liviaNeedsLeft().length === 0) {
-                    say(npc, 'aqua, cibus, vinum — <b>perfectum!</b> Here — warm bread, and take this <b>tunic</b>. You can\'t walk around Parva Roma dressed like… whatever that is.<br><br>My husband would have liked you — he sails out of <b>Pompeii</b>, the great port south of the mountain. Three weeks gone, this time…<br><br>Now — if you want to know <em>where</em> you\'ve washed up, help <b>Marcus</b> first. His animals have bolted and he\'s in no state to answer anything.', 'A tunic! Thank you!', () => {
-                        CH1.sub.tunic = true;
-                        persist();
-                        setOutfit('roman');
-                        toast('👕 You look like a proper Roman now!');
-                        setStep(3);
-                    });
+                    runScene(npc, [
+                        { t: 'aqua, cibus, vinum — <b>perfectum!</b> You\'re quicker than you look.' },
+                        { do: () => sfx.yes() },
+                        { t: 'Here — warm bread, fresh from the oven. And take this <b>tunic</b>. You cannot walk around Parva Roma dressed like… whatever <em>that</em> is. People will talk. People are <em>already</em> talking.' },
+                        { choice: [
+                            { label: 'Put on the tunic. “How do I look?”', say: [
+                                { t: 'Like a proper Roman! Well. Like a Roman who got dressed in the dark. It\'ll do.' },
+                            ]},
+                            { label: 'Put on the tunic, but fold the hoodie carefully.', say: [
+                                { t: 'Sentimental about the strange clothes? Keep them safe, then. Something tells me your story isn\'t a short one.' },
+                            ]},
+                        ]},
+                        { do: () => { CH1.sub.tunic = true; persist(); setOutfit('roman'); toast('👕 You look like a proper Roman now!'); } },
+                        { t: 'My husband would have liked you. He sails out of <b>Pompeii</b> — the great port south of the mountain. Three weeks gone, this time. The sea keeps its own calendar…' },
+                        { me: '(Pompeii. Why does that word make your stomach drop?)' },
+                        { t: 'Now — you wanted answers? Help <b>Marcus</b> first. His animals have bolted and he\'s in no state to answer anything.' },
+                    ], () => setStep(3));
                 } else {
-                    say(npc, 'A hungry stranger in <em>very</em> odd clothes! I\'ll feed you, but in this town we work. Fetch me three things: <em>aqua</em> from the well, the crate of <em>cibus</em> from the market — mind you open the <b>right crate</b> — and <em>vinum</em> from the barrels by the cart.', 'I\'ll find them');
+                    runScene(npc, [
+                        { t: 'A hungry stranger, in <em>very</em> odd clothes. Lucky for you, I feed first and ask questions later — but in this town, we work for our bread.' },
+                        { t: 'Fetch me three things: <em>aqua</em> from the well, the crate of <em>cibus</em> from the market — mind you open the <b>right crate</b>, the labels matter — and <em>vinum</em> from the barrels by the cart.' },
+                        { choice: [
+                            { label: '“aqua, cibus, vinum. On it!”', xp: 1, say: [{ t: 'Listen to you! Half a morning here and already speaking like a local.' }] },
+                            { label: '“Which one\'s aqua again…?”', say: [{ t: '<em>Water</em>, dear. The stuff in the well. You\'ll learn fast or go thirsty.' }] },
+                        ]},
+                    ]);
                 }
-            } else say(npc, s < 2 ? 'Fresh bread! Well — it will be, once it\'s baked.' : 'The tunic suits you! gratias for the help.');
+            } else {
+                say(npc, s < 2 ? 'Fresh bread! Well — it will be, once it\'s baked.' : 'The tunic suits you! gratias for the help.');
+            }
             break;
         case 'marcus':
             if (s === 3) {
                 if (pennedCount() >= 3 || CH1.sub.herded) {
                     CH1.sub.herded = true;
                     persist();
-                    say(npc, 'optime! alpaca, bos, rana — all home. You\'ve a farmer\'s patience, stranger. You want to know <em>when</em> you are? Pah — ask <b>Magistra Gaia</b> at the school. She reads. She <em>counts</em>. She\'ll know to the very day.', 'To the school!', () => setStep(4));
+                    runScene(npc, [
+                        { t: 'optime! alpaca, bos, rana — all home, and not a hair harmed. You\'ve a farmer\'s patience, stranger.' },
+                        { t: 'You want to know <em>when</em> you are? Pah. Days are days. Ask <b>Magistra Gaia</b> at the school — she reads, she <em>counts</em>. She\'ll know to the very hour.' },
+                        { choice: [
+                            { label: '“Thanks, Marcus. Your frog is very fast, by the way.”', say: [{ t: 'He gets it from the river. Terrible influence, that river.' }] },
+                            { label: '“What do I get for all this animal-wrangling?”', say: [{ t: 'A roof! The barn loft is yours for as long as you need it. Best beds in town, if you don\'t mind the smell of hay.' }] },
+                        ]},
+                    ], () => setStep(4));
                 } else if (!CH1.sub.feed) {
-                    say(npc, 'di immortales! The gate blew open and my animals are loose — the alpaca\'s in the forum, the <em>bos</em> wandered toward the bridge, and the <em>rana</em>… somewhere damp, knowing him.<br><br>Here — take this <b>basket of feed</b>. Offer them a handful and they\'ll follow you anywhere. Lead them home to my pen!', 'Take the basket', () => {
+                    runScene(npc, [
+                        { t: 'di immortales! The gate blew open and my animals are loose — the alpaca\'s strutting around the forum, the <em>bos</em> wandered toward the bridge, and the <em>rana</em>…' },
+                        { me: '“The… rana?”' },
+                        { t: 'The frog! Fastest frog in Campania. He\'ll be somewhere damp, plotting something.' },
+                        { t: 'Here — take this <b>basket of feed</b>. Offer them a handful and they\'ll follow you anywhere. Lead them home to my pen, would you?' },
+                    ], () => {
                         CH1.sub.feed = true;
                         persist();
                         toast('🥕 You\'re carrying Marcus\' feed basket. The animals will follow whoever feeds them!');
                         herdObjective();
                     });
                 } else {
-                    say(npc, 'Found them yet? A handful of feed and they\'ll trail you like ducklings. The <em>rana</em> too — he\'s greedier than the bos.', 'On it!');
+                    say(npc, 'A handful of feed and they\'ll trail you like ducklings. The <em>rana</em> too — he\'s greedier than the bos.');
                 }
-            } else say(npc, s < 3 ? 'These fields won\'t plough themselves…' : 'The animals like you. Animals know.');
+            } else {
+                say(npc, s < 3 ? 'These fields won\'t plough themselves…' : 'The animals like you. Animals know.');
+            }
             break;
         case 'gaia':
             if (s === 4) {
                 if (pagesGot() >= 3) {
-                    say(npc, 'My calendar pages! gratias. Now, let me see… by the consuls, this is the <b>ninth year of Emperor Vespasian</b>. You\'ve gone pale — sit down! Whatever year you came from, you\'re in <em>ours</em> now.<br><br>…Why do you keep staring at the mountain? It\'s only <b>Vesuvius</b>. It\'s always smoked a little.<br><br>As for <em>where</em> — talk to <b>Quintus</b> by the bridge. He\'s travelled everywhere… though he\'s just lost half his cargo, so bring patience.', 'The year 78?!', () => setStep(5));
+                    runScene(npc, [
+                        { t: 'My calendar pages! gratias. Now — you genuinely don\'t know the year? Sit. This should be done sitting down, apparently.' },
+                        { t: 'By the consuls\' names… this is the <b>ninth year of Emperor Vespasian</b>.' },
+                        { choice: [
+                            { label: '“Vespasian… so it\'s AD 78. Which makes next year—”', flag: 'knowsVolcano', say: [
+                                { t: 'Makes next year <em>what</em>? You\'ve gone grey as ash, child.' },
+                                { me: '“…Nothing. History test. I always go grey during history tests.”' },
+                            ]},
+                            { label: '“Cool, cool, cool. …Who\'s Vespasian?”', say: [
+                                { t: '<em>Who is—</em>?! The Emperor of Rome! Builder of the great amphitheatre! Honestly, what do they teach in Britannia.' },
+                            ]},
+                        ]},
+                        { t: '…Why do you keep staring at the mountain? It\'s only <b>Vesuvius</b>. It\'s always smoked a little. Now — for <em>where</em> you are, talk to <b>Quintus</b> by the bridge. Bring patience; he\'s just lost half his cargo.' },
+                    ], () => setStep(5));
                 } else if (CH1.sub.pages) {
-                    say(npc, 'The wind took them toward the forum — three pages! My calendar is useless without them.', 'Chasing paper!');
+                    say(npc, 'The wind took them toward the forum — three pages! My calendar is useless without them.');
                 } else {
-                    say(npc, 'You want to know <em>what year it is</em>?! What a question. It\'s written on my calendar — but the wind has just taken three pages right off my desk, toward the forum. Fetch them back and I\'ll read you the consuls\' names.', 'Chasing paper!', () => {
+                    runScene(npc, [
+                        { t: 'You want to know <em>what year it is</em>? What a question. Wonderful! Most people only ask me how to spell things.' },
+                        { t: 'It\'s written on my calendar — but the wind has just taken three pages right off my desk, toward the forum. Fetch them back and I\'ll read you the consuls\' names.' },
+                    ], () => {
                         CH1.sub.pages = true;
                         persist();
                         pageObjs.forEach(p => { if (!p.got) p.obj.visible = true; });
@@ -1387,16 +1560,35 @@ function npcTalk(npc) {
                         setBeacons(pageObjs.filter(p => !p.got).map(p => [p.x, p.z]));
                     });
                 }
-            } else say(npc, s < 4 ? 'discipuli! Eyes on your tablets, not on the stranger.' : 'The year still stands, in case you wondered.');
+            } else {
+                say(npc, s < 4 ? 'discipuli! Eyes on your tablets, not on the stranger.' : 'The year still stands, in case you wondered.');
+            }
             break;
         case 'quintus':
             if (s === 5) {
                 if (digsLeft() === 0) {
-                    say(npc, '<em>donum, pecunia, liber</em> — my whole cargo, found by reading a child\'s Latin scribbles! You learn fast, stranger.<br><br>You asked <em>where</em> you are: this is <b>Parva Roma</b>, finest little town between the mountains and the sea. And listen — a stranger who falls out of nowhere should speak to the <b>Sibyl</b>. She sees through time itself, they say. Find <b>Aurelia</b> at the temple — she\'ll take you up.', 'Through time…?', () => setStep(6));
+                    runScene(npc, [
+                        { t: '<em>donum, pecunia, liber</em> — my whole cargo, found by reading a child\'s scribbles! You learn fast, stranger. Faster than anyone I\'ve met, and I\'ve met everyone twice.' },
+                        { t: 'You asked <em>where</em> you are. This is <b>Parva Roma</b> — finest little town between the mountain and the sea. Olives, honest people, one (1) suspicious frog.' },
+                        { t: 'And listen—' },
+                        { me: '(He leans in, suddenly serious.)' },
+                        { t: 'A stranger who falls out of nowhere, carrying bronze that shines wrong, should speak to the <b>Sibyl</b>. She sees through time itself, they say. Find <b>Aurelia</b> at the temple — she\'ll take you up.' },
+                        { choice: [
+                            { label: '“Through time? You believe in that?”', say: [{ t: 'I\'m a merchant. I believe in everything that might be true and most things that aren\'t. Cheaper that way.' }] },
+                            { label: '“Thank you, Quintus.”', xp: 1, say: [{ t: 'Thank ME? You found my cargo. Half of Parva Roma owes you a favour by sundown — collect wisely.' }] },
+                        ]},
+                    ], () => setStep(6));
                 } else if (CH1.sub.scroll) {
-                    say(npc, 'Found anything yet? <em>Read</em> the scroll — tap the words if they swim before your eyes.', 'Reading!', showScroll);
+                    say(npc, 'Found anything yet? <em>Read</em> the scroll — tap the words if they swim before your eyes.', null, showScroll);
                 } else {
-                    say(npc, 'Gah! My cart hit a stone and three crates went flying — and all I have is this <b>soggy scroll</b> where a helpful child wrote down where they landed. In Latin, naturally. My eyes aren\'t what they were… can <em>you</em> read it?', 'Show me the scroll', () => {
+                    runScene(npc, [
+                        { t: 'Gah! My cart hit a stone and three crates went flying off into the countryside!' },
+                        { t: 'All I have is this <b>soggy scroll</b> — a helpful child wrote down where they landed. In Latin, naturally. My eyes aren\'t what they were… can <em>you</em> read it?' },
+                        { choice: [
+                            { label: '“Hand it over. I\'ll figure it out.”', xp: 1 },
+                            { label: '“My Latin teacher would die of pride right now.”', say: [{ t: 'Your what? Never mind — here.' }] },
+                        ]},
+                    ], () => {
                         CH1.sub.scroll = true;
                         persist();
                         DIGS.forEach(d => { if (!CH1.sub[d.id]) d.sparkle.visible = true; });
@@ -1405,22 +1597,52 @@ function npcTalk(npc) {
                         setBeacons([]);
                     });
                 }
-            } else say(npc, s < 5 ? 'Goods from every shore of mare nostrum!' : 'Safe travels, time-walker. Mind the carts.');
+            } else {
+                say(npc, s < 5 ? 'Goods from every shore of mare nostrum!' : 'Safe travels, time-walker. Mind the carts.');
+            }
             break;
         case 'aurelia':
             if (s === 6 && !nightFx.visible) {
-                say(npc, 'So you are the one the omens spoke of. Yes — I will bring you to her. Night is falling; the Sibyl speaks best beneath the stars. Go up, and <b>do not be afraid</b>.', 'Take me to her', () => {
+                runScene(npc, [
+                    { t: 'So. You are the one the omens spoke of. The lamps flickered at dawn, and the doves flew east, and now here you stand with half the town\'s errands done in a day.' },
+                    { t: 'Yes — I will bring you to her. Night is falling; the Sibyl speaks best beneath the stars.' },
+                    { t: 'Go up, child. And <b>do not be afraid</b> — or at least, do not show it. She respects nerve.' },
+                ], () => {
                     skyPhase = 2;
                     nightFx.visible = true;
                     npcMark('sibyl');
                     objective('🌙 Climb the temple steps and speak to <b>the Sibyl</b>');
                     setBeacons([[0, -19.5]]);
                 });
-            } else say(npc, s < 6 ? 'pax tecum, stranger. The goddess watches kindly.' : 'pax tecum. The stars are beautiful tonight.');
+            } else {
+                say(npc, s < 6 ? 'pax tecum, stranger. The goddess watches kindly.' : 'pax tecum. The stars are beautiful tonight.');
+            }
             break;
         case 'sibyl':
             if (s === 6 && nightFx.visible) {
-                say(npc, 'I have watched you in the smoke, child of a far tomorrow. You fell through time as a leaf falls through branches.<br><br>Show me your hand. <em>Yes.</em> That amulet was struck <b>in this very town</b>, in a year that has not yet come. Do you understand? You did not fall — you were <b>brought</b>. And whoever reached across the years to fetch you paid dearly for it.<br><br>Hear the prophecy: <em>the road home is built of words</em>. Learn this world\'s tongue, <b>chapter by chapter</b>, and the mists will open. And child — learn quickly. <b>I have seen fire on the mountain.</b><br><br>Tonight, rest. You have made a whole town of friends in a single day.', 'finis capituli primi', () => finaleSibyl());
+                runScene(npc, [
+                    { t: 'I have watched you in the smoke, child of a far tomorrow. You fell through time as a leaf falls through branches.' },
+                    { t: F.truth ? 'You told the senator the truth. Brave. Truth is a heavy coin — spend it carefully here.' :
+                         F.lied ? 'You told the senator you were from <em>Britannia</em>. He believed you. I did not.' :
+                         'You said nothing to the senator, and let the amulet speak. Wise. It says more than you know.' },
+                    { t: 'Show me your hand.' },
+                    { me: '(You open your fingers. The amulet catches the lamplight — and for a heartbeat, it glows on its own.)' },
+                    { t: '<em>Yes.</em> This was struck <b>in this very town</b> — in a year that has not yet come. Do you understand, child? You did not fall. You were <b>brought</b>. And whoever reached across the years to fetch you… paid dearly for it.' },
+                    { choice: [
+                        { label: '“Who brought me? WHY?”', say: [
+                            { t: 'The smoke shows me a hand on a forge-hammer, and a name I am… forbidden to say. Ask me again when you have more words. Secrets answer to vocabulary, in my experience.' },
+                        ]},
+                        { label: '“Can you send me home?”', say: [
+                            { t: 'I? No. But hear the prophecy: <em>the road home is built of words</em>. Learn this world\'s tongue, chapter by chapter — and when the last word is yours, the mists will open.' },
+                        ]},
+                        { label: '“…What if I\'m not sure I want to go home yet?”', flag: 'wantsToStay', xp: 2, say: [
+                            { t: '<em>Ha!</em> One day, and Parva Roma has you. Then learn its words for love instead of escape — they stick better that way.' },
+                        ]},
+                    ]},
+                    { t: 'One more thing, and hear it well: <b>learn quickly</b>. I have seen fire on the mountain.' },
+                    { me: '(Far to the north, Vesuvius breathes its thin grey thread into the stars.)' },
+                    { t: 'Tonight — rest. You have made a whole town of friends in a single day.' },
+                ], () => finaleSibyl());
             } else if (save.ch1.done) {
                 say(npc, 'Rest, time-walker. The second chapter of your road is already being written…');
             } else {
@@ -1428,7 +1650,7 @@ function npcTalk(npc) {
             }
             break;
         case 'camilla':
-            say(npc, s >= 7 ? 'A traveller through time! You\'ll be a whole epic, not a poem.' : 'A stranger! How marvellous — strangers make the best poems.');
+            say(npc, s >= 7 ? 'A traveller through time! You\'ll be a whole epic, not a poem. I\'m thinking hexameter.' : 'A stranger! How marvellous — strangers make the best poems.');
             break;
         case 'drusilla':
             say(npc, s >= 7 ? 'Time-sickness is best treated with sleep and honey. Doctor\'s orders.' : 'You look pale, dear. Lost? The whole town will help — that\'s what towns are for.');
@@ -1625,8 +1847,11 @@ function checkLabels() {
 
 // ---------- Game loop ----------
 const clock = new THREE.Clock();
-const camTarget = new THREE.Vector3();
 let camX = player.x, camZ = player.z + 14;
+const camPos = new THREE.Vector3(player.x, 10, player.z + 13);
+const camLook = new THREE.Vector3(player.x, 3, player.z);
+const camDesire = new THREE.Vector3();
+const lookDesire = new THREE.Vector3();
 
 function update(dt, t) {
     skyCurrent += (skyPhase - skyCurrent) * Math.min(1, dt * 0.5);
@@ -1670,9 +1895,25 @@ function update(dt, t) {
 
     camX += (player.x - camX) * Math.min(1, dt * 3);
     camZ += (player.z - camZ) * Math.min(1, dt * 3);
-    camera.position.set(camX, py + 9.5, camZ + 12.5);
-    camTarget.set(camX, py + 3.2, camZ - 7);
-    camera.lookAt(camTarget);
+    if (dialogOpen && vn && vn.npc) {
+        // cinematic close-up: over the player's shoulder onto the speaker
+        const n = vn.npc;
+        const ny = groundHeight(n.x, n.z);
+        let dx2 = player.x - n.x, dz2 = player.z - n.z;
+        const dd = Math.hypot(dx2, dz2) || 1;
+        dx2 /= dd; dz2 /= dd;
+        // offset to the side so both faces read
+        const sideX = -dz2, sideZ = dx2;
+        camDesire.set(n.x + dx2 * 3.6 + sideX * 1.6, ny + 2.6, n.z + dz2 * 3.6 + sideZ * 1.6);
+        lookDesire.set(n.x, ny + 1.75, n.z);
+    } else {
+        camDesire.set(camX, py + 9.5, camZ + 12.5);
+        lookDesire.set(camX, py + 3.2, camZ - 7);
+    }
+    camPos.lerp(camDesire, Math.min(1, dt * 4));
+    camLook.lerp(lookDesire, Math.min(1, dt * 4));
+    camera.position.copy(camPos);
+    camera.lookAt(camLook);
 
     for (const n of npcs) {
         const d = Math.hypot(n.x - player.x, n.z - player.z);
@@ -1700,7 +1941,8 @@ function update(dt, t) {
 
     // animals: wander, or flee from the player while being herded
     for (const a of animals) {
-        if (a.mixer) a.mixer.update(dt);
+        a.bobT = (a.bobT || Math.random() * 6) + dt;
+        a.obj.children[0].position.y = (a.obj.children[0].userData.baseInnerY ??= a.obj.children[0].position.y) + Math.abs(Math.sin(a.bobT * 2.4)) * 0.06;
         const px = a.obj.position.x, pz = a.obj.position.z;
         if (a.following && !a.penned && CH1.step === 3) {
             // trail behind the player in a little parade
