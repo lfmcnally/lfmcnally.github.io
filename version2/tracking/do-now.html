@@ -84,6 +84,15 @@
 .lb-row.top1 .lb-rank { color: #ffd766; }
 .lb-row.notin { opacity: 0.5; }
 .lb-row.notin .lb-score { color: #8fa8cc; font-size: 16px; font-family: inherit; font-weight: 600; }
+
+/* game-mode projection (reuses .lb-* row styles) */
+#gameView { position: fixed; inset: 0; z-index: 600; background: radial-gradient(circle at 50% -10%, #1b3160, var(--navy) 60%); color: #fff; display: none; flex-direction: column; }
+#gameView.open { display: flex; }
+#gameView .lb-title { color: #ffd766; }
+.gv-join { padding: 10px 34px; font-size: 16px; color: #cfe0ff; }
+.gv-join b { color: #ffd766; }
+.gv-xp { font-family: 'Lora', serif; font-weight: 700; font-size: 26px; color: #ffd766; flex-shrink: 0; }
+.lb-row.top1 .gv-xp, .lb-row.top2 .gv-xp, .lb-row.top3 .gv-xp { color: #ffe9a8; }
 </style>
 </head>
 <body>
@@ -152,6 +161,21 @@
   <audio id="lbMusic" preload="none"></audio>
 </div>
 
+<!-- GAME MODE PROJECTION -->
+<div id="gameView">
+  <div class="lb-top">
+    <div>
+      <div class="lb-title">🎮 Gold Rush</div>
+      <div class="lb-sub" id="gvSub"></div>
+    </div>
+    <div class="lb-controls">
+      <button class="lb-btn" id="gvExit" type="button">Exit</button>
+    </div>
+  </div>
+  <div class="gv-join" id="gvJoin"></div>
+  <div class="lb-list" id="gvList"></div>
+</div>
+
 <script>
 // Use window.supabase directly — the supabase-js UMD bundle already
 // occupies the global `supabase`, so a top-level `const supabase` here
@@ -160,6 +184,7 @@ const sb = window.supabase;
 let classes = [], currentClassIdx = 0, activeClass = null, myId = null;
 let doNowPoll = null, doNowChannel = null, doNowDebounce = null;
 let dngChannel = null;   // game-mode leaderboard realtime channel
+let gameViewOpen = false, gvClass = null;
 let classViewOpen = false, lbRows = new Map(), lbClass = null, lbSky = null;
 let lbSort = 'correct';   // 'correct' (most correct) or 'accuracy' (highest %)
 
@@ -412,7 +437,8 @@ function mountGamePanel(cls){
       <div class="dn-controls">
         <button id="dngLaunch" class="dn-btn dn-btn-primary" type="button">Launch game</button>
         <button id="dngEnd" class="dn-btn dn-btn-danger" type="button">End game</button>
-        <a id="dngLink" class="dn-btn dn-btn-project" href="${studentUrl}" target="_blank" rel="noopener">Student link ↗</a>
+        <button id="dngProject" class="dn-btn dn-btn-project" type="button">Project leaderboard ↗</button>
+        <a id="dngLink" class="dn-btn" href="${studentUrl}" target="_blank" rel="noopener">Student link ↗</a>
       </div>
       <div class="dn-sublabel">Students answer the <b>current Do&nbsp;Now</b> for XP and open chests. Launching resets scores. They join at <b>${studentUrl}</b> (or via their Do Now button).</div>
       <div id="dngBoard"></div>
@@ -442,7 +468,21 @@ function mountGamePanel(cls){
     if (error) { status.textContent = 'Could not end: ' + error.message; status.style.color = '#dc2626'; return; }
     setGameStatus(false);
   });
+
+  document.getElementById('dngProject').addEventListener('click', () => openGameProjection(cls));
 }
+
+function openGameProjection(cls){
+  gvClass = cls; gameViewOpen = true;
+  document.getElementById('gvSub').textContent = cls.name || '';
+  const url = location.origin + '/version2/tools/game/gold-rush.html';
+  document.getElementById('gvJoin').innerHTML = 'Join at <b>' + escapeHtml(url) + '</b>';
+  document.getElementById('gameView').classList.add('open');
+  startGameBoard(cls);   // ensure realtime + initial load
+  loadGameBoard(cls);
+}
+function closeGameProjection(){ gameViewOpen = false; document.getElementById('gameView').classList.remove('open'); }
+document.getElementById('gvExit').addEventListener('click', closeGameProjection);
 
 function setGameStatus(live){
   const s = document.getElementById('dngStatus');
@@ -457,14 +497,25 @@ async function loadGameBoard(cls){
   renderGameBoard(rows);
 }
 function renderGameBoard(rows){
-  const el = document.getElementById('dngBoard');
-  if (!el) return;
-  if (!rows.length) { el.innerHTML = '<div class="dn-status" style="padding:8px 0;">No players yet — share the student link.</div>'; return; }
   const medals = ['🥇','🥈','🥉'];
-  el.innerHTML = '<table class="dn-board"><tbody>' + rows.slice(0, 30).map((r, i) =>
-    `<tr><td style="width:34px;text-align:center;font-weight:700;color:var(--muted);">${medals[i] || (i + 1)}</td>
-         <td>${escapeHtml(r.display_name || 'Player')}</td>
-         <td style="text-align:right;font-weight:800;color:#b8860b;">${(r.xp|0).toLocaleString()} XP</td></tr>`).join('') + '</tbody></table>';
+  const el = document.getElementById('dngBoard');
+  if (el) {
+    if (!rows.length) el.innerHTML = '<div class="dn-status" style="padding:8px 0;">No players yet — share the student link.</div>';
+    else el.innerHTML = '<table class="dn-board" style="width:100%;border-collapse:collapse;"><tbody>' + rows.slice(0, 30).map((r, i) =>
+      `<tr><td style="width:34px;text-align:center;font-weight:700;color:var(--muted);">${medals[i] || (i + 1)}</td>
+           <td>${escapeHtml(r.display_name || 'Player')}</td>
+           <td style="text-align:right;font-weight:800;color:#b8860b;">${(r.xp|0).toLocaleString()} XP</td></tr>`).join('') + '</tbody></table>';
+  }
+  // Projection (full screen)
+  if (gameViewOpen) {
+    const list = document.getElementById('gvList');
+    if (list) list.innerHTML = rows.slice(0, 12).map((r, i) =>
+      `<div class="lb-row ${i === 0 ? 'top1' : ''} ${i === 1 ? 'top2' : ''} ${i === 2 ? 'top3' : ''}">
+         <span class="lb-rank">${medals[i] || (i + 1)}</span>
+         <span class="lb-name">${escapeHtml(r.display_name || 'Player')}</span>
+         <span class="gv-xp">${(r.xp|0).toLocaleString()} XP</span>
+       </div>`).join('') || '<div style="padding:20px;color:#8fa8cc;font-size:18px;">Waiting for players to join…</div>';
+  }
 }
 function startGameBoard(cls){
   loadGameBoard(cls);
