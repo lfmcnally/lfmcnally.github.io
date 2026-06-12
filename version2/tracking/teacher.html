@@ -799,6 +799,26 @@ async function init() {
   });
 }
 
+// Supabase / PostgREST caps each response at ~1000 rows (db-max-rows). A full
+// class easily blows past that for vocab_bkt — e.g. 466 GCSE Latin words across
+// several students — so a single batched query silently drops everything past
+// the cap, and those words render as "never attempted" even though the student
+// practised them. Page through with .range() until a short page comes back. The
+// caller supplies a factory so each page is a fresh query; a stable .order()
+// inside it keeps pages from overlapping or skipping rows.
+async function fetchAllRows(buildQuery) {
+  const PAGE = 1000;
+  const out = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await buildQuery().range(from, from + PAGE - 1);
+    if (error) { console.warn('[teacher] paged fetch failed', error); break; }
+    if (!data || !data.length) break;
+    out.push(...data);
+    if (data.length < PAGE) break;
+  }
+  return out;
+}
+
 async function reloadClasses() {
   // Remember which class is selected so reorder/rename/archive don't jump us
   // to a different class.
@@ -870,23 +890,27 @@ async function reloadClasses() {
     const bktByStudent = new Map();
     const sessByStudent = new Map();
     if (vocabList && studentIds.length) {
-      const [bktRes, sessRes] = await Promise.all([
-        window.supabase
+      const [bktRows, sessRows] = await Promise.all([
+        fetchAllRows(() => window.supabase
           .from('vocab_bkt')
           .select('student_id, word_latin, p_know, trials, correct, last_seen_at, distinct_correct_days, next_review_at')
           .in('student_id', studentIds)
-          .eq('vocab_list', vocabList),
-        window.supabase
+          .eq('vocab_list', vocabList)
+          .order('student_id', { ascending: true })
+          .order('word_latin', { ascending: true })),
+        fetchAllRows(() => window.supabase
           .from('vocab_sessions')
           .select('student_id, started_at, answered')
           .in('student_id', studentIds)
           .eq('vocab_list', vocabList)
+          .order('student_id', { ascending: true })
+          .order('started_at', { ascending: true }))
       ]);
-      for (const row of (bktRes.data || [])) {
+      for (const row of bktRows) {
         if (!bktByStudent.has(row.student_id)) bktByStudent.set(row.student_id, []);
         bktByStudent.get(row.student_id).push(row);
       }
-      for (const row of (sessRes.data || [])) {
+      for (const row of sessRows) {
         if (!sessByStudent.has(row.student_id)) sessByStudent.set(row.student_id, []);
         sessByStudent.get(row.student_id).push(row);
       }
