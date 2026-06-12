@@ -1025,6 +1025,22 @@ function sparkleTick(t) {
 let vn = null;
 let typeTimer = null;
 if (!save.flags || typeof save.flags !== 'object') save.flags = {};
+if (!save.amicitia || typeof save.amicitia !== 'object') save.amicitia = {};
+function heart(id, name) {
+    save.amicitia[id] = (save.amicitia[id] || 0) + 1;
+    persist();
+    toast(`❤ <b>${name}</b> thinks more of you <span style="opacity:0.7">(amicitia +1)</span>`);
+}
+function clue(flag, html) {
+    if (save.flags[flag]) return;
+    save.flags[flag] = true;
+    persist();
+    sfx.discover();
+    setTimeout(() => toast(`🔍 <b>Clue found:</b> ${html}`, 5600), 600);
+}
+function clueCount() {
+    return ['clueLetter', 'clueFigure', 'cluePage', 'clueSmith'].filter(f => save.flags[f]).length;
+}
 
 function runScene(npc, lines, onDone) {
     dialogOpen = true;
@@ -1103,6 +1119,7 @@ function renderChoice(options) {
             e.stopPropagation();
             const o = options[parseInt(btn.dataset.i, 10)];
             if (o.flag) { save.flags[o.flag] = true; persist(); }
+            if (o.heart) { heart(o.heart[0], o.heart[1]); }
             if (o.xp) { save.xp += o.xp; persist(); updateHud(); }
             if (o.say && o.say.length) v.lines.splice(v.i + 1, 0, ...o.say);
             if (o.then) v.lines.splice(v.i + 1 + (o.say ? o.say.length : 0), 0, { do: o.then });
@@ -1413,16 +1430,46 @@ function finaleSibyl() {
     npcMark(null);
     objective('🌙 <em>finis capituli primi</em> — explore the night, or rest. Chapter II is coming soon.');
     setBeacons([]);
+    if (save.flags.markQuest) spawnMarkDig();
     setTimeout(() => {
+        const F = save.flags;
+        const told = F.truth ? 'told Titus the <b>truth</b>' : F.lied ? 'told Titus you were from <b>Britannia</b> (he believed you)' : 'told Titus <b>nothing</b>, and let the amulet speak';
+        const asked = F.sibylWho ? 'asked the Sibyl <b>who brought you here</b> — the hunt for the smith\'s mark begins'
+            : F.sibylMsg ? 'spent your one question on <b>a message home</b>'
+            : F.sibylFire ? 'asked about the fire — you alone know <b>August, AD 79</b> is coming'
+            : 'faced the Sibyl';
+        let bestId = null, bestN = 0;
+        for (const [id, n] of Object.entries(save.amicitia)) if (n > bestN) { bestN = n; bestId = id; }
+        const bestNpc = bestId ? npcById.get(bestId) : null;
         document.getElementById('victory-text').innerHTML =
-            `You know <b>where</b> you are: Parva Roma, in the shadow of Vesuvius. You know <b>when</b>: ` +
-            `the ninth year of Vespasian — AD 78. You know your amulet was made <em>here</em>, in a year yet to come, ` +
-            `and that someone <b>brought you</b> across the centuries on purpose. And you know the way home: ` +
-            `<em>"learn this world's words, chapter by chapter, and the mists will open."</em> The Sibyl has seen fire on the mountain…` +
+            `<b>Your</b> first day in Parva Roma: you ${told}, gathered <b>${clueCount()}/4</b> clues about the hooded stranger, and ${asked}.` +
+            (bestNpc ? `<br>Your closest friend in town: <b>${bestNpc.name}</b> ${'❤'.repeat(Math.min(bestN, 3))}` : '') +
             `<br><br>📖 Words discovered: <b>${save.lexicon.length}/${LABELS.length}</b> · ⚡ XP: <b>${save.xp}</b>` +
-            `<br><br><em>finis capituli primi</em> — Chapter II is coming soon.`;
+            `<br><br><em>finis capituli primi</em> — your choices are saved, and Chapter II will remember them.`;
         document.getElementById('victory').classList.add('open');
     }, 1800);
+}
+
+// The "who" path's reward: a secret dig behind the villa
+let markDigSpawned = false;
+function spawnMarkDig() {
+    if (markDigSpawned || save.flags.markFound) return;
+    markDigSpawned = true;
+    const mx = -34, mz = -28.5;
+    const sp = makeSparkle(mx, mz);
+    sp.visible = true;
+    addInteract('mark_dig', mx, mz, 'Dig where the Sibyl said!', 2.6,
+        () => save.flags.markQuest && !save.flags.markFound,
+        () => {
+            save.flags.markFound = true;
+            save.xp += 15;
+            persist();
+            updateHud();
+            sp.visible = false;
+            sfx.dig();
+            setTimeout(() => sfx.discover(), 400);
+            toast('⚒️ Buried in a cloth: a bronze token stamped with <b>two crossed hammers under a star</b> — the smith\'s mark. Chapter II begins with this. (+15 XP)', 6500);
+        });
 }
 
 // ---------- NPC story dialogs (visual-novel scenes) ----------
@@ -1438,7 +1485,7 @@ function npcTalk(npc) {
                     { t: 'Forgive me. salve, stranger. I am <b>Titus</b>, senator of this town. And you are… lost. Profoundly, historically lost, by the look of you.' },
                     { t: 'Strange. Your words are foreign — yet I understand you perfectly, and you me. The gods are meddling today. So tell me honestly: <b>what are you?</b>' },
                     { choice: [
-                        { label: '“I\'m from the future. Two thousand years from now.”', flag: 'truth', xp: 2, say: [
+                        { label: '“I\'m from the future. Two thousand years from now.”', flag: 'truth', xp: 2, heart: ['titus', 'Titus'], say: [
                             { t: '…' },
                             { t: 'Most people open with a false name, you know. Not the collapse of the natural order.' },
                             { t: 'And yet — you don\'t look mad. And <em>that</em> doesn\'t look like a toy.' },
@@ -1481,6 +1528,8 @@ function npcTalk(npc) {
                         { do: () => { CH1.sub.tunic = true; persist(); setOutfit('roman'); toast('👕 You look like a proper Roman now!'); } },
                         { t: 'My husband would have liked you. He sails out of <b>Pompeii</b> — the great port south of the mountain. Three weeks gone, this time. The sea keeps its own calendar…' },
                         { me: '(Pompeii. Why does that word make your stomach drop?)' },
+                        { t: 'His last letter was strange, actually. He wrote that a <b>bronze-smith</b> down there had taken “a commission too odd to speak of, and paid in silence.” Sailors\' gossip, probably.' },
+                        { do: () => clue('clueLetter', 'a Pompeii bronze-smith took a secret commission…') },
                         { t: 'Now — you wanted answers? Help <b>Marcus</b> first. His animals have bolted and he\'s in no state to answer anything.' },
                     ], () => setStep(3));
                 } else {
@@ -1504,6 +1553,9 @@ function npcTalk(npc) {
                     persist();
                     runScene(npc, [
                         { t: 'optime! alpaca, bos, rana — all home, and not a hair harmed. You\'ve a farmer\'s patience, stranger.' },
+                        { t: 'Strange thing, though, now I think of it. The night before you turned up, I saw a <b>hooded figure</b> standing under the great oak. Just… standing. Watching the road. Gone by dawn.' },
+                        { me: '(The great oak. The exact spot where you woke up.)' },
+                        { do: () => clue('clueFigure', 'a hooded figure watched the oak the night before you arrived') },
                         { t: 'You want to know <em>when</em> you are? Pah. Days are days. Ask <b>Magistra Gaia</b> at the school — she reads, she <em>counts</em>. She\'ll know to the very hour.' },
                         { choice: [
                             { label: '“Thanks, Marcus. Your frog is very fast, by the way.”', say: [{ t: 'He gets it from the river. Terrible influence, that river.' }] },
@@ -1544,6 +1596,8 @@ function npcTalk(npc) {
                                 { t: '<em>Who is—</em>?! The Emperor of Rome! Builder of the great amphitheatre! Honestly, what do they teach in Britannia.' },
                             ]},
                         ]},
+                        { t: 'But here is the odd part. One page of my calendar was <b>already missing</b> — torn out, weeks ago. A traveller came asking about “the ninth year”… hooded, soft-spoken. Paid in old bronze and took the page.' },
+                        { do: () => clue('cluePage', 'a hooded traveller paid Gaia in old bronze for the calendar page') },
                         { t: '…Why do you keep staring at the mountain? It\'s only <b>Vesuvius</b>. It\'s always smoked a little. Now — for <em>where</em> you are, talk to <b>Quintus</b> by the bridge. Bring patience; he\'s just lost half his cargo.' },
                     ], () => setStep(5));
                 } else if (CH1.sub.pages) {
@@ -1575,7 +1629,13 @@ function npcTalk(npc) {
                         { t: 'A stranger who falls out of nowhere, carrying bronze that shines wrong, should speak to the <b>Sibyl</b>. She sees through time itself, they say. Find <b>Aurelia</b> at the temple — she\'ll take you up.' },
                         { choice: [
                             { label: '“Through time? You believe in that?”', say: [{ t: 'I\'m a merchant. I believe in everything that might be true and most things that aren\'t. Cheaper that way.' }] },
-                            { label: '“Thank you, Quintus.”', xp: 1, say: [{ t: 'Thank ME? You found my cargo. Half of Parva Roma owes you a favour by sundown — collect wisely.' }] },
+                            { label: '“Thank you, Quintus.”', xp: 1, heart: ['quintus', 'Quintus'], say: [
+                                { t: 'Thank ME? You found my cargo. Half of Parva Roma owes you a favour by sundown — collect wisely.' },
+                                { t: '…And since you\'re polite as well as clever, here\'s something I don\'t tell everyone. A month back, I sold a crate of <b>old temple bronze</b> to a smith from Pompeii. Hooded fellow. Paid double. Never haggled.' },
+                                { me: '“A smith who doesn\'t haggle?”' },
+                                { t: 'Exactly. A man who pays double wants <em>silence</em>, not bronze. Watch yourself, time-walker.' },
+                                { do: () => clue('clueSmith', 'Quintus sold old temple bronze to a hooded Pompeii smith') },
+                            ] },
                         ]},
                     ], () => setStep(6));
                 } else if (CH1.sub.scroll) {
@@ -1628,19 +1688,27 @@ function npcTalk(npc) {
                     { t: 'Show me your hand.' },
                     { me: '(You open your fingers. The amulet catches the lamplight — and for a heartbeat, it glows on its own.)' },
                     { t: '<em>Yes.</em> This was struck <b>in this very town</b> — in a year that has not yet come. Do you understand, child? You did not fall. You were <b>brought</b>. And whoever reached across the years to fetch you… paid dearly for it.' },
+                    { t: 'Hear the prophecy first: <em>the road home is built of words</em>. Learn this world\'s tongue, chapter by chapter, and when the last word is yours, the mists will open.' },
+                    { t: 'And now, child — the smoke grants you <b>one question</b> tonight. One. Choose it as carefully as you would choose a last word.' },
                     { choice: [
-                        { label: '“Who brought me? WHY?”', say: [
-                            { t: 'The smoke shows me a hand on a forge-hammer, and a name I am… forbidden to say. Ask me again when you have more words. Secrets answer to vocabulary, in my experience.' },
+                        { label: '“WHO brought me here?”', flag: 'sibylWho', say: [
+                            { t: 'Brave. The smoke shows me… a hand on a forge-hammer. Old temple bronze, melted by night. A maker\'s mark — <b>two crossed hammers under a star</b>.' },
+                            { t: 'The name is hidden from me — but the mark is not hidden from <em>you</em>. The smith left something behind this town\'s villa. Dig, time-walker. Begin your hunt.' },
+                            { do: () => { save.flags.markQuest = true; persist(); } },
                         ]},
-                        { label: '“Can you send me home?”', say: [
-                            { t: 'I? No. But hear the prophecy: <em>the road home is built of words</em>. Learn this world\'s tongue, chapter by chapter — and when the last word is yours, the mists will open.' },
+                        { label: '“Can you send a message… home? To my family?”', flag: 'sibylMsg', xp: 5, say: [
+                            { t: '…Of all the questions, child. You could have asked for power.' },
+                            { t: 'Give me your words, and I will whisper them into the smoke. Time is a river, but smoke goes where it pleases.' },
+                            { me: '(You whisper it. The lamps gutter. Somewhere — somewhen — perhaps a candle flickers on a kitchen table.)' },
+                            { t: 'It is sent. Whether it arrives… ask me in another chapter. You have a kind heart, time-walker. Guard it; this century is hard on kind hearts.' },
                         ]},
-                        { label: '“…What if I\'m not sure I want to go home yet?”', flag: 'wantsToStay', xp: 2, say: [
-                            { t: '<em>Ha!</em> One day, and Parva Roma has you. Then learn its words for love instead of escape — they stick better that way.' },
+                        { label: '“The fire on the mountain — WHEN?”', flag: 'sibylFire', say: [
+                            { t: '…You already suspect, don\'t you. I see it behind your eyes — a number, sleeping.' },
+                            { t: 'Then hear it spoken once, and never by me again: <b>the month of Augustus, in the year to come</b>. The mountain will open, and the sky will fall on the cities of the bay.' },
+                            { me: '(August, AD 79. Pompeii. Livia\'s husband sails out of Pompeii. You feel the weight of being the only person alive who believes it.)' },
+                            { t: 'Now you carry tomorrow on your back, child. Spend it <em>well</em>.' },
                         ]},
                     ]},
-                    { t: 'One more thing, and hear it well: <b>learn quickly</b>. I have seen fire on the mountain.' },
-                    { me: '(Far to the north, Vesuvius breathes its thin grey thread into the stars.)' },
                     { t: 'Tonight — rest. You have made a whole town of friends in a single day.' },
                 ], () => finaleSibyl());
             } else if (save.ch1.done) {
@@ -1724,8 +1792,11 @@ function applyStep() {
     } else {
         skyPhase = save.ch1.done ? 0 : 2;
         npcMark(null);
-        objective('🌅 <em>finis capituli primi</em> — explore Parva Roma freely. Chapter II is coming soon.');
-        setBeacons([]);
+        objective(save.flags.markQuest && !save.flags.markFound
+            ? '⚒️ The Sibyl spoke of something buried <b>behind the villa</b>…'
+            : '🌅 <em>finis capituli primi</em> — explore Parva Roma freely. Chapter II is coming soon.');
+        setBeacons(save.flags.markQuest && !save.flags.markFound ? [[-34, -28.5]] : []);
+        if (save.flags.markQuest && !save.flags.markFound) spawnMarkDig();
     }
 }
 
