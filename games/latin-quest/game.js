@@ -3,7 +3,7 @@
 // ============================================================
 // Walk around Parva Roma, talk to ten townsfolk (one per OCR
 // chapter), answer their vocabulary challenges and earn laurels.
-// All graphics are drawn procedurally on canvas — no assets.
+// Graphics: vendored CC0 sprites from Kenney.nl (see assets/LICENSE.txt).
 //
 // The GameCore section below has no DOM dependencies so it can
 // be sanity-checked in Node (see scripts/test-latin-quest.js).
@@ -143,47 +143,47 @@ const GameCore = (function () {
     // ---------- The townsfolk ----------
     // Colours: tunic, trim; hair; skin. Accessories give each a silhouette.
     const NPC_DEFS = [
-        { id: 'marcus', name: 'Marcus', title: 'the Farmer', chapter: 1, x: 18, y: 27,
+        { id: 'marcus', spr: 3, name: 'Marcus', title: 'the Farmer', chapter: 1, x: 18, y: 27,
           tunic: '#a4763d', trim: '#7c5527', hair: '#4a3220', skin: '#d9a06b', acc: 'strawhat',
           greet: 'salve, viator! These fields don’t plough themselves. Show me you know your <em>Chapter 1</em> words and a laurel is yours.',
           done: 'optime! You work as hard as my oxen. Come back any time to sharpen up.' },
-        { id: 'livia', name: 'Livia', title: 'the Baker', chapter: 2, x: 16, y: 17,
+        { id: 'livia', spr: 1, name: 'Livia', title: 'the Baker', chapter: 2, x: 16, y: 17,
           tunic: '#b8543e', trim: '#8c3a2c', hair: '#2e2018', skin: '#e8b48a', acc: 'long',
           greet: 'salve! Fresh bread, fresh words. Get my <em>Chapter 2</em> vocabulary right and I’ll crown you with laurel — not flour.',
           done: 'bene factum! You’ve earned your bread — and your laurel.' },
-        { id: 'quintus', name: 'Quintus', title: 'the Merchant', chapter: 3, x: 48, y: 22,
+        { id: 'quintus', spr: 5, name: 'Quintus', title: 'the Merchant', chapter: 3, x: 48, y: 22,
           tunic: '#3e7d8c', trim: '#2c5a66', hair: '#1f1a14', skin: '#c98e5a', acc: 'none',
           greet: 'Goods from every shore of <em>mare nostrum</em>! But words are the true currency. Trade me your <em>Chapter 3</em> vocabulary.',
           done: 'A fine bargain! You’d haggle well in any forum.' },
-        { id: 'aurelia', name: 'Aurelia', title: 'the Priestess', chapter: 4, x: 23, y: 10,
+        { id: 'aurelia', spr: 7, name: 'Aurelia', title: 'the Priestess', chapter: 4, x: 23, y: 10,
           tunic: '#e8e0d0', trim: '#c9b88a', hair: '#5a4632', skin: '#e8b48a', acc: 'veil',
           greet: 'pax tecum. Minerva favours the studious. Recite your <em>Chapter 4</em> words upon her steps.',
           done: 'dis gratias! The goddess of wisdom smiles on you.' },
-        { id: 'felix', name: 'Felix', title: 'the Gladiator', chapter: 5, x: 36, y: 27,
+        { id: 'felix', spr: 11, name: 'Felix', title: 'the Gladiator', chapter: 5, x: 36, y: 27,
           tunic: '#8c4a3e', trim: '#5e2f27', hair: '#171310', skin: '#b87e4e', acc: 'helmet',
           greet: 'Ha! Strong arms, stronger mind. Spar with me — <em>Chapter 5</em> words, eight hits to win.',
           done: 'victor es! You fight with words like a true champion of the arena.' },
-        { id: 'drusilla', name: 'Drusilla', title: 'the Healer', chapter: 6, x: 7, y: 24,
+        { id: 'drusilla', spr: 4, name: 'Drusilla', title: 'the Healer', chapter: 6, x: 7, y: 24,
           tunic: '#5e8c52', trim: '#436339', hair: '#8c8478', skin: '#dca87a', acc: 'long',
           greet: 'Herbs for the body, words for the mind. My <em>Chapter 6</em> remedy: eight correct answers, taken among the trees.',
           done: 'salva es! A healthy memory is the best medicine of all.' },
-        { id: 'septimus', name: 'Septimus', title: 'the Soldier', chapter: 7, x: 40, y: 18,
+        { id: 'septimus', spr: 9, name: 'Septimus', title: 'the Soldier', chapter: 7, x: 40, y: 18,
           tunic: '#9c2f2f', trim: '#6e1f1f', hair: '#2e2018', skin: '#d9a06b', acc: 'helmet',
           greet: 'Halt! None cross my bridge unquestioned. Drill your <em>Chapter 7</em> words, recruit — then pass freely.',
           done: 'At ease, legionary. The bridge — and the laurel — are yours.' },
-        { id: 'camilla', name: 'Camilla', title: 'the Poet', chapter: 8, x: 8, y: 14,
+        { id: 'camilla', spr: 6, name: 'Camilla', title: 'the Poet', chapter: 8, x: 8, y: 14,
           tunic: '#7d5e9c', trim: '#5a4273', hair: '#3e2c1c', skin: '#e8b48a', acc: 'long',
           greet: 'arma virumque cano… but today I sing of vocabulary! Compose with me from <em>Chapter 8</em>, here among the flowers.',
           done: 'carmen perfectum! The Muses themselves applaud you.' },
-        { id: 'titus', name: 'Titus', title: 'the Senator', chapter: 9, x: 30, y: 16,
+        { id: 'titus', spr: 2, name: 'Titus', title: 'the Senator', chapter: 9, x: 30, y: 16,
           tunic: '#ece8df', trim: '#9c2f2f', hair: '#b8b2a6', skin: '#dca87a', acc: 'wreath',
           greet: 'civis! The Senate values eloquence above gold. Debate me on the words of <em>Chapter 9</em>.',
           done: 'senatus populusque Romanus salutes you! A born orator.' },
-        { id: 'gaia', name: 'Magistra Gaia', title: 'the Teacher', chapter: 10, x: 36, y: 17,
+        { id: 'gaia', spr: 10, name: 'Magistra Gaia', title: 'the Teacher', chapter: 10, x: 36, y: 17,
           tunic: '#3e5a8c', trim: '#2c4066', hair: '#4a3220', skin: '#e8b48a', acc: 'long',
           greet: 'discipule, the final chapter awaits. <em>Chapter 10</em> holds the trickiest words — prove you have mastered them.',
           done: 'summa cum laude! There is nothing more I can teach you.' },
-        { id: 'sibyl', name: 'the Sibyl', title: 'Oracle of Parva Roma', chapter: 0, x: 26, y: 5, final: true,
+        { id: 'sibyl', spr: 8, name: 'the Sibyl', title: 'Oracle of Parva Roma', chapter: 0, x: 26, y: 5, final: true,
           tunic: '#2c3e50', trim: '#f5c842', hair: '#e8e0d0', skin: '#dca87a', acc: 'veil',
           greet: 'So… the bearer of ten laurels stands before me. One trial remains: fifteen questions drawn from the whole book of words. Answer twelve truly, and the <em>corona laurea</em> is yours.',
           locked: 'The mists are thick… return when you carry all <b>ten laurels</b>, and I shall set you the final trial.',
@@ -363,7 +363,7 @@ if (typeof document !== 'undefined') (function () {
         x: (PLAYER_SPAWN.x + 0.5) * TILE,
         y: (PLAYER_SPAWN.y + 0.85) * TILE,
         dir: 'down', moving: false, frame: 0, frameTime: 0,
-        speed: 130,
+        speed: 130, spr: 0,
         tunic: '#c9a23e', trim: '#9c7a26', hair: '#3e2c1c', skin: '#e0a878', acc: 'none',
     };
 
@@ -397,239 +397,219 @@ if (typeof document !== 'undefined') (function () {
         victory: () => { [523, 659, 784, 880, 1047, 1319].forEach((f, i) => beep(f, 0.2, 'sine', i * 0.13)); },
     };
 
-    // ---------- Tile art (pre-rendered to offscreen canvases) ----------
+    // ---------- Sprite sheets (Kenney CC0, vendored in ./assets) ----------
+    // 16px tiles drawn at 2x onto 32px world tiles. Water, bridge,
+    // fountain, statue and crate are drawn in code so they animate and
+    // fit the classical theme; if the sheets fail to load everything
+    // falls back to flat colours / the procedural person.
+    const IMG = { town: null, chars: null, ready: false };
+    function loadImage(srcPath) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error('failed: ' + srcPath));
+            img.src = srcPath;
+        });
+    }
+    const bt = (c, sc, sr, dx, dy) => c.drawImage(IMG.town, sc * 16, sr * 16, 16, 16, dx, dy, 32, 32);
+
+    const FLAT = {
+        [T.GRASS]: '#74b14d', [T.ROAD]: '#c9a36b', [T.PATH]: '#c9a36b',
+        [T.WATER]: '#3f7fd1', [T.BRIDGE]: '#9a6b3f', [T.TREE]: '#3e7d3a',
+        [T.FLOWER]: '#74b14d', [T.CROP]: '#a87c4f', [T.WALL]: '#e8dcc0',
+        [T.ROOF]: '#c1623c', [T.DOOR]: '#6e4a26', [T.COLUMN]: '#ece8df',
+        [T.MARBLE]: '#ece8df', [T.FOUNTAIN]: '#d8d2c4', [T.STATUE]: '#c9c2b0',
+        [T.HEDGE]: '#3e6b34', [T.SAND]: '#e0cf9a', [T.CRATE]: '#9a6b3f',
+    };
+
+    const tileAt = (x, y) => (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) ? T.GRASS : map[y][x];
+    // Tiles that share a ground material, so no grass lip is drawn between them
+    const DIRT_FAM = new Set([T.ROAD, T.PATH, T.CROP, T.SAND, T.BRIDGE, T.WATER, T.FOUNTAIN]);
+    const MARBLE_FAM = new Set([T.MARBLE, T.COLUMN, T.STATUE, T.FOUNTAIN]);
+
+    // Pick a tile from a 3x3 terrain patch (cols 0-2 of the town sheet)
+    // based on which neighbours are outside the material family.
+    function patchTile(x, y, fam, r0) {
+        const n = !fam.has(tileAt(x, y - 1)), s = !fam.has(tileAt(x, y + 1));
+        const w = !fam.has(tileAt(x - 1, y)), e = !fam.has(tileAt(x + 1, y));
+        let col = 1, row = 1;
+        if (w && !e) col = 0; else if (e && !w) col = 2;
+        if (n && !s) row = 0; else if (s && !n) row = 2;
+        return [col, r0 + row];
+    }
+
+    function drawWater(c, x, y, px, py, frame) {
+        c.fillStyle = '#3f7fd1';
+        c.fillRect(px, py, TILE, TILE);
+        c.fillStyle = 'rgba(255,255,255,0.22)';
+        const ph = ((x + y * 2 + frame) % 4);
+        if (ph === 0) { c.fillRect(px + 4, py + 8, 10, 2); c.fillRect(px + 18, py + 22, 9, 2); }
+        else if (ph === 1) { c.fillRect(px + 14, py + 5, 10, 2); c.fillRect(px + 3, py + 20, 9, 2); }
+        else if (ph === 2) { c.fillRect(px + 8, py + 14, 11, 2); c.fillRect(px + 20, py + 27, 8, 2); }
+        // darker lip along the top edge of the channel
+        if (tileAt(x, y - 1) !== T.WATER && tileAt(x, y - 1) !== T.BRIDGE) {
+            c.fillStyle = 'rgba(20,50,110,0.4)';
+            c.fillRect(px, py, TILE, 3);
+        }
+    }
+    function drawBridge(c, px, py) {
+        c.fillStyle = '#9a6b3f';
+        c.fillRect(px, py, TILE, TILE);
+        c.fillStyle = '#7c5430';
+        for (let i = 0; i < 4; i++) c.fillRect(px, py + i * 8, TILE, 1);
+        c.fillStyle = '#b07f4e';
+        c.fillRect(px, py + 3, TILE, 1); c.fillRect(px, py + 19, TILE, 1);
+    }
+    function drawFountain(c, px, py, x, y, frame) {
+        c.fillStyle = '#d8d2c4';
+        c.fillRect(px, py, TILE, TILE);
+        c.fillStyle = '#b8b2a4';
+        c.fillRect(px, py, TILE, 3); c.fillRect(px, py + 29, TILE, 3);
+        c.fillRect(px, py, 3, TILE); c.fillRect(px + 29, py, 3, TILE);
+        c.fillStyle = '#4f93dd';
+        c.fillRect(px + 4, py + 4, 24, 24);
+        c.fillStyle = 'rgba(255,255,255,0.35)';
+        if ((x + y + frame) % 2 === 0) { c.fillRect(px + 8, py + 9, 8, 2); c.fillRect(px + 18, py + 20, 7, 2); }
+        else { c.fillRect(px + 16, py + 7, 8, 2); c.fillRect(px + 6, py + 21, 7, 2); }
+    }
+    function drawStatue(c, px, py) {
+        c.fillStyle = '#c9c2b0';
+        c.fillRect(px + 6, py + 22, 20, 8);
+        c.fillStyle = '#d8d2c4';
+        c.fillRect(px + 8, py + 24, 16, 4);
+        c.fillStyle = '#b0a890';
+        c.fillRect(px + 12, py + 4, 8, 7);
+        c.fillRect(px + 10, py + 11, 12, 12);
+        c.fillRect(px + 7, py + 12, 3, 8);
+        c.fillRect(px + 22, py + 12, 3, 8);
+    }
+    function drawColumn(c, px, py) {
+        c.fillStyle = '#d8d2c4';
+        c.fillRect(px + 6, py + 26, 20, 5);
+        c.fillStyle = '#f5f2ea';
+        c.fillRect(px + 9, py + 2, 14, 25);
+        c.fillStyle = '#c9c2b0';
+        c.fillRect(px + 9, py + 2, 3, 25); c.fillRect(px + 20, py + 2, 3, 25);
+        c.fillStyle = '#e8e3d6';
+        c.fillRect(px + 6, py, 20, 4);
+    }
+    function drawCrate(c, px, py) {
+        c.fillStyle = '#9a6b3f';
+        c.fillRect(px + 3, py + 5, 26, 24);
+        c.strokeStyle = '#6e4a26'; c.lineWidth = 2;
+        c.strokeRect(px + 4, py + 6, 24, 22);
+        c.beginPath(); c.moveTo(px + 5, py + 7); c.lineTo(px + 27, py + 27); c.stroke();
+    }
+
     function drawTile(c, t, x, y, frame) {
         const px = x * TILE, py = y * TILE;
-        const v = hash(x, y, 1);
+        if (!IMG.ready) {
+            c.fillStyle = FLAT[t] || '#74b14d';
+            c.fillRect(px, py, TILE, TILE);
+            if (t === T.WATER) drawWater(c, x, y, px, py, frame);
+            return;
+        }
         switch (t) {
-            case T.GRASS: case T.TREE: case T.FLOWER: {
-                c.fillStyle = v < 0.5 ? '#79b851' : '#74b14d';
-                c.fillRect(px, py, TILE, TILE);
-                for (let i = 0; i < 4; i++) {
-                    const tx = px + hash(x, y, 30 + i) * 28 + 2, ty = py + hash(x, y, 40 + i) * 28 + 2;
-                    c.fillStyle = hash(x, y, 50 + i) < 0.5 ? '#6aa845' : '#84c25c';
-                    c.fillRect(tx, ty, 2, 4);
-                }
-                break;
-            }
-            case T.ROAD: {
-                c.fillStyle = '#b3ac9d';
-                c.fillRect(px, py, TILE, TILE);
-                c.fillStyle = '#998f7e';
-                c.fillRect(px, py, TILE, 1); c.fillRect(px, py, 1, TILE);
-                c.fillRect(px, py + 16, TILE, 1); c.fillRect(px + 16, py, 1, TILE);
-                for (let sy = 0; sy < 2; sy++) for (let sx = 0; sx < 2; sx++) {
-                    const sh = hash(x * 2 + sx, y * 2 + sy, 3);
-                    c.fillStyle = `rgba(0,0,0,${0.03 + sh * 0.05})`;
-                    c.fillRect(px + sx * 16 + 1, py + sy * 16 + 1, 15, 15);
-                }
-                break;
-            }
-            case T.PATH: {
-                c.fillStyle = '#c9a36b';
-                c.fillRect(px, py, TILE, TILE);
-                for (let i = 0; i < 6; i++) {
-                    c.fillStyle = hash(x, y, 60 + i) < 0.5 ? '#b8915a' : '#d6b27e';
-                    c.fillRect(px + hash(x, y, 70 + i) * 29, py + hash(x, y, 80 + i) * 29, 3, 2);
-                }
-                break;
-            }
-            case T.WATER: {
-                c.fillStyle = '#3f7fd1';
-                c.fillRect(px, py, TILE, TILE);
-                c.fillStyle = 'rgba(255,255,255,0.22)';
-                const ph = ((x + y * 2 + frame) % 4);
-                if (ph === 0) { c.fillRect(px + 4, py + 8, 10, 2); c.fillRect(px + 18, py + 22, 9, 2); }
-                else if (ph === 1) { c.fillRect(px + 14, py + 5, 10, 2); c.fillRect(px + 3, py + 20, 9, 2); }
-                else if (ph === 2) { c.fillRect(px + 8, py + 14, 11, 2); c.fillRect(px + 20, py + 27, 8, 2); }
-                c.fillStyle = 'rgba(20,50,110,0.25)';
-                c.fillRect(px, py, TILE, 2);
-                break;
-            }
-            case T.SAND: {
-                c.fillStyle = '#e0cf9a';
-                c.fillRect(px, py, TILE, TILE);
-                for (let i = 0; i < 5; i++) {
-                    c.fillStyle = hash(x, y, 90 + i) < 0.5 ? '#d1bd84' : '#ecdcae';
-                    c.fillRect(px + hash(x, y, 100 + i) * 29, py + hash(x, y, 110 + i) * 29, 2, 2);
-                }
-                break;
-            }
-            case T.BRIDGE: {
-                c.fillStyle = '#9a6b3f';
-                c.fillRect(px, py, TILE, TILE);
-                c.fillStyle = '#7c5430';
-                for (let i = 0; i < 4; i++) c.fillRect(px, py + i * 8, TILE, 1);
-                c.fillStyle = '#b07f4e';
-                c.fillRect(px, py + 3, TILE, 1); c.fillRect(px, py + 19, TILE, 1);
-                break;
+            case T.GRASS: case T.TREE: case T.CRATE:
+                bt(c, 0, 0, px, py); break;
+            case T.FLOWER:
+                bt(c, hash(x, y, 2) < 0.5 ? 1 : 2, 0, px, py); break;
+            case T.HEDGE:
+                bt(c, 0, 0, px, py); bt(c, 5, 0, px, py); break;
+            case T.ROAD: case T.PATH: case T.SAND: {
+                const [sc, sr] = patchTile(x, y, DIRT_FAM, 1);
+                bt(c, sc, sr, px, py); break;
             }
             case T.CROP: {
-                c.fillStyle = '#a87c4f';
-                c.fillRect(px, py, TILE, TILE);
-                c.fillStyle = '#8c6238';
-                c.fillRect(px, py + 14, TILE, 3);
-                c.fillStyle = '#5e8c3a';
-                for (let i = 0; i < 4; i++) {
-                    const gx = px + 3 + i * 8;
-                    c.fillRect(gx, py + 6, 2, 9);
-                    c.fillRect(gx - 2, py + 8, 6, 2);
-                }
-                break;
+                const [sc, sr] = patchTile(x, y, DIRT_FAM, 1);
+                bt(c, sc, sr, px, py); bt(c, 5, 1, px, py); break;
             }
-            case T.WALL: {
-                c.fillStyle = '#e8dcc0';
-                c.fillRect(px, py, TILE, TILE);
-                c.fillStyle = 'rgba(0,0,0,0.18)';
-                c.fillRect(px, py, TILE, 4);
-                c.fillStyle = '#cdbf9e';
-                c.fillRect(px, py + 12, TILE, 1); c.fillRect(px, py + 24, TILE, 1);
-                c.fillRect(px + ((x % 2) ? 8 : 20), py + 12, 1, 12);
-                c.fillStyle = '#a89a78';
-                c.fillRect(px, py + 30, TILE, 2);
-                break;
-            }
-            case T.DOOR: {
-                drawTile(c, T.WALL, x, y, frame);
-                c.fillStyle = '#6e4a26';
-                c.fillRect(px + 7, py + 8, 18, 24);
-                c.fillStyle = '#553818';
-                c.fillRect(px + 15, py + 8, 2, 24);
-                c.fillStyle = '#c9a23e';
-                c.fillRect(px + 11, py + 20, 2, 2); c.fillRect(px + 19, py + 20, 2, 2);
-                break;
-            }
+            case T.WALL:
+                bt(c, hash(x, y, 3) < 0.4 ? 0 : 1, 6, px, py); break;
+            case T.DOOR:
+                bt(c, 1, 7, px, py); break;
             case T.ROOF: {
-                c.fillStyle = '#c1623c';
-                c.fillRect(px, py, TILE, TILE);
-                c.fillStyle = '#a84e2e';
-                for (let i = 0; i < 4; i++) c.fillRect(px, py + i * 8 + 6, TILE, 2);
-                c.fillStyle = '#d97a50';
-                for (let i = 0; i < 4; i++) c.fillRect(px, py + i * 8 + 4, TILE, 1);
-                break;
+                const top = tileAt(x, y - 1) !== T.ROOF;
+                const lf = tileAt(x - 1, y) !== T.ROOF, rt = tileAt(x + 1, y) !== T.ROOF;
+                bt(c, lf ? 4 : rt ? 6 : 5, top ? 4 : 5, px, py); break;
             }
             case T.MARBLE: {
-                c.fillStyle = '#ece8df';
-                c.fillRect(px, py, TILE, TILE);
-                c.fillStyle = '#d8d2c4';
-                c.fillRect(px, py, TILE, 1); c.fillRect(px, py, 1, TILE);
-                if (v < 0.3) { c.fillStyle = 'rgba(160,150,130,0.25)'; c.fillRect(px + 6, py + 10, 14, 1); }
-                break;
+                const [sc, sr] = patchTile(x, y, MARBLE_FAM, 8);
+                bt(c, sc, sr, px, py); break;
             }
-            case T.COLUMN: {
-                drawTile(c, T.MARBLE, x, y, frame);
-                c.fillStyle = '#d8d2c4';
-                c.fillRect(px + 6, py + 26, 20, 5);
-                c.fillStyle = '#f5f2ea';
-                c.fillRect(px + 9, py + 2, 14, 25);
-                c.fillStyle = '#c9c2b0';
-                c.fillRect(px + 9, py + 2, 3, 25); c.fillRect(px + 20, py + 2, 3, 25);
-                c.fillStyle = '#e8e3d6';
-                c.fillRect(px + 6, py, 20, 4);
-                break;
-            }
-            case T.FOUNTAIN: {
-                drawTile(c, T.ROAD, x, y, frame);
-                c.fillStyle = '#d8d2c4';
-                c.fillRect(px, py, TILE, TILE);
-                c.fillStyle = '#b8b2a4';
-                c.fillRect(px, py, TILE, 3); c.fillRect(px, py + 29, TILE, 3);
-                c.fillRect(px, py, 3, TILE); c.fillRect(px + 29, py, 3, TILE);
-                c.fillStyle = '#4f93dd';
-                c.fillRect(px + 4, py + 4, 24, 24);
-                c.fillStyle = 'rgba(255,255,255,0.35)';
-                if ((x + y + frame) % 2 === 0) { c.fillRect(px + 8, py + 9, 8, 2); c.fillRect(px + 18, py + 20, 7, 2); }
-                else { c.fillRect(px + 16, py + 7, 8, 2); c.fillRect(px + 6, py + 21, 7, 2); }
-                break;
-            }
-            case T.STATUE: {
-                drawTile(c, T.MARBLE, x, y, frame);
-                c.fillStyle = '#c9c2b0';
-                c.fillRect(px + 6, py + 22, 20, 8);
-                c.fillStyle = '#d8d2c4';
-                c.fillRect(px + 8, py + 24, 16, 4);
-                c.fillStyle = '#b0a890';
-                c.fillRect(px + 12, py + 4, 8, 7);   // head
-                c.fillRect(px + 10, py + 11, 12, 12); // body
-                c.fillRect(px + 7, py + 12, 3, 8);    // arm
-                c.fillRect(px + 22, py + 12, 3, 8);
-                break;
-            }
-            case T.HEDGE: {
-                drawTile(c, T.GRASS, x, y, frame);
-                c.fillStyle = '#3e6b34';
-                c.fillRect(px + 1, py + 4, 30, 26);
-                c.fillStyle = '#4f8242';
-                c.fillRect(px + 1, py + 4, 30, 8);
-                c.fillStyle = '#5e9a4e';
-                for (let i = 0; i < 4; i++) c.fillRect(px + 3 + hash(x, y, 120 + i) * 24, py + 5 + hash(x, y, 130 + i) * 18, 3, 3);
-                break;
-            }
-            case T.CRATE: {
-                c.fillStyle = '#9a6b3f';
-                c.fillRect(px + 3, py + 5, 26, 24);
-                c.strokeStyle = '#6e4a26'; c.lineWidth = 2;
-                c.strokeRect(px + 4, py + 6, 24, 22);
-                c.beginPath(); c.moveTo(px + 5, py + 7); c.lineTo(px + 27, py + 27); c.stroke();
-                break;
-            }
+            case T.COLUMN:
+                bt(c, 1, 9, px, py); drawColumn(c, px, py); break;
+            case T.STATUE:
+                bt(c, 1, 9, px, py); drawStatue(c, px, py); break;
+            case T.FOUNTAIN:
+                drawFountain(c, px, py, x, y, frame); break;
+            case T.WATER:
+                drawWater(c, x, y, px, py, frame); break;
+            case T.BRIDGE:
+                drawBridge(c, px, py); break;
         }
-        // foliage detail for FLOWER / TREE drawn over their grass base
-        if (t === T.FLOWER) {
-            for (let i = 0; i < 3; i++) {
-                const fx = px + 5 + hash(x, y, 140 + i) * 22, fy = py + 5 + hash(x, y, 150 + i) * 22;
-                c.fillStyle = '#4f8242';
-                c.fillRect(fx + 1, fy + 3, 1, 4);
-                c.fillStyle = ['#e85d5d', '#f5c842', '#f0f0f0', '#d97ad1'][Math.floor(hash(x, y, 160 + i) * 4)];
-                c.fillRect(fx - 1, fy, 4, 4);
-                c.fillStyle = '#f5e58a';
-                c.fillRect(fx, fy + 1, 2, 2);
-            }
-        }
-        if (t === T.TREE) {
-            c.fillStyle = '#7a5230';
-            c.fillRect(px + 13, py + 18, 6, 12);
-            c.fillStyle = 'rgba(0,0,0,0.15)';
-            c.beginPath(); c.ellipse(px + 16, py + 29, 10, 3, 0, 0, Math.PI * 2); c.fill();
-            drawCanopy(c, px, py, x, y);
-        }
+        if (t === T.CRATE) drawCrate(c, px, py);
     }
 
-    function drawCanopy(c, px, py, x, y) {
-        const v = hash(x, y, 170);
-        c.fillStyle = v < 0.5 ? '#3e7d3a' : '#46883f';
-        c.beginPath(); c.arc(px + 16, py + 8, 13, 0, Math.PI * 2); c.fill();
-        c.fillStyle = v < 0.5 ? '#4f9a4a' : '#58a651';
-        c.beginPath(); c.arc(px + 12, py + 4, 7, 0, Math.PI * 2); c.fill();
-        c.beginPath(); c.arc(px + 21, py + 7, 6, 0, Math.PI * 2); c.fill();
-    }
+    // Trees are two tiles tall: the trunk tile sits on the map, the top
+    // is drawn on the overlay so it occludes anyone walking behind it.
+    function treeType(x, y) { return hash(x, y, 170) < 0.8 ? 4 : 3; } // green / autumn poplar
 
     // Pre-render the whole map twice (two water-animation frames),
-    // plus an overlay of tree canopies that should occlude walkers.
-    const mapFrames = [];
-    for (let f = 0; f < 2; f++) {
-        const cv = document.createElement('canvas');
-        cv.width = MAP_W * TILE; cv.height = MAP_H * TILE;
-        const cc = cv.getContext('2d');
-        for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) drawTile(cc, map[y][x], x, y, f);
-        mapFrames.push(cv);
-    }
-    const overlay = document.createElement('canvas');
-    overlay.width = MAP_W * TILE; overlay.height = MAP_H * TILE;
-    {
+    // plus the overlay of tree tops and column capitals.
+    let mapFrames = [], overlay = null;
+    function buildMapCanvases() {
+        mapFrames = [];
+        for (let f = 0; f < 2; f++) {
+            const cv = document.createElement('canvas');
+            cv.width = MAP_W * TILE; cv.height = MAP_H * TILE;
+            const cc = cv.getContext('2d');
+            cc.imageSmoothingEnabled = false;
+            for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) drawTile(cc, map[y][x], x, y, f);
+            if (IMG.ready) {
+                for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
+                    if (map[y][x] === T.TREE) bt(cc, treeType(x, y), 1, x * TILE, y * TILE);
+                }
+            }
+            mapFrames.push(cv);
+        }
+        overlay = document.createElement('canvas');
+        overlay.width = MAP_W * TILE; overlay.height = MAP_H * TILE;
         const oc = overlay.getContext('2d');
-        for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
-            if (map[y][x] === T.TREE) drawCanopy(oc, x * TILE, y * TILE, x, y);
+        oc.imageSmoothingEnabled = false;
+        if (IMG.ready) {
+            for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
+                if (map[y][x] === T.TREE) bt(oc, treeType(x, y), 0, x * TILE, (y - 1) * TILE);
+            }
+        }
+    }
+    Promise.all([
+        loadImage('assets/tiles-town.png'),
+        loadImage('assets/characters.png'),
+    ]).then(([town, chars]) => {
+        IMG.town = town; IMG.chars = chars; IMG.ready = true;
+    }).catch(() => { IMG.ready = false; }).then(buildMapCanvases);
+
+    // ---------- People ----------
+    // Sprite blocks in assets/characters.png: 4 columns (facing left,
+    // down, up, right) x 3 rows (idle, walk A, walk B) of 16px frames.
+    const DIR_COL = { left: 0, down: 1, up: 2, right: 3 };
+    function drawPerson(c, x, y, dir, row, o) {
+        c.fillStyle = 'rgba(0,0,0,0.2)';
+        c.beginPath(); c.ellipse(Math.round(x), Math.round(y), 8, 3, 0, 0, Math.PI * 2); c.fill();
+        if (IMG.ready) {
+            const sx = DIR_COL[dir] * 16, sy = o.spr * 48 + row * 16;
+            c.drawImage(IMG.chars, sx, sy, 16, 16, Math.round(x) - 16, Math.round(y) - 30, 32, 32);
+        } else {
+            drawPersonProc(c, x, y, dir, row === 2, o);
         }
     }
 
-    // ---------- People ----------
+    // Fallback person, used only if the character sheet fails to load.
     // Anchored at bottom-centre (feet), roughly 18px wide, 26px tall.
-    function drawPerson(c, x, y, dir, step, o) {
+    function drawPersonProc(c, x, y, dir, step, o) {
         c.save();
         c.translate(Math.round(x), Math.round(y));
-        c.fillStyle = 'rgba(0,0,0,0.2)';
-        c.beginPath(); c.ellipse(0, 0, 7, 2.5, 0, 0, Math.PI * 2); c.fill();
         if (dir === 'left') c.scale(-1, 1);
         const side = dir === 'left' || dir === 'right';
         const legA = step ? 2 : 0, legB = step ? 0 : 2;
@@ -1025,6 +1005,7 @@ if (typeof document !== 'undefined') (function () {
     }
 
     function draw(now) {
+        if (!mapFrames.length) return;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.imageSmoothingEnabled = false;
         ctx.fillStyle = '#1a2733';
@@ -1047,7 +1028,7 @@ if (typeof document !== 'undefined') (function () {
         // entities, y-sorted
         const ents = npcs.map(n => ({ y: n.py, fn: () => {
             const bobY = Math.round(Math.sin(now / 600 + n.bob) * 1.2);
-            drawPerson(ctx, n.px, n.py + bobY * 0, n.dir, false, n);
+            drawPerson(ctx, n.px, n.py, n.dir, 0, n);
             // quest indicator
             const st = save.quests[n.id];
             ctx.font = 'bold 11px Inter, sans-serif';
@@ -1066,7 +1047,7 @@ if (typeof document !== 'undefined') (function () {
                 ctx.fillText('!', n.px, n.py - 30 + bobY);
             }
         } }));
-        ents.push({ y: player.y, fn: () => drawPerson(ctx, player.x, player.y, player.dir, player.moving && player.frame === 1, player) });
+        ents.push({ y: player.y, fn: () => drawPerson(ctx, player.x, player.y, player.dir, player.moving ? 1 + player.frame : 0, player) });
         ents.sort((a, b) => a.y - b.y);
         for (const e of ents) e.fn();
 
