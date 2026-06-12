@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Latin Quest - Classicalia</title>
+<meta name="description" content="Explore a Roman town and master your OCR GCSE Latin vocabulary. Talk to the townsfolk, answer their questions, and earn all ten laurels.">
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1a2733;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+}
+#game-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+/* ===== HUD ===== */
+#hud {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.9rem;
+    pointer-events: none;
+    z-index: 20;
+}
+.hud-group { display: flex; gap: 0.5rem; align-items: center; }
+.hud-pill {
+    background: rgba(20, 26, 20, 0.78);
+    border: 1px solid rgba(245, 200, 66, 0.35);
+    color: #f3ead2;
+    border-radius: 999px;
+    padding: 0.32rem 0.8rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+}
+.hud-pill .gold { color: #f5c842; }
+.hud-btn {
+    pointer-events: auto;
+    background: rgba(20, 26, 20, 0.78);
+    border: 1px solid rgba(245, 200, 66, 0.35);
+    color: #f3ead2;
+    border-radius: 999px;
+    width: 34px;
+    height: 34px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+}
+.hud-btn:hover { background: rgba(60, 70, 60, 0.85); }
+
+/* ===== Interaction prompt ===== */
+#prompt {
+    position: fixed;
+    left: 50%;
+    bottom: 18%;
+    transform: translateX(-50%);
+    background: rgba(20, 26, 20, 0.85);
+    border: 1px solid rgba(245, 200, 66, 0.5);
+    color: #f3ead2;
+    border-radius: 10px;
+    padding: 0.45rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    z-index: 20;
+    pointer-events: none;
+    display: none;
+}
+#prompt kbd {
+    background: #f5c842;
+    color: #3a2c0a;
+    border-radius: 5px;
+    padding: 0.08rem 0.45rem;
+    font-family: inherit;
+    font-weight: 800;
+    margin-right: 0.3rem;
+}
+
+/* ===== Dialog / quiz panel ===== */
+#dialog {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: min(680px, calc(100% - 16px));
+    margin-bottom: 10px;
+    background: linear-gradient(180deg, #f8f1dd 0%, #f0e4c8 100%);
+    border: 3px solid #8a6a3b;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    z-index: 30;
+    display: none;
+    overflow: hidden;
+}
+#dialog.open { display: block; }
+.dlg-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7rem 1.1rem 0.4rem;
+}
+.dlg-name {
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #5a4218;
+}
+.dlg-sub { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #a78648; }
+.dlg-close {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    color: #8a6a3b;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+}
+.dlg-body { padding: 0.3rem 1.1rem 1rem; }
+.dlg-text { font-size: 0.9rem; color: #4a3a1c; line-height: 1.55; }
+.dlg-text em { font-family: 'Lora', Georgia, serif; }
+.dlg-actions { display: flex; gap: 0.5rem; margin-top: 0.85rem; flex-wrap: wrap; }
+.dlg-btn {
+    background: #5a4218;
+    color: #f8f1dd;
+    border: none;
+    border-radius: 9px;
+    padding: 0.55rem 1.2rem;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.12s, background 0.15s;
+}
+.dlg-btn:hover { background: #6e5524; transform: translateY(-1px); }
+.dlg-btn.secondary { background: transparent; color: #5a4218; border: 2px solid #b59a62; }
+.dlg-btn.secondary:hover { background: rgba(138, 106, 59, 0.12); }
+
+/* quiz */
+.quiz-progress { display: flex; gap: 0.3rem; margin-bottom: 0.6rem; }
+.qdot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: rgba(138, 106, 59, 0.25);
+    border: 1px solid rgba(138, 106, 59, 0.4);
+}
+.qdot.hit { background: #4d9b58; border-color: #3c7a45; }
+.qdot.miss { background: #c75b4a; border-color: #a04437; }
+.quiz-ask { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #a78648; margin-bottom: 0.25rem; }
+.quiz-word {
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: #3a2c0a;
+    margin-bottom: 0.7rem;
+    line-height: 1.2;
+}
+.quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
+@media (max-width: 540px) { .quiz-options { grid-template-columns: 1fr; } }
+.quiz-opt {
+    background: rgba(255, 252, 242, 0.85);
+    border: 2px solid #c8ad75;
+    border-radius: 10px;
+    padding: 0.6rem 0.8rem;
+    font-family: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #4a3a1c;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, transform 0.12s;
+}
+.quiz-opt:hover:not(:disabled) { background: #fffdf5; border-color: #8a6a3b; transform: translateY(-1px); }
+.quiz-opt:disabled { cursor: default; }
+.quiz-opt.correct { background: #dff0db; border-color: #4d9b58; color: #2c5e34; }
+.quiz-opt.wrong { background: #f7ddd7; border-color: #c75b4a; color: #8c3a2c; }
+.quiz-opt.dim { opacity: 0.45; }
+.quiz-info {
+    margin-top: 0.6rem;
+    font-size: 0.78rem;
+    color: #6e5524;
+    background: rgba(138, 106, 59, 0.1);
+    border-radius: 8px;
+    padding: 0.45rem 0.7rem;
+    min-height: 2.1em;
+    line-height: 1.45;
+}
+.quiz-info b { color: #3a2c0a; }
+.stars { font-size: 1.6rem; letter-spacing: 0.15em; margin: 0.3rem 0 0.1rem; }
+
+/* ===== Overlays (intro / help / victory) ===== */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(12, 18, 24, 0.82);
+    backdrop-filter: blur(3px);
+    z-index: 40;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.overlay.open { display: flex; }
+.panel {
+    width: min(560px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    background: linear-gradient(180deg, #f8f1dd 0%, #efe2c4 100%);
+    border: 3px solid #8a6a3b;
+    border-radius: 18px;
+    padding: 1.8rem 1.7rem 1.5rem;
+    text-align: center;
+    box-shadow: 0 14px 50px rgba(0,0,0,0.55);
+}
+.panel h1 {
+    font-family: 'Lora', Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: 2rem;
+    color: #3a2c0a;
+    margin-bottom: 0.2rem;
+}
+.panel .tagline { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #a78648; margin-bottom: 0.9rem; }
+.panel p { font-size: 0.88rem; color: #4a3a1c; line-height: 1.6; margin-bottom: 0.7rem; }
+.panel .controls-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.45rem 0.9rem;
+    text-align: left;
+    margin: 0.9rem auto 1.1rem;
+    max-width: 380px;
+    font-size: 0.82rem;
+    color: #4a3a1c;
+}
+.panel .controls-grid kbd {
+    background: #5a4218;
+    color: #f8f1dd;
+    border-radius: 6px;
+    padding: 0.14rem 0.5rem;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    justify-self: end;
+}
+.panel .big-btn {
+    background: #5a4218;
+    color: #f8f1dd;
+    border: none;
+    border-radius: 11px;
+    padding: 0.75rem 2.2rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: transform 0.12s, background 0.15s;
+}
+.panel .big-btn:hover { background: #6e5524; transform: translateY(-2px); }
+.panel .laurel-row { font-size: 2.2rem; margin: 0.4rem 0; }
+.panel a.back-link { display: inline-block; margin-top: 0.9rem; font-size: 0.78rem; color: #8a6a3b; }
+
+/* ===== Touch controls ===== */
+#touch-controls { display: none; }
+body.touch #touch-controls { display: block; }
+#joystick {
+    position: fixed;
+    left: 22px;
+    bottom: 26px;
+    width: 124px;
+    height: 124px;
+    border-radius: 50%;
+    background: rgba(20, 26, 20, 0.35);
+    border: 2px solid rgba(245, 200, 66, 0.35);
+    z-index: 25;
+    touch-action: none;
+}
+#joystick-knob {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(245, 200, 66, 0.55);
+    border: 2px solid rgba(245, 200, 66, 0.8);
+    transform: translate(-50%, -50%);
+}
+#action-btn {
+    position: fixed;
+    right: 26px;
+    bottom: 44px;
+    width: 78px;
+    height: 78px;
+    border-radius: 50%;
+    background: rgba(245, 200, 66, 0.85);
+    border: 3px solid #8a6a3b;
+    color: #3a2c0a;
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 800;
+    z-index: 25;
+    touch-action: none;
+    display: none;
+}
+#action-btn.show { display: block; }
+</style>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+
+<div id="hud">
+    <div class="hud-group">
+        <div class="hud-pill">🏆 <span class="gold" id="hud-laurels">0</span>/10</div>
+        <div class="hud-pill">⚡ <span class="gold" id="hud-xp">0</span> XP</div>
+        <div class="hud-pill" id="hud-words-pill">📜 <span class="gold" id="hud-words">0</span> words</div>
+        <a class="hud-pill" id="hud-sync" href="/auth/login.html" style="display:none;text-decoration:none;pointer-events:auto;"></a>
+    </div>
+    <div class="hud-group">
+        <button class="hud-btn" id="btn-sound" title="Sound on/off">🔊</button>
+        <button class="hud-btn" id="btn-help" title="Help">?</button>
+    </div>
+</div>
+
+<div id="prompt"><kbd>E</kbd><span id="prompt-text">Talk</span></div>
+
+<div id="dialog">
+    <div class="dlg-head">
+        <div>
+            <div class="dlg-name" id="dlg-name"></div>
+            <div class="dlg-sub" id="dlg-sub"></div>
+        </div>
+        <button class="dlg-close" id="dlg-close" title="Close (Esc)">✕</button>
+    </div>
+    <div class="dlg-body" id="dlg-body"></div>
+</div>
+
+<div class="overlay open" id="intro">
+    <div class="panel">
+        <h1>Latin Quest</h1>
+        <div class="tagline">Verba per viam &middot; OCR GCSE vocabulary</div>
+        <p>Welcome to <em>Parva Roma</em>! Ten townsfolk each guard a laurel wreath — and each one will test you on a chapter of the OCR GCSE Latin word list. Earn all ten laurels, then face the Sibyl at the temple.</p>
+        <div class="controls-grid">
+            <kbd>W A S D / arrows</kbd><span>Walk around the town</span>
+            <kbd>E / Space</kbd><span>Talk to someone nearby</span>
+            <kbd>Esc</kbd><span>Close a conversation</span>
+        </div>
+        <p style="font-size:0.78rem;color:#8a6a3b;">On a phone or tablet? Use the joystick and the <b>loquere</b> button.</p>
+        <button class="big-btn" id="btn-start">Enter Parva Roma</button>
+        <br>
+        <a class="back-link" href="/version2/tools/">&larr; Back to Classicalia Tools</a>
+    </div>
+</div>
+
+<div class="overlay" id="help">
+    <div class="panel">
+        <h1>How to play</h1>
+        <div class="tagline">Latin Quest</div>
+        <p style="text-align:left;">🗣️ <b>Talk to the townsfolk.</b> A gold <b>!</b> above someone's head means they have a challenge for you. Each person tests one chapter of the OCR GCSE vocabulary list.</p>
+        <p style="text-align:left;">🏆 <b>Earn laurels.</b> Answer 8 questions correctly to win a laurel. Missed words come back around until you get them right — and your accuracy decides your stars, so you can return any time to improve them.</p>
+        <p style="text-align:left;">🔮 <b>Face the Sibyl.</b> Once you hold all ten laurels, the Sibyl in the temple will set you a final trial drawn from the whole word list.</p>
+        <p style="text-align:left;">💾 Your progress is saved on this device automatically — and if you're signed in to Classicalia, every answer feeds the same smart tracking as the vocabulary tester, so your teacher can see your progress.</p>
+        <p style="font-size:0.7rem;color:#a78648;">Artwork: <a href="https://kenney.nl" target="_blank" rel="noopener" style="color:#8a6a3b;">Kenney.nl</a> (CC0)</p>
+        <button class="big-btn" id="btn-help-close">Back to the town</button>
+    </div>
+</div>
+
+<div class="overlay" id="victory">
+    <div class="panel">
+        <div class="laurel-row">🌿👑🌿</div>
+        <h1>corona laurea!</h1>
+        <div class="tagline">You have completed Latin Quest</div>
+        <p id="victory-text"></p>
+        <button class="big-btn" id="btn-victory-close">Keep exploring</button>
+    </div>
+</div>
+
+<div id="touch-controls">
+    <div id="joystick"><div id="joystick-knob"></div></div>
+    <button id="action-btn">loquere<br>(talk)</button>
+</div>
+
+<script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/bkt-store.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
