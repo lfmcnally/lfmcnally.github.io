@@ -159,6 +159,7 @@
 const sb = window.supabase;
 let classes = [], currentClassIdx = 0, activeClass = null, myId = null;
 let doNowPoll = null, doNowChannel = null, doNowDebounce = null;
+let dngChannel = null;   // game-mode leaderboard realtime channel
 let classViewOpen = false, lbRows = new Map(), lbClass = null, lbSky = null;
 let lbSort = 'correct';   // 'correct' (most correct) or 'accuracy' (highest %)
 
@@ -316,6 +317,7 @@ function renderCivSetup(cls){
   document.getElementById('dnSave').addEventListener('click', () => archiveDoNowManual(cls));
   document.getElementById('dnProject').addEventListener('click', () => openClassView(cls));
   renderDoNowArchive(cls);
+  mountGamePanel(cls);
 }
 
 // ── Latin: drill a chapter range of the GCSE defined vocabulary ──
@@ -396,6 +398,82 @@ function renderLatinSetup(cls){
   document.getElementById('dnSave').addEventListener('click', () => archiveDoNowManual(cls));
   document.getElementById('dnProject').addEventListener('click', () => openClassView(cls));
   renderDoNowArchive(cls);
+  mountGamePanel(cls);
+}
+
+// ── Game mode (Gold Rush): teacher launch / end + live XP leaderboard ──
+function mountGamePanel(cls){
+  const area = document.getElementById('classArea');
+  if (!area || document.getElementById('dnGameCard')) return;
+  const studentUrl = location.origin + '/version2/tools/game/gold-rush.html';
+  area.insertAdjacentHTML('beforeend', `
+    <div class="dn-card" id="dnGameCard">
+      <div class="dn-card-head"><span class="dn-card-title">🎮 Game mode — Gold Rush</span><span id="dngStatus" class="dn-status"></span></div>
+      <div class="dn-controls">
+        <button id="dngLaunch" class="dn-btn dn-btn-primary" type="button">Launch game</button>
+        <button id="dngEnd" class="dn-btn dn-btn-danger" type="button">End game</button>
+        <a id="dngLink" class="dn-btn dn-btn-project" href="${studentUrl}" target="_blank" rel="noopener">Student link ↗</a>
+      </div>
+      <div class="dn-sublabel">Students answer the <b>current Do&nbsp;Now</b> for XP and open chests. Launching resets scores. They join at <b>${studentUrl}</b> (or via their Do Now button).</div>
+      <div id="dngBoard"></div>
+    </div>`);
+
+  const status = document.getElementById('dngStatus');
+  (async () => {
+    let dn = null;
+    try { const { data } = await sb.from('v2_do_now').select('active, game_active').eq('class_id', cls.id).maybeSingle(); dn = data; } catch (_e) {}
+    if (dn && dn.game_active) { setGameStatus(true); startGameBoard(cls); }
+    else setGameStatus(false);
+  })();
+
+  document.getElementById('dngLaunch').addEventListener('click', async () => {
+    status.textContent = 'Launching…'; status.style.color = 'var(--muted)';
+    let dn = null;
+    try { const { data } = await sb.from('v2_do_now').select('active').eq('class_id', cls.id).maybeSingle(); dn = data; } catch (_e) {}
+    if (!dn || !dn.active) { status.textContent = 'Set a Do Now first, then launch.'; status.style.color = '#dc2626'; return; }
+    try { await sb.from('v2_do_now_game').delete().eq('class_id', cls.id); } catch (_e) {}
+    const { error } = await sb.from('v2_do_now').update({ game_active: true, game_started_at: new Date().toISOString() }).eq('class_id', cls.id);
+    if (error) { status.textContent = 'Could not launch: ' + error.message; status.style.color = '#dc2626'; return; }
+    setGameStatus(true); startGameBoard(cls);
+  });
+
+  document.getElementById('dngEnd').addEventListener('click', async () => {
+    const { error } = await sb.from('v2_do_now').update({ game_active: false }).eq('class_id', cls.id);
+    if (error) { status.textContent = 'Could not end: ' + error.message; status.style.color = '#dc2626'; return; }
+    setGameStatus(false);
+  });
+}
+
+function setGameStatus(live){
+  const s = document.getElementById('dngStatus');
+  if (!s) return;
+  if (live) { s.textContent = '● Live'; s.style.color = '#059669'; }
+  else { s.textContent = 'Not running'; s.style.color = 'var(--muted)'; if (dngChannel) { try { sb.removeChannel(dngChannel); } catch (_e) {} dngChannel = null; } renderGameBoard([]); }
+}
+
+async function loadGameBoard(cls){
+  let rows = [];
+  try { const { data } = await sb.from('v2_do_now_game').select('student_id, display_name, xp').eq('class_id', cls.id).order('xp', { ascending: false }); rows = data || []; } catch (_e) {}
+  renderGameBoard(rows);
+}
+function renderGameBoard(rows){
+  const el = document.getElementById('dngBoard');
+  if (!el) return;
+  if (!rows.length) { el.innerHTML = '<div class="dn-status" style="padding:8px 0;">No players yet — share the student link.</div>'; return; }
+  const medals = ['🥇','🥈','🥉'];
+  el.innerHTML = '<table class="dn-board"><tbody>' + rows.slice(0, 30).map((r, i) =>
+    `<tr><td style="width:34px;text-align:center;font-weight:700;color:var(--muted);">${medals[i] || (i + 1)}</td>
+         <td>${escapeHtml(r.display_name || 'Player')}</td>
+         <td style="text-align:right;font-weight:800;color:#b8860b;">${(r.xp|0).toLocaleString()} XP</td></tr>`).join('') + '</tbody></table>';
+}
+function startGameBoard(cls){
+  loadGameBoard(cls);
+  if (dngChannel) return;
+  try {
+    dngChannel = sb.channel('dng-' + cls.id)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'v2_do_now_game', filter: 'class_id=eq.' + cls.id }, () => loadGameBoard(cls))
+      .subscribe();
+  } catch (_e) {}
 }
 
 async function fetchDoNowData(cls){
