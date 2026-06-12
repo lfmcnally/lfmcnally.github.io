@@ -42,9 +42,9 @@ const GameCore = (function () {
         rect(1, 19, 50, 20, T.ROAD);
         rect(25, 10, 26, 33, T.ROAD);
 
-        // Forum plaza with fountain and statues
+        // Forum plaza with fountain (kept off the road) and statues
         rect(19, 12, 33, 18, T.ROAD);
-        rect(25, 14, 26, 15, T.FOUNTAIN);
+        rect(21, 14, 22, 15, T.FOUNTAIN);
         set(20, 13, T.STATUE); set(32, 13, T.STATUE);
 
         // Temple of Minerva (marble platform, colonnade, cult statue)
@@ -460,17 +460,34 @@ if (typeof document !== 'undefined') (function () {
         c.fillStyle = '#b07f4e';
         c.fillRect(px, py + 3, TILE, 1); c.fillRect(px, py + 19, TILE, 1);
     }
+    // The fountain spans a 2x2 block; only its top-left tile draws the
+    // whole round basin so it reads as one piece of street furniture.
     function drawFountain(c, px, py, x, y, frame) {
+        if (tileAt(x - 1, y) === T.FOUNTAIN || tileAt(x, y - 1) === T.FOUNTAIN) return;
+        const cx = px + TILE, cy = py + TILE;
+        c.fillStyle = '#9a948a';
+        c.beginPath(); c.arc(cx, cy + 2, 29, 0, Math.PI * 2); c.fill();
         c.fillStyle = '#d8d2c4';
-        c.fillRect(px, py, TILE, TILE);
+        c.beginPath(); c.arc(cx, cy, 29, 0, Math.PI * 2); c.fill();
         c.fillStyle = '#b8b2a4';
-        c.fillRect(px, py, TILE, 3); c.fillRect(px, py + 29, TILE, 3);
-        c.fillRect(px, py, 3, TILE); c.fillRect(px + 29, py, 3, TILE);
+        c.beginPath(); c.arc(cx, cy, 24, 0, Math.PI * 2); c.fill();
         c.fillStyle = '#4f93dd';
-        c.fillRect(px + 4, py + 4, 24, 24);
+        c.beginPath(); c.arc(cx, cy, 20, 0, Math.PI * 2); c.fill();
         c.fillStyle = 'rgba(255,255,255,0.35)';
-        if ((x + y + frame) % 2 === 0) { c.fillRect(px + 8, py + 9, 8, 2); c.fillRect(px + 18, py + 20, 7, 2); }
-        else { c.fillRect(px + 16, py + 7, 8, 2); c.fillRect(px + 6, py + 21, 7, 2); }
+        if ((frame % 2) === 0) {
+            c.fillRect(cx - 14, cy - 4, 8, 2); c.fillRect(cx + 5, cy + 7, 7, 2);
+            c.fillRect(cx + 2, cy - 12, 6, 2);
+        } else {
+            c.fillRect(cx + 6, cy - 6, 8, 2); c.fillRect(cx - 12, cy + 6, 7, 2);
+            c.fillRect(cx - 5, cy - 13, 6, 2);
+        }
+        // central spout
+        c.fillStyle = '#d8d2c4';
+        c.beginPath(); c.arc(cx, cy, 6, 0, Math.PI * 2); c.fill();
+        c.fillStyle = '#ece8df';
+        c.fillRect(cx - 2, cy - 10, 4, 10);
+        c.fillStyle = 'rgba(255,255,255,0.7)';
+        c.fillRect(cx - 1, cy - 13 + (frame % 2) * 2, 2, 3);
     }
     function drawStatue(c, px, py) {
         c.fillStyle = '#c9c2b0';
@@ -541,8 +558,11 @@ if (typeof document !== 'undefined') (function () {
                 bt(c, 1, 9, px, py); drawColumn(c, px, py); break;
             case T.STATUE:
                 bt(c, 1, 9, px, py); drawStatue(c, px, py); break;
-            case T.FOUNTAIN:
-                drawFountain(c, px, py, x, y, frame); break;
+            case T.FOUNTAIN: {
+                // ground only; the basin is drawn in the decoration pass
+                const [sc, sr] = patchTile(x, y, DIRT_FAM, 1);
+                bt(c, sc, sr, px, py); break;
+            }
             case T.WATER:
                 drawWater(c, x, y, px, py, frame); break;
             case T.BRIDGE:
@@ -566,10 +586,9 @@ if (typeof document !== 'undefined') (function () {
             const cc = cv.getContext('2d');
             cc.imageSmoothingEnabled = false;
             for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) drawTile(cc, map[y][x], x, y, f);
-            if (IMG.ready) {
-                for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
-                    if (map[y][x] === T.TREE) bt(cc, treeType(x, y), 1, x * TILE, y * TILE);
-                }
+            for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
+                if (IMG.ready && map[y][x] === T.TREE) bt(cc, treeType(x, y), 1, x * TILE, y * TILE);
+                if (map[y][x] === T.FOUNTAIN) drawFountain(cc, x * TILE, y * TILE, x, y, f);
             }
             mapFrames.push(cv);
         }
