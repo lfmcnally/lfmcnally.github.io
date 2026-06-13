@@ -129,7 +129,7 @@ const CursusData = (function () {
             id: 'consul', rung: 4, look: 'consul', lictors: 12,
             name: 'Aulus', office: 'Consul', officeEn: 'Head of State',
             age: 42, number: 2, term: 'one year',
-            x: 0, z: -19, ry: Math.PI,
+            x: 0, z: -19, ry: 0,
             onDais: true,
             facts: {
                 age: 'You must be <b>42</b> to stand as consul — the <b>summit</b> of the cursus honorum.',
@@ -164,7 +164,7 @@ const CursusData = (function () {
             id: 'dictator', rung: 6, look: 'dictator', side: true, lictors: 0,
             name: 'the Dictator', office: 'Dictator', officeEn: 'Master in Crisis',
             age: null, number: 1, term: 'six months (maximum)',
-            x: -2, z: -19, ry: Math.PI,
+            x: -7, z: -20, ry: 0.5,
             shadow: true,
             facts: {
                 age: 'No age, no election. In a <b>dire emergency</b>, the Senate asks a consul to name a single man as <b>dictator</b>. I am extraordinary — outside the ladder entirely.',

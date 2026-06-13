@@ -11,6 +11,11 @@ import * as THREE from 'three';
 import { GLTFLoader } from './lib/GLTFLoader.js';
 import { RGBELoader } from './lib/RGBELoader.js';
 import { MeshoptDecoder } from './lib/meshopt_decoder.module.js';
+import { EffectComposer } from './lib/postprocessing/EffectComposer.js';
+import { RenderPass } from './lib/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from './lib/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from './lib/postprocessing/OutputPass.js';
+import { marbleMaterial, opusSectileMaterial, revetmentMaterial, porphyryMaterial, gialloMaterial } from './textures.js';
 
 (function () {
 'use strict';
@@ -65,13 +70,14 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.18;
+renderer.toneMappingExposure = 0.82;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1a140d);
-scene.fog = new THREE.Fog(0x1a140d, 44, 88);
+scene.background = new THREE.Color(0x120d08);
+scene.fog = new THREE.Fog(0x171009, 46, 96);
+scene.environmentIntensity = 0.38;   // tame the bright interior HDRI
 
-const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.1, 300);
+const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.1, 300);
 function resize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
 window.addEventListener('resize', resize); resize();
 
@@ -84,8 +90,11 @@ sun.shadow.camera.left = -28; sun.shadow.camera.right = 28;
 sun.shadow.camera.top = 30; sun.shadow.camera.bottom = -30;
 sun.shadow.camera.far = 90; sun.shadow.bias = -0.0004;
 scene.add(sun);
-scene.add(new THREE.HemisphereLight(0xdac7a0, 0x2a2018, 0.55));
-new RGBELoader().load('assets3d/vale_day_1k.hdr', hdr => { hdr.mapping = THREE.EquirectangularReflectionMapping; scene.environment = hdr; });
+scene.add(new THREE.HemisphereLight(0xdac7a0, 0x2a2018, 0.85));
+scene.add(new THREE.AmbientLight(0x4a3f2e, 0.35));
+// warm fill over the dais so the consul reads clearly
+const daisLight = new THREE.PointLight(0xffdca0, 22, 30, 2); daisLight.position.set(0, 9, -18); scene.add(daisLight);
+new RGBELoader().load('assets3d/royal_esplanade_1k.hdr', hdr => { hdr.mapping = THREE.EquirectangularReflectionMapping; scene.environment = hdr; });
 
 const texLoader = new THREE.TextureLoader();
 const gltfLoader = new GLTFLoader();
@@ -100,6 +109,19 @@ const flat = (color, rough = 0.85, metal = 0) => {
 };
 const MARBLE = 0xeae3d2, MARBLE_D = 0xd8cdb4, MARBLE_DK = 0xbfb393;
 const PORPHYRY = 0x7a2f3a, GOLD = 0xd6b25e;
+
+// real veined-marble materials (see textures.js)
+const MAT = {
+    white:   marbleMaterial({ seed: 7, repeat: 2, rough: 0.34, env: 0.6 }),
+    dais:    marbleMaterial({ base: 0xe2d9c2, seed: 5, repeat: 1, rough: 0.38, env: 0.55 }),
+    bench:   marbleMaterial({ base: 0xe7e0cf, seed: 13, repeat: 2, rough: 0.4, env: 0.5 }),
+    porphyry: porphyryMaterial({ repeat: 2, env: 0.6 }),
+    giallo:  gialloMaterial({ repeat: 2, env: 0.6 }),
+};
+// polished column marble — reflections do the work, so no map (clean UVs)
+const COLUMN_MAT = new THREE.MeshStandardMaterial({ color: 0xefe9da, roughness: 0.24, metalness: 0.0, envMapIntensity: 0.85 });
+// gilt bronze with a touch of emissive so the bloom catches it
+const GILT = new THREE.MeshStandardMaterial({ color: GOLD, roughness: 0.3, metalness: 0.85, emissive: 0x3a2a08, emissiveIntensity: 0.6, envMapIntensity: 1.4 });
 
 function box(w, h, d, mat, x, y, z, parent = scene) {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
@@ -119,18 +141,16 @@ function groundHeight(x, z) {
 
 // ---------- floor (opus sectile marble) ----------
 {
-    const ftex = texLoader.load('assets3d/floor.jpg');
-    ftex.wrapS = ftex.wrapT = THREE.RepeatWrapping; ftex.repeat.set(10, 10); ftex.colorSpace = THREE.SRGBColorSpace; ftex.anisotropy = 8;
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(HALL.x1 - HALL.x0, HALL.z1 - HALL.z0),
-        new THREE.MeshStandardMaterial({ map: ftex, color: 0xe4dcc6, roughness: 0.5 }));
+    const floorMat = opusSectileMaterial({ repeat: 3 });
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(HALL.x1 - HALL.x0, HALL.z1 - HALL.z0), floorMat);
     floor.rotation.x = -Math.PI / 2;
     floor.position.set((HALL.x0 + HALL.x1) / 2, 0, (HALL.z0 + HALL.z1) / 2);
     floor.receiveShadow = true; scene.add(floor);
-    // a central porphyry runner with a gold border
-    const runner = new THREE.Mesh(new THREE.PlaneGeometry(5, HALL.z1 - HALL.z0 - 2), flat(PORPHYRY, 0.45));
+    // a central porphyry runner with a gilt border, leading to the dais
+    const runner = new THREE.Mesh(new THREE.PlaneGeometry(5, HALL.z1 - HALL.z0 - 2), MAT.porphyry);
     runner.rotation.x = -Math.PI / 2; runner.position.set(0, 0.02, (HALL.z0 + HALL.z1) / 2 + 0.5); runner.receiveShadow = true; scene.add(runner);
     for (const ex of [-2.7, 2.7]) {
-        const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.25, HALL.z1 - HALL.z0 - 2), flat(GOLD, 0.4, 0.3));
+        const edge = new THREE.Mesh(new THREE.PlaneGeometry(0.25, HALL.z1 - HALL.z0 - 2), GILT);
         edge.rotation.x = -Math.PI / 2; edge.position.set(ex, 0.025, (HALL.z0 + HALL.z1) / 2 + 0.5); scene.add(edge);
     }
 }
@@ -139,10 +159,11 @@ function groundHeight(x, z) {
 const colliders = []; // {x0,z0,x1,z1}
 const addWall = (x0, z0, x1, z1) => colliders.push({ x0: Math.min(x0, x1), z0: Math.min(z0, z1), x1: Math.max(x0, x1), z1: Math.max(z0, z1) });
 function wallPanel(cx, cz, w, d) {
-    box(w, HALL.wallH, d, flat(MARBLE, 0.9), cx, HALL.wallH / 2, cz);
-    // a darker dado band + cornice
-    box(w + 0.1, 1.4, d + 0.1, flat(MARBLE_DK, 0.9), cx, 0.7, cz);
-    box(w + 0.3, 0.6, d + 0.3, flat(MARBLE_D, 0.85), cx, HALL.wallH - 1.6, cz);
+    // marble revetment: dado + panels + cornice are baked into the texture
+    const len = Math.max(w, d);
+    const mat = revetmentMaterial({ env: 0.7 });
+    mat.map.repeat.set(Math.max(1, Math.round(len / 8)), 1);
+    box(w, HALL.wallH, d, mat, cx, HALL.wallH / 2, cz);
 }
 wallPanel(0, HALL.z0 - 0.5, HALL.x1 - HALL.x0 + 2, 1);             // north (behind dais)
 wallPanel(HALL.x0 - 0.5, (HALL.z0 + HALL.z1) / 2, 1, HALL.z1 - HALL.z0 + 2); // west
@@ -165,20 +186,20 @@ const glow = box(10, 0.3, 8, new THREE.MeshBasicMaterial({ color: 0xfff0cf }), 6
 glow.castShadow = false;
 
 // ---------- the dais & curule seat ----------
-box(DAIS.x1 - DAIS.x0, DAIS.top, DAIS.z1 - DAIS.z0, flat(MARBLE_D, 0.7), 0, DAIS.top / 2, (DAIS.z0 + DAIS.z1) / 2);
-box(10, 0.25, 1.0, flat(GOLD, 0.4, 0.3), 0, DAIS.top + 0.12, DAIS.z1 - 0.4); // gold edge
+box(DAIS.x1 - DAIS.x0, DAIS.top, DAIS.z1 - DAIS.z0, MAT.dais, 0, DAIS.top / 2, (DAIS.z0 + DAIS.z1) / 2);
+box(10, 0.25, 1.0, GILT, 0, DAIS.top + 0.12, DAIS.z1 - 0.4); // gilt edge
 // front step
-box(STEP.x1 - STEP.x0, DAIS.top, STEP.z1 - STEP.z0 + 0.3, flat(MARBLE_DK, 0.8), 0, DAIS.top / 2, (STEP.z0 + STEP.z1) / 2);
+box(STEP.x1 - STEP.x0, DAIS.top, STEP.z1 - STEP.z0 + 0.3, MAT.dais, 0, DAIS.top / 2, (STEP.z0 + STEP.z1) / 2);
 addWall(DAIS.x0, DAIS.z0, STEP.x0, DAIS.z1);   // dais sides block (gap = the step)
 addWall(STEP.x1, DAIS.z0, DAIS.x1, DAIS.z1);
 // curule chair (sella curulis) on the dais
 {
     const chair = new THREE.Group(); chair.position.set(0, DAIS.top, -19.6); scene.add(chair);
-    box(1.4, 0.2, 1.2, flat(0xe8dcbf, 0.6), 0, 0.9, 0, chair);
-    box(0.18, 0.9, 0.18, flat(GOLD, 0.5, 0.4), -0.55, 0.45, 0.45, chair);
-    box(0.18, 0.9, 0.18, flat(GOLD, 0.5, 0.4), 0.55, 0.45, 0.45, chair);
-    box(0.18, 0.9, 0.18, flat(GOLD, 0.5, 0.4), -0.55, 0.45, -0.45, chair);
-    box(0.18, 0.9, 0.18, flat(GOLD, 0.5, 0.4), 0.55, 0.45, -0.45, chair);
+    box(1.4, 0.2, 1.2, MAT.white, 0, 0.9, 0, chair);
+    box(0.18, 0.9, 0.18, GILT, -0.55, 0.45, 0.45, chair);
+    box(0.18, 0.9, 0.18, GILT, 0.55, 0.45, 0.45, chair);
+    box(0.18, 0.9, 0.18, GILT, -0.55, 0.45, -0.45, chair);
+    box(0.18, 0.9, 0.18, GILT, 0.55, 0.45, -0.45, chair);
 }
 
 // ---------- senators' tiered benches along the long sides ----------
@@ -186,7 +207,7 @@ function benches(sideX) {
     const dir = Math.sign(sideX);
     for (let tier = 0; tier < 3; tier++) {
         const bx = sideX - dir * tier * 1.8;
-        box(1.6, 0.55 + tier * 0.55, 26, flat(tier % 2 ? MARBLE_D : MARBLE, 0.85), bx, (0.55 + tier * 0.55) / 2, -4);
+        box(1.6, 0.55 + tier * 0.55, 26, tier % 2 ? MAT.bench : MAT.white, bx, (0.55 + tier * 0.55) / 2, -4);
     }
     addWall(sideX - dir * 5.2, -17, sideX + dir * 0.4, 9);
     // seated senators (simple togate silhouettes) on the top tier
@@ -212,10 +233,10 @@ function loadModel(name) {
     return modelCache.get(name);
 }
 const pending = [];
-function placeModel(name, x, z, { h = 2, ry = 0, y = 0, marble = false, collide = 0 } = {}) {
+function placeModel(name, x, z, { h = 2, ry = 0, y = 0, mat = null, collide = 0 } = {}) {
     pending.push(loadModel(name).then(g => {
         const inner = g.scene.clone(true);
-        if (marble) { const m = flat(MARBLE, 0.6); inner.traverse(o => { if (o.isMesh) o.material = m; }); }
+        if (mat) inner.traverse(o => { if (o.isMesh) o.material = mat; });
         const bb = new THREE.Box3().setFromObject(inner); const sz = bb.getSize(new THREE.Vector3());
         inner.scale.setScalar(h / sz.y);
         const bb2 = new THREE.Box3().setFromObject(inner); const c = bb2.getCenter(new THREE.Vector3());
@@ -228,12 +249,12 @@ function placeModel(name, x, z, { h = 2, ry = 0, y = 0, marble = false, collide 
 // colonnade down both sides
 for (let i = 0; i < 6; i++) {
     const z = -18 + i * 6.2;
-    placeModel('column.glb', -18.5, z, { h: 14, collide: 0.9 });
-    placeModel('column.glb', 18.5, z, { h: 14, collide: 0.9 });
+    placeModel('column.glb', -18.5, z, { h: 14, collide: 0.9, mat: COLUMN_MAT });
+    placeModel('column.glb', 18.5, z, { h: 14, collide: 0.9, mat: COLUMN_MAT });
 }
 // flanking statues on the dais
-placeModel('statue_block.glb', -10.5, -20.4, { h: 4.2, ry: 0.4, y: DAIS.top, marble: true, collide: 1.2 });
-placeModel('statue_block.glb', 10.5, -20.4, { h: 4.2, ry: -0.4, y: DAIS.top, marble: true, collide: 1.2 });
+placeModel('statue_block.glb', -10.5, -20.4, { h: 4.2, ry: 0.4, y: DAIS.top, mat: COLUMN_MAT, collide: 1.2 });
+placeModel('statue_block.glb', 10.5, -20.4, { h: 4.2, ry: -0.4, y: DAIS.top, mat: COLUMN_MAT, collide: 1.2 });
 // the great doorway arch at the entrance
 placeModel('arch.glb', 0, 15.2, { h: 7, collide: 0 });
 
@@ -252,53 +273,88 @@ function brazier(x, z) {
 }
 brazier(-15, -14); brazier(15, -14); brazier(-15, 8); brazier(15, 8);
 
+// dust motes drifting in the shaft of daylight — "ancient sunbeam"
+let dust = null;
+{
+    const N = 220, pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) { pos[i * 3] = -6 + Math.random() * 20; pos[i * 3 + 1] = 0.5 + Math.random() * 15; pos[i * 3 + 2] = -8 + Math.random() * 20; }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    dust = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffe6b0, size: 0.07, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    scene.add(dust);
+}
+
 // ============================================================
 // Toga figures (statuesque) + lictors
 // ============================================================
 function makeToga(look) {
     const P = DATA.T[look] || DATA.T.pura;
     const g = new THREE.Group();
-    const skin = flat(P.skin, 0.7), toga = flat(P.toga, 0.85), hair = flat(P.hair, 0.9), stripe = flat(P.stripe, 0.8);
-    // robed lower body (draped skirt)
-    const skirt = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.72, 1.5, 14), toga);
-    skirt.position.y = 0.75; skirt.castShadow = true; g.add(skirt);
-    // torso
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 1.0, 14), toga);
-    torso.position.y = 1.78; torso.castShadow = true; g.add(torso);
-    // the toga drape — a diagonal band across the chest
-    const drape = box(0.95, 1.5, 0.2, toga, 0, 1.5, 0.34, g);
-    drape.rotation.z = 0.5; drape.castShadow = true;
-    // shoulder fold over the left
-    const fold = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.13, 6, 14, Math.PI), toga);
-    fold.position.set(-0.18, 2.05, 0.1); fold.rotation.set(Math.PI / 2, 0, 0.4); g.add(fold);
-    // purple stripe / praetexta border along the drape
-    const clavus = box(0.12, 1.5, 0.22, stripe, 0.28, 1.5, 0.36, g);
-    clavus.rotation.z = 0.5;
-    if (P.border) { // praetexta hem along the bottom of the skirt
-        const hem = new THREE.Mesh(new THREE.CylinderGeometry(0.73, 0.74, 0.16, 14, 1, true), stripe);
-        hem.position.y = 0.16; g.add(hem);
+    const skinM = flat(P.skin, 0.55);
+    const togaM = new THREE.MeshStandardMaterial({ color: P.toga, roughness: 0.85, metalness: 0, envMapIntensity: 0.45 });
+    const hairM = flat(P.hair, 0.85);
+    const stripeM = new THREE.MeshStandardMaterial({ color: P.stripe, roughness: 0.7, envMapIntensity: 0.4 });
+    // smooth draped robe via a lathed profile (feet -> shoulders)
+    const prof = [[0.02, 0], [0.46, 0], [0.52, 0.06], [0.62, 0.4], [0.6, 0.95], [0.55, 1.35],
+                  [0.52, 1.66], [0.5, 1.92], [0.46, 2.12], [0.36, 2.32], [0.22, 2.44], [0.14, 2.52]]
+        .map(p => new THREE.Vector2(p[0], p[1]));
+    const body = new THREE.Mesh(new THREE.LatheGeometry(prof, 28), togaM);
+    body.castShadow = true; body.receiveShadow = true; g.add(body);
+    // neck + head
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.18, 12), skinM); neck.position.y = 2.52; g.add(neck);
+    const HY = 2.76;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 24, 22), skinM);
+    head.position.y = HY; head.scale.set(0.95, 1.08, 0.98); head.castShadow = true; g.add(head);
+    // ears
+    for (const sx of [-0.26, 0.26]) { const ear = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), skinM); ear.position.set(sx, HY - 0.01, 0); ear.scale.set(0.6, 1, 0.7); g.add(ear); }
+    // eyes (white + dark iris) — slightly inset
+    for (const sx of [-0.1, 0.1]) {
+        const w = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), flat(0xf2efe6, 0.45)); w.position.set(sx, HY + 0.03, 0.235); w.scale.set(1.25, 0.85, 0.55); g.add(w);
+        const iris = new THREE.Mesh(new THREE.SphereGeometry(0.023, 10, 8), flat(0x402d1c, 0.35)); iris.position.set(sx, HY + 0.03, 0.27); g.add(iris);
     }
-    // head
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 14), skin);
-    head.position.y = 2.62; head.scale.set(0.92, 1.05, 0.95); head.castShadow = true; g.add(head);
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), hair);
-    cap.position.y = 2.68; g.add(cap);
-    for (const sx of [-0.12, 0.12]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), flat(0x2a201a, 0.4));
-        eye.position.set(sx, 2.62, 0.31); g.add(eye);
+    // grey hair / beards for the senior magistrates
+    const hm = flat((look === 'elder') ? 0xeae6da : (look === 'censor') ? 0xd2ccbd : (look === 'consul') ? 0xc4bcab : P.hair, 0.9);
+    // brows
+    for (const sx of [-0.1, 0.1]) { const b = box(0.1, 0.022, 0.04, hm, sx, HY + 0.11, 0.24, g); b.rotation.z = sx > 0 ? -0.12 : 0.12; }
+    // nose
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.17, 4), skinM); nose.position.set(0, HY - 0.03, 0.26); nose.rotation.x = 1.85; g.add(nose);
+    // mouth
+    box(0.12, 0.022, 0.03, flat(0x9c5a4a, 0.6), 0, HY - 0.17, 0.235, g);
+    // hair cap (set back to leave a hairline)
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.285, 22, 16, 0, Math.PI * 2, 0, Math.PI * 0.6), hm);
+    cap.position.set(0, HY + 0.05, -0.02); cap.scale.set(1.0, 1.05, 1.04); g.add(cap);
+    // sideburns
+    for (const sx of [-0.23, 0.23]) { const sb = box(0.05, 0.2, 0.18, hm, sx, HY - 0.02, -0.02, g); }
+    // beards for the elders
+    if (look === 'elder' || look === 'censor') {
+        const beard = new THREE.Mesh(new THREE.SphereGeometry(0.25, 18, 16, 0, Math.PI * 2, Math.PI * 0.52, Math.PI * 0.55), hm);
+        beard.position.set(0, HY - 0.05, 0.0); beard.scale.set(1.0, 1.15, 1.08); g.add(beard);
     }
-    // right arm folded across (orator); left arm at side under the toga
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 0.55, 4, 8), skin);
-    arm.position.set(0.16, 1.7, 0.34); arm.rotation.set(-1.3, 0, -0.3); arm.castShadow = true; g.add(arm);
+    // toga swag — a smooth cloth band from the right hip up over the left shoulder
+    const pts = [new THREE.Vector3(0.42, 0.95, 0.2), new THREE.Vector3(0.34, 1.5, 0.47),
+                 new THREE.Vector3(-0.02, 1.96, 0.5), new THREE.Vector3(-0.34, 2.28, 0.22),
+                 new THREE.Vector3(-0.42, 2.34, -0.16)];
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const swag = new THREE.Mesh(new THREE.TubeGeometry(curve, 26, 0.15, 9, false), togaM);
+    swag.castShadow = true; g.add(swag);
+    // purple clavus / praetexta border running along the swag
+    const scurve = new THREE.CatmullRomCurve3(pts.map(p => p.clone().add(new THREE.Vector3(0, -0.03, 0.12))));
+    const clavus = new THREE.Mesh(new THREE.TubeGeometry(scurve, 26, 0.05, 6, false), stripeM); g.add(clavus);
+    if (P.border) { // praetexta hem at the ankles
+        const hem = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.045, 6, 30), stripeM);
+        hem.position.y = 0.08; hem.rotation.x = Math.PI / 2; g.add(hem);
+    }
+    // right forearm folded across the chest (orator's pose), with a hand
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.5, 5, 9), skinM);
+    arm.position.set(0.14, 1.82, 0.44); arm.rotation.set(-1.2, 0, -0.35); arm.castShadow = true; g.add(arm);
     g.userData.armR = arm;
-    // laurel for consul; staff for elder
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), skinM); hand.position.set(-0.16, 1.98, 0.5); g.add(hand);
     if (look === 'consul') {
-        const w = new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.05, 6, 16), flat(0x5e9a4e, 0.8));
-        w.position.y = 2.84; w.rotation.x = Math.PI / 2.2; g.add(w);
+        const w = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.04, 7, 20), flat(0x6aa84e, 0.6));
+        w.position.y = 2.92; w.rotation.x = Math.PI / 2.1; g.add(w);
     }
     if (look === 'elder') {
-        const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.6, 6), flat(0x6e4a26, 0.9));
-        staff.position.set(-0.6, 1.3, 0.2); staff.rotation.z = 0.08; g.add(staff);
+        const staff = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 2.5, 8), flat(0x6e4a26, 0.85));
+        staff.position.set(-0.52, 1.25, 0.3); staff.rotation.z = 0.06; staff.castShadow = true; g.add(staff);
     }
     return g;
 }
@@ -335,7 +391,7 @@ function makeLabel(title, sub) {
     if (sub) { ctx.font = '600 22px Inter, sans-serif'; ctx.fillStyle = '#d8c79a'; ctx.fillText(sub, 160, 72); }
     const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
-    sp.scale.set(5.0, 1.5, 1); return sp;
+    sp.scale.set(4.0, 1.2, 1); return sp;
 }
 function markSprite() {
     const c = document.createElement('canvas'); c.width = 64; c.height = 64;
@@ -366,17 +422,20 @@ for (const off of DATA.OFFICES) {
     // open hall (toward the centre). We render up to 6; the dialogue states
     // the true number (a consul really has 12).
     if (off.lictors) {
+        // flank the magistrate (and stand slightly behind) so the front
+        // stays clear for conversation; we render up to 6, dialogue states
+        // the true number (a consul really has 12).
         const shown = Math.min(off.lictors, 6);
-        let tcx = 0 - off.x, tcz = -6 - off.z;           // vector toward hall centre
-        const tl = Math.hypot(tcx, tcz) || 1; tcx /= tl; tcz /= tl;
-        const px = -tcz, pz = tcx;                       // perpendicular (for left/right offset)
+        const fx = Math.sin(off.ry || 0), fz = Math.cos(off.ry || 0);   // facing
+        const px = Math.cos(off.ry || 0), pz = -Math.sin(off.ry || 0);  // perpendicular
         for (let i = 0; i < shown; i++) {
+            const side = (i % 2) ? 1 : -1, rank = Math.floor(i / 2);
+            const offa = (1.2 + rank * 1.0) * side;
+            const lx = off.x + px * offa - fx * 0.5;
+            const lz = off.z + pz * offa - fz * 0.5;
             const lic = makeLictor();
-            const rank = Math.floor(i / 2), sideo = (i % 2) ? 0.8 : -0.8;
-            const lx = off.x + tcx * (1.8 + rank * 1.5) + px * sideo;
-            const lz = off.z + tcz * (1.8 + rank * 1.5) + pz * sideo;
             lic.position.set(lx, groundHeight(lx, lz), lz);
-            lic.rotation.y = Math.atan2(-tcx, -tcz);     // face back toward the magistrate
+            lic.rotation.y = off.ry || 0;
             scene.add(lic);
         }
     }
@@ -423,8 +482,9 @@ function makePlayer() {
     const g = makeToga('pura');
     return g;
 }
-const player = { obj: makePlayer(), x: 0, z: 9, ry: Math.PI, speed: 6.6, moving: false, walkT: 0 };
-player.obj.position.set(player.x, 0, player.z); scene.add(player.obj);
+const player = { obj: makePlayer(), x: 0, z: 9, ry: Math.PI, yaw: Math.PI, pitch: -0.05, speed: 6.6, moving: false, walkT: 0 };
+player.obj.position.set(player.x, 0, player.z); player.obj.visible = false; scene.add(player.obj);
+const lookDelta = { x: 0, y: 0 };
 
 // ---------- DOM ----------
 const hudStudied = document.getElementById('hud-studied');
@@ -489,10 +549,15 @@ refreshMarks();
 // Visual-novel engine
 // ============================================================
 let vn = null, typeTimer = null, dialogOpen = false;
+function setOverhead(v) {
+    for (const n of npcs) { if (n.label) n.label.visible = v; if (n.mark) n.mark.visible = v; }
+    for (const ex of exhibits) if (ex.mark) ex.mark.visible = v;
+}
 function runScene(npc, lines, onDone) {
     dialogOpen = true;
     vn = { npc, lines: lines.slice(), i: -1, onDone, typing: false };
     dialogEl.classList.add('open'); document.body.classList.add('vn');
+    setOverhead(false);
     if (npc && npc.x != null) player.ry = Math.atan2(npc.x - player.x, npc.z - player.z);
     sfx.talk(); advance();
 }
@@ -553,7 +618,7 @@ dialogEl.addEventListener('click', e => {
     if (vn.typing) finishTyping();
     else if (!dlgBody.querySelector('.vn-choices')) advance();
 });
-function closeDialog() { dialogOpen = false; vn = null; clearInterval(typeTimer); dialogEl.classList.remove('open'); document.body.classList.remove('vn'); }
+function closeDialog() { dialogOpen = false; vn = null; clearInterval(typeTimer); dialogEl.classList.remove('open'); document.body.classList.remove('vn'); setOverhead(true); }
 document.getElementById('dlg-close').addEventListener('click', closeDialog);
 
 // ---------- build a magistrate conversation ----------
@@ -598,6 +663,28 @@ window.addEventListener('keydown', e => {
     if (!dialogOpen && (e.key === 'e' || e.key === 'E' || e.key === ' ' || e.key === 'Enter')) tryInteract();
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+// drag-to-look (desktop) — accumulate into lookDelta, consumed each frame
+let dragging = false, lastPX = 0, lastPY = 0;
+canvas.addEventListener('pointerdown', e => { if (dialogOpen) return; dragging = true; lastPX = e.clientX; lastPY = e.clientY; });
+window.addEventListener('pointerup', () => { dragging = false; });
+window.addEventListener('pointermove', e => {
+    if (!dragging || dialogOpen) return;
+    lookDelta.x += (e.clientX - lastPX) * 0.0026;
+    lookDelta.y += (e.clientY - lastPY) * 0.0026;
+    lastPX = e.clientX; lastPY = e.clientY;
+});
+// one-finger drag on the right half of the screen = look (touch)
+let touchLookId = null, tlx = 0, tly = 0;
+canvas.addEventListener('touchstart', e => {
+    if (dialogOpen) return;
+    for (const t of e.changedTouches) { if (t.clientX > innerWidth * 0.45 && touchLookId === null) { touchLookId = t.identifier; tlx = t.clientX; tly = t.clientY; } }
+}, { passive: true });
+window.addEventListener('touchmove', e => {
+    if (dialogOpen) return;
+    for (const t of e.changedTouches) { if (t.identifier === touchLookId) { lookDelta.x += (t.clientX - tlx) * 0.005; lookDelta.y += (t.clientY - tly) * 0.005; tlx = t.clientX; tly = t.clientY; } }
+}, { passive: true });
+window.addEventListener('touchend', e => { for (const t of e.changedTouches) if (t.identifier === touchLookId) touchLookId = null; });
 
 const joyVec = { x: 0, y: 0 };
 if ('ontouchstart' in window) {
@@ -653,43 +740,55 @@ const camLook = new THREE.Vector3(player.x, 2, player.z);
 const camDesire = new THREE.Vector3(), lookDesire = new THREE.Vector3();
 
 function update(dt, t) {
-    let dx = 0, dz = 0;
+    // --- look: keyboard turn (A/D, arrows), drag, joystick x ---
     if (!dialogOpen) {
-        if (keys['w'] || keys['arrowup']) dz -= 1;
-        if (keys['s'] || keys['arrowdown']) dz += 1;
-        if (keys['a'] || keys['arrowleft']) dx -= 1;
-        if (keys['d'] || keys['arrowright']) dx += 1;
-        dx += joyVec.x; dz += joyVec.y;
+        if (keys['a'] || keys['arrowleft']) player.yaw += dt * 1.9;
+        if (keys['d'] || keys['arrowright']) player.yaw -= dt * 1.9;
+        player.yaw -= joyVec.x * dt * 1.9;
+        player.yaw -= lookDelta.x; player.pitch -= lookDelta.y;
     }
-    const len = Math.hypot(dx, dz);
-    player.moving = len > 0.01;
-    if (player.moving) {
-        dx /= Math.max(len, 1); dz /= Math.max(len, 1);
-        let nx = player.x + dx * player.speed * dt, nz = player.z + dz * player.speed * dt;
-        [nx, nz] = collide(nx, nz); player.x = nx; player.z = nz;
-        const targetRy = Math.atan2(dx, dz);
-        let dr = targetRy - player.ry; while (dr > Math.PI) dr -= Math.PI * 2; while (dr < -Math.PI) dr += Math.PI * 2;
-        player.ry += dr * Math.min(1, dt * 14); player.walkT += dt * 9;
-    }
-    const py = groundHeight(player.x, player.z);
-    player.obj.position.set(player.x, py + (player.moving ? Math.abs(Math.sin(player.walkT)) * 0.08 : 0), player.z);
-    player.obj.rotation.y = player.ry;
+    lookDelta.x = 0; lookDelta.y = 0;
 
-    if (dialogOpen && vn && vn.npc && vn.npc.x != null) {
-        const n = vn.npc; const ny = groundHeight(n.x, n.z);
-        let ddx = player.x - n.x, ddz = player.z - n.z; const dd = Math.hypot(ddx, ddz) || 1; ddx /= dd; ddz /= dd;
-        camDesire.set(n.x + ddx * 3.4 - ddz * 1.5, ny + 2.8, n.z + ddz * 3.4 + ddx * 1.5);
-        lookDesire.set(n.x, ny + 2.0, n.z);
-    } else {
-        camX += (player.x - camX) * Math.min(1, dt * 3); camZ += (player.z - camZ) * Math.min(1, dt * 3);
-        camDesire.set(camX, py + 8.5, camZ + 11); lookDesire.set(camX, py + 2.2, camZ - 5);
+    // --- move forward / back along the facing direction ---
+    let fwd = 0;
+    if (!dialogOpen) {
+        if (keys['w'] || keys['arrowup']) fwd += 1;
+        if (keys['s'] || keys['arrowdown']) fwd -= 1;
+        fwd += -joyVec.y;
     }
-    camPos.lerp(camDesire, Math.min(1, dt * 4)); camLook.lerp(lookDesire, Math.min(1, dt * 4));
-    camera.position.copy(camPos); camera.lookAt(camLook);
+    const fx = Math.sin(player.yaw), fz = Math.cos(player.yaw);
+    player.moving = Math.abs(fwd) > 0.01;
+    if (player.moving) {
+        let nx = player.x + fx * fwd * player.speed * dt;
+        let nz = player.z + fz * fwd * player.speed * dt;
+        [nx, nz] = collide(nx, nz); player.x = nx; player.z = nz;
+        player.walkT += dt * 9;
+    }
+
+    const py = groundHeight(player.x, player.z);
+    const eyeY = py + 1.62 + (player.moving ? Math.abs(Math.sin(player.walkT)) * 0.035 : 0);
+
+    // --- in conversation, ease the view onto the speaker's face ---
+    if (dialogOpen && vn && vn.npc && vn.npc.x != null) {
+        const n = vn.npc;
+        const tx = n.x - player.x, tz = n.z - player.z, dist = Math.hypot(tx, tz) || 1;
+        let ty = (n.baseY || 0) + 2.7;
+        const targetYaw = Math.atan2(tx, tz);
+        const targetPitch = Math.atan2(ty - eyeY, dist);
+        let dyaw = targetYaw - player.yaw; while (dyaw > Math.PI) dyaw -= Math.PI * 2; while (dyaw < -Math.PI) dyaw += Math.PI * 2;
+        player.yaw += dyaw * Math.min(1, dt * 6);
+        player.pitch += (targetPitch - player.pitch) * Math.min(1, dt * 6);
+    }
+    player.pitch = Math.max(-1.1, Math.min(0.85, player.pitch));
+    player.ry = player.yaw;
+
+    camera.position.set(player.x, eyeY, player.z);
+    const cp = Math.cos(player.pitch);
+    camera.lookAt(player.x + Math.sin(player.yaw) * cp, eyeY + Math.sin(player.pitch), player.z + Math.cos(player.yaw) * cp);
 
     for (const n of npcs) {
         const d = Math.hypot(n.x - player.x, n.z - player.z);
-        if (d < 6 && !n.onDais) {
+        if (d < 7) {
             const tr = Math.atan2(player.x - n.x, player.z - n.z);
             let dr = tr - n.obj.rotation.y; while (dr > Math.PI) dr -= Math.PI * 2; while (dr < -Math.PI) dr += Math.PI * 2;
             n.obj.rotation.y += dr * Math.min(1, dt * 5);
@@ -707,15 +806,23 @@ function update(dt, t) {
     } else { promptEl.style.display = 'none'; actionBtn.classList.remove('show'); }
 }
 
+// ---------- bloom post-processing (warm glow on braziers, gilt, light) ----------
+let composer = null;
+try {
+    composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.32, 0.55, 0.92));
+    composer.addPass(new OutputPass());
+    window.addEventListener('resize', () => composer.setSize(innerWidth, innerHeight));
+} catch (e) { composer = null; }
+
 let acc = 0;
-let started = false;
-Promise.allSettled(pending).then(() => {
-    document.getElementById('loading').style.display = 'none';
-    refreshMarks();
-});
+Promise.allSettled(pending).then(() => { document.getElementById('loading').style.display = 'none'; refreshMarks(); });
 renderer.setAnimationLoop(() => {
     const dt = Math.min(clock.getDelta(), 0.05); acc += dt;
-    update(dt, acc); renderer.render(scene, camera);
+    update(dt, acc);
+    if (dust) { const p = dust.geometry.attributes.position; for (let i = 0; i < p.count; i++) { let y = p.getY(i) - dt * 0.18; if (y < 0.4) y = 15.5; p.setY(i, y); } p.needsUpdate = true; }
+    if (composer) composer.render(); else renderer.render(scene, camera);
     if (!window.__ready) { window.__ready = true; document.getElementById('loading').style.display = 'none'; }
 });
 
