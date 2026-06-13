@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>The Senate House — Cursus Honorum · Classicalia</title>
+<meta name="description" content="Walk through the Roman Senate House and meet the magistrates of the cursus honorum — quaestor, aedile, praetor, consul, censor and more. A 3D explorable learning tool.">
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #14110c;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: none;
+}
+#game-canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* ===== HUD ===== */
+#hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.6rem 0.9rem; pointer-events: none; z-index: 20;
+}
+.hud-group { display: flex; gap: 0.5rem; align-items: center; }
+.hud-pill {
+    background: rgba(28, 22, 14, 0.82);
+    border: 1px solid rgba(214, 178, 94, 0.4);
+    color: #f3ead2; border-radius: 999px;
+    padding: 0.32rem 0.8rem; font-size: 0.78rem; font-weight: 600;
+    white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.hud-pill .gold { color: #e6b855; }
+.hud-btn {
+    pointer-events: auto;
+    background: rgba(28, 22, 14, 0.82);
+    border: 1px solid rgba(214, 178, 94, 0.4);
+    color: #f3ead2; border-radius: 999px;
+    width: 34px; height: 34px; font-size: 0.95rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+}
+.hud-btn:hover { background: rgba(70, 56, 34, 0.9); }
+
+/* ===== Ladder panel ===== */
+#ladder {
+    position: fixed; top: 52px; left: 9px;
+    width: 188px;
+    background: rgba(28, 22, 14, 0.8);
+    border: 1px solid rgba(214, 178, 94, 0.32);
+    border-radius: 12px; padding: 0.6rem 0.7rem;
+    z-index: 19; pointer-events: none;
+    transition: opacity 0.3s;
+}
+#ladder h3 {
+    font-family: 'Lora', Georgia, serif; font-style: italic;
+    font-size: 0.82rem; color: #e6b855; margin-bottom: 0.4rem; font-weight: 600;
+    text-align: center;
+}
+.ladder-row {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 0.72rem; color: rgba(243, 234, 210, 0.5);
+    padding: 0.16rem 0; line-height: 1.2;
+}
+.ladder-row .tick {
+    width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto;
+    border: 1px solid rgba(214, 178, 94, 0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; color: #14110c;
+}
+.ladder-row.done { color: #f3ead2; }
+.ladder-row.done .tick { background: #5ecb8a; border-color: #4da874; }
+.ladder-row .age { margin-left: auto; opacity: 0.6; font-size: 0.64rem; }
+.ladder-sep { height: 1px; background: rgba(214,178,94,0.18); margin: 0.3rem 0; }
+@media (max-width: 720px) { #ladder { display: none; } }
+
+/* ===== Interaction prompt ===== */
+#prompt {
+    position: fixed; left: 50%; bottom: 16%; transform: translateX(-50%);
+    background: rgba(28, 22, 14, 0.86); border: 1px solid rgba(214, 178, 94, 0.55);
+    color: #f3ead2; border-radius: 10px; padding: 0.45rem 1rem;
+    font-size: 0.85rem; font-weight: 600; z-index: 20; pointer-events: none; display: none;
+}
+#prompt kbd {
+    background: #e6b855; color: #3a2c0a; border-radius: 5px;
+    padding: 0.08rem 0.45rem; font-family: inherit; font-weight: 800; margin-right: 0.3rem;
+}
+
+/* ===== Visual-novel mode ===== */
+#vn-bar-top, #vn-bar-bottom {
+    position: fixed; left: 0; right: 0; height: 0; background: #0a0805; z-index: 22;
+    transition: height 0.45s ease; pointer-events: none;
+}
+#vn-bar-top { top: 0; } #vn-bar-bottom { bottom: 0; }
+body.vn #vn-bar-top, body.vn #vn-bar-bottom { height: 9vh; }
+body.vn #hud, body.vn #ladder { opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+
+/* ===== Dialog ===== */
+#dialog {
+    position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
+    width: min(760px, calc(100% - 16px)); margin-bottom: 11vh;
+    background: linear-gradient(180deg, #f8f1dd 0%, #efe2c4 100%);
+    border: 3px solid #8a6a3b; border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6); z-index: 30; display: none; overflow: hidden; cursor: pointer;
+}
+#dialog.open { display: block; }
+.dlg-head { display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 1.1rem 0.35rem; }
+.dlg-name { font-family: 'Lora', Georgia, serif; font-style: italic; font-weight: 700; font-size: 1.3rem; color: #5a4218; }
+.dlg-sub { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #a78648; }
+.dlg-close { background: none; border: none; font-size: 1.1rem; color: #8a6a3b; cursor: pointer; padding: 0.2rem 0.4rem; }
+.dlg-body { padding: 0.2rem 1.1rem 1rem; }
+.dlg-text { font-size: 1rem; color: #4a3a1c; line-height: 1.7; min-height: 3.5em; }
+.dlg-text em { font-family: 'Lora', Georgia, serif; }
+.vn-next { text-align: right; color: #8a6a3b; font-size: 1.1rem; margin-top: 0.2rem; animation: vnblink 1s infinite; }
+@keyframes vnblink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: 0.15; } }
+.vn-choices { display: flex; flex-direction: column; gap: 0.45rem; padding: 0.3rem 0 0.3rem; }
+.vn-choice {
+    background: rgba(255, 252, 242, 0.9); border: 2px solid #c8ad75; border-radius: 10px;
+    padding: 0.62rem 0.95rem; font-family: inherit; font-size: 0.9rem; font-weight: 600;
+    color: #4a3a1c; text-align: left; cursor: pointer; transition: background 0.12s, border-color 0.12s, transform 0.12s;
+}
+.vn-choice:hover { background: #fffdf5; border-color: #8a6a3b; transform: translateX(4px); }
+.vn-choice.asked { opacity: 0.5; }
+.vn-choice.leave { border-style: dashed; }
+
+/* ===== Overlays ===== */
+.overlay {
+    position: fixed; inset: 0; background: rgba(10, 8, 5, 0.85); backdrop-filter: blur(3px);
+    z-index: 40; display: none; align-items: center; justify-content: center; padding: 1rem;
+}
+.overlay.open { display: flex; }
+.panel {
+    width: min(560px, 100%); max-height: 90vh; overflow-y: auto;
+    background: linear-gradient(180deg, #f8f1dd 0%, #efe2c4 100%);
+    border: 3px solid #8a6a3b; border-radius: 18px; padding: 1.8rem 1.7rem 1.5rem;
+    text-align: center; box-shadow: 0 14px 50px rgba(0,0,0,0.6);
+}
+.panel h1 { font-family: 'Lora', Georgia, serif; font-style: italic; font-weight: 700; font-size: 2rem; color: #3a2c0a; margin-bottom: 0.2rem; }
+.panel .tagline { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #a78648; margin-bottom: 0.9rem; }
+.panel p { font-size: 0.9rem; color: #4a3a1c; line-height: 1.65; margin-bottom: 0.7rem; }
+.panel .controls-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.45rem 0.9rem; text-align: left; margin: 0.9rem auto 1.1rem; max-width: 400px; font-size: 0.84rem; color: #4a3a1c; }
+.panel .controls-grid kbd { background: #5a4218; color: #f8f1dd; border-radius: 6px; padding: 0.14rem 0.5rem; font-family: inherit; font-weight: 700; font-size: 0.76rem; white-space: nowrap; justify-self: end; }
+.panel .big-btn { background: #5a4218; color: #f8f1dd; border: none; border-radius: 11px; padding: 0.75rem 2.2rem; font-family: inherit; font-size: 0.95rem; font-weight: 800; letter-spacing: 0.03em; cursor: pointer; transition: transform 0.12s, background 0.15s; }
+.panel .big-btn:hover { background: #6e5524; transform: translateY(-2px); }
+.panel a.back-link { display: inline-block; margin-top: 0.9rem; font-size: 0.78rem; color: #8a6a3b; }
+.panel .help-list { text-align: left; }
+.panel .help-list p { font-size: 0.86rem; }
+
+/* ===== Touch ===== */
+#touch-controls { display: none; } body.touch #touch-controls { display: block; }
+#joystick { position: fixed; left: 22px; bottom: 26px; width: 124px; height: 124px; border-radius: 50%; background: rgba(28, 22, 14, 0.4); border: 2px solid rgba(214, 178, 94, 0.35); z-index: 25; touch-action: none; }
+#joystick-knob { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; border-radius: 50%; background: rgba(214, 178, 94, 0.55); border: 2px solid rgba(214, 178, 94, 0.8); transform: translate(-50%, -50%); }
+#action-btn { position: fixed; right: 26px; bottom: 44px; width: 78px; height: 78px; border-radius: 50%; background: rgba(214, 178, 94, 0.9); border: 3px solid #8a6a3b; color: #3a2c0a; font-family: inherit; font-size: 0.8rem; font-weight: 800; z-index: 25; touch-action: none; display: none; }
+#action-btn.show { display: block; }
+#loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #14110c; color: #e6b855; font-family: 'Lora', Georgia, serif; font-style: italic; font-size: 1.2rem; z-index: 50; }
+</style>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+<div id="loading">Entering the Curia…</div>
+
+<div id="hud">
+    <div class="hud-group">
+        <div class="hud-pill">🏛️ <span class="gold" id="hud-studied">0</span>/7 offices studied</div>
+    </div>
+    <div class="hud-group">
+        <button class="hud-btn" id="btn-sound" title="Sound on/off">🔊</button>
+        <button class="hud-btn" id="btn-help" title="Help">?</button>
+    </div>
+</div>
+
+<div id="ladder">
+    <h3>Cursus Honorum</h3>
+    <div id="ladder-rows"></div>
+</div>
+
+<div id="prompt"><kbd>E</kbd><span id="prompt-text">Talk</span></div>
+
+<div id="dialog">
+    <div class="dlg-head">
+        <div>
+            <div class="dlg-name" id="dlg-name"></div>
+            <div class="dlg-sub" id="dlg-sub"></div>
+        </div>
+        <button class="dlg-close" id="dlg-close" title="Close (Esc)">✕</button>
+    </div>
+    <div class="dlg-body" id="dlg-body"></div>
+</div>
+
+<div id="vn-bar-top"></div>
+<div id="vn-bar-bottom"></div>
+
+<div class="overlay open" id="intro">
+    <div class="panel">
+        <h1>The Senate House</h1>
+        <div class="tagline">Cursus Honorum &middot; the ladder of Roman office</div>
+        <p>Step inside the <b>Curia</b>, the Senate House of Rome. Around this marble hall stand the magistrates of the Republic — from the young <em>quaestor</em> who counts the coins to the mighty <em>consul</em> who leads her armies.</p>
+        <p>Walk up to each one and they will explain their office: how old you must be, how many there are, what powers they hold, and where they sit on the great ladder of honours. There is nothing to win and no way to fail — just explore, and learn how Rome was governed.</p>
+        <div class="controls-grid">
+            <kbd>W A S D / arrows</kbd><span>Walk around the Curia</span>
+            <kbd>E / Space</kbd><span>Talk to a magistrate or examine an exhibit</span>
+            <kbd>click / Enter</kbd><span>Advance the conversation</span>
+        </div>
+        <p style="font-size:0.78rem;color:#8a6a3b;">On a phone or tablet? Use the joystick and the <b>loquere</b> button.</p>
+        <button class="big-btn" id="btn-start">Enter the Senate</button>
+        <br>
+        <a class="back-link" href="/version2/tools/">&larr; Back to Classicalia Tools</a>
+    </div>
+</div>
+
+<div class="overlay" id="help">
+    <div class="panel">
+        <h1>How it works</h1>
+        <div class="tagline">The Senate House</div>
+        <div class="help-list">
+            <p>🏛️ <b>Meet the magistrates.</b> Each figure around the hall holds a different office of the <em>cursus honorum</em>. Walk up and press <b>E</b> to speak with them; ask their follow-up questions to learn the details.</p>
+            <p>📜 <b>Fill the ladder.</b> The panel on the left lists every office. As you learn about each one, it ticks off — study all seven to complete your tour.</p>
+            <p>🔍 <b>Examine the exhibits.</b> The glowing objects — the <em>fasces</em> and the marble ladder tablet — explain the big ideas: imperium, the lictors, and the shape of the whole career.</p>
+            <p>🎓 <b>No objectives, no failing.</b> This is a place to wander and learn at your own pace.</p>
+        </div>
+        <button class="big-btn" id="btn-help-close">Back to the Senate</button>
+    </div>
+</div>
+
+<div class="overlay" id="victory">
+    <div class="panel">
+        <div style="font-size:2.4rem;">🏛️🌿</div>
+        <h1>cursus completus!</h1>
+        <div class="tagline">You have studied every office</div>
+        <p id="victory-text"></p>
+        <button class="big-btn" id="btn-victory-close">Keep exploring</button>
+    </div>
+</div>
+
+<div id="touch-controls">
+    <div id="joystick"><div id="joystick-knob"></div></div>
+    <button id="action-btn">loquere<br>(talk)</button>
+</div>
+
+<script src="cursus-data.js?v=1"></script>
+<script type="importmap">{ "imports": { "three": "./lib/three.module.js" } }</script>
+<script type="module" src="curia.js?v=1"></script>
+</body>
+</html>
