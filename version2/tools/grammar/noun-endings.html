@@ -13,7 +13,7 @@
 <style>
 body { background: var(--cream); }
 
-.wrap { max-width: 680px; margin: -40px auto 80px; padding: 0 20px; position: relative; z-index: 2; }
+.wrap { max-width: 680px; margin: 0 auto; padding: 32px 20px 80px; }
 
 /* ── SETUP CARDS (mirrors the vocab tester) ── */
 .setup-card { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(14,30,63,0.04); }
@@ -74,6 +74,7 @@ body { background: var(--cream); }
 .para-input.wrong { border-color: #f87171; background: #fef2f2; color: #dc2626; }
 .para-answer { font-size: 13px; color: var(--muted); margin-left: 8px; white-space: nowrap; }
 .para-answer b { font-family: 'Lora', serif; font-style: italic; color: var(--ink); font-weight: 600; }
+.para-skip { font-size: 13px; color: var(--muted); font-style: italic; }
 
 /* ── PARSE / IDENTIFY ── */
 .q-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand); text-align: center; }
@@ -323,6 +324,9 @@ let idRange = 'all';           // 'all' | 'chapter'
   const box = document.getElementById('wordOpts');
   let html = '<button class="opt-row selected" data-word="all">' +
     '<div><div class="opt-row-name">All six (random)</div><div class="opt-row-desc">A different declension each time</div></div>' +
+    '<div class="opt-row-check"></div></button>' +
+    '<button class="opt-row" data-word="gcse">' +
+    '<div><div class="opt-row-name">Random GCSE noun</div><div class="opt-row-desc">Shuffle the OCR J282 list — a new word each time</div></div>' +
     '<div class="opt-row-check"></div></button>';
   PARADIGMS.forEach(p => {
     html += '<button class="opt-row" data-word="' + p.id + '">' +
@@ -386,6 +390,16 @@ function start(){
 let para = { current:null, last:null, tables:0, correct:0, total:0, checked:false };
 
 function pickParadigm(){
+  if (wordChoice === 'gcse'){
+    const pool = gcseTablePool();
+    if (!pool.length) return PARA_BY_ID['puella'];
+    let n;
+    for (let i = 0; i < 20; i++){
+      n = pool[Math.floor(Math.random()*pool.length)];
+      if (!para.last || ('gcse:' + n.head) !== para.last.id) break;
+    }
+    return gcseNounToParadigm(n);
+  }
   if (wordChoice !== 'all') return PARA_BY_ID[wordChoice];
   let pool = PARADIGMS;
   if (para.last && pool.length > 1) pool = pool.filter(p => p.id !== para.last.id);
@@ -393,8 +407,11 @@ function pickParadigm(){
 }
 
 function endingInfo(p, number, ci){
-  // returns { full:boolean, value:string } — the expected answer for a slot
+  // returns { full:boolean, value:string } — the expected answer for a slot,
+  // or { skip:true } for a slot we deliberately don't ask (a generated
+  // 3rd-declension genitive plural, which varies between -um and -ium).
   const form = p[number][ci];
+  if (form == null) return { skip:true };
   if (p.irregular && p.irregular[number] && p.irregular[number][ci]) return { full:true, value:form };
   return { full:false, value: form.slice(p.stem.length) };
 }
@@ -426,6 +443,13 @@ function loadParadigm(){
     html += '<div class="para-group-label">' + (num==='sg'?'Singular':'Plural') + '</div>';
     CASES.forEach(([cKey, cLabel], ci) => {
       const info = endingInfo(p, num, ci);
+      if (info.skip){
+        html += '<div class="para-row">' +
+          '<div class="para-caselabel">' + cLabel + '</div>' +
+          '<div class="para-inputwrap"><span class="para-skip">not asked — varies (-um / -ium)</span></div>' +
+        '</div>';
+        return;
+      }
       const showStem = (mode === 'build') && !info.full;
       const cls = 'para-input' + (showStem ? ' ending' : '');
       const stem = showStem ? '<span class="para-stem">' + esc(p.stem) + '</span>' : '';
@@ -492,7 +516,7 @@ function checkParadigm(){
   document.getElementById('checkBtn').style.display = 'none';
   document.getElementById('revealBtn').style.display = 'none';
   document.getElementById('nextWordBtn').style.display = '';
-  document.getElementById('nextWordBtn').textContent = (wordChoice === 'all') ? 'Next noun →' : 'Practise again →';
+  document.getElementById('nextWordBtn').textContent = (wordChoice === 'all' || wordChoice === 'gcse') ? 'Next noun →' : 'Practise again →';
   document.getElementById('nextWordBtn').focus();
 }
 
@@ -515,7 +539,7 @@ function revealParadigm(){
   document.getElementById('checkBtn').style.display = 'none';
   document.getElementById('revealBtn').style.display = 'none';
   document.getElementById('nextWordBtn').style.display = '';
-  document.getElementById('nextWordBtn').textContent = (wordChoice === 'all') ? 'Next noun →' : 'Try it yourself →';
+  document.getElementById('nextWordBtn').textContent = (wordChoice === 'all' || wordChoice === 'gcse') ? 'Next noun →' : 'Try it yourself →';
 }
 
 function updateParaStats(){
@@ -604,6 +628,31 @@ function gcseParadigm(n){
     pl = [s+'es', s+'es', s+'es', s+'erum', s+'ebus', s+'ebus'];
   }
   return { sg, pl };
+}
+
+// Adapt a random GCSE noun into a full table paradigm (used by the "Random
+// GCSE noun" option in the decline modes). Irregular nominatives (rex, ager,
+// nox…) are flagged so "Add the endings" asks them as whole words rather than
+// a fake stem+ending; the 3rd-declension genitive plural stays null (skipped).
+let _gcsePool = null;
+function gcseTablePool(){
+  if (_gcsePool) return _gcsePool;
+  const data = (typeof VOCAB_LATIN_GCSE !== 'undefined') ? VOCAB_LATIN_GCSE : [];
+  const seen = new Set(); const pool = [];
+  data.forEach(e => { const n = parseGcseNoun(e); if (n && !seen.has(n.head)){ seen.add(n.head); pool.push(n); } });
+  _gcsePool = pool;
+  return pool;
+}
+function gcseNounToParadigm(n){
+  const par = gcseParadigm(n);
+  const irr = { sg:[], pl:[] };
+  ['sg','pl'].forEach(num => CASES.forEach((_c, ci) => {
+    const f = par[num][ci];
+    // "regular" only when the form is the stem plus a non-empty ending
+    irr[num][ci] = (f == null) ? false : !(f.startsWith(n.stem) && f.length > n.stem.length);
+  }));
+  return { id:'gcse:' + n.head, lemma:n.head, gloss:n.gloss || '', gen:n.gen,
+           gender:n.gender, decl:n.decl, stem:n.stem, sg:par.sg, pl:par.pl, irregular:irr };
 }
 
 function startIdentify(){
