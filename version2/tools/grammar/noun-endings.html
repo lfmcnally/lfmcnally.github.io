@@ -38,6 +38,10 @@ body { background: var(--cream); }
 .scope-controls label { font-size: 12.5px; color: var(--muted); }
 .scope-controls select { font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 6px 12px; border: 1.5px solid var(--rule); border-radius: 5px; background: var(--paper); color: var(--ink); cursor: pointer; }
 .scope-controls select:focus { outline: none; border-color: var(--brand); }
+.decl-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.dchip { font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; padding: 6px 13px; border-radius: 999px; border: 1.5px solid var(--rule); background: var(--paper); color: var(--muted); cursor: pointer; transition: all 0.12s; }
+.dchip:hover { border-color: var(--brand); }
+.dchip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
 
 .start-btn { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; padding: 15px 40px; background: var(--brand); color: white; border: none; border-radius: 7px; cursor: pointer; transition: background 0.12s; width: 100%; margin-top: 8px; }
 .start-btn:hover { background: #155ee0; }
@@ -171,6 +175,16 @@ body { background: var(--cream); }
     <div class="setup-card" id="wordCard">
       <div class="setup-card-head"><span class="setup-card-num">2</span><span class="setup-card-title">Which noun?</span></div>
       <div class="setup-card-body" id="wordOpts"></div>
+      <div class="scope-controls" id="declControls" style="display:none;">
+        <label>Declensions:</label>
+        <div class="decl-chips" id="declChips">
+          <button class="dchip on" data-decl="1">1st</button>
+          <button class="dchip on" data-decl="2">2nd</button>
+          <button class="dchip on" data-decl="3">3rd</button>
+          <button class="dchip on" data-decl="4">4th</button>
+          <button class="dchip on" data-decl="5">5th</button>
+        </div>
+      </div>
     </div>
 
     <!-- Scope (identify only) -->
@@ -326,7 +340,7 @@ let idRange = 'all';           // 'all' | 'chapter'
     '<div><div class="opt-row-name">All six (random)</div><div class="opt-row-desc">A different declension each time</div></div>' +
     '<div class="opt-row-check"></div></button>' +
     '<button class="opt-row" data-word="gcse">' +
-    '<div><div class="opt-row-name">Random GCSE noun</div><div class="opt-row-desc">Shuffle the OCR J282 list — a new word each time</div></div>' +
+    '<div><div class="opt-row-name">Random GCSE noun</div><div class="opt-row-desc">Shuffle the OCR J282 list — choose declensions below</div></div>' +
     '<div class="opt-row-check"></div></button>';
   PARADIGMS.forEach(p => {
     html += '<button class="opt-row" data-word="' + p.id + '">' +
@@ -339,8 +353,19 @@ let idRange = 'all';           // 'all' | 'chapter'
     box.querySelectorAll('.opt-row').forEach(x => x.classList.remove('selected'));
     b.classList.add('selected');
     wordChoice = b.dataset.word;
+    document.getElementById('declControls').style.display = (wordChoice === 'gcse') ? '' : 'none';
   }));
 })();
+
+// Declension filter for the "Random GCSE noun" shuffle (multi-select, all on
+// by default — narrow it to e.g. 1st–3rd to practise only what's been taught).
+let selectedDecls = new Set([1, 2, 3, 4, 5]);
+document.querySelectorAll('#declChips .dchip').forEach(c => c.addEventListener('click', () => {
+  const d = +c.dataset.decl;
+  if (selectedDecls.has(d)){
+    if (selectedDecls.size > 1){ selectedDecls.delete(d); c.classList.remove('on'); }
+  } else { selectedDecls.add(d); c.classList.add('on'); }
+}));
 
 // Mode selection
 document.querySelectorAll('#modeOpts .opt-row').forEach(b => b.addEventListener('click', () => {
@@ -391,7 +416,7 @@ let para = { current:null, last:null, tables:0, correct:0, total:0, checked:fals
 
 function pickParadigm(){
   if (wordChoice === 'gcse'){
-    const pool = gcseTablePool();
+    const pool = gcseTablePool().filter(n => selectedDecls.has(n.decl));
     if (!pool.length) return PARA_BY_ID['puella'];
     let n;
     for (let i = 0; i < 20; i++){
@@ -417,6 +442,9 @@ function endingInfo(p, number, ci){
 }
 
 function startParadigm(){
+  if (wordChoice === 'gcse' && !gcseTablePool().some(n => selectedDecls.has(n.decl))){
+    alert('Pick at least one declension to shuffle.'); return;
+  }
   para.tables = 0; para.correct = 0; para.total = 0;
   para.last = null;
   show('paradigm');
