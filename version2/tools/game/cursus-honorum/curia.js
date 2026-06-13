@@ -77,7 +77,7 @@ scene.background = new THREE.Color(0x120d08);
 scene.fog = new THREE.Fog(0x171009, 46, 96);
 scene.environmentIntensity = 0.38;   // tame the bright interior HDRI
 
-const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.1, 300);
+const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.1, 300);
 function resize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
 window.addEventListener('resize', resize); resize();
 
@@ -301,13 +301,33 @@ function makeToga(look) {
     body.castShadow = true; body.receiveShadow = true; g.add(body);
     // neck + head
     const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.18, 12), skinM); neck.position.y = 2.52; g.add(neck);
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 20, 18), skinM);
-    head.position.y = 2.74; head.scale.set(0.92, 1.05, 0.96); head.castShadow = true; g.add(head);
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.275, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.62), hairM);
-    cap.position.y = 2.8; g.add(cap);
-    for (const sx of [-0.09, 0.09]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.026, 8, 6), flat(0x2a201a, 0.4));
-        eye.position.set(sx, 2.74, 0.23); g.add(eye);
+    const HY = 2.76;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.27, 24, 22), skinM);
+    head.position.y = HY; head.scale.set(0.95, 1.08, 0.98); head.castShadow = true; g.add(head);
+    // ears
+    for (const sx of [-0.26, 0.26]) { const ear = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), skinM); ear.position.set(sx, HY - 0.01, 0); ear.scale.set(0.6, 1, 0.7); g.add(ear); }
+    // eyes (white + dark iris) — slightly inset
+    for (const sx of [-0.1, 0.1]) {
+        const w = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), flat(0xf2efe6, 0.45)); w.position.set(sx, HY + 0.03, 0.235); w.scale.set(1.25, 0.85, 0.55); g.add(w);
+        const iris = new THREE.Mesh(new THREE.SphereGeometry(0.023, 10, 8), flat(0x402d1c, 0.35)); iris.position.set(sx, HY + 0.03, 0.27); g.add(iris);
+    }
+    // grey hair / beards for the senior magistrates
+    const hm = flat((look === 'elder') ? 0xeae6da : (look === 'censor') ? 0xd2ccbd : (look === 'consul') ? 0xc4bcab : P.hair, 0.9);
+    // brows
+    for (const sx of [-0.1, 0.1]) { const b = box(0.1, 0.022, 0.04, hm, sx, HY + 0.11, 0.24, g); b.rotation.z = sx > 0 ? -0.12 : 0.12; }
+    // nose
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.17, 4), skinM); nose.position.set(0, HY - 0.03, 0.26); nose.rotation.x = 1.85; g.add(nose);
+    // mouth
+    box(0.12, 0.022, 0.03, flat(0x9c5a4a, 0.6), 0, HY - 0.17, 0.235, g);
+    // hair cap (set back to leave a hairline)
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.285, 22, 16, 0, Math.PI * 2, 0, Math.PI * 0.6), hm);
+    cap.position.set(0, HY + 0.05, -0.02); cap.scale.set(1.0, 1.05, 1.04); g.add(cap);
+    // sideburns
+    for (const sx of [-0.23, 0.23]) { const sb = box(0.05, 0.2, 0.18, hm, sx, HY - 0.02, -0.02, g); }
+    // beards for the elders
+    if (look === 'elder' || look === 'censor') {
+        const beard = new THREE.Mesh(new THREE.SphereGeometry(0.25, 18, 16, 0, Math.PI * 2, Math.PI * 0.52, Math.PI * 0.55), hm);
+        beard.position.set(0, HY - 0.05, 0.0); beard.scale.set(1.0, 1.15, 1.08); g.add(beard);
     }
     // toga swag — a smooth cloth band from the right hip up over the left shoulder
     const pts = [new THREE.Vector3(0.42, 0.95, 0.2), new THREE.Vector3(0.34, 1.5, 0.47),
@@ -371,7 +391,7 @@ function makeLabel(title, sub) {
     if (sub) { ctx.font = '600 22px Inter, sans-serif'; ctx.fillStyle = '#d8c79a'; ctx.fillText(sub, 160, 72); }
     const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
-    sp.scale.set(5.0, 1.5, 1); return sp;
+    sp.scale.set(4.0, 1.2, 1); return sp;
 }
 function markSprite() {
     const c = document.createElement('canvas'); c.width = 64; c.height = 64;
@@ -402,17 +422,20 @@ for (const off of DATA.OFFICES) {
     // open hall (toward the centre). We render up to 6; the dialogue states
     // the true number (a consul really has 12).
     if (off.lictors) {
+        // flank the magistrate (and stand slightly behind) so the front
+        // stays clear for conversation; we render up to 6, dialogue states
+        // the true number (a consul really has 12).
         const shown = Math.min(off.lictors, 6);
-        let tcx = 0 - off.x, tcz = -6 - off.z;           // vector toward hall centre
-        const tl = Math.hypot(tcx, tcz) || 1; tcx /= tl; tcz /= tl;
-        const px = -tcz, pz = tcx;                       // perpendicular (for left/right offset)
+        const fx = Math.sin(off.ry || 0), fz = Math.cos(off.ry || 0);   // facing
+        const px = Math.cos(off.ry || 0), pz = -Math.sin(off.ry || 0);  // perpendicular
         for (let i = 0; i < shown; i++) {
+            const side = (i % 2) ? 1 : -1, rank = Math.floor(i / 2);
+            const offa = (1.2 + rank * 1.0) * side;
+            const lx = off.x + px * offa - fx * 0.5;
+            const lz = off.z + pz * offa - fz * 0.5;
             const lic = makeLictor();
-            const rank = Math.floor(i / 2), sideo = (i % 2) ? 0.8 : -0.8;
-            const lx = off.x + tcx * (1.8 + rank * 1.5) + px * sideo;
-            const lz = off.z + tcz * (1.8 + rank * 1.5) + pz * sideo;
             lic.position.set(lx, groundHeight(lx, lz), lz);
-            lic.rotation.y = Math.atan2(-tcx, -tcz);     // face back toward the magistrate
+            lic.rotation.y = off.ry || 0;
             scene.add(lic);
         }
     }
@@ -459,8 +482,9 @@ function makePlayer() {
     const g = makeToga('pura');
     return g;
 }
-const player = { obj: makePlayer(), x: 0, z: 9, ry: Math.PI, speed: 6.6, moving: false, walkT: 0 };
-player.obj.position.set(player.x, 0, player.z); scene.add(player.obj);
+const player = { obj: makePlayer(), x: 0, z: 9, ry: Math.PI, yaw: Math.PI, pitch: -0.05, speed: 6.6, moving: false, walkT: 0 };
+player.obj.position.set(player.x, 0, player.z); player.obj.visible = false; scene.add(player.obj);
+const lookDelta = { x: 0, y: 0 };
 
 // ---------- DOM ----------
 const hudStudied = document.getElementById('hud-studied');
@@ -525,10 +549,15 @@ refreshMarks();
 // Visual-novel engine
 // ============================================================
 let vn = null, typeTimer = null, dialogOpen = false;
+function setOverhead(v) {
+    for (const n of npcs) { if (n.label) n.label.visible = v; if (n.mark) n.mark.visible = v; }
+    for (const ex of exhibits) if (ex.mark) ex.mark.visible = v;
+}
 function runScene(npc, lines, onDone) {
     dialogOpen = true;
     vn = { npc, lines: lines.slice(), i: -1, onDone, typing: false };
     dialogEl.classList.add('open'); document.body.classList.add('vn');
+    setOverhead(false);
     if (npc && npc.x != null) player.ry = Math.atan2(npc.x - player.x, npc.z - player.z);
     sfx.talk(); advance();
 }
@@ -589,7 +618,7 @@ dialogEl.addEventListener('click', e => {
     if (vn.typing) finishTyping();
     else if (!dlgBody.querySelector('.vn-choices')) advance();
 });
-function closeDialog() { dialogOpen = false; vn = null; clearInterval(typeTimer); dialogEl.classList.remove('open'); document.body.classList.remove('vn'); }
+function closeDialog() { dialogOpen = false; vn = null; clearInterval(typeTimer); dialogEl.classList.remove('open'); document.body.classList.remove('vn'); setOverhead(true); }
 document.getElementById('dlg-close').addEventListener('click', closeDialog);
 
 // ---------- build a magistrate conversation ----------
@@ -634,6 +663,28 @@ window.addEventListener('keydown', e => {
     if (!dialogOpen && (e.key === 'e' || e.key === 'E' || e.key === ' ' || e.key === 'Enter')) tryInteract();
 });
 window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+// drag-to-look (desktop) — accumulate into lookDelta, consumed each frame
+let dragging = false, lastPX = 0, lastPY = 0;
+canvas.addEventListener('pointerdown', e => { if (dialogOpen) return; dragging = true; lastPX = e.clientX; lastPY = e.clientY; });
+window.addEventListener('pointerup', () => { dragging = false; });
+window.addEventListener('pointermove', e => {
+    if (!dragging || dialogOpen) return;
+    lookDelta.x += (e.clientX - lastPX) * 0.0026;
+    lookDelta.y += (e.clientY - lastPY) * 0.0026;
+    lastPX = e.clientX; lastPY = e.clientY;
+});
+// one-finger drag on the right half of the screen = look (touch)
+let touchLookId = null, tlx = 0, tly = 0;
+canvas.addEventListener('touchstart', e => {
+    if (dialogOpen) return;
+    for (const t of e.changedTouches) { if (t.clientX > innerWidth * 0.45 && touchLookId === null) { touchLookId = t.identifier; tlx = t.clientX; tly = t.clientY; } }
+}, { passive: true });
+window.addEventListener('touchmove', e => {
+    if (dialogOpen) return;
+    for (const t of e.changedTouches) { if (t.identifier === touchLookId) { lookDelta.x += (t.clientX - tlx) * 0.005; lookDelta.y += (t.clientY - tly) * 0.005; tlx = t.clientX; tly = t.clientY; } }
+}, { passive: true });
+window.addEventListener('touchend', e => { for (const t of e.changedTouches) if (t.identifier === touchLookId) touchLookId = null; });
 
 const joyVec = { x: 0, y: 0 };
 if ('ontouchstart' in window) {
@@ -689,43 +740,55 @@ const camLook = new THREE.Vector3(player.x, 2, player.z);
 const camDesire = new THREE.Vector3(), lookDesire = new THREE.Vector3();
 
 function update(dt, t) {
-    let dx = 0, dz = 0;
+    // --- look: keyboard turn (A/D, arrows), drag, joystick x ---
     if (!dialogOpen) {
-        if (keys['w'] || keys['arrowup']) dz -= 1;
-        if (keys['s'] || keys['arrowdown']) dz += 1;
-        if (keys['a'] || keys['arrowleft']) dx -= 1;
-        if (keys['d'] || keys['arrowright']) dx += 1;
-        dx += joyVec.x; dz += joyVec.y;
+        if (keys['a'] || keys['arrowleft']) player.yaw += dt * 1.9;
+        if (keys['d'] || keys['arrowright']) player.yaw -= dt * 1.9;
+        player.yaw -= joyVec.x * dt * 1.9;
+        player.yaw -= lookDelta.x; player.pitch -= lookDelta.y;
     }
-    const len = Math.hypot(dx, dz);
-    player.moving = len > 0.01;
-    if (player.moving) {
-        dx /= Math.max(len, 1); dz /= Math.max(len, 1);
-        let nx = player.x + dx * player.speed * dt, nz = player.z + dz * player.speed * dt;
-        [nx, nz] = collide(nx, nz); player.x = nx; player.z = nz;
-        const targetRy = Math.atan2(dx, dz);
-        let dr = targetRy - player.ry; while (dr > Math.PI) dr -= Math.PI * 2; while (dr < -Math.PI) dr += Math.PI * 2;
-        player.ry += dr * Math.min(1, dt * 14); player.walkT += dt * 9;
-    }
-    const py = groundHeight(player.x, player.z);
-    player.obj.position.set(player.x, py + (player.moving ? Math.abs(Math.sin(player.walkT)) * 0.08 : 0), player.z);
-    player.obj.rotation.y = player.ry;
+    lookDelta.x = 0; lookDelta.y = 0;
 
-    if (dialogOpen && vn && vn.npc && vn.npc.x != null) {
-        const n = vn.npc; const ny = groundHeight(n.x, n.z);
-        let ddx = player.x - n.x, ddz = player.z - n.z; const dd = Math.hypot(ddx, ddz) || 1; ddx /= dd; ddz /= dd;
-        camDesire.set(n.x + ddx * 3.4 - ddz * 1.5, ny + 2.8, n.z + ddz * 3.4 + ddx * 1.5);
-        lookDesire.set(n.x, ny + 2.0, n.z);
-    } else {
-        camX += (player.x - camX) * Math.min(1, dt * 3); camZ += (player.z - camZ) * Math.min(1, dt * 3);
-        camDesire.set(camX, py + 8.5, camZ + 11); lookDesire.set(camX, py + 2.2, camZ - 5);
+    // --- move forward / back along the facing direction ---
+    let fwd = 0;
+    if (!dialogOpen) {
+        if (keys['w'] || keys['arrowup']) fwd += 1;
+        if (keys['s'] || keys['arrowdown']) fwd -= 1;
+        fwd += -joyVec.y;
     }
-    camPos.lerp(camDesire, Math.min(1, dt * 4)); camLook.lerp(lookDesire, Math.min(1, dt * 4));
-    camera.position.copy(camPos); camera.lookAt(camLook);
+    const fx = Math.sin(player.yaw), fz = Math.cos(player.yaw);
+    player.moving = Math.abs(fwd) > 0.01;
+    if (player.moving) {
+        let nx = player.x + fx * fwd * player.speed * dt;
+        let nz = player.z + fz * fwd * player.speed * dt;
+        [nx, nz] = collide(nx, nz); player.x = nx; player.z = nz;
+        player.walkT += dt * 9;
+    }
+
+    const py = groundHeight(player.x, player.z);
+    const eyeY = py + 1.62 + (player.moving ? Math.abs(Math.sin(player.walkT)) * 0.035 : 0);
+
+    // --- in conversation, ease the view onto the speaker's face ---
+    if (dialogOpen && vn && vn.npc && vn.npc.x != null) {
+        const n = vn.npc;
+        const tx = n.x - player.x, tz = n.z - player.z, dist = Math.hypot(tx, tz) || 1;
+        let ty = (n.baseY || 0) + 2.7;
+        const targetYaw = Math.atan2(tx, tz);
+        const targetPitch = Math.atan2(ty - eyeY, dist);
+        let dyaw = targetYaw - player.yaw; while (dyaw > Math.PI) dyaw -= Math.PI * 2; while (dyaw < -Math.PI) dyaw += Math.PI * 2;
+        player.yaw += dyaw * Math.min(1, dt * 6);
+        player.pitch += (targetPitch - player.pitch) * Math.min(1, dt * 6);
+    }
+    player.pitch = Math.max(-1.1, Math.min(0.85, player.pitch));
+    player.ry = player.yaw;
+
+    camera.position.set(player.x, eyeY, player.z);
+    const cp = Math.cos(player.pitch);
+    camera.lookAt(player.x + Math.sin(player.yaw) * cp, eyeY + Math.sin(player.pitch), player.z + Math.cos(player.yaw) * cp);
 
     for (const n of npcs) {
         const d = Math.hypot(n.x - player.x, n.z - player.z);
-        if (d < 6 && !n.onDais) {
+        if (d < 7) {
             const tr = Math.atan2(player.x - n.x, player.z - n.z);
             let dr = tr - n.obj.rotation.y; while (dr > Math.PI) dr -= Math.PI * 2; while (dr < -Math.PI) dr += Math.PI * 2;
             n.obj.rotation.y += dr * Math.min(1, dt * 5);
