@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Latin Verb Endings · Classicalia</title>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<style>
+body { background: var(--cream); }
+
+.wrap { max-width: 680px; margin: 0 auto; padding: 32px 20px 80px; }
+
+/* ── SETUP CARDS (mirrors the vocab tester) ── */
+.setup-card { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; margin-bottom: 16px; box-shadow: 0 1px 2px rgba(14,30,63,0.04); }
+.setup-card-head { padding: 16px 22px 12px; border-bottom: 1px solid var(--rule); display: flex; align-items: baseline; gap: 12px; }
+.setup-card-num { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 20px; color: var(--brand); opacity: 0.4; line-height: 1; min-width: 18px; }
+.setup-card-title { font-size: 10px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+.setup-card-body { padding: 4px 0; }
+
+.opt-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 22px; border: none; border-bottom: 1px solid var(--rule-faint); cursor: pointer; transition: background 0.1s; background: none; width: 100%; text-align: left; font-family: 'DM Sans', sans-serif; }
+.opt-row:last-child { border-bottom: none; }
+.opt-row:hover { background: var(--cream); }
+.opt-row.selected { background: #eef4ff; }
+.opt-row.selected .opt-row-name { color: var(--brand); }
+.opt-row-name { font-family: 'Lora', serif; font-style: italic; font-weight: 600; font-size: 16px; color: var(--navy); transition: color 0.1s; }
+.opt-row-name .lemma { font-style: italic; }
+.opt-row-desc { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.opt-row-check { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--rule); flex-shrink: 0; transition: all 0.12s; position: relative; }
+.opt-row.selected .opt-row-check { border-color: var(--brand); background: var(--brand); }
+.opt-row.selected .opt-row-check::after { content: ''; position: absolute; top: 3px; left: 3px; width: 8px; height: 8px; border-radius: 50%; background: white; }
+
+/* scope chips (tenses / voice) */
+.scope-controls { padding: 14px 22px; border-top: 1px solid var(--rule-faint); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.scope-controls.cream { background: var(--cream); }
+.scope-controls label { font-size: 12.5px; color: var(--muted); min-width: 52px; }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.tchip { font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; padding: 6px 13px; border-radius: 999px; border: 1.5px solid var(--rule); background: var(--paper); color: var(--muted); cursor: pointer; transition: all 0.12s; }
+.tchip:hover { border-color: var(--brand); }
+.tchip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+.start-btn { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; padding: 15px 40px; background: var(--brand); color: white; border: none; border-radius: 7px; cursor: pointer; transition: background 0.12s; width: 100%; margin-top: 8px; }
+.start-btn:hover { background: #155ee0; }
+.setup-hint { font-size: 12px; color: var(--muted); text-align: center; margin-top: 14px; line-height: 1.5; }
+
+/* ── SHARED PLAY CHROME ── */
+.exit-link { display: inline-block; font-size: 12.5px; color: var(--muted); text-decoration: none; margin-bottom: 14px; }
+.exit-link:hover { color: var(--ink); }
+.stats-bar { display: flex; justify-content: center; gap: 28px; margin-bottom: 22px; }
+.stat { text-align: center; }
+.stat-n { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 22px; color: var(--navy); line-height: 1; }
+.stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
+
+.card { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 22px 24px; box-shadow: 0 1px 2px rgba(14,30,63,0.04); }
+
+/* word heading shared by both screens */
+.word-head { text-align: center; margin-bottom: 6px; }
+.word-lemma { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 30px; color: var(--navy); line-height: 1.1; letter-spacing: -0.01em; }
+.word-gloss { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.word-cite { font-size: 12.5px; color: var(--navy); margin-top: 6px; font-family: 'DM Sans', sans-serif; font-weight: 600; }
+.word-cite .hint { color: var(--muted); font-weight: 400; }
+.word-stem { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.word-stem b { font-family: 'Lora', serif; font-style: italic; color: var(--brand); font-size: 15px; }
+
+/* ── PARADIGM (single continuous column) ── */
+.para-group-label { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 18px 0 6px; padding-bottom: 6px; border-bottom: 1px solid var(--rule-faint); }
+.para-row { display: grid; grid-template-columns: 140px 1fr; gap: 14px; align-items: center; padding: 7px 0; }
+.para-caselabel { font-size: 13px; font-weight: 600; color: var(--ink); }
+.para-caselabel .hint { display: block; font-size: 11px; color: var(--muted); font-weight: 400; }
+.para-inputwrap { display: flex; align-items: center; gap: 2px; }
+.para-stem { font-family: 'Lora', serif; font-style: italic; font-size: 17px; color: var(--muted); white-space: nowrap; }
+.para-input { flex: 0 1 auto; width: 100%; max-width: 220px; font-family: 'DM Sans', sans-serif; font-size: 15px; padding: 9px 12px; border: 1.5px solid var(--rule); border-radius: 7px; outline: none; transition: border-color 0.12s, background 0.12s; color: var(--ink); }
+.para-input.ending { max-width: 150px; }
+.para-input:focus { border-color: var(--brand); }
+.para-input.correct { border-color: #22c55e; background: #f0fdf4; color: #15803d; font-weight: 600; }
+.para-input.wrong { border-color: #f87171; background: #fef2f2; color: #dc2626; }
+.para-answer { font-size: 13px; color: var(--muted); margin-left: 8px; white-space: nowrap; }
+.para-answer b { font-family: 'Lora', serif; font-style: italic; color: var(--ink); font-weight: 600; }
+
+/* ── PARSE ── */
+.q-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--brand); text-align: center; }
+.q-form { font-family: 'Lora', serif; font-weight: 700; font-size: 40px; color: var(--navy); text-align: center; margin: 8px 0 4px; letter-spacing: -0.01em; }
+.q-cite { font-size: 13px; color: var(--muted); text-align: center; }
+.q-instruct { font-size: 13px; color: var(--ink); text-align: center; margin: 16px 0 4px; }
+.q-instruct .sub { color: var(--muted); font-size: 12px; }
+.parse-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.parse-field { display: flex; flex-direction: column; gap: 5px; }
+.parse-field label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.parse-field select { font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 10px 12px; border: 1.5px solid var(--rule); border-radius: 7px; background: var(--paper); color: var(--ink); cursor: pointer; }
+.parse-field select:focus { outline: none; border-color: var(--brand); }
+.parse-field select.correct { border-color: #22c55e; background: #f0fdf4; }
+.parse-field select.wrong { border-color: #f87171; background: #fef2f2; }
+
+/* ── BUTTONS / FEEDBACK ── */
+.btn-row { display: flex; gap: 10px; align-items: center; margin-top: 20px; flex-wrap: wrap; }
+.btn { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; padding: 12px 22px; border-radius: 7px; border: none; background: var(--brand); color: #fff; cursor: pointer; transition: background 0.12s; }
+.btn:hover { background: #155ee0; }
+.btn-ghost { background: var(--paper); color: var(--ink); border: 1px solid var(--rule); font-weight: 600; }
+.btn-ghost:hover { background: var(--cream); border-color: #aab8d4; }
+.btn-dark { background: var(--navy); }
+.btn-dark:hover { background: #1a2b52; }
+.spacer { flex: 1; }
+
+.feedback { margin-top: 16px; padding: 14px 18px; border-radius: 9px; border: 1px solid var(--rule); display: none; }
+.feedback.show { display: block; }
+.feedback.right { background: #ecfdf3; border-color: #a7f3d0; }
+.feedback.wrong { background: #fef2f2; border-color: #fecaca; }
+.feedback-head { font-weight: 700; font-size: 14.5px; margin-bottom: 5px; }
+.feedback.right .feedback-head { color: #15803d; }
+.feedback.wrong .feedback-head { color: #b91c1c; }
+.feedback-body { font-size: 13.5px; color: var(--ink); line-height: 1.55; }
+.feedback-body b { font-family: 'Lora', serif; }
+.feedback-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+
+@media (max-width: 540px) {
+  .para-row { grid-template-columns: 116px 1fr; }
+  .parse-fields { grid-template-columns: 1fr; }
+  .stats-bar { gap: 18px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV / HEADER -->
+<div class="header">
+  <canvas class="header-sky" data-starfield data-seed="661" data-region="0.8"></canvas>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo">Classicalia</a>
+      <div class="nav-links">
+        <a href="/version2/subjects/latin/" class="nav-link active">Latin</a>
+        <a href="/version2/subjects/greek/" class="nav-link">Greek</a>
+        <a href="/version2/subjects/classical-civilisation/" class="nav-link">Class. Civ.</a>
+        <div class="nav-div"></div>
+        <a href="/version2/tools/" class="nav-link">Tools</a>
+      </div>
+    </div>
+  </nav>
+  <div class="header-inner">
+    <div class="header-eyebrow">Latin · Grammar</div>
+    <h1 class="header-title">Verb endings</h1>
+    <p class="header-deck">Conjugate the model verbs through their tenses — add the endings, type them in full, or parse a form.</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ═══════════════════════════ SETUP -->
+  <section id="setup">
+
+    <div class="setup-card">
+      <div class="setup-card-head"><span class="setup-card-num">1</span><span class="setup-card-title">What do you want to practise?</span></div>
+      <div class="setup-card-body" id="modeOpts">
+        <button class="opt-row selected" data-mode="build">
+          <div><div class="opt-row-name">Add the endings</div><div class="opt-row-desc">The stem is given — type the ending for each person</div></div>
+          <div class="opt-row-check"></div>
+        </button>
+        <button class="opt-row" data-mode="blank">
+          <div><div class="opt-row-name">Whole word</div><div class="opt-row-desc">Blank table — type out every form in full</div></div>
+          <div class="opt-row-check"></div>
+        </button>
+        <button class="opt-row" data-mode="parse">
+          <div><div class="opt-row-name">Parse a verb</div><div class="opt-row-desc">See a form and give its person, number, tense &amp; voice</div></div>
+          <div class="opt-row-check"></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Verb picker (build / blank only) -->
+    <div class="setup-card" id="verbCard">
+      <div class="setup-card-head"><span class="setup-card-num">2</span><span class="setup-card-title">Which verb?</span></div>
+      <div class="setup-card-body" id="verbOpts"></div>
+    </div>
+
+    <!-- Tenses & voice (always) -->
+    <div class="setup-card" id="scopeCard">
+      <div class="setup-card-head"><span class="setup-card-num" id="scopeNum">3</span><span class="setup-card-title">Tenses &amp; voice</span></div>
+      <div class="scope-controls">
+        <label>Tenses</label>
+        <div class="chip-row" id="tenseChips">
+          <button class="tchip on" data-tense="present">Present</button>
+          <button class="tchip on" data-tense="imperfect">Imperfect</button>
+          <button class="tchip on" data-tense="future">Future</button>
+          <button class="tchip on" data-tense="perfect">Perfect</button>
+          <button class="tchip on" data-tense="pluperfect">Pluperfect</button>
+        </div>
+      </div>
+      <div class="scope-controls cream">
+        <label>Voice</label>
+        <div class="chip-row" id="voiceChips">
+          <button class="tchip on" data-voice="active">Active</button>
+          <button class="tchip" data-voice="passive">Passive</button>
+        </div>
+      </div>
+      <p class="setup-hint" style="text-align:left; padding:0 22px 12px; margin:0;">Perfect &amp; pluperfect passive (<i>portātus sum</i>…) aren't included yet — they're formed differently.</p>
+    </div>
+
+    <button class="start-btn" id="startBtn">Start practising</button>
+    <p class="setup-hint">You don't need to type macrons (the long marks) — <i>portas</i> and <i>portās</i> both count.</p>
+  </section>
+
+  <!-- ═══════════════════════════ PARADIGM (build / blank) -->
+  <section id="paradigm" style="display:none;">
+    <a href="#" class="exit-link" id="exitPara">← Back to setup</a>
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-n" id="pTables">0</div><div class="stat-label">Tables</div></div>
+      <div class="stat"><div class="stat-n" id="pCorrect">0</div><div class="stat-label">Forms right</div></div>
+      <div class="stat"><div class="stat-n" id="pAcc">—</div><div class="stat-label">Accuracy</div></div>
+    </div>
+    <div class="card">
+      <div class="word-head">
+        <div class="word-lemma" id="paraLemma"></div>
+        <div class="word-gloss" id="paraGloss"></div>
+        <div class="word-cite" id="paraCite"></div>
+        <div class="word-stem" id="paraStem"></div>
+      </div>
+      <div id="paraList"></div>
+      <div class="btn-row">
+        <button class="btn" id="checkBtn">Check</button>
+        <button class="btn btn-ghost" id="revealBtn">Reveal answers</button>
+        <span class="spacer"></span>
+        <button class="btn btn-dark" id="nextWordBtn" style="display:none;">Next →</button>
+      </div>
+      <div class="feedback" id="paraFeedback"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ PARSE -->
+  <section id="parse" style="display:none;">
+    <a href="#" class="exit-link" id="exitParse">← Back to setup</a>
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-n" id="qAnswered">0</div><div class="stat-label">Answered</div></div>
+      <div class="stat"><div class="stat-n" id="qAcc">—</div><div class="stat-label">Accuracy</div></div>
+    </div>
+    <div class="card">
+      <div class="q-eyebrow">Parse this verb</div>
+      <div class="q-form" id="qForm"></div>
+      <div class="q-cite" id="qCite"></div>
+      <div class="q-instruct">Give its <b>person, number, tense &amp; voice</b>.<br><span class="sub">All forms here are indicative mood.</span></div>
+      <div class="parse-fields" id="parseFields"></div>
+      <div class="btn-row">
+        <button class="btn" id="qCheck">Check</button>
+        <span class="spacer"></span>
+        <button class="btn btn-dark" id="qNext" style="display:none;">Next →</button>
+      </div>
+      <div class="feedback" id="qFeedback"></div>
+    </div>
+  </section>
+
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <a href="/version2/" class="footer-logo">Classicalia</a>
+    <div class="footer-links">
+      <a href="/version2/subjects/latin/" class="footer-link">Latin</a>
+      <a href="/version2/subjects/greek/" class="footer-link">Greek</a>
+      <a href="/version2/subjects/classical-civilisation/" class="footer-link">Classical Civilisation</a>
+    </div>
+    <div class="footer-copy">classicalia.co.uk · Free for all</div>
+  </div>
+</footer>
+
+<script src="/version2/assets/js/starfield.js"></script>
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════════════════════════
+// Helpers
+// ════════════════════════════════════════════════════════════════════════
+function stripMacrons(s){ return String(s||'').replace(/[āĀ]/g,'a').replace(/[ēĒ]/g,'e').replace(/[īĪ]/g,'i').replace(/[ōŌ]/g,'o').replace(/[ūŪ]/g,'u').replace(/[ȳȲ]/g,'y'); }
+function norm(s){ return stripMacrons(String(s||'').toLowerCase()).replace(/\s+/g,'').replace(/[.,;:'"’\-]/g,'').trim(); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ════════════════════════════════════════════════════════════════════════
+// Conjugation engine — five model verbs, one per conjugation.
+//   Active:  present, imperfect, future, perfect, pluperfect
+//   Passive: present, imperfect, future  (perfect/pluperfect are compound)
+// Each form is stem + ending by construction, so "Add the endings" is exact.
+// ════════════════════════════════════════════════════════════════════════
+const VERBS = [
+  { id:'porto', base:'port', perf:'portāv', inf:'portāre', lemma:'portō', gloss:'carry',          cls:'1'   },
+  { id:'moneo', base:'mon',  perf:'monu',   inf:'monēre', lemma:'moneō', gloss:'warn, advise',    cls:'2'   },
+  { id:'traho', base:'trah', perf:'trāx',   inf:'trahere',lemma:'trahō', gloss:'drag, draw',      cls:'3'   },
+  { id:'capio', base:'cap',  perf:'cēp',    inf:'capere', lemma:'capiō', gloss:'take, capture',   cls:'3io' },
+  { id:'audio', base:'aud',  perf:'audīv',  inf:'audīre', lemma:'audiō', gloss:'hear, listen to', cls:'4'   },
+];
+const VERB_BY_ID = Object.fromEntries(VERBS.map(v => [v.id, v]));
+
+// present-system endings: [tense][voice][class] = [1sg,2sg,3sg,1pl,2pl,3pl]
+const PE = {
+  present: {
+    active:  { '1':['ō','ās','at','āmus','ātis','ant'], '2':['eō','ēs','et','ēmus','ētis','ent'],
+               '3':['ō','is','it','imus','itis','unt'], '3io':['iō','is','it','imus','itis','iunt'],
+               '4':['iō','īs','it','īmus','ītis','iunt'] },
+    passive: { '1':['or','āris','ātur','āmur','āminī','antur'], '2':['eor','ēris','ētur','ēmur','ēminī','entur'],
+               '3':['or','eris','itur','imur','iminī','untur'], '3io':['ior','eris','itur','imur','iminī','iuntur'],
+               '4':['ior','īris','ītur','īmur','īminī','iuntur'] },
+  },
+  imperfect: {
+    active:  { '1':['ābam','ābās','ābat','ābāmus','ābātis','ābant'], '2':['ēbam','ēbās','ēbat','ēbāmus','ēbātis','ēbant'],
+               '3':['ēbam','ēbās','ēbat','ēbāmus','ēbātis','ēbant'], '3io':['iēbam','iēbās','iēbat','iēbāmus','iēbātis','iēbant'],
+               '4':['iēbam','iēbās','iēbat','iēbāmus','iēbātis','iēbant'] },
+    passive: { '1':['ābar','ābāris','ābātur','ābāmur','ābāminī','ābantur'], '2':['ēbar','ēbāris','ēbātur','ēbāmur','ēbāminī','ēbantur'],
+               '3':['ēbar','ēbāris','ēbātur','ēbāmur','ēbāminī','ēbantur'], '3io':['iēbar','iēbāris','iēbātur','iēbāmur','iēbāminī','iēbantur'],
+               '4':['iēbar','iēbāris','iēbātur','iēbāmur','iēbāminī','iēbantur'] },
+  },
+  future: {
+    active:  { '1':['ābō','ābis','ābit','ābimus','ābitis','ābunt'], '2':['ēbō','ēbis','ēbit','ēbimus','ēbitis','ēbunt'],
+               '3':['am','ēs','et','ēmus','ētis','ent'], '3io':['iam','iēs','iet','iēmus','iētis','ient'],
+               '4':['iam','iēs','iet','iēmus','iētis','ient'] },
+    passive: { '1':['ābor','āberis','ābitur','ābimur','ābiminī','ābuntur'], '2':['ēbor','ēberis','ēbitur','ēbimur','ēbiminī','ēbuntur'],
+               '3':['ar','ēris','ētur','ēmur','ēminī','entur'], '3io':['iar','iēris','iētur','iēmur','iēminī','ientur'],
+               '4':['iar','iēris','iētur','iēmur','iēminī','ientur'] },
+  },
+};
+// perfect-system (active only; same endings for every conjugation), on the perfect stem
+const PERF = { perfect:['ī','istī','it','imus','istis','ērunt'], pluperfect:['eram','erās','erat','erāmus','erātis','erant'] };
+
+// returns { stem, endings:[6], forms:[6] } or null if the tense/voice is compound (deferred)
+function conjugate(v, tense, voice){
+  if (tense==='perfect' || tense==='pluperfect'){
+    if (voice==='passive') return null;
+    const ends = PERF[tense];
+    return { stem:v.perf, endings:ends, forms:ends.map(e => v.perf + e) };
+  }
+  const ends = PE[tense][voice][v.cls];
+  return { stem:v.base, endings:ends, forms:ends.map(e => v.base + e) };
+}
+
+const TENSES = ['present','imperfect','future','perfect','pluperfect'];
+const VOICES = ['active','passive'];
+const TENSE_LABEL = { present:'Present', imperfect:'Imperfect', future:'Future', perfect:'Perfect', pluperfect:'Pluperfect' };
+const VOICE_LABEL = { active:'Active', passive:'Passive' };
+const CLS_LABEL   = { '1':'1st conj.', '2':'2nd conj.', '3':'3rd conj.', '3io':'3rd (-iō) conj.', '4':'4th conj.' };
+const TENSE_HINT  = { present:'happening now', imperfect:'ongoing or repeated in the past', future:'will happen',
+                      perfect:'a completed past action', pluperfect:'had happened (before something else)' };
+
+// person/number for the six rows (indices 0–5)
+const PERSONS = [
+  { person:'1st', number:'singular', label:'1st person', hint:'I' },
+  { person:'2nd', number:'singular', label:'2nd person', hint:'you' },
+  { person:'3rd', number:'singular', label:'3rd person', hint:'he / she / it' },
+  { person:'1st', number:'plural',   label:'1st person', hint:'we' },
+  { person:'2nd', number:'plural',   label:'2nd person', hint:'you (pl.)' },
+  { person:'3rd', number:'plural',   label:'3rd person', hint:'they' },
+];
+
+// ════════════════════════════════════════════════════════════════════════
+// Setup UI
+// ════════════════════════════════════════════════════════════════════════
+let mode = 'build';                            // 'build' | 'blank' | 'parse'
+let verbChoice = 'all';                         // verb id or 'all'
+let selectedTenses = new Set(TENSES);           // all five by default
+let selectedVoices = new Set(['active']);       // active by default; passive opt-in
+
+(function buildVerbOpts(){
+  const box = document.getElementById('verbOpts');
+  let html = '<button class="opt-row selected" data-verb="all">' +
+    '<div><div class="opt-row-name">All five (random)</div><div class="opt-row-desc">A different conjugation each time</div></div>' +
+    '<div class="opt-row-check"></div></button>';
+  VERBS.forEach(v => {
+    html += '<button class="opt-row" data-verb="' + v.id + '">' +
+      '<div><div class="opt-row-name"><span class="lemma">' + esc(v.lemma) + '</span></div>' +
+      '<div class="opt-row-desc">' + esc(CLS_LABEL[v.cls]) + ' · ' + esc(v.gloss) + '</div></div>' +
+      '<div class="opt-row-check"></div></button>';
+  });
+  box.innerHTML = html;
+  box.querySelectorAll('.opt-row').forEach(b => b.addEventListener('click', () => {
+    box.querySelectorAll('.opt-row').forEach(x => x.classList.remove('selected'));
+    b.classList.add('selected');
+    verbChoice = b.dataset.verb;
+  }));
+})();
+
+// multi-select chip helper (keeps at least one selected)
+function wireChips(containerId, attr, set){
+  document.querySelectorAll('#' + containerId + ' .tchip').forEach(c => c.addEventListener('click', () => {
+    const key = c.dataset[attr];
+    if (set.has(key)){ if (set.size > 1){ set.delete(key); c.classList.remove('on'); } }
+    else { set.add(key); c.classList.add('on'); }
+  }));
+}
+wireChips('tenseChips', 'tense', selectedTenses);
+wireChips('voiceChips', 'voice', selectedVoices);
+
+// Mode selection — verb card only matters for build/blank
+document.querySelectorAll('#modeOpts .opt-row').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#modeOpts .opt-row').forEach(x => x.classList.remove('selected'));
+  b.classList.add('selected');
+  mode = b.dataset.mode;
+  const isParse = mode === 'parse';
+  document.getElementById('verbCard').style.display = isParse ? 'none' : '';
+  document.getElementById('scopeNum').textContent = isParse ? '2' : '3';
+}));
+
+document.getElementById('startBtn').addEventListener('click', start);
+document.getElementById('exitPara').addEventListener('click', e => { e.preventDefault(); backToSetup(); });
+document.getElementById('exitParse').addEventListener('click', e => { e.preventDefault(); backToSetup(); });
+
+function show(id){ ['setup','paradigm','parse'].forEach(s => document.getElementById(s).style.display = s===id ? '' : 'none'); }
+function backToSetup(){ show('setup'); }
+
+// every (tense, voice) in scope that actually exists (excludes compound passives)
+function validCombos(){
+  const out = [];
+  TENSES.forEach(t => { if (!selectedTenses.has(t)) return;
+    VOICES.forEach(v => { if (!selectedVoices.has(v)) return;
+      if (conjugate(VERBS[0], t, v)) out.push([t, v]);
+    });
+  });
+  return out;
+}
+
+function start(){
+  if (!validCombos().length){
+    alert('That combination has no forms yet — perfect & pluperfect passive are compound. Pick another tense or add the active voice.');
+    return;
+  }
+  if (mode === 'parse') startParse();
+  else startParadigm();
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// Paradigm screen — "Add the endings" & "Whole word"
+// ════════════════════════════════════════════════════════════════════════
+let para = { current:null, lastKey:null, tables:0, correct:0, total:0, checked:false };
+
+function pickCombo(){
+  const combos = validCombos();
+  return combos[Math.floor(Math.random()*combos.length)];
+}
+function pickVerb(){
+  if (verbChoice !== 'all') return VERB_BY_ID[verbChoice];
+  return VERBS[Math.floor(Math.random()*VERBS.length)];
+}
+function pickParadigm(){
+  // avoid repeating the exact same verb+tense+voice back-to-back
+  for (let i = 0; i < 25; i++){
+    const v = pickVerb();
+    const [tense, voice] = pickCombo();
+    const key = v.id + '|' + tense + '|' + voice;
+    if (key !== para.lastKey || i === 24){
+      para.lastKey = key;
+      return { verb:v, tense, voice, conj: conjugate(v, tense, voice) };
+    }
+  }
+}
+
+function startParadigm(){
+  para.tables = 0; para.correct = 0; para.total = 0; para.lastKey = null;
+  show('paradigm');
+  loadParadigm();
+  updateParaStats();
+}
+
+function loadParadigm(){
+  para.current = pickParadigm();
+  para.checked = false;
+  const { verb, tense, voice, conj } = para.current;
+
+  document.getElementById('paraLemma').textContent = verb.lemma;
+  document.getElementById('paraGloss').textContent = 'to ' + verb.gloss;
+  document.getElementById('paraCite').innerHTML = TENSE_LABEL[tense] + ' · ' + VOICE_LABEL[voice] +
+    ' <span class="hint">— ' + esc(TENSE_HINT[tense]) + (voice==='passive' ? '; the subject is acted upon' : '') + '</span>';
+  const stemEl = document.getElementById('paraStem');
+  if (mode === 'build'){ stemEl.style.display = ''; stemEl.innerHTML = 'Stem: <b>' + esc(conj.stem) + '-</b>'; }
+  else { stemEl.style.display = 'none'; }
+
+  const list = document.getElementById('paraList');
+  let html = '';
+  [['Singular',[0,1,2]],['Plural',[3,4,5]]].forEach(([groupLabel, idxs]) => {
+    html += '<div class="para-group-label">' + groupLabel + '</div>';
+    idxs.forEach(idx => {
+      const pn = PERSONS[idx];
+      const showStem = (mode === 'build');
+      const cls = 'para-input' + (showStem ? ' ending' : '');
+      const stem = showStem ? '<span class="para-stem">' + esc(conj.stem) + '</span>' : '';
+      html += '<div class="para-row">' +
+        '<div class="para-caselabel">' + pn.label + '<span class="hint">' + esc(pn.hint) + '</span></div>' +
+        '<div class="para-inputwrap">' + stem +
+          '<input type="text" class="' + cls + '" data-idx="' + idx + '" ' +
+          'autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="…">' +
+          '<span class="para-answer" style="display:none;"></span>' +
+        '</div></div>';
+    });
+  });
+  list.innerHTML = html;
+
+  const inputs = Array.from(list.querySelectorAll('.para-input'));
+  inputs.forEach((inp, i) => inp.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (i < inputs.length - 1) inputs[i+1].focus();
+    else if (!para.checked) checkParadigm();
+  }));
+
+  document.getElementById('checkBtn').style.display = '';
+  document.getElementById('revealBtn').style.display = '';
+  document.getElementById('nextWordBtn').style.display = 'none';
+  const fb = document.getElementById('paraFeedback'); fb.className = 'feedback'; fb.innerHTML = '';
+  if (inputs[0]) inputs[0].focus();
+}
+
+function expectedFor(idx){
+  const { conj } = para.current;
+  return (mode === 'build') ? conj.endings[idx] : conj.forms[idx];
+}
+
+function checkParadigm(){
+  if (para.checked) return;
+  const inputs = document.querySelectorAll('#paraList .para-input');
+  let right = 0;
+  inputs.forEach(inp => {
+    const idx = +inp.dataset.idx;
+    const expected = expectedFor(idx);
+    const ok = norm(inp.value) === norm(expected);
+    inp.classList.toggle('correct', ok);
+    inp.classList.toggle('wrong', !ok);
+    inp.disabled = true;
+    if (ok) right++;
+    else {
+      const tag = inp.parentElement.querySelector('.para-answer');
+      tag.innerHTML = '<b>' + esc((mode === 'build' ? '-' : '') + expected) + '</b>';
+      tag.style.display = '';
+    }
+  });
+  const total = inputs.length;
+  para.checked = true;
+  para.tables++; para.correct += right; para.total += total;
+  updateParaStats();
+
+  const perfect = right === total;
+  const fb = document.getElementById('paraFeedback');
+  fb.className = 'feedback show ' + (perfect ? 'right' : 'wrong');
+  fb.innerHTML = '<div class="feedback-head">' + (perfect ? '✓ Perfect — all ' + total + ' correct' : right + ' / ' + total + ' correct') + '</div>' +
+    (perfect ? '' : '<div class="feedback-body">The right answers are shown in grey next to each box.</div>');
+
+  document.getElementById('checkBtn').style.display = 'none';
+  document.getElementById('revealBtn').style.display = 'none';
+  document.getElementById('nextWordBtn').style.display = '';
+  document.getElementById('nextWordBtn').textContent = 'Next verb →';
+  document.getElementById('nextWordBtn').focus();
+}
+
+function revealParadigm(){
+  if (para.checked) return;
+  document.querySelectorAll('#paraList .para-input').forEach(inp => {
+    inp.value = expectedFor(+inp.dataset.idx);
+    inp.classList.add('correct'); inp.disabled = true;
+  });
+  para.checked = true;
+  para.tables++; para.total += document.querySelectorAll('#paraList .para-input').length;
+  updateParaStats();
+  const fb = document.getElementById('paraFeedback');
+  fb.className = 'feedback show right';
+  fb.innerHTML = '<div class="feedback-head">Here is the full set</div>' +
+    '<div class="feedback-body">Read it through, then try the next one.</div>';
+  document.getElementById('checkBtn').style.display = 'none';
+  document.getElementById('revealBtn').style.display = 'none';
+  document.getElementById('nextWordBtn').style.display = '';
+  document.getElementById('nextWordBtn').textContent = 'Next verb →';
+}
+
+function updateParaStats(){
+  document.getElementById('pTables').textContent = para.tables;
+  document.getElementById('pCorrect').textContent = para.correct;
+  document.getElementById('pAcc').textContent = para.total ? Math.round(para.correct/para.total*100) + '%' : '—';
+}
+
+document.getElementById('checkBtn').addEventListener('click', checkParadigm);
+document.getElementById('revealBtn').addEventListener('click', revealParadigm);
+document.getElementById('nextWordBtn').addEventListener('click', loadParadigm);
+
+// ════════════════════════════════════════════════════════════════════════
+// Parse screen — identify a verb form
+// ════════════════════════════════════════════════════════════════════════
+let pq = { answered:0, correct:0, answer:null, done:false, lastForm:null };
+
+const PARSE_FIELDS = [
+  ['person', 'Person', ['1st','2nd','3rd']],
+  ['number', 'Number', ['singular','plural']],
+  ['tense',  'Tense',  TENSES],
+  ['voice',  'Voice',  VOICES],
+];
+
+function startParse(){
+  pq = { answered:0, correct:0, answer:null, done:false, lastForm:null };
+  show('parse');
+  updateParseStats();
+  nextParse();
+}
+
+function nextParse(){
+  const combos = validCombos();
+  let verb, tense, voice, idx, form;
+  for (let i = 0; i < 30; i++){
+    verb = VERBS[Math.floor(Math.random()*VERBS.length)];
+    [tense, voice] = combos[Math.floor(Math.random()*combos.length)];
+    idx = Math.floor(Math.random()*6);
+    form = conjugate(verb, tense, voice).forms[idx];
+    // avoid the bare dictionary form (present active 1sg = lemma) and immediate repeats
+    if (form === verb.lemma) continue;
+    if (form === pq.lastForm && i < 29) continue;
+    break;
+  }
+  pq.lastForm = form;
+  const pn = PERSONS[idx];
+  pq.answer = { person:pn.person, number:pn.number, tense, voice };
+  pq.done = false;
+
+  document.getElementById('qForm').textContent = form;
+  document.getElementById('qCite').textContent = verb.lemma + ', ' + verb.inf + ' — ' + verb.gloss + ' · ' + CLS_LABEL[verb.cls];
+
+  document.getElementById('parseFields').innerHTML = PARSE_FIELDS.map(([key, label, opts]) => {
+    const options = ['<option value="">—</option>'].concat(
+      opts.map(o => '<option value="' + o + '">' + (o.charAt(0).toUpperCase() + o.slice(1)) + '</option>')
+    ).join('');
+    return '<div class="parse-field"><label>' + label + '</label><select data-field="' + key + '">' + options + '</select></div>';
+  }).join('');
+
+  const fb = document.getElementById('qFeedback'); fb.className = 'feedback'; fb.innerHTML = '';
+  document.getElementById('qCheck').style.display = '';
+  document.getElementById('qNext').style.display = 'none';
+}
+
+function gradeParse(){
+  if (pq.done) return;
+  pq.done = true;
+  let exact = true;
+  document.querySelectorAll('#parseFields select').forEach(sel => {
+    const field = sel.dataset.field;
+    const ok = sel.value === pq.answer[field];
+    sel.classList.add(ok ? 'correct' : 'wrong');
+    sel.disabled = true;
+    if (!ok) exact = false;
+  });
+
+  pq.answered++; if (exact) pq.correct++;
+  updateParseStats();
+
+  const a = pq.answer;
+  const full = a.person + ' person ' + a.number + ', ' + a.tense + ' ' + a.voice;
+  const fb = document.getElementById('qFeedback');
+  fb.className = 'feedback show ' + (exact ? 'right' : 'wrong');
+  fb.innerHTML = '<div class="feedback-head">' + (exact ? '✓ Correct' : '✗ Not quite') + '</div>' +
+    '<div class="feedback-body"><b>' + esc(document.getElementById('qForm').textContent) + '</b> is ' + esc(full) + '.</div>' +
+    '<div class="feedback-note">' + esc(TENSE_LABEL[a.tense]) + ': ' + esc(TENSE_HINT[a.tense]) +
+      (a.voice === 'passive' ? '; passive — the subject is acted upon' : '') + '.</div>';
+
+  document.getElementById('qCheck').style.display = 'none';
+  document.getElementById('qNext').style.display = '';
+  document.getElementById('qNext').focus();
+}
+
+function updateParseStats(){
+  document.getElementById('qAnswered').textContent = pq.answered;
+  document.getElementById('qAcc').textContent = pq.answered ? Math.round(pq.correct/pq.answered*100) + '%' : '—';
+}
+
+document.getElementById('qCheck').addEventListener('click', gradeParse);
+document.getElementById('qNext').addEventListener('click', nextParse);
+</script>
+</body>
+</html>
