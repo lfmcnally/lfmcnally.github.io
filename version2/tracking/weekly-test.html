@@ -253,6 +253,13 @@ async function openEditor(testId){
     return '<div class="qcard" data-q="'+q.id+'">' +
       '<div class="row"><b style="color:var(--navy);">Q'+(i+1)+'</b><span class="spacer"></span><button class="btn danger sm" data-del="'+q.id+'">Delete</button></div>' +
       '<div style="margin-top:8px;"><label class="lbl">Question / prompt</label><textarea class="f" data-f="prompt">'+esc(q.prompt)+'</textarea></div>' +
+      '<div style="margin-top:10px;"><label class="lbl">Marking style</label>' +
+        '<select class="f" data-f="style">' +
+          '<option value="points"'+(q.mark_style==='translation'?'':' selected')+'>Points-based — credit scheme points (Civ / comprehension)</option>' +
+          '<option value="translation"'+(q.mark_style==='translation'?' selected':'')+'>Translation — holistic band /5 (Latin / Greek)</option>' +
+        '</select>' +
+        '<div class="muted" data-styhint style="margin-top:4px;font-size:12px;">'+styleHint(q.mark_style)+'</div>' +
+      '</div>' +
       '<div class="grid4" style="margin-top:10px;">' +
         '<div><label class="lbl">Marks</label><input class="f" type="number" min="1" max="10" data-f="marks" value="'+q.marks+'"></div>' +
         '<div style="grid-column:span 2;"><label class="lbl">Image (optional)</label><input class="f" type="file" accept="image/*" data-f="imgfile"></div>' +
@@ -262,13 +269,18 @@ async function openEditor(testId){
       '<div style="margin-top:10px;"><label class="lbl">Mark scheme — creditworthy points</label><div class="sps" data-pts>'+
         pts.map(p=>spRow(p)).join('')+'</div><button class="btn ghost sm" data-addpt style="margin-top:6px;">+ point</button></div>' +
       '<div class="grid2" style="margin-top:10px;">' +
-        '<div><label class="lbl">Model answer (optional)</label><textarea class="f" data-f="model">'+esc(sc.model_answer||'')+'</textarea></div>' +
+        '<div><label class="lbl" data-modellabel>'+(q.mark_style==='translation'?'Correct translation (required)':'Model answer (optional)')+'</label><textarea class="f" data-f="model">'+esc(sc.model_answer||'')+'</textarea></div>' +
         '<div><label class="lbl">Marking notes (optional)</label><textarea class="f" data-f="notes">'+esc(sc.marking_notes||'')+'</textarea></div>' +
       '</div>' +
       '<div class="row" style="margin-top:10px;"><span class="spacer"></span><button class="btn" data-save="'+q.id+'">Save question</button></div>' +
     '</div>';
   }
   function spRow(p){ return '<div class="sp"><input class="f txt" placeholder="creditworthy point" value="'+esc(p&&p.text||'')+'"><input class="f mk" type="number" min="1" placeholder="mk" value="'+(p&&p.marks||'')+'"><button class="btn danger sm" data-rmpt>×</button></div>'; }
+  function styleHint(style){
+    return style==='translation'
+      ? 'Put the Latin/Greek in the prompt and the correct English in <b>Correct translation</b>. Marked holistically out of 5 by proportion of sense (OCR J282/J292 grid) — set marks to <b>5</b>. Creditworthy points are ignored.'
+      : 'The AI credits each creditworthy point the student conveys, allowing synonyms and paraphrase.';
+  }
 
   function wireQ(q){
     const card = $('qlist').querySelector('[data-q="'+q.id+'"]'); if(!card) return;
@@ -276,6 +288,13 @@ async function openEditor(testId){
       if(!confirm('Delete this question?')) return;
       await sb.from('weekly_test_questions').delete().eq('id', q.id);
       const idx=questions.findIndex(x=>x.id===q.id); if(idx>=0) questions.splice(idx,1); delete schemes[q.id]; drawQuestions();
+    });
+    const styleSel = card.querySelector('[data-f="style"]');
+    styleSel.addEventListener('change', ()=>{
+      const tr = styleSel.value==='translation';
+      card.querySelector('[data-styhint]').innerHTML = styleHint(styleSel.value);
+      const ml = card.querySelector('[data-modellabel]'); if(ml) ml.textContent = tr ? 'Correct translation (required)' : 'Model answer (optional)';
+      const mk = card.querySelector('[data-f="marks"]'); if(tr && (+mk.value||1) < 2) mk.value = 5;
     });
     card.querySelector('[data-addpt]').addEventListener('click', ()=>{ card.querySelector('[data-pts]').insertAdjacentHTML('beforeend', spRow({})); bindPts(); });
     function bindPts(){ card.querySelectorAll('[data-rmpt]').forEach(b=>b.onclick=()=>b.closest('.sp').remove()); }
@@ -290,7 +309,7 @@ async function openEditor(testId){
     });
     card.querySelector('[data-save]').addEventListener('click', async ()=>{
       const marks = Math.max(1,Math.min(10, +card.querySelector('[data-f="marks"]').value||1));
-      const qpatch = { prompt: card.querySelector('[data-f="prompt"]').value.trim(), marks, mark_with_image: card.querySelector('[data-f="mwi"]').checked };
+      const qpatch = { prompt: card.querySelector('[data-f="prompt"]').value.trim(), marks, mark_with_image: card.querySelector('[data-f="mwi"]').checked, mark_style: card.querySelector('[data-f="style"]').value };
       await sb.from('weekly_test_questions').update(qpatch).eq('id', q.id); Object.assign(q, qpatch);
       const points = [...card.querySelectorAll('.sp')].map(r=>({ text: r.querySelector('.txt').value.trim(), marks: +r.querySelector('.mk').value||undefined })).filter(p=>p.text);
       const spatch = { question_id:q.id, scheme_points: points, model_answer: card.querySelector('[data-f="model"]').value.trim(), marking_notes: card.querySelector('[data-f="notes"]').value.trim(), updated_at: new Date().toISOString() };
