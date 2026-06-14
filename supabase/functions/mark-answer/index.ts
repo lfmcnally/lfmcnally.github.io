@@ -180,7 +180,10 @@ Deno.serve(async (req) => {
           "You are marking a GCSE Classical Civilisation short answer against the teacher's " +
           "mark scheme. Award whole marks only, between 0 and the maximum. Credit a point if the " +
           "student's answer conveys it, allowing synonyms, paraphrase and minor spelling slips — do " +
-          "not require exact wording. Never award marks for anything not in the scheme. Be consistent and concise.",
+          "not require exact wording. Never award marks for anything not in the scheme. " +
+          "Write the 'rationale' as ONE short sentence spoken directly TO the student (\"you\") — warm " +
+          "and constructive: say what you credited and, if marks were lost, what to add next time. Do " +
+          "not refer to \"the student\" in the third person, and do not restate the marks total.",
         messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
         output_config: { format: { type: "json_schema", schema: {
           type: "object", additionalProperties: false,
@@ -190,7 +193,7 @@ Deno.serve(async (req) => {
             max_marks:      { type: "integer" },
             matched_points: { type: "array", items: { type: "string" } },
             missing_points: { type: "array", items: { type: "string" } },
-            rationale:      { type: "string" },
+            rationale:      { type: "string", description: "One short sentence of feedback addressed to the student as 'you'." },
           },
         } } },
       }),
