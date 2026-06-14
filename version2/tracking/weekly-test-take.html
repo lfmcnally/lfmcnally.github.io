@@ -24,17 +24,24 @@ body { background: var(--cream); }
 textarea.f { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 15px; padding: 11px 13px; border: 1.5px solid var(--rule); border-radius: 8px; resize: vertical; min-height: 70px; color: var(--ink); outline: none; }
 textarea.f:focus { border-color: var(--brand); }
 textarea.f:disabled { background: var(--cream); color: var(--muted); }
-.btn { font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; padding: 10px 18px; border-radius: 7px; border: none; background: var(--brand); color: #fff; cursor: pointer; }
+.btn { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; padding: 12px 22px; border-radius: 7px; border: none; background: var(--brand); color: #fff; cursor: pointer; }
 .btn:hover { background: #155ee0; }
 .btn:disabled { background: var(--rule); color: var(--muted); cursor: default; }
 .btn.ghost { background: var(--paper); color: var(--ink); border: 1px solid var(--rule); }
 .btn.dark { background: var(--navy); }
+.submit-card { text-align: center; }
 .fb { margin-top: 12px; padding: 12px 15px; border-radius: 9px; border: 1px solid var(--rule); font-size: 13.5px; line-height: 1.5; }
 .fb.good { background: #ecfdf3; border-color: #a7f3d0; color: #15803d; }
 .fb.part { background: #fffbeb; border-color: #fde68a; color: #92500e; }
+.fb.zero { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
 .fb.info { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
 .fb b { font-family: 'Lora', serif; }
-.total { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 22px; color: var(--navy); }
+.total { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 30px; color: var(--navy); }
+.ans { margin-top: 6px; font-size: 14px; color: var(--ink); }
+.ans .lab { color: var(--muted); font-size: 12px; }
+.markpill { float: right; font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 18px; }
+.spin { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -3px; margin-right: 8px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .hidden { display: none !important; }
 </style>
 </head>
@@ -52,7 +59,7 @@ textarea.f:disabled { background: var(--cream); color: var(--muted); }
   <div class="header-inner">
     <div class="header-eyebrow">Student</div>
     <h1 class="header-title">Weekly test</h1>
-    <p class="header-deck">Answer each question in your own words — you'll get a mark and feedback straight away.</p>
+    <p class="header-deck">Answer every question in your own words, then submit to get your marks and feedback.</p>
   </div>
 </div>
 
@@ -69,9 +76,9 @@ const sb = window.supabase;
 const $ = (id)=>document.getElementById(id);
 const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function imgSrc(path){ if(!path) return ''; if(/^https?:\/\//.test(path)||path.startsWith('/')) return path; return sb.storage.from('weekly-test-images').getPublicUrl(path).data.publicUrl; }
+const draftKey = (sid)=>'wt-draft-'+sid;
 
 let me_id = null, openTests = [];
-let curQ = [], curA = {}, curTM = 0;   // questions / answers / total marks for the open test
 
 (async function init(){
   const { data: au } = await sb.auth.getUser();
@@ -92,87 +99,106 @@ function renderList(){
 
 async function openTest(testId){
   const t = openTests.find(x=>x.id===testId);
-  // ensure a submission
   let { data: sub } = await sb.from('weekly_test_submissions').select('*').eq('test_id',testId).eq('student_id',me_id).maybeSingle();
   if(!sub){ const ins = await sb.from('weekly_test_submissions').insert({ test_id:testId, student_id:me_id }).select().single(); sub = ins.data; }
   const { data: qs } = await sb.from('weekly_test_questions').select('id,position,prompt,marks,image_path').eq('test_id',testId).order('position');
   const questions = qs||[];
   const { data: ans } = await sb.from('weekly_test_answers').select('*').eq('submission_id', sub.id);
   const answers = {}; (ans||[]).forEach(a=>answers[a.question_id]=a);
-  const totalMarks = questions.reduce((s,q)=>s+q.marks,0);
-  curQ = questions; curA = answers; curTM = totalMarks;
 
   $('list').classList.add('hidden'); $('test').classList.remove('hidden');
+  if(sub.submitted_at){
+    // already submitted — show the report
+    const results = questions.map(q=>{ const a=answers[q.id]; return { question_id:q.id, status: a&&a.attempts>0?'marked':'blank', marks: a?a.final_marks:0, max:q.marks, rationale: a?a.ai_rationale:null }; });
+    renderReport(t, questions, answers, results, sub);
+  } else {
+    renderTake(t, sub, questions, answers);
+  }
+}
+
+function renderTake(t, sub, questions, answers){
+  const totalMarks = questions.reduce((s,q)=>s+q.marks,0);
+  let draft = {}; try { draft = JSON.parse(localStorage.getItem(draftKey(sub.id))||'{}'); } catch(e){}
   $('test').innerHTML =
     '<button class="btn ghost" id="back" style="margin-bottom:12px;">← All tests</button>' +
     '<h2 style="font-family:Lora,serif;font-style:italic;color:var(--navy);">'+esc(t.title)+'</h2>' +
-    '<p class="muted" style="margin-bottom:14px;">'+questions.length+' questions · '+totalMarks+' marks · '+t.max_attempts_per_question+' attempt'+(t.max_attempts_per_question>1?'s':'')+' each</p>' +
-    questions.map((q,i)=>qHTML(q,i,answers[q.id], t)).join('') +
-    '<div class="card" style="text-align:center;"><div class="total" id="runTotal"></div><button class="btn dark" id="finish" style="margin-top:10px;">Finish &amp; submit</button>'+(sub.submitted_at?'<div class="muted" style="margin-top:6px;">Submitted '+new Date(sub.submitted_at).toLocaleString()+'</div>':'')+'</div>';
+    '<p class="muted" style="margin-bottom:14px;">'+questions.length+' questions · '+totalMarks+' marks. Answer them all, then submit once to get your marks.</p>' +
+    questions.map((q,i)=>{
+      const saved = (answers[q.id] && answers[q.id].answer_text) || draft[q.id] || '';
+      return '<div class="card" data-q="'+q.id+'">' +
+        '<div style="display:flex;gap:10px;"><span class="qmarks">Q'+(i+1)+'</span><span style="flex:1"></span><span class="qmarks">'+q.marks+' mark'+(q.marks>1?'s':'')+'</span></div>' +
+        '<div class="qprompt" style="margin-top:6px;">'+esc(q.prompt)+'</div>' +
+        (q.image_path?('<img class="qimg" src="'+imgSrc(q.image_path)+'" alt="source image">'):'') +
+        '<textarea class="f" data-input="'+q.id+'" placeholder="Your answer…">'+esc(saved)+'</textarea>' +
+      '</div>';
+    }).join('') +
+    '<div class="card submit-card"><button class="btn dark" id="submit">Submit &amp; get my marks</button>' +
+      '<div class="muted" style="margin-top:8px;">You can\'t change your answers once you submit.</div>' +
+      '<div class="fb hidden" id="submitFb"></div></div>';
+
   $('back').addEventListener('click', renderList);
-  questions.forEach(q=>wire(q, sub, answers, t));
-  updateTotal();
-  $('finish').addEventListener('click', async ()=>{
-    const { data: fa } = await sb.from('weekly_test_answers').select('final_marks').eq('submission_id', sub.id);
-    const got = (fa||[]).reduce((s,a)=>s+(a.final_marks||0),0);
-    await sb.from('weekly_test_submissions').update({ submitted_at:new Date().toISOString(), total_awarded:got, total_marks:totalMarks }).eq('id', sub.id);
-    $('test').innerHTML = '<div class="card" style="text-align:center;"><h2 style="font-family:Lora,serif;font-style:italic;color:var(--navy);">All done</h2><div class="total">'+got+' / '+totalMarks+'</div><p class="muted" style="margin-top:8px;">Your answers are saved. Your teacher can review and adjust any marks.</p><button class="btn ghost" id="done2" style="margin-top:10px;">Back to tests</button></div>';
-    $('done2').addEventListener('click', renderList);
-  });
+  // save a local draft as they type, so nothing is lost if they navigate away
+  $('test').querySelectorAll('[data-input]').forEach(ta=>ta.addEventListener('input',()=>{
+    draft[ta.dataset.input] = ta.value;
+    try { localStorage.setItem(draftKey(sub.id), JSON.stringify(draft)); } catch(e){}
+  }));
+  $('submit').addEventListener('click', ()=>submitTest(t, sub, questions, answers));
 }
 
-function qHTML(q,i,a,t){
-  const done = a && a.attempts>0;
-  return '<div class="card" data-q="'+q.id+'">' +
-    '<div style="display:flex;gap:10px;"><span class="qmarks">Q'+(i+1)+'</span><span style="flex:1"></span><span class="qmarks">'+q.marks+' mark'+(q.marks>1?'s':'')+'</span></div>' +
-    '<div class="qprompt" style="margin-top:6px;">'+esc(q.prompt)+'</div>' +
-    (q.image_path?('<img class="qimg" src="'+imgSrc(q.image_path)+'" alt="source image">'):'') +
-    '<textarea class="f" data-input '+(done&&a.attempts>=t.max_attempts_per_question?'disabled':'')+' placeholder="Your answer…">'+esc(a?a.answer_text:'')+'</textarea>' +
-    '<div style="display:flex;align-items:center;gap:10px;margin-top:10px;"><button class="btn" data-mark>'+(done?'Mark again':'Mark my answer')+'</button><span class="muted" data-left></span></div>' +
-    '<div class="fb hidden" data-fb></div>' +
-  '</div>';
+async function submitTest(t, sub, questions, answers){
+  const inputs = [...$('test').querySelectorAll('[data-input]')];
+  const payloadAnswers = inputs.map(ta=>({ question_id: ta.dataset.input, answer_text: ta.value.trim() }));
+  const answered = payloadAnswers.filter(a=>a.answer_text).length;
+  const fb = $('submitFb');
+  if(answered === 0){ fb.className='fb info'; fb.classList.remove('hidden'); fb.textContent='Write at least one answer before submitting.'; return; }
+  if(answered < questions.length && !confirm((questions.length-answered)+' question(s) are blank. Submit anyway?')) return;
+
+  const btn = $('submit'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Marking your paper…';
+  fb.className='fb info'; fb.classList.remove('hidden'); fb.textContent='This can take up to a minute for a long test — please wait.';
+  inputs.forEach(ta=>ta.disabled = true);
+
+  const { data, error } = await sb.functions.invoke('mark-test', { body: { submission_id: sub.id, answers: payloadAnswers } });
+  if(error){
+    let msg = 'Could not mark your test — please try again.';
+    try { const j = await error.context.json(); if(j&&j.error) msg=j.error; } catch(_){}
+    btn.disabled = false; btn.textContent = 'Submit & get my marks'; inputs.forEach(ta=>ta.disabled=false);
+    fb.className='fb zero'; fb.textContent = msg; return;
+  }
+  try { localStorage.removeItem(draftKey(sub.id)); } catch(e){}
+  // refresh answers + show report
+  const ansMap = {}; payloadAnswers.forEach(a=>ansMap[a.question_id]={ answer_text:a.answer_text });
+  renderReport(t, questions, ansMap, data.results || [], { submitted_at: new Date().toISOString() }, data);
 }
 
-function wire(q, sub, answers, t){
-  const card = $('test').querySelector('[data-q="'+q.id+'"]');
-  const input = card.querySelector('[data-input]');
-  const btn = card.querySelector('[data-mark]');
-  const fb = card.querySelector('[data-fb]');
-  const left = card.querySelector('[data-left]');
-  const a = answers[q.id];
-  if(a && a.attempts>0) showMark(fb, left, a.final_marks, q.marks, a.ai_rationale, t.max_attempts_per_question - a.attempts);
-  btn.addEventListener('click', async ()=>{
-    const answer_text = input.value.trim();
-    if(!answer_text) return;
-    btn.disabled = true; btn.textContent = 'Marking…';
-    const { data, error } = await sb.functions.invoke('mark-answer', { body: { submission_id: sub.id, question_id: q.id, answer_text } });
-    btn.disabled = false; btn.textContent = 'Mark again';
-    if(error){
-      let msg='Could not mark — please try again.';
-      try { const j = await error.context.json(); if(j&&j.error) msg=j.error; } catch(_){}
-      fb.className='fb info'; fb.classList.remove('hidden'); fb.textContent=msg; return;
-    }
-    if(data.paused){ fb.className='fb info'; fb.classList.remove('hidden'); fb.textContent = data.message || 'Marking is paused — your teacher will mark this.'; return; }
-    if(data.capped){ showMark(fb,left,data.marks,data.max,data.rationale,0); input.disabled=true; btn.disabled=true; }
-    else {
-      answers[q.id] = Object.assign(answers[q.id]||{}, { attempts:(answers[q.id]?.attempts||0)+1, final_marks:data.marks, ai_rationale:data.rationale, answer_text });
-      showMark(fb,left,data.marks,data.max,data.rationale,data.attempts_left);
-      if(data.attempts_left<=0){ input.disabled=true; btn.disabled=true; }
-    }
-    updateTotal();
-  });
-}
-
-function showMark(fb,left,marks,max,rationale,attemptsLeft){
-  const cls = marks>=max ? 'good' : (marks>0?'part':'info');
-  fb.className='fb '+cls; fb.classList.remove('hidden');
-  fb.innerHTML = '<b>'+(marks==null?'—':marks)+' / '+max+'</b>' + (rationale?(' — '+esc(rationale)):'');
-  left.textContent = attemptsLeft>0 ? (attemptsLeft+' attempt'+(attemptsLeft>1?'s':'')+' left') : 'no attempts left';
-}
-
-function updateTotal(){
-  const got = curQ.reduce((s,q)=>s+((curA[q.id]&&curA[q.id].final_marks)||0),0);
-  const el = $('runTotal'); if(el) el.textContent = got+' / '+curTM+' so far';
+function renderReport(t, questions, answers, results, sub, meta){
+  const byId = {}; results.forEach(r=>byId[r.question_id]=r);
+  const total = (meta && meta.total_awarded != null) ? meta.total_awarded : results.reduce((s,r)=>s+(r.marks||0),0);
+  const totalMarks = (meta && meta.total_marks != null) ? meta.total_marks : questions.reduce((s,q)=>s+q.marks,0);
+  const paused = meta && meta.paused;
+  $('test').innerHTML =
+    '<button class="btn ghost" id="back" style="margin-bottom:12px;">← All tests</button>' +
+    '<div class="card" style="text-align:center;"><div class="muted" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;">Your result</div>' +
+      '<div class="total">'+total+' / '+totalMarks+'</div>' +
+      '<div class="muted" style="margin-top:4px;">'+esc(t.title)+(sub.submitted_at?(' · submitted '+new Date(sub.submitted_at).toLocaleString()):'')+'</div>' +
+      (paused?'<div class="fb info" style="margin-top:10px;">Some answers couldn\'t be auto-marked right now — your teacher will mark those.</div>':'') +
+    '</div>' +
+    questions.map((q,i)=>{
+      const r = byId[q.id] || { status:'blank', marks:0, max:q.marks };
+      const a = (answers[q.id] && answers[q.id].answer_text) || '';
+      let cls='info', mark='—';
+      if(r.status==='marked'){ mark=(r.marks==null?'—':r.marks)+' / '+q.marks; cls = r.marks>=q.marks?'good':(r.marks>0?'part':'zero'); }
+      else if(r.status==='blank'){ mark='0 / '+q.marks; cls='zero'; }
+      else if(r.status==='paused'){ mark='—'; cls='info'; }
+      else if(r.status==='error'){ mark='—'; cls='info'; }
+      const note = r.status==='blank' ? 'You left this blank.' : r.status==='paused' ? 'Your teacher will mark this one.' : r.status==='error' ? 'Couldn\'t mark this automatically.' : (r.rationale||'');
+      return '<div class="card"><span class="markpill" style="color:'+(cls==='good'?'#15803d':cls==='part'?'#92500e':cls==='zero'?'#b91c1c':'#1e40af')+'">'+mark+'</span>' +
+        '<span class="qmarks">Q'+(i+1)+'</span>' +
+        '<div class="qprompt" style="margin-top:6px;">'+esc(q.prompt)+'</div>' +
+        (a?('<div class="ans"><span class="lab">Your answer:</span> '+esc(a)+'</div>'):'<div class="ans muted">No answer given.</div>') +
+        (note?('<div class="fb '+cls+'" style="margin-top:8px;">'+esc(note)+'</div>'):'') +
+      '</div>';
+    }).join('');
+  $('back').addEventListener('click', renderList);
 }
 </script>
 </body>
