@@ -107,6 +107,8 @@ const sb = window.supabase;
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const money = (micros) => '£' + (Number(micros||0)/1e6).toFixed(2);
+// Finer formatting so sub-penny amounts don't all read as £0.00.
+const moneyFine = (micros) => { const p = Number(micros||0)/1e6; return '£' + (p >= 0.01 ? p.toFixed(2) : p.toFixed(4)); };
 let toastT;
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200); }
 
@@ -358,9 +360,10 @@ function drill(subId, name, questions, answers){
 async function renderUsage(){
   const root = $('tab-usage');
   const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0,0,0,0);
-  const { data: usage } = await sb.from('weekly_test_marking_usage').select('cost_micros,test_id,created_at').eq('teacher_id', me_id).gte('created_at', monthStart.toISOString());
+  const { data: usage } = await sb.from('weekly_test_marking_usage').select('cost_micros,input_tokens,output_tokens,test_id,created_at').eq('teacher_id', me_id).gte('created_at', monthStart.toISOString());
   const rows = usage||[];
   const spent = rows.reduce((s,r)=>s+Number(r.cost_micros||0),0);
+  const totalTokens = rows.reduce((s,r)=>s+Number(r.input_tokens||0)+Number(r.output_tokens||0),0);
   const { data: bud } = await sb.from('weekly_test_budget').select('*').eq('teacher_id', me_id).maybeSingle();
   const cap = bud?.monthly_cost_cap_micros ?? 5000000;
   const callCap = bud?.monthly_call_cap ?? 5000;
@@ -368,12 +371,12 @@ async function renderUsage(){
   const tname = (id)=> (tests.find(t=>t.id===id)?.title) || '—';
   root.innerHTML =
    '<div class="card"><h3>This month</h3>' +
-     '<p style="font-family:Lora,serif;font-style:italic;font-size:26px;color:var(--navy);margin:6px 0 2px;">'+money(spent)+' <span style="font-size:14px;color:var(--muted);">of '+money(cap)+'</span></p>' +
+     '<p style="font-family:Lora,serif;font-style:italic;font-size:26px;color:var(--navy);margin:6px 0 2px;">'+moneyFine(spent)+' <span style="font-size:14px;color:var(--muted);">of '+money(cap)+'</span></p>' +
      '<div class="bar" style="max-width:360px;"><span style="width:'+Math.min(100,Math.round(spent/cap*100))+'%;'+(spent>=cap?'background:#dc2626;':'')+'"></span></div>' +
-     '<p class="muted" style="margin-top:8px;">'+rows.length+' markings of '+callCap+' allowed. When you hit the cap, marking pauses and students see "your teacher will mark this".</p>' +
+     '<p class="muted" style="margin-top:8px;">'+rows.length+' marking'+(rows.length===1?'':'s')+' · '+totalTokens.toLocaleString()+' tokens this month (cap: '+callCap+' markings). Each answer costs roughly half a penny — when you hit the cap, marking pauses and students see "your teacher will mark this".</p>' +
    '</div>' +
    '<div class="card"><h3>By test</h3><table class="tbl"><thead><tr><th>Test</th><th>Spend</th></tr></thead><tbody>'+
-     (Object.keys(byTest).length? Object.entries(byTest).map(([id,c])=>'<tr><td>'+esc(tname(id))+'</td><td>'+money(c)+'</td></tr>').join('') : '<tr><td colspan="2" class="muted">No marking yet this month.</td></tr>')+
+     (Object.keys(byTest).length? Object.entries(byTest).map(([id,c])=>'<tr><td>'+esc(tname(id))+'</td><td>'+moneyFine(c)+'</td></tr>').join('') : '<tr><td colspan="2" class="muted">No marking yet this month.</td></tr>')+
    '</tbody></table></div>' +
    '<div class="card"><h3>Budget</h3><div class="grid2"><div><label class="lbl">Monthly cap (£)</label><input class="f" id="b_cost" type="number" min="0" step="0.5" value="'+(cap/1e6).toFixed(2)+'"></div><div><label class="lbl">Max markings / month</label><input class="f" id="b_calls" type="number" min="0" value="'+callCap+'"></div></div>' +
      '<div class="row" style="margin-top:10px;"><span class="spacer"></span><button class="btn" id="saveBudget">Save budget</button></div>' +
