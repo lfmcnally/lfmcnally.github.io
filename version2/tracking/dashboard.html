@@ -242,6 +242,22 @@ body { background: var(--cream); }
 .smart-btn.secondary .smart-btn-arrow { color:rgba(14,30,63,0.3); }
 .smart-btn.secondary:hover .smart-btn-arrow { color:var(--navy); }
 @media (max-width:560px){ .smart-btn-row { grid-template-columns:1fr; } }
+/* Compact action strip (used on the Myth & Religion tracker) */
+.action-strip { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
+.act-btn { flex:1 1 150px; display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--navy); border:none; border-radius:8px; padding:12px 14px; text-decoration:none; transition:background 0.12s; }
+.act-btn:hover { background:#1a2b52; }
+.act-btn .lbl { font-size:9px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:#6ba0ff; margin-bottom:2px; }
+.act-btn .ttl { font-family:'Lora',serif; font-style:italic; font-weight:700; font-size:15px; color:#fff; line-height:1.05; }
+.act-btn .arr { font-size:16px; color:rgba(255,255,255,0.4); flex-shrink:0; }
+.act-btn:hover .arr { color:#fff; }
+.act-btn.secondary { background:var(--paper); border:1px solid var(--rule); }
+.act-btn.secondary .ttl { color:var(--navy); }
+.act-btn.secondary .lbl { color:var(--brand); }
+.act-btn.secondary .arr { color:rgba(14,30,63,0.3); }
+.act-btn.secondary:hover { background:var(--cream); }
+.act-btn.test { background:#127a3e; }
+.act-btn.test:hover { background:#0f6835; }
+.act-btn.test .lbl { color:#a7f3d0; }
 </style>
 </head>
 <body>
@@ -556,40 +572,12 @@ body { background: var(--cream); }
   </div><!-- /course-vocab -->
 
   <div id="course-myth" class="hidden">
-    <a href="/version2/tools/quiz/myth-and-religion.html?mode=donow" class="smart-btn">
-      <div>
-        <div class="smart-btn-label">Lesson starter</div>
-        <div class="smart-btn-title">Today's Do Now</div>
-        <div class="smart-btn-desc">Go straight to the set your teacher has chosen for today.</div>
-      </div>
-      <div class="smart-btn-arrow">→</div>
-    </a>
-    <div class="smart-btn-row">
-      <a href="/version2/tools/quiz/myth-and-religion.html?mode=learn" class="smart-btn">
-        <div>
-          <div class="smart-btn-label">Work through</div>
-          <div class="smart-btn-title">In order</div>
-          <div class="smart-btn-desc">Go through a topic from the start, adding new questions as you secure them.</div>
-        </div>
-        <div class="smart-btn-arrow">→</div>
-      </a>
-      <a href="/version2/tools/quiz/myth-and-religion.html?mode=review" class="smart-btn">
-        <div>
-          <div class="smart-btn-label">Recommended</div>
-          <div class="smart-btn-title">Smart review</div>
-          <div class="smart-btn-desc">Shore up questions you've answered before, then meet new ones.</div>
-        </div>
-        <div class="smart-btn-arrow">→</div>
-      </a>
+    <div class="action-strip" id="mythActions">
+      <a href="/version2/tools/quiz/myth-and-religion.html?mode=donow" class="act-btn"><div><div class="lbl">Lesson starter</div><div class="ttl">Today's Do Now</div></div><span class="arr">→</span></a>
+      <a href="/version2/tools/quiz/myth-and-religion.html?mode=learn" class="act-btn"><div><div class="lbl">Work through</div><div class="ttl">In order</div></div><span class="arr">→</span></a>
+      <a href="/version2/tools/quiz/myth-and-religion.html?mode=review" class="act-btn"><div><div class="lbl">Recommended</div><div class="ttl">Smart review</div></div><span class="arr">→</span></a>
+      <a href="/version2/tools/quiz/myth-and-religion.html" class="act-btn secondary"><div><div class="lbl">Practice</div><div class="ttl">Practise everything</div></div><span class="arr">→</span></a>
     </div>
-    <a href="/version2/tools/quiz/myth-and-religion.html" class="smart-btn secondary">
-      <div>
-        <div class="smart-btn-label">Practice</div>
-        <div class="smart-btn-title">Practise everything</div>
-        <div class="smart-btn-desc">Pick a topic and the subtopics you want to revise.</div>
-      </div>
-      <div class="smart-btn-arrow">→</div>
-    </a>
     <div class="wordmap-card">
       <div class="wordmap-head">
         <span class="wordmap-title" id="cmTitle">Question confidence map</span>
@@ -1704,5 +1692,29 @@ init().then(() => {
 })();
 </script>
 <script src="/version2/assets/js/starfield.js"></script>
+<script>
+// Surface an open Weekly Test on the relevant subject tracker. A GCSE Class Civ
+// class (type 'civ-gcse') maps to the Myth & Religion tab, so its open test
+// appears in that tab's action strip. RLS already limits weekly_tests to the
+// student's own classes, so this only ever shows a test they're entitled to.
+(async function(){
+  try {
+    const sb = window.supabase;
+    if (!sb || !sb.auth || !sb.from) return;
+    const { data: au } = await sb.auth.getUser();
+    if (!au || !au.user) return;
+    const { data } = await sb.from('weekly_tests').select('id, v2_classes(type)').eq('status', 'open');
+    const hasCiv = (data || []).some(t => t.v2_classes && t.v2_classes.type === 'civ-gcse');
+    if (!hasCiv) return;
+    const strip = document.getElementById('mythActions');
+    if (!strip || strip.querySelector('.act-btn.test')) return;
+    const a = document.createElement('a');
+    a.href = '/version2/tracking/weekly-test-take.html';
+    a.className = 'act-btn test';
+    a.innerHTML = '<div><div class="lbl">New</div><div class="ttl">Weekly test</div></div><span class="arr">→</span>';
+    strip.appendChild(a);
+  } catch (e) { /* non-fatal */ }
+})();
+</script>
 </body>
 </html>
