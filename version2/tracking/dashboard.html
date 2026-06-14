@@ -451,6 +451,7 @@ body { background: var(--cream); }
     <div id="hwList"></div>
   </div>
   <div id="course-vocab">
+  <div id="vocabTestSlot"></div>
   <a href="/version2/tools/vocab/latinvocabtester.html?auto=1" class="smart-btn" data-vocab-tester data-tester-suffix="?auto=1">
     <div>
       <div class="smart-btn-label">Recommended</div>
@@ -1693,10 +1694,11 @@ init().then(() => {
 </script>
 <script src="/version2/assets/js/starfield.js"></script>
 <script>
-// Surface an open Weekly Test on the relevant subject tracker. A GCSE Class Civ
-// class (type 'civ-gcse') maps to the Myth & Religion tab, so its open test
-// appears in that tab's action strip. RLS already limits weekly_tests to the
-// student's own classes, so this only ever shows a test they're entitled to.
+// Surface an open Weekly Test on the relevant subject tracker. Each class type
+// maps to a tab: civ-gcse -> Myth & Religion (its action strip); latin-gcse /
+// greek-gcse -> the GCSE Latin / Greek vocab tab (a slot above the smart session).
+// RLS already limits weekly_tests to the student's own classes. The vocab tab is
+// shared and re-renders per course, so we re-evaluate on every tab click.
 (async function(){
   try {
     const sb = window.supabase;
@@ -1704,15 +1706,31 @@ init().then(() => {
     const { data: au } = await sb.auth.getUser();
     if (!au || !au.user) return;
     const { data } = await sb.from('weekly_tests').select('id, v2_classes(type)').eq('status', 'open');
-    const hasCiv = (data || []).some(t => t.v2_classes && t.v2_classes.type === 'civ-gcse');
-    if (!hasCiv) return;
-    const strip = document.getElementById('mythActions');
-    if (!strip || strip.querySelector('.act-btn.test')) return;
-    const a = document.createElement('a');
-    a.href = '/version2/tracking/weekly-test-take.html';
-    a.className = 'act-btn test';
-    a.innerHTML = '<div><div class="lbl">New</div><div class="ttl">Weekly test</div></div><span class="arr">→</span>';
-    strip.appendChild(a);
+    const openTypes = new Set((data || []).map(t => t.v2_classes && t.v2_classes.type).filter(Boolean));
+    if (!openTypes.size) return;
+    const TAKE = '/version2/tracking/weekly-test-take.html';
+    function btn(){
+      const a = document.createElement('a');
+      a.href = TAKE; a.className = 'act-btn test';
+      a.innerHTML = '<div><div class="lbl">New</div><div class="ttl">Weekly test</div></div><span class="arr">→</span>';
+      return a;
+    }
+    function refresh(){
+      const strip = document.getElementById('mythActions');
+      if (strip && openTypes.has('civ-gcse') && !strip.querySelector('.act-btn.test')) strip.appendChild(btn());
+      const slot = document.getElementById('vocabTestSlot');
+      if (slot) {
+        const active = document.querySelector('#courseTabs .course-tab.active');
+        const type = active && active.dataset.courseType;
+        if (type && (type === 'latin-gcse' || type === 'greek-gcse') && openTypes.has(type)) {
+          if (!slot.firstChild) { const a = btn(); a.style.marginBottom = '14px'; slot.appendChild(a); }
+        } else { slot.innerHTML = ''; }
+      }
+    }
+    refresh();
+    setTimeout(refresh, 400);
+    const tabs = document.getElementById('courseTabs');
+    if (tabs) tabs.addEventListener('click', () => setTimeout(refresh, 50));
   } catch (e) { /* non-fatal */ }
 })();
 </script>
