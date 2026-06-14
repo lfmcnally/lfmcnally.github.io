@@ -127,6 +127,11 @@ let me_id = null, classes = [], classId = null, tests = [], curTab = 'build';
   me_id = user.id;
   const { data: profile } = await sb.from('users').select('role').eq('id', user.id).single();
   if(!profile || profile.role !== 'teacher'){ return gate('This page is for teachers. If you\'re a teacher, ask an admin to set your role.'); }
+  // Access flag — tolerant of the column not existing until migration 059 is applied.
+  let allowed = true;
+  const acc = await sb.from('users').select('can_set_weekly_tests').eq('id', user.id).single();
+  if(!acc.error && acc.data) allowed = !!acc.data.can_set_weekly_tests;
+  if(!allowed){ return gate('You don\'t have access to weekly tests yet. A site admin can switch it on for your account in the admin panel.'); }
 
   const { data: cls } = await sb.from('v2_classes').select('id,name,type').order('created_at');
   classes = cls || [];
