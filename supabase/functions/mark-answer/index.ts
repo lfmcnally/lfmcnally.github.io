@@ -47,6 +47,71 @@ const MAX_OUTPUT_TOKENS = 512;             // hard output ceiling per call
 const RATE_PER_HOUR = 60;                  // per-student marking calls / hour
 const DEBOUNCE_MS = 3000;                  // min gap between a student's calls
 
+// The class type tells us which subject (and so which marking voice) to use.
+function subjectFor(t?: string | null): string {
+  const s = (t || "").toLowerCase();
+  if (s.startsWith("latin")) return "Latin";
+  if (s.startsWith("greek")) return "Classical Greek";
+  return "Classical Civilisation";
+}
+
+const POINTS_SYSTEM = (subject: string) =>
+  `You are marking a GCSE ${subject} short answer against the teacher's ` +
+  "mark scheme. Award whole marks only, between 0 and the maximum. Credit a point if the " +
+  "student's answer conveys it, allowing synonyms, paraphrase and minor spelling slips — do " +
+  "not require exact wording. Never award marks for anything not in the scheme. " +
+  "Write the 'rationale' as ONE short sentence spoken directly TO the student (\"you\") — warm " +
+  "and constructive: say what you credited and, if marks were lost, what to add next time. Do " +
+  "not refer to \"the student\" in the third person, and do not restate the marks total.";
+
+// OCR GCSE Latin/Greek (J282/J292) holistic translation grid.
+const TRANSLATION_SYSTEM = (subject: string) =>
+  `You are an OCR GCSE ${subject} examiner marking ONE sentence translated from ${subject} into ` +
+  "English with the official holistic 5-mark grid. Judge the PROPORTION OF SENSE communicated " +
+  "(who did what to whom), not word-by-word ticks, comparing the student's English with the correct " +
+  "translation provided. Award a whole number from 0 to 5:\n" +
+  "5 — perfectly accurate: no errors or omissions, or one inconsequential error.\n" +
+  "4 — essentially correct, but two inconsequential errors, or one more serious error.\n" +
+  "3 — overall meaning clear, but more serious errors or omissions.\n" +
+  "2 — only part correct; the overall sense is lacking or unclear.\n" +
+  "1 — no continuous sense; isolated knowledge of vocabulary only (at least two un-glossed words).\n" +
+  "0 — nothing worthy of credit.\n" +
+  "If the gist is communicated, score 3–5; if the basic sense is not understood, score 2 at most.\n" +
+  "Treat as INCONSEQUENTIAL: number errors (singular/plural); minor tense slips (one past tense for " +
+  "another); minor conjunctions/adverbs mistranslated or omitted; proper nouns left in the nominative; " +
+  "wrong he/she subject pronoun; an adjective/adverb wrongly made superlative; a minor vocabulary error " +
+  "that does not block the meaning.\n" +
+  "Treat as MORE SERIOUS: vocabulary errors giving the wrong sense; errors of case; omitting a " +
+  "meaning-bearing word; tense errors beyond minor ones (e.g. future for past); wrong constructions " +
+  "(missed purpose clause, gerundive, ablative absolute); errors of voice; errors of person (except he/she).\n" +
+  "A single word with several errors counts as at most one serious error. Never penalise the same " +
+  "vocabulary error twice, or an error that is a knock-on consequence of an earlier one. Accept any " +
+  "correct word order and any equally valid English rendering; do not penalise clumsy but accurate English.\n" +
+  "List the band-defining issues in 'serious_errors' and 'minor_errors'. Write 'rationale' as ONE short " +
+  "sentence spoken directly TO the student (\"you\"), naming what set the band; do not restate the mark.";
+
+const POINTS_SCHEMA = {
+  type: "object", additionalProperties: false,
+  required: ["marks_awarded", "max_marks", "matched_points", "missing_points", "rationale"],
+  properties: {
+    marks_awarded:  { type: "integer" },
+    max_marks:      { type: "integer" },
+    matched_points: { type: "array", items: { type: "string" } },
+    missing_points: { type: "array", items: { type: "string" } },
+    rationale:      { type: "string", description: "One short sentence of feedback addressed to the student as 'you'." },
+  },
+};
+const TRANSLATION_SCHEMA = {
+  type: "object", additionalProperties: false,
+  required: ["marks_awarded", "minor_errors", "serious_errors", "rationale"],
+  properties: {
+    marks_awarded:  { type: "integer", description: "Holistic band 0–5." },
+    minor_errors:   { type: "array", items: { type: "string" } },
+    serious_errors: { type: "array", items: { type: "string" } },
+    rationale:      { type: "string", description: "One short sentence of feedback addressed to the student as 'you'." },
+  },
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
@@ -87,7 +152,7 @@ Deno.serve(async (req) => {
 
     const { data: test } = await svc
       .from("weekly_tests")
-      .select("id, teacher_id, status, due_at, max_attempts_per_question, max_answer_chars")
+      .select("id, teacher_id, class_id, status, due_at, max_attempts_per_question, max_answer_chars")
       .eq("id", sub.test_id).maybeSingle();
     if (!test) return json({ error: "test not found" }, 404);
     if (test.status !== "open") return json({ error: "test is not open" }, 403);
@@ -97,9 +162,13 @@ Deno.serve(async (req) => {
       return json({ error: `answer too long (max ${test.max_answer_chars} characters)` }, 400);
     }
 
+    // Subject (Latin / Greek / Classical Civilisation) drives the marking voice.
+    const { data: cls } = await svc.from("v2_classes").select("type").eq("id", test.class_id).maybeSingle();
+    const subject = subjectFor(cls?.type);
+
     const { data: question } = await svc
       .from("weekly_test_questions")
-      .select("id, test_id, prompt, marks")
+      .select("id, test_id, prompt, marks, mark_style")
       .eq("id", questionId).maybeSingle();
     if (!question || question.test_id !== test.id) return json({ error: "question not in this test" }, 400);
 
@@ -153,22 +222,31 @@ Deno.serve(async (req) => {
       .from("weekly_test_mark_schemes")
       .select("scheme_points, model_answer, marking_notes")
       .eq("question_id", questionId).maybeSingle();
-    const points: Array<{ text?: string; marks?: number }> = Array.isArray(scheme?.scheme_points)
-      ? scheme!.scheme_points : [];
-    const schemeBullets = points
-      .map((p) => `- ${p.text ?? ""}${p.marks ? ` (${p.marks} mark${p.marks > 1 ? "s" : ""})` : ""}`)
-      .join("\n") || "- (no points listed)";
 
     // -- 8. Mark with Claude (structured JSON output) ----------------------
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) return json({ error: "marking is not configured" }, 500);
 
-    const userText =
-      `Question (max ${question.marks} marks): ${question.prompt}\n\n` +
-      `Mark scheme — creditworthy points:\n${schemeBullets}\n` +
-      (scheme?.model_answer ? `\nModel answer: ${scheme.model_answer}\n` : "") +
-      (scheme?.marking_notes ? `Marking notes: ${scheme.marking_notes}\n` : "") +
-      `\nStudent answer:\n"""${answerText}"""`;
+    const translation = (question.mark_style ?? "points") === "translation";
+    let userText: string;
+    if (translation) {
+      userText =
+        `Sentence to translate from ${subject} into English (max ${question.marks} marks):\n${question.prompt}\n\n` +
+        (scheme?.model_answer ? `Correct translation: ${scheme.model_answer}\n` : "Correct translation: (not supplied — judge from the original)\n") +
+        (scheme?.marking_notes ? `Marking notes: ${scheme.marking_notes}\n` : "") +
+        `\nStudent's English translation:\n"""${answerText}"""`;
+    } else {
+      const points: Array<{ text?: string; marks?: number }> = Array.isArray(scheme?.scheme_points) ? scheme!.scheme_points : [];
+      const schemeBullets = points
+        .map((p) => `- ${p.text ?? ""}${p.marks ? ` (${p.marks} mark${p.marks > 1 ? "s" : ""})` : ""}`)
+        .join("\n") || "- (no points listed)";
+      userText =
+        `Question (max ${question.marks} marks): ${question.prompt}\n\n` +
+        `Mark scheme — creditworthy points:\n${schemeBullets}\n` +
+        (scheme?.model_answer ? `\nModel answer: ${scheme.model_answer}\n` : "") +
+        (scheme?.marking_notes ? `Marking notes: ${scheme.marking_notes}\n` : "") +
+        `\nStudent answer:\n"""${answerText}"""`;
+    }
 
     const anthRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -176,26 +254,9 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: MAX_OUTPUT_TOKENS,
-        system:
-          "You are marking a GCSE Classical Civilisation short answer against the teacher's " +
-          "mark scheme. Award whole marks only, between 0 and the maximum. Credit a point if the " +
-          "student's answer conveys it, allowing synonyms, paraphrase and minor spelling slips — do " +
-          "not require exact wording. Never award marks for anything not in the scheme. " +
-          "Write the 'rationale' as ONE short sentence spoken directly TO the student (\"you\") — warm " +
-          "and constructive: say what you credited and, if marks were lost, what to add next time. Do " +
-          "not refer to \"the student\" in the third person, and do not restate the marks total.",
+        system: translation ? TRANSLATION_SYSTEM(subject) : POINTS_SYSTEM(subject),
         messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
-        output_config: { format: { type: "json_schema", schema: {
-          type: "object", additionalProperties: false,
-          required: ["marks_awarded", "max_marks", "matched_points", "missing_points", "rationale"],
-          properties: {
-            marks_awarded:  { type: "integer" },
-            max_marks:      { type: "integer" },
-            matched_points: { type: "array", items: { type: "string" } },
-            missing_points: { type: "array", items: { type: "string" } },
-            rationale:      { type: "string", description: "One short sentence of feedback addressed to the student as 'you'." },
-          },
-        } } },
+        output_config: { format: { type: "json_schema", schema: translation ? TRANSLATION_SCHEMA : POINTS_SCHEMA } },
       }),
     });
 
@@ -215,12 +276,15 @@ Deno.serve(async (req) => {
       return json({ error: "marking unavailable, please try again" }, 502);
     }
     const textBlock = (anth.content || []).find((b: { type: string }) => b.type === "text");
-    let parsed: { marks_awarded?: number; matched_points?: string[]; rationale?: string };
+    let parsed: { marks_awarded?: number; matched_points?: string[]; minor_errors?: string[]; serious_errors?: string[]; rationale?: string };
     try { parsed = JSON.parse(textBlock?.text ?? "{}"); } catch { return json({ error: "could not parse marks" }, 502); }
 
     // Clamp to the question's range as a guard.
     const marks = Math.max(0, Math.min(question.marks, Math.round(Number(parsed.marks_awarded ?? 0))));
-    const matched = Array.isArray(parsed.matched_points) ? parsed.matched_points : [];
+    const matched = translation
+      ? [...(Array.isArray(parsed.serious_errors) ? parsed.serious_errors : []).map((e) => `serious: ${e}`),
+         ...(Array.isArray(parsed.minor_errors) ? parsed.minor_errors : []).map((e) => `minor: ${e}`)]
+      : (Array.isArray(parsed.matched_points) ? parsed.matched_points : []);
     const rationale = String(parsed.rationale ?? "").slice(0, 800);
 
     // -- 9. Write the answer (service role; live release) -------------------
