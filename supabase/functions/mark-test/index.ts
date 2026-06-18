@@ -421,11 +421,8 @@ Deno.serve(async (req) => {
       }, { onConflict: "submission_id,question_id" });
       results.push({ question_id: q.id, status: "marked", marks: r.marks, max: q.marks, rationale: r.rationale,
         correct, errors: isTranslation ? r.matched : undefined, concepts: conceptTitles.length ? conceptTitles : undefined });
-<<<<<<< HEAD
       summaryItems.push(`- ${r.marks}/${q.marks}${r.rationale ? " — " + r.rationale : ""}`);
       conceptTitles.forEach((t) => focusSet.add(t));
-=======
->>>>>>> origin/main
     }
 
     const totalMarks = questions.reduce((s, q) => s + q.marks, 0);
@@ -456,11 +453,7 @@ Deno.serve(async (req) => {
         .upsert(nuggetEvents, { onConflict: "submission_id,question_id,nugget_id", ignoreDuplicates: true });
     }
 
-<<<<<<< HEAD
     return json({ results, total_awarded: totalAwarded, total_marks: totalMarks, paused, summary: aiSummary, focus });
-=======
-    return json({ results, total_awarded: totalAwarded, total_marks: totalMarks, paused });
->>>>>>> origin/main
   } catch (e) {
     return json({ error: "unexpected error", detail: String(e) }, 500);
   }
