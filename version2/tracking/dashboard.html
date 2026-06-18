@@ -1776,28 +1776,36 @@ init().then(() => {
     if(!nugs || !nugs.length) return;                 // no taxonomy = nothing to show
     const agg={}; (ev||[]).forEach(e=>{ const a=agg[e.nugget_id]||(agg[e.nugget_id]={seen:0,correct:0}); a.seen++; if(e.correct) a.correct++; });
     const totalSeen = Object.keys(agg).reduce((s,k)=>s+agg[k].seen,0);
-    // Gentle, encouraging scale: soft sage = secure, through to soft coral =
-    // worth a focus. No harsh greens/reds. Recomputed every load from ALL of
-    // your events, so chips shift as you do more translations.
-    const colour=(a)=>{ if(!a||!a.seen) return '#dde1e8'; const r=a.correct/a.seen; return r>=0.85?'#8ec79a':r>=0.6?'#bcd69e':r>=0.4?'#f1d79a':'#eaa994'; };
+    // Gentle, encouraging scale: soft green = secure, amber = building, soft
+    // coral = worth a focus, grey = not practised. Recomputed every load from
+    // ALL of your events, so the bars move as you do more translations.
+    const colour=(a)=>{ if(!a||!a.seen) return '#cfd6e0'; const r=a.correct/a.seen; return r>=0.7?'#8ec79a':r>=0.4?'#f1d79a':'#eaa994'; };
     const cats=[]; nugs.forEach(n=>{ if(cats.indexOf(n.category)<0) cats.push(n.category); });
     let body='';
     cats.forEach(cat=>{
       const items=nugs.filter(n=>n.category===cat);
-      body+='<div style="margin:14px 0 6px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">'+esc(cat)+'</div>';
-      body+='<div style="display:flex;flex-wrap:wrap;gap:7px;">'+items.map(function(n){
-        const a=agg[n.id]; const c=colour(a);
+      body+='<div style="margin:18px 0 8px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">'+esc(cat)+'</div>';
+      body+=items.map(function(n){
+        const a=agg[n.id]; const c=colour(a); const pct=a&&a.seen?Math.round(a.correct/a.seen*100):0;
         const tip = n.title + (a&&a.seen ? (' — '+a.correct+'/'+a.seen+' right') : ' — not practised yet');
-        const chip='<span title="'+esc(tip)+'" style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:999px;padding:5px 11px;">'+
-          '<span style="width:10px;height:10px;border-radius:50%;flex:none;background:'+c+';"></span>'+esc(n.title)+'</span>';
-        return n.revision_url?('<a href="'+esc(n.revision_url)+'" style="text-decoration:none;">'+chip+'</a>'):chip;
-      }).join('')+'</div>';
+        const row='<div title="'+esc(tip)+'" style="display:grid;grid-template-columns:minmax(110px,160px) 1fr 46px;align-items:center;gap:12px;margin:8px 0;">'+
+          '<div style="font-size:13px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(n.title)+'</div>'+
+          '<div style="height:12px;border-radius:999px;background:#eef1f5;overflow:hidden;"><div style="height:100%;border-radius:999px;width:'+(a&&a.seen?Math.max(pct,6):0)+'%;background:'+c+';transition:width .3s;"></div></div>'+
+          '<div style="font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums;">'+(a&&a.seen?(a.correct+'/'+a.seen):'–')+'</div>'+
+          '</div>';
+        return n.revision_url?('<a href="'+esc(n.revision_url)+'" style="text-decoration:none;color:inherit;display:block;">'+row+'</a>'):row;
+      }).join('');
     });
+    // Visual key — little pills instead of a sentence.
+    const KEY=[['#8ec79a','Secure'],['#f1d79a','Building'],['#eaa994','Worth a focus'],['#cfd6e0','Not practised']];
+    const keyHtml='<div style="display:flex;flex-wrap:wrap;gap:8px;">'+KEY.map(function(k){
+      return '<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);background:var(--paper);border:1px solid var(--rule);border-radius:999px;padding:3px 10px;">'+
+        '<span style="width:10px;height:10px;border-radius:50%;flex:none;background:'+k[0]+';"></span>'+k[1]+'</span>';
+    }).join('')+'</div>';
     const el=document.getElementById('grammarPanel'); if(!el) return;
     el.innerHTML='<div class="dash-card"><div class="dash-card-head"><span class="dash-card-title">Grammar confidence · Latin GCSE</span></div>'+
-      '<div style="padding:14px 18px;">'+
-      '<div style="font-size:12px;color:var(--muted);margin-bottom:2px;line-height:1.5;">Every GCSE grammar concept — <b style="color:#5aa06a;">green</b> is secure, <b style="color:#d98f76;">soft red</b> is worth a focus, grey not practised yet. '+
-        (totalSeen?'These shift as you do more Latin translations.':'<b>Do a Latin translation to start colouring these in.</b>')+'</div>'+
+      '<div style="padding:14px 18px;">'+ keyHtml +
+      (totalSeen?'':'<div style="font-size:12px;color:var(--muted);margin-top:8px;">Do a Latin translation to start filling these in.</div>')+
       body+'</div></div>';
     function isLatinGcse(){ try{ if(typeof currentVocabCourse==='string') return currentVocabCourse==='latin-gcse'; }catch(e){} const t=document.querySelector('#courseTabs .course-tab.active'); return !t || t.dataset.courseType==='latin-gcse'; }
     function updateVis(){ el.style.display = isLatinGcse() ? '' : 'none'; }
