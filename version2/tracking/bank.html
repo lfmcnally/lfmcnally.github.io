@@ -231,17 +231,34 @@ function renderHome(){
   viewIsTeacher = ownedClasses.length>0;
   const studentClassIds = myClasses.filter(c=>c.teacher_id!==me_id).map(c=>c.id);
   const myAssignments = assignments.filter(a=>studentClassIds.includes(a.class_id));
+  const assignedOnly = new URLSearchParams(location.search).get('view')==='assigned';
+
+  const assignedCard = (a)=>{
+    const ass = assessments.find(x=>x.id===a.assessment_id);
+    const title = ass ? ass.title : 'Assessment';
+    return '<div class="card"><div class="row" data-asg="'+a.id+'" data-ass="'+a.assessment_id+'" style="cursor:pointer;">' +
+      '<div><div class="tt">'+esc(title)+'</div><div class="muted">'+(a.due_at?('Due '+new Date(a.due_at).toLocaleString()):'No due date')+'</div></div>' +
+      '<span class="spacer"></span><span class="btn ghost sm">Open →</span></div></div>';
+  };
+
+  // Focused "Assigned Assessment" view — just what a teacher has set for you.
+  if(assignedOnly){
+    let h = '<div class="section-h">Set for you</div>';
+    if(myAssignments.length){
+      h += myAssignments.map(assignedCard).join('');
+    } else {
+      h += '<div class="card" style="text-align:center;"><div class="muted" style="padding:8px 4px;">No assessments assigned to you right now. When a teacher sets one, it’ll appear here.</div></div>';
+    }
+    h += '<div style="margin-top:16px;"><a class="btn ghost sm" href="/version2/tracking/bank.html">Browse the bank →</a></div>';
+    $('home').innerHTML = h;
+    $('home').querySelectorAll('[data-asg]').forEach(r=>r.addEventListener('click',()=>startAssignment(r.dataset.asg, r.dataset.ass)));
+    return;
+  }
 
   let html = '';
   if(myAssignments.length){
     html += '<div class="section-h">Set for you</div>';
-    html += myAssignments.map(a=>{
-      const ass = assessments.find(x=>x.id===a.assessment_id);
-      const title = ass ? ass.title : 'Assessment';
-      return '<div class="card"><div class="row" data-asg="'+a.id+'" data-ass="'+a.assessment_id+'" style="cursor:pointer;">' +
-        '<div><div class="tt">'+esc(title)+'</div><div class="muted">'+(a.due_at?('Due '+new Date(a.due_at).toLocaleString()):'No due date')+'</div></div>' +
-        '<span class="spacer"></span><span class="btn ghost sm">Open →</span></div></div>';
-    }).join('');
+    html += myAssignments.map(assignedCard).join('');
   }
 
   if(myWeakConcepts.length){

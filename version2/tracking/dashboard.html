@@ -243,7 +243,7 @@ body { background: var(--cream); }
 .smart-btn.secondary:hover .smart-btn-arrow { color:var(--navy); }
 @media (max-width:560px){ .smart-btn-row { grid-template-columns:1fr; } }
 /* compact icon action row */
-.icon-actions { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px; }
+.icon-actions { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
 .icon-action { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:20px 12px; background:var(--paper); border:1px solid var(--rule); border-radius:12px; text-decoration:none; transition:border-color .12s, box-shadow .12s, transform .06s; }
 .icon-action:hover { border-color:var(--brand); box-shadow:0 5px 16px rgba(14,30,63,.08); }
 .icon-action:active { transform:translateY(1px); }
@@ -253,6 +253,8 @@ body { background: var(--cream); }
 .ia-vocab { background:#eef4ff; color:var(--brand); }
 .ia-donow { background:#fff3e8; color:#b9650f; }
 .ia-assess { background:#f6f1fb; color:#7c3aed; }
+.ia-assigned { background:#eef6ee; color:#2a6e2a; }
+@media (max-width:680px){ .icon-actions { grid-template-columns:repeat(2,1fr); } }
 @media (max-width:560px){ .icon-action { padding:16px 8px; } .icon-action .ia-label { font-size:13px; } }
 /* Compact action strip (used on the Myth & Religion tracker) */
 .action-strip { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; }
@@ -464,7 +466,7 @@ body { background: var(--cream); }
     <div id="hwList"></div>
   </div>
   <div id="course-vocab">
-  <div id="vocabTestSlot"></div>
+  <div id="vocabTestSlot" style="display:none"></div>
   <div class="icon-actions">
     <a class="icon-action" href="/version2/tools/vocab/latinvocabtester.html?auto=1" data-vocab-tester data-tester-suffix="?auto=1">
       <span class="ia-ic ia-vocab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10.5 5 8 4.5 4 4.5V18c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2V4.5c-4 0-6.5.5-8 2z"/><path d="M12 6.5V20"/></svg></span>
@@ -476,7 +478,11 @@ body { background: var(--cream); }
     </a>
     <a class="icon-action" href="/version2/tracking/bank.html">
       <span class="ia-ic ia-assess"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="m9 13 2 2 4-4"/></svg></span>
-      <span class="ia-label">Assessments</span>
+      <span class="ia-label">Assessment Bank</span>
+    </a>
+    <a class="icon-action" href="/version2/tracking/bank.html?view=assigned">
+      <span class="ia-ic ia-assigned"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></span>
+      <span class="ia-label">Assigned</span>
     </a>
   </div>
   <div class="anon-banner" id="anonBanner" style="display:none;background:#fff7e6;border:1px solid #fde68a;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#7c4a03;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -1770,7 +1776,10 @@ init().then(() => {
     if(!nugs || !nugs.length) return;                 // no taxonomy = nothing to show
     const agg={}; (ev||[]).forEach(e=>{ const a=agg[e.nugget_id]||(agg[e.nugget_id]={seen:0,correct:0}); a.seen++; if(e.correct) a.correct++; });
     const totalSeen = Object.keys(agg).reduce((s,k)=>s+agg[k].seen,0);
-    const colour=(a)=>{ if(!a||!a.seen) return '#cbd2dc'; const r=a.correct/a.seen; return r>=0.85?'#2a8a3e':r>=0.6?'#84c053':r>=0.4?'#e6a700':'#d65745'; };
+    // Gentle, encouraging scale: soft sage = secure, through to soft coral =
+    // worth a focus. No harsh greens/reds. Recomputed every load from ALL of
+    // your events, so chips shift as you do more translations.
+    const colour=(a)=>{ if(!a||!a.seen) return '#dde1e8'; const r=a.correct/a.seen; return r>=0.85?'#8ec79a':r>=0.6?'#bcd69e':r>=0.4?'#f1d79a':'#eaa994'; };
     const cats=[]; nugs.forEach(n=>{ if(cats.indexOf(n.category)<0) cats.push(n.category); });
     let body='';
     cats.forEach(cat=>{
@@ -1787,8 +1796,8 @@ init().then(() => {
     const el=document.getElementById('grammarPanel'); if(!el) return;
     el.innerHTML='<div class="dash-card"><div class="dash-card-head"><span class="dash-card-title">Grammar confidence · Latin GCSE</span></div>'+
       '<div style="padding:14px 18px;">'+
-      '<div style="font-size:12px;color:var(--muted);margin-bottom:2px;line-height:1.5;">Every GCSE grammar concept — <b style="color:#2a8a3e;">green</b> is secure, <b style="color:#d65745;">red</b> needs work, grey not practised yet. '+
-        (totalSeen?'Fills in as you do Latin translations.':'<b>Do a Latin translation to start colouring these in.</b>')+'</div>'+
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:2px;line-height:1.5;">Every GCSE grammar concept — <b style="color:#5aa06a;">green</b> is secure, <b style="color:#d98f76;">soft red</b> is worth a focus, grey not practised yet. '+
+        (totalSeen?'These shift as you do more Latin translations.':'<b>Do a Latin translation to start colouring these in.</b>')+'</div>'+
       body+'</div></div>';
     function isLatinGcse(){ try{ if(typeof currentVocabCourse==='string') return currentVocabCourse==='latin-gcse'; }catch(e){} const t=document.querySelector('#courseTabs .course-tab.active'); return !t || t.dataset.courseType==='latin-gcse'; }
     function updateVis(){ el.style.display = isLatinGcse() ? '' : 'none'; }
