@@ -415,6 +415,10 @@ body { background:var(--cream); }
     </div>
     <div id="assignmentsList"></div>
   </div>
+  <div class="dash-card" id="classGrammarCard" style="margin-bottom:20px;display:none;">
+    <div class="dash-card-head"><span class="dash-card-title">Class grammar confidence · Latin GCSE</span></div>
+    <div id="classGrammarBody" style="padding:14px 18px;"></div>
+  </div>
   <div class="dash-grid">
     <div>
       <div class="dash-card">
@@ -1216,6 +1220,50 @@ async function submitAssignment() {
   renderAssignments(cls);
 }
 
+// ── Class-wide grammar confidence (Latin GCSE) ─────────────────────────────
+// Aggregates each student's nugget events across the class so a teacher sees
+// which concepts the group is shaky on. Needs migration 076 (teacher read).
+async function renderClassGrammar(cls) {
+  const card = document.getElementById('classGrammarCard');
+  const bodyEl = document.getElementById('classGrammarBody');
+  if (!card || !bodyEl) return;
+  if (cls.type !== 'latin-gcse') { card.style.display = 'none'; return; }
+  card.style.display = '';
+  const ids = (cls.students || []).map(s => s.id);
+  if (!ids.length) { bodyEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">No students yet.</div>'; return; }
+  bodyEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">Loading…</div>';
+  try {
+    const [{ data: nugs }, { data: ev }] = await Promise.all([
+      window.supabase.from('grammar_nuggets').select('id,title,position,chapter').eq('subject','latin').eq('level','gcse').order('position'),
+      window.supabase.from('student_nugget_events').select('nugget_id, correct').in('student_id', ids),
+    ]);
+    if (!nugs || !nugs.length) { bodyEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">No grammar data yet.</div>'; return; }
+    const agg = {}; (ev || []).forEach(e => { const a = agg[e.nugget_id] || (agg[e.nugget_id] = { seen:0, correct:0 }); a.seen++; if (e.correct) a.correct++; });
+    const totalSeen = Object.keys(agg).reduce((s,k)=>s+agg[k].seen,0);
+    if (!totalSeen) { bodyEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">No grammar practice marked yet. Confidence fills in as the class does Latin translations.</div>'; return; }
+    const colour = a => { if (!a || !a.seen) return '#e8eaf0'; const r = a.correct/a.seen; return r>=0.7?'#1A6FFF':r>=0.4?'#86efac':'#fca5a5'; };
+    const chapters = []; nugs.forEach(n => { const ch = n.chapter||0; if (chapters.indexOf(ch)<0) chapters.push(ch); });
+    chapters.sort((a,b)=>(a===0?999:a)-(b===0?999:b));
+    let html = '';
+    chapters.forEach(ch => {
+      const items = nugs.filter(n => (n.chapter||0)===ch && agg[n.id]);   // only concepts the class has met
+      if (!items.length) return;
+      html += '<div style="margin:16px 0 8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--navy);">' + (ch===0?'Common slips':('Chapter '+ch)) + '</div>';
+      html += items.map(n => {
+        const a = agg[n.id]; const pct = Math.round(a.correct/a.seen*100);
+        return '<div title="'+escapeHtml(n.title+' — '+a.correct+'/'+a.seen+' across the class')+'" style="display:grid;grid-template-columns:minmax(120px,180px) 1fr 52px;align-items:center;gap:12px;margin:8px 0;">' +
+          '<div style="font-size:13px;color:var(--ink);line-height:1.3;">'+escapeHtml(n.title)+'</div>' +
+          '<div style="height:12px;border-radius:999px;background:#e8eaf0;overflow:hidden;"><div style="height:100%;border-radius:999px;width:'+Math.max(pct,6)+'%;background:'+colour(a)+';"></div></div>' +
+          '<div style="font-size:12px;color:var(--muted);text-align:right;">'+pct+'%</div>' +
+        '</div>';
+      }).join('');
+    });
+    bodyEl.innerHTML = '<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Across all students who\'ve done Latin translations — blue is secure, red is worth reteaching.</div>' + html;
+  } catch (e) {
+    bodyEl.innerHTML = '<div style="color:var(--muted);font-size:13px;">Could not load class grammar' + (/(permission|policy|denied)/i.test(String(e&&e.message))?' — migration 076 may not be applied yet.':'.') + '</div>';
+  }
+}
+
 // ── Class export (CSV + printable report) ──────────────────────────────────
 function studentStatsFor(s) {
   let secure = 0, struggling = 0, sumP = 0, withP = 0, attempted = 0;
@@ -1352,6 +1400,7 @@ function renderClass(idx) {
   if (ovChapter) ovChapter.addEventListener('click', () => editClassChapter(cls));
 
   renderAssignments(cls);
+  renderClassGrammar(cls);
 
   document.getElementById('tableTitle').textContent = `${cls.name} · ${studentCount} student${studentCount === 1 ? '' : 's'}`;
   const body = document.getElementById('studentTableBody');
