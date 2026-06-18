@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resource bank — authoring — Classicalia</title>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<style>
+body { background: var(--cream); }
+.wrap { max-width: 920px; margin: 0 auto; padding: 28px 20px 90px; }
+.gate { max-width: 520px; margin: 60px auto; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 28px; text-align: center; }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.spacer { flex: 1; }
+label.lbl { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 5px; }
+input.f, select.f, textarea.f { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 9px 11px; border: 1.5px solid var(--rule); border-radius: 7px; background: var(--paper); color: var(--ink); outline: none; }
+input.f:focus, select.f:focus, textarea.f:focus { border-color: var(--brand); }
+textarea.f { resize: vertical; min-height: 56px; }
+.btn { font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; padding: 9px 16px; border-radius: 7px; border: none; background: var(--brand); color: #fff; cursor: pointer; }
+.btn:hover { background: #155ee0; }
+.btn.ghost { background: var(--paper); color: var(--ink); border: 1px solid var(--rule); font-weight: 600; }
+.btn.ghost:hover { background: var(--cream); }
+.btn.dark { background: var(--navy); }
+.btn.danger { background: var(--paper); color: #b91c1c; border: 1px solid #fecaca; font-weight: 600; }
+.btn.sm { font-size: 12px; padding: 6px 11px; }
+.card { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(14,30,63,.04); }
+.card h3 { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 19px; color: var(--navy); margin: 0; }
+.muted { color: var(--muted); font-size: 12.5px; }
+.pillbadge { display: inline-block; font-size: 9.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
+.st-draft { background: var(--rule-faint); color: var(--muted); }
+.st-published { background: #eef6ee; color: #2a6e2a; }
+.st-archived { background: #fdecec; color: #b91c1c; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.qcard { border: 1px solid var(--rule); border-radius: 9px; padding: 14px 16px; margin-bottom: 12px; background: var(--cream); }
+.sps { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.sp { display: flex; gap: 8px; align-items: center; }
+.sp input.txt { flex: 1; }
+.sp input.mk { width: 64px; }
+.thumb { max-width: 160px; max-height: 110px; border-radius: 6px; border: 1px solid var(--rule); display: block; margin-top: 8px; }
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; font-size: 13px; padding: 9px 18px; border-radius: 8px; opacity: 0; transition: opacity .2s; z-index: 100; }
+.toast.show { opacity: 1; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="header">
+  <canvas class="header-sky" data-starfield data-seed="717" data-region="0.8"></canvas>
+  <nav class="nav"><div class="nav-inner">
+    <a href="/version2/" class="nav-logo">Classicalia</a>
+    <div class="nav-links">
+      <a href="/version2/admin/" class="nav-link">Admin</a>
+      <a href="/version2/tracking/teacher.html" class="nav-link">Classes</a>
+      <div class="nav-div"></div>
+      <div data-account-menu></div>
+    </div>
+  </div></nav>
+  <div class="header-inner">
+    <div class="header-eyebrow">Admin · Resource bank</div>
+    <h1 class="header-title">Assessment authoring</h1>
+    <p class="header-deck">Build the curated bank of assessments — organised by course and topic — that teachers assign and students take.</p>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="gate" class="gate hidden"></div>
+
+  <div id="app" class="hidden">
+    <div class="row">
+      <div style="min-width:240px;">
+        <label class="lbl">Course</label>
+        <select id="courseSel" class="f"></select>
+      </div>
+      <div style="min-width:220px;">
+        <label class="lbl">Topic (filter)</label>
+        <select id="topicSel" class="f"></select>
+      </div>
+      <div class="spacer"></div>
+      <div style="display:flex;gap:8px;align-items:flex-end;">
+        <button class="btn ghost sm" id="addCourse">+ Course</button>
+        <button class="btn ghost sm" id="addTopic">+ Topic</button>
+      </div>
+    </div>
+
+    <section id="main" style="margin-top:18px;"></section>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/version2/assets/js/starfield.js"></script>
+<script>
+'use strict';
+const sb = window.supabase;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const slugify = (s) => String(s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60) || ('x-'+Math.random().toString(36).slice(2,7));
+let toastT;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200); }
+function imgSrc(path){ if(!path) return ''; if(/^https?:\/\//.test(path)||path.startsWith('/')) return path; return sb.storage.from('weekly-test-images').getPublicUrl(path).data.publicUrl; }
+
+let me_id = null, courses = [], topics = [], assessments = [];
+let courseId = null, topicFilter = '';
+
+(async function init(){
+  const { data: au } = await sb.auth.getUser();
+  const user = au?.user;
+  if(!user){ return gate('Please <a href="/auth/login.html">sign in</a> as an admin to author the resource bank.'); }
+  me_id = user.id;
+  const { data: profile } = await sb.from('users').select('is_admin').eq('id', user.id).single();
+  if(!profile || !profile.is_admin){ return gate('This page is for site admins — the bank is curated. (Row-level security also enforces this server-side.)'); }
+
+  const { data: cs } = await sb.from('bank_courses').select('*').order('subject').order('position');
+  courses = cs || [];
+  if(!courses.length){ return gate('No courses yet. Apply migration 061 (which seeds the course list), or add one once the table exists.'); }
+
+  $('app').classList.remove('hidden');
+  courseId = courses[0].id;
+  $('courseSel').innerHTML = courses.map(c=>`<option value="${c.id}">${esc(c.subject)} · ${esc(c.title)}</option>`).join('');
+  $('courseSel').addEventListener('change', async ()=>{ courseId = $('courseSel').value; topicFilter=''; await loadTopics(); await loadAssessments(); renderList(); });
+  $('topicSel').addEventListener('change', ()=>{ topicFilter = $('topicSel').value; renderList(); });
+  $('addCourse').addEventListener('click', addCourse);
+  $('addTopic').addEventListener('click', addTopic);
+  await loadTopics(); await loadAssessments(); renderList();
+})();
+
+function gate(html){ const g=$('gate'); g.innerHTML='<p style="font-size:15px;color:var(--ink);line-height:1.6;">'+html+'</p>'; g.classList.remove('hidden'); }
+
+async function loadTopics(){
+  const { data } = await sb.from('bank_topics').select('*').eq('course_id', courseId).order('position');
+  topics = data || [];
+  $('topicSel').innerHTML = '<option value="">All topics</option>' + topics.map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join('');
+}
+async function loadAssessments(){
+  const { data } = await sb.from('bank_assessments').select('*').eq('course_id', courseId).order('created_at',{ascending:false});
+  assessments = data || [];
+}
+
+async function addCourse(){
+  const title = prompt('Course title (e.g. "Roman City Life"):'); if(!title) return;
+  const subject = prompt('Subject — one of: classical-civilisation, latin, greek', 'classical-civilisation'); if(!subject) return;
+  const { data, error } = await sb.from('bank_courses').insert({ subject: subject.trim(), title: title.trim(), slug: slugify(subject+'-'+title), position: courses.length*10 }).select().single();
+  if(error) return toast('Could not add course: '+error.message);
+  courses.push(data); $('courseSel').innerHTML = courses.map(c=>`<option value="${c.id}">${esc(c.subject)} · ${esc(c.title)}</option>`).join('');
+  $('courseSel').value = data.id; courseId = data.id; topicFilter=''; await loadTopics(); await loadAssessments(); renderList(); toast('Course added');
+}
+async function addTopic(){
+  const title = prompt('Topic title (e.g. "Death and burial"):'); if(!title) return;
+  const { data, error } = await sb.from('bank_topics').insert({ course_id: courseId, title: title.trim(), slug: slugify(title), position: topics.length*10 }).select().single();
+  if(error) return toast('Could not add topic: '+error.message);
+  await loadTopics(); $('topicSel').value = data.id; topicFilter = data.id; renderList(); toast('Topic added');
+}
+
+// ─────────────────────────────── LIST ───────────────────────────────
+function renderList(){
+  const root = $('main');
+  const shown = topicFilter ? assessments.filter(a=>a.topic_id===topicFilter) : assessments;
+  const topicName = (id)=> (topics.find(t=>t.id===id)?.title) || '—';
+  root.innerHTML =
+    '<div class="row" style="margin-bottom:14px;"><h3 style="font-family:Lora,serif;font-style:italic;color:var(--navy);margin:0;">Assessments</h3><span class="spacer"></span><button class="btn" id="newA">+ New assessment</button></div>' +
+    (shown.length ? '' : '<p class="muted">No assessments here yet. Create one to get started.</p>') +
+    shown.map(a=>(
+      '<div class="card"><div class="row">' +
+        '<div><h3>'+esc(a.title)+'</h3><div class="muted">'+esc(topicName(a.topic_id))+'</div></div>' +
+        '<span class="spacer"></span>' +
+        '<span class="pillbadge st-'+a.status+'">'+a.status+'</span>' +
+        '<button class="btn ghost sm" data-edit="'+a.id+'">Edit</button>' +
+      '</div></div>'
+    )).join('');
+  $('newA').addEventListener('click', async ()=>{
+    const { data, error } = await sb.from('bank_assessments').insert({
+      course_id: courseId, topic_id: topicFilter || null, created_by: me_id, title: 'New assessment'
+    }).select().single();
+    if(error) return toast('Could not create: '+error.message);
+    assessments.unshift(data); openEditor(data.id);
+  });
+  root.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>openEditor(b.dataset.edit)));
+}
+
+// ─────────────────────────────── EDITOR ───────────────────────────────
+async function openEditor(assessmentId){
+  const a = assessments.find(x=>x.id===assessmentId);
+  const { data: qs } = await sb.from('bank_assessment_questions').select('*').eq('assessment_id', assessmentId).order('position');
+  const questions = qs || [];
+  const ids = questions.map(q=>q.id);
+  let schemes = {};
+  if(ids.length){ const { data: sc } = await sb.from('bank_assessment_mark_schemes').select('*').in('question_id', ids); (sc||[]).forEach(s=>schemes[s.question_id]=s); }
+
+  const root = $('main');
+  root.innerHTML =
+   '<button class="btn ghost sm" id="back">← All assessments</button>' +
+   '<div class="card" style="margin-top:12px;">' +
+     '<div class="grid2">' +
+       '<div><label class="lbl">Title</label><input class="f" id="e_title" value="'+esc(a.title)+'"></div>' +
+       '<div><label class="lbl">Topic</label><select class="f" id="e_topic"><option value="">— none —</option>'+topics.map(t=>'<option value="'+t.id+'"'+(a.topic_id===t.id?' selected':'')+'>'+esc(t.title)+'</option>').join('')+'</select></div>' +
+     '</div>' +
+     '<div class="grid4" style="margin-top:12px;">' +
+       '<div><label class="lbl">Status</label><select class="f" id="e_status">'+['draft','published','archived'].map(s=>'<option '+(a.status===s?'selected':'')+'>'+s+'</option>').join('')+'</select></div>' +
+       '<div><label class="lbl">Attempts / question</label><input class="f" id="e_att" type="number" min="1" max="5" value="'+a.max_attempts_per_question+'"></div>' +
+       '<div><label class="lbl">Max answer length</label><input class="f" id="e_len" type="number" min="100" max="4000" value="'+a.max_answer_chars+'"></div>' +
+       '<div style="display:flex;align-items:flex-end;"><button class="btn" id="saveA">Save assessment</button></div>' +
+     '</div>' +
+     '<p class="muted" style="margin-top:10px;">Set status to <b>published</b> to make it visible to teachers and self-serve students. Drafts are admin-only.</p>' +
+   '</div>' +
+   '<div class="row" style="margin:6px 0 10px;"><h3 style="font-family:Lora,serif;font-style:italic;color:var(--navy);margin:0;">Questions</h3><span class="spacer"></span><button class="btn" id="addQ">+ Add question</button></div>' +
+   '<div id="qlist"></div>';
+
+  $('back').addEventListener('click', renderList);
+  $('saveA').addEventListener('click', async ()=>{
+    const patch = {
+      title: $('e_title').value.trim() || 'Untitled',
+      topic_id: $('e_topic').value || null,
+      status: $('e_status').value,
+      max_attempts_per_question: Math.max(1,Math.min(5, +$('e_att').value||1)),
+      max_answer_chars: Math.max(100,Math.min(4000, +$('e_len').value||1200)),
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await sb.from('bank_assessments').update(patch).eq('id', assessmentId);
+    if(error) return toast('Save failed: '+error.message);
+    Object.assign(a, patch); toast('Saved');
+  });
+  $('addQ').addEventListener('click', async ()=>{
+    const { data, error } = await sb.from('bank_assessment_questions').insert({ assessment_id: assessmentId, position: questions.length, prompt: '', marks: 1 }).select().single();
+    if(error) return toast('Could not add: '+error.message);
+    questions.push(data); schemes[data.id] = { question_id:data.id, scheme_points:[], model_answer:'', marking_notes:'' };
+    drawQuestions();
+  });
+
+  function drawQuestions(){
+    const list = $('qlist');
+    list.innerHTML = questions.map((q,i)=>qEditorHTML(q, schemes[q.id]||{scheme_points:[]}, i)).join('') || '<p class="muted">No questions yet.</p>';
+    questions.forEach((q)=>wireQ(q));
+  }
+  function qEditorHTML(q, sc, i){
+    const pts = Array.isArray(sc.scheme_points)?sc.scheme_points:[];
+    const tr = q.mark_style==='translation';
+    return '<div class="qcard" data-q="'+q.id+'">' +
+      '<div class="row"><b style="color:var(--navy);">Q'+(i+1)+'</b><span class="spacer"></span><button class="btn danger sm" data-del="'+q.id+'">Delete</button></div>' +
+      '<div style="margin-top:8px;"><label class="lbl">Question / prompt</label><textarea class="f" data-f="prompt">'+esc(q.prompt)+'</textarea></div>' +
+      '<div style="margin-top:10px;"><label class="lbl">Marking style</label>' +
+        '<select class="f" data-f="style">' +
+          '<option value="points"'+(tr?'':' selected')+'>Points-based — credit scheme points (Civ / comprehension)</option>' +
+          '<option value="translation"'+(tr?' selected':'')+'>Translation — holistic band /5 (Latin / Greek)</option>' +
+        '</select>' +
+        '<div class="muted" data-styhint style="margin-top:4px;font-size:12px;">'+styleHint(q.mark_style)+'</div>' +
+      '</div>' +
+      '<div class="grid3" style="margin-top:10px;">' +
+        '<div><label class="lbl">Marks</label><input class="f" type="number" min="1" max="10" data-f="marks" value="'+q.marks+'"></div>' +
+        '<div style="grid-column:span 2;"><label class="lbl">Image (optional)</label><input class="f" type="file" accept="image/*" data-f="imgfile"></div>' +
+      '</div>' +
+      (q.image_path?('<img class="thumb" src="'+imgSrc(q.image_path)+'" alt="">'):'') +
+      '<div style="margin-top:10px;"><label class="lbl">Mark scheme — creditworthy points</label><div class="sps" data-pts>'+
+        pts.map(p=>spRow(p)).join('')+'</div><button class="btn ghost sm" data-addpt style="margin-top:6px;">+ point</button></div>' +
+      '<div class="grid2" style="margin-top:10px;">' +
+        '<div><label class="lbl" data-modellabel>'+(tr?'Correct translation (required)':'Model answer (optional)')+'</label><textarea class="f" data-f="model">'+esc(sc.model_answer||'')+'</textarea></div>' +
+        '<div><label class="lbl">Marking notes (optional)</label><textarea class="f" data-f="notes">'+esc(sc.marking_notes||'')+'</textarea></div>' +
+      '</div>' +
+      '<div class="row" style="margin-top:10px;"><span class="spacer"></span><button class="btn" data-save="'+q.id+'">Save question</button></div>' +
+    '</div>';
+  }
+  function spRow(p){ return '<div class="sp"><input class="f txt" placeholder="creditworthy point" value="'+esc(p&&p.text||'')+'"><input class="f mk" type="number" min="1" placeholder="mk" value="'+(p&&p.marks||'')+'"><button class="btn danger sm" data-rmpt>×</button></div>'; }
+  function styleHint(style){
+    return style==='translation'
+      ? 'Put the Latin/Greek in the prompt and the correct English in <b>Correct translation</b>. Marked holistically out of 5 (OCR J282/J292 grid) — set marks to <b>5</b>. Creditworthy points are ignored.'
+      : 'The AI credits each creditworthy point the student conveys, allowing synonyms and paraphrase.';
+  }
+
+  function wireQ(q){
+    const card = $('qlist').querySelector('[data-q="'+q.id+'"]'); if(!card) return;
+    card.querySelector('[data-del]').addEventListener('click', async ()=>{
+      if(!confirm('Delete this question?')) return;
+      await sb.from('bank_assessment_questions').delete().eq('id', q.id);
+      const idx=questions.findIndex(x=>x.id===q.id); if(idx>=0) questions.splice(idx,1); delete schemes[q.id]; drawQuestions();
+    });
+    const styleSel = card.querySelector('[data-f="style"]');
+    styleSel.addEventListener('change', ()=>{
+      const tr = styleSel.value==='translation';
+      card.querySelector('[data-styhint]').innerHTML = styleHint(styleSel.value);
+      const ml = card.querySelector('[data-modellabel]'); if(ml) ml.textContent = tr ? 'Correct translation (required)' : 'Model answer (optional)';
+      const mk = card.querySelector('[data-f="marks"]'); if(tr && (+mk.value||1) < 2) mk.value = 5;
+    });
+    card.querySelector('[data-addpt]').addEventListener('click', ()=>{ card.querySelector('[data-pts]').insertAdjacentHTML('beforeend', spRow({})); bindPts(); });
+    function bindPts(){ card.querySelectorAll('[data-rmpt]').forEach(b=>b.onclick=()=>b.closest('.sp').remove()); }
+    bindPts();
+    const fileInput = card.querySelector('[data-f="imgfile"]');
+    fileInput.addEventListener('change', async ()=>{
+      const file = fileInput.files[0]; if(!file) return;
+      const path = me_id+'/'+assessmentId+'/'+crypto.randomUUID()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const { error } = await sb.storage.from('weekly-test-images').upload(path, file);
+      if(error) return toast('Upload failed: '+error.message);
+      q.image_path = path; await sb.from('bank_assessment_questions').update({ image_path: path }).eq('id', q.id); drawQuestions(); toast('Image uploaded');
+    });
+    card.querySelector('[data-save]').addEventListener('click', async ()=>{
+      const marks = Math.max(1,Math.min(10, +card.querySelector('[data-f="marks"]').value||1));
+      const qpatch = { prompt: card.querySelector('[data-f="prompt"]').value.trim(), marks, mark_style: card.querySelector('[data-f="style"]').value };
+      await sb.from('bank_assessment_questions').update(qpatch).eq('id', q.id); Object.assign(q, qpatch);
+      const points = [...card.querySelectorAll('.sp')].map(r=>({ text: r.querySelector('.txt').value.trim(), marks: +r.querySelector('.mk').value||undefined })).filter(p=>p.text);
+      const spatch = { question_id:q.id, scheme_points: points, model_answer: card.querySelector('[data-f="model"]').value.trim(), marking_notes: card.querySelector('[data-f="notes"]').value.trim(), updated_at: new Date().toISOString() };
+      await sb.from('bank_assessment_mark_schemes').upsert(spatch, { onConflict:'question_id' }); schemes[q.id]=spatch;
+      toast('Question saved');
+    });
+  }
+  drawQuestions();
+}
+</script>
+</body>
+</html>
