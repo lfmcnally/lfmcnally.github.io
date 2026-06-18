@@ -153,8 +153,9 @@ const topicTestCount = tid => inTopic(tid).length + subTopicsOf(tid).reduce((s,s
   const { data: au } = await sb.auth.getUser();
   if(!au?.user){ return gate('Please <a href="/auth/login.html">sign in</a> to use the assessment bank.'); }
   me_id = au.user.id;
-  const { data: prof } = await sb.from('users').select('can_self_serve_bank').eq('id', me_id).maybeSingle();
+  const { data: prof } = await sb.from('users').select('can_self_serve_bank, can_manage_bank').eq('id', me_id).maybeSingle();
   canSelfServe = !!prof?.can_self_serve_bank;
+  const canManage = !!prof?.can_manage_bank;
 
   const { data: cls } = await sb.from('v2_classes').select('id,name,type,teacher_id');
   myClasses = cls || [];
@@ -170,6 +171,14 @@ const topicTestCount = tid => inTopic(tid).length + subTopicsOf(tid).reduce((s,s
   // assignments visible to me (students see open ones for their classes)
   const { data: asg } = await sb.from('bank_class_assignments').select('*').eq('status','open');
   assignments = asg || [];
+
+  // Interim access lock: the bank is open to entitled accounts (admins + anyone
+  // granted access), plus students who actually have a test assigned to them.
+  const studentClassIds = myClasses.filter(c=>c.teacher_id!==me_id).map(c=>c.id);
+  const hasAssignment = assignments.some(a=>studentClassIds.includes(a.class_id));
+  if(!canSelfServe && !canManage && !hasAssignment){
+    return gate('The assessment bank isn’t open to your account yet. If you think it should be, please <a href="mailto:lawrencefmcnally@gmail.com">get in touch</a>.');
+  }
 
   renderHome();
 })();
