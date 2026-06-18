@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grammar confidence — layout preview</title>
+<style>
+  :root{ --ink:#1c2430; --muted:#6b7686; --paper:#fff; --rule:#e6e9ef; --navy:#16233b; }
+  body{ margin:0; background:#f3f5f8; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; padding:28px 18px 80px; }
+  .wrap{ max-width:760px; margin:0 auto; }
+  h1{ font-size:20px; margin:0 0 4px; }
+  .lead{ color:var(--muted); font-size:13px; margin:0 0 26px; }
+  .dash-card{ background:var(--paper); border:1px solid var(--rule); border-radius:14px; box-shadow:0 1px 2px rgba(14,30,63,.04); margin-bottom:26px; overflow:hidden; }
+  .dash-card-head{ padding:14px 18px; border-bottom:1px solid var(--rule); display:flex; align-items:center; justify-content:space-between; }
+  .dash-card-title{ font-weight:700; font-size:15px; color:var(--navy); }
+  .opt-tag{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#fff; background:#7c89a0; border-radius:999px; padding:3px 9px; }
+  .pad{ padding:14px 18px 20px; }
+  .legend{ font-size:12px; color:var(--muted); margin-bottom:14px; line-height:1.5; }
+  .cat{ margin:16px 0 8px; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+  .cat:first-child{ margin-top:0; }
+
+  /* ---- Option A: soft-filled tiles ---- */
+  .tiles{ display:flex; flex-wrap:wrap; gap:10px; }
+  .tile{ flex:1 1 150px; min-width:140px; border-radius:12px; padding:12px 14px; border:1px solid rgba(0,0,0,.05); }
+  .tile .nm{ font-weight:600; font-size:14px; color:#243; }
+  .tile .sc{ font-size:12px; color:rgba(0,0,0,.5); margin-top:3px; font-variant-numeric:tabular-nums; }
+
+  /* ---- Option B: confidence bars ---- */
+  .bars{ display:flex; flex-direction:column; gap:9px; }
+  .bar-row{ display:grid; grid-template-columns:150px 1fr 44px; align-items:center; gap:12px; }
+  .bar-name{ font-size:13px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bar-track{ height:12px; border-radius:999px; background:#eef1f5; overflow:hidden; }
+  .bar-fill{ height:100%; border-radius:999px; }
+  .bar-sc{ font-size:12px; color:var(--muted); text-align:right; font-variant-numeric:tabular-nums; }
+  @media (max-width:520px){ .bar-row{ grid-template-columns:110px 1fr 40px; gap:8px; } }
+
+  /* ---- Option C: bigger heat tiles ---- */
+  .heat{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:9px; }
+  .heat-tile{ border-radius:11px; padding:16px 13px; min-height:58px; display:flex; flex-direction:column; justify-content:center; border:1px solid rgba(0,0,0,.04); }
+  .heat-tile .nm{ font-weight:600; font-size:14px; }
+  .heat-tile .sc{ font-size:11px; opacity:.65; margin-top:2px; font-variant-numeric:tabular-nums; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Grammar confidence — pick a layout</h1>
+  <p class="lead">Same sample data in all three styles. Tell me the one you like (you can mix — e.g. “bars but with the score on the left”) and I’ll wire it into the real dashboard.</p>
+  <div id="root"></div>
+</div>
+<script>
+// Sample data: category, concept, correct, seen. null seen = not practised yet.
+const SAMPLE = [
+  ['Tenses', 'Imperfect tense', 4, 4],
+  ['Tenses', 'Perfect tense', 2, 5],
+  ['Tenses', 'Present tense', 5, 6],
+  ['Tenses', 'Pluperfect tense', 1, 3],
+  ['Tenses', 'Future tense', 0, 0],
+  ['Cases', 'Nominative', 6, 6],
+  ['Cases', 'Accusative', 3, 3],
+  ['Cases', 'Genitive', 2, 4],
+  ['Cases', 'Dative', 1, 4],
+  ['Cases', 'Ablative', 1, 5],
+  ['Number & agreement', 'Singular / plural', 4, 5],
+  ['Number & agreement', 'Adjective agreement', 2, 6],
+  ['Number & agreement', 'Prepositions + case', 0, 0],
+];
+
+// Gentle scale — soft sage to soft coral. ratio = correct/seen.
+function band(c, s){ if(!s) return {bg:'#eef1f5', bar:'#cfd6e0', text:'#7a8493', key:'none'}; const r=c/s;
+  if(r>=0.85) return {bg:'#e3f3e6', bar:'#8ec79a', text:'#2f6b3c', key:'secure'};
+  if(r>=0.6)  return {bg:'#eef5e2', bar:'#bcd69e', text:'#4f6b32', key:'good'};
+  if(r>=0.4)  return {bg:'#fbf1da', bar:'#f1d79a', text:'#8a6a1e', key:'building'};
+  return            {bg:'#fbe6df', bar:'#eaa994', text:'#9b4a36', key:'focus'};
+}
+function byCat(){ const o={}; SAMPLE.forEach(([cat,nm,c,s])=>{ (o[cat]||(o[cat]=[])).push({nm,c,s}); }); return o; }
+
+function legend(){
+  return '<div class="legend">Soft green = secure, soft amber = building, soft red = worth a focus, grey = not practised yet. These shift as you do more Latin translations.</div>';
+}
+
+function optionA(){
+  const cats=byCat(); let h='';
+  for(const cat in cats){ h+='<div class="cat">'+cat+'</div><div class="tiles">';
+    h+=cats[cat].map(x=>{ const b=band(x.c,x.s);
+      return '<div class="tile" style="background:'+b.bg+';"><div class="nm" style="color:'+b.text+';">'+x.nm+'</div>'+
+        '<div class="sc">'+(x.s?(x.c+' / '+x.s+' right'):'not practised yet')+'</div></div>';
+    }).join('');
+    h+='</div>';
+  }
+  return card('Option A · Soft-filled tiles', h);
+}
+
+function optionB(){
+  const cats=byCat(); let h='';
+  for(const cat in cats){ h+='<div class="cat">'+cat+'</div><div class="bars">';
+    h+=cats[cat].map(x=>{ const b=band(x.c,x.s); const pct=x.s?Math.round(x.c/x.s*100):0;
+      return '<div class="bar-row"><div class="bar-name">'+x.nm+'</div>'+
+        '<div class="bar-track"><div class="bar-fill" style="width:'+(x.s?Math.max(pct,6):0)+'%;background:'+b.bar+';"></div></div>'+
+        '<div class="bar-sc">'+(x.s?(x.c+'/'+x.s):'–')+'</div></div>';
+    }).join('');
+    h+='</div>';
+  }
+  return card('Option B · Confidence bars', h);
+}
+
+function optionC(){
+  const cats=byCat(); let h='';
+  for(const cat in cats){ h+='<div class="cat">'+cat+'</div><div class="heat">';
+    h+=cats[cat].map(x=>{ const b=band(x.c,x.s);
+      return '<div class="heat-tile" style="background:'+b.bg+';color:'+b.text+';"><div class="nm">'+x.nm+'</div>'+
+        '<div class="sc">'+(x.s?(x.c+'/'+x.s+' right'):'not practised yet')+'</div></div>';
+    }).join('');
+    h+='</div>';
+  }
+  return card('Option C · Bigger heat tiles', h);
+}
+
+function card(title, body){
+  const tag = title.split('·')[0].trim();
+  return '<div class="dash-card"><div class="dash-card-head"><span class="dash-card-title">'+title+'</span><span class="opt-tag">'+tag+'</span></div>'+
+    '<div class="pad">'+legend()+body+'</div></div>';
+}
+
+document.getElementById('root').innerHTML = optionA()+optionB()+optionC();
+</script>
+</body>
+</html>
