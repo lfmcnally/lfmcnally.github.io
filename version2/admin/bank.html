@@ -601,7 +601,7 @@ function openEditor(){
     '<div style="display:flex;align-items:center;gap:12px;margin:18px 0 4px;"><h3 style="font-family:Lora,serif;font-style:italic;color:var(--navy);margin:0;">Questions</h3><span class="totbadge" id="totBadge">0 marks</span><span style="flex:1;"></span><button class="btn ghost sm" id="previewBtn">Preview as student</button></div>' +
     '<div class="fieldhint" style="margin-bottom:12px;">Two kinds of question. <b>Points-based</b> — list the ideas worth marks; the AI credits each one a student covers. <b>Translation</b> — give the correct English; the AI bands it out of 5. Tap a saved question to expand it.</div>' +
     '<div id="qlist"></div>' +
-    '<div class="addrow" style="margin-top:14px;"><button class="btn sm" id="addPoints">+ Points question</button><button class="btn ghost sm" id="addTrans">+ Translation question</button></div>';
+    '<div class="addrow" style="margin-top:14px;"><button class="btn sm" id="addPoints">+ Points question</button><button class="btn ghost sm" id="addTrans">+ Translation question</button><button class="btn ghost sm" id="addPassage">+ From passage</button></div>';
 
   $('back').addEventListener('click', async ()=>{ if(dirty) await saveAll(true); await loadAll(); showExplorer(); });
   $('e_title').addEventListener('input', ()=>{ markDirty(); renderContextEdit(currentA()); });
@@ -615,6 +615,7 @@ function openEditor(){
   $('previewBtn').addEventListener('click', preview);
   $('addPoints').addEventListener('click', ()=>addQuestion('points'));
   $('addTrans').addEventListener('click', ()=>addQuestion('translation'));
+  $('addPassage').addEventListener('click', addFromPassage);
   drawQuestions();
   if(dirty){ const d=$('dirtyTag'); d.textContent='● Unsaved changes'; d.className='dirty unsaved'; }
 }
@@ -759,6 +760,35 @@ async function addQuestion(style){
   drawQuestions(); renderContextEdit(currentA());
   const card=$('qlist').querySelector('[data-q="'+data.id+'"]'); const ta=card&&card.querySelector('textarea[data-f="prompt"]');
   if(ta){ ta.focus(); ta.scrollIntoView({block:'center', behavior:'smooth'}); }
+}
+function addFromPassage(){
+  const a = currentA(); const c = courseById(a.course_id);
+  const m = modal('<h3>Build from a passage</h3>' +
+    '<div class="fieldhint" style="margin-bottom:8px;">Paste a '+esc(c?subjLabel(c.subject):'Latin')+' passage. It’ll be split into sentence-sized translation questions (~5 marks each) with the English answer filled in — you can edit them after. Whole-passage, in order.</div>' +
+    '<textarea class="f" id="psg" style="min-height:150px;" placeholder="Paste the passage here…"></textarea>' +
+    '<div class="row end"><button class="btn ghost sm" data-x>Cancel</button><button class="btn sm" id="go">Split into questions</button></div>', 520);
+  m.querySelector('[data-x]').onclick=()=>m.remove();
+  m.querySelector('#psg').focus();
+  m.querySelector('#go').onclick=async ()=>{
+    const go = m.querySelector('#go');
+    const text = m.querySelector('#psg').value.trim();
+    if(!text) return toast('Paste a passage first');
+    go.disabled=true; go.textContent='Splitting…';
+    const { data, error } = await sb.functions.invoke('bank-split', { body: { text, subject: c?c.subject:'latin' } });
+    if(error || !data?.chunks?.length){ go.disabled=false; go.textContent='Split into questions'; return toast('Could not split — try again'); }
+    if($('qlist').querySelector('.qcard')) harvest();
+    let pos = q.length, added = 0;
+    for(const ch of data.chunks){
+      const src = String(ch.source||'').trim(); if(!src) continue;
+      const { data: row, error: e2 } = await sb.from('bank_assessment_questions').insert({ assessment_id: openId, position: pos++, prompt: src, marks: 5, mark_style: 'translation' }).select().single();
+      if(e2 || !row) continue;
+      const eng = String(ch.english||'').trim();
+      await sb.from('bank_assessment_mark_schemes').upsert({ question_id: row.id, scheme_points: [], model_answer: eng, marking_notes: '', updated_at: new Date().toISOString() }, { onConflict:'question_id' });
+      q.push(row); schemes[row.id]={ question_id: row.id, scheme_points: [], model_answer: eng, marking_notes: '' }; collapsedQ[row.id]=true; added++;
+    }
+    m.remove(); drawQuestions(); renderContextEdit(currentA()); markDirty();
+    toast(added+' translation question'+(added!==1?'s':'')+' added — review and save');
+  };
 }
 async function moveQ(id, dir){
   harvest();
