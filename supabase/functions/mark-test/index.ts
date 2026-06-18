@@ -170,6 +170,28 @@ async function markOne(apiKey: string, question: { prompt: string; marks: number
   }
 }
 
+// A warm 2–3 sentence overall comment on the whole paper, addressed to "you".
+async function summarisePaper(apiKey: string, subject: string, total: number, totalMarks: number,
+  items: string[], focus: string[]): Promise<string | null> {
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({
+        model: MODEL, max_tokens: 220,
+        system: `You are a warm, encouraging GCSE ${subject} teacher. Write 2–3 sentences of OVERALL feedback on a whole assessment, addressed directly to the student as "you". Say what went well, then the main thing(s) to work on. Do NOT restate the score or list every question; be specific but concise. Plain text only.`,
+        messages: [{ role: "user", content: [{ type: "text", text:
+          `Score: ${total}/${totalMarks}.\nPer question:\n${items.join("\n")}\n` +
+          (focus.length ? `Grammar concepts the student got wrong: ${focus.join(", ")}.` : "") }] }],
+      }),
+    });
+    const anth = await res.json().catch(() => null);
+    if (!res.ok) return null;
+    const block = (anth?.content || []).find((b: { type: string }) => b.type === "text");
+    return String(block?.text ?? "").trim().slice(0, 700) || null;
+  } catch (_e) { return null; }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
@@ -314,6 +336,8 @@ Deno.serve(async (req) => {
 
     const results: Array<{ question_id: string; status: string; marks: number | null; max: number; rationale: string | null; correct?: string | null; errors?: string[]; concepts?: string[] }> = [];
     let paused = false;
+    const summaryItems: string[] = [];   // for the overall comment
+    const focusSet = new Set<string>();   // consolidated concepts to work on
 
     // -- School credit gate (Phase 5) -------------------------------------
     // Optional credit allowance for SCHOOL (org) accounts on legacy/assignment
@@ -390,12 +414,20 @@ Deno.serve(async (req) => {
       }, { onConflict: "submission_id,question_id" });
       results.push({ question_id: q.id, status: "marked", marks: r.marks, max: q.marks, rationale: r.rationale,
         correct, errors: isTranslation ? r.matched : undefined, concepts: conceptTitles.length ? conceptTitles : undefined });
+      summaryItems.push(`- ${r.marks}/${q.marks}${r.rationale ? " — " + r.rationale : ""}`);
+      conceptTitles.forEach((t) => focusSet.add(t));
     }
 
     const totalMarks = questions.reduce((s, q) => s + q.marks, 0);
     const totalAwarded = results.reduce((s, r) => s + (r.marks || 0), 0);
+    const focus = [...focusSet];
+    let aiSummary: string | null = null;
+    if (modelCalls > 0 && summaryItems.length) {
+      aiSummary = await summarisePaper(apiKey, subject, totalAwarded, totalMarks, summaryItems, focus);
+    }
     await svc.from("weekly_test_submissions").update({
       submitted_at: new Date().toISOString(), total_awarded: totalAwarded, total_marks: totalMarks,
+      ai_summary: aiSummary, ai_focus: focus.length ? focus : null,
     }).eq("id", submissionId);
 
     // Debit one credit for this assessment, if the account is gated and we
@@ -414,7 +446,7 @@ Deno.serve(async (req) => {
         .upsert(nuggetEvents, { onConflict: "submission_id,question_id,nugget_id", ignoreDuplicates: true });
     }
 
-    return json({ results, total_awarded: totalAwarded, total_marks: totalMarks, paused });
+    return json({ results, total_awarded: totalAwarded, total_marks: totalMarks, paused, summary: aiSummary, focus });
   } catch (e) {
     return json({ error: "unexpected error", detail: String(e) }, 500);
   }
