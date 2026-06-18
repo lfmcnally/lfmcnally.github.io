@@ -254,12 +254,30 @@ Deno.serve(async (req) => {
     // self-serve, the student's own. Self-serve usage rows carry teacher_id NULL.
     const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
     const { data: budgetRow } = await svc.from("weekly_test_budget").select("monthly_cost_cap_micros").eq("teacher_id", budgetUserId).maybeSingle();
-    const costCap = budgetRow?.monthly_cost_cap_micros ?? 5000000;
+    // Safety cap (COGS backstop). Self-serve accounts are "unlimited practice"
+    // protected by a generous default (£10/mo); teachers keep the £5 pool default.
+    // A weekly_test_budget row (set per account in Plans & access) overrides it.
+    const costCap = budgetRow?.monthly_cost_cap_micros ?? (sourceKind === "self_serve" ? 10000000 : 5000000);
     const usageQ = svc.from("weekly_test_marking_usage").select("cost_micros").gte("created_at", monthStart.toISOString());
     const { data: monthUsage } = sourceKind === "self_serve"
       ? await usageQ.eq("student_id", uid).is("teacher_id", null)
       : await usageQ.eq("teacher_id", budgetUserId);
     let spent = (monthUsage ?? []).reduce((s, r) => s + Number(r.cost_micros || 0), 0);
+
+    // Self-serve fair-use: a clear monthly assessment count cap (the number we
+    // state at sign-up). The £ cost cap above is the deeper abuse backstop.
+    const SELF_SERVE_MONTHLY_CAP = 300;
+    if (sourceKind === "self_serve") {
+      const { count: doneThisMonth } = await svc.from("weekly_test_submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("student_id", uid).eq("source_kind", "self_serve")
+        .not("submitted_at", "is", null).gte("submitted_at", monthStart.toISOString());
+      if ((doneThisMonth ?? 0) >= SELF_SERVE_MONTHLY_CAP) {
+        return json({ results: questions.map((q) => ({ question_id: q.id, status: "paused", marks: null, max: q.marks, rationale: null })),
+          total_awarded: 0, total_marks: questions.reduce((s, q) => s + q.marks, 0), paused: true,
+          message: `You've reached this month's practice limit of ${SELF_SERVE_MONTHLY_CAP} assessments — it resets on the 1st.` });
+      }
+    }
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) return json({ error: "marking is not configured" }, 500);
@@ -268,18 +286,17 @@ Deno.serve(async (req) => {
     const results: Array<{ question_id: string; status: string; marks: number | null; max: number; rationale: string | null }> = [];
     let paused = false;
 
-    // -- Credit gate (Phase 5) ---------------------------------------------
-    // One credit = one whole assessment. Resolve the paying account (the
-    // teacher's org for legacy/assignment, the student for self-serve). PERMISSIVE:
-    // with no ACTIVE subscription the account is ungated (current behaviour). Any
-    // error here (e.g. tables not yet migrated) also falls through to permissive.
+    // -- School credit gate (Phase 5) -------------------------------------
+    // Optional credit allowance for SCHOOL (org) accounts on legacy/assignment
+    // marking. Self-serve practice is unlimited (count + £ caps only). Permissive:
+    // with no ACTIVE org subscription the account is ungated. Any error here
+    // (e.g. tables not yet migrated) also falls through to permissive.
     let creditAccount: { kind: "org" | "user"; id: string; credits: number; period: string } | null = null;
     try {
-      if (sourceKind === "self_serve") {
-        const { data: s } = await svc.from("subscriptions")
-          .select("credits_per_period, period").eq("account_kind", "user").eq("user_id", uid).eq("status", "active").maybeSingle();
-        if (s) creditAccount = { kind: "user", id: uid, credits: s.credits_per_period, period: s.period };
-      } else if (budgetUserId) {
+      // Self-serve practice is "unlimited", bounded only by the count + £ caps
+      // above — so it is NOT credit-gated. Schools (org) keep an optional credit
+      // gate for when a school plan is active.
+      if (sourceKind !== "self_serve" && budgetUserId) {
         const { data: mem } = await svc.from("org_members").select("org_id").eq("user_id", budgetUserId).maybeSingle();
         if (mem?.org_id) {
           const { data: s } = await svc.from("subscriptions")

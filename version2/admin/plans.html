@@ -95,8 +95,10 @@ const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
 let toastT; function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200); }
 function modal(html){ const bg=document.createElement('div'); bg.className='modal-bg'; bg.innerHTML='<div class="modal">'+html+'</div>'; document.body.appendChild(bg); bg.addEventListener('click',e=>{ if(e.target===bg) bg.remove(); }); return bg; }
 
-let users=[], access={}, manage={}, orgs=[], members=[], subs=[], plans={}, ledger=[];
+let users=[], access={}, manage={}, orgs=[], members=[], subs=[], plans={}, ledger=[], budgets={};
 let peopleTerm='';
+const SELF_SERVE_DEFAULT_CAP = 10000000; // £10/mo default (matches mark-test fallback)
+const poundsOf = micros => (Number(micros||0)/1000000);
 
 function planFor(kind, id){ return subs.find(s=>s.account_kind===kind && (kind==='user'?s.user_id:s.org_id)===id && s.status==='active'); }
 function periodStart(period){ const d=new Date(); if(period==='month') d.setUTCDate(1); else { const dow=(d.getUTCDay()+6)%7; d.setUTCDate(d.getUTCDate()-dow); } d.setUTCHours(0,0,0,0); return d; }
@@ -131,6 +133,8 @@ async function loadAll(){
   users = us || []; orgs = og || []; members = mem || []; subs = sb_ || []; ledger = led || [];
   access = {}; manage = {}; (acc||[]).forEach(u=>{ access[u.id]=!!u.can_self_serve_bank; manage[u.id]=!!u.can_manage_bank; });
   plans = {}; (pl||[]).forEach(p=>plans[p.tier]=p);
+  const { data: bud } = await sb.from('weekly_test_budget').select('teacher_id, monthly_cost_cap_micros');
+  budgets = {}; (bud||[]).forEach(b=>budgets[b.teacher_id]=b.monthly_cost_cap_micros);
 }
 
 // ───────────────────────────── PEOPLE & ACCESS ─────────────────────────────
@@ -141,12 +145,13 @@ function renderPeople(){
   if(term) list = list.filter(u=>((u.full_name||'')+' '+(u.email||'')).toLowerCase().includes(term));
   list = list.slice(0, 80);
   root.innerHTML =
-    '<div class="hint"><b>Assessment permission</b> lets an admin author and view the bank (drafts included). <b>Bank access</b> lets someone practise published tests for instant AI marking — turn it on to gift access (marking is unlimited with no paid plan). A <b>comp plan</b> additionally records a credit allowance (used once Stripe billing is on).</div>' +
+    '<div class="hint"><b>Assessment permission</b> lets an admin author and view the bank (drafts included). <b>Bank access</b> gives someone unlimited self-study practice (fair use 300 marked assessments/month). <b>Cap</b> is their monthly £ safety backstop (default £10 — well above real use). <b>Gift plan</b> is an optional comp record for later billing.</div>' +
     '<div class="searchrow"><input class="f" id="psearch" placeholder="Search people by name or email…" value="'+esc(peopleTerm)+'"></div>' +
     (list.length? list.map(personRow).join('') : '<div class="card muted">No matching people.</div>');
   const ps=$('psearch'); ps.addEventListener('input', ()=>{ peopleTerm=ps.value; const pos=ps.selectionStart; renderPeople(); const n=$('psearch'); n.focus(); n.setSelectionRange(pos,pos); });
   root.querySelectorAll('[data-toggle]').forEach(b=>b.addEventListener('click', ()=>toggleAccess(b.dataset.toggle)));
   root.querySelectorAll('[data-perm]').forEach(b=>b.addEventListener('click', ()=>togglePerm(b.dataset.perm)));
+  root.querySelectorAll('[data-cap]').forEach(b=>b.addEventListener('click', ()=>setCap(b.dataset.cap)));
   root.querySelectorAll('[data-gift]').forEach(b=>b.addEventListener('click', ()=>giftPersonal(b.dataset.gift)));
   root.querySelectorAll('[data-ungift]').forEach(b=>b.addEventListener('click', ()=>removePlan(b.dataset.ungift)));
 }
@@ -158,11 +163,15 @@ function personRow(u){
   const planBit = sub
     ? '<span class="badge comp">comp · '+sub.credits_per_period+'/'+ (sub.period==='month'?'mo':'wk') +'</span> <button class="btn ghost sm" data-ungift="'+u.id+'">Remove plan</button>'
     : '<button class="btn ghost sm" data-gift="'+u.id+'">Gift plan</button>';
+  const capChip = on
+    ? '<button class="btn ghost sm" data-cap="'+u.id+'" title="Monthly £ safety cap (COGS backstop)">Cap: £'+(budgets[u.id]!=null?poundsOf(budgets[u.id]):'10')+(budgets[u.id]!=null?'':' · default')+'</button>'
+    : '';
   return '<div class="card"><div class="row">' +
     '<div><div class="nm">'+esc(u.full_name||'(no name)')+' '+roleBadge+'</div><div class="em">'+esc(u.email||'')+'</div></div>' +
     '<span class="spacer"></span>' +
     '<button class="btn '+(mng?'on':'ghost')+' sm" data-perm="'+u.id+'" title="Author + view the bank">'+(mng?'✓ Assessment permission':'Give permission')+'</button>' +
     '<button class="btn '+(on?'on':'ghost')+' sm" data-toggle="'+u.id+'">'+(on?'✓ Bank access':'Grant access')+'</button>' +
+    capChip +
     planBit +
   '</div></div>';
 }
@@ -177,6 +186,18 @@ async function togglePerm(uid){
   const { error } = await sb.from('users').update({ can_manage_bank: next }).eq('id', uid);
   if(error) return toast('Failed: '+error.message);
   manage[uid]=next; renderPeople(); toast(next?'Assessment permission granted':'Permission removed');
+}
+function setCap(uid){
+  const cur = budgets[uid]!=null ? poundsOf(budgets[uid]) : 10;
+  const m = modal('<h3>Monthly safety cap</h3><div class="hint" style="margin-bottom:10px;">The most this account can cost you in AI marking per month. Marking pauses if it’s hit. Default for a personal account is £10 — well above normal use.</div><label class="lbl">Cap (£ / month)</label><input class="f" id="cv" type="number" min="0" step="0.5" value="'+cur+'" style="width:140px;"><div class="end"><button class="btn ghost sm" data-x>Cancel</button><button class="btn sm" id="ok">Save</button></div>');
+  const inp=m.querySelector('#cv'); inp.focus(); inp.select();
+  m.querySelector('[data-x]').onclick=()=>m.remove();
+  m.querySelector('#ok').onclick=async ()=>{
+    const pounds = Math.max(0, +inp.value||0); const micros = Math.round(pounds*1000000);
+    const { error } = await sb.from('weekly_test_budget').upsert({ teacher_id:uid, monthly_cost_cap_micros:micros, updated_at:new Date().toISOString() }, { onConflict:'teacher_id' });
+    if(error) return toast('Failed: '+error.message);
+    budgets[uid]=micros; m.remove(); renderPeople(); toast('Safety cap set to £'+pounds+'/mo');
+  };
 }
 async function giftPersonal(uid){
   const credits = plans.personal?.credits_per_period ?? 10;

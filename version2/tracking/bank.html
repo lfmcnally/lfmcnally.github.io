@@ -168,6 +168,14 @@ const topicTestCount = tid => inTopic(tid).length + subTopicsOf(tid).reduce((s,s
   ]);
   courses = cs||[]; topics = ts||[]; assessments = as||[];
 
+  // test sizes for the catalogue cards (questions + marks)
+  const aids = assessments.map(a=>a.id);
+  if(aids.length){
+    const { data: qcs } = await sb.from('bank_assessment_questions').select('assessment_id, marks').in('assessment_id', aids);
+    const agg={}; (qcs||[]).forEach(r=>{ const x=agg[r.assessment_id]||(agg[r.assessment_id]={n:0,m:0}); x.n++; x.m+=(r.marks||0); });
+    assessments.forEach(a=>{ a._n=agg[a.id]?.n||0; a._m=agg[a.id]?.m||0; });
+  }
+
   // assignments visible to me (students see open ones for their classes)
   const { data: asg } = await sb.from('bank_class_assignments').select('*').eq('status','open');
   assignments = asg || [];
@@ -204,8 +212,9 @@ function renderHome(){
     }).join('');
   }
 
-  html += '<div class="section-h">Browse the bank</div>' +
-    '<div class="bank-search"><svg class="si" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/></svg>' +
+  html += '<div class="section-h">Browse the bank</div>';
+  if(canSelfServe) html += '<div class="card" style="background:#eef6ee;border-color:#cfe8cf;margin-bottom:14px;"><div class="nm" style="color:#2a6e2a;">Unlimited practice ✓</div><div class="muted" style="margin-top:2px;">Pick any test below and mark yourself instantly — as often as you like. Fair use: up to 300 marked assessments a month.</div></div>';
+  html += '<div class="bank-search"><svg class="si" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/></svg>' +
       '<input id="bsearch" placeholder="Search every test…" autocomplete="off"><button class="sx" id="bclear">&times;</button></div>' +
     '<nav class="crumbs" id="crumbs"></nav><div id="grid"></div>';
   $('home').innerHTML = html;
@@ -219,13 +228,17 @@ function renderHome(){
 
 // ─────────────── folder explorer (read-only) ───────────────
 function fcard(tint, ic, name, sub, dataAttr){ return '<div class="fcard" '+dataAttr+'><div class="fic '+tint+'">'+ic+'</div><div class="fname">'+esc(name)+'</div><div class="fsub">'+esc(sub)+'</div></div>'; }
-function testCard(a){
-  const meta = a.title; // keep title prominent; status badge separate
+function sizeOf(a){ return a._n ? (a._n+' question'+(a._n!==1?'s':'')+' · '+a._m+' mark'+(a._m!==1?'s':'')) : ''; }
+function testActs(a){
   const acts = [];
   if(viewIsTeacher) acts.push('<button class="btn ghost sm" data-assign="'+a.id+'">Assign to class</button>');
-  if(canSelfServe) acts.push('<button class="btn sm" data-take="'+a.id+'">Practise</button>');
-  if(!acts.length) acts.push('<span class="muted">practice tier only</span>');
-  return '<div class="fcard notclick"><div class="fic test">'+FIC.file+'</div><div class="fname">'+esc(a.title)+'</div><div class="factions">'+acts.join('')+'</div></div>';
+  if(canSelfServe) acts.push('<button class="btn sm" data-take="'+a.id+'">Test yourself →</button>');
+  if(!acts.length) acts.push('<span class="muted">assigned tests only</span>');
+  return acts.join('');
+}
+function testCard(a){
+  const meta = sizeOf(a);
+  return '<div class="fcard notclick"><div class="fic test">'+FIC.file+'</div><div class="fname">'+esc(a.title)+'</div>'+(meta?'<div class="fsub">'+esc(meta)+'</div>':'')+'<div class="factions">'+testActs(a)+'</div></div>';
 }
 const pl = (n,w)=> n+' '+w+(n!==1?'s':'');
 function cards(h){ return '<div class="grid-cards">'+h+'</div>'; }
@@ -292,10 +305,9 @@ function renderSearch(raw){
   $('chome').addEventListener('click', ()=>{ $('bsearch').value=''; renderGrid(); });
   const hits = assessments.filter(a=>norm(a.title+' '+locText(a)).includes(query));
   const g=$('grid');
-  g.innerHTML = hits.length ? cards(hits.map(a=>{
-    const acts=[]; if(viewIsTeacher) acts.push('<button class="btn ghost sm" data-assign="'+a.id+'">Assign</button>'); if(canSelfServe) acts.push('<button class="btn sm" data-take="'+a.id+'">Practise</button>'); if(!acts.length) acts.push('<span class="muted">practice tier only</span>');
-    return '<div class="fcard notclick"><div class="fic test">'+FIC.file+'</div><div class="fname">'+esc(a.title)+'</div><div class="fsub">'+esc(locText(a))+'</div><div class="factions">'+acts.join('')+'</div></div>';
-  }).join('')) : '<div class="card muted">No tests match “'+esc(raw)+'”.</div>';
+  g.innerHTML = hits.length ? cards(hits.map(a=>
+    '<div class="fcard notclick"><div class="fic test">'+FIC.file+'</div><div class="fname">'+esc(a.title)+'</div><div class="fsub">'+esc(locText(a))+(sizeOf(a)?(' · '+sizeOf(a)):'')+'</div><div class="factions">'+testActs(a)+'</div></div>'
+  ).join('')) : '<div class="card muted">No tests match “'+esc(raw)+'”.</div>';
 }
 function renderCrumbs(){
   const parts=[['Home',()=>{ path={subject:null,level:null,courseId:null,topicId:null,subId:null}; renderGrid(); }]];
