@@ -100,13 +100,16 @@ Deno.serve(async (req) => {
     const uid = userData.user.id;
     const svc = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false, autoRefreshToken: false } });
 
-    let payload: { nugget_code?: string; chapter?: number; count?: number; vocab?: Array<{ latin?: string; english?: string; info?: string }> };
+    let payload: { nugget_code?: string; nugget_codes?: string[]; chapter?: number; count?: number; vocab?: Array<{ latin?: string; english?: string; info?: string }> };
     try { payload = await req.json(); } catch { return json({ error: "invalid JSON" }, 400); }
 
-    const nuggetCode = String(payload.nugget_code ?? "").trim();
+    // Single concept, or a mix (used by "practise my weak spots").
+    const codes = Array.isArray(payload.nugget_codes) && payload.nugget_codes.length
+      ? payload.nugget_codes.map((c) => String(c).trim()).filter(Boolean).slice(0, 6)
+      : [String(payload.nugget_code ?? "").trim()].filter(Boolean);
     const chapter = Math.max(1, Math.min(10, Math.round(Number(payload.chapter ?? 0))));
     const count = Math.max(1, Math.min(MAX_COUNT, Math.round(Number(payload.count ?? 6))));
-    if (!nuggetCode) return json({ error: "missing nugget_code" }, 400);
+    if (!codes.length) return json({ error: "missing nugget_code" }, 400);
     if (!chapter)    return json({ error: "missing or invalid chapter" }, 400);
 
     const vocab = (Array.isArray(payload.vocab) ? payload.vocab : [])
@@ -127,8 +130,10 @@ Deno.serve(async (req) => {
     const { data: nugs } = await svc.from("grammar_nuggets")
       .select("id, title, code, chapter").eq("subject", "latin").eq("level", "gcse").lte("chapter", chapter).order("position");
     const allowed = (nugs || []).filter((n) => (n.chapter ?? 0) > 0).map((n) => n.title);
-    const target = (nugs || []).find((n) => n.code === nuggetCode);
-    if (!target) return json({ error: "that concept isn't available at this chapter yet" }, 400);
+    const targets = codes.map((code) => (nugs || []).find((n) => n.code === code)).filter(Boolean) as Array<{ id: string; title: string; code: string; chapter: number }>;
+    if (!targets.length) return json({ error: "that concept isn't available at this chapter yet" }, 400);
+    const multi = targets.length > 1;
+    const target = targets[0];
 
     // Cost guard — reuse the marking £ cap (student pays their own pool here).
     const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
@@ -153,8 +158,11 @@ Deno.serve(async (req) => {
       `4. Keep sentences short (about 4-10 words) and natural classical Latin; vary them.\n` +
       `5. Give an accurate, natural English translation for each (this is the mark scheme answer).\n` +
       `Return ONLY the JSON.`;
+    const targetText = multi
+      ? `TARGET constructions — each sentence must require at least one of these (spread them across the set):\n${targets.map((t) => `- ${t.title}`).join("\n")}`
+      : `TARGET construction to test: ${target.title}`;
     const userText =
-      `TARGET construction to test: ${target.title}\n\n` +
+      `${targetText}\n\n` +
       `Allowed grammar (current + earlier chapters):\n${allowed.map((t) => `- ${t}`).join("\n")}\n\n` +
       `Allowed vocabulary (latin = english):\n${vocabList}\n\n` +
       `Write ${count} practice sentences.`;
@@ -205,7 +213,8 @@ Deno.serve(async (req) => {
     }
     if (!course) return json({ error: "could not prepare practice" }, 500);
 
-    const title = `Practice: ${target.title} · chapter ${chapter}`;
+    const focusLabel = multi ? "your weak spots" : target.title;
+    const title = `Practice: ${focusLabel} · chapter ${chapter}`;
     const { data: assess, error: aerr } = await svc.from("bank_assessments").insert({
       course_id: course.id, title, status: "published", origin: "official", created_by: uid,
       is_practice: true, grammar_ceiling: chapter,
@@ -216,14 +225,14 @@ Deno.serve(async (req) => {
     const { data: qs, error: qerr } = await svc.from("bank_assessment_questions").insert(qRows).select("id, position").order("position");
     if (qerr || !qs || !qs.length) return json({ error: "could not save questions", detail: String(qerr?.message ?? "") }, 500);
     await svc.from("bank_assessment_mark_schemes").insert(qs.map((q) => ({ question_id: q.id, model_answer: sentences[q.position - 1].english })));
-    await svc.from("bank_assessment_nuggets").insert({ assessment_id: assess.id, nugget_id: target.id, role: "tests" });
+    await svc.from("bank_assessment_nuggets").insert(targets.map((t) => ({ assessment_id: assess.id, nugget_id: t.id, role: "tests" })));
 
     const { data: subRow } = await svc.from("weekly_test_submissions")
       .insert({ source_kind: "self_serve", bank_assessment_id: assess.id, student_id: uid }).select("id").single();
 
     return json({
       submission_id: subRow?.id, assessment_id: assess.id, title,
-      nugget: target.title, nugget_code: nuggetCode, chapter,
+      nugget: focusLabel, nugget_code: target.code, chapter,
       questions: qs.map((q) => ({ id: q.id, prompt: sentences[q.position - 1].latin, marks: 5 })),
     });
   } catch (e) {

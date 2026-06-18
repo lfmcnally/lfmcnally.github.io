@@ -54,6 +54,7 @@ const sb = window.supabase;
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const params = new URLSearchParams(location.search);
 const nuggetCode = params.get('nugget') || '';
+const nuggetCodes = (params.get('nuggets')||'').split(',').map(s=>s.trim()).filter(Boolean);
 const chapter = Math.max(1, Math.min(10, parseInt(params.get('chapter')||'0',10)));
 const titleHint = params.get('title') || 'this concept';
 let state = { submissionId:null, questions:[] };
@@ -63,7 +64,7 @@ function gate(html){ $('gate').innerHTML = html; $('gate').classList.remove('hid
 (async function init(){
   const { data: au } = await sb.auth.getUser();
   if(!au || !au.user){ return gate('Please <a href="/version2/auth/login.html">sign in</a> to practise.'); }
-  if(!nuggetCode || !chapter){ return gate('Missing practice details. Head back to your <a href="/version2/tracking/dashboard.html">dashboard</a> and pick a concept.'); }
+  if((!nuggetCode && !nuggetCodes.length) || !chapter){ return gate('Missing practice details. Head back to your <a href="/version2/tracking/dashboard.html">dashboard</a> and pick a concept.'); }
   if(typeof VOCAB_LATIN_GCSE === 'undefined'){ return gate('Could not load the vocabulary list. Please refresh.'); }
   generate();
 })();
@@ -76,7 +77,8 @@ async function generate(){
   const vocab = VOCAB_LATIN_GCSE
     .filter(v => (v.chapter||99) <= chapter)
     .map(v => ({ latin: v.latin, english: v.english, info: v.info }));
-  const { data, error } = await sb.functions.invoke('generate-practice', { body: { nugget_code:nuggetCode, chapter, count:6, vocab } });
+  const genBody = nuggetCodes.length ? { nugget_codes:nuggetCodes, chapter, count:6, vocab } : { nugget_code:nuggetCode, chapter, count:6, vocab };
+  const { data, error } = await sb.functions.invoke('generate-practice', { body: genBody });
   if(error){
     let msg='Could not generate practice — please try again.';
     try{ const j=await error.context.json(); if(j&&(j.error||j.message)) msg=j.error||j.message; }catch(_){}

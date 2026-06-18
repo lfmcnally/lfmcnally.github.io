@@ -1799,6 +1799,21 @@ init().then(() => {
     // the un-gated "common slips" that apply at every chapter, shown last.
     const chapters=[]; nugs.forEach(n=>{ const ch=n.chapter||0; if(chapters.indexOf(ch)<0) chapters.push(ch); });
     chapters.sort((a,b)=>(a===0?999:a)-(b===0?999:b));
+    // "Practise my weak spots" — the lowest-scoring in-window concepts, mixed.
+    let weakBtn='';
+    if(canPractiseFeature){
+      const seenNugs = nugs.filter(n=>(n.chapter||0)>0 && agg[n.id] && agg[n.id].seen>0);
+      const maxSeenCh = seenNugs.reduce((m,n)=>Math.max(m,n.chapter),0);
+      const winCh = Math.max(studentChapter||0, maxSeenCh);
+      const cands = seenNugs.filter(n=>n.chapter<=winCh)
+        .map(n=>({n, r: agg[n.id].correct/agg[n.id].seen, seen: agg[n.id].seen}))
+        .sort((a,b)=> (a.r-b.r) || (b.seen-a.seen)).slice(0,4);
+      if(cands.length>=2 && winCh>0){
+        const codes = cands.map(c=>c.n.code).join(',');
+        const href = '/version2/tracking/practice.html?nuggets='+encodeURIComponent(codes)+'&chapter='+winCh+'&title='+encodeURIComponent('Your weak spots');
+        weakBtn = '<a href="'+href+'" style="display:inline-block;margin-top:12px;text-decoration:none;background:var(--brand);color:#fff;font-size:13px;font-weight:700;padding:9px 15px;border-radius:8px;">Practise my weak spots →</a>';
+      }
+    }
     let body='';
     chapters.forEach(ch=>{
       const items=nugs.filter(n=>(n.chapter||0)===ch);
@@ -1836,6 +1851,7 @@ init().then(() => {
       '<div style="padding:14px 18px;">'+ keyHtml +
       (canPractiseFeature?'':'<div style="font-size:12px;color:#92500e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 11px;margin-top:10px;"><b>Targeted practice — coming soon.</b> Track your confidence here now; one-tap practice on any concept is on the way.</div>')+
       (totalSeen?'':'<div style="font-size:12px;color:var(--muted);margin-top:8px;">Do a Latin translation to start filling these in.</div>')+
+      weakBtn+
       body+'</div></div>';
     function isLatinGcse(){ try{ if(typeof currentVocabCourse==='string') return currentVocabCourse==='latin-gcse'; }catch(e){} const t=document.querySelector('#courseTabs .course-tab.active'); return !t || t.dataset.courseType==='latin-gcse'; }
     function updateVis(){ el.style.display = isLatinGcse() ? '' : 'none'; }
