@@ -98,19 +98,37 @@ const TRANSLATION_SCHEMA = {
     rationale:      { type: "string", description: "One short sentence of feedback addressed to the student as 'you'." },
   },
 };
+// Variant used when a grammar-concept ("nugget") list is supplied: also tag the
+// concepts the student's errors relate to.
+const TRANSLATION_SCHEMA_NUGGETS = {
+  type: "object", additionalProperties: false,
+  required: ["marks_awarded", "minor_errors", "serious_errors", "concepts", "rationale"],
+  properties: {
+    marks_awarded:  { type: "integer", description: "Holistic band 0–5." },
+    minor_errors:   { type: "array", items: { type: "string" } },
+    serious_errors: { type: "array", items: { type: "string" } },
+    concepts:       { type: "array", items: { type: "string" }, description: "Codes of the grammar concepts the student's errors relate to (only where marks were lost); [] if none." },
+    rationale:      { type: "string", description: "One short sentence of feedback addressed to the student as 'you'." },
+  },
+};
 
 // Mark one answer. Returns { marks, matched, rationale, usage } or { error, usage }.
 async function markOne(apiKey: string, question: { prompt: string; marks: number },
   scheme: { scheme_points?: unknown; model_answer?: string; marking_notes?: string } | null,
-  answerText: string, style: string, subject: string) {
+  answerText: string, style: string, subject: string, nuggets: Array<{ code: string; title: string }> = []) {
   const translation = style === "translation";
+  const tagging = translation && nuggets.length > 0;
   let userText: string;
   if (translation) {
     userText =
       `Sentence to translate from ${subject} into English (max ${question.marks} marks):\n${question.prompt}\n\n` +
       (scheme?.model_answer ? `Correct translation: ${scheme.model_answer}\n` : "Correct translation: (not supplied — judge from the original)\n") +
       (scheme?.marking_notes ? `Marking notes: ${scheme.marking_notes}\n` : "") +
-      `\nStudent's English translation:\n"""${answerText}"""`;
+      `\nStudent's English translation:\n"""${answerText}"""` +
+      (tagging
+        ? `\n\nGrammar concepts (code — name):\n${nuggets.map((n) => `- ${n.code}: ${n.title}`).join("\n")}\n` +
+          `In "concepts", return the codes of the concept(s) the student's errors relate to (only where marks were lost); [] if none apply.`
+        : "");
   } else {
     const points: Array<{ text?: string; marks?: number }> = Array.isArray(scheme?.scheme_points) ? scheme!.scheme_points as [] : [];
     const bullets = points.map((p) => `- ${p.text ?? ""}${p.marks ? ` (${p.marks} mark${p.marks > 1 ? "s" : ""})` : ""}`).join("\n") || "- (no points listed)";
@@ -122,7 +140,7 @@ async function markOne(apiKey: string, question: { prompt: string; marks: number
       `\nStudent answer:\n"""${answerText}"""`;
   }
   const system = translation ? TRANSLATION_SYSTEM(subject) : POINTS_SYSTEM(subject);
-  const schema = translation ? TRANSLATION_SCHEMA : POINTS_SCHEMA;
+  const schema = tagging ? TRANSLATION_SCHEMA_NUGGETS : (translation ? TRANSLATION_SCHEMA : POINTS_SCHEMA);
 
   let usage = { input_tokens: 0, output_tokens: 0 };
   try {
@@ -145,7 +163,8 @@ async function markOne(apiKey: string, question: { prompt: string; marks: number
       ? [...(Array.isArray(parsed.serious_errors) ? parsed.serious_errors : []).map((e: string) => `serious: ${e}`),
          ...(Array.isArray(parsed.minor_errors) ? parsed.minor_errors : []).map((e: string) => `minor: ${e}`)]
       : (Array.isArray(parsed.matched_points) ? parsed.matched_points : []);
-    return { marks, matched, rationale: String(parsed.rationale ?? "").slice(0, 800), usage };
+    const concepts = tagging && Array.isArray(parsed.concepts) ? parsed.concepts.map((c: unknown) => String(c)) : [];
+    return { marks, matched, rationale: String(parsed.rationale ?? "").slice(0, 800), usage, concepts };
   } catch (_e) {
     return { error: true, usage };
   }
@@ -250,6 +269,16 @@ Deno.serve(async (req) => {
       (ex || []).forEach((a) => { existing[a.question_id] = a; });
     }
 
+    // Grammar-concept ("nugget") tagging list — translation feedback + tracking.
+    const nuggetSubject = subject === "Latin" ? "latin" : subject === "Classical Greek" ? "greek" : null;
+    const nuggetList: Array<{ code: string; title: string }> = [];
+    const nuggetByCode: Record<string, { id: string; title: string }> = {};
+    if (nuggetSubject && questions.some((q) => q.mark_style === "translation")) {
+      const { data: ng } = await svc.from("grammar_nuggets").select("id, code, title").eq("subject", nuggetSubject).eq("level", "gcse");
+      (ng || []).forEach((n) => { nuggetByCode[n.code] = { id: n.id, title: n.title }; nuggetList.push({ code: n.code, title: n.title }); });
+    }
+    const nuggetEvents: Array<{ student_id: string; nugget_id: string; submission_id: string; question_id: string; severity: string }> = [];
+
     // Budget for the month — the teacher's pool (legacy/assignment) or, for
     // self-serve, the student's own. Self-serve usage rows carry teacher_id NULL.
     const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
@@ -283,7 +312,7 @@ Deno.serve(async (req) => {
     if (!apiKey) return json({ error: "marking is not configured" }, 500);
     const price = PRICING[MODEL] ?? PRICING["claude-sonnet-4-6"];
 
-    const results: Array<{ question_id: string; status: string; marks: number | null; max: number; rationale: string | null; correct?: string | null; errors?: string[] }> = [];
+    const results: Array<{ question_id: string; status: string; marks: number | null; max: number; rationale: string | null; correct?: string | null; errors?: string[]; concepts?: string[] }> = [];
     let paused = false;
 
     // -- School credit gate (Phase 5) -------------------------------------
@@ -330,7 +359,8 @@ Deno.serve(async (req) => {
       }
       if (spent >= costCap) { paused = true; results.push({ question_id: q.id, status: "paused", marks: null, max: q.marks, rationale: null }); continue; }
 
-      const r = await markOne(apiKey, q, schemes[q.id] ?? null, at, q.mark_style ?? "points", subject);
+      const r = await markOne(apiKey, q, schemes[q.id] ?? null, at, q.mark_style ?? "points", subject,
+        q.mark_style === "translation" ? nuggetList : []);
       modelCalls++;
       const cost = Math.round((r.usage.input_tokens || 0) * price.in + (r.usage.output_tokens || 0) * price.out);
       spent += cost;
@@ -341,13 +371,25 @@ Deno.serve(async (req) => {
       if ("error" in r) { results.push({ question_id: q.id, status: "error", marks: null, max: q.marks, rationale: null }); continue; }
       const isTranslation = (q.mark_style ?? "points") === "translation";
       const correct = isTranslation ? (schemes[q.id]?.model_answer ?? null) : null;
+      const conceptTitles: string[] = [];
+      if (isTranslation && r.marks < q.marks && Array.isArray(r.concepts)) {
+        const sev = r.marks === 0 ? "serious" : "minor";
+        for (const code of r.concepts) {
+          const ng = nuggetByCode[code];
+          if (ng && !conceptTitles.includes(ng.title)) {
+            conceptTitles.push(ng.title);
+            nuggetEvents.push({ student_id: uid, nugget_id: ng.id, submission_id: submissionId, question_id: q.id, severity: sev });
+          }
+        }
+      }
       await svc.from("weekly_test_answers").upsert({
         submission_id: submissionId, question_id: q.id, question_source: questionSource, answer_text: at,
         ai_marks: r.marks, ai_max: q.marks, ai_matched: r.matched, ai_rationale: r.rationale, ai_correct: correct,
+        ai_concepts: conceptTitles.length ? conceptTitles : null,
         final_marks: r.marks, marked_by: "ai", attempts: (prev?.attempts ?? 0) + 1, updated_at: new Date().toISOString(),
       }, { onConflict: "submission_id,question_id" });
       results.push({ question_id: q.id, status: "marked", marks: r.marks, max: q.marks, rationale: r.rationale,
-        correct, errors: isTranslation ? r.matched : undefined });
+        correct, errors: isTranslation ? r.matched : undefined, concepts: conceptTitles.length ? conceptTitles : undefined });
     }
 
     const totalMarks = questions.reduce((s, q) => s + q.marks, 0);
@@ -364,6 +406,12 @@ Deno.serve(async (req) => {
         account_kind: creditAccount.kind, account_id: creditAccount.id,
         submission_id: submissionId, delta: -1, reason: "assessment",
       });
+    }
+
+    // Record concept ("nugget") events for tracking — idempotent on re-mark.
+    if (nuggetEvents.length) {
+      await svc.from("student_nugget_events")
+        .upsert(nuggetEvents, { onConflict: "submission_id,question_id,nugget_id", ignoreDuplicates: true });
     }
 
     return json({ results, total_awarded: totalAwarded, total_marks: totalMarks, paused });
