@@ -102,12 +102,13 @@ const TRANSLATION_SCHEMA = {
 // concepts the student's errors relate to.
 const TRANSLATION_SCHEMA_NUGGETS = {
   type: "object", additionalProperties: false,
-  required: ["marks_awarded", "minor_errors", "serious_errors", "concepts", "rationale"],
+  required: ["marks_awarded", "minor_errors", "serious_errors", "tested", "concepts", "rationale"],
   properties: {
     marks_awarded:  { type: "integer", description: "Holistic band 0–5." },
     minor_errors:   { type: "array", items: { type: "string" } },
     serious_errors: { type: "array", items: { type: "string" } },
-    concepts:       { type: "array", items: { type: "string" }, description: "Codes of the grammar concepts the student's errors relate to (only where marks were lost); [] if none." },
+    tested:         { type: "array", items: { type: "string" }, description: "Codes of the KEY grammar concepts this sentence requires to translate (1–6), whether or not the student got them right." },
+    concepts:       { type: "array", items: { type: "string" }, description: "The subset of 'tested' the student got WRONG (only where marks were lost); [] if none." },
     rationale:      { type: "string", description: "One short sentence of feedback addressed to the student as 'you'." },
   },
 };
@@ -127,7 +128,8 @@ async function markOne(apiKey: string, question: { prompt: string; marks: number
       `\nStudent's English translation:\n"""${answerText}"""` +
       (tagging
         ? `\n\nGrammar concepts (code — name):\n${nuggets.map((n) => `- ${n.code}: ${n.title}`).join("\n")}\n` +
-          `In "concepts", return the codes of the concept(s) the student's errors relate to (only where marks were lost); [] if none apply.`
+          `In "tested", list the codes of the KEY concepts this sentence requires to translate (1–6), right or wrong. ` +
+          `In "concepts", the subset of those the student got WRONG (only where marks were lost); [] if none.`
         : "");
   } else {
     const points: Array<{ text?: string; marks?: number }> = Array.isArray(scheme?.scheme_points) ? scheme!.scheme_points as [] : [];
@@ -164,7 +166,8 @@ async function markOne(apiKey: string, question: { prompt: string; marks: number
          ...(Array.isArray(parsed.minor_errors) ? parsed.minor_errors : []).map((e: string) => `minor: ${e}`)]
       : (Array.isArray(parsed.matched_points) ? parsed.matched_points : []);
     const concepts = tagging && Array.isArray(parsed.concepts) ? parsed.concepts.map((c: unknown) => String(c)) : [];
-    return { marks, matched, rationale: String(parsed.rationale ?? "").slice(0, 800), usage, concepts };
+    const tested = tagging && Array.isArray(parsed.tested) ? parsed.tested.map((c: unknown) => String(c)) : [];
+    return { marks, matched, rationale: String(parsed.rationale ?? "").slice(0, 800), usage, concepts, tested };
   } catch (_e) {
     return { error: true, usage };
   }
@@ -299,7 +302,7 @@ Deno.serve(async (req) => {
       const { data: ng } = await svc.from("grammar_nuggets").select("id, code, title").eq("subject", nuggetSubject).eq("level", "gcse");
       (ng || []).forEach((n) => { nuggetByCode[n.code] = { id: n.id, title: n.title }; nuggetList.push({ code: n.code, title: n.title }); });
     }
-    const nuggetEvents: Array<{ student_id: string; nugget_id: string; submission_id: string; question_id: string; severity: string }> = [];
+    const nuggetEvents: Array<{ student_id: string; nugget_id: string; submission_id: string; question_id: string; severity: string; correct: boolean }> = [];
 
     // Budget for the month — the teacher's pool (legacy/assignment) or, for
     // self-serve, the student's own. Self-serve usage rows carry teacher_id NULL.
@@ -396,14 +399,18 @@ Deno.serve(async (req) => {
       const isTranslation = (q.mark_style ?? "points") === "translation";
       const correct = isTranslation ? (schemes[q.id]?.model_answer ?? null) : null;
       const conceptTitles: string[] = [];
-      if (isTranslation && r.marks < q.marks && Array.isArray(r.concepts)) {
-        const sev = r.marks === 0 ? "serious" : "minor";
-        for (const code of r.concepts) {
+      if (isTranslation && (Array.isArray(r.tested) || Array.isArray(r.concepts))) {
+        const wrong = new Set(Array.isArray(r.concepts) && r.marks < q.marks ? r.concepts : []);
+        const tested = Array.isArray(r.tested) && r.tested.length ? r.tested : [...wrong];
+        const seen = new Set<string>();
+        for (const code of tested) {
           const ng = nuggetByCode[code];
-          if (ng && !conceptTitles.includes(ng.title)) {
-            conceptTitles.push(ng.title);
-            nuggetEvents.push({ student_id: uid, nugget_id: ng.id, submission_id: submissionId, question_id: q.id, severity: sev });
-          }
+          if (!ng || seen.has(code)) continue;
+          seen.add(code);
+          const isWrong = wrong.has(code);
+          if (isWrong && !conceptTitles.includes(ng.title)) conceptTitles.push(ng.title);
+          nuggetEvents.push({ student_id: uid, nugget_id: ng.id, submission_id: submissionId, question_id: q.id,
+            severity: isWrong ? (r.marks === 0 ? "serious" : "minor") : "minor", correct: !isWrong });
         }
       }
       await svc.from("weekly_test_answers").upsert({
