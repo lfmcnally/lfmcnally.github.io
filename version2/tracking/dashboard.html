@@ -1770,7 +1770,7 @@ init().then(() => {
     const { data: au } = await sb.auth.getUser(); if(!au||!au.user) return;
     const uid = au.user.id;
     const [{ data: nugs }, { data: ev }] = await Promise.all([
-      sb.from('grammar_nuggets').select('id,category,title,revision_url,position').eq('subject','latin').eq('level','gcse').order('position'),
+      sb.from('grammar_nuggets').select('id,category,title,revision_url,position,chapter').eq('subject','latin').eq('level','gcse').order('position'),
       sb.from('student_nugget_events').select('nugget_id, correct').eq('student_id', uid),
     ]);
     if(!nugs || !nugs.length) return;                 // no taxonomy = nothing to show
@@ -1780,11 +1780,15 @@ init().then(() => {
     // red = worth a focus, grey = not practised. Recomputed every load from
     // ALL of your events, so the bars move as you do more translations.
     const colour=(a)=>{ if(!a||!a.seen) return '#e8eaf0'; const r=a.correct/a.seen; return r>=0.7?'#1A6FFF':r>=0.4?'#86efac':'#fca5a5'; };
-    const cats=[]; nugs.forEach(n=>{ if(cats.indexOf(n.category)<0) cats.push(n.category); });
+    // Group by chapter (Latin to GCSE), reading as a progression. Chapter 0 =
+    // the un-gated "common slips" that apply at every chapter, shown last.
+    const chapters=[]; nugs.forEach(n=>{ const ch=n.chapter||0; if(chapters.indexOf(ch)<0) chapters.push(ch); });
+    chapters.sort((a,b)=>(a===0?999:a)-(b===0?999:b));
     let body='';
-    cats.forEach(cat=>{
-      const items=nugs.filter(n=>n.category===cat);
-      body+='<div style="margin:18px 0 8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--navy);">'+esc(cat)+'</div>';
+    chapters.forEach(ch=>{
+      const items=nugs.filter(n=>(n.chapter||0)===ch);
+      const head = ch===0 ? 'Common slips · any chapter' : ('Chapter '+ch);
+      body+='<div style="margin:18px 0 8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--navy);">'+esc(head)+'</div>';
       body+=items.map(function(n){
         const a=agg[n.id]; const c=colour(a); const pct=a&&a.seen?Math.round(a.correct/a.seen*100):0;
         const tip = n.title + (a&&a.seen ? (' — '+a.correct+'/'+a.seen+' right') : ' — not practised yet');
