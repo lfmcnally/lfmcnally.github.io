@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grammar concepts — admin — Classicalia</title>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<style>
+body { background: var(--cream); }
+.wrap { max-width: 940px; margin: 0 auto; padding: 26px 20px 90px; }
+.gate { max-width:520px; margin:60px auto; background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:28px; text-align:center; font-size:15px; line-height:1.6; }
+.btn { font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; padding:8px 14px; border-radius:6px; border:none; background:var(--brand); color:#fff; cursor:pointer; }
+.btn:hover { background:#155ee0; } .btn.ghost { background:var(--paper); color:var(--ink); border:1px solid var(--rule); font-weight:600; }
+.btn.ghost:hover { background:var(--cream); } .btn.danger { background:var(--paper); color:#b91c1c; border:1px solid #fecaca; font-weight:600; } .btn.sm { font-size:12px; padding:6px 11px; }
+input.f, select.f, textarea.f { box-sizing:border-box; font-family:'DM Sans',sans-serif; font-size:14px; padding:8px 11px; border:1.5px solid var(--rule); border-radius:7px; background:var(--paper); color:var(--ink); outline:none; }
+input.f:focus, select.f:focus, textarea.f:focus { border-color:var(--brand); } textarea.f { resize:vertical; min-height:80px; width:100%; }
+label.lbl { display:block; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:0 0 5px; }
+.row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; } .spacer { flex:1; }
+.pills { display:flex; gap:7px; flex-wrap:wrap; }
+.pill { font-size:12px; font-weight:700; padding:6px 12px; border-radius:999px; border:1.5px solid var(--rule); background:var(--paper); color:var(--muted); cursor:pointer; }
+.pill.on { border-color:var(--brand); background:#eef4ff; color:var(--brand); }
+.cat { margin-top:18px; } .cat-h { font-family:'Lora',serif; font-style:italic; font-weight:700; font-size:17px; color:var(--navy); margin:0 0 8px; }
+.nug { display:flex; align-items:center; gap:10px; background:var(--paper); border:1px solid var(--rule); border-radius:8px; padding:9px 12px; margin-bottom:7px; }
+.nug .t { font-weight:600; color:var(--ink); } .nug .c { font-size:11px; color:var(--muted); font-family:'DM Sans'; background:var(--rule-faint); padding:2px 7px; border-radius:4px; }
+.panel { background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:16px 18px; margin-bottom:18px; }
+.hint { font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:12px; }
+.grid { display:grid; grid-template-columns:1.4fr 1fr auto; gap:10px; align-items:end; }
+@media(max-width:620px){ .grid{ grid-template-columns:1fr; } }
+.modal-bg { position:fixed; inset:0; background:rgba(14,30,63,.45); display:flex; align-items:center; justify-content:center; z-index:200; padding:20px; }
+.modal { background:var(--paper); border-radius:12px; padding:22px 24px; width:100%; max-width:460px; box-shadow:0 12px 40px rgba(14,30,63,.25); }
+.modal h3 { margin:0 0 14px; font-family:'Lora',serif; font-style:italic; color:var(--navy); font-size:20px; } .modal .end { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+.toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; font-size:13px; padding:9px 18px; border-radius:8px; opacity:0; transition:opacity .2s; z-index:300; } .toast.show { opacity:1; }
+.hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div class="header">
+  <canvas class="header-sky" data-starfield data-seed="733" data-region="0.8"></canvas>
+  <nav class="nav"><div class="nav-inner">
+    <a href="/version2/" class="nav-logo">Classicalia</a>
+    <div class="nav-links">
+      <a href="/version2/admin/" class="nav-link">Admin</a>
+      <a href="/version2/admin/bank.html" class="nav-link">Bank</a>
+      <a href="/version2/admin/plans.html" class="nav-link">Plans</a>
+      <div class="nav-div"></div>
+      <div data-account-menu></div>
+    </div>
+  </div></nav>
+  <div class="header-inner">
+    <div class="header-eyebrow">Admin &middot; Tracking</div>
+    <h1 class="header-title">Grammar concepts</h1>
+    <p class="header-deck">The "nuggets" a translation error is tagged against — and what a student's "concepts to revise" list is built from.</p>
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="gate" class="gate hidden"></div>
+  <div id="app" class="hidden">
+    <div class="row" style="margin-bottom:14px;">
+      <div><label class="lbl">Subject</label><div class="pills" id="fSubj"></div></div>
+      <div><label class="lbl">Level</label><div class="pills" id="fLevel"></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="hint"><b>Bulk add</b> — one category per line as <code>Category: concept one, concept two, …</code>. Existing concepts are skipped.</div>
+      <textarea class="f" id="bulk" placeholder="Tenses: present, imperfect, future, perfect, pluperfect&#10;Cases: nominative (subject), accusative (object), genitive, dative, ablative&#10;Common slips: subject / object the wrong way round, singular / plural"></textarea>
+      <div class="row" style="margin-top:10px;"><span class="spacer"></span><button class="btn sm" id="bulkAdd">Add these</button></div>
+    </div>
+
+    <div class="panel">
+      <div class="grid">
+        <div><label class="lbl">Concept</label><input class="f" id="nTitle" placeholder="e.g. Imperfect tense"></div>
+        <div><label class="lbl">Category</label><input class="f" id="nCat" placeholder="e.g. Tenses" list="catlist"></div>
+        <div><button class="btn sm" id="addOne">+ Add</button></div>
+      </div>
+      <datalist id="catlist"></datalist>
+    </div>
+
+    <div id="list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/version2/assets/js/starfield.js"></script>
+<script>
+'use strict';
+const sb = window.supabase;
+const $ = (id)=>document.getElementById(id);
+const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const slugify = (s)=>String(s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40) || ('x-'+Math.random().toString(36).slice(2,6));
+let toastT; function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200); }
+function modal(html){ const bg=document.createElement('div'); bg.className='modal-bg'; bg.innerHTML='<div class="modal">'+html+'</div>'; document.body.appendChild(bg); bg.addEventListener('click',e=>{ if(e.target===bg) bg.remove(); }); return bg; }
+
+const SUBJECTS = [['latin','Latin'],['greek','Greek']];
+const LEVELS = [['gcse','GCSE'],['alevel','A-Level'],['ks3','KS3']];
+let subj='latin', level='gcse', nuggets=[];
+
+(async function init(){
+  const { data: au } = await sb.auth.getUser();
+  if(!au?.user){ return gate('Please <a href="/auth/login.html">sign in</a> as an admin.'); }
+  const { data: prof } = await sb.from('users').select('can_manage_bank').eq('id', au.user.id).maybeSingle();
+  if(!prof?.can_manage_bank){ return gate('This page needs <b>assessment permission</b> (set in Plans &amp; access).'); }
+  $('app').classList.remove('hidden');
+  renderFilters();
+  $('bulkAdd').addEventListener('click', bulkAdd);
+  $('addOne').addEventListener('click', addOne);
+  await load();
+})();
+
+function gate(html){ $('gate').innerHTML='<p>'+html+'</p>'; $('gate').classList.remove('hidden'); }
+function renderFilters(){
+  $('fSubj').innerHTML = SUBJECTS.map(s=>'<span class="pill'+(s[0]===subj?' on':'')+'" data-s="'+s[0]+'">'+s[1]+'</span>').join('');
+  $('fLevel').innerHTML = LEVELS.map(l=>'<span class="pill'+(l[0]===level?' on':'')+'" data-l="'+l[0]+'">'+l[1]+'</span>').join('');
+  $('fSubj').querySelectorAll('[data-s]').forEach(p=>p.onclick=()=>{ subj=p.dataset.s; renderFilters(); load(); });
+  $('fLevel').querySelectorAll('[data-l]').forEach(p=>p.onclick=()=>{ level=p.dataset.l; renderFilters(); load(); });
+}
+async function load(){
+  const { data } = await sb.from('grammar_nuggets').select('*').eq('subject',subj).eq('level',level).order('position');
+  nuggets = data || [];
+  render();
+}
+function render(){
+  const cats = [...new Set(nuggets.map(n=>n.category))];
+  $('catlist').innerHTML = cats.map(c=>'<option value="'+esc(c)+'">').join('');
+  if(!nuggets.length){ $('list').innerHTML = '<div class="panel hint" style="margin-top:4px;">No concepts yet for this subject/level. Use bulk add above to paste your grammar list.</div>'; return; }
+  $('list').innerHTML = cats.map(cat=>{
+    const items = nuggets.filter(n=>n.category===cat);
+    return '<div class="cat"><div class="cat-h">'+esc(cat)+'</div>'+items.map(n=>
+      '<div class="nug"><span class="t">'+esc(n.title)+'</span><span class="c">'+esc(n.code)+'</span><span class="spacer"></span>'+
+      '<button class="btn ghost sm" data-edit="'+n.id+'">Edit</button>'+
+      '<button class="btn danger sm" data-del="'+n.id+'">Delete</button></div>'
+    ).join('')+'</div>';
+  }).join('');
+  $('list').querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>editNug(b.dataset.edit)));
+  $('list').querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>delNug(b.dataset.del)));
+}
+function nextPos(){ return (nuggets.reduce((m,n)=>Math.max(m,n.position||0),0))+10; }
+
+async function addOne(){
+  const title=$('nTitle').value.trim(); const category=($('nCat').value.trim()||'General');
+  if(!title) return toast('Enter a concept');
+  const { data, error } = await sb.from('grammar_nuggets').insert({ subject:subj, level, category, title, code:slugify(title), position:nextPos() }).select().single();
+  if(error) return toast(error.message.includes('duplicate')?'That concept code already exists':('Failed: '+error.message));
+  nuggets.push(data); $('nTitle').value=''; render(); toast('Added “'+title+'”');
+}
+async function bulkAdd(){
+  const lines = $('bulk').value.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(!lines.length) return toast('Paste some lines first');
+  const have = new Set(nuggets.map(n=>n.code));
+  const rows=[]; let pos=nextPos();
+  lines.forEach(line=>{
+    const idx=line.indexOf(':'); if(idx<0) return;
+    const category=line.slice(0,idx).trim()||'General';
+    line.slice(idx+1).split(',').map(x=>x.trim()).filter(Boolean).forEach(title=>{
+      const code=slugify(title); if(have.has(code)) return; have.add(code);
+      rows.push({ subject:subj, level, category, title, code, position:pos }); pos+=10;
+    });
+  });
+  if(!rows.length) return toast('Nothing new to add');
+  const { data, error } = await sb.from('grammar_nuggets').insert(rows).select();
+  if(error) return toast('Failed: '+error.message);
+  nuggets = nuggets.concat(data||[]); $('bulk').value=''; render(); toast((data||[]).length+' concepts added');
+}
+function editNug(id){
+  const n=nuggets.find(x=>x.id===id); if(!n) return;
+  const m=modal('<h3>Edit concept</h3>'+
+    '<label class="lbl">Concept</label><input class="f" id="et" value="'+esc(n.title)+'" style="width:100%;">'+
+    '<div style="margin-top:10px;"><label class="lbl">Category</label><input class="f" id="ec" value="'+esc(n.category)+'" style="width:100%;"></div>'+
+    '<div class="end"><button class="btn ghost sm" data-x>Cancel</button><button class="btn sm" id="ok">Save</button></div>');
+  m.querySelector('[data-x]').onclick=()=>m.remove();
+  m.querySelector('#ok').onclick=async ()=>{
+    const title=m.querySelector('#et').value.trim(); const category=m.querySelector('#ec').value.trim()||'General';
+    if(!title) return toast('Enter a concept');
+    const { error } = await sb.from('grammar_nuggets').update({ title, category }).eq('id',id);
+    if(error) return toast('Failed: '+error.message);
+    n.title=title; n.category=category; m.remove(); render(); toast('Saved');
+  };
+}
+async function delNug(id){
+  if(!confirm('Delete this concept? Past tracking events for it are removed too.')) return;
+  const { error } = await sb.from('grammar_nuggets').delete().eq('id',id);
+  if(error) return toast('Failed: '+error.message);
+  nuggets=nuggets.filter(n=>n.id!==id); render(); toast('Deleted');
+}
+</script>
+</body>
+</html>
