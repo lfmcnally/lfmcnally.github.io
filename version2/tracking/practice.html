@@ -75,13 +75,14 @@ async function generate(){
     '<p class="muted" style="margin-top:8px;"><span class="spin" style="border-top-color:var(--brand);border-color:rgba(0,0,0,.15);border-top-color:var(--brand);"></span>Writing fresh sentences on <b>'+esc(titleHint)+'</b> using only chapter '+chapter+' vocabulary and grammar.</p></div>';
   const vocab = VOCAB_LATIN_GCSE
     .filter(v => (v.chapter||99) <= chapter)
-    .map(v => ({ latin: v.latin, english: v.english }));
+    .map(v => ({ latin: v.latin, english: v.english, info: v.info }));
   const { data, error } = await sb.functions.invoke('generate-practice', { body: { nugget_code:nuggetCode, chapter, count:6, vocab } });
   if(error){
     let msg='Could not generate practice — please try again.';
     try{ const j=await error.context.json(); if(j&&(j.error||j.message)) msg=j.error||j.message; }catch(_){}
     return gate(msg+'<br><br><button class="btn sm" onclick="location.reload()">Try again</button>');
   }
+  if(data && data.locked){ return gate('<b>Grammar practice — coming soon.</b><br><br>'+esc(data.message||'This feature isn\'t available on your account yet.')+'<br><br><button class="btn sm" onclick="location.href=\'/version2/tracking/dashboard.html\'">Back to dashboard</button>'); }
   if(data && data.paused){ return gate(data.message || 'Practice is paused for now.'); }
   if(!data || !data.submission_id || !Array.isArray(data.questions) || !data.questions.length){
     return gate('No sentences came back. <button class="btn sm" onclick="location.reload()">Try again</button>');

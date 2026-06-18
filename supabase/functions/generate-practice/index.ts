@@ -12,11 +12,15 @@
 // take/mark/track flow is reused unchanged. A light monthly £ cap (shared with
 // marking) guards cost.
 //
+// Entitled feature (no paid tier yet): open only to accounts granted bank
+// access (or managers/admins) — enforced server-side. A stem-based guardrail
+// drops generated sentences that drift outside the chapter's vocabulary window.
+//
 // Request (student JWT):
-//   POST { nugget_code, chapter, count?, vocab: [{ latin, english }] }
+//   POST { nugget_code, chapter, count?, vocab: [{ latin, english, info }] }
 // Returns:
 //   { submission_id, assessment_id, title, nugget, chapter,
-//     questions: [{ id, prompt, marks }] }  |  { error } | { paused }
+//     questions: [{ id, prompt, marks }] }  |  { error } | { paused } | { locked }
 //
 // Secrets/env: ANTHROPIC_API_KEY, optional GEN_MODEL (default claude-sonnet-4-6),
 // plus the platform SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY.
@@ -40,6 +44,29 @@ const PRICING: Record<string, { in: number; out: number }> = {
 const MODEL = Deno.env.get("GEN_MODEL") ?? "claude-sonnet-4-6";
 const MAX_COUNT = 10;
 const MAX_VOCAB = 600;          // hard bound on the headword list we accept
+
+// ── Guardrail: keep generated sentences inside the vocabulary window ──────────
+// Latin is inflected, so we match on lenient STEMS built from each allowed
+// headword and (for verbs/nouns) its principal parts. A token is "known" if it
+// shares a stem with something the student has met; sentences with an unknown
+// content word are dropped. Biased lenient — better to let an odd word through
+// than to reject good practice.
+function stripMac(s: string): string { return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+function buildStems(vocab: Array<{ latin: string; info?: string }>): string[] {
+  const set = new Set<string>();
+  const add = (raw: string) => { const w = stripMac(raw).replace(/[^a-z]/g, ""); if (w.length >= 3) set.add(w.length > 4 ? w.slice(0, w.length - 2) : w); };
+  for (const v of vocab) {
+    String(v.latin || "").split(/[,….\s]+/).forEach((p) => p && add(p));
+    const info = String(v.info || "");
+    const pp = info.split(/\s[-–]\s/)[0];                 // principal parts before the grammatical note
+    if (pp && pp !== info) pp.split(/[,\s]+/).forEach((p) => p && add(p));
+  }
+  return [...set];
+}
+function sentenceInWindow(latin: string, stems: string[]): boolean {
+  const toks = stripMac(latin).split(/[^a-z]+/).filter(Boolean);
+  return toks.every((t) => t.length <= 2 || stems.some((s) => s.length >= 3 && (t.startsWith(s) || s.startsWith(t.slice(0, 4)))));
+}
 
 const SENTENCES_SCHEMA = {
   type: "object", additionalProperties: false,
@@ -73,7 +100,7 @@ Deno.serve(async (req) => {
     const uid = userData.user.id;
     const svc = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false, autoRefreshToken: false } });
 
-    let payload: { nugget_code?: string; chapter?: number; count?: number; vocab?: Array<{ latin?: string; english?: string }> };
+    let payload: { nugget_code?: string; chapter?: number; count?: number; vocab?: Array<{ latin?: string; english?: string; info?: string }> };
     try { payload = await req.json(); } catch { return json({ error: "invalid JSON" }, 400); }
 
     const nuggetCode = String(payload.nugget_code ?? "").trim();
@@ -83,10 +110,18 @@ Deno.serve(async (req) => {
     if (!chapter)    return json({ error: "missing or invalid chapter" }, 400);
 
     const vocab = (Array.isArray(payload.vocab) ? payload.vocab : [])
-      .map((v) => ({ latin: String(v.latin ?? "").trim(), english: String(v.english ?? "").trim() }))
+      .map((v) => ({ latin: String(v.latin ?? "").trim(), english: String(v.english ?? "").trim(), info: String(v.info ?? "").trim() }))
       .filter((v) => v.latin)
       .slice(0, MAX_VOCAB);
     if (vocab.length < 10) return json({ error: "too little vocabulary supplied for this chapter" }, 400);
+
+    // Access gate — grammar practice is an entitled feature (no paid tier yet),
+    // open only to accounts granted bank access (or managers/admins). The UI
+    // shows it greyed "coming soon" for everyone else; this enforces it server-side.
+    const { data: ent } = await svc.from("users").select("can_self_serve_bank, can_manage_bank").eq("id", uid).maybeSingle();
+    if (!ent?.can_self_serve_bank && !ent?.can_manage_bank) {
+      return json({ locked: true, message: "Grammar practice isn't available on your account yet." });
+    }
 
     // Allowed grammar = nuggets up to this chapter; target = the focus nugget.
     const { data: nugs } = await svc.from("grammar_nuggets")
@@ -146,10 +181,17 @@ Deno.serve(async (req) => {
     const block = (anth.content || []).find((b: { type: string }) => b.type === "text");
     let parsed: { sentences?: Array<{ latin?: string; english?: string }> } = {};
     try { parsed = JSON.parse(block?.text ?? "{}"); } catch { return json({ error: "could not parse generation" }, 502); }
-    const sentences = (Array.isArray(parsed.sentences) ? parsed.sentences : [])
+    const raw = (Array.isArray(parsed.sentences) ? parsed.sentences : [])
       .map((s) => ({ latin: String(s.latin ?? "").trim(), english: String(s.english ?? "").trim() }))
-      .filter((s) => s.latin && s.english)
-      .slice(0, count);
+      .filter((s) => s.latin && s.english);
+    if (!raw.length) return json({ error: "no sentences generated" }, 502);
+
+    // Guardrail: drop any sentence that drifts outside the vocab window. If that
+    // would leave too few (likely over-strict matching), fall back to the raw set
+    // rather than block the student.
+    const stems = buildStems(vocab);
+    const clean = raw.filter((s) => sentenceInWindow(s.latin, stems));
+    const sentences = (clean.length >= 2 ? clean : raw).slice(0, count);
     if (!sentences.length) return json({ error: "no sentences generated" }, 502);
 
     // Persist as a takeable, is_practice assessment so the existing take/mark/

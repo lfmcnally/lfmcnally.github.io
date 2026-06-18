@@ -1773,8 +1773,12 @@ init().then(() => {
       sb.from('grammar_nuggets').select('id,code,category,title,revision_url,position,chapter').eq('subject','latin').eq('level','gcse').order('position'),
       sb.from('student_nugget_events').select('nugget_id, correct').eq('student_id', uid),
       sb.from('v2_class_members').select('class_id').eq('student_id', uid),
-      sb.from('users').select('grammar_chapter').eq('id', uid).maybeSingle(),
+      sb.from('users').select('grammar_chapter, can_self_serve_bank, can_manage_bank').eq('id', uid).maybeSingle(),
     ]);
+    // Practice is an entitled feature (no paid tier yet) — granted in admin.
+    // Everyone still sees their confidence bars; non-entitled accounts get a
+    // greyed "coming soon" instead of a live Practise link.
+    const canPractiseFeature = !!(prof && (prof.can_self_serve_bank || prof.can_manage_bank));
     if(!nugs || !nugs.length) return;                 // no taxonomy = nothing to show
     // The student's current chapter = furthest of their classes' setting and
     // their own; practice for a nugget runs at max(that, the nugget's chapter)
@@ -1802,9 +1806,11 @@ init().then(() => {
       body+='<div style="margin:18px 0 8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--navy);">'+esc(head)+'</div>';
       body+=items.map(function(n){
         const a=agg[n.id]; const c=colour(a); const pct=a&&a.seen?Math.round(a.correct/a.seen*100):0;
-        const canPractise = (n.chapter||0) > 0;   // only chapter-gated concepts
-        const tip = n.title + (a&&a.seen ? (' — '+a.correct+'/'+a.seen+' right') : ' — not practised yet') + (canPractise ? ' · click to practise' : '');
-        const arrow = canPractise ? '<span style="font-size:12px;color:var(--brand);flex:none;">Practise →</span>' : '';
+        const canPractise = (n.chapter||0) > 0 && canPractiseFeature;   // entitled + chapter-gated
+        const lockedPractise = (n.chapter||0) > 0 && !canPractiseFeature;
+        const tip = n.title + (a&&a.seen ? (' — '+a.correct+'/'+a.seen+' right') : ' — not practised yet') + (canPractise ? ' · click to practise' : (lockedPractise ? ' · practice coming soon' : ''));
+        const arrow = canPractise ? '<span style="font-size:12px;color:var(--brand);flex:none;">Practise →</span>'
+                    : (lockedPractise ? '<span style="font-size:11px;color:var(--muted);flex:none;">Soon</span>' : '');
         const row='<div title="'+esc(tip)+'" style="display:grid;grid-template-columns:minmax(120px,170px) 1fr 44px auto;align-items:center;gap:10px;margin:8px 0;">'+
           '<div style="font-size:13px;color:var(--ink);line-height:1.3;">'+esc(n.title)+'</div>'+
           '<div style="height:12px;border-radius:999px;background:#e8eaf0;overflow:hidden;"><div style="height:100%;border-radius:999px;width:'+(a&&a.seen?Math.max(pct,6):0)+'%;background:'+c+';transition:width .3s;"></div></div>'+
@@ -1828,6 +1834,7 @@ init().then(() => {
     const el=document.getElementById('grammarPanel'); if(!el) return;
     el.innerHTML='<div class="dash-card"><div class="dash-card-head"><span class="dash-card-title">Grammar confidence · Latin GCSE</span></div>'+
       '<div style="padding:14px 18px;">'+ keyHtml +
+      (canPractiseFeature?'':'<div style="font-size:12px;color:#92500e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 11px;margin-top:10px;"><b>Targeted practice — coming soon.</b> Track your confidence here now; one-tap practice on any concept is on the way.</div>')+
       (totalSeen?'':'<div style="font-size:12px;color:var(--muted);margin-top:8px;">Do a Latin translation to start filling these in.</div>')+
       body+'</div></div>';
     function isLatinGcse(){ try{ if(typeof currentVocabCourse==='string') return currentVocabCourse==='latin-gcse'; }catch(e){} const t=document.querySelector('#courseTabs .course-tab.active'); return !t || t.dataset.courseType==='latin-gcse'; }
