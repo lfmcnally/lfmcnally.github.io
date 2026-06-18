@@ -172,35 +172,93 @@ Deno.serve(async (req) => {
     const submitted: Record<string, string> = {};
     (payload.answers || []).forEach((a) => { if (a.question_id) submitted[a.question_id] = String(a.answer_text ?? "").trim(); });
 
-    const { data: sub } = await svc.from("weekly_test_submissions").select("id, test_id, student_id").eq("id", submissionId).maybeSingle();
+    const { data: sub } = await svc.from("weekly_test_submissions")
+      .select("id, student_id, source_kind, test_id, assignment_id, bank_assessment_id").eq("id", submissionId).maybeSingle();
     if (!sub || sub.student_id !== uid) return json({ error: "not your submission" }, 403);
-    const { data: test } = await svc.from("weekly_tests")
-      .select("id, teacher_id, class_id, status, due_at, max_attempts_per_question, max_answer_chars").eq("id", sub.test_id).maybeSingle();
-    if (!test) return json({ error: "test not found" }, 404);
-    if (test.status !== "open") return json({ error: "test is not open" }, 403);
-    if (test.due_at && Date.parse(test.due_at) < Date.now()) return json({ error: "past the due date" }, 403);
+    const sourceKind = (sub.source_kind ?? "legacy_test") as "legacy_test" | "assignment" | "self_serve";
 
-    // Subject (Latin / Greek / Classical Civilisation) drives the marking voice.
-    const { data: cls } = await svc.from("v2_classes").select("type").eq("id", test.class_id).maybeSingle();
-    const subject = subjectFor(cls?.type);
+    // -- Resolve the source -------------------------------------------------
+    // Produces: questions, the scheme/usage tables to use, the subject voice,
+    // the caps, and WHO pays (the teacher's budget, or — for self-serve — the
+    // student's own). The marking body below is identical for every source.
+    let subject = "Classical Civilisation";
+    let maxAttempts = 1, maxAnswerChars = 1200;
+    let questionSource: "weekly_test" | "bank" = "weekly_test";
+    let usageTeacherId: string | null = null;        // null for self-serve
+    let usageTestId: string | null = null;           // weekly_tests id, else null
+    let usageBankAssessmentId: string | null = null; // bank assessment id, else null
+    let budgetUserId: string | null = null;          // whose weekly_test_budget gates spend
+    let questions: Array<{ id: string; prompt: string; marks: number; mark_style?: string }> = [];
 
-    const { data: qs } = await svc.from("weekly_test_questions").select("id, prompt, marks, position, mark_style").eq("test_id", test.id).order("position");
-    const questions = (qs || []).slice(0, MAX_QUESTIONS);
+    if (sourceKind === "legacy_test") {
+      const { data: test } = await svc.from("weekly_tests")
+        .select("id, teacher_id, class_id, status, due_at, max_attempts_per_question, max_answer_chars").eq("id", sub.test_id).maybeSingle();
+      if (!test) return json({ error: "test not found" }, 404);
+      if (test.status !== "open") return json({ error: "test is not open" }, 403);
+      if (test.due_at && Date.parse(test.due_at) < Date.now()) return json({ error: "past the due date" }, 403);
+      const { data: cls } = await svc.from("v2_classes").select("type").eq("id", test.class_id).maybeSingle();
+      subject = subjectFor(cls?.type);
+      maxAttempts = test.max_attempts_per_question; maxAnswerChars = test.max_answer_chars;
+      usageTeacherId = test.teacher_id; usageTestId = test.id; budgetUserId = test.teacher_id;
+      const { data: qs } = await svc.from("weekly_test_questions").select("id, prompt, marks, position, mark_style").eq("test_id", test.id).order("position");
+      questions = qs || [];
+    } else {
+      // assignment or self_serve — both read from the bank tables.
+      let assessmentId: string | null = null;
+      if (sourceKind === "assignment") {
+        const { data: asg } = await svc.from("bank_class_assignments")
+          .select("id, class_id, assessment_id, teacher_id, status, due_at").eq("id", sub.assignment_id).maybeSingle();
+        if (!asg) return json({ error: "assignment not found" }, 404);
+        if (asg.status !== "open") return json({ error: "assignment is closed" }, 403);
+        if (asg.due_at && Date.parse(asg.due_at) < Date.now()) return json({ error: "past the due date" }, 403);
+        const { data: mem } = await svc.from("v2_class_members").select("student_id").eq("class_id", asg.class_id).eq("student_id", uid).maybeSingle();
+        if (!mem) return json({ error: "not in this class" }, 403);
+        assessmentId = asg.assessment_id;
+        usageTeacherId = asg.teacher_id; budgetUserId = asg.teacher_id;
+        const { data: cls } = await svc.from("v2_classes").select("type").eq("id", asg.class_id).maybeSingle();
+        subject = subjectFor(cls?.type);
+      } else { // self_serve — gated until subscriptions (Phase 5)
+        if (!sub.bank_assessment_id) return json({ error: "no assessment" }, 400);
+        const { data: prof } = await svc.from("users").select("can_self_serve_bank").eq("id", uid).maybeSingle();
+        if (!prof?.can_self_serve_bank) return json({ paused: true, message: "Self-serve practice isn't enabled on your account yet." });
+        assessmentId = sub.bank_assessment_id;
+        budgetUserId = uid;
+      }
+      const { data: assess } = await svc.from("bank_assessments")
+        .select("id, course_id, status, max_attempts_per_question, max_answer_chars").eq("id", assessmentId).maybeSingle();
+      if (!assess) return json({ error: "assessment not found" }, 404);
+      if (assess.status !== "published") return json({ error: "assessment not available" }, 403);
+      maxAttempts = assess.max_attempts_per_question; maxAnswerChars = assess.max_answer_chars;
+      usageBankAssessmentId = assess.id; questionSource = "bank";
+      if (sourceKind === "self_serve") {
+        const { data: course } = await svc.from("bank_courses").select("subject").eq("id", assess.course_id).maybeSingle();
+        subject = subjectFor(course?.subject);
+      }
+      const { data: qs } = await svc.from("bank_assessment_questions").select("id, prompt, marks, position, mark_style").eq("assessment_id", assess.id).order("position");
+      questions = qs || [];
+    }
+
+    questions = questions.slice(0, MAX_QUESTIONS);
     const qids = questions.map((q) => q.id);
     const schemes: Record<string, { scheme_points?: unknown; model_answer?: string; marking_notes?: string }> = {};
     const existing: Record<string, { attempts: number; final_marks: number | null; ai_rationale: string | null }> = {};
     if (qids.length) {
-      const { data: sc } = await svc.from("weekly_test_mark_schemes").select("question_id, scheme_points, model_answer, marking_notes").in("question_id", qids);
+      const schemeTable = questionSource === "bank" ? "bank_assessment_mark_schemes" : "weekly_test_mark_schemes";
+      const { data: sc } = await svc.from(schemeTable).select("question_id, scheme_points, model_answer, marking_notes").in("question_id", qids);
       (sc || []).forEach((s) => { schemes[s.question_id] = s; });
       const { data: ex } = await svc.from("weekly_test_answers").select("question_id, attempts, final_marks, ai_rationale").eq("submission_id", submissionId);
       (ex || []).forEach((a) => { existing[a.question_id] = a; });
     }
 
-    // budget for the month
+    // Budget for the month — the teacher's pool (legacy/assignment) or, for
+    // self-serve, the student's own. Self-serve usage rows carry teacher_id NULL.
     const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
-    const { data: budgetRow } = await svc.from("weekly_test_budget").select("monthly_cost_cap_micros").eq("teacher_id", test.teacher_id).maybeSingle();
+    const { data: budgetRow } = await svc.from("weekly_test_budget").select("monthly_cost_cap_micros").eq("teacher_id", budgetUserId).maybeSingle();
     const costCap = budgetRow?.monthly_cost_cap_micros ?? 5000000;
-    const { data: monthUsage } = await svc.from("weekly_test_marking_usage").select("cost_micros").eq("teacher_id", test.teacher_id).gte("created_at", monthStart.toISOString());
+    const usageQ = svc.from("weekly_test_marking_usage").select("cost_micros").gte("created_at", monthStart.toISOString());
+    const { data: monthUsage } = sourceKind === "self_serve"
+      ? await usageQ.eq("student_id", uid).is("teacher_id", null)
+      : await usageQ.eq("teacher_id", budgetUserId);
     let spent = (monthUsage ?? []).reduce((s, r) => s + Number(r.cost_micros || 0), 0);
 
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
@@ -211,10 +269,10 @@ Deno.serve(async (req) => {
     let paused = false;
 
     for (const q of questions) {
-      const at = (submitted[q.id] ?? "").slice(0, test.max_answer_chars);
+      const at = (submitted[q.id] ?? "").slice(0, maxAnswerChars);
       const prev = existing[q.id];
       if (!at) { results.push({ question_id: q.id, status: "blank", marks: 0, max: q.marks, rationale: null }); continue; }
-      if (prev && prev.attempts >= test.max_attempts_per_question) {
+      if (prev && prev.attempts >= maxAttempts) {
         results.push({ question_id: q.id, status: "marked", marks: prev.final_marks ?? 0, max: q.marks, rationale: prev.ai_rationale }); continue;
       }
       if (spent >= costCap) { paused = true; results.push({ question_id: q.id, status: "paused", marks: null, max: q.marks, rationale: null }); continue; }
@@ -223,12 +281,12 @@ Deno.serve(async (req) => {
       const cost = Math.round((r.usage.input_tokens || 0) * price.in + (r.usage.output_tokens || 0) * price.out);
       spent += cost;
       await svc.from("weekly_test_marking_usage").insert({
-        teacher_id: test.teacher_id, test_id: test.id, student_id: uid, question_id: q.id,
+        teacher_id: usageTeacherId, test_id: usageTestId, bank_assessment_id: usageBankAssessmentId, student_id: uid, question_id: q.id,
         model: MODEL, input_tokens: r.usage.input_tokens || 0, output_tokens: r.usage.output_tokens || 0, cost_micros: cost,
       });
       if ("error" in r) { results.push({ question_id: q.id, status: "error", marks: null, max: q.marks, rationale: null }); continue; }
       await svc.from("weekly_test_answers").upsert({
-        submission_id: submissionId, question_id: q.id, answer_text: at,
+        submission_id: submissionId, question_id: q.id, question_source: questionSource, answer_text: at,
         ai_marks: r.marks, ai_max: q.marks, ai_matched: r.matched, ai_rationale: r.rationale,
         final_marks: r.marks, marked_by: "ai", attempts: (prev?.attempts ?? 0) + 1, updated_at: new Date().toISOString(),
       }, { onConflict: "submission_id,question_id" });
