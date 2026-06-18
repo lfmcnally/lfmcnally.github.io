@@ -150,6 +150,11 @@ const draftKey = (sid)=>'bank-draft-'+sid;
 
 let me_id=null, myName='Student', canSelfServe=false, myClasses=[], ownedClasses=[];
 let courses=[], topics=[], assessments=[], assignments=[];
+let studentChapter=0;   // furthest Latin-to-GCSE chapter my classes have reached
+let canManageBank=false;
+// A browse item is visible if it has no chapter ceiling, I'm within it, or I can
+// manage the bank. Assigned tests bypass this (they don't go through here).
+const visibleToMe = a => canManageBank || !(a.grammar_ceiling>0) || a.grammar_ceiling<=studentChapter;
 let viewIsTeacher=false, myWeakConcepts=[];
 let path = { subject:null, level:null, courseId:null, topicId:null, subId:null };
 
@@ -168,9 +173,9 @@ const topTopicsOf = cid => topics.filter(t=>t.course_id===cid && !t.parent_id);
 const subTopicsOf = tid => topics.filter(t=>t.parent_id===tid);
 const courseById  = id => courses.find(c=>c.id===id);
 const topicById   = id => topics.find(t=>t.id===id);
-const inCourse = cid => assessments.filter(a=>a.course_id===cid);
-const inTopic  = tid => assessments.filter(a=>a.topic_id===tid);
-const moduleTests = cid => assessments.filter(a=>a.course_id===cid && !a.topic_id);
+const inCourse = cid => assessments.filter(a=>a.course_id===cid && visibleToMe(a));
+const inTopic  = tid => assessments.filter(a=>a.topic_id===tid && visibleToMe(a));
+const moduleTests = cid => assessments.filter(a=>a.course_id===cid && !a.topic_id && visibleToMe(a));
 const topicTestCount = tid => inTopic(tid).length + subTopicsOf(tid).reduce((s,st)=>s+inTopic(st.id).length,0);
 
 (async function init(){
@@ -179,19 +184,23 @@ const topicTestCount = tid => inTopic(tid).length + subTopicsOf(tid).reduce((s,s
   me_id = au.user.id;
   const { data: prof } = await sb.from('users').select('full_name, can_self_serve_bank, can_manage_bank').eq('id', me_id).maybeSingle();
   canSelfServe = !!prof?.can_self_serve_bank;
-  const canManage = !!prof?.can_manage_bank;
+  const canManage = !!prof?.can_manage_bank; canManageBank = canManage;
   myName = (prof?.full_name || '').trim() || (au.user.email || 'Student');
 
-  const { data: cls } = await sb.from('v2_classes').select('id,name,type,teacher_id');
+  const { data: cls } = await sb.from('v2_classes').select('*');
   myClasses = cls || [];
   ownedClasses = myClasses.filter(c=>c.teacher_id===me_id);
+  // Furthest chapter any of my classes has reached (gates the browse).
+  myClasses.filter(c=>c.teacher_id!==me_id).forEach(c=>{ if((c.grammar_chapter||0) > studentChapter) studentChapter = c.grammar_chapter; });
 
   const [{ data: cs }, { data: ts }, { data: as }] = await Promise.all([
     sb.from('bank_courses').select('*').order('subject').order('position'),
     sb.from('bank_topics').select('*').order('position'),
-    sb.from('bank_assessments').select('id,course_id,topic_id,title,status').eq('status','published'),
+    sb.from('bank_assessments').select('*').eq('status','published'),
   ]);
-  courses = cs||[]; topics = ts||[]; assessments = as||[];
+  courses = cs||[]; topics = ts||[];
+  // Hide auto-generated practice sets from the browse catalogue entirely.
+  assessments = (as||[]).filter(a=>!a.is_practice);
 
   // test sizes for the catalogue cards (questions + marks)
   const aids = assessments.map(a=>a.id);
@@ -357,7 +366,7 @@ function renderSearch(raw){
   const query=norm(raw);
   const c=$('crumbs'); c.innerHTML='<button class="crumb" id="chome">Home</button><span class="crumb-sep">/</span><span class="crumb cur">Search “'+esc(raw)+'”</span>';
   $('chome').addEventListener('click', ()=>{ $('bsearch').value=''; renderGrid(); });
-  const hits = assessments.filter(a=>norm(a.title+' '+locText(a)).includes(query));
+  const hits = assessments.filter(a=>visibleToMe(a) && norm(a.title+' '+locText(a)).includes(query));
   const g=$('grid');
   g.innerHTML = hits.length ? cards(hits.map(a=>
     '<div class="fcard notclick"><div class="fic test">'+FIC.file+'</div><div class="fname">'+esc(a.title)+'</div><div class="fsub">'+esc(locText(a))+(sizeOf(a)?(' · '+sizeOf(a)):'')+'</div><div class="factions">'+testActs(a)+'</div></div>'
