@@ -1,10 +1,20 @@
 # Resource bank & paid tiers — design plan
 
-Status: **design (pre-implementation)**. This is the agreed shape of the feature
-that turns the weekly-test marking engine into a product with a **resource bank
-of assessments** and **two paid tiers**. Nothing here is built yet. It builds
-directly on the already-shipped weekly-test system (`WEEKLY_TEST_PLAN.md`,
-migrations `058`–`060`, the `mark-test` / `mark-answer` Edge Functions).
+Status: **in implementation**. This is the agreed shape of the feature that turns
+the weekly-test marking engine into a product with a **resource bank of
+assessments** and **two paid tiers**. It builds directly on the already-shipped
+weekly-test system (`WEEKLY_TEST_PLAN.md`, migrations `058`–`060`, the
+`mark-test` / `mark-answer` Edge Functions).
+
+**Implementation status (this branch):**
+- ✅ Phase 1 — catalogue schema + taxonomy (`migrations/061_resource_bank.sql`)
+- ✅ Phase 2 — authoring tool (`version2/admin/bank.html`)
+- ✅ Phase 3 — assign + self-serve + source-aware `mark-test` + PDF
+  (`migrations/062_bank_submissions.sql`, `version2/tracking/bank.html`)
+- ✅ Phase 5a — entitlement schema + permissive credit gating
+  (`migrations/063_subscriptions.sql`); **Stripe Checkout/webhook still to do**
+- ⬜ Phase 4 — author the actual assessments (content)
+- ⬜ Phase 5b — Stripe billing wired to `subscriptions`
 
 ## What it is
 

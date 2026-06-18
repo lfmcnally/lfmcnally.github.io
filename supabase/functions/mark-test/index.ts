@@ -268,6 +268,42 @@ Deno.serve(async (req) => {
     const results: Array<{ question_id: string; status: string; marks: number | null; max: number; rationale: string | null }> = [];
     let paused = false;
 
+    // -- Credit gate (Phase 5) ---------------------------------------------
+    // One credit = one whole assessment. Resolve the paying account (the
+    // teacher's org for legacy/assignment, the student for self-serve). PERMISSIVE:
+    // with no ACTIVE subscription the account is ungated (current behaviour). Any
+    // error here (e.g. tables not yet migrated) also falls through to permissive.
+    let creditAccount: { kind: "org" | "user"; id: string; credits: number; period: string } | null = null;
+    try {
+      if (sourceKind === "self_serve") {
+        const { data: s } = await svc.from("subscriptions")
+          .select("credits_per_period, period").eq("account_kind", "user").eq("user_id", uid).eq("status", "active").maybeSingle();
+        if (s) creditAccount = { kind: "user", id: uid, credits: s.credits_per_period, period: s.period };
+      } else if (budgetUserId) {
+        const { data: mem } = await svc.from("org_members").select("org_id").eq("user_id", budgetUserId).maybeSingle();
+        if (mem?.org_id) {
+          const { data: s } = await svc.from("subscriptions")
+            .select("credits_per_period, period").eq("account_kind", "org").eq("org_id", mem.org_id).eq("status", "active").maybeSingle();
+          if (s) creditAccount = { kind: "org", id: mem.org_id, credits: s.credits_per_period, period: s.period };
+        }
+      }
+      if (creditAccount) {
+        const start = new Date();
+        if (creditAccount.period === "month") { start.setUTCDate(1); }
+        else { const d = (start.getUTCDay() + 6) % 7; start.setUTCDate(start.getUTCDate() - d); } // Monday
+        start.setUTCHours(0, 0, 0, 0);
+        const { data: led } = await svc.from("credit_ledger")
+          .select("delta").eq("account_kind", creditAccount.kind).eq("account_id", creditAccount.id).gte("created_at", start.toISOString());
+        const remaining = creditAccount.credits + (led ?? []).reduce((s, r) => s + Number(r.delta || 0), 0);
+        if (remaining <= 0) {
+          return json({ results: questions.map((q) => ({ question_id: q.id, status: "paused", marks: null, max: q.marks, rationale: null })),
+            total_awarded: 0, total_marks: questions.reduce((s, q) => s + q.marks, 0), paused: true,
+            message: "Your plan has no assessment credits left this period." });
+        }
+      }
+    } catch (_e) { creditAccount = null; }
+
+    let modelCalls = 0;
     for (const q of questions) {
       const at = (submitted[q.id] ?? "").slice(0, maxAnswerChars);
       const prev = existing[q.id];
@@ -278,6 +314,7 @@ Deno.serve(async (req) => {
       if (spent >= costCap) { paused = true; results.push({ question_id: q.id, status: "paused", marks: null, max: q.marks, rationale: null }); continue; }
 
       const r = await markOne(apiKey, q, schemes[q.id] ?? null, at, q.mark_style ?? "points", subject);
+      modelCalls++;
       const cost = Math.round((r.usage.input_tokens || 0) * price.in + (r.usage.output_tokens || 0) * price.out);
       spent += cost;
       await svc.from("weekly_test_marking_usage").insert({
@@ -298,6 +335,16 @@ Deno.serve(async (req) => {
     await svc.from("weekly_test_submissions").update({
       submitted_at: new Date().toISOString(), total_awarded: totalAwarded, total_marks: totalMarks,
     }).eq("id", submissionId);
+
+    // Debit one credit for this assessment, if the account is gated and we
+    // actually marked something. The unique index on (submission_id) makes this
+    // idempotent, so a re-mark never double-charges.
+    if (creditAccount && modelCalls > 0) {
+      await svc.from("credit_ledger").insert({
+        account_kind: creditAccount.kind, account_id: creditAccount.id,
+        submission_id: submissionId, delta: -1, reason: "assessment",
+      });
+    }
 
     return json({ results, total_awarded: totalAwarded, total_marks: totalMarks, paused });
   } catch (e) {
