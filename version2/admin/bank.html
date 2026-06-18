@@ -74,6 +74,31 @@ textarea.f { resize: vertical; min-height: 56px; }
 .sp input.txt { flex: 1; } .sp input.mk { width: 64px; }
 .thumb { max-width: 160px; max-height: 110px; border-radius: 6px; border: 1px solid var(--rule); display: block; margin-top: 8px; }
 
+/* Question card: collapsible + type-aware */
+.qhead { cursor: pointer; }
+.qnum { font-weight: 700; color: var(--navy); }
+.qtype { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; }
+.qtype.t-points { background: #eef4ff; color: var(--brand); }
+.qtype.t-translation { background: #fef3e8; color: #b9650f; }
+.qmarks { font-size: 11px; color: var(--muted); font-weight: 700; }
+.qprev { flex: 1; min-width: 0; font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'Lora', serif; font-style: italic; }
+.qcard:not(.collapsed) .qprev { display: none; }
+.qchev { color: var(--muted); font-size: 12px; transition: transform .15s; }
+.qcard.collapsed .qchev { transform: rotate(-90deg); }
+.qcard.collapsed .qbody { display: none; }
+.qbody { margin-top: 14px; }
+.fieldhint { font-size: 11.5px; color: var(--muted); margin: 3px 0 7px; line-height: 1.45; }
+.req { color: #c0392b; font-weight: 700; }
+.allochint { font-size: 11.5px; color: var(--muted); margin-top: 7px; font-weight: 600; }
+.addrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.typecard-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 6px 0; }
+@media (max-width: 560px) { .typecard-row { grid-template-columns: 1fr; } }
+.typecard { border: 1.5px solid var(--rule); border-radius: 10px; padding: 16px; cursor: pointer; background: var(--paper); transition: border-color .12s, background .12s; }
+.typecard:hover { border-color: var(--brand); background: #f7faff; }
+.typecard b { color: var(--navy); font-size: 14px; }
+.typecard .plus { float: right; color: var(--brand); font-weight: 700; }
+.typecard p { margin: 6px 0 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+
 /* Editor context panel (left aside while editing) */
 .ctx-line { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 6px 0; border-bottom: 1px solid var(--rule-faint); }
 .ctx-line:last-child { border-bottom: none; }
@@ -167,7 +192,7 @@ function imgSrc(path){ if(!path) return ''; if(/^https?:\/\//.test(path)||path.s
 function modal(html, maxw){ const bg=document.createElement('div'); bg.className='modal-bg'; bg.innerHTML='<div class="modal"'+(maxw?(' style="max-width:'+maxw+'px;max-height:84vh;overflow:auto;"'):'')+'>'+html+'</div>'; document.body.appendChild(bg); bg.addEventListener('click',e=>{ if(e.target===bg) bg.remove(); }); return bg; }
 
 let me_id=null, courses=[], topics=[], assessments=[];
-let openId=null, q=[], schemes={}, dirty=false;
+let openId=null, q=[], schemes={}, dirty=false, collapsedQ={};
 
 // ───────────────────────────── INIT ─────────────────────────────
 (async function init(){
@@ -368,6 +393,7 @@ async function selectAssessment(id){
   q = qs || []; schemes = {};
   if(q.length){ const { data: sc } = await sb.from('bank_assessment_mark_schemes').select('*').in('question_id', q.map(x=>x.id)); (sc||[]).forEach(s=>schemes[s.question_id]=s); }
   q.forEach(x=>{ if(!schemes[x.id]) schemes[x.id]={ question_id:x.id, scheme_points:[], model_answer:'', marking_notes:'' }; });
+  collapsedQ = {}; q.forEach(x=>{ collapsedQ[x.id] = true; });   // existing questions start collapsed = a scannable overview
   dirty=false;
   $('browse').classList.add('hidden');
   $('editor').classList.remove('hidden');
@@ -415,8 +441,10 @@ function openEditor(){
         '<div><label class="lbl">Attempts / question</label><input class="f" id="e_att" type="number" min="1" max="5" value="'+a.max_attempts_per_question+'"></div>' +
         '<div><label class="lbl">Max answer length</label><input class="f" id="e_len" type="number" min="100" max="4000" value="'+a.max_answer_chars+'"></div>' +
       '</div></details>' +
-    '<div style="display:flex;align-items:center;gap:12px;margin:18px 0 10px;"><h3 style="font-family:Lora,serif;font-style:italic;color:var(--navy);margin:0;">Questions</h3><span class="totbadge" id="totBadge">0 marks</span><span style="flex:1;"></span><button class="btn ghost sm" id="previewBtn">Preview as student</button><button class="btn sm" id="addQ">+ Question</button></div>' +
-    '<div id="qlist"></div>';
+    '<div style="display:flex;align-items:center;gap:12px;margin:18px 0 4px;"><h3 style="font-family:Lora,serif;font-style:italic;color:var(--navy);margin:0;">Questions</h3><span class="totbadge" id="totBadge">0 marks</span><span style="flex:1;"></span><button class="btn ghost sm" id="previewBtn">Preview as student</button></div>' +
+    '<div class="fieldhint" style="margin-bottom:12px;">Two kinds of question. <b>Points-based</b> — you list the ideas worth marks and the AI credits each one a student covers. <b>Translation</b> — you give the correct English and the AI bands it out of 5. Tap a saved question to expand it.</div>' +
+    '<div id="qlist"></div>' +
+    '<div class="addrow" style="margin-top:14px;"><button class="btn sm" id="addPoints">+ Points question</button><button class="btn ghost sm" id="addTrans">+ Translation question</button></div>';
 
   $('back').addEventListener('click', async ()=>{ if(dirty) await saveAll(true); await loadAll(); showBrowse(); });
   $('e_title').addEventListener('input', ()=>{ markDirty(); renderContextEdit(currentA()); });
@@ -427,7 +455,8 @@ function openEditor(){
   $('e_status').querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{ $('e_status').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); markDirty(); const a2=currentA(); a2.status=statusVal(); renderContextEdit(a2); }));
   $('saveBtn').addEventListener('click', ()=>saveAll(false));
   $('previewBtn').addEventListener('click', preview);
-  $('addQ').addEventListener('click', addQuestion);
+  $('addPoints').addEventListener('click', ()=>addQuestion('points'));
+  $('addTrans').addEventListener('click', ()=>addQuestion('translation'));
   drawQuestions();
   if(dirty){ const d=$('dirtyTag'); d.textContent='● Unsaved changes'; d.className='dirty unsaved'; }
 }
@@ -436,64 +465,126 @@ function currentA(){ return assessments.find(x=>x.id===openId); }
 // ───────────────────────────── QUESTIONS ─────────────────────────────
 function drawQuestions(){
   const list = $('qlist');
-  list.innerHTML = q.length ? q.map((qq,i)=>qHTML(qq, schemes[qq.id]||{scheme_points:[]}, i)).join('') : '<p class="empty-note">No questions yet — add the first one above.</p>';
+  if(!q.length){
+    list.innerHTML =
+      '<div class="typecard-row">' +
+        '<div class="typecard" data-new="points"><span class="plus">+ add</span><b>Points-based question</b><p>Civ, comprehension and source questions. Write the question, set the marks, then list the creditworthy points — the AI gives a mark for each idea the student conveys.</p></div>' +
+        '<div class="typecard" data-new="translation"><span class="plus">+ add</span><b>Translation question</b><p>Latin or Greek into English. Give the passage and the correct translation — the AI bands the answer holistically out of 5 (OCR grid).</p></div>' +
+      '</div>';
+    list.querySelectorAll('[data-new]').forEach(c=>c.addEventListener('click', ()=>addQuestion(c.dataset.new)));
+    updateTotal();
+    return;
+  }
+  list.innerHTML = q.map((qq,i)=>qHTML(qq, schemes[qq.id]||{scheme_points:[]}, i)).join('');
   q.forEach(qq=>wireQ(qq));
   updateTotal();
 }
 function qHTML(qq, sc, i){
   const pts = Array.isArray(sc.scheme_points)?sc.scheme_points:[];
   const tr = qq.mark_style==='translation';
-  return '<div class="qcard" data-q="'+qq.id+'">' +
-    '<div class="qhead"><b style="color:var(--navy);">Q'+(i+1)+'</b>' +
+  const collapsed = !!collapsedQ[qq.id];
+  const prev = (qq.prompt||'').replace(/\s+/g,' ').trim().slice(0,90) || '(empty — tap to fill in)';
+
+  let body;
+  if(tr){
+    body =
+      '<div><label class="lbl">Passage to translate <span class="req">*</span></label>' +
+        '<div class="fieldhint">The Latin or Greek the student must translate into English.</div>' +
+        '<textarea class="f" data-f="prompt" placeholder="e.g. puella in viā ambulat et cantat.">'+esc(qq.prompt)+'</textarea></div>' +
+      '<div style="margin-top:12px;"><label class="lbl">Correct translation <span class="req">*</span></label>' +
+        '<div class="fieldhint">The accepted English. The AI bands the student holistically out of 5 against this — it doesn’t have to be word-for-word.</div>' +
+        '<textarea class="f" data-f="model" placeholder="e.g. The girl walks in the road and sings.">'+esc(sc.model_answer||'')+'</textarea></div>' +
+      '<input type="hidden" data-f="marks" value="5">' +
+      '<details style="margin-top:12px;"><summary class="minilbl" style="cursor:pointer;">Optional · marking notes</summary>' +
+        '<div style="margin-top:8px;"><textarea class="f" data-f="notes" placeholder="Anything the marker should know — e.g. accept either tense for ‘ambulat’.">'+esc(sc.marking_notes||'')+'</textarea></div></details>';
+  } else {
+    body =
+      '<div><label class="lbl">Question <span class="req">*</span></label>' +
+        '<div class="fieldhint">Exactly what the student reads and answers.</div>' +
+        '<textarea class="f" data-f="prompt" placeholder="e.g. Describe two ways the Mycenaeans buried their dead.">'+esc(qq.prompt)+'</textarea></div>' +
+      '<div class="grid3" style="margin-top:12px;align-items:end;">' +
+        '<div><label class="lbl">Marks <span class="req">*</span></label><input class="f" type="number" min="1" max="10" data-f="marks" value="'+qq.marks+'"></div>' +
+        '<div style="grid-column:span 2;"><label class="lbl">Image (optional)</label><input class="f" type="file" accept="image/*" data-f="imgfile"></div>' +
+      '</div>' +
+      (qq.image_path?('<img class="thumb" src="'+imgSrc(qq.image_path)+'" alt="">'):'') +
+      '<div style="margin-top:12px;"><label class="lbl">Mark scheme — creditworthy points <span class="req">*</span></label>' +
+        '<div class="fieldhint">One idea per row. The AI awards a mark whenever the student conveys that idea (synonyms and paraphrase are fine). Use the small “mk” box only if a single point is worth more than one mark.</div>' +
+        '<div class="sps" data-pts>'+pts.map(p=>spRow(p)).join('')+'</div>' +
+        '<button class="btn ghost sm" data-addpt style="margin-top:6px;">+ point</button>' +
+        '<div class="allochint" data-alloc></div></div>' +
+      '<details style="margin-top:12px;"><summary class="minilbl" style="cursor:pointer;">Optional · model answer &amp; notes</summary>' +
+        '<div class="grid2" style="margin-top:8px;">' +
+          '<div><label class="lbl">Model answer</label><textarea class="f" data-f="model" placeholder="A full-mark answer — helps the AI calibrate.">'+esc(sc.model_answer||'')+'</textarea></div>' +
+          '<div><label class="lbl">Marking notes</label><textarea class="f" data-f="notes" placeholder="Anything the marker should know.">'+esc(sc.marking_notes||'')+'</textarea></div>' +
+        '</div></details>';
+  }
+
+  return '<div class="qcard'+(collapsed?' collapsed':'')+'" data-q="'+qq.id+'">' +
+    '<div class="qhead" data-toggle>' +
+      '<span class="qnum">Q'+(i+1)+'</span>' +
+      '<span class="qtype t-'+(tr?'translation':'points')+'">'+(tr?'Translation':'Points')+'</span>' +
+      '<span class="qmarks">'+(tr?'/5':(qq.marks+' mk'))+'</span>' +
+      '<span class="qprev">'+esc(prev)+'</span>' +
       '<span class="qmove"><button type="button" data-up'+(i===0?' disabled':'')+'>▲</button><button type="button" data-down'+(i===q.length-1?' disabled':'')+'>▼</button></span>' +
-      '<span style="flex:1;"></span><button class="btn danger sm" data-del>Delete</button></div>' +
-    '<div style="margin-top:8px;"><label class="lbl">Question / prompt</label><textarea class="f" data-f="prompt">'+esc(qq.prompt)+'</textarea></div>' +
-    '<div style="margin-top:10px;"><label class="lbl">Marking style</label><br>' +
-      '<div class="seg s-style" data-style><button type="button" data-v="points" class="'+(tr?'':'on')+'">Points-based</button><button type="button" data-v="translation" class="'+(tr?'on':'')+'">Translation /5</button></div>' +
-      '<div class="row-desc" data-styhint style="margin-top:6px;">'+styleHint(qq.mark_style)+'</div></div>' +
-    '<div class="grid3" style="margin-top:10px;">' +
-      '<div><label class="lbl">Marks</label><input class="f" type="number" min="1" max="10" data-f="marks" value="'+qq.marks+'"></div>' +
-      '<div style="grid-column:span 2;"><label class="lbl">Image (optional)</label><input class="f" type="file" accept="image/*" data-f="imgfile"></div>' +
+      '<button class="btn danger sm" data-del>Delete</button>' +
+      '<span class="qchev">⌄</span>' +
     '</div>' +
-    (qq.image_path?('<img class="thumb" src="'+imgSrc(qq.image_path)+'" alt="">'):'') +
-    '<div style="margin-top:10px;"><label class="lbl">Mark scheme — creditworthy points</label><div class="sps" data-pts>'+pts.map(p=>spRow(p)).join('')+'</div><button class="btn ghost sm" data-addpt style="margin-top:6px;">+ point</button></div>' +
-    '<div class="grid2" style="margin-top:10px;">' +
-      '<div><label class="lbl" data-modellabel>'+(tr?'Correct translation (required)':'Model answer (optional)')+'</label><textarea class="f" data-f="model">'+esc(sc.model_answer||'')+'</textarea></div>' +
-      '<div><label class="lbl">Marking notes (optional)</label><textarea class="f" data-f="notes">'+esc(sc.marking_notes||'')+'</textarea></div>' +
+    '<div class="qbody">' +
+      '<div style="margin-bottom:12px;"><span class="minilbl">Type</span>&nbsp; ' +
+        '<span class="seg s-style" data-style><button type="button" data-v="points" class="'+(tr?'':'on')+'">Points-based</button><button type="button" data-v="translation" class="'+(tr?'on':'')+'">Translation /5</button></span></div>' +
+      body +
     '</div></div>';
 }
-function spRow(p){ return '<div class="sp"><input class="f txt" placeholder="creditworthy point" value="'+esc(p&&p.text||'')+'"><input class="f mk" type="number" min="1" placeholder="mk" value="'+(p&&p.marks||'')+'"><button class="btn danger sm" data-rmpt>×</button></div>'; }
-function styleHint(style){
-  return style==='translation'
-    ? 'Latin/Greek in the prompt, correct English in <b>Correct translation</b>. Marked holistically out of 5 (OCR grid) — set marks to <b>5</b>. Creditworthy points are ignored.'
-    : 'The AI credits each creditworthy point the student conveys, allowing synonyms and paraphrase.';
-}
+function spRow(p){ return '<div class="sp"><input class="f txt" placeholder="e.g. shaft graves were deep rectangular pits" value="'+esc(p&&p.text||'')+'"><input class="f mk" type="number" min="1" placeholder="mk" value="'+(p&&p.marks||'')+'"><button class="btn danger sm" data-rmpt title="remove point">×</button></div>'; }
 function wireQ(qq){
   const card = $('qlist').querySelector('[data-q="'+qq.id+'"]'); if(!card) return;
+  // collapse/expand by clicking the header (but not its buttons)
+  card.querySelector('[data-toggle]').addEventListener('click', (e)=>{
+    if(e.target.closest('button')) return;
+    collapsedQ[qq.id] = !collapsedQ[qq.id]; card.classList.toggle('collapsed');
+  });
   card.querySelectorAll('textarea, input[data-f]').forEach(el=>el.addEventListener('input', markDirty));
-  card.querySelector('[data-up]').addEventListener('click', ()=>moveQ(qq.id,-1));
-  card.querySelector('[data-down]').addEventListener('click', ()=>moveQ(qq.id,1));
-  card.querySelector('[data-del]').addEventListener('click', async ()=>{
+  card.querySelector('[data-up]').addEventListener('click', (e)=>{ e.stopPropagation(); moveQ(qq.id,-1); });
+  card.querySelector('[data-down]').addEventListener('click', (e)=>{ e.stopPropagation(); moveQ(qq.id,1); });
+  card.querySelector('[data-del]').addEventListener('click', async (e)=>{
+    e.stopPropagation();
     if(!confirm('Delete this question?')) return;
     await sb.from('bank_assessment_questions').delete().eq('id', qq.id);
-    const idx=q.findIndex(x=>x.id===qq.id); if(idx>=0) q.splice(idx,1); delete schemes[qq.id];
+    const idx=q.findIndex(x=>x.id===qq.id); if(idx>=0) q.splice(idx,1); delete schemes[qq.id]; delete collapsedQ[qq.id];
     drawQuestions(); renderContextEdit(currentA()); toast('Question deleted');
   });
+  // switching type re-renders this card with only the relevant fields
   const seg = card.querySelector('[data-style]');
   seg.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
-    seg.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
-    const tr = b.dataset.v==='translation';
-    card.querySelector('[data-styhint]').innerHTML = styleHint(b.dataset.v);
-    const ml = card.querySelector('[data-modellabel]'); if(ml) ml.textContent = tr ? 'Correct translation (required)' : 'Model answer (optional)';
-    const mk = card.querySelector('[data-f="marks"]'); if(tr && (+mk.value||1)<2){ mk.value=5; updateTotal(); }
-    markDirty();
+    if(b.classList.contains('on')) return;
+    harvest(); qq.mark_style = b.dataset.v; if(qq.mark_style==='translation') qq.marks = 5;
+    collapsedQ[qq.id] = false;
+    drawQuestions(); renderContextEdit(currentA()); markDirty();
   }));
-  card.querySelector('[data-f="marks"]').addEventListener('input', ()=>{ updateTotal(); renderContextEdit(currentA()); });
-  card.querySelector('[data-addpt]').addEventListener('click', ()=>{ card.querySelector('[data-pts]').insertAdjacentHTML('beforeend', spRow({})); bindPts(); markDirty(); });
-  function bindPts(){ card.querySelectorAll('[data-rmpt]').forEach(b=>b.onclick=()=>{ b.closest('.sp').remove(); markDirty(); }); }
-  bindPts();
+  const mk = card.querySelector('input[data-f="marks"]');
+  if(mk) mk.addEventListener('input', ()=>{ updateTotal(); const s=card.querySelector('.qmarks'); if(s) s.textContent=(+mk.value||0)+' mk'; renderContextEdit(currentA()); });
+
+  const ptsBox = card.querySelector('[data-pts]');
+  if(ptsBox){
+    const alloc = card.querySelector('[data-alloc]');
+    const updateAlloc = ()=>{
+      const rows=[...card.querySelectorAll('.sp')];
+      const n=rows.filter(r=>r.querySelector('.txt').value.trim()).length;
+      const sum=rows.reduce((s,r)=>s+(+r.querySelector('.mk').value||0),0);
+      const qm=+card.querySelector('input[data-f="marks"]').value||0;
+      if(!n){ alloc.textContent='No points yet — add at least one so the AI knows what earns a mark.'; return; }
+      let msg=n+' point'+(n!==1?'s':'');
+      if(sum>0){ msg+=' · worth '+sum+' mark'+(sum!==1?'s':''); if(qm && sum!==qm) msg+=' (question is '+qm+')'; }
+      alloc.textContent=msg;
+    };
+    const bindPts=()=>card.querySelectorAll('[data-rmpt]').forEach(b=>b.onclick=()=>{ b.closest('.sp').remove(); updateAlloc(); markDirty(); });
+    card.querySelector('[data-addpt]').addEventListener('click', ()=>{ ptsBox.insertAdjacentHTML('beforeend', spRow({})); bindPts(); updateAlloc(); markDirty(); ptsBox.lastElementChild.querySelector('.txt').focus(); });
+    card.addEventListener('input', updateAlloc);
+    bindPts(); updateAlloc();
+  }
+
   const fileInput = card.querySelector('[data-f="imgfile"]');
-  fileInput.addEventListener('change', async ()=>{
+  if(fileInput) fileInput.addEventListener('change', async ()=>{
     const file = fileInput.files[0]; if(!file) return;
     const path = me_id+'/'+openId+'/'+crypto.randomUUID()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
     const { error } = await sb.storage.from('weekly-test-images').upload(path, file);
@@ -518,12 +609,17 @@ function harvest(){
 }
 function updateTotal(){ const t=[...$('qlist').querySelectorAll('[data-f="marks"]')].reduce((s,el)=>s+(+el.value||0),0); const b=$('totBadge'); if(b) b.textContent=t+' mark'+(t===1?'':'s'); }
 
-async function addQuestion(){
-  harvest();
-  const { data, error } = await sb.from('bank_assessment_questions').insert({ assessment_id: openId, position:q.length, prompt:'', marks:1 }).select().single();
+async function addQuestion(style){
+  if($('qlist').querySelector('.qcard')) harvest();
+  const mark_style = style==='translation' ? 'translation' : 'points';
+  const marks = mark_style==='translation' ? 5 : 1;
+  const { data, error } = await sb.from('bank_assessment_questions').insert({ assessment_id: openId, position:q.length, prompt:'', marks, mark_style }).select().single();
   if(error) return toast('Could not add: '+error.message);
   q.push(data); schemes[data.id]={ question_id:data.id, scheme_points:[], model_answer:'', marking_notes:'' };
+  collapsedQ[data.id]=false;   // new question opens ready to fill in
   drawQuestions(); renderContextEdit(currentA());
+  const card=$('qlist').querySelector('[data-q="'+data.id+'"]'); const ta=card&&card.querySelector('textarea[data-f="prompt"]');
+  if(ta){ ta.focus(); ta.scrollIntoView({block:'center', behavior:'smooth'}); }
 }
 async function moveQ(id, dir){
   harvest();
