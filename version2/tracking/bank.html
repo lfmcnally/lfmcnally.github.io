@@ -71,11 +71,27 @@ textarea.f:disabled { background: var(--cream); color: var(--muted); }
 .factions { display:flex; gap:8px; flex-wrap:wrap; margin-top:2px; }
 .fstatus { position:absolute; top:12px; right:12px; }
 .hidden { display: none !important; }
+/* result report */
+.correct { margin-top: 6px; font-size: 14px; color: #15803d; }
+.correct .lab { color: var(--muted); font-size: 12px; }
+.errs { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.errs .err { font-size: 12.5px; line-height: 1.4; padding: 4px 9px; border-radius: 6px; border-left: 3px solid; }
+.errs .err.serious { background: #fef2f2; border-color: #dc2626; color: #991b1b; }
+.errs .err.minor { background: #fffbeb; border-color: #d97706; color: #92500e; }
+.errs .err .et { font-weight: 700; letter-spacing: .04em; text-transform: uppercase; font-size: 9.5px; margin-right: 6px; }
+.print-head { display: none; }
+.rep-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 2px solid var(--navy); padding-bottom: 10px; margin-bottom: 16px; }
+.rep-head .rh-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 22px; color: var(--navy); }
+.rep-head .rh-score { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 22px; color: var(--brand); }
 @media print {
-  .header, .nav, .btn, .no-print { display: none !important; }
-  body { background: #fff; }
+  .header, .nav, .btn, .no-print, .module-tabs, .footer { display: none !important; }
+  body { background: #fff; color: #111; }
   .wrap { max-width: 100%; padding: 0; }
-  .card { box-shadow: none; border-color: #ccc; break-inside: avoid; }
+  .print-head { display: block !important; border-bottom: 2px solid #0e1e3f; padding-bottom: 8px; margin-bottom: 16px; }
+  .print-head .ph-brand { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 18px; color: #0e1e3f; }
+  .print-head .ph-meta { font-size: 12px; color: #555; margin-top: 2px; }
+  .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; page-break-inside: avoid; margin-bottom: 10px; }
+  .total { color: #0e1e3f !important; }
 }
 </style>
 </head>
@@ -375,13 +391,13 @@ async function startAssignment(assignmentId, assessmentId){
 
 async function loadTake(sub, assessmentId){
   const ass = assessments.find(a=>a.id===assessmentId) || { title:'Assessment' };
-  const { data: qs } = await sb.from('bank_assessment_questions').select('id,position,prompt,marks,image_path').eq('assessment_id', assessmentId).order('position');
+  const { data: qs } = await sb.from('bank_assessment_questions').select('id,position,prompt,marks,image_path,mark_style').eq('assessment_id', assessmentId).order('position');
   const questions = qs||[];
   const { data: ans } = await sb.from('weekly_test_answers').select('*').eq('submission_id', sub.id);
   const answers={}; (ans||[]).forEach(a=>answers[a.question_id]=a);
   show('take');
   if(sub.submitted_at){
-    const results = questions.map(q=>{ const a=answers[q.id]; return { question_id:q.id, status: a&&a.attempts>0?'marked':'blank', marks: a?a.final_marks:0, max:q.marks, rationale: a?a.ai_rationale:null }; });
+    const results = questions.map(q=>{ const a=answers[q.id]; return { question_id:q.id, status: a&&a.attempts>0?'marked':'blank', marks: a?a.final_marks:0, max:q.marks, rationale: a?a.ai_rationale:null, correct: a?a.ai_correct:null, errors: a&&Array.isArray(a.ai_matched)?a.ai_matched:null }; });
     renderReport(ass, questions, answers, results, sub);
   } else {
     renderTake(ass, sub, questions, answers);
@@ -435,29 +451,42 @@ async function submitTake(ass, sub, questions){
   renderReport(ass, questions, ansMap, data.results||[], { submitted_at:new Date().toISOString() }, data);
 }
 
+function errBits(errors){
+  if(!Array.isArray(errors)||!errors.length) return '';
+  const items = errors.map(e=>{
+    e = String(e);
+    const sev = /^serious:/i.test(e) ? 'serious' : (/^minor:/i.test(e) ? 'minor' : 'minor');
+    const txt = e.replace(/^(serious|minor):\s*/i,'');
+    if(!txt) return '';
+    return '<li class="err '+sev+'"><span class="et">'+(sev==='serious'?'Serious':'Minor')+'</span>'+esc(txt)+'</li>';
+  }).join('');
+  return items ? '<ul class="errs">'+items+'</ul>' : '';
+}
 function renderReport(ass, questions, answers, results, sub, meta){
   const byId={}; results.forEach(r=>byId[r.question_id]=r);
   const total = (meta&&meta.total_awarded!=null)?meta.total_awarded:results.reduce((s,r)=>s+(r.marks||0),0);
   const totalMarks = (meta&&meta.total_marks!=null)?meta.total_marks:questions.reduce((s,q)=>s+q.marks,0);
   const paused = meta&&meta.paused;
+  const when = sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : new Date().toLocaleString();
   $('take').innerHTML =
     '<div class="row no-print" style="margin-bottom:12px;"><button class="btn ghost sm" id="back">← Back to bank</button><span class="spacer"></span><button class="btn sm" id="pdf">Download summary (PDF)</button></div>' +
-    '<div class="card" style="text-align:center;"><div class="muted" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;">Your result</div>' +
-      '<div class="total">'+total+' / '+totalMarks+'</div>' +
-      '<div class="muted" style="margin-top:4px;">'+esc(ass.title)+(sub.submitted_at?(' · '+new Date(sub.submitted_at).toLocaleString()):'')+'</div>' +
-      (paused?'<div class="fb info" style="margin-top:10px;">Some answers couldn\'t be auto-marked right now.</div>':'') +
-    '</div>' +
+    '<div class="print-head"><div class="ph-brand">Classicalia · Assessment summary</div><div class="ph-meta">'+esc(ass.title)+' · '+esc(when)+' · Marked by AI</div></div>' +
+    '<div class="rep-head no-print"><div class="rh-title">'+esc(ass.title)+'</div><div class="rh-score">'+total+' / '+totalMarks+'</div></div>' +
+    '<div class="muted no-print" style="margin:-8px 0 16px;">'+esc(when)+(paused?' · some answers couldn\'t be marked this time':'')+'</div>' +
     questions.map((q,i)=>{
       const r = byId[q.id]||{ status:'blank', marks:0, max:q.marks };
       const a = (answers[q.id]&&answers[q.id].answer_text)||'';
+      const isTr = q.mark_style==='translation';
       let cls='info', mark='—';
       if(r.status==='marked'){ mark=(r.marks==null?'—':r.marks)+' / '+q.marks; cls=r.marks>=q.marks?'good':(r.marks>0?'part':'zero'); }
       else if(r.status==='blank'){ mark='0 / '+q.marks; cls='zero'; }
-      const note = r.status==='blank'?'You left this blank.':r.status==='paused'?'Not marked.':r.status==='error'?'Couldn\'t mark this automatically.':(r.rationale||'');
+      const note = r.status==='blank'?'You left this blank.':r.status==='paused'?'Not marked this time.':r.status==='error'?'Couldn\'t mark this automatically.':(r.rationale||'');
       return '<div class="card"><span class="markpill" style="color:'+(cls==='good'?'#15803d':cls==='part'?'#92500e':cls==='zero'?'#b91c1c':'#1e40af')+'">'+mark+'</span>' +
         '<span class="qmarks">Q'+(i+1)+'</span>' +
         '<div class="qprompt" style="margin-top:6px;">'+esc(q.prompt)+'</div>' +
         (a?('<div class="ans"><span class="lab">Your answer:</span> '+esc(a)+'</div>'):'<div class="ans muted">No answer given.</div>') +
+        (isTr && r.correct ? '<div class="correct"><span class="lab">Correct translation:</span> '+esc(r.correct)+'</div>' : '') +
+        (isTr ? errBits(r.errors) : '') +
         (note?('<div class="fb '+cls+'" style="margin-top:8px;">'+esc(note)+'</div>'):'') +
       '</div>';
     }).join('');

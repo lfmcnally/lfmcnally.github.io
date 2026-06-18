@@ -644,7 +644,7 @@ function qHTML(qq, sc, i){
   if(tr){
     body =
       '<div><label class="lbl">Passage to translate <span class="req">*</span></label><div class="fieldhint">The Latin or Greek the student must translate into English.</div><textarea class="f" data-f="prompt" placeholder="e.g. puella in viā ambulat et cantat.">'+esc(qq.prompt)+'</textarea></div>' +
-      '<div style="margin-top:12px;"><label class="lbl">Correct translation <span class="req">*</span></label><div class="fieldhint">The accepted English. The AI bands the student holistically out of 5 against this — it doesn’t have to be word-for-word.</div><textarea class="f" data-f="model" placeholder="e.g. The girl walks in the road and sings.">'+esc(sc.model_answer||'')+'</textarea></div>' +
+      '<div style="margin-top:12px;"><label class="lbl">Correct translation <span class="req">*</span></label><div class="fieldhint">The accepted English. The AI bands the student holistically out of 5 against this — it doesn’t have to be word-for-word. <button class="btn ghost sm" type="button" data-aitr style="margin-left:4px;">✨ AI translate</button></div><textarea class="f" data-f="model" placeholder="e.g. The girl walks in the road and sings.">'+esc(sc.model_answer||'')+'</textarea></div>' +
       '<input type="hidden" data-f="marks" value="5">' +
       '<details style="margin-top:12px;"><summary class="minilbl" style="cursor:pointer;">Optional · marking notes</summary><div style="margin-top:8px;"><textarea class="f" data-f="notes" placeholder="Anything the marker should know.">'+esc(sc.marking_notes||'')+'</textarea></div></details>';
   } else {
@@ -718,6 +718,17 @@ function wireQ(qq){
     const { error } = await sb.storage.from('weekly-test-images').upload(p, file);
     if(error) return toast('Upload failed: '+error.message);
     harvest(); qq.image_path = p; await sb.from('bank_assessment_questions').update({ image_path: p }).eq('id', qq.id); drawQuestions(); toast('Image uploaded');
+  });
+  const aitr = card.querySelector('[data-aitr]');
+  if(aitr) aitr.addEventListener('click', async ()=>{
+    const passage = card.querySelector('[data-f="prompt"]').value.trim();
+    if(!passage) return toast('Type the passage first');
+    const c = courseById(currentA().course_id);
+    aitr.disabled = true; const label = aitr.textContent; aitr.textContent = 'Translating…';
+    const { data, error } = await sb.functions.invoke('bank-translate', { body: { text: passage, subject: c?c.subject:'latin' } });
+    aitr.disabled = false; aitr.textContent = label;
+    if(error || !data?.translation){ return toast('Could not translate — try again'); }
+    card.querySelector('[data-f="model"]').value = data.translation; markDirty(); toast('Translation filled in');
   });
 }
 function styleOf(card){ return card.querySelector('[data-style] button.on')?.dataset.v || 'points'; }

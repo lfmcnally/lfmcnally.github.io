@@ -283,7 +283,7 @@ Deno.serve(async (req) => {
     if (!apiKey) return json({ error: "marking is not configured" }, 500);
     const price = PRICING[MODEL] ?? PRICING["claude-sonnet-4-6"];
 
-    const results: Array<{ question_id: string; status: string; marks: number | null; max: number; rationale: string | null }> = [];
+    const results: Array<{ question_id: string; status: string; marks: number | null; max: number; rationale: string | null; correct?: string | null; errors?: string[] }> = [];
     let paused = false;
 
     // -- School credit gate (Phase 5) -------------------------------------
@@ -339,12 +339,15 @@ Deno.serve(async (req) => {
         model: MODEL, input_tokens: r.usage.input_tokens || 0, output_tokens: r.usage.output_tokens || 0, cost_micros: cost,
       });
       if ("error" in r) { results.push({ question_id: q.id, status: "error", marks: null, max: q.marks, rationale: null }); continue; }
+      const isTranslation = (q.mark_style ?? "points") === "translation";
+      const correct = isTranslation ? (schemes[q.id]?.model_answer ?? null) : null;
       await svc.from("weekly_test_answers").upsert({
         submission_id: submissionId, question_id: q.id, question_source: questionSource, answer_text: at,
-        ai_marks: r.marks, ai_max: q.marks, ai_matched: r.matched, ai_rationale: r.rationale,
+        ai_marks: r.marks, ai_max: q.marks, ai_matched: r.matched, ai_rationale: r.rationale, ai_correct: correct,
         final_marks: r.marks, marked_by: "ai", attempts: (prev?.attempts ?? 0) + 1, updated_at: new Date().toISOString(),
       }, { onConflict: "submission_id,question_id" });
-      results.push({ question_id: q.id, status: "marked", marks: r.marks, max: q.marks, rationale: r.rationale });
+      results.push({ question_id: q.id, status: "marked", marks: r.marks, max: q.marks, rationale: r.rationale,
+        correct, errors: isTranslation ? r.matched : undefined });
     }
 
     const totalMarks = questions.reduce((s, q) => s + q.marks, 0);
