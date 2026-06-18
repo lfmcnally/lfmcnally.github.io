@@ -296,3 +296,39 @@ When greenlit, phase 1 = one migration that:
 Open follow-on (separate phase): `scheme_chapters` labels, the class/student
 chapter pointer, `assessment_nuggets` + `grammar_ceiling`, and AI `contains`
 tagging — all per the model at the top of this doc.
+
+---
+
+## Practice generation — the deciding constraint
+
+Per-nugget practice will be **AI-generated**, but sentences must stay inside the
+student's chapter window on **both axes**:
+
+- **Vocabulary** — only words met by the student's chapter. The GCSE defined
+  vocab (`version2/tools/vocab/data/latin-gcse.js`, ~466 entries) is **already
+  tagged `chapter: 1…10`** on the same Latin to GCSE scheme, so the generator is
+  handed the allowed headwords for chapters ≤ N.
+- **Grammar** — only constructs from current + previous chapters (nuggets with
+  `chapter ≤ N`, now in `grammar_nuggets.chapter`).
+
+A practice request = (target nugget, chapter N) → the model produces graded
+Latin sentences that **test** the nugget while drawing only on vocab ≤ N and
+grammar ≤ N, plus a model English translation for marking.
+
+### Phase 2 schema (built — migration 075)
+
+- `v2_classes.grammar_chapter` / `users.grammar_chapter` — the class's (or
+  self-serve learner's) current chapter. NULL = ungated.
+- `bank_assessments.grammar_ceiling` — latest chapter the assessment requires;
+  student at N sees it iff `ceiling ≤ N`. `is_practice` flags generated sets.
+- `bank_assessment_nuggets (assessment_id, nugget_id, role tests|contains)` —
+  the tests/contains tagging that drives per-nugget practice and the ceiling.
+
+### Remaining phases
+
+3. **Generator** edge function (`generate-practice`): (nugget, chapter) → graded
+   sentences within the vocab+grammar window, persisted as an `is_practice`
+   assessment so the existing take/mark/track flow is reused unchanged.
+4. **Gating + entry points**: filter the bank by `grammar_ceiling ≤ class/student
+   chapter`; "Practise this" links from the dashboard confidence bars; a teacher
+   control to set the class chapter.
