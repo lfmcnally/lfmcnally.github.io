@@ -205,3 +205,72 @@ These came out of the contents pages; worth deciding before we seed:
 - Note `causal-clause` currently bundles **cum** with **quod**, but *cum* +
   subjunctive (ch.10) is later and broader (temporal/causal). Could leave bundled
   and gate at the earliest (quod, ch.6), or split `cum-clause` out at ch.10.
+
+---
+
+## Proposed revised taxonomy — chapter-ordered & pruned
+
+Decision (agreed direction): organise nuggets **by chapter**, not by abstract
+category; **split** anything that's really several distinct things; and **prune**
+contents lines that aren't genuine translation-error concepts (learning mechanics
+like principal parts, prefixes, articles, person-endings — you don't "get them
+wrong" in a translation in a way worth tracking).
+
+A nugget earns its place only if a student can **mis-translate it identifiably**.
+Chapter = where first met = the gate position. `position` becomes `chapter*100 +
+order-within-chapter` so the list sorts in teaching order.
+
+### The list (✚ = new or split out · ↔ = renamed/regrouped · rest unchanged)
+
+**Ch.1** — present tense · nominative (subject) · accusative (object) ·
+prepositions + accusative · `sum` & compounds ✚
+
+**Ch.2** — genitive · dative · ablative · prepositions + ablative · infinitive ·
+✚ time 'how long' (+accusative)  *(was part of time-expressions)*
+
+**Ch.3** — imperfect tense · `possum` ✚ · adjective agreement · imperatives /
+direct commands · vocative
+
+**Ch.4** — perfect tense · noun declension recognition · direct questions ·
+personal pronouns (ego/tu/nos/vos) ↔ · ✚ time 'when' (+ablative)
+
+**Ch.5** — future tense · adverbs (formation) · demonstratives: is/ea/id ↔ ·
+reflexive `se` · superlative-style possessives (suus/eius)
+
+**Ch.6** — pluperfect tense · relative clause · causal clause (quod) ↔ ·
+concessive clause (quamquam) · numerals ✚ · `eo` ✚ · temporal clause
+(ubi/postquam) · ✚ time 'within which'
+
+**Ch.7** *(Book 2)* — comparative adj/adv · superlative adj/adv · ablative of
+comparison · passive voice · agent & instrument (abl.) · present active
+participle · perfect passive participle · demonstratives: hic/ille ↔
+
+**Ch.8** — perfect & pluperfect passive · conditional clauses · future active
+participle · ablative absolute · `ipse`/`idem` ↔ · volo/nolo/malo & fero ✚ ·
+prohibitions / negative commands
+
+**Ch.9** — passive infinitive · deponent verbs · perfect active participle ·
+indirect statement (acc. + infinitive)
+
+**Ch.10** — subjunctive (form recognition) · purpose clauses · result clauses ·
+indirect commands · indirect questions · fearing clauses · cum clauses ✚ ·
+gerundive of purpose (ad + gerundive) · 4th/5th declension · `dum` (temporal)
+
+**Always-available (un-gated):** subject/object the wrong way round · singular/
+plural (number) · person (I/you/he…) · vocabulary (wrong meaning) · word omitted.
+
+### Pruned from the current ~50 (proposed removals)
+
+Folded into a broader nugget or dropped as non-translation concepts:
+articles & possessive-adjective intro, verb person-endings, individual
+conjugation/declension patterns (→ "declension recognition" / the tense
+nuggets), principal parts, mixed conjugation, prefixes & compounds, time adverbs
+& linking words (→ vocabulary), irregular imperatives, connecting relative
+(→ relative clause).
+
+### Knock-on: dashboard display
+
+If the taxonomy is chapter-ordered, the confidence grid should **group by
+chapter** ("Chapter 1", "Chapter 2"…) instead of by category — so it reads as a
+progression, and a class only really lights up the chapters they've reached.
+`grammar_nuggets` would need a `chapter INT` column (or derive from `position`).
