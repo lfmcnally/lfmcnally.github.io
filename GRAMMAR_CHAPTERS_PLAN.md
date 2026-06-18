@@ -114,13 +114,14 @@ each sentence pulls in and file it at exactly that level.
 
 ---
 
-## Book 1 chapter mapping (first pass)
+## Chapter mapping (first pass)
 
-Source: *Latin to GCSE Part 1* (Taylor) contents, Chapters 1–10. `position` =
-chapter number for Book 1; Book 2 will continue at 11+. A nugget is filed at the
-chapter where it is **first introduced** (earliest, since the gate is cumulative).
+Source: *Latin to GCSE* (Taylor) contents — **Book 1 = chapters 1–6, Book 2 =
+chapters 7–10**. `position` = the cumulative chapter number (1–10), which is what
+the gate compares against. A nugget is filed at the chapter where it is **first
+introduced** (earliest, since the gate is cumulative).
 
-| Nugget (code) | Title | Book 1 ch. |
+| Nugget (code) | Title | Ch. |
 |---|---|---|
 | present | Present tense | 1 |
 | imperfect | Imperfect tense | 3 |
@@ -167,22 +168,30 @@ chapter where it is **first introduced** (earliest, since the gate is cumulative
 | fearing-clause | Fearing clause (timeo + ne) | 10 |
 | gerundive-purpose | Gerundive of purpose (ad + gerundive) | 10 |
 
-**Not introduced in Book 1 → file in Book 2** (need Part 2 contents to place):
-`special-case` (cases taken by verbs/adjectives), `ablative-comparison`
-(ablative of comparison). `irregular-verbs` is split across both (see below).
+**Stragglers to confirm** (no distinct contents heading in ch.1–10):
+- `irregular-verbs` (volo/nolo/malo, fero) → **ch.8** ("More irregular verbs");
+  sum ch.1, possum ch.3, eo ch.6 (see split below).
+- `ablative-comparison` (ablative of comparison) → likely **ch.7** alongside the
+  comparatives — confirm.
+- `special-case` (cases taken by verbs/adjectives, e.g. dative with *credo* /
+  ablative with *utor*) → no standalone heading; enters via vocabulary/usage.
+  Confirm a chapter or treat as always-available.
 
 **Always-available (not chapter-gated):** the Common-slip nuggets —
 `subject-object`, `number`, `person`, `vocabulary`, `omission`.
+
+Books 1 & 2 between them cover all ten chapters, so this map is **complete** once
+the three stragglers above are confirmed — no further contents needed.
 
 ## Proposed nugget adjustments (from the contents)
 
 These came out of the contents pages; worth deciding before we seed:
 
 - **Split `irregular-verbs`** — currently one nugget for "sum, eo, volo, fero…",
-  but they enter far apart: `sum` ch.1, `possum` ch.3, `eo` ch.6, with
-  volo/nolo/malo & fero likely Book 2. As one nugget it'd have to gate at ch.1,
-  which is wrong for *eo*/*fero*. Suggest splitting into **sum & compounds**
-  (ch.1), **possum** (ch.3), **eo** (ch.6), **volo/nolo/malo, fero** (Book 2).
+  but they enter far apart: `sum` ch.1, `possum` ch.3, `eo` ch.6,
+  volo/nolo/malo & fero ch.8. As one nugget it'd have to gate at ch.1, which is
+  wrong for *eo*/*fero*. Suggest splitting into **sum & compounds** (ch.1),
+  **possum** (ch.3), **eo** (ch.6), **volo/nolo/malo, fero** (ch.8).
 - **Split `pronouns`** — it spans ch.4–8. Suggest **personal & reflexive
   pronouns** (ego/tu/nos/vos/se, ch.4–5) and **demonstratives** (is, hic, ille,
   ipse, idem, ch.5–8). Keeps the gate honest (a ch.5 student shouldn't get
@@ -196,7 +205,3 @@ These came out of the contents pages; worth deciding before we seed:
 - Note `causal-clause` currently bundles **cum** with **quod**, but *cum* +
   subjunctive (ch.10) is later and broader (temporal/causal). Could leave bundled
   and gate at the earliest (quod, ch.6), or split `cum-clause` out at ch.10.
-
-**Still needed:** the *Latin to GCSE Part 2* contents, to (a) place the Book 2
-stragglers above and (b) confirm nothing introduced in Book 1 is actually
-deferred.
