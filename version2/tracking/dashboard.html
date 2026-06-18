@@ -1799,18 +1799,17 @@ init().then(() => {
     // the un-gated "common slips" that apply at every chapter, shown last.
     const chapters=[]; nugs.forEach(n=>{ const ch=n.chapter||0; if(chapters.indexOf(ch)<0) chapters.push(ch); });
     chapters.sort((a,b)=>(a===0?999:a)-(b===0?999:b));
-    // "Practise my weak spots" — the lowest-scoring in-window concepts, mixed.
+    // "Practise my weak spots" — the lowest-scoring concepts the student has
+    // actually been TAUGHT (chapter <= their class/own chapter), mixed. Needs a
+    // chapter set; without one we can't bound the vocab window, so hide it.
     let weakBtn='';
-    if(canPractiseFeature){
-      const seenNugs = nugs.filter(n=>(n.chapter||0)>0 && agg[n.id] && agg[n.id].seen>0);
-      const maxSeenCh = seenNugs.reduce((m,n)=>Math.max(m,n.chapter),0);
-      const winCh = Math.max(studentChapter||0, maxSeenCh);
-      const cands = seenNugs.filter(n=>n.chapter<=winCh)
+    if(canPractiseFeature && studentChapter>0){
+      const cands = nugs.filter(n=>(n.chapter||0)>0 && n.chapter<=studentChapter && agg[n.id] && agg[n.id].seen>0)
         .map(n=>({n, r: agg[n.id].correct/agg[n.id].seen, seen: agg[n.id].seen}))
         .sort((a,b)=> (a.r-b.r) || (b.seen-a.seen)).slice(0,4);
-      if(cands.length>=2 && winCh>0){
+      if(cands.length>=2){
         const codes = cands.map(c=>c.n.code).join(',');
-        const href = '/version2/tracking/practice.html?nuggets='+encodeURIComponent(codes)+'&chapter='+winCh+'&title='+encodeURIComponent('Your weak spots');
+        const href = '/version2/tracking/practice.html?nuggets='+encodeURIComponent(codes)+'&chapter='+studentChapter+'&title='+encodeURIComponent('Your weak spots');
         weakBtn = '<a href="'+href+'" style="display:inline-block;margin-top:12px;text-decoration:none;background:var(--brand);color:#fff;font-size:13px;font-weight:700;padding:9px 15px;border-radius:8px;">Practise my weak spots →</a>';
       }
     }
@@ -1821,8 +1820,12 @@ init().then(() => {
       body+='<div style="margin:18px 0 8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--navy);">'+esc(head)+'</div>';
       body+=items.map(function(n){
         const a=agg[n.id]; const c=colour(a); const pct=a&&a.seen?Math.round(a.correct/a.seen*100):0;
-        const canPractise = (n.chapter||0) > 0 && canPractiseFeature;   // entitled + chapter-gated
-        const lockedPractise = (n.chapter||0) > 0 && !canPractiseFeature;
+        // Practisable only if it's a concept the student has been taught: at or
+        // below their chapter (or, if no chapter is set, at the concept's own
+        // level). Practice draws on vocab up to that chapter.
+        const inWindow = (n.chapter||0) > 0 && (studentChapter===0 || n.chapter <= studentChapter);
+        const canPractise = inWindow && canPractiseFeature;
+        const lockedPractise = inWindow && !canPractiseFeature;
         const tip = n.title + (a&&a.seen ? (' — '+a.correct+'/'+a.seen+' right') : ' — not practised yet') + (canPractise ? ' · click to practise' : (lockedPractise ? ' · practice coming soon' : ''));
         const arrow = canPractise ? '<span style="font-size:12px;color:var(--brand);flex:none;">Practise →</span>'
                     : (lockedPractise ? '<span style="font-size:11px;color:var(--muted);flex:none;">Soon</span>' : '');
@@ -1833,7 +1836,7 @@ init().then(() => {
           arrow+
           '</div>';
         if(canPractise){
-          const ch = Math.max(studentChapter||0, n.chapter);
+          const ch = studentChapter>0 ? studentChapter : n.chapter;
           const href = '/version2/tracking/practice.html?nugget='+encodeURIComponent(n.code)+'&chapter='+ch+'&title='+encodeURIComponent(n.title);
           return '<a href="'+href+'" style="text-decoration:none;color:inherit;display:block;">'+row+'</a>';
         }
