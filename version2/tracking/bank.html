@@ -45,6 +45,31 @@ textarea.f:disabled { background: var(--cream); color: var(--muted); }
 .spin { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -3px; margin-right: 8px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .pill { display:inline-block; font-size:9.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:2px 8px; border-radius:999px; background: var(--rule-faint); color: var(--muted); }
+/* folder explorer */
+.bank-search { position:relative; display:flex; align-items:center; max-width:480px; margin-bottom:6px; }
+.bank-search .si { position:absolute; left:12px; width:16px; height:16px; color:var(--muted); pointer-events:none; }
+.bank-search input { width:100%; box-sizing:border-box; padding:10px 34px; border:1px solid var(--rule); border-radius:8px; font-family:'DM Sans',sans-serif; font-size:13px; color:var(--ink); background:var(--paper); outline:none; }
+.bank-search input:focus { border-color:var(--brand); }
+.bank-search .sx { position:absolute; right:10px; background:none; border:none; cursor:pointer; color:var(--muted); font-size:18px; line-height:1; padding:2px 4px; display:none; }
+.bank-search .sx.on { display:block; }
+.crumbs { display:flex; align-items:center; gap:7px; flex-wrap:wrap; font-size:13px; margin:12px 0 14px; }
+.crumb { color:var(--brand); cursor:pointer; font-weight:700; background:none; border:none; padding:0; font-family:'DM Sans',sans-serif; font-size:13px; }
+.crumb:hover { text-decoration:underline; }
+.crumb.cur { color:var(--ink); cursor:default; } .crumb.cur:hover { text-decoration:none; }
+.crumb-sep { color:var(--muted); }
+.grid-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:13px; }
+.fcard { position:relative; border:1px solid var(--rule); border-radius:12px; padding:15px; background:var(--paper); cursor:pointer; transition:border-color .12s, box-shadow .12s, transform .06s; display:flex; flex-direction:column; gap:9px; box-shadow:0 1px 2px rgba(14,30,63,.04); }
+.fcard:hover { border-color:var(--brand); box-shadow:0 5px 16px rgba(14,30,63,.09); }
+.fcard:active { transform:translateY(1px); }
+.fcard.notclick { cursor:default; } .fcard.notclick:hover { border-color:var(--rule); box-shadow:0 1px 2px rgba(14,30,63,.04); transform:none; }
+.fic { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+.fic svg { width:22px; height:22px; }
+.fic.subject { background:#fef3e8; color:#b9650f; } .fic.folder { background:#eef4ff; color:var(--brand); }
+.fic.topic { background:#eef6ee; color:#2a6e2a; } .fic.sub { background:#f1f5f9; color:#64748b; } .fic.test { background:#f6f1fb; color:#7c3aed; }
+.fname { font-family:'Lora',serif; font-style:italic; font-weight:700; font-size:15px; color:var(--navy); line-height:1.25; word-break:break-word; }
+.fsub { font-size:11.5px; color:var(--muted); }
+.factions { display:flex; gap:8px; flex-wrap:wrap; margin-top:2px; }
+.fstatus { position:absolute; top:12px; right:12px; }
 .hidden { display: none !important; }
 @media print {
   .header, .nav, .btn, .no-print { display: none !important; }
@@ -68,7 +93,7 @@ textarea.f:disabled { background: var(--cream); color: var(--muted); }
   <div class="header-inner">
     <div class="header-eyebrow">Assessment bank</div>
     <h1 class="header-title">Practice &amp; assign</h1>
-    <p class="header-deck">Browse ready-made assessments by topic — practise them yourself for instant feedback, or (teachers) assign one to a class.</p>
+    <p class="header-deck">Open the folders to find ready-made assessments — practise them yourself for instant feedback, or (teachers) assign one to a class.</p>
   </div>
 </div>
 
@@ -101,6 +126,28 @@ const draftKey = (sid)=>'bank-draft-'+sid;
 
 let me_id=null, canSelfServe=false, myClasses=[], ownedClasses=[];
 let courses=[], topics=[], assessments=[], assignments=[];
+let viewIsTeacher=false;
+let path = { subject:null, level:null, courseId:null, topicId:null, subId:null };
+
+const SUBJECTS = ['classical-civilisation','latin','greek'];
+const SUBJECT_LABEL = { 'classical-civilisation':'Classical Civilisation', 'latin':'Latin', 'greek':'Greek' };
+const LEVELS = [['gcse','GCSE'],['alevel','A-Level'],['ks3','KS3']];
+const subjLabel = s => SUBJECT_LABEL[s] || s;
+const lvlLabel  = l => (LEVELS.find(x=>x[0]===l)||[l,l])[1];
+const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'');
+const FIC = {
+  subject:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V10m4 11V10m6 11V10m4 11V10"/><path d="M3 10h18"/><path d="M12 3 3 7v3h18V7z"/></svg>',
+  folder:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h3.6a2 2 0 0 1 1.4.6L11.8 7H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>',
+};
+const topTopicsOf = cid => topics.filter(t=>t.course_id===cid && !t.parent_id);
+const subTopicsOf = tid => topics.filter(t=>t.parent_id===tid);
+const courseById  = id => courses.find(c=>c.id===id);
+const topicById   = id => topics.find(t=>t.id===id);
+const inCourse = cid => assessments.filter(a=>a.course_id===cid);
+const inTopic  = tid => assessments.filter(a=>a.topic_id===tid);
+const moduleTests = cid => assessments.filter(a=>a.course_id===cid && !a.topic_id);
+const topicTestCount = tid => inTopic(tid).length + subTopicsOf(tid).reduce((s,st)=>s+inTopic(st.id).length,0);
 
 (async function init(){
   const { data: au } = await sb.auth.getUser();
@@ -132,8 +179,7 @@ function show(which){ ['home','take'].forEach(id=>$(id).classList.toggle('hidden
 
 function renderHome(){
   show('home');
-  const isTeacher = ownedClasses.length>0;
-  // Assignments set to my classes (as a student)
+  viewIsTeacher = ownedClasses.length>0;
   const studentClassIds = myClasses.filter(c=>c.teacher_id!==me_id).map(c=>c.id);
   const myAssignments = assignments.filter(a=>studentClassIds.includes(a.class_id));
 
@@ -149,31 +195,118 @@ function renderHome(){
     }).join('');
   }
 
-  html += '<div class="section-h">Browse the bank</div>';
-  if(!assessments.length){ html += '<div class="card muted">No published assessments yet.</div>'; }
-  else {
-    // group by course → topic
-    const byCourse = {};
-    assessments.forEach(a=>{ (byCourse[a.course_id]=byCourse[a.course_id]||[]).push(a); });
-    courses.filter(c=>byCourse[c.id]).forEach(c=>{
-      html += '<div class="card"><div class="row"><div class="tt">'+esc(c.title)+'</div><span class="spacer"></span><span class="pill">'+esc(c.subject)+'</span></div>';
-      byCourse[c.id].forEach(a=>{
-        const tp = topics.find(t=>t.id===a.topic_id);
-        const action = isTeacher
-          ? '<button class="btn ghost sm" data-assign="'+a.id+'">Assign to class</button>'
-          : (canSelfServe ? '<button class="btn sm" data-take="'+a.id+'">Practise</button>' : '<span class="muted">practice tier only</span>');
-        html += '<div class="row" style="margin-top:10px;border-top:1px solid var(--rule-faint);padding-top:10px;">' +
-          '<div><div style="font-weight:600;color:var(--ink);">'+esc(a.title)+'</div>'+(tp?('<div class="muted">'+esc(tp.title)+'</div>'):'')+'</div>' +
-          '<span class="spacer"></span>'+action+'</div>';
-      });
-      html += '</div>';
-    });
-  }
+  html += '<div class="section-h">Browse the bank</div>' +
+    '<div class="bank-search"><svg class="si" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8.5" cy="8.5" r="5.5"/><line x1="13" y1="13" x2="17" y2="17"/></svg>' +
+      '<input id="bsearch" placeholder="Search every test…" autocomplete="off"><button class="sx" id="bclear">&times;</button></div>' +
+    '<nav class="crumbs" id="crumbs"></nav><div id="grid"></div>';
   $('home').innerHTML = html;
 
   $('home').querySelectorAll('[data-asg]').forEach(r=>r.addEventListener('click',()=>startAssignment(r.dataset.asg, r.dataset.ass)));
-  $('home').querySelectorAll('[data-take]').forEach(b=>b.addEventListener('click',()=>startSelfServe(b.dataset.take)));
-  $('home').querySelectorAll('[data-assign]').forEach(b=>b.addEventListener('click',()=>openAssign(b.dataset.assign)));
+  $('bsearch').addEventListener('input', renderGrid);
+  $('bclear').addEventListener('click', ()=>{ $('bsearch').value=''; renderGrid(); $('bsearch').focus(); });
+  $('grid').addEventListener('click', onGridClick);
+  renderGrid();
+}
+
+// ─────────────── folder explorer (read-only) ───────────────
+function fcard(tint, ic, name, sub, dataAttr){ return '<div class="fcard" '+dataAttr+'><div class="fic '+tint+'">'+ic+'</div><div class="fname">'+esc(name)+'</div><div class="fsub">'+esc(sub)+'</div></div>'; }
+function testCard(a){
+  const meta = a.title; // keep title prominent; status badge separate
+  const acts = [];
+  if(viewIsTeacher) acts.push('<button class="btn ghost sm" data-assign="'+a.id+'">Assign to class</button>');
+  if(canSelfServe) acts.push('<button class="btn sm" data-take="'+a.id+'">Practise</button>');
+  if(!acts.length) acts.push('<span class="muted">practice tier only</span>');
+  return '<div class="fcard notclick"><div class="fic test">'+FIC.file+'</div><div class="fname">'+esc(a.title)+'</div><div class="factions">'+acts.join('')+'</div></div>';
+}
+const pl = (n,w)=> n+' '+w+(n!==1?'s':'');
+function cards(h){ return '<div class="grid-cards">'+h+'</div>'; }
+function secH(t){ return '<div class="section-h" style="font-size:13px;margin:16px 0 8px;">'+esc(t)+'</div>'; }
+
+function renderGrid(){
+  const raw = ($('bsearch')?.value||'').trim();
+  $('bclear')?.classList.toggle('on', !!raw);
+  if(raw) return renderSearch(raw);
+  renderCrumbs();
+  const g = $('grid');
+  if(path.subId)    return g.innerHTML = inTopic(path.subId).length ? cards(inTopic(path.subId).map(testCard).join('')) : '<div class="card muted">No tests here yet.</div>';
+  if(path.topicId)  return renderTopicInside(g);
+  if(path.courseId) return renderModuleInside(g);
+  if(path.level)    return renderModules(g);
+  if(path.subject)  return renderLevels(g);
+  return renderSubjects(g);
+}
+function renderSubjects(g){
+  const items = SUBJECTS.filter(s=>courses.some(c=>c.subject===s && inCourse(c.id).length));
+  if(!items.length) return g.innerHTML='<div class="card muted">No published assessments yet.</div>';
+  g.innerHTML = cards(items.map(s=>{
+    const n = courses.filter(c=>c.subject===s).reduce((x,c)=>x+inCourse(c.id).length,0);
+    return fcard('subject', FIC.subject, subjLabel(s), pl(n,'test'), 'data-go-subject="'+s+'"');
+  }).join(''));
+}
+function renderLevels(g){
+  const items = LEVELS.filter(L=>courses.some(c=>c.subject===path.subject && (c.level||'gcse')===L[0] && inCourse(c.id).length));
+  g.innerHTML = cards(items.map(L=>{
+    const n = courses.filter(c=>c.subject===path.subject && (c.level||'gcse')===L[0]).reduce((x,c)=>x+inCourse(c.id).length,0);
+    return fcard('folder', FIC.folder, L[1], pl(n,'test'), 'data-go-level="'+L[0]+'"');
+  }).join('')) || (g.innerHTML='<div class="card muted">Nothing here yet.</div>');
+}
+function renderModules(g){
+  const mods = courses.filter(c=>c.subject===path.subject && (c.level||'gcse')===path.level && inCourse(c.id).length);
+  g.innerHTML = cards(mods.map(c=>fcard('folder', FIC.folder, c.title, pl(inCourse(c.id).length,'test'), 'data-go-course="'+c.id+'"')).join(''));
+}
+function renderModuleInside(g){
+  const c = courseById(path.courseId); if(!c){ path.courseId=null; return renderGrid(); }
+  const tops = topTopicsOf(c.id).filter(t=>topicTestCount(t.id));
+  const direct = moduleTests(c.id);
+  let html='';
+  if(tops.length) html += secH('Topics') + cards(tops.map(t=>fcard('topic', FIC.folder, t.title, pl(topicTestCount(t.id),'test'), 'data-go-topic="'+t.id+'"')).join(''));
+  if(direct.length) html += secH('Tests in this module') + cards(direct.map(testCard).join(''));
+  g.innerHTML = html || '<div class="card muted">No published tests in this module yet.</div>';
+}
+function renderTopicInside(g){
+  const t = topicById(path.topicId); if(!t){ path.topicId=null; return renderGrid(); }
+  const subs = subTopicsOf(t.id).filter(st=>inTopic(st.id).length);
+  const whole = inTopic(t.id);
+  let html='';
+  if(subs.length) html += secH('Subtopics') + cards(subs.map(st=>fcard('sub', FIC.folder, st.title, pl(inTopic(st.id).length,'test'), 'data-go-sub="'+st.id+'"')).join(''));
+  if(whole.length) html += secH('Whole-topic tests') + cards(whole.map(testCard).join(''));
+  g.innerHTML = html || '<div class="card muted">No published tests in this topic yet.</div>';
+}
+function locText(a){
+  const c=courseById(a.course_id); let s=c?(subjLabel(c.subject)+' · '+lvlLabel(c.level||'gcse')+' · '+c.title):'';
+  const t=topicById(a.topic_id); if(t){ if(t.parent_id){ const p=topicById(t.parent_id); s+=' › '+(p?p.title:'?')+' › '+t.title; } else s+=' › '+t.title; }
+  return s;
+}
+function renderSearch(raw){
+  const query=norm(raw);
+  const c=$('crumbs'); c.innerHTML='<button class="crumb" id="chome">Home</button><span class="crumb-sep">/</span><span class="crumb cur">Search “'+esc(raw)+'”</span>';
+  $('chome').addEventListener('click', ()=>{ $('bsearch').value=''; renderGrid(); });
+  const hits = assessments.filter(a=>norm(a.title+' '+locText(a)).includes(query));
+  const g=$('grid');
+  g.innerHTML = hits.length ? cards(hits.map(a=>{
+    const acts=[]; if(viewIsTeacher) acts.push('<button class="btn ghost sm" data-assign="'+a.id+'">Assign</button>'); if(canSelfServe) acts.push('<button class="btn sm" data-take="'+a.id+'">Practise</button>'); if(!acts.length) acts.push('<span class="muted">practice tier only</span>');
+    return '<div class="fcard notclick"><div class="fic test">'+FIC.file+'</div><div class="fname">'+esc(a.title)+'</div><div class="fsub">'+esc(locText(a))+'</div><div class="factions">'+acts.join('')+'</div></div>';
+  }).join('')) : '<div class="card muted">No tests match “'+esc(raw)+'”.</div>';
+}
+function renderCrumbs(){
+  const parts=[['Home',()=>{ path={subject:null,level:null,courseId:null,topicId:null,subId:null}; renderGrid(); }]];
+  if(path.subject) parts.push([subjLabel(path.subject),()=>{ path.level=path.courseId=path.topicId=path.subId=null; renderGrid(); }]);
+  if(path.level) parts.push([lvlLabel(path.level),()=>{ path.courseId=path.topicId=path.subId=null; renderGrid(); }]);
+  if(path.courseId){ const c=courseById(path.courseId); parts.push([c?c.title:'?',()=>{ path.topicId=path.subId=null; renderGrid(); }]); }
+  if(path.topicId){ const t=topicById(path.topicId); parts.push([t?t.title:'?',()=>{ path.subId=null; renderGrid(); }]); }
+  if(path.subId){ const s=topicById(path.subId); parts.push([s?s.title:'?',null]); }
+  const c=$('crumbs'); c.innerHTML='';
+  parts.forEach((p,i)=>{ const last=i===parts.length-1; const b=document.createElement('button'); b.className='crumb'+(last?' cur':''); b.textContent=p[0]; if(!last&&p[1]) b.addEventListener('click',p[1]); c.appendChild(b); if(!last){ const s=document.createElement('span'); s.className='crumb-sep'; s.textContent='/'; c.appendChild(s); } });
+}
+function onGridClick(e){
+  let el;
+  if((el=e.target.closest('[data-take]'))){ e.stopPropagation(); return startSelfServe(el.dataset.take); }
+  if((el=e.target.closest('[data-assign]'))){ e.stopPropagation(); return openAssign(el.dataset.assign); }
+  if((el=e.target.closest('[data-go-subject]'))){ path={subject:el.dataset.goSubject,level:null,courseId:null,topicId:null,subId:null}; return renderGrid(); }
+  if((el=e.target.closest('[data-go-level]'))){ path.level=el.dataset.goLevel; path.courseId=path.topicId=path.subId=null; return renderGrid(); }
+  if((el=e.target.closest('[data-go-course]'))){ path.courseId=el.dataset.goCourse; path.topicId=path.subId=null; return renderGrid(); }
+  if((el=e.target.closest('[data-go-topic]'))){ path.topicId=el.dataset.goTopic; path.subId=null; return renderGrid(); }
+  if((el=e.target.closest('[data-go-sub]'))){ path.subId=el.dataset.goSub; return renderGrid(); }
 }
 
 // ─────────────── teacher: assign to class ───────────────
