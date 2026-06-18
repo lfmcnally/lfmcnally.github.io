@@ -95,7 +95,7 @@ const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
 let toastT; function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2200); }
 function modal(html){ const bg=document.createElement('div'); bg.className='modal-bg'; bg.innerHTML='<div class="modal">'+html+'</div>'; document.body.appendChild(bg); bg.addEventListener('click',e=>{ if(e.target===bg) bg.remove(); }); return bg; }
 
-let users=[], access={}, orgs=[], members=[], subs=[], plans={}, ledger=[];
+let users=[], access={}, manage={}, orgs=[], members=[], subs=[], plans={}, ledger=[];
 let peopleTerm='';
 
 function planFor(kind, id){ return subs.find(s=>s.account_kind===kind && (kind==='user'?s.user_id:s.org_id)===id && s.status==='active'); }
@@ -121,7 +121,7 @@ function gate(html){ $('gate').innerHTML='<p>'+html+'</p>'; $('gate').classList.
 async function loadAll(){
   const [{ data: us }, { data: acc }, { data: og }, { data: mem }, { data: sb_ }, { data: pl }, { data: led }] = await Promise.all([
     sb.rpc('admin_list_users'),
-    sb.from('users').select('id, can_self_serve_bank'),
+    sb.from('users').select('id, can_self_serve_bank, can_manage_bank'),
     sb.from('organisations').select('*').order('name'),
     sb.from('org_members').select('*'),
     sb.from('subscriptions').select('*'),
@@ -129,7 +129,7 @@ async function loadAll(){
     sb.from('credit_ledger').select('account_kind, account_id, delta, created_at').gte('created_at', new Date(Date.now()-40*864e5).toISOString()),
   ]);
   users = us || []; orgs = og || []; members = mem || []; subs = sb_ || []; ledger = led || [];
-  access = {}; (acc||[]).forEach(u=>access[u.id]=!!u.can_self_serve_bank);
+  access = {}; manage = {}; (acc||[]).forEach(u=>{ access[u.id]=!!u.can_self_serve_bank; manage[u.id]=!!u.can_manage_bank; });
   plans = {}; (pl||[]).forEach(p=>plans[p.tier]=p);
 }
 
@@ -141,16 +141,18 @@ function renderPeople(){
   if(term) list = list.filter(u=>((u.full_name||'')+' '+(u.email||'')).toLowerCase().includes(term));
   list = list.slice(0, 80);
   root.innerHTML =
-    '<div class="hint"><b>Bank access</b> lets someone practise tests for instant AI marking. Turn it on to gift access — with no paid plan, marking is unlimited. A <b>comp plan</b> additionally records a credit allowance (used once Stripe billing is on).</div>' +
+    '<div class="hint"><b>Assessment permission</b> lets an admin author and view the bank (drafts included). <b>Bank access</b> lets someone practise published tests for instant AI marking — turn it on to gift access (marking is unlimited with no paid plan). A <b>comp plan</b> additionally records a credit allowance (used once Stripe billing is on).</div>' +
     '<div class="searchrow"><input class="f" id="psearch" placeholder="Search people by name or email…" value="'+esc(peopleTerm)+'"></div>' +
     (list.length? list.map(personRow).join('') : '<div class="card muted">No matching people.</div>');
   const ps=$('psearch'); ps.addEventListener('input', ()=>{ peopleTerm=ps.value; const pos=ps.selectionStart; renderPeople(); const n=$('psearch'); n.focus(); n.setSelectionRange(pos,pos); });
   root.querySelectorAll('[data-toggle]').forEach(b=>b.addEventListener('click', ()=>toggleAccess(b.dataset.toggle)));
+  root.querySelectorAll('[data-perm]').forEach(b=>b.addEventListener('click', ()=>togglePerm(b.dataset.perm)));
   root.querySelectorAll('[data-gift]').forEach(b=>b.addEventListener('click', ()=>giftPersonal(b.dataset.gift)));
   root.querySelectorAll('[data-ungift]').forEach(b=>b.addEventListener('click', ()=>removePlan(b.dataset.ungift)));
 }
 function personRow(u){
   const on = !!access[u.id];
+  const mng = !!manage[u.id];
   const sub = planFor('user', u.id);
   const roleBadge = u.is_admin ? '<span class="badge admin">admin</span>' : '<span class="badge role">'+esc(u.role||'student')+'</span>';
   const planBit = sub
@@ -159,6 +161,7 @@ function personRow(u){
   return '<div class="card"><div class="row">' +
     '<div><div class="nm">'+esc(u.full_name||'(no name)')+' '+roleBadge+'</div><div class="em">'+esc(u.email||'')+'</div></div>' +
     '<span class="spacer"></span>' +
+    '<button class="btn '+(mng?'on':'ghost')+' sm" data-perm="'+u.id+'" title="Author + view the bank">'+(mng?'✓ Assessment permission':'Give permission')+'</button>' +
     '<button class="btn '+(on?'on':'ghost')+' sm" data-toggle="'+u.id+'">'+(on?'✓ Bank access':'Grant access')+'</button>' +
     planBit +
   '</div></div>';
@@ -168,6 +171,12 @@ async function toggleAccess(uid){
   const { error } = await sb.from('users').update({ can_self_serve_bank: next }).eq('id', uid);
   if(error) return toast('Failed: '+error.message);
   access[uid]=next; renderPeople(); toast(next?'Access granted':'Access removed');
+}
+async function togglePerm(uid){
+  const next = !manage[uid];
+  const { error } = await sb.from('users').update({ can_manage_bank: next }).eq('id', uid);
+  if(error) return toast('Failed: '+error.message);
+  manage[uid]=next; renderPeople(); toast(next?'Assessment permission granted':'Permission removed');
 }
 async function giftPersonal(uid){
   const credits = plans.personal?.credits_per_period ?? 10;
