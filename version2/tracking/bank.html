@@ -140,7 +140,7 @@ const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
 function imgSrc(path){ if(!path) return ''; if(/^https?:\/\//.test(path)||path.startsWith('/')) return path; return sb.storage.from('weekly-test-images').getPublicUrl(path).data.publicUrl; }
 const draftKey = (sid)=>'bank-draft-'+sid;
 
-let me_id=null, canSelfServe=false, myClasses=[], ownedClasses=[];
+let me_id=null, myName='Student', canSelfServe=false, myClasses=[], ownedClasses=[];
 let courses=[], topics=[], assessments=[], assignments=[];
 let viewIsTeacher=false;
 let path = { subject:null, level:null, courseId:null, topicId:null, subId:null };
@@ -169,9 +169,10 @@ const topicTestCount = tid => inTopic(tid).length + subTopicsOf(tid).reduce((s,s
   const { data: au } = await sb.auth.getUser();
   if(!au?.user){ return gate('Please <a href="/auth/login.html">sign in</a> to use the assessment bank.'); }
   me_id = au.user.id;
-  const { data: prof } = await sb.from('users').select('can_self_serve_bank, can_manage_bank').eq('id', me_id).maybeSingle();
+  const { data: prof } = await sb.from('users').select('full_name, can_self_serve_bank, can_manage_bank').eq('id', me_id).maybeSingle();
   canSelfServe = !!prof?.can_self_serve_bank;
   const canManage = !!prof?.can_manage_bank;
+  myName = (prof?.full_name || '').trim() || (au.user.email || 'Student');
 
   const { data: cls } = await sb.from('v2_classes').select('id,name,type,teacher_id');
   myClasses = cls || [];
@@ -491,7 +492,108 @@ function renderReport(ass, questions, answers, results, sub, meta){
       '</div>';
     }).join('');
   $('back').addEventListener('click', renderHome);
-  $('pdf').addEventListener('click', ()=>window.print());
+  $('pdf').addEventListener('click', ()=>buildReportDoc(ass, questions, answers, results, sub));
+}
+
+// Build a proper standalone PDF document (not a screenshot of the page).
+function buildReportDoc(ass, questions, answers, results, sub){
+  const byId={}; results.forEach(r=>byId[r.question_id]=r);
+  const total = results.reduce((s,r)=>s+(r.marks||0),0);
+  const totalMarks = questions.reduce((s,q)=>s+q.marks,0);
+  const pc = totalMarks ? Math.round(100*total/totalMarks) : 0;
+  const when = new Date(sub.submitted_at || Date.now()).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const course = courseById(ass.course_id);
+  const t = topicById(ass.topic_id);
+  let topicPath = '';
+  if(t){ if(t.parent_id){ const p=topicById(t.parent_id); topicPath = (p?p.title+' › ':'')+t.title; } else topicPath = t.title; }
+  const subjLine = course ? (subjLabel(course.subject)+' · '+lvlLabel(course.level||'gcse')+' · '+course.title) : '';
+
+  // counts + "to review" list
+  let nFull=0, nPart=0, nReview=0; const review=[];
+  questions.forEach((q,i)=>{
+    const r = byId[q.id]; const m = r&&r.status==='marked'?(r.marks||0):0;
+    if(r&&r.status==='marked'&&m>=q.marks) nFull++;
+    else if(m>0){ nPart++; review.push({i:i+1,q,r}); }
+    else { nReview++; review.push({i:i+1,q,r}); }
+  });
+  const verdict = pc>=80 ? 'a strong result — keep it up.' : pc>=50 ? 'a solid effort with a few things to tighten up.' : 'a good start — the points below are where to focus next.';
+
+  const stripSev = e => String(e).replace(/^(serious|minor):\s*/i,'');
+  const isSerious = e => /^serious:/i.test(String(e));
+  const qDetail = (q,i) => {
+    const r = byId[q.id]||{status:'blank',marks:0};
+    const a = (answers[q.id]&&answers[q.id].answer_text)||'';
+    const isTr = q.mark_style==='translation';
+    let mk='—'; if(r.status==='marked') mk=(r.marks==null?'—':r.marks)+' / '+q.marks; else if(r.status==='blank') mk='0 / '+q.marks;
+    const errs = isTr && Array.isArray(r.errors) && r.errors.length
+      ? '<div class="errlab">What cost marks</div><ul class="errs">'+r.errors.map(e=>'<li class="'+(isSerious(e)?'sev':'min')+'"><b>'+(isSerious(e)?'Serious':'Minor')+':</b> '+esc(stripSev(e))+'</li>').join('')+'</ul>'
+      : '';
+    const note = r.status==='blank'?'You left this blank.':r.status==='paused'?'Not marked this time.':r.status==='error'?'Could not be marked automatically.':(r.rationale||'');
+    return '<div class="q">'+
+      '<div class="qtop"><span class="qn">Q'+i+'</span><span class="qmk">'+mk+'</span></div>'+
+      '<div class="qp">'+esc(q.prompt)+'</div>'+
+      '<div class="ln"><span class="k">Your answer</span>'+(a?esc(a):'<em>— none —</em>')+'</div>'+
+      (isTr && r.correct ? '<div class="ln correct"><span class="k">Correct translation</span>'+esc(r.correct)+'</div>' : '')+
+      errs+
+      (note?'<div class="fbk">'+esc(note)+'</div>':'')+
+    '</div>';
+  };
+
+  const reviewList = review.length
+    ? '<ul class="review">'+review.map(x=>'<li><b>Q'+x.i+':</b> '+esc((x.r&&x.r.rationale)|| (x.r&&x.r.status==='blank'?'Left blank.':'To review.'))+'</li>').join('')+'</ul>'
+    : '<p class="allgood">Full marks — nothing to review. Excellent work!</p>';
+
+  const html =
+  '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(ass.title)+' — summary</title>'+
+  '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'+
+  '<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;0,700;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">'+
+  '<style>'+
+  '*{box-sizing:border-box;} body{font-family:"DM Sans",sans-serif;color:#1b2333;margin:0;padding:32px 36px;font-size:13px;line-height:1.5;}'+
+  '.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0e1e3f;padding-bottom:12px;}'+
+  '.brand{font-family:"Lora",serif;font-style:italic;font-weight:700;font-size:20px;color:#0e1e3f;}'+
+  '.brand small{display:block;font-family:"DM Sans",sans-serif;font-style:normal;font-weight:700;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#6b7280;margin-top:3px;}'+
+  '.who{text-align:right;font-size:12px;color:#374151;} .who b{color:#0e1e3f;font-size:14px;}'+
+  '.meta{display:flex;flex-wrap:wrap;gap:6px 22px;margin:14px 0 4px;font-size:12px;color:#374151;}'+
+  '.meta .k{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#9ca3af;display:block;}'+
+  '.hero{display:flex;align-items:center;gap:18px;margin:18px 0;padding:16px 20px;background:#f4f7ff;border:1px solid #dbe4ff;border-radius:12px;}'+
+  '.score{font-family:"Lora",serif;font-style:italic;font-weight:700;font-size:34px;color:#1a6fff;line-height:1;}'+
+  '.score small{font-size:15px;color:#6b7280;}'+
+  '.herotxt{font-size:13px;color:#374151;} .herotxt b{color:#0e1e3f;}'+
+  '.counts{margin-left:auto;text-align:right;font-size:11px;color:#6b7280;} .counts b{color:#0e1e3f;}'+
+  'h2{font-family:"Lora",serif;font-style:italic;font-weight:700;font-size:16px;color:#0e1e3f;margin:22px 0 8px;}'+
+  '.review{margin:0;padding-left:18px;} .review li{margin:4px 0;} .allgood{color:#15803d;font-weight:600;}'+
+  '.q{border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin:10px 0;break-inside:avoid;}'+
+  '.qtop{display:flex;justify-content:space-between;align-items:baseline;}'+
+  '.qn{font-weight:700;color:#0e1e3f;letter-spacing:.05em;} .qmk{font-family:"Lora",serif;font-style:italic;font-weight:700;font-size:16px;color:#1a6fff;}'+
+  '.qp{margin:6px 0 8px;font-weight:600;color:#111827;}'+
+  '.ln{margin:4px 0;font-size:12.5px;} .ln .k{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;display:block;}'+
+  '.ln.correct{color:#15803d;}'+
+  '.errlab{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9ca3af;margin-top:8px;}'+
+  '.errs{margin:4px 0 0;padding-left:0;list-style:none;} .errs li{font-size:12px;padding:3px 8px;border-left:3px solid;border-radius:5px;margin:3px 0;}'+
+  '.errs li.sev{background:#fef2f2;border-color:#dc2626;color:#991b1b;} .errs li.min{background:#fffbeb;border-color:#d97706;color:#92500e;}'+
+  '.fbk{margin-top:8px;padding:9px 12px;background:#eef6ee;border:1px solid #cfe8cf;border-radius:8px;font-size:12.5px;color:#225c2b;}'+
+  '.foot{margin-top:20px;border-top:1px solid #e5e7eb;padding-top:8px;font-size:10px;color:#9ca3af;text-align:center;}'+
+  '@media print{body{padding:0;} @page{margin:16mm;}}'+
+  '</style></head><body>'+
+  '<div class="head"><div class="brand">Classicalia<small>Assessment summary</small></div>'+
+    '<div class="who"><b>'+esc(myName)+'</b><br>'+esc(when)+'</div></div>'+
+  '<div class="meta">'+
+    (subjLine?'<div><span class="k">Course</span>'+esc(subjLine)+'</div>':'')+
+    (topicPath?'<div><span class="k">Topic</span>'+esc(topicPath)+'</div>':'')+
+    '<div><span class="k">Assessment</span>'+esc(ass.title)+'</div>'+
+  '</div>'+
+  '<div class="hero"><div class="score">'+total+' <small>/ '+totalMarks+'</small></div>'+
+    '<div class="herotxt"><b>'+pc+'%</b> — '+verdict+'</div>'+
+    '<div class="counts"><b>'+nFull+'</b> full · <b>'+nPart+'</b> partial · <b>'+nReview+'</b> to review</div></div>'+
+  '<h2>Where to focus</h2>'+reviewList+
+  '<h2>Question by question</h2>'+questions.map((q,i)=>qDetail(q,i+1)).join('')+
+  '<div class="foot">Generated by Classicalia · AI-assisted marking · '+esc(when)+'</div>'+
+  '<script>window.onload=function(){setTimeout(function(){window.print();},400);};<\/script>'+
+  '</body></html>';
+
+  const w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups to download your summary.'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
 }
 </script>
 </body>
