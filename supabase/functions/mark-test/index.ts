@@ -263,9 +263,14 @@ Deno.serve(async (req) => {
         subject = subjectFor(cls?.type);
       } else { // self_serve — gated until subscriptions (Phase 5)
         if (!sub.bank_assessment_id) return json({ error: "no assessment" }, 400);
-        const { data: prof } = await svc.from("users").select("can_self_serve_bank").eq("id", uid).maybeSingle();
-        if (!prof?.can_self_serve_bank) return json({ paused: true, message: "Self-serve practice isn't enabled on your account yet." });
         assessmentId = sub.bank_assessment_id;
+        // Auto-generated grammar practice is open to everyone; only hand-authored
+        // self-serve bank tests need the can_self_serve_bank entitlement.
+        const { data: ap } = await svc.from("bank_assessments").select("is_practice").eq("id", assessmentId).maybeSingle();
+        if (!ap?.is_practice) {
+          const { data: prof } = await svc.from("users").select("can_self_serve_bank").eq("id", uid).maybeSingle();
+          if (!prof?.can_self_serve_bank) return json({ paused: true, message: "Self-serve practice isn't enabled on your account yet." });
+        }
         budgetUserId = uid;
       }
       const { data: assess } = await svc.from("bank_assessments")

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grammar practice — Classicalia</title>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<style>
+body { background: var(--cream); }
+.wrap { max-width: 760px; margin: 0 auto; padding: 28px 20px 90px; }
+.gate { max-width: 520px; margin: 60px auto; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 28px; text-align: center; font-size: 15px; line-height: 1.6; }
+.card { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(14,30,63,.04); }
+.row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.spacer { flex: 1; }
+.tt { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 24px; color: var(--navy); }
+.muted { color: var(--muted); font-size: 12.5px; }
+.qprompt { font-size: 17px; color: var(--ink); line-height: 1.5; font-family:'Lora',serif; }
+.qmarks { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+textarea.f { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 15px; padding: 11px 13px; border: 1.5px solid var(--rule); border-radius: 8px; resize: vertical; min-height: 60px; color: var(--ink); outline: none; box-sizing:border-box; }
+textarea.f:focus { border-color: var(--brand); }
+textarea.f:disabled { background: var(--cream); color: var(--muted); }
+.btn { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; padding: 11px 20px; border-radius: 7px; border: none; background: var(--brand); color: #fff; cursor: pointer; }
+.btn:hover { background: #155ee0; }
+.btn:disabled { background: var(--rule); color: var(--muted); cursor: default; }
+.btn.ghost { background: var(--paper); color: var(--ink); border: 1px solid var(--rule); }
+.btn.dark { background: var(--navy); }
+.btn.sm { font-size: 12.5px; padding: 7px 13px; }
+.fb { margin-top: 12px; padding: 12px 15px; border-radius: 9px; border: 1px solid var(--rule); font-size: 13.5px; line-height: 1.5; }
+.fb.good { background: #ecfdf3; border-color: #a7f3d0; color: #15803d; }
+.fb.part { background: #fffbeb; border-color: #fde68a; color: #92500e; }
+.fb.zero { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+.fb.info { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+.hidden { display: none; }
+.scorepill { font-weight:700; font-size:13px; padding:2px 10px; border-radius:999px; }
+.spin { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; vertical-align:-2px; margin-right:7px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.concept { display:inline-block; font-size:11.5px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; border-radius:999px; padding:2px 9px; margin:3px 4px 0 0; }
+.correct-tr { font-family:'Lora',serif; font-style:italic; color:#15803d; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="gate" class="gate hidden"></div>
+  <div id="app"></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const sb = window.supabase;
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const params = new URLSearchParams(location.search);
+const nuggetCode = params.get('nugget') || '';
+const chapter = Math.max(1, Math.min(10, parseInt(params.get('chapter')||'0',10)));
+const titleHint = params.get('title') || 'this concept';
+let state = { submissionId:null, questions:[] };
+
+function gate(html){ $('gate').innerHTML = html; $('gate').classList.remove('hidden'); $('app').innerHTML=''; }
+
+(async function init(){
+  const { data: au } = await sb.auth.getUser();
+  if(!au || !au.user){ return gate('Please <a href="/version2/auth/login.html">sign in</a> to practise.'); }
+  if(!nuggetCode || !chapter){ return gate('Missing practice details. Head back to your <a href="/version2/tracking/dashboard.html">dashboard</a> and pick a concept.'); }
+  if(typeof VOCAB_LATIN_GCSE === 'undefined'){ return gate('Could not load the vocabulary list. Please refresh.'); }
+  generate();
+})();
+
+async function generate(){
+  $('app').innerHTML =
+    '<button class="btn ghost sm" onclick="location.href=\'/version2/tracking/dashboard.html\'" style="margin-bottom:14px;">← Dashboard</button>' +
+    '<div class="card" style="text-align:center;"><div class="tt">Setting your practice…</div>' +
+    '<p class="muted" style="margin-top:8px;"><span class="spin" style="border-top-color:var(--brand);border-color:rgba(0,0,0,.15);border-top-color:var(--brand);"></span>Writing fresh sentences on <b>'+esc(titleHint)+'</b> using only chapter '+chapter+' vocabulary and grammar.</p></div>';
+  const vocab = VOCAB_LATIN_GCSE
+    .filter(v => (v.chapter||99) <= chapter)
+    .map(v => ({ latin: v.latin, english: v.english }));
+  const { data, error } = await sb.functions.invoke('generate-practice', { body: { nugget_code:nuggetCode, chapter, count:6, vocab } });
+  if(error){
+    let msg='Could not generate practice — please try again.';
+    try{ const j=await error.context.json(); if(j&&(j.error||j.message)) msg=j.error||j.message; }catch(_){}
+    return gate(msg+'<br><br><button class="btn sm" onclick="location.reload()">Try again</button>');
+  }
+  if(data && data.paused){ return gate(data.message || 'Practice is paused for now.'); }
+  if(!data || !data.submission_id || !Array.isArray(data.questions) || !data.questions.length){
+    return gate('No sentences came back. <button class="btn sm" onclick="location.reload()">Try again</button>');
+  }
+  state.submissionId = data.submission_id;
+  state.questions = data.questions;
+  renderTake(data.title || ('Practice: '+titleHint));
+}
+
+function renderTake(title){
+  $('app').innerHTML =
+    '<button class="btn ghost sm" onclick="location.href=\'/version2/tracking/dashboard.html\'" style="margin-bottom:12px;">← Dashboard</button>' +
+    '<h2 class="tt">'+esc(title)+'</h2>' +
+    '<p class="muted" style="margin-bottom:16px;">Translate each sentence into English, then submit for instant marking. These count towards your grammar confidence.</p>' +
+    state.questions.map((q,i)=>
+      '<div class="card">' +
+        '<div class="row"><span class="qmarks">Sentence '+(i+1)+'</span><span class="spacer"></span><span class="qmarks">'+q.marks+' marks</span></div>' +
+        '<div class="qprompt" style="margin:8px 0 10px;">'+esc(q.prompt)+'</div>' +
+        '<textarea class="f" data-input="'+q.id+'" placeholder="Your translation…"></textarea>' +
+      '</div>'
+    ).join('') +
+    '<div class="card" style="text-align:center;"><button class="btn dark" id="submit">Submit &amp; get my marks</button>' +
+      '<div class="fb info hidden" id="fb"></div></div>';
+  $('submit').addEventListener('click', submit);
+}
+
+async function submit(){
+  const inputs = [...document.querySelectorAll('[data-input]')];
+  const answers = inputs.map(t=>({ question_id:t.dataset.input, answer_text:t.value.trim() }));
+  const answered = answers.filter(a=>a.answer_text).length;
+  const fb = $('fb');
+  if(!answered){ fb.className='fb info'; fb.classList.remove('hidden'); fb.textContent='Write at least one translation first.'; return; }
+  if(answered<answers.length && !confirm((answers.length-answered)+' sentence(s) are blank. Submit anyway?')) return;
+  const btn=$('submit'); btn.disabled=true; btn.innerHTML='<span class="spin"></span>Marking…';
+  inputs.forEach(t=>t.disabled=true);
+  fb.className='fb info'; fb.classList.remove('hidden'); fb.textContent='This can take up to a minute — please wait.';
+  const { data, error } = await sb.functions.invoke('mark-test', { body:{ submission_id: state.submissionId, answers } });
+  if(error){
+    let msg='Could not mark — please try again.'; try{ const j=await error.context.json(); if(j&&(j.error||j.message)) msg=j.error||j.message; }catch(_){}
+    btn.disabled=false; btn.textContent='Submit & get my marks'; inputs.forEach(t=>t.disabled=false);
+    fb.className='fb zero'; fb.textContent=msg; return;
+  }
+  const ans={}; answers.forEach(a=>ans[a.question_id]=a.answer_text);
+  renderReport(ans, data);
+}
+
+function pill(m, max){ const r=max?m/max:0; const c = r>=0.8?'#15803d':r>=0.4?'#92500e':'#b91c1c'; const bg = r>=0.8?'#ecfdf3':r>=0.4?'#fffbeb':'#fef2f2';
+  return '<span class="scorepill" style="color:'+c+';background:'+bg+';">'+m+'/'+max+'</span>'; }
+
+function renderReport(ans, data){
+  const results = data.results||[];
+  const total = results.reduce((s,r)=>s+(r.marks||0),0);
+  const max = results.reduce((s,r)=>s+(r.max||0),0);
+  let html =
+    '<button class="btn ghost sm" onclick="location.href=\'/version2/tracking/dashboard.html\'" style="margin-bottom:12px;">← Dashboard</button>' +
+    '<div class="card"><div class="row"><div class="tt">Your marks</div><span class="spacer"></span>'+pill(total,max)+'</div>' +
+    (data.summary?('<p class="muted" style="margin-top:10px;font-size:13.5px;line-height:1.6;color:var(--ink);">'+esc(data.summary)+'</p>'):'')+'</div>';
+  results.forEach((r,i)=>{
+    const q = state.questions.find(x=>x.id===r.question_id) || {};
+    html += '<div class="card">' +
+      '<div class="row"><span class="qmarks">Sentence '+(i+1)+'</span><span class="spacer"></span>'+pill(r.marks||0, r.max||5)+'</div>' +
+      '<div class="qprompt" style="margin:8px 0 6px;">'+esc(q.prompt||'')+'</div>' +
+      '<div class="muted" style="font-size:13.5px;color:var(--ink);">You wrote: '+esc(ans[r.question_id]||'—')+'</div>' +
+      (r.correct?('<div style="margin-top:6px;font-size:13.5px;">Suggested: <span class="correct-tr">'+esc(r.correct)+'</span></div>'):'') +
+      (r.rationale?('<div class="fb part" style="margin-top:10px;">'+esc(r.rationale)+'</div>'):'') +
+      (Array.isArray(r.concepts)&&r.concepts.length?('<div style="margin-top:8px;">'+r.concepts.map(c=>'<span class="concept">'+esc(c)+'</span>').join('')+'</div>'):'') +
+    '</div>';
+  });
+  html += '<div class="card" style="text-align:center;"><button class="btn" onclick="location.reload()">Practise again</button> ' +
+    '<button class="btn ghost" onclick="location.href=\'/version2/tracking/dashboard.html\'">Back to dashboard</button></div>';
+  $('app').innerHTML = html;
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
