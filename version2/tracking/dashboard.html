@@ -1749,27 +1749,28 @@ init().then(() => {
       sb.from('grammar_nuggets').select('id,category,title,revision_url,position').eq('subject','latin').eq('level','gcse').order('position'),
       sb.from('student_nugget_events').select('nugget_id, correct').eq('student_id', uid),
     ]);
-    if(!nugs || !nugs.length) return;
+    if(!nugs || !nugs.length) return;                 // no taxonomy = nothing to show
     const agg={}; (ev||[]).forEach(e=>{ const a=agg[e.nugget_id]||(agg[e.nugget_id]={seen:0,correct:0}); a.seen++; if(e.correct) a.correct++; });
     const totalSeen = Object.keys(agg).reduce((s,k)=>s+agg[k].seen,0);
-    if(!totalSeen) return;
-    const colour=(a)=>{ if(!a||!a.seen) return '#e5e7eb'; const r=a.correct/a.seen; return r>=0.85?'#2a8a3e':r>=0.6?'#84c053':r>=0.4?'#e6a700':'#d65745'; };
+    const colour=(a)=>{ if(!a||!a.seen) return '#cbd2dc'; const r=a.correct/a.seen; return r>=0.85?'#2a8a3e':r>=0.6?'#84c053':r>=0.4?'#e6a700':'#d65745'; };
     const cats=[]; nugs.forEach(n=>{ if(cats.indexOf(n.category)<0) cats.push(n.category); });
     let body='';
     cats.forEach(cat=>{
       const items=nugs.filter(n=>n.category===cat);
-      body+='<div style="margin:12px 0 5px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">'+esc(cat)+'</div>';
-      body+='<div style="display:flex;flex-wrap:wrap;gap:6px;">'+items.map(function(n){
+      body+='<div style="margin:14px 0 6px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">'+esc(cat)+'</div>';
+      body+='<div style="display:flex;flex-wrap:wrap;gap:7px;">'+items.map(function(n){
         const a=agg[n.id]; const c=colour(a);
-        const tip=n.title+(a&&a.seen?(' — '+a.correct+'/'+a.seen+' right'):' — not seen yet');
-        const sq='<span title="'+esc(tip)+'" style="width:22px;height:22px;border-radius:5px;background:'+c+';display:inline-block;cursor:default;"></span>';
-        return n.revision_url?('<a href="'+esc(n.revision_url)+'" style="line-height:0;" title="'+esc(tip)+'">'+sq+'</a>'):sq;
+        const tip = n.title + (a&&a.seen ? (' — '+a.correct+'/'+a.seen+' right') : ' — not practised yet');
+        const chip='<span title="'+esc(tip)+'" style="display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:999px;padding:5px 11px;">'+
+          '<span style="width:10px;height:10px;border-radius:50%;flex:none;background:'+c+';"></span>'+esc(n.title)+'</span>';
+        return n.revision_url?('<a href="'+esc(n.revision_url)+'" style="text-decoration:none;">'+chip+'</a>'):chip;
       }).join('')+'</div>';
     });
     const el=document.getElementById('grammarPanel'); if(!el) return;
     el.innerHTML='<div class="dash-card"><div class="dash-card-head"><span class="dash-card-title">Grammar confidence · Latin GCSE</span></div>'+
       '<div style="padding:14px 18px;">'+
-      '<div style="font-size:12px;color:var(--muted);margin-bottom:4px;line-height:1.5;">Each square is a grammar concept from your translations — <b style="color:#2a8a3e;">green</b> is secure, <b style="color:#d65745;">red</b> needs work, grey not seen yet. Hover for detail.</div>'+
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:2px;line-height:1.5;">Every GCSE grammar concept — <b style="color:#2a8a3e;">green</b> is secure, <b style="color:#d65745;">red</b> needs work, grey not practised yet. '+
+        (totalSeen?'Fills in as you do Latin translations.':'<b>Do a Latin translation to start colouring these in.</b>')+'</div>'+
       body+'</div></div>';
     el.style.display='';
   }catch(e){ /* non-fatal */ }
