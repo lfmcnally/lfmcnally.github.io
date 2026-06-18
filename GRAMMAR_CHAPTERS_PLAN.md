@@ -168,14 +168,14 @@ introduced** (earliest, since the gate is cumulative).
 | fearing-clause | Fearing clause (timeo + ne) | 10 |
 | gerundive-purpose | Gerundive of purpose (ad + gerundive) | 10 |
 
-**Stragglers to confirm** (no distinct contents heading in ch.1–10):
+**Stragglers — resolved** (decided, no longer open):
 - `irregular-verbs` (volo/nolo/malo, fero) → **ch.8** ("More irregular verbs");
-  sum ch.1, possum ch.3, eo ch.6 (see split below).
-- `ablative-comparison` (ablative of comparison) → likely **ch.7** alongside the
-  comparatives — confirm.
-- `special-case` (cases taken by verbs/adjectives, e.g. dative with *credo* /
-  ablative with *utor*) → no standalone heading; enters via vocabulary/usage.
-  Confirm a chapter or treat as always-available.
+  sum ch.1, possum ch.3, eo ch.6 (split below).
+- `ablative-comparison` (ablative of comparison) → **ch.7**, alongside the
+  comparatives. Kept.
+- `special-case` (cases taken by special verbs/adjectives) → **dropped**: no
+  standalone contents heading, and such slips fall under the relevant case
+  nugget (dative/ablative) or vocabulary.
 
 **Always-available (not chapter-gated):** the Common-slip nuggets —
 `subject-object`, `number`, `person`, `vocabulary`, `omission`.
@@ -208,13 +208,15 @@ These came out of the contents pages; worth deciding before we seed:
 
 ---
 
-## Proposed revised taxonomy — chapter-ordered & pruned
+## Final taxonomy — chapter-ordered & pruned (build-ready)
 
-Decision (agreed direction): organise nuggets **by chapter**, not by abstract
-category; **split** anything that's really several distinct things; and **prune**
-contents lines that aren't genuine translation-error concepts (learning mechanics
-like principal parts, prefixes, articles, person-endings — you don't "get them
-wrong" in a translation in a way worth tracking).
+**This section is the source of truth** for the seed (it supersedes the
+"Proposed nugget adjustments" notes above). Locked direction: organise nuggets
+**by chapter**, not by abstract category; **split** anything that's really
+several distinct things; and **prune** contents lines that aren't genuine
+translation-error concepts (learning mechanics like principal parts, prefixes,
+articles, person-endings — you don't "get them wrong" in a translation in a way
+worth tracking).
 
 A nugget earns its place only if a student can **mis-translate it identifiably**.
 Chapter = where first met = the gate position. `position` becomes `chapter*100 +
@@ -274,3 +276,23 @@ If the taxonomy is chapter-ordered, the confidence grid should **group by
 chapter** ("Chapter 1", "Chapter 2"…) instead of by category — so it reads as a
 progression, and a class only really lights up the chapters they've reached.
 `grammar_nuggets` would need a `chapter INT` column (or derive from `position`).
+
+---
+
+## Build readiness
+
+Decisions are locked; this plan is ready to build when greenlit. Nothing here is
+implemented yet — the live taxonomy (migration `070`) is still the old
+category-based ~50. **Phase 1 will replace that seed**, so it needs an explicit
+go-ahead (it changes data the dashboard reads).
+
+When greenlit, phase 1 = one migration that:
+1. adds `grammar_nuggets.chapter INT` (and sets `position = chapter*100 + n`);
+2. re-seeds the taxonomy to the final chapter-ordered list above
+   (add/split/rename/drop per the markers), preserving `code`s where unchanged
+   so existing `student_nugget_events` stay attached;
+3. regroups the dashboard confidence grid by chapter.
+
+Open follow-on (separate phase): `scheme_chapters` labels, the class/student
+chapter pointer, `assessment_nuggets` + `grammar_ceiling`, and AI `contains`
+tagging — all per the model at the top of this doc.
