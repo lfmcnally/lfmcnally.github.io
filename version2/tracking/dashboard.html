@@ -1769,11 +1769,22 @@ init().then(() => {
     const sb = window.supabase; if(!sb) return;
     const { data: au } = await sb.auth.getUser(); if(!au||!au.user) return;
     const uid = au.user.id;
-    const [{ data: nugs }, { data: ev }] = await Promise.all([
-      sb.from('grammar_nuggets').select('id,category,title,revision_url,position,chapter').eq('subject','latin').eq('level','gcse').order('position'),
+    const [{ data: nugs }, { data: ev }, { data: mem }, { data: prof }] = await Promise.all([
+      sb.from('grammar_nuggets').select('id,code,category,title,revision_url,position,chapter').eq('subject','latin').eq('level','gcse').order('position'),
       sb.from('student_nugget_events').select('nugget_id, correct').eq('student_id', uid),
+      sb.from('v2_class_members').select('class_id').eq('student_id', uid),
+      sb.from('users').select('grammar_chapter').eq('id', uid).maybeSingle(),
     ]);
     if(!nugs || !nugs.length) return;                 // no taxonomy = nothing to show
+    // The student's current chapter = furthest of their classes' setting and
+    // their own; practice for a nugget runs at max(that, the nugget's chapter)
+    // so the target is always inside the vocab/grammar window.
+    let studentChapter = (prof && prof.grammar_chapter) || 0;
+    const classIds = (mem||[]).map(m=>m.class_id);
+    if(classIds.length){
+      const { data: cls } = await sb.from('v2_classes').select('grammar_chapter').in('id', classIds);
+      (cls||[]).forEach(c=>{ if((c.grammar_chapter||0) > studentChapter) studentChapter = c.grammar_chapter; });
+    }
     const agg={}; (ev||[]).forEach(e=>{ const a=agg[e.nugget_id]||(agg[e.nugget_id]={seen:0,correct:0}); a.seen++; if(e.correct) a.correct++; });
     const totalSeen = Object.keys(agg).reduce((s,k)=>s+agg[k].seen,0);
     // Match the vocab confidence palette: blue = secure, green = building,
@@ -1791,12 +1802,20 @@ init().then(() => {
       body+='<div style="margin:18px 0 8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--navy);">'+esc(head)+'</div>';
       body+=items.map(function(n){
         const a=agg[n.id]; const c=colour(a); const pct=a&&a.seen?Math.round(a.correct/a.seen*100):0;
-        const tip = n.title + (a&&a.seen ? (' — '+a.correct+'/'+a.seen+' right') : ' — not practised yet');
-        const row='<div title="'+esc(tip)+'" style="display:grid;grid-template-columns:minmax(120px,170px) 1fr 44px;align-items:center;gap:12px;margin:8px 0;">'+
+        const canPractise = (n.chapter||0) > 0;   // only chapter-gated concepts
+        const tip = n.title + (a&&a.seen ? (' — '+a.correct+'/'+a.seen+' right') : ' — not practised yet') + (canPractise ? ' · click to practise' : '');
+        const arrow = canPractise ? '<span style="font-size:12px;color:var(--brand);flex:none;">Practise →</span>' : '';
+        const row='<div title="'+esc(tip)+'" style="display:grid;grid-template-columns:minmax(120px,170px) 1fr 44px auto;align-items:center;gap:10px;margin:8px 0;">'+
           '<div style="font-size:13px;color:var(--ink);line-height:1.3;">'+esc(n.title)+'</div>'+
           '<div style="height:12px;border-radius:999px;background:#e8eaf0;overflow:hidden;"><div style="height:100%;border-radius:999px;width:'+(a&&a.seen?Math.max(pct,6):0)+'%;background:'+c+';transition:width .3s;"></div></div>'+
           '<div style="font-size:12px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums;">'+(a&&a.seen?(a.correct+'/'+a.seen):'–')+'</div>'+
+          arrow+
           '</div>';
+        if(canPractise){
+          const ch = Math.max(studentChapter||0, n.chapter);
+          const href = '/version2/tracking/practice.html?nugget='+encodeURIComponent(n.code)+'&chapter='+ch+'&title='+encodeURIComponent(n.title);
+          return '<a href="'+href+'" style="text-decoration:none;color:inherit;display:block;">'+row+'</a>';
+        }
         return n.revision_url?('<a href="'+esc(n.revision_url)+'" style="text-decoration:none;color:inherit;display:block;">'+row+'</a>'):row;
       }).join('');
     });

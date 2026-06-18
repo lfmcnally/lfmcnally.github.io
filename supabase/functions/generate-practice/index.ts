@@ -7,14 +7,16 @@
 //   • grammar    — only constructs from current + previous chapters (nuggets
 //     with chapter <= N, read here from grammar_nuggets).
 //
-// This first cut RETURNS sentences only (no DB writes, no flow changes) so the
-// generation quality can be judged before persistence + the take/mark flow are
-// wired. A light monthly £ cap (shared with marking) guards cost.
+// It persists the result as an is_practice bank_assessment (+ questions, mark
+// schemes, nugget tag) and opens a self_serve submission, so the existing
+// take/mark/track flow is reused unchanged. A light monthly £ cap (shared with
+// marking) guards cost.
 //
 // Request (student JWT):
 //   POST { nugget_code, chapter, count?, vocab: [{ latin, english }] }
 // Returns:
-//   { nugget, chapter, sentences: [{ latin, english }] }  |  { error } | { paused }
+//   { submission_id, assessment_id, title, nugget, chapter,
+//     questions: [{ id, prompt, marks }] }  |  { error } | { paused }
 //
 // Secrets/env: ANTHROPIC_API_KEY, optional GEN_MODEL (default claude-sonnet-4-6),
 // plus the platform SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY.
@@ -88,7 +90,7 @@ Deno.serve(async (req) => {
 
     // Allowed grammar = nuggets up to this chapter; target = the focus nugget.
     const { data: nugs } = await svc.from("grammar_nuggets")
-      .select("title, code, chapter").eq("subject", "latin").eq("level", "gcse").lte("chapter", chapter).order("position");
+      .select("id, title, code, chapter").eq("subject", "latin").eq("level", "gcse").lte("chapter", chapter).order("position");
     const allowed = (nugs || []).filter((n) => (n.chapter ?? 0) > 0).map((n) => n.title);
     const target = (nugs || []).find((n) => n.code === nuggetCode);
     if (!target) return json({ error: "that concept isn't available at this chapter yet" }, 400);
@@ -150,7 +152,38 @@ Deno.serve(async (req) => {
       .slice(0, count);
     if (!sentences.length) return json({ error: "no sentences generated" }, 502);
 
-    return json({ nugget: target.title, nugget_code: nuggetCode, chapter, sentences });
+    // Persist as a takeable, is_practice assessment so the existing take/mark/
+    // track flow is reused unchanged. One hidden "Practice" course holds them.
+    let { data: course } = await svc.from("bank_courses").select("id").eq("slug", "latin-gcse-practice").maybeSingle();
+    if (!course) {
+      const ins = await svc.from("bank_courses")
+        .insert({ subject: "latin", level: "gcse", title: "Practice", slug: "latin-gcse-practice", position: 9999 })
+        .select("id").single();
+      course = ins.data;
+    }
+    if (!course) return json({ error: "could not prepare practice" }, 500);
+
+    const title = `Practice: ${target.title} · chapter ${chapter}`;
+    const { data: assess, error: aerr } = await svc.from("bank_assessments").insert({
+      course_id: course.id, title, status: "published", origin: "official", created_by: uid,
+      is_practice: true, grammar_ceiling: chapter,
+    }).select("id").single();
+    if (aerr || !assess) return json({ error: "could not save practice", detail: String(aerr?.message ?? "") }, 500);
+
+    const qRows = sentences.map((s, i) => ({ assessment_id: assess.id, position: i + 1, prompt: s.latin, marks: 5, mark_style: "translation" }));
+    const { data: qs, error: qerr } = await svc.from("bank_assessment_questions").insert(qRows).select("id, position").order("position");
+    if (qerr || !qs || !qs.length) return json({ error: "could not save questions", detail: String(qerr?.message ?? "") }, 500);
+    await svc.from("bank_assessment_mark_schemes").insert(qs.map((q) => ({ question_id: q.id, model_answer: sentences[q.position - 1].english })));
+    await svc.from("bank_assessment_nuggets").insert({ assessment_id: assess.id, nugget_id: target.id, role: "tests" });
+
+    const { data: subRow } = await svc.from("weekly_test_submissions")
+      .insert({ source_kind: "self_serve", bank_assessment_id: assess.id, student_id: uid }).select("id").single();
+
+    return json({
+      submission_id: subRow?.id, assessment_id: assess.id, title,
+      nugget: target.title, nugget_code: nuggetCode, chapter,
+      questions: qs.map((q) => ({ id: q.id, prompt: sentences[q.position - 1].latin, marks: 5 })),
+    });
   } catch (e) {
     return json({ error: "unexpected error", detail: String(e) }, 500);
   }
