@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Student profile — Classicalia</title>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/course-map.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<script src="/version2/tools/vocab/data/latin-gcse.js"></script>
+<script src="/version2/tools/vocab/data/latin-alevel.js"></script>
+<script src="/version2/tools/vocab/data/suburani.js"></script>
+<script src="/version2/tools/vocab/data/greek-gcse.js"></script>
+<script src="/version2/tools/vocab/data/greek-alevel.js"></script>
+<style>
+body { background: var(--cream); }
+.wrap { max-width: 880px; margin: 0 auto; padding: 24px 20px 90px; }
+.gate { max-width: 520px; margin: 60px auto; background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 28px; text-align: center; font-size: 15px; line-height: 1.6; }
+.crumb { color: var(--brand); text-decoration: none; font-size: 13px; font-weight: 700; }
+.s-name { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 30px; color: var(--navy); margin: 10px 0 2px; }
+.s-meta { color: var(--muted); font-size: 13px; }
+.card { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 16px 20px; margin-top: 18px; box-shadow: 0 1px 2px rgba(14,30,63,.04); }
+.card-h { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 17px; color: var(--navy); margin-bottom: 12px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; }
+.stat { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 14px; text-align: center; }
+.stat-n { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 30px; line-height: 1; color: var(--navy); }
+.stat-n.green { color: #1A6FFF; } .stat-n.amber { color: #d97706; } .stat-n.purple { color: #7c3aed; }
+.stat-l { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 6px; }
+@media (max-width:560px){ .stats { grid-template-columns: repeat(2,1fr); } }
+.cat-h { margin: 14px 0 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--navy); }
+.squares { display: flex; flex-wrap: wrap; gap: 4px; }
+.sq { width: 15px; height: 15px; border-radius: 3px; }
+.p-unseen{background:#e8eaf0;} .p-verylow{background:#fca5a5;} .p-low{background:#fb923c;} .p-mid{background:#fbbf24;} .p-high{background:#86efac;} .p-building{background:#7dd3fc;} .p-secure{background:#1A6FFF;} .p-due{background:#a78bfa;}
+.legend { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); flex-wrap:wrap; margin-top:10px; }
+.legend .sw { width:10px; height:10px; border-radius:2px; }
+.gbar-row { display:grid; grid-template-columns:minmax(120px,180px) 1fr 50px; align-items:center; gap:12px; margin:8px 0; }
+.gbar-name { font-size:13px; color:var(--ink); line-height:1.3; }
+.gbar-track { height:12px; border-radius:999px; background:#e8eaf0; overflow:hidden; }
+.gbar-fill { height:100%; border-radius:999px; }
+.gbar-sc { font-size:12px; color:var(--muted); text-align:right; }
+.wrow { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--rule-faint); }
+.wrow:last-child { border-bottom:none; }
+.wlatin { font-family:'Lora',serif; font-style:italic; font-weight:600; font-size:14px; color:var(--navy); }
+.weng { font-size:12px; color:var(--muted); }
+.muted { color: var(--muted); font-size: 13px; }
+.btn { font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; padding:9px 16px; border-radius:7px; border:1px solid var(--rule); background:var(--paper); color:var(--ink); cursor:pointer; text-decoration:none; display:inline-block; }
+.btn.danger { color:#b91c1c; border-color:#fecaca; }
+.hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="gate" class="gate hidden"></div>
+  <div id="app"></div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const sb = window.supabase;
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const params = new URLSearchParams(location.search);
+const studentId = params.get('student') || '';
+const classId = params.get('class') || '';
+const DAYS_REQUIRED = 3;
+
+function gate(html){ $('gate').innerHTML = html; $('gate').classList.remove('hidden'); $('app').innerHTML=''; }
+function timeAgo(ts){ if(!ts) return 'never'; const d=(Date.now()-Date.parse(ts))/86400000; if(d<1) return 'today'; if(d<2) return 'yesterday'; if(d<31) return Math.floor(d)+' days ago'; return Math.floor(d/30)+' month(s) ago'; }
+
+// Vocab list (headword → {english, chapter}) for the class's course type.
+function vocabDataFor(type){
+  const pick = ({
+    'latin-gcse':   [typeof VOCAB_LATIN_GCSE   !=='undefined'?VOCAB_LATIN_GCSE  :null, 'latin'],
+    'greek-gcse':   [typeof VOCAB_GREEK_GCSE   !=='undefined'?VOCAB_GREEK_GCSE  :null, 'greek'],
+    'latin-prep':   [typeof VOCAB_SUBURANI     !=='undefined'?VOCAB_SUBURANI    :null, 'latin'],
+    'latin-alevel': [typeof VOCAB_LATIN_ALEVEL !=='undefined'?VOCAB_LATIN_ALEVEL:null, 'latin'],
+    'greek-alevel': [typeof VOCAB_GREEK_ALEVEL !=='undefined'?VOCAB_GREEK_ALEVEL:null, 'greek'],
+  })[type];
+  const m = new Map();
+  if(pick && Array.isArray(pick[0])){ for(const e of pick[0]){ if(e.chapter>0 && !m.has(e[pick[1]])) m.set(e[pick[1]], {english:e.english, chapter:e.chapter}); } }
+  return m;
+}
+function classify(w){
+  if(!w || w.t===0) return 'learning';
+  if(w.p>=0.95){ if((w.days|0)<DAYS_REQUIRED) return 'building'; if(w.next && Date.parse(w.next)<=Date.now()) return 'due'; return 'secure'; }
+  if(w.t<4) return 'learning';
+  if(w.p<0.4) return 'struggling';
+  return 'nearly';
+}
+function blockCls(w){ if(!w||w.t===0) return 'p-unseen'; if(w.p>=0.95) return (w.days|0)<DAYS_REQUIRED?'p-building':((w.next&&Date.parse(w.next)<=Date.now())?'p-due':'p-secure'); if(w.p>=0.7) return 'p-high'; if(w.p>=0.5) return 'p-mid'; if(w.p>=0.3) return 'p-low'; return 'p-verylow'; }
+
+(async function init(){
+  const { data: au } = await sb.auth.getUser();
+  if(!au || !au.user){ return gate('Please <a href="/version2/auth/login.html">sign in</a>.'); }
+  if(!studentId || !classId){ return gate('Missing student. Go back to <a href="/version2/tracking/teacher.html">your classes</a>.'); }
+  // Class (RLS: only the owning teacher / admin can read it through here).
+  const { data: cls } = await sb.from('v2_classes').select('id,name,type,teacher_id').eq('id', classId).maybeSingle();
+  if(!cls){ return gate('That class isn\'t available to your account.'); }
+  const vocabList = window.ClassicaliaCourseMap.vocabListFor(cls.type);
+  // Student name via the membership row (teacher may read their members).
+  const { data: mem } = await sb.from('v2_class_members').select('student_id, users:student_id (full_name, email)').eq('class_id', classId).eq('student_id', studentId).maybeSingle();
+  if(!mem){ return gate('That student isn\'t in this class.'); }
+  const name = (mem.users && (mem.users.full_name || mem.users.email)) || 'Student';
+
+  const [{ data: bkt }, { data: ev }, { data: nugs }, { data: sess }] = await Promise.all([
+    vocabList ? sb.from('vocab_bkt').select('word_latin,p_know,trials,correct,distinct_correct_days,next_review_at,last_seen_at').eq('student_id', studentId).eq('vocab_list', vocabList) : Promise.resolve({data:[]}),
+    sb.from('student_nugget_events').select('nugget_id, correct').eq('student_id', studentId),
+    cls.type==='latin-gcse' ? sb.from('grammar_nuggets').select('id,title,position,chapter').eq('subject','latin').eq('level','gcse').order('position') : Promise.resolve({data:[]}),
+    vocabList ? sb.from('vocab_sessions').select('started_at,answered,correct').eq('student_id', studentId).eq('vocab_list', vocabList).order('started_at',{ascending:false}).limit(8) : Promise.resolve({data:[]}),
+  ]);
+  render(cls, name, bkt||[], ev||[], nugs||[], sess||[]);
+})().catch(e => gate('Could not load this student. '+esc(String(e&&e.message||e))));
+
+function render(cls, name, bkt, ev, nugs, sess){
+  const canonical = vocabDataFor(cls.type);
+  const states = new Map();   // latin → {p,t,days,next}
+  (bkt||[]).forEach(r => states.set(r.word_latin, { p:r.p_know, t:r.trials, days:r.distinct_correct_days, next:r.next_review_at, lastSeen:r.last_seen_at }));
+  const lastSeen = (bkt||[]).reduce((m,r)=> (r.last_seen_at && r.last_seen_at>m)?r.last_seen_at:m, '');
+
+  // Vocab stats over the whole list.
+  let secure=0, nearly=0, building=0, due=0; const struggling=[];
+  canonical.forEach((meta, latin) => {
+    const c = classify(states.get(latin));
+    if(c==='secure') secure++; else if(c==='building') building++; else if(c==='due') due++; else if(c==='nearly') nearly++;
+    else if(c==='struggling'){ const w=states.get(latin); struggling.push({latin, english:meta.english, p:w.p, t:w.t}); }
+  });
+
+  // Vocab confidence map grouped by chapter.
+  const chapMap = new Map();
+  canonical.forEach((meta, latin) => { const g=meta.chapter||0; if(!chapMap.has(g)) chapMap.set(g, []); chapMap.get(g).push(latin); });
+  const chapKeys = [...chapMap.keys()].sort((a,b)=>a-b);
+  let vocabHtml = '';
+  if(canonical.size){
+    chapKeys.forEach(g => {
+      vocabHtml += '<div class="cat-h">Chapter '+g+'</div><div class="squares">' +
+        chapMap.get(g).map(latin => '<div class="sq '+blockCls(states.get(latin))+'" title="'+esc(latin+' — '+(canonical.get(latin).english||''))+'"></div>').join('') + '</div>';
+    });
+  } else {
+    vocabHtml = '<div class="muted">No vocabulary list wired up for this class type.</div>';
+  }
+
+  // Grammar confidence (Latin GCSE).
+  let grammarHtml = '';
+  if(cls.type==='latin-gcse' && nugs.length){
+    const agg={}; (ev||[]).forEach(e=>{ const a=agg[e.nugget_id]||(agg[e.nugget_id]={seen:0,correct:0}); a.seen++; if(e.correct) a.correct++; });
+    const colour=a=>{ if(!a||!a.seen) return '#e8eaf0'; const r=a.correct/a.seen; return r>=0.7?'#1A6FFF':r>=0.4?'#86efac':'#fca5a5'; };
+    const chs=[]; nugs.forEach(n=>{ const c=n.chapter||0; if(chs.indexOf(c)<0) chs.push(c); }); chs.sort((a,b)=>(a===0?999:a)-(b===0?999:b));
+    let g='';
+    chs.forEach(ch=>{ const items=nugs.filter(n=>(n.chapter||0)===ch && agg[n.id]); if(!items.length) return;
+      g += '<div class="cat-h">'+(ch===0?'Common slips':('Chapter '+ch))+'</div>';
+      g += items.map(n=>{ const a=agg[n.id]; const pct=Math.round(a.correct/a.seen*100);
+        return '<div class="gbar-row" title="'+esc(n.title+' — '+a.correct+'/'+a.seen+' right')+'"><div class="gbar-name">'+esc(n.title)+'</div>'+
+          '<div class="gbar-track"><div class="gbar-fill" style="width:'+Math.max(pct,6)+'%;background:'+colour(a)+';"></div></div>'+
+          '<div class="gbar-sc">'+a.correct+'/'+a.seen+'</div></div>'; }).join('');
+    });
+    grammarHtml = g || '<div class="muted">No grammar practice marked yet.</div>';
+  }
+
+  // Recent sessions.
+  let sessHtml = (sess && sess.length)
+    ? sess.map(r => { const acc = r.answered? Math.round((r.correct/r.answered)*100):0; return '<div class="wrow"><div style="flex:1;"><div class="wlatin" style="font-style:normal;font-size:13px;">'+new Date(r.started_at).toLocaleDateString()+'</div></div><span class="weng">'+(r.answered||0)+' answered · '+acc+'%</span></div>'; }).join('')
+    : '<div class="muted">No recent vocab sessions.</div>';
+
+  $('app').innerHTML =
+    '<a class="crumb" href="/version2/tracking/teacher.html">← Back to class</a>' +
+    '<div class="s-name">'+esc(name)+'</div>' +
+    '<div class="s-meta">'+esc(cls.name)+' · '+esc(window.ClassicaliaCourseMap.labelFor(cls.type))+' · last active '+timeAgo(lastSeen)+'</div>' +
+    '<div class="stats">' +
+      '<div class="stat"><div class="stat-n green">'+secure+'</div><div class="stat-l">Secure</div></div>' +
+      '<div class="stat"><div class="stat-n">'+nearly+'</div><div class="stat-l">Nearly</div></div>' +
+      '<div class="stat"><div class="stat-n amber">'+struggling.length+'</div><div class="stat-l">Struggling</div></div>' +
+      '<div class="stat"><div class="stat-n purple">'+due+'</div><div class="stat-l">Due review</div></div>' +
+    '</div>' +
+    '<div class="card"><div class="card-h">Word confidence map</div>'+vocabHtml+
+      '<div class="legend"><span class="sw p-unseen"></span>Not seen <span class="sw p-verylow"></span>Very low <span class="sw p-mid"></span>Mid <span class="sw p-high"></span>Strong <span class="sw p-building"></span>Building <span class="sw p-secure"></span>Secure <span class="sw p-due"></span>Due</div>' +
+    '</div>' +
+    (cls.type==='latin-gcse' ? '<div class="card"><div class="card-h">Grammar confidence</div>'+grammarHtml+'</div>' : '') +
+    '<div class="card"><div class="card-h">Struggling words</div>' +
+      (struggling.length ? struggling.sort((a,b)=>a.p-b.p).slice(0,10).map(w=>'<div class="wrow"><div style="flex:1;"><div class="wlatin">'+esc(w.latin)+'</div><div class="weng">'+esc(w.english||'')+'</div></div><span class="weng">'+w.t+' attempts · '+Math.round(w.p*100)+'%</span></div>').join('') : '<div class="muted">No struggling words right now.</div>') +
+    '</div>' +
+    '<div class="card"><div class="card-h">Recent sessions</div>'+sessHtml+'</div>' +
+    '<div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">' +
+      '<a class="btn" href="/version2/tracking/teacher.html">Back to class</a>' +
+      '<button class="btn danger" id="removeBtn">Remove from class</button>' +
+    '</div>';
+
+  $('removeBtn').addEventListener('click', async () => {
+    if(!confirm('Remove '+name+' from '+cls.name+'?')) return;
+    const { error } = await sb.from('v2_class_members').delete().eq('class_id', cls.id).eq('student_id', studentId);
+    if(error){ alert('Could not remove: '+error.message); return; }
+    location.href = '/version2/tracking/teacher.html';
+  });
+}
+</script>
+</body>
+</html>
