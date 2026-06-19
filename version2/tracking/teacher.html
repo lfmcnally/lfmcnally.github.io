@@ -315,6 +315,8 @@ body { background:var(--cream); }
       </div>
       <div class="panel-section">Struggling words — many attempts, low confidence</div>
       <div id="panelStruggling"></div>
+      <div class="panel-section" id="panelGrammarHead" style="display:none;">Grammar confidence</div>
+      <div id="panelGrammar" style="display:none;"></div>
       <div class="panel-section">Practice history</div>
       <div id="panelHistory"></div>
       <div class="panel-actions">
@@ -1546,9 +1548,50 @@ function openStudent(studentId) {
   document.getElementById('panelHistory').innerHTML =
     '<div style="padding:8px 0;color:var(--muted);font-size:12.5px;">Loading…</div>';
   loadStudentHistory(s);
+  renderStudentGrammar(s, cls.type);
 
   document.getElementById('studentPanel').classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+// Per-student grammar confidence (Latin GCSE), shown in the student panel.
+async function renderStudentGrammar(s, classType) {
+  const head = document.getElementById('panelGrammarHead');
+  const el = document.getElementById('panelGrammar');
+  if (!head || !el) return;
+  if (classType !== 'latin-gcse') { head.style.display = 'none'; el.style.display = 'none'; return; }
+  head.style.display = ''; el.style.display = '';
+  el.innerHTML = '<div style="padding:8px 0;color:var(--muted);font-size:12.5px;">Loading…</div>';
+  try {
+    const [{ data: nugs }, { data: ev }] = await Promise.all([
+      window.supabase.from('grammar_nuggets').select('id,title,position,chapter').eq('subject','latin').eq('level','gcse').order('position'),
+      window.supabase.from('student_nugget_events').select('nugget_id, correct').eq('student_id', s.id),
+    ]);
+    if (!nugs || !nugs.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:6px 0;">No grammar data yet.</div>'; return; }
+    const agg = {}; (ev || []).forEach(e => { const a = agg[e.nugget_id] || (agg[e.nugget_id] = { seen:0, correct:0 }); a.seen++; if (e.correct) a.correct++; });
+    const totalSeen = Object.keys(agg).reduce((t,k)=>t+agg[k].seen,0);
+    if (!totalSeen) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:6px 0;">No grammar practice marked yet — fills in as they do Latin translations.</div>'; return; }
+    const colour = a => { if (!a || !a.seen) return '#e8eaf0'; const r = a.correct/a.seen; return r>=0.7?'#1A6FFF':r>=0.4?'#86efac':'#fca5a5'; };
+    const chapters = []; nugs.forEach(n => { const ch = n.chapter||0; if (chapters.indexOf(ch)<0) chapters.push(ch); });
+    chapters.sort((a,b)=>(a===0?999:a)-(b===0?999:b));
+    let html = '';
+    chapters.forEach(ch => {
+      const items = nugs.filter(n => (n.chapter||0)===ch && agg[n.id]);
+      if (!items.length) return;
+      html += '<div style="margin:14px 0 6px;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--navy);">' + (ch===0?'Common slips':('Chapter '+ch)) + '</div>';
+      html += items.map(n => {
+        const a = agg[n.id]; const pct = Math.round(a.correct/a.seen*100);
+        return '<div title="'+escapeHtml(n.title+' — '+a.correct+'/'+a.seen+' right')+'" style="display:grid;grid-template-columns:minmax(110px,170px) 1fr 46px;align-items:center;gap:10px;margin:7px 0;">' +
+          '<div style="font-size:12.5px;color:var(--ink);line-height:1.3;">'+escapeHtml(n.title)+'</div>' +
+          '<div style="height:11px;border-radius:999px;background:#e8eaf0;overflow:hidden;"><div style="height:100%;border-radius:999px;width:'+Math.max(pct,6)+'%;background:'+colour(a)+';"></div></div>' +
+          '<div style="font-size:11.5px;color:var(--muted);text-align:right;">'+a.correct+'/'+a.seen+'</div>' +
+        '</div>';
+      }).join('');
+    });
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:6px 0;">Could not load grammar.</div>';
+  }
 }
 
 // Per-student practice history: an 8-week answers sparkline + recent sessions.
