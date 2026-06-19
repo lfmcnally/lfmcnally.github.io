@@ -48,7 +48,16 @@ body { background: var(--cream); }
 .muted { color: var(--muted); font-size: 13px; }
 .btn { font-family:'DM Sans',sans-serif; font-size:13px; font-weight:700; padding:9px 16px; border-radius:7px; border:1px solid var(--rule); background:var(--paper); color:var(--ink); cursor:pointer; text-decoration:none; display:inline-block; }
 .btn.danger { color:#b91c1c; border-color:#fecaca; }
+.btn.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
 .hidden { display:none; }
+@media print {
+  body { background:#fff; }
+  .wrap { max-width:100%; padding:0; }
+  .noprint { display:none !important; }
+  .card, .stat { box-shadow:none; border-color:#e2e8f0; break-inside:avoid; }
+  .s-name { margin-top:0; }
+  a { color:inherit; text-decoration:none; }
+}
 </style>
 </head>
 <body>
@@ -163,9 +172,10 @@ function render(cls, name, bkt, ev, nugs, sess){
     : '<div class="muted">No recent vocab sessions.</div>';
 
   $('app').innerHTML =
-    '<a class="crumb" href="/version2/tracking/teacher.html">← Back to class</a>' +
+    '<a class="crumb noprint" href="/version2/tracking/teacher.html">← Back to class</a>' +
     '<div class="s-name">'+esc(name)+'</div>' +
     '<div class="s-meta">'+esc(cls.name)+' · '+esc(window.ClassicaliaCourseMap.labelFor(cls.type))+' · last active '+timeAgo(lastSeen)+'</div>' +
+    '<div class="s-meta" style="margin-top:2px;">Classicalia summary · '+new Date().toLocaleDateString()+'</div>' +
     '<div class="stats">' +
       '<div class="stat"><div class="stat-n green">'+secure+'</div><div class="stat-l">Secure</div></div>' +
       '<div class="stat"><div class="stat-n">'+nearly+'</div><div class="stat-l">Nearly</div></div>' +
@@ -180,11 +190,14 @@ function render(cls, name, bkt, ev, nugs, sess){
       (struggling.length ? struggling.sort((a,b)=>a.p-b.p).slice(0,10).map(w=>'<div class="wrow"><div style="flex:1;"><div class="wlatin">'+esc(w.latin)+'</div><div class="weng">'+esc(w.english||'')+'</div></div><span class="weng">'+w.t+' attempts · '+Math.round(w.p*100)+'%</span></div>').join('') : '<div class="muted">No struggling words right now.</div>') +
     '</div>' +
     '<div class="card"><div class="card-h">Recent sessions</div>'+sessHtml+'</div>' +
-    '<div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">' +
+    '<div class="noprint" style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">' +
+      '<button class="btn primary" id="printBtn">Save as PDF</button>' +
       '<a class="btn" href="/version2/tracking/teacher.html">Back to class</a>' +
       '<button class="btn danger" id="removeBtn">Remove from class</button>' +
-    '</div>';
+    '</div>' +
+    '<div style="display:none;" class="onlyprint"></div>';
 
+  $('printBtn').addEventListener('click', () => window.print());
   $('removeBtn').addEventListener('click', async () => {
     if(!confirm('Remove '+name+' from '+cls.name+'?')) return;
     const { error } = await sb.from('v2_class_members').delete().eq('class_id', cls.id).eq('student_id', studentId);
