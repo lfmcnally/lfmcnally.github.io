@@ -32,7 +32,13 @@ body { background: var(--cream); }
 @media (max-width:560px){ .stats { grid-template-columns: repeat(2,1fr); } }
 .cat-h { margin: 14px 0 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--navy); }
 .squares { display: flex; flex-wrap: wrap; gap: 4px; }
-.sq { width: 15px; height: 15px; border-radius: 3px; }
+.sq { width: 16px; height: 16px; border-radius: 3px; cursor: pointer; transition: transform .08s, box-shadow .08s; }
+.sq:hover { transform: scale(1.7); box-shadow: 0 2px 8px rgba(0,0,0,.25); position: relative; z-index: 5; }
+.cat-h .cnt { color: var(--muted); font-weight: 500; letter-spacing: 0; text-transform: none; margin-left: 8px; font-size: 10px; }
+#tip { position: fixed; z-index: 100; display: none; background: var(--navy); color: #fff; padding: 8px 11px; border-radius: 7px; font-size: 12px; line-height: 1.5; max-width: 240px; box-shadow: 0 4px 16px rgba(14,30,63,.3); pointer-events: none; }
+#tip .t-latin { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 13.5px; }
+#tip .t-eng { color: #8fa8cc; font-size: 11.5px; margin-bottom: 3px; }
+#tip .t-conf { font-weight: 600; }
 .p-unseen{background:#e8eaf0;} .p-verylow{background:#fca5a5;} .p-low{background:#fb923c;} .p-mid{background:#fbbf24;} .p-high{background:#86efac;} .p-building{background:#7dd3fc;} .p-secure{background:#1A6FFF;} .p-due{background:#a78bfa;}
 .legend { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); flex-wrap:wrap; margin-top:10px; }
 .legend .sw { width:10px; height:10px; border-radius:2px; }
@@ -65,6 +71,7 @@ body { background: var(--cream); }
   <div id="gate" class="gate hidden"></div>
   <div id="app"></div>
 </div>
+<div id="tip"></div>
 <script>
 const $ = id => document.getElementById(id);
 const sb = window.supabase;
@@ -98,6 +105,9 @@ function classify(w){
   return 'nearly';
 }
 function blockCls(w){ if(!w||w.t===0) return 'p-unseen'; if(w.p>=0.95) return (w.days|0)<DAYS_REQUIRED?'p-building':((w.next&&Date.parse(w.next)<=Date.now())?'p-due':'p-secure'); if(w.p>=0.7) return 'p-high'; if(w.p>=0.5) return 'p-mid'; if(w.p>=0.3) return 'p-low'; return 'p-verylow'; }
+function confLabel(w){ if(!w||w.t===0) return 'Not yet seen'; const pct=Math.round(w.p*100); const c=classify(w);
+  const name = c==='secure'?'Secure':c==='building'?'Building':c==='due'?'Due review':c==='struggling'?'Struggling':c==='nearly'?'Nearly':'Learning';
+  return name+' · '+pct+'%'+(w.t?(' · '+w.t+' attempt'+(w.t===1?'':'s')):''); }
 
 (async function init(){
   const { data: au } = await sb.auth.getUser();
@@ -128,22 +138,33 @@ function render(cls, name, bkt, ev, nugs, sess){
   const lastSeen = (bkt||[]).reduce((m,r)=> (r.last_seen_at && r.last_seen_at>m)?r.last_seen_at:m, '');
 
   // Vocab stats over the whole list.
-  let secure=0, nearly=0, building=0, due=0; const struggling=[];
+  let secure=0, nearly=0, building=0, due=0, seenWords=0, attempts=0, correct=0; const struggling=[];
   canonical.forEach((meta, latin) => {
-    const c = classify(states.get(latin));
+    const w = states.get(latin);
+    if(w && w.t>0){ seenWords++; attempts+=w.t; correct+=(w.correct||0); }
+    const c = classify(w);
     if(c==='secure') secure++; else if(c==='building') building++; else if(c==='due') due++; else if(c==='nearly') nearly++;
-    else if(c==='struggling'){ const w=states.get(latin); struggling.push({latin, english:meta.english, p:w.p, t:w.t}); }
+    else if(c==='struggling'){ struggling.push({latin, english:meta.english, p:w.p, t:w.t}); }
   });
+  const totalWords = canonical.size;
+  const securePct = totalWords ? Math.round(secure/totalWords*100) : 0;
+  const accuracy = attempts ? Math.round(correct/attempts*100) : 0;
 
-  // Vocab confidence map grouped by chapter.
+  // Vocab confidence map grouped by chapter, with per-chapter secure counts and
+  // a rich hover tip per word (built into data-tip, shown by the #tip handler).
   const chapMap = new Map();
   canonical.forEach((meta, latin) => { const g=meta.chapter||0; if(!chapMap.has(g)) chapMap.set(g, []); chapMap.get(g).push(latin); });
   const chapKeys = [...chapMap.keys()].sort((a,b)=>a-b);
   let vocabHtml = '';
   if(canonical.size){
     chapKeys.forEach(g => {
-      vocabHtml += '<div class="cat-h">Chapter '+g+'</div><div class="squares">' +
-        chapMap.get(g).map(latin => '<div class="sq '+blockCls(states.get(latin))+'" title="'+esc(latin+' — '+(canonical.get(latin).english||''))+'"></div>').join('') + '</div>';
+      const words = chapMap.get(g);
+      const sec = words.filter(l => classify(states.get(l))==='secure').length;
+      vocabHtml += '<div class="cat-h">Chapter '+g+'<span class="cnt">'+sec+'/'+words.length+' secure</span></div><div class="squares">' +
+        words.map(latin => {
+          const tip = latin + ' — ' + (canonical.get(latin).english||'') + ' || ' + confLabel(states.get(latin));
+          return '<div class="sq '+blockCls(states.get(latin))+'" data-tip="'+esc(tip)+'"></div>';
+        }).join('') + '</div>';
     });
   } else {
     vocabHtml = '<div class="muted">No vocabulary list wired up for this class type.</div>';
@@ -176,6 +197,7 @@ function render(cls, name, bkt, ev, nugs, sess){
     '<div class="s-name">'+esc(name)+'</div>' +
     '<div class="s-meta">'+esc(cls.name)+' · '+esc(window.ClassicaliaCourseMap.labelFor(cls.type))+' · last active '+timeAgo(lastSeen)+'</div>' +
     '<div class="s-meta" style="margin-top:2px;">Classicalia summary · '+new Date().toLocaleDateString()+'</div>' +
+    (totalWords ? ('<div class="card" style="margin-top:14px;padding:13px 18px;"><div style="font-size:13.5px;color:var(--ink);line-height:1.6;"><b>'+secure+' of '+totalWords+' words secure ('+securePct+'%).</b> '+seenWords+' attempted · '+accuracy+'% lifetime accuracy across '+attempts+' answers.</div></div>') : '') +
     '<div class="stats">' +
       '<div class="stat"><div class="stat-n green">'+secure+'</div><div class="stat-l">Secure</div></div>' +
       '<div class="stat"><div class="stat-n">'+nearly+'</div><div class="stat-l">Nearly</div></div>' +
@@ -196,6 +218,24 @@ function render(cls, name, bkt, ev, nugs, sess){
       '<button class="btn danger" id="removeBtn">Remove from class</button>' +
     '</div>' +
     '<div style="display:none;" class="onlyprint"></div>';
+
+  // Rich hover tip for the word squares (and tap on touch devices).
+  const tip = $('tip');
+  function showTip(sq, x, y){
+    const raw = sq.getAttribute('data-tip') || ''; const parts = raw.split(' || ');
+    const head = parts[0].split(' — ');
+    tip.innerHTML = '<div class="t-latin">'+esc(head[0]||'')+'</div><div class="t-eng">'+esc(head[1]||'')+'</div><div class="t-conf">'+esc(parts[1]||'')+'</div>';
+    tip.style.display = 'block';
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    let left = x + 14, top = y + 14;
+    if(left + w > window.innerWidth - 8) left = x - w - 14;
+    if(top + h > window.innerHeight - 8) top = y - h - 14;
+    tip.style.left = Math.max(8,left)+'px'; tip.style.top = Math.max(8,top)+'px';
+  }
+  const app = $('app');
+  app.addEventListener('mousemove', e => { const sq = e.target.closest && e.target.closest('.sq'); if(sq) showTip(sq, e.clientX, e.clientY); else tip.style.display='none'; });
+  app.addEventListener('mouseleave', () => { tip.style.display='none'; });
+  app.addEventListener('click', e => { const sq = e.target.closest && e.target.closest('.sq'); if(sq){ const r=sq.getBoundingClientRect(); showTip(sq, r.left, r.bottom); } });
 
   $('printBtn').addEventListener('click', () => window.print());
   $('removeBtn').addEventListener('click', async () => {
