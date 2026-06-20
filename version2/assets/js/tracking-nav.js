@@ -81,11 +81,33 @@
       context = '<div style="flex:1"></div>';
     }
 
+    // Quick "+ New" for teachers — a one-press create menu in the sidebar.
+    const plus = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+    const createHtml = (role === 'teacher') ? `
+      <div class="side-create">
+        <button class="tnav-create" type="button" data-create-toggle>${plus}<span>New</span></button>
+        <div class="tnav-create-pop" data-create-pop hidden>
+          <a href="/version2/tracking/teacher.html?create=class">New class</a>
+          <a href="/version2/tracking/weekly-test.html">New weekly test</a>
+          <a href="/version2/tracking/bank.html">Assign an assessment</a>
+        </div>
+      </div>` : '';
+
     aside.innerHTML = `
       <canvas class="side-sky"></canvas>
       <a class="side-logo" href="/version2/">Classicalia</a>
+      ${createHtml}
       <div class="tnav" data-tnav-primary>${primaryHtml(role === 'auto' ? 'student' : role, active)}</div>
-      ${context}`;
+      ${context}
+      <div class="side-foot"><div data-account-menu></div></div>`;
+
+    // Wire the create popover (close on outside click).
+    const cToggle = aside.querySelector('[data-create-toggle]');
+    const cPop = aside.querySelector('[data-create-pop]');
+    if (cToggle && cPop) {
+      cToggle.addEventListener('click', e => { e.stopPropagation(); cPop.hidden = !cPop.hidden; });
+      document.addEventListener('click', e => { const w = aside.querySelector('.side-create'); if (w && !w.contains(e.target)) cPop.hidden = true; });
+    }
 
     // Starfield: init the canvas ourselves so we don't depend on script order
     // (and so auto-init doesn't double-run it — note: no data-starfield here).
@@ -127,10 +149,24 @@
     }
   }
 
-  function init() { document.querySelectorAll('[data-tracking-nav]').forEach(build); }
+  // The account menu now lives in the sidebar footer. Remove any stray
+  // [data-account-menu] slots left in page top bars so it isn't duplicated,
+  // then (re)mount the footer one.
+  function consolidateAccount() {
+    if (!document.querySelector('[data-tracking-nav]')) return;
+    document.querySelectorAll('[data-account-menu]').forEach(slot => {
+      if (!slot.closest('[data-tracking-nav]')) slot.remove();
+    });
+    if (window.AccountMenu) window.AccountMenu.mountAll();
+  }
+
+  function init() {
+    document.querySelectorAll('[data-tracking-nav]').forEach(build);
+    consolidateAccount();
+  }
   // Run now (when included inline right after the <aside>, this builds the
   // sidebar before the page's own script wires up #classTabs etc.) and again
-  // at DOMContentLoaded as a fallback. build() is idempotent.
+  // at DOMContentLoaded as a fallback. build()/consolidate are idempotent.
   init();
   document.addEventListener('DOMContentLoaded', init);
 
