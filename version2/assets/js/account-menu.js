@@ -98,16 +98,22 @@
     function position() {
       const r = trigger.getBoundingClientRect();
       const popH = pop.offsetHeight || 280;
-      const below = r.bottom + 8;
-      // Flip above the trigger when there isn't room below it — e.g. when the
-      // trigger lives in the sidebar footer near the bottom of the viewport.
-      if (below + popH > window.innerHeight && (r.top - 8 - popH) > 0) {
+      // Vertical: flip above the trigger when there isn't room below it
+      // (e.g. when the trigger lives in the sidebar footer near the bottom).
+      if (r.bottom + 8 + popH > window.innerHeight && (r.top - 8 - popH) > 0) {
         pop.style.top = (r.top - 8 - popH) + 'px';
       } else {
-        pop.style.top = below + 'px';
+        pop.style.top = (r.bottom + 8) + 'px';
       }
-      pop.style.left = 'auto';
-      pop.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+      // Horizontal: a left-side trigger (sidebar footer) grows rightwards; a
+      // right-side trigger (top-bar avatar) stays anchored to its right edge.
+      if (r.left < window.innerWidth / 2) {
+        pop.style.left = Math.max(8, r.left) + 'px';
+        pop.style.right = 'auto';
+      } else {
+        pop.style.right = Math.max(8, window.innerWidth - r.right) + 'px';
+        pop.style.left = 'auto';
+      }
     }
 
     function close() {
