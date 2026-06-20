@@ -72,12 +72,14 @@ const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&l
 function imgSrc(path){ if(!path) return ''; if(/^https?:\/\//.test(path)||path.startsWith('/')) return path; return sb.storage.from('weekly-test-images').getPublicUrl(path).data.publicUrl; }
 const draftKey = (sid)=>'wt-draft-'+sid;
 
-let me_id = null, openTests = [];
+let me_id = null, me_name = 'Student', openTests = [];
 
 (async function init(){
   const { data: au } = await sb.auth.getUser();
   if(!au?.user){ $('gate').classList.remove('hidden'); $('gate').innerHTML='Please <a href="/auth/login.html">sign in</a> to take your weekly test.'; return; }
   me_id = au.user.id;
+  const { data: meRow } = await sb.from('users').select('full_name,email').eq('id', me_id).maybeSingle();
+  me_name = (meRow && (meRow.full_name || meRow.email)) || (au.user.email || 'Student');
   const { data } = await sb.from('weekly_tests').select('*').eq('status','open').order('due_at',{ascending:true,nullsFirst:false});
   openTests = data || [];
   renderList();
@@ -103,7 +105,7 @@ async function openTest(testId){
   $('list').classList.add('hidden'); $('test').classList.remove('hidden');
   if(sub.submitted_at){
     // already submitted — show the report
-    const results = questions.map(q=>{ const a=answers[q.id]; return { question_id:q.id, status: a&&a.attempts>0?'marked':'blank', marks: a?a.final_marks:0, max:q.marks, rationale: a?a.ai_rationale:null }; });
+    const results = questions.map(q=>{ const a=answers[q.id]; return { question_id:q.id, status: a&&a.attempts>0?'marked':'blank', marks: a?a.final_marks:0, max:q.marks, rationale: a?(a.teacher_rationale||a.ai_rationale):null }; });
     renderReport(t, questions, answers, results, sub);
   } else {
     renderTake(t, sub, questions, answers);
@@ -170,7 +172,7 @@ function renderReport(t, questions, answers, results, sub, meta){
   const totalMarks = (meta && meta.total_marks != null) ? meta.total_marks : questions.reduce((s,q)=>s+q.marks,0);
   const paused = meta && meta.paused;
   $('test').innerHTML =
-    '<button class="btn ghost" id="back" style="margin-bottom:12px;">← All tests</button>' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px;"><button class="btn ghost" id="back">← All tests</button><span style="flex:1"></span><button class="btn dark" id="dl">Download summary (PDF)</button></div>' +
     '<div class="card" style="text-align:center;"><div class="muted" style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;">Your result</div>' +
       '<div class="total">'+total+' / '+totalMarks+'</div>' +
       '<div class="muted" style="margin-top:4px;">'+esc(t.title)+(sub.submitted_at?(' · submitted '+new Date(sub.submitted_at).toLocaleString()):'')+'</div>' +
@@ -193,6 +195,80 @@ function renderReport(t, questions, answers, results, sub, meta){
       '</div>';
     }).join('');
   $('back').addEventListener('click', renderList);
+  $('dl').addEventListener('click', ()=>buildSummary(t, questions, answers, byId, total, totalMarks));
+}
+
+// Open a stylised, printable summary in a new window and trigger the print
+// dialog (students "Save as PDF"). Includes a "focus for next time" list.
+function buildSummary(t, questions, answers, byId, total, totalMarks){
+  const pct = totalMarks ? Math.round(total/totalMarks*100) : 0;
+  const band = pct>=80?'#15803d':pct>=50?'#92500e':'#b91c1c';
+  const rows = questions.map((q,i)=>{
+    const r = byId[q.id] || { status:'blank', marks:0, max:q.marks };
+    const a = (answers[q.id] && answers[q.id].answer_text) || '';
+    const full = r.status==='marked' && r.marks!=null && r.marks>=q.marks;
+    const accent = full?'#15803d':(r.status==='marked'&&r.marks>0)?'#92500e':(r.status==='paused'||r.status==='error')?'#1e40af':'#b91c1c';
+    const markTxt = r.status==='marked'?((r.marks==null?'—':r.marks)+' / '+q.marks):r.status==='blank'?('0 / '+q.marks):'—';
+    const note = r.status==='blank'?'Left blank.':r.status==='paused'?'To be marked by your teacher.':r.status==='error'?'Not marked automatically.':(r.rationale||'');
+    return { n:i+1, prompt:q.prompt, answer:a, markTxt, note, accent, lost: !full };
+  });
+  const work = rows.filter(r=>r.lost && r.note);
+  const qHtml = rows.map(r=>(
+    '<div class="q" style="border-left:3px solid '+r.accent+'">' +
+      '<div class="qtop"><span class="qn">Question '+r.n+'</span><span class="qm" style="color:'+r.accent+'">'+esc(r.markTxt)+'</span></div>' +
+      '<div class="qp">'+esc(r.prompt)+'</div>' +
+      (r.answer?('<div class="qa"><span>Your answer:</span> '+esc(r.answer)+'</div>'):'<div class="qa muted">No answer given.</div>') +
+      (r.note?('<div class="qf">'+esc(r.note)+'</div>'):'') +
+    '</div>'
+  )).join('');
+  const workHtml = work.length
+    ? '<div class="work"><div class="workh">Focus for next time</div><ul>'+work.map(r=>'<li><b>Q'+r.n+'.</b> '+esc(r.note)+'</li>').join('')+'</ul></div>'
+    : '<div class="work good"><div class="workh">Brilliant work</div><p>You picked up the marks across the board — keep it up.</p></div>';
+
+  const html =
+    '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
+    '<title>'+esc(t.title)+' — '+esc(me_name)+'</title>' +
+    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,600;0,700;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap">' +
+    '<style>' +
+    '@page{size:A4;margin:15mm;}' +
+    '*{box-sizing:border-box;}' +
+    'body{font-family:"DM Sans",sans-serif;color:#1c2540;margin:0;font-size:13px;line-height:1.5;}' +
+    '.head{background:#0E1E3F;color:#fff;border-radius:10px;padding:22px 26px;display:flex;justify-content:space-between;align-items:flex-end;}' +
+    '.brand{font-family:"Lora",serif;font-style:italic;font-weight:700;font-size:22px;}' +
+    '.head .sub{color:#8fa8cc;font-size:12px;margin-top:2px;}' +
+    '.score{text-align:right;}' +
+    '.score .n{font-family:"Lora",serif;font-style:italic;font-weight:700;font-size:30px;line-height:1;}' +
+    '.score .p{font-size:12px;color:#8fa8cc;}' +
+    '.meta{margin:14px 2px 18px;font-size:12px;color:#5e6a85;}' +
+    '.q{padding:10px 14px;margin:0 0 10px;background:#fbfaf6;border:1px solid #e9ecf1;border-radius:8px;page-break-inside:avoid;}' +
+    '.qtop{display:flex;justify-content:space-between;align-items:baseline;}' +
+    '.qn{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#5e6a85;}' +
+    '.qm{font-family:"Lora",serif;font-style:italic;font-weight:700;font-size:15px;}' +
+    '.qp{font-family:"Lora",serif;font-style:italic;color:#0E1E3F;margin:4px 0 6px;font-size:14px;}' +
+    '.qa{font-size:12.5px;margin-bottom:5px;} .qa span{color:#5e6a85;} .qa.muted{color:#9aa3b5;}' +
+    '.qf{font-size:12.5px;background:#fff;border:1px solid #e9ecf1;border-radius:6px;padding:7px 9px;color:#334;}' +
+    '.work{margin-top:8px;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;padding:14px 18px;page-break-inside:avoid;}' +
+    '.work.good{background:#ecfdf3;border-color:#a7f3d0;}' +
+    '.workh{font-family:"Lora",serif;font-style:italic;font-weight:700;font-size:16px;color:#0E1E3F;margin-bottom:6px;}' +
+    '.work ul{margin:0;padding-left:18px;} .work li{margin-bottom:4px;}' +
+    '.foot{margin-top:18px;text-align:center;font-size:10.5px;color:#9aa3b5;}' +
+    '@media print{.noprint{display:none;}}' +
+    '.noprint{position:fixed;top:10px;right:10px;}' +
+    '.noprint button{font-family:"DM Sans",sans-serif;font-weight:700;font-size:13px;padding:9px 16px;border:none;border-radius:7px;background:#1A6FFF;color:#fff;cursor:pointer;}' +
+    '</style></head><body>' +
+    '<div class="noprint"><button onclick="window.print()">Save as PDF / Print</button></div>' +
+    '<div class="head"><div><div class="brand">Classicalia</div><div class="sub">Weekly test summary</div></div>' +
+      '<div class="score"><div class="n" style="color:'+band+'">'+total+' / '+totalMarks+'</div><div class="p">'+pct+'%</div></div></div>' +
+    '<div class="meta"><b>'+esc(me_name)+'</b> · '+esc(t.title)+(t.due_at?(' · due '+new Date(t.due_at).toLocaleDateString()):'')+' · printed '+new Date().toLocaleDateString()+'</div>' +
+    qHtml + workHtml +
+    '<div class="foot">Generated by Classicalia · classicalia.co.uk</div>' +
+    '</body></html>';
+
+  const w = window.open('', '_blank');
+  if(!w){ alert('Please allow pop-ups for this site to download your summary.'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  w.focus();
+  w.onload = ()=>{ setTimeout(()=>{ try{ w.print(); }catch(e){} }, 500); };
 }
 </script>
 </body>

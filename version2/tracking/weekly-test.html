@@ -362,14 +362,20 @@ function drill(subId, name, questions, answers){
     return '<div class="qcard"><b>Q:</b> '+esc(q.prompt)+
       '<div style="margin-top:6px;"><span class="muted">Answer:</span> '+esc(a.answer_text)+'</div>' +
       '<div style="margin-top:6px;"><span class="muted">AI:</span> '+(a.ai_marks==null?'—':a.ai_marks)+'/'+q.marks+' — '+esc(a.ai_rationale||'')+'</div>' +
-      '<div class="row" style="margin-top:8px;"><label class="lbl" style="margin:0;">Final mark</label><input class="f" style="width:80px;" type="number" min="0" max="'+q.marks+'" value="'+(a.final_marks==null?'':a.final_marks)+'" data-fm="'+a.id+'"><span class="muted">'+(a.marked_by==='teacher'?'(overridden)':'(AI)')+'</span><button class="btn sm" data-savefm="'+a.id+'">Save</button></div>' +
+      '<div class="row" style="margin-top:8px;"><label class="lbl" style="margin:0;">Final mark</label><input class="f" style="width:80px;" type="number" min="0" max="'+q.marks+'" value="'+(a.final_marks==null?'':a.final_marks)+'" data-fm="'+a.id+'"><span class="muted" data-marked="'+a.id+'">'+(a.marked_by==='teacher'?'(overridden)':'(AI)')+'</span></div>' +
+      '<div style="margin-top:8px;"><label class="lbl" style="margin:0 0 4px;">Feedback to student</label><textarea class="f" data-fr="'+a.id+'" rows="2" style="width:100%;">'+esc(a.teacher_rationale||a.ai_rationale||'')+'</textarea></div>' +
+      '<div class="row" style="margin-top:8px;"><span class="spacer"></span><button class="btn sm" data-savefm="'+a.id+'">Save mark &amp; feedback</button></div>' +
     '</div>';
   }).join('') + '</div>';
   d.querySelectorAll('[data-savefm]').forEach(b=>b.addEventListener('click', async ()=>{
-    const inp = d.querySelector('[data-fm="'+b.dataset.savefm+'"]'); const v = inp.value===''?null:Math.max(0,+inp.value);
-    const { error } = await sb.from('weekly_test_answers').update({ final_marks: v, marked_by:'teacher', updated_at:new Date().toISOString() }).eq('id', b.dataset.savefm);
-    if(error) return toast('Override failed: '+error.message);
-    toast('Mark updated'); drawResults($('rTest').value);
+    const id = b.dataset.savefm;
+    const inp = d.querySelector('[data-fm="'+id+'"]'); const v = inp.value===''?null:Math.max(0,+inp.value);
+    const fr = d.querySelector('[data-fr="'+id+'"]').value.trim();
+    const { error } = await sb.from('weekly_test_answers').update({ final_marks: v, teacher_rationale: fr||null, marked_by:'teacher', updated_at:new Date().toISOString() }).eq('id', id);
+    if(error) return toast('Save failed: '+error.message);
+    const a = answers.find(x=>x.id===id); if(a){ a.final_marks=v; a.teacher_rationale=fr||null; a.marked_by='teacher'; }
+    const lbl = d.querySelector('[data-marked="'+id+'"]'); if(lbl) lbl.textContent='(overridden)';
+    toast('Saved');
   }));
 }
 
