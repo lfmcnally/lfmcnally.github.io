@@ -27,26 +27,35 @@
     bank:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l2-3h6l2 3h6a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg>',
     weekly:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M8 13h7M8 17h5"/></svg>',
     classes:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 6a3 3 0 0 1 0 6M16 20a6 6 0 0 0-3-5"/></svg>',
-    donow:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>'
+    donow:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
+    tools:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/></svg>',
+    admin:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>'
   };
+
+  const TOOLS = { key: 'tools', label: 'Tools', href: '/version2/tools/', icon: I.tools };
+  const ADMIN = { key: 'admin', label: 'Admin', href: '/version2/admin/', icon: I.admin };
 
   const NAV = {
     student: [
       { key: 'progress', label: 'Progress',        href: '/version2/tracking/dashboard.html',        icon: I.progress },
       { key: 'todo',     label: 'To-do',           href: '/version2/tracking/todo.html',             icon: I.todo },
       { key: 'bank',     label: 'Assessment bank', href: '/version2/tracking/bank.html',             icon: I.bank },
-      { key: 'weekly',   label: 'Weekly tests',    href: '/version2/tracking/weekly-test-take.html', icon: I.weekly }
+      { key: 'weekly',   label: 'Weekly tests',    href: '/version2/tracking/weekly-test-take.html', icon: I.weekly },
+      TOOLS
     ],
     teacher: [
       { key: 'classes',  label: 'Classes',         href: '/version2/tracking/teacher.html',          icon: I.classes },
       { key: 'bank',     label: 'Assessment bank', href: '/version2/tracking/bank.html',             icon: I.bank },
       { key: 'weekly',   label: 'Weekly tests',    href: '/version2/tracking/weekly-test.html',      icon: I.weekly },
-      { key: 'donow',    label: 'Do Now',          href: '/version2/tracking/do-now.html',           icon: I.donow }
+      { key: 'donow',    label: 'Do Now',          href: '/version2/tracking/do-now.html',           icon: I.donow },
+      TOOLS
     ]
   };
 
-  function primaryHtml(role, active) {
-    return (NAV[role] || NAV.student).map(it =>
+  function primaryHtml(role, active, isAdmin) {
+    let items = (NAV[role] || NAV.student).slice();
+    if (isAdmin) items = items.concat([ADMIN]);
+    return items.map(it =>
       `<a class="tnav-item${it.key === active ? ' active' : ''}" href="${it.href}">${it.icon}<span>${it.label}</span></a>`
     ).join('');
   }
@@ -90,23 +99,32 @@
     if (window.Starfield) sky();
     else window.addEventListener('DOMContentLoaded', sky);
 
-    // Resolve the real role for "auto" pages (e.g. the bank, used by both),
-    // then upgrade the primary nav once we know.
-    if (role === 'auto') resolveRole().then(r => {
-      const slot = aside.querySelector('[data-tnav-primary]');
-      if (slot) slot.innerHTML = primaryHtml(r, active);
-    });
+    // Resolve the signed-in user's role (for "auto" pages like the bank) and
+    // admin status, then re-render the primary nav — adding the Admin link for
+    // admins. This keeps every working link in the dashboard sidebar.
+    applyFlags(aside, role, active);
   }
 
-  async function resolveRole() {
+  async function applyFlags(aside, declaredRole, active) {
+    let role = declaredRole === 'auto' ? 'student' : declaredRole;
+    let isAdmin = false;
     try {
       const sb = window.supabase;
-      if (!sb) return 'student';
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user) return 'student';
-      const { data } = await sb.from('users').select('role').eq('id', user.id).maybeSingle();
-      return (data && data.role === 'teacher') ? 'teacher' : 'student';
-    } catch (e) { return 'student'; }
+      if (sb) {
+        const { data: { user } } = await sb.auth.getUser();
+        if (user) {
+          const { data } = await sb.from('users').select('role, is_admin').eq('id', user.id).maybeSingle();
+          if (data) {
+            if (declaredRole === 'auto') role = data.role === 'teacher' ? 'teacher' : 'student';
+            isAdmin = !!data.is_admin;
+          }
+        }
+      }
+    } catch (e) { /* leave the base nav as rendered */ }
+    if (declaredRole === 'auto' || isAdmin) {
+      const slot = aside.querySelector('[data-tnav-primary]');
+      if (slot) slot.innerHTML = primaryHtml(role, active, isAdmin);
+    }
   }
 
   function init() { document.querySelectorAll('[data-tracking-nav]').forEach(build); }
