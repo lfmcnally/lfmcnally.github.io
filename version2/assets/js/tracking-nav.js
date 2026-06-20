@@ -29,6 +29,7 @@
     classes:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 6a3 3 0 0 1 0 6M16 20a6 6 0 0 0-3-5"/></svg>',
     donow:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
     tools:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/></svg>',
+    friends:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="9" r="2.4"/><circle cx="16" cy="9" r="2.4"/><path d="M3.5 19a4.5 4.5 0 0 1 9 0M11.5 19a4.5 4.5 0 0 1 9 0"/></svg>',
     admin:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>'
   };
 
@@ -41,6 +42,7 @@
       { key: 'todo',     label: 'To-do',           href: '/version2/tracking/todo.html',             icon: I.todo },
       { key: 'bank',     label: 'Assessment bank', href: '/version2/tracking/bank.html',             icon: I.bank },
       { key: 'weekly',   label: 'Weekly tests',    href: '/version2/tracking/weekly-test-take.html', icon: I.weekly },
+      { key: 'friends',  label: 'Friends',         href: '/version2/friends.html',                   icon: I.friends },
       TOOLS
     ],
     teacher: [
@@ -71,10 +73,15 @@
     const ctxLabel = aside.dataset.contextLabel || '';
     const ctxAdd   = aside.dataset.contextAdd;
     const ctxSrch  = aside.dataset.contextSearch;
+    const ctxLink  = aside.dataset.contextLink;
+    const ctxLinkLabel = aside.dataset.contextLinkLabel || 'Manage';
 
     let context = '';
     if (ctxId) {
-      context += `<div class="side-section">${ctxLabel}${ctxAdd ? `<button id="${ctxAdd}" type="button" title="Create">+</button>` : ''}</div>`;
+      const sideAction = ctxAdd
+        ? `<button id="${ctxAdd}" type="button" title="Create">+</button>`
+        : (ctxLink ? `<a class="side-section-link" href="${ctxLink}">${ctxLinkLabel}</a>` : '');
+      context += `<div class="side-section">${ctxLabel}${sideAction}</div>`;
       if (ctxSrch) context += `<div class="side-search"><input id="${ctxSrch}" type="text" placeholder="Search…" autocomplete="off"></div>`;
       context += `<nav class="side-context"><div class="${ctxClass}" id="${ctxId}"></div></nav>`;
     } else {
