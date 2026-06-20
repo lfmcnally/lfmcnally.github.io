@@ -261,16 +261,32 @@
   });
 
   // The nav slot (<div data-account-menu>) is rendered by account-menu.js.
-  // We still swap the hero's big CTA to "View my progress" once signed in.
+  // Once signed in, swap the hero's "Sign up" CTA for a role-aware icon button:
+  // students get "My progress", teachers get "Teacher dashboard".
   (async function reflectHeroAuth() {
     if (!window.supabase || !window.supabase.auth) return;
+    const ICON_PROGRESS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 4-5"/></svg>';
+    const ICON_TEACHER = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 6a3 3 0 0 1 0 6M16 20a6 6 0 0 0-3-5"/></svg>';
     try {
       const { data, error } = await window.supabase.auth.getUser();
       if (error || !data || !data.user) return;
       const heroCta = document.getElementById('heroCta');
-      if (heroCta) {
-        heroCta.textContent = 'View my progress ↗';
+      if (!heroCta) return;
+      let isTeacher = false;
+      try {
+        const { data: prof } = await window.supabase.from('users').select('role').eq('id', data.user.id).maybeSingle();
+        isTeacher = !!(prof && prof.role === 'teacher');
+      } catch (_e) { /* default to student view */ }
+      heroCta.classList.remove('btn-g');
+      heroCta.classList.add('btn-icon');
+      if (isTeacher) {
+        heroCta.setAttribute('href', '/version2/tracking/teacher.html');
+        heroCta.setAttribute('title', 'Teacher dashboard');
+        heroCta.innerHTML = ICON_TEACHER + '<span>Teacher dashboard</span>';
+      } else {
         heroCta.setAttribute('href', '/version2/tracking/dashboard.html');
+        heroCta.setAttribute('title', 'My progress');
+        heroCta.innerHTML = ICON_PROGRESS + '<span>My progress</span>';
       }
     } catch (_err) { /* leave the hero button as Sign up */ }
   })();
