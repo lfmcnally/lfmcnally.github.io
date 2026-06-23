@@ -90,6 +90,47 @@ const TRANSLATION_SYSTEM = (subject: string) =>
   "List the band-defining issues in 'serious_errors' and 'minor_errors'. Write 'rationale' as ONE short " +
   "sentence spoken directly TO the student (\"you\"), naming what set the band; do not restate the mark.";
 
+// OCR GCSE Classical Civilisation (J199/11) 8-marker, marked holistically on
+// OCR's 4-level grid (4 AO1 + 4 AO2), operationalised by the department house
+// structure. See docs/marking/j199-8-marker.md.
+const ESSAY_SYSTEM = (stemType: string) => {
+  const inWhatWays = stemType === "in_what_ways";
+  return "You are an OCR GCSE Classical Civilisation examiner marking ONE 8-mark extended response from the " +
+    "Myth and Religion paper (J199/11). It is worth 4 AO1 (knowledge) + 4 AO2 (analysis and evaluation) = 8 marks, " +
+    "awarded HOLISTICALLY against OCR's four-level grid:\n" +
+    "Level 4 (7–8): consistently accurate, detailed knowledge from BOTH the source AND wider own knowledge; very good " +
+    "understanding of context; a well-argued response with a range of well-selected evidence, critical analysis and evaluation.\n" +
+    "Level 3 (5–6): accurate knowledge using source and own knowledge; a focused response with a range of evidence; relevant " +
+    "analysis and evaluation; good understanding of context.\n" +
+    "Level 2 (3–4): mostly accurate but limited knowledge; engages generally with limited evidence; some analysis; some context.\n" +
+    "Level 1 (1–2): limited knowledge, may use the source only; little explanation; isolated analysis; limited context.\n" +
+    "0: nothing worthy of credit.\n\n" +
+    "Use the department house structure as your checklist for what each level looks like:\n" +
+    "• AO1 = distinct, ACCURATE facts (a named figure, a feature of the source, a quoted phrase, an event, a date). A strong " +
+    "answer gives about six, drawn from BOTH the source and wider knowledge.\n" +
+    "• AO2 = each fact followed by analysis that ties it to the question ('this suggests / shows / means that…'). Facts " +
+    "narrated without analysis earn AO1 only.\n" +
+    "• SOURCE: the answer must use the printed source — a short quotation or a named feature. An answer using own knowledge " +
+    "only is capped (an OCR examiner requirement).\n" +
+    "• CONCLUSION: a short judgement. " +
+    (inWhatWays
+      ? "For this 'in what ways' stem it synthesises the most significant way(s).\n\n" +
+        "STEM: this is an 'IN WHAT WAYS' question. Reward distinct ways drawn FROM THE SOURCE and FROM OWN KNOWLEDGE. " +
+        "Do NOT reward counter-arguments — a student arguing the opposite case has misread the question (an OCR examiner " +
+        "warning), so give such material no credit.\n\n"
+      : "For this evaluative stem it must commit to one side and say why it outweighs.\n\n" +
+        "STEM: this is an EVALUATIVE question ('how far / to what extent / who is more…'). Reward genuine argument on BOTH " +
+        "sides plus a committed conclusion.\n\n") +
+    "ACCURACY: credit only facts that are accurate for OCR Myth and Religion as taught on the revision pages. Treat the " +
+    "indicative content provided as the canonical creditworthy material, but also credit other accurate, on-spec facts the " +
+    "student brings. Do NOT credit vague, irrelevant or factually wrong claims, and never invent credit for content not in the answer.\n\n" +
+    "Award marks_awarded (0–8) and the matching level (0–4). List the accurate facts you credited in 'ao1_credited' and the " +
+    "analytical links that landed in 'ao2_credited'; set 'source_used' and 'conclusion'. In 'missing', name the one or two " +
+    "things that would move the answer up a level. Write 'rationale' as TWO or THREE sentences spoken directly TO the student " +
+    "('you') in a warm, specific coaching voice: what landed, then the most useful next step. Do not restate the mark total " +
+    "or refer to 'the student'.";
+};
+
 const POINTS_SCHEMA = {
   type: "object", additionalProperties: false,
   required: ["marks_awarded", "max_marks", "matched_points", "missing_points", "rationale"],
@@ -109,6 +150,20 @@ const TRANSLATION_SCHEMA = {
     minor_errors:   { type: "array", items: { type: "string" } },
     serious_errors: { type: "array", items: { type: "string" } },
     rationale:      { type: "string", description: "One short sentence of feedback addressed to the student as 'you'." },
+  },
+};
+const ESSAY_SCHEMA = {
+  type: "object", additionalProperties: false,
+  required: ["marks_awarded", "level", "ao1_credited", "ao2_credited", "source_used", "conclusion", "missing", "rationale"],
+  properties: {
+    marks_awarded: { type: "integer", description: "0–8." },
+    level:         { type: "integer", description: "OCR level 0–4." },
+    ao1_credited:  { type: "array", items: { type: "string" }, description: "Accurate facts the student used (AO1)." },
+    ao2_credited:  { type: "array", items: { type: "string" }, description: "Analytical links that tied a fact to the question (AO2)." },
+    source_used:   { type: "boolean", description: "Did the answer quote or name a feature of the printed source?" },
+    conclusion:    { type: "boolean", description: "Is there a judgement/synthesis at the end?" },
+    missing:       { type: "array", items: { type: "string" }, description: "One or two things that would move the answer up a level." },
+    rationale:     { type: "string", description: "Two to three sentences of feedback addressed to the student as 'you'." },
   },
 };
 
@@ -220,16 +275,30 @@ Deno.serve(async (req) => {
     // -- 7. Read the mark scheme (service role only) -----------------------
     const { data: scheme } = await svc
       .from("weekly_test_mark_schemes")
-      .select("scheme_points, model_answer, marking_notes")
+      .select("scheme_points, model_answer, marking_notes, essay_scheme")
       .eq("question_id", questionId).maybeSingle();
 
     // -- 8. Mark with Claude (structured JSON output) ----------------------
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) return json({ error: "marking is not configured" }, 500);
 
-    const translation = (question.mark_style ?? "points") === "translation";
+    const style = question.mark_style ?? "points";
+    const translation = style === "translation";
+    const essay = style === "essay";
+    const essayScheme = (essay && scheme?.essay_scheme && typeof scheme.essay_scheme === "object")
+      ? scheme.essay_scheme as { stem_type?: string; source?: string; indicative?: unknown } : {};
+    const stemType = essayScheme.stem_type === "in_what_ways" ? "in_what_ways" : "evaluative";
     let userText: string;
-    if (translation) {
+    if (essay) {
+      const indicative: string[] = Array.isArray(essayScheme.indicative) ? (essayScheme.indicative as unknown[]).map((s) => String(s)).filter(Boolean) : [];
+      const indicBullets = indicative.map((s) => `- ${s}`).join("\n") || "- (none supplied — judge accuracy from OCR Myth & Religion taught content)";
+      userText =
+        `8-mark question (4 AO1 + 4 AO2 = 8 marks): ${question.prompt}\n\n` +
+        (essayScheme.source ? `Printed source the student must use:\n"""${essayScheme.source}"""\n\n` : "Printed source: (none supplied)\n\n") +
+        `Indicative content — creditworthy facts (from the revision pages):\n${indicBullets}\n` +
+        (scheme?.marking_notes ? `\nMarking notes: ${scheme.marking_notes}\n` : "") +
+        `\nStudent answer:\n"""${answerText}"""`;
+    } else if (translation) {
       userText =
         `Sentence to translate from ${subject} into English (max ${question.marks} marks):\n${question.prompt}\n\n` +
         (scheme?.model_answer ? `Correct translation: ${scheme.model_answer}\n` : "Correct translation: (not supplied — judge from the original)\n") +
@@ -253,10 +322,10 @@ Deno.serve(async (req) => {
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: MAX_OUTPUT_TOKENS,
-        system: translation ? TRANSLATION_SYSTEM(subject) : POINTS_SYSTEM(subject),
+        max_tokens: essay ? 900 : MAX_OUTPUT_TOKENS,
+        system: essay ? ESSAY_SYSTEM(stemType) : translation ? TRANSLATION_SYSTEM(subject) : POINTS_SYSTEM(subject),
         messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
-        output_config: { format: { type: "json_schema", schema: translation ? TRANSLATION_SCHEMA : POINTS_SCHEMA } },
+        output_config: { format: { type: "json_schema", schema: essay ? ESSAY_SCHEMA : translation ? TRANSLATION_SCHEMA : POINTS_SCHEMA } },
       }),
     });
 
@@ -276,15 +345,23 @@ Deno.serve(async (req) => {
       return json({ error: "marking unavailable, please try again" }, 502);
     }
     const textBlock = (anth.content || []).find((b: { type: string }) => b.type === "text");
-    let parsed: { marks_awarded?: number; matched_points?: string[]; minor_errors?: string[]; serious_errors?: string[]; rationale?: string };
+    let parsed: { marks_awarded?: number; matched_points?: string[]; minor_errors?: string[]; serious_errors?: string[];
+      ao1_credited?: string[]; ao2_credited?: string[]; source_used?: boolean; conclusion?: boolean; missing?: string[]; rationale?: string };
     try { parsed = JSON.parse(textBlock?.text ?? "{}"); } catch { return json({ error: "could not parse marks" }, 502); }
 
     // Clamp to the question's range as a guard.
     const marks = Math.max(0, Math.min(question.marks, Math.round(Number(parsed.marks_awarded ?? 0))));
-    const matched = translation
-      ? [...(Array.isArray(parsed.serious_errors) ? parsed.serious_errors : []).map((e) => `serious: ${e}`),
-         ...(Array.isArray(parsed.minor_errors) ? parsed.minor_errors : []).map((e) => `minor: ${e}`)]
-      : (Array.isArray(parsed.matched_points) ? parsed.matched_points : []);
+    const arr = (v: unknown) => (Array.isArray(v) ? v as string[] : []);
+    const matched = essay
+      ? [...arr(parsed.ao1_credited).map((p) => `AO1: ${p}`),
+         ...arr(parsed.ao2_credited).map((p) => `AO2: ${p}`),
+         ...(parsed.source_used ? [] : ["missing: a reference to the source"]),
+         ...(parsed.conclusion ? [] : ["missing: a concluding judgement"]),
+         ...arr(parsed.missing).map((m) => `next: ${m}`)]
+      : translation
+      ? [...arr(parsed.serious_errors).map((e) => `serious: ${e}`),
+         ...arr(parsed.minor_errors).map((e) => `minor: ${e}`)]
+      : arr(parsed.matched_points);
     const rationale = String(parsed.rationale ?? "").slice(0, 800);
 
     // -- 9. Write the answer (service role; live release) -------------------

@@ -243,13 +243,15 @@ async function openEditor(testId){
   }
   function qEditorHTML(q, sc, i){
     const pts = Array.isArray(sc.scheme_points)?sc.scheme_points:[];
+    const es = (sc.essay_scheme && typeof sc.essay_scheme==='object') ? sc.essay_scheme : {};
     return '<div class="qcard" data-q="'+q.id+'">' +
       '<div class="row"><b style="color:var(--navy);">Q'+(i+1)+'</b><span class="spacer"></span><button class="btn danger sm" data-del="'+q.id+'">Delete</button></div>' +
       '<div style="margin-top:8px;"><label class="lbl">Question / prompt</label><textarea class="f" data-f="prompt">'+esc(q.prompt)+'</textarea></div>' +
       '<div style="margin-top:10px;"><label class="lbl">Marking style</label>' +
         '<select class="f" data-f="style">' +
-          '<option value="points"'+(q.mark_style==='translation'?'':' selected')+'>Points-based — credit scheme points (Civ / comprehension)</option>' +
+          '<option value="points"'+(q.mark_style==='points'||!q.mark_style?' selected':'')+'>Points-based — credit scheme points (Civ / comprehension)</option>' +
           '<option value="translation"'+(q.mark_style==='translation'?' selected':'')+'>Translation — holistic band /5 (Latin / Greek)</option>' +
+          '<option value="essay"'+(q.mark_style==='essay'?' selected':'')+'>Essay — OCR 8-marker, levels /8 (Classical Civ)</option>' +
         '</select>' +
         '<div class="muted" data-styhint style="margin-top:4px;font-size:12px;">'+styleHint(q.mark_style)+'</div>' +
       '</div>' +
@@ -259,20 +261,36 @@ async function openEditor(testId){
         '<div style="display:flex;align-items:flex-end;gap:6px;"><label class="muted" style="display:flex;align-items:center;gap:6px;"><input type="checkbox" data-f="mwi" '+(q.mark_with_image?'checked':'')+'> show image to marker</label></div>' +
       '</div>' +
       (q.image_path?('<img class="thumb" src="'+imgSrc(q.image_path)+'" alt="">'):'') +
-      '<div style="margin-top:10px;"><label class="lbl">Mark scheme — creditworthy points</label><div class="sps" data-pts>'+
+      '<div data-ptsbox style="margin-top:10px;'+(q.mark_style==='essay'?'display:none;':'')+'"><label class="lbl">Mark scheme — creditworthy points</label><div class="sps" data-pts>'+
         pts.map(p=>spRow(p)).join('')+'</div><button class="btn ghost sm" data-addpt style="margin-top:6px;">+ point</button></div>' +
+      essayBoxHTML(es, q.mark_style==='essay') +
       '<div class="grid2" style="margin-top:10px;">' +
-        '<div><label class="lbl" data-modellabel>'+(q.mark_style==='translation'?'Correct translation (required)':'Model answer (optional)')+'</label><textarea class="f" data-f="model">'+esc(sc.model_answer||'')+'</textarea></div>' +
+        '<div data-modelbox style="'+(q.mark_style==='essay'?'display:none;':'')+'"><label class="lbl" data-modellabel>'+(q.mark_style==='translation'?'Correct translation (required)':'Model answer (optional)')+'</label><textarea class="f" data-f="model">'+esc(sc.model_answer||'')+'</textarea></div>' +
         '<div><label class="lbl">Marking notes (optional)</label><textarea class="f" data-f="notes">'+esc(sc.marking_notes||'')+'</textarea></div>' +
       '</div>' +
       '<div class="row" style="margin-top:10px;"><span class="spacer"></span><button class="btn" data-save="'+q.id+'">Save question</button></div>' +
     '</div>';
   }
   function spRow(p){ return '<div class="sp"><input class="f txt" placeholder="creditworthy point" value="'+esc(p&&p.text||'')+'"><input class="f mk" type="number" min="1" placeholder="mk" value="'+(p&&p.marks||'')+'"><button class="btn danger sm" data-rmpt>×</button></div>'; }
+  function essayBoxHTML(es, show){
+    const indic = Array.isArray(es.indicative) ? es.indicative.join('\n') : '';
+    const stem = es.stem_type==='in_what_ways' ? 'in_what_ways' : 'evaluative';
+    return '<div data-essaybox style="margin-top:10px;'+(show?'':'display:none;')+'">' +
+      '<div class="grid2">' +
+        '<div><label class="lbl">Question type</label><select class="f" data-f="stem">' +
+          '<option value="evaluative"'+(stem==='evaluative'?' selected':'')+'>Evaluative — "how far / to what extent / who is more…"</option>' +
+          '<option value="in_what_ways"'+(stem==='in_what_ways'?' selected':'')+'>"In what ways…" — no counter-arguments</option>' +
+        '</select></div>' +
+        '<div><label class="lbl">Source (the printed extract, or a description of a visual source)</label><textarea class="f" data-f="source" placeholder="Source A: …">'+esc(es.source||'')+'</textarea></div>' +
+      '</div>' +
+      '<div style="margin-top:10px;"><label class="lbl">Indicative content — creditworthy facts, one per line (drawn from the Myth &amp; Religion revision pages)</label>' +
+      '<textarea class="f" data-f="indic" rows="6" placeholder="Aeneas described as &quot;conducted by the fates&quot; (Source) — divine destiny, not personal ambition&#10;Ara Pacis shows Aeneas veiled, sacrificing as a priest — embodies pietas">'+esc(indic)+'</textarea></div>' +
+    '</div>';
+  }
   function styleHint(style){
-    return style==='translation'
-      ? 'Put the Latin/Greek in the prompt and the correct English in <b>Correct translation</b>. Marked holistically out of 5 by proportion of sense (OCR J282/J292 grid) — set marks to <b>5</b>. Creditworthy points are ignored.'
-      : 'The AI credits each creditworthy point the student conveys, allowing synonyms and paraphrase.';
+    if(style==='translation') return 'Put the Latin/Greek in the prompt and the correct English in <b>Correct translation</b>. Marked holistically out of 5 by proportion of sense (OCR J282/J292 grid) — set marks to <b>5</b>. Creditworthy points are ignored.';
+    if(style==='essay') return 'OCR GCSE Civ 8-marker. Set marks to <b>8</b>. Put the question in the prompt, the printed source and indicative facts below. Marked on OCR\'s 4-level grid (4 AO1 + 4 AO2) using the house structure. Raise the answer-length limit on the Settings tab — essays run ~250–300 words.';
+    return 'The AI credits each creditworthy point the student conveys, allowing synonyms and paraphrase.';
   }
 
   function wireQ(q){
@@ -284,10 +302,15 @@ async function openEditor(testId){
     });
     const styleSel = card.querySelector('[data-f="style"]');
     styleSel.addEventListener('change', ()=>{
-      const tr = styleSel.value==='translation';
-      card.querySelector('[data-styhint]').innerHTML = styleHint(styleSel.value);
+      const v = styleSel.value, tr = v==='translation', es = v==='essay';
+      card.querySelector('[data-styhint]').innerHTML = styleHint(v);
       const ml = card.querySelector('[data-modellabel]'); if(ml) ml.textContent = tr ? 'Correct translation (required)' : 'Model answer (optional)';
-      const mk = card.querySelector('[data-f="marks"]'); if(tr && (+mk.value||1) < 2) mk.value = 5;
+      const ptsbox = card.querySelector('[data-ptsbox]'); if(ptsbox) ptsbox.style.display = es ? 'none' : '';
+      const modelbox = card.querySelector('[data-modelbox]'); if(modelbox) modelbox.style.display = es ? 'none' : '';
+      const essaybox = card.querySelector('[data-essaybox]'); if(essaybox) essaybox.style.display = es ? '' : 'none';
+      const mk = card.querySelector('[data-f="marks"]');
+      if(tr && (+mk.value||1) < 2) mk.value = 5;
+      if(es && (+mk.value||1) !== 8) mk.value = 8;
     });
     card.querySelector('[data-addpt]').addEventListener('click', ()=>{ card.querySelector('[data-pts]').insertAdjacentHTML('beforeend', spRow({})); bindPts(); });
     function bindPts(){ card.querySelectorAll('[data-rmpt]').forEach(b=>b.onclick=()=>b.closest('.sp').remove()); }
@@ -305,7 +328,15 @@ async function openEditor(testId){
       const qpatch = { prompt: card.querySelector('[data-f="prompt"]').value.trim(), marks, mark_with_image: card.querySelector('[data-f="mwi"]').checked, mark_style: card.querySelector('[data-f="style"]').value };
       await sb.from('weekly_test_questions').update(qpatch).eq('id', q.id); Object.assign(q, qpatch);
       const points = [...card.querySelectorAll('.sp')].map(r=>({ text: r.querySelector('.txt').value.trim(), marks: +r.querySelector('.mk').value||undefined })).filter(p=>p.text);
-      const spatch = { question_id:q.id, scheme_points: points, model_answer: card.querySelector('[data-f="model"]').value.trim(), marking_notes: card.querySelector('[data-f="notes"]').value.trim(), updated_at: new Date().toISOString() };
+      let essay_scheme = null;
+      if(qpatch.mark_style==='essay'){
+        essay_scheme = {
+          stem_type: card.querySelector('[data-f="stem"]').value,
+          source: card.querySelector('[data-f="source"]').value.trim(),
+          indicative: card.querySelector('[data-f="indic"]').value.split('\n').map(s=>s.trim()).filter(Boolean),
+        };
+      }
+      const spatch = { question_id:q.id, scheme_points: points, essay_scheme, model_answer: card.querySelector('[data-f="model"]').value.trim(), marking_notes: card.querySelector('[data-f="notes"]').value.trim(), updated_at: new Date().toISOString() };
       await sb.from('weekly_test_mark_schemes').upsert(spatch, { onConflict:'question_id' }); schemes[q.id]=spatch;
       toast('Question saved');
     });

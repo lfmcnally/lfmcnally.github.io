@@ -113,14 +113,82 @@ const TRANSLATION_SCHEMA_NUGGETS = {
   },
 };
 
+// OCR GCSE Classical Civilisation (J199/11) 8-marker — holistic 4-level grid
+// (4 AO1 + 4 AO2), operationalised by the department house structure. See
+// docs/marking/j199-8-marker.md.
+const ESSAY_SYSTEM = (stemType: string) => {
+  const inWhatWays = stemType === "in_what_ways";
+  return "You are an OCR GCSE Classical Civilisation examiner marking ONE 8-mark extended response from the " +
+    "Myth and Religion paper (J199/11). It is worth 4 AO1 (knowledge) + 4 AO2 (analysis and evaluation) = 8 marks, " +
+    "awarded HOLISTICALLY against OCR's four-level grid:\n" +
+    "Level 4 (7–8): consistently accurate, detailed knowledge from BOTH the source AND wider own knowledge; very good " +
+    "understanding of context; a well-argued response with a range of well-selected evidence, critical analysis and evaluation.\n" +
+    "Level 3 (5–6): accurate knowledge using source and own knowledge; a focused response with a range of evidence; relevant " +
+    "analysis and evaluation; good understanding of context.\n" +
+    "Level 2 (3–4): mostly accurate but limited knowledge; engages generally with limited evidence; some analysis; some context.\n" +
+    "Level 1 (1–2): limited knowledge, may use the source only; little explanation; isolated analysis; limited context.\n" +
+    "0: nothing worthy of credit.\n\n" +
+    "Use the department house structure as your checklist for what each level looks like:\n" +
+    "• AO1 = distinct, ACCURATE facts (a named figure, a feature of the source, a quoted phrase, an event, a date). A strong " +
+    "answer gives about six, drawn from BOTH the source and wider knowledge.\n" +
+    "• AO2 = each fact followed by analysis that ties it to the question ('this suggests / shows / means that…'). Facts " +
+    "narrated without analysis earn AO1 only.\n" +
+    "• SOURCE: the answer must use the printed source — a short quotation or a named feature. An answer using own knowledge " +
+    "only is capped (an OCR examiner requirement).\n" +
+    "• CONCLUSION: a short judgement. " +
+    (inWhatWays
+      ? "For this 'in what ways' stem it synthesises the most significant way(s).\n\n" +
+        "STEM: this is an 'IN WHAT WAYS' question. Reward distinct ways drawn FROM THE SOURCE and FROM OWN KNOWLEDGE. " +
+        "Do NOT reward counter-arguments — a student arguing the opposite case has misread the question (an OCR examiner " +
+        "warning), so give such material no credit.\n\n"
+      : "For this evaluative stem it must commit to one side and say why it outweighs.\n\n" +
+        "STEM: this is an EVALUATIVE question ('how far / to what extent / who is more…'). Reward genuine argument on BOTH " +
+        "sides plus a committed conclusion.\n\n") +
+    "ACCURACY: credit only facts that are accurate for OCR Myth and Religion as taught on the revision pages. Treat the " +
+    "indicative content provided as the canonical creditworthy material, but also credit other accurate, on-spec facts the " +
+    "student brings. Do NOT credit vague, irrelevant or factually wrong claims, and never invent credit for content not in the answer.\n\n" +
+    "Award marks_awarded (0–8) and the matching level (0–4). List the accurate facts you credited in 'ao1_credited' and the " +
+    "analytical links that landed in 'ao2_credited'; set 'source_used' and 'conclusion'. In 'missing', name the one or two " +
+    "things that would move the answer up a level. Write 'rationale' as TWO or THREE sentences spoken directly TO the student " +
+    "('you') in a warm, specific coaching voice: what landed, then the most useful next step. Do not restate the mark total " +
+    "or refer to 'the student'.";
+};
+const ESSAY_SCHEMA = {
+  type: "object", additionalProperties: false,
+  required: ["marks_awarded", "level", "ao1_credited", "ao2_credited", "source_used", "conclusion", "missing", "rationale"],
+  properties: {
+    marks_awarded: { type: "integer", description: "0–8." },
+    level:         { type: "integer", description: "OCR level 0–4." },
+    ao1_credited:  { type: "array", items: { type: "string" } },
+    ao2_credited:  { type: "array", items: { type: "string" } },
+    source_used:   { type: "boolean" },
+    conclusion:    { type: "boolean" },
+    missing:       { type: "array", items: { type: "string" } },
+    rationale:     { type: "string", description: "Two to three sentences of feedback addressed to the student as 'you'." },
+  },
+};
+
 // Mark one answer. Returns { marks, matched, rationale, usage } or { error, usage }.
 async function markOne(apiKey: string, question: { prompt: string; marks: number },
-  scheme: { scheme_points?: unknown; model_answer?: string; marking_notes?: string } | null,
+  scheme: { scheme_points?: unknown; model_answer?: string; marking_notes?: string; essay_scheme?: unknown } | null,
   answerText: string, style: string, subject: string, nuggets: Array<{ code: string; title: string }> = []) {
   const translation = style === "translation";
+  const essay = style === "essay";
   const tagging = translation && nuggets.length > 0;
+  const essayScheme = (essay && scheme?.essay_scheme && typeof scheme.essay_scheme === "object")
+    ? scheme.essay_scheme as { stem_type?: string; source?: string; indicative?: unknown } : {};
+  const stemType = essayScheme.stem_type === "in_what_ways" ? "in_what_ways" : "evaluative";
   let userText: string;
-  if (translation) {
+  if (essay) {
+    const indicative: string[] = Array.isArray(essayScheme.indicative) ? (essayScheme.indicative as unknown[]).map((s) => String(s)).filter(Boolean) : [];
+    const indicBullets = indicative.map((s) => `- ${s}`).join("\n") || "- (none supplied — judge accuracy from OCR Myth & Religion taught content)";
+    userText =
+      `8-mark question (4 AO1 + 4 AO2 = 8 marks): ${question.prompt}\n\n` +
+      (essayScheme.source ? `Printed source the student must use:\n"""${essayScheme.source}"""\n\n` : "Printed source: (none supplied)\n\n") +
+      `Indicative content — creditworthy facts (from the revision pages):\n${indicBullets}\n` +
+      (scheme?.marking_notes ? `\nMarking notes: ${scheme.marking_notes}\n` : "") +
+      `\nStudent answer:\n"""${answerText}"""`;
+  } else if (translation) {
     userText =
       `Sentence to translate from ${subject} into English (max ${question.marks} marks):\n${question.prompt}\n\n` +
       (scheme?.model_answer ? `Correct translation: ${scheme.model_answer}\n` : "Correct translation: (not supplied — judge from the original)\n") +
@@ -141,8 +209,8 @@ async function markOne(apiKey: string, question: { prompt: string; marks: number
       (scheme?.marking_notes ? `Marking notes: ${scheme.marking_notes}\n` : "") +
       `\nStudent answer:\n"""${answerText}"""`;
   }
-  const system = translation ? TRANSLATION_SYSTEM(subject) : POINTS_SYSTEM(subject);
-  const schema = tagging ? TRANSLATION_SCHEMA_NUGGETS : (translation ? TRANSLATION_SCHEMA : POINTS_SCHEMA);
+  const system = essay ? ESSAY_SYSTEM(stemType) : translation ? TRANSLATION_SYSTEM(subject) : POINTS_SYSTEM(subject);
+  const schema = essay ? ESSAY_SCHEMA : tagging ? TRANSLATION_SCHEMA_NUGGETS : (translation ? TRANSLATION_SCHEMA : POINTS_SCHEMA);
 
   let usage = { input_tokens: 0, output_tokens: 0 };
   try {
@@ -150,7 +218,7 @@ async function markOne(apiKey: string, question: { prompt: string; marks: number
       method: "POST",
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
-        model: MODEL, max_tokens: MAX_OUTPUT_TOKENS, system,
+        model: MODEL, max_tokens: essay ? 900 : MAX_OUTPUT_TOKENS, system,
         messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
         output_config: { format: { type: "json_schema", schema } },
       }),
@@ -161,10 +229,17 @@ async function markOne(apiKey: string, question: { prompt: string; marks: number
     const block = (anth.content || []).find((b: { type: string }) => b.type === "text");
     const parsed = JSON.parse(block?.text ?? "{}");
     const marks = Math.max(0, Math.min(question.marks, Math.round(Number(parsed.marks_awarded ?? 0))));
-    const matched = translation
-      ? [...(Array.isArray(parsed.serious_errors) ? parsed.serious_errors : []).map((e: string) => `serious: ${e}`),
-         ...(Array.isArray(parsed.minor_errors) ? parsed.minor_errors : []).map((e: string) => `minor: ${e}`)]
-      : (Array.isArray(parsed.matched_points) ? parsed.matched_points : []);
+    const arr = (v: unknown) => (Array.isArray(v) ? v as string[] : []);
+    const matched = essay
+      ? [...arr(parsed.ao1_credited).map((p: string) => `AO1: ${p}`),
+         ...arr(parsed.ao2_credited).map((p: string) => `AO2: ${p}`),
+         ...(parsed.source_used ? [] : ["missing: a reference to the source"]),
+         ...(parsed.conclusion ? [] : ["missing: a concluding judgement"]),
+         ...arr(parsed.missing).map((m: string) => `next: ${m}`)]
+      : translation
+      ? [...arr(parsed.serious_errors).map((e: string) => `serious: ${e}`),
+         ...arr(parsed.minor_errors).map((e: string) => `minor: ${e}`)]
+      : arr(parsed.matched_points);
     const concepts = tagging && Array.isArray(parsed.concepts) ? parsed.concepts.map((c: unknown) => String(c)) : [];
     const tested = tagging && Array.isArray(parsed.tested) ? parsed.tested.map((c: unknown) => String(c)) : [];
     return { marks, matched, rationale: String(parsed.rationale ?? "").slice(0, 800), usage, concepts, tested };
@@ -289,11 +364,11 @@ Deno.serve(async (req) => {
 
     questions = questions.slice(0, MAX_QUESTIONS);
     const qids = questions.map((q) => q.id);
-    const schemes: Record<string, { scheme_points?: unknown; model_answer?: string; marking_notes?: string }> = {};
+    const schemes: Record<string, { scheme_points?: unknown; model_answer?: string; marking_notes?: string; essay_scheme?: unknown }> = {};
     const existing: Record<string, { attempts: number; final_marks: number | null; ai_rationale: string | null }> = {};
     if (qids.length) {
       const schemeTable = questionSource === "bank" ? "bank_assessment_mark_schemes" : "weekly_test_mark_schemes";
-      const { data: sc } = await svc.from(schemeTable).select("question_id, scheme_points, model_answer, marking_notes").in("question_id", qids);
+      const { data: sc } = await svc.from(schemeTable).select("question_id, scheme_points, model_answer, marking_notes, essay_scheme").in("question_id", qids);
       (sc || []).forEach((s) => { schemes[s.question_id] = s; });
       const { data: ex } = await svc.from("weekly_test_answers").select("question_id, attempts, final_marks, ai_rationale").eq("submission_id", submissionId);
       (ex || []).forEach((a) => { existing[a.question_id] = a; });
