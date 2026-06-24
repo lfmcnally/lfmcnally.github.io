@@ -26,6 +26,7 @@
     todo:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l2 2 4-4"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>',
     bank:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l2-3h6l2 3h6a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg>',
     weekly:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M8 13h7M8 17h5"/></svg>',
+    quick:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
     classes:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 6a3 3 0 0 1 0 6M16 20a6 6 0 0 0-3-5"/></svg>',
     donow:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
     tools:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/></svg>',
@@ -49,6 +50,7 @@
       { key: 'classes',  label: 'Classes',         href: '/version2/tracking/teacher.html',          icon: I.classes },
       { key: 'bank',     label: 'Assessment bank', href: '/version2/tracking/bank.html',             icon: I.bank },
       { key: 'weekly',   label: 'Weekly tests',    href: '/version2/tracking/weekly-test.html',      icon: I.weekly },
+      { key: 'quick',    label: 'Quick mark',      href: '/version2/tracking/quick-mark.html',       icon: I.quick },
       { key: 'donow',    label: 'Do Now',          href: '/version2/tracking/do-now.html',           icon: I.donow },
       TOOLS
     ]
@@ -96,6 +98,7 @@
         <div class="tnav-create-pop" data-create-pop hidden>
           <a href="/version2/tracking/teacher.html?create=class">New class</a>
           <a href="/version2/tracking/weekly-test.html">New weekly test</a>
+          <a href="/version2/tracking/quick-mark.html">Quick mark an answer</a>
           <a href="/version2/tracking/bank.html">Assign an assessment</a>
         </div>
       </div>` : '';

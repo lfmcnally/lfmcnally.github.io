@@ -175,7 +175,8 @@ async function markOne(apiKey: string, question: { prompt: string; marks: number
   const translation = style === "translation";
   const essay = style === "essay";
   const tagging = translation && nuggets.length > 0;
-  const essayScheme = (essay && scheme?.essay_scheme && typeof scheme.essay_scheme === "object")
+  const essayScheme: { stem_type?: string; source?: string; indicative?: unknown } =
+    (essay && scheme?.essay_scheme && typeof scheme.essay_scheme === "object")
     ? scheme.essay_scheme as { stem_type?: string; source?: string; indicative?: unknown } : {};
   const stemType = essayScheme.stem_type === "in_what_ways" ? "in_what_ways" : "evaluative";
   let userText: string;
