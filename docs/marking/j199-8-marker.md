@@ -88,3 +88,11 @@ the Panathenaic frieze, the peplos being folded.)
 
 The AO2 **WEIGHTING** rule in the prompt is what separates these two:
 narration-heavy answers cap at Level 2; Levels 3–4 need most points analysed.
+
+**Scope / false-inaccuracy guard.** The spec is Greek **and** Roman, so
+comparisons to Roman festivals (Saturnalia, Lupercalia), temples (Pantheon,
+Portunus) or founders (Aeneas, Romulus) are on-spec and must NOT be flagged as
+"anachronistic". The inaccuracy bar is *material* errors only (e.g. theoric fund
+→ City Dionysia), not minor imprecision where the underlying fact is sound
+(peplos "woven" vs the source's "folded" — women did weave it). An early run
+wrongly flagged both of these on Henry and dropped him from 7 to 5.

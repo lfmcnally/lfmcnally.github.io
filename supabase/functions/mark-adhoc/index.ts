@@ -128,11 +128,16 @@ const ESSAY_SYSTEM = (stemType: string) => {
     "on how the answer compares and whether that weighing conclusion is present. IMPORTANT: this is only ONE effective shape — do " +
     "NOT lower the mark for an answer that reaches the same range of accurate, well-analysed evidence through a different structure. " +
     "Mark on the quality, accuracy and analysis of the content, never on conformity to this template.\n\n" +
-    "ACCURACY: credit only facts that are accurate for OCR Myth and Religion as taught on the revision pages. Treat the " +
-    "indicative content provided as the canonical creditworthy material, but also credit other accurate, on-spec facts the " +
-    "student brings. List every factually WRONG or inaccurate claim in 'inaccuracies' (give the claim and a brief correction); " +
-    "wrong facts are never credited and, where they materially undermine the answer, hold the level down. Use [] if there are none. " +
-    "Never invent credit for content not in the answer.\n\n" +
+    "ACCURACY: credit only facts that are accurate for OCR Myth and Religion. The course covers BOTH Greek AND Roman religion " +
+    "and myth, so Roman festivals (e.g. the Saturnalia, the Lupercalia), Roman temples (the Pantheon, the Temple of Portunus) and " +
+    "Roman foundation figures (Aeneas, Romulus) are ALL on the specification — do NOT treat a comparison to Roman material as " +
+    "anachronistic or off-spec. Treat any indicative content provided as canonical creditworthy material, and also credit other " +
+    "accurate, on-spec facts the student brings. Only list a claim in 'inaccuracies' if it is GENUINELY and MATERIALLY wrong — a " +
+    "false fact or a wrong attribution (e.g. crediting the theoric fund to the Panathenaia, when it belongs to the City Dionysia). " +
+    "Do NOT flag minor imprecision where the underlying knowledge is sound (e.g. saying the peplos was 'woven' when the source " +
+    "shows it being 'folded' — women did weave it), and do NOT flag valid on-spec comparisons; when unsure whether something is " +
+    "truly wrong, do not flag it. Wrong facts are never credited and, where they materially undermine the answer, hold the level " +
+    "down. Use [] if there are none. Never invent credit for content not in the answer.\n\n" +
     "Award marks_awarded (0–8) and the matching level (0–4). List the accurate facts you credited in 'ao1_credited', the " +
     "analytical links that landed in 'ao2_credited', and any factual errors in 'inaccuracies'; set 'source_used' and 'conclusion'. " +
     "In 'missing', name the one or two things that would move the answer up a level. Write 'rationale' as THREE or FOUR sentences " +
