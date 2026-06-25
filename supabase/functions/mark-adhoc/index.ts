@@ -1,23 +1,34 @@
-// Supabase Edge Function: mark-answer
+// Supabase Edge Function: mark-adhoc
 // ---------------------------------------------------------------------------
-// Marks one student short-answer against the teacher's mark scheme with Claude,
-// releases the mark live, and logs token usage. See WEEKLY_TEST_PLAN.md.
+// Ad-hoc "quick mark" for TEACHERS. Mark a single question + answer typed in
+// on the spot — e.g. transcribing a handwritten answer a student handed you —
+// without creating a test, a class assignment or a submission. Nothing is
+// persisted except the usage-ledger row (so the teacher's monthly budget still
+// applies); the mark is returned to the caller and shown in the UI.
 //
-// This function is the ONLY thing that ever reads a mark scheme or calls the
-// Anthropic API, and the only writer of weekly_test_answers. Students POST their
-// answer with their Supabase JWT; the function:
-//   1. verifies the JWT and that the caller owns the submission,
-//   2. checks the test is open + in-window, and the answer length cap,
-//   3. enforces the per-question attempt cap, the per-teacher monthly budget,
-//      and a per-student rate limit  (cost controls),
-//   4. reads the mark scheme with the service role,
-//   5. marks with Claude (structured JSON output),
-//   6. writes the answer row + a usage-ledger row (real token counts).
+// It reuses the SAME marking styles as mark-answer / mark-test:
+//   points      — credit creditworthy scheme points
+//   translation — OCR holistic /5 sense grid (Latin/Greek)
+//   essay       — OCR GCSE Classical Civ 8-marker, 4-level grid (4 AO1 + 4 AO2)
 //
-// Secrets / env:
-//   ANTHROPIC_API_KEY  - the marking key (supabase secrets set ANTHROPIC_API_KEY=…)
-//   MARK_MODEL         - optional; defaults to claude-sonnet-4-6
-//   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY - platform-injected
+// Request (teacher JWT):
+//   POST {
+//     subject?: "Latin" | "Classical Greek" | "Classical Civilisation",
+//     mark_style: "points" | "translation" | "essay",
+//     marks: number,
+//     prompt: string,
+//     answer_text: string,
+//     scheme?: { scheme_points?, model_answer?, marking_notes?, essay_scheme? }
+//   }
+// Returns: { marks, max, level?, source_used?, conclusion?, matched, rationale, cost_micros }
+//          or { paused, message } when over the monthly budget.
+//
+// Secrets/env: ANTHROPIC_API_KEY, optional MARK_MODEL (default claude-sonnet-4-6),
+// plus the platform-injected SUPABASE_URL / SUPABASE_ANON_KEY / SERVICE_ROLE_KEY.
+//
+// NOTE: the prompt/schema definitions below are intentionally a copy of those in
+// mark-answer / mark-test. A future cleanup could lift them into a shared module
+// (_shared/marking.ts) so the three functions can't drift.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -27,31 +38,22 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...cors, "Content-Type": "application/json" },
-  });
+  return new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 }
 
-// £ per 1,000,000 tokens (input/output). $ figures used as £ → a conservative
-// (slightly high) estimate, which makes the budget cap safe. cost_micros (micro-
-// pounds) = input*inRate + output*outRate.
 const PRICING: Record<string, { in: number; out: number }> = {
   "claude-sonnet-4-6": { in: 3, out: 15 },
   "claude-haiku-4-5":  { in: 1, out: 5 },
   "claude-opus-4-8":   { in: 5, out: 25 },
 };
-
 const MODEL = Deno.env.get("MARK_MODEL") ?? "claude-sonnet-4-6";
-const MAX_OUTPUT_TOKENS = 512;             // hard output ceiling per call
-const RATE_PER_HOUR = 60;                  // per-student marking calls / hour
-const DEBOUNCE_MS = 3000;                  // min gap between a student's calls
+const MAX_OUTPUT_TOKENS = 512;
+const MAX_ANSWER_CHARS = 6000;     // generous — teachers may transcribe a full essay
 
-// The class type tells us which subject (and so which marking voice) to use.
-function subjectFor(t?: string | null): string {
-  const s = (t || "").toLowerCase();
-  if (s.startsWith("latin")) return "Latin";
-  if (s.startsWith("greek")) return "Classical Greek";
+function subjectFor(s?: string | null): string {
+  const t = (s || "").toLowerCase();
+  if (t.startsWith("latin")) return "Latin";
+  if (t.startsWith("greek") || t.includes("greek")) return "Classical Greek";
   return "Classical Civilisation";
 }
 
@@ -64,7 +66,6 @@ const POINTS_SYSTEM = (subject: string) =>
   "and constructive: say what you credited and, if marks were lost, what to add next time. Do " +
   "not refer to \"the student\" in the third person, and do not restate the marks total.";
 
-// OCR GCSE Latin/Greek (J282/J292) holistic translation grid.
 const TRANSLATION_SYSTEM = (subject: string) =>
   `You are an OCR GCSE ${subject} examiner marking ONE sentence translated from ${subject} into ` +
   "English with the official holistic 5-mark grid. Judge the PROPORTION OF SENSE communicated " +
@@ -90,9 +91,6 @@ const TRANSLATION_SYSTEM = (subject: string) =>
   "List the band-defining issues in 'serious_errors' and 'minor_errors'. Write 'rationale' as ONE short " +
   "sentence spoken directly TO the student (\"you\"), naming what set the band; do not restate the mark.";
 
-// OCR GCSE Classical Civilisation (J199/11) 8-marker, marked holistically on
-// OCR's 4-level grid (4 AO1 + 4 AO2), operationalised by the department house
-// structure. See docs/marking/j199-8-marker.md.
 const ESSAY_SYSTEM = (stemType: string) => {
   const inWhatWays = stemType === "in_what_ways";
   return "You are an OCR GCSE Classical Civilisation examiner marking ONE 8-mark extended response from the " +
@@ -158,11 +156,11 @@ const ESSAY_SCHEMA = {
   properties: {
     marks_awarded: { type: "integer", description: "0–8." },
     level:         { type: "integer", description: "OCR level 0–4." },
-    ao1_credited:  { type: "array", items: { type: "string" }, description: "Accurate facts the student used (AO1)." },
-    ao2_credited:  { type: "array", items: { type: "string" }, description: "Analytical links that tied a fact to the question (AO2)." },
-    source_used:   { type: "boolean", description: "Did the answer quote or name a feature of the printed source?" },
-    conclusion:    { type: "boolean", description: "Is there a judgement/synthesis at the end?" },
-    missing:       { type: "array", items: { type: "string" }, description: "One or two things that would move the answer up a level." },
+    ao1_credited:  { type: "array", items: { type: "string" } },
+    ao2_credited:  { type: "array", items: { type: "string" } },
+    source_used:   { type: "boolean" },
+    conclusion:    { type: "boolean" },
+    missing:       { type: "array", items: { type: "string" } },
     rationale:     { type: "string", description: "Two to three sentences of feedback addressed to the student as 'you'." },
   },
 };
@@ -172,186 +170,115 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
   try {
-    // -- 1. Auth ------------------------------------------------------------
+    // -- 1. Auth — teachers only -------------------------------------------
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "missing bearer token" }, 401);
-
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData?.user) return json({ error: "not signed in" }, 401);
     const uid = userData.user.id;
 
-    // Privileged client — reads schemes, writes answers/usage. Bypasses RLS.
-    const svc = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const svc = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false, autoRefreshToken: false } });
+    const { data: profile } = await svc.from("users").select("role").eq("id", uid).maybeSingle();
+    if (profile?.role !== "teacher") return json({ error: "teachers only" }, 403);
 
     // -- 2. Payload ---------------------------------------------------------
-    let payload: { submission_id?: string; question_id?: string; answer_text?: string };
+    let payload: {
+      subject?: string; mark_style?: string; marks?: number; prompt?: string; answer_text?: string;
+      scheme?: { scheme_points?: unknown; model_answer?: string; marking_notes?: string; essay_scheme?: { stem_type?: string; source?: string; indicative?: unknown } };
+    };
     try { payload = await req.json(); } catch { return json({ error: "invalid JSON" }, 400); }
-    const submissionId = (payload.submission_id ?? "").trim();
-    const questionId = (payload.question_id ?? "").trim();
-    const answerText = (payload.answer_text ?? "").trim();
-    if (!submissionId || !questionId) return json({ error: "missing submission_id / question_id" }, 400);
+
+    const style = ["points", "translation", "essay"].includes(payload.mark_style ?? "") ? payload.mark_style! : "points";
+    const subject = subjectFor(payload.subject);
+    const prompt = (payload.prompt ?? "").trim();
+    const answerText = (payload.answer_text ?? "").trim().slice(0, MAX_ANSWER_CHARS);
+    const maxMarks = Math.max(1, Math.min(30, Math.round(Number(payload.marks ?? (style === "essay" ? 8 : style === "translation" ? 5 : 1)))));
+    if (!prompt) return json({ error: "missing question" }, 400);
     if (!answerText) return json({ error: "empty answer" }, 400);
+    const scheme = payload.scheme ?? {};
 
-    // -- 3. Ownership + window ---------------------------------------------
-    const { data: sub } = await svc
-      .from("weekly_test_submissions")
-      .select("id, test_id, student_id")
-      .eq("id", submissionId).maybeSingle();
-    if (!sub || sub.student_id !== uid) return json({ error: "not your submission" }, 403);
-
-    const { data: test } = await svc
-      .from("weekly_tests")
-      .select("id, teacher_id, class_id, status, due_at, max_attempts_per_question, max_answer_chars")
-      .eq("id", sub.test_id).maybeSingle();
-    if (!test) return json({ error: "test not found" }, 404);
-    if (test.status !== "open") return json({ error: "test is not open" }, 403);
-    if (test.due_at && Date.parse(test.due_at) < Date.now()) return json({ error: "past the due date" }, 403);
-
-    if (answerText.length > test.max_answer_chars) {
-      return json({ error: `answer too long (max ${test.max_answer_chars} characters)` }, 400);
-    }
-
-    // Subject (Latin / Greek / Classical Civilisation) drives the marking voice.
-    const { data: cls } = await svc.from("v2_classes").select("type").eq("id", test.class_id).maybeSingle();
-    const subject = subjectFor(cls?.type);
-
-    const { data: question } = await svc
-      .from("weekly_test_questions")
-      .select("id, test_id, prompt, marks, mark_style")
-      .eq("id", questionId).maybeSingle();
-    if (!question || question.test_id !== test.id) return json({ error: "question not in this test" }, 400);
-
-    // -- 4. Attempt cap -----------------------------------------------------
-    const { data: existing } = await svc
-      .from("weekly_test_answers")
-      .select("id, attempts, final_marks, ai_rationale")
-      .eq("submission_id", submissionId).eq("question_id", questionId).maybeSingle();
-    const attempts = existing?.attempts ?? 0;
-    if (attempts >= test.max_attempts_per_question) {
-      return json({
-        capped: true, attempts_left: 0,
-        marks: existing?.final_marks ?? null, max: question.marks,
-        rationale: existing?.ai_rationale ?? null,
-      });
-    }
-
-    // -- 5. Budget cap (per teacher, this calendar month) -------------------
+    // -- 3. Budget cap (per teacher, this calendar month) -------------------
     const monthStart = new Date();
     monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0);
-    const { data: budgetRow } = await svc
-      .from("weekly_test_budget")
-      .select("monthly_cost_cap_micros, monthly_call_cap")
-      .eq("teacher_id", test.teacher_id).maybeSingle();
+    const { data: budgetRow } = await svc.from("weekly_test_budget").select("monthly_cost_cap_micros, monthly_call_cap").eq("teacher_id", uid).maybeSingle();
     const costCap = budgetRow?.monthly_cost_cap_micros ?? 5000000; // £5 default
     const callCap = budgetRow?.monthly_call_cap ?? 5000;
-    const { data: monthUsage } = await svc
-      .from("weekly_test_marking_usage")
-      .select("cost_micros")
-      .eq("teacher_id", test.teacher_id)
-      .gte("created_at", monthStart.toISOString());
+    const { data: monthUsage } = await svc.from("weekly_test_marking_usage").select("cost_micros").eq("teacher_id", uid).gte("created_at", monthStart.toISOString());
     const spent = (monthUsage ?? []).reduce((s, r) => s + Number(r.cost_micros || 0), 0);
     if (spent >= costCap || (monthUsage?.length ?? 0) >= callCap) {
-      return json({ paused: true, message: "Marking is paused for now — your teacher will mark this." });
+      return json({ paused: true, message: "You've reached this month's marking budget — raise it on the Weekly tests → Usage tab." });
     }
 
-    // -- 6. Per-student rate limit -----------------------------------------
-    const { data: recent } = await svc
-      .from("weekly_test_marking_usage")
-      .select("created_at")
-      .eq("student_id", uid)
-      .gte("created_at", new Date(Date.now() - 3600_000).toISOString())
-      .order("created_at", { ascending: false }).limit(RATE_PER_HOUR + 1);
-    if ((recent?.length ?? 0) >= RATE_PER_HOUR) return json({ error: "too many requests this hour" }, 429);
-    if (recent?.[0] && Date.now() - Date.parse(recent[0].created_at) < DEBOUNCE_MS) {
-      return json({ error: "slow down a moment" }, 429);
-    }
-
-    // -- 7. Read the mark scheme (service role only) -----------------------
-    const { data: scheme } = await svc
-      .from("weekly_test_mark_schemes")
-      .select("scheme_points, model_answer, marking_notes, essay_scheme")
-      .eq("question_id", questionId).maybeSingle();
-
-    // -- 8. Mark with Claude (structured JSON output) ----------------------
+    // -- 4. Build the prompt ------------------------------------------------
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) return json({ error: "marking is not configured" }, 500);
 
-    const style = question.mark_style ?? "points";
-    const translation = style === "translation";
     const essay = style === "essay";
+    const translation = style === "translation";
     const essayScheme: { stem_type?: string; source?: string; indicative?: unknown } =
-      (essay && scheme?.essay_scheme && typeof scheme.essay_scheme === "object")
-      ? scheme.essay_scheme as { stem_type?: string; source?: string; indicative?: unknown } : {};
+      (essay && scheme.essay_scheme && typeof scheme.essay_scheme === "object") ? scheme.essay_scheme : {};
     const stemType = essayScheme.stem_type === "in_what_ways" ? "in_what_ways" : "evaluative";
+
     let userText: string;
     if (essay) {
       const indicative: string[] = Array.isArray(essayScheme.indicative) ? (essayScheme.indicative as unknown[]).map((s) => String(s)).filter(Boolean) : [];
       const indicBullets = indicative.map((s) => `- ${s}`).join("\n") || "- (none supplied — judge accuracy from OCR Myth & Religion taught content)";
       userText =
-        `8-mark question (4 AO1 + 4 AO2 = 8 marks): ${question.prompt}\n\n` +
+        `8-mark question (4 AO1 + 4 AO2 = 8 marks): ${prompt}\n\n` +
         (essayScheme.source ? `Printed source the student must use:\n"""${essayScheme.source}"""\n\n` : "Printed source: (none supplied)\n\n") +
         `Indicative content — creditworthy facts (from the revision pages):\n${indicBullets}\n` +
-        (scheme?.marking_notes ? `\nMarking notes: ${scheme.marking_notes}\n` : "") +
+        (scheme.marking_notes ? `\nMarking notes: ${scheme.marking_notes}\n` : "") +
         `\nStudent answer:\n"""${answerText}"""`;
     } else if (translation) {
       userText =
-        `Sentence to translate from ${subject} into English (max ${question.marks} marks):\n${question.prompt}\n\n` +
-        (scheme?.model_answer ? `Correct translation: ${scheme.model_answer}\n` : "Correct translation: (not supplied — judge from the original)\n") +
-        (scheme?.marking_notes ? `Marking notes: ${scheme.marking_notes}\n` : "") +
+        `Sentence to translate from ${subject} into English (max ${maxMarks} marks):\n${prompt}\n\n` +
+        (scheme.model_answer ? `Correct translation: ${scheme.model_answer}\n` : "Correct translation: (not supplied — judge from the original)\n") +
+        (scheme.marking_notes ? `Marking notes: ${scheme.marking_notes}\n` : "") +
         `\nStudent's English translation:\n"""${answerText}"""`;
     } else {
-      const points: Array<{ text?: string; marks?: number }> = Array.isArray(scheme?.scheme_points) ? scheme!.scheme_points : [];
-      const schemeBullets = points
-        .map((p) => `- ${p.text ?? ""}${p.marks ? ` (${p.marks} mark${p.marks > 1 ? "s" : ""})` : ""}`)
-        .join("\n") || "- (no points listed)";
+      const points: Array<{ text?: string; marks?: number }> = Array.isArray(scheme.scheme_points) ? scheme.scheme_points as [] : [];
+      const bullets = points.map((p) => `- ${p.text ?? ""}${p.marks ? ` (${p.marks} mark${p.marks > 1 ? "s" : ""})` : ""}`).join("\n") || "- (no points listed)";
       userText =
-        `Question (max ${question.marks} marks): ${question.prompt}\n\n` +
-        `Mark scheme — creditworthy points:\n${schemeBullets}\n` +
-        (scheme?.model_answer ? `\nModel answer: ${scheme.model_answer}\n` : "") +
-        (scheme?.marking_notes ? `Marking notes: ${scheme.marking_notes}\n` : "") +
+        `Question (max ${maxMarks} marks): ${prompt}\n\n` +
+        `Mark scheme — creditworthy points:\n${bullets}\n` +
+        (scheme.model_answer ? `\nModel answer: ${scheme.model_answer}\n` : "") +
+        (scheme.marking_notes ? `Marking notes: ${scheme.marking_notes}\n` : "") +
         `\nStudent answer:\n"""${answerText}"""`;
     }
 
+    const system = essay ? ESSAY_SYSTEM(stemType) : translation ? TRANSLATION_SYSTEM(subject) : POINTS_SYSTEM(subject);
+    const schema = essay ? ESSAY_SCHEMA : translation ? TRANSLATION_SCHEMA : POINTS_SCHEMA;
+
+    // -- 5. Mark with Claude ------------------------------------------------
     const anthRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
-        model: MODEL,
-        max_tokens: essay ? 900 : MAX_OUTPUT_TOKENS,
-        system: essay ? ESSAY_SYSTEM(stemType) : translation ? TRANSLATION_SYSTEM(subject) : POINTS_SYSTEM(subject),
+        model: MODEL, max_tokens: essay ? 900 : MAX_OUTPUT_TOKENS, system,
         messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
-        output_config: { format: { type: "json_schema", schema: essay ? ESSAY_SCHEMA : translation ? TRANSLATION_SCHEMA : POINTS_SCHEMA } },
+        output_config: { format: { type: "json_schema", schema } },
       }),
     });
-
     const anth = await anthRes.json().catch(() => null);
     const usage = anth?.usage ?? { input_tokens: 0, output_tokens: 0 };
-
-    // Always log spend if tokens were consumed (keeps the budget cap honest).
     const price = PRICING[MODEL] ?? PRICING["claude-sonnet-4-6"];
     const costMicros = Math.round((usage.input_tokens || 0) * price.in + (usage.output_tokens || 0) * price.out);
     await svc.from("weekly_test_marking_usage").insert({
-      teacher_id: test.teacher_id, test_id: test.id, student_id: uid, question_id: questionId,
-      model: MODEL, input_tokens: usage.input_tokens || 0, output_tokens: usage.output_tokens || 0,
-      cost_micros: costMicros,
+      teacher_id: uid, test_id: null, student_id: null, question_id: null,
+      model: MODEL, input_tokens: usage.input_tokens || 0, output_tokens: usage.output_tokens || 0, cost_micros: costMicros,
     });
 
-    if (!anthRes.ok || anth?.stop_reason === "refusal") {
-      return json({ error: "marking unavailable, please try again" }, 502);
-    }
-    const textBlock = (anth.content || []).find((b: { type: string }) => b.type === "text");
-    let parsed: { marks_awarded?: number; matched_points?: string[]; minor_errors?: string[]; serious_errors?: string[];
-      ao1_credited?: string[]; ao2_credited?: string[]; source_used?: boolean; conclusion?: boolean; missing?: string[]; rationale?: string };
-    try { parsed = JSON.parse(textBlock?.text ?? "{}"); } catch { return json({ error: "could not parse marks" }, 502); }
+    if (!anthRes.ok || anth?.stop_reason === "refusal") return json({ error: "marking unavailable, please try again" }, 502);
+    const block = (anth.content || []).find((b: { type: string }) => b.type === "text");
+    let parsed: {
+      marks_awarded?: number; level?: number; matched_points?: string[]; minor_errors?: string[]; serious_errors?: string[];
+      ao1_credited?: string[]; ao2_credited?: string[]; source_used?: boolean; conclusion?: boolean; missing?: string[]; rationale?: string;
+    };
+    try { parsed = JSON.parse(block?.text ?? "{}"); } catch { return json({ error: "could not parse marks" }, 502); }
 
-    // Clamp to the question's range as a guard.
-    const marks = Math.max(0, Math.min(question.marks, Math.round(Number(parsed.marks_awarded ?? 0))));
+    const marks = Math.max(0, Math.min(maxMarks, Math.round(Number(parsed.marks_awarded ?? 0))));
     const arr = (v: unknown) => (Array.isArray(v) ? v as string[] : []);
     const matched = essay
       ? [...arr(parsed.ao1_credited).map((p) => `AO1: ${p}`),
@@ -363,18 +290,14 @@ Deno.serve(async (req) => {
       ? [...arr(parsed.serious_errors).map((e) => `serious: ${e}`),
          ...arr(parsed.minor_errors).map((e) => `minor: ${e}`)]
       : arr(parsed.matched_points);
-    const rationale = String(parsed.rationale ?? "").slice(0, 800);
-
-    // -- 9. Write the answer (service role; live release) -------------------
-    await svc.from("weekly_test_answers").upsert({
-      submission_id: submissionId, question_id: questionId, answer_text: answerText,
-      ai_marks: marks, ai_max: question.marks, ai_matched: matched, ai_rationale: rationale,
-      final_marks: marks, marked_by: "ai", attempts: attempts + 1, updated_at: new Date().toISOString(),
-    }, { onConflict: "submission_id,question_id" });
 
     return json({
-      marks, max: question.marks, rationale, matched,
-      attempts_left: test.max_attempts_per_question - attempts - 1,
+      marks, max: maxMarks,
+      level: essay ? Math.max(0, Math.min(4, Math.round(Number(parsed.level ?? 0)))) : undefined,
+      source_used: essay ? !!parsed.source_used : undefined,
+      conclusion: essay ? !!parsed.conclusion : undefined,
+      matched, rationale: String(parsed.rationale ?? "").slice(0, 800),
+      cost_micros: costMicros,
     });
   } catch (e) {
     return json({ error: "unexpected error", detail: String(e) }, 500);
