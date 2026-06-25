@@ -144,6 +144,10 @@ const ESSAY_SYSTEM = (stemType: string) => {
       : "For this evaluative stem it must commit to one side and say why it outweighs.\n\n" +
         "STEM: this is an EVALUATIVE question ('how far / to what extent / who is more…'). Reward genuine argument on BOTH " +
         "sides plus a committed conclusion.\n\n") +
+    "WEIGHTING: AO2 (analysis) is half the marks. An answer that mainly NARRATES accurate facts with little analysis tying them " +
+    "to the question should not exceed Level 2 (4 marks), however wide its knowledge; reserve Levels 3–4 for answers where most " +
+    "points are genuinely analysed against the question. Give NO credit for vague generalisations, or for 'there is no evidence / " +
+    "we don't know' filler that makes no point.\n\n" +
     "PREFERRED STRUCTURE (use ONLY to inform your structure feedback): a full-mark answer typically makes about THREE AO1+AO2 " +
     "pairs on one side, THREE on the other, then a short CONCLUSION that weighs the two sides and commits to one. Comment briefly " +
     "on how the answer compares and whether that weighing conclusion is present. IMPORTANT: this is only ONE effective shape — do " +
