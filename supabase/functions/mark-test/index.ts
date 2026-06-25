@@ -42,6 +42,36 @@ function subjectFor(t?: string | null): string {
   return "Classical Civilisation";
 }
 
+// OCR Myth & Religion revision topics. When an essay question is tagged with one
+// (essay_scheme.topic), the marker fetches that revision page and grounds its
+// accuracy judgement in the taught content. Slugs match the site paths.
+const MYTH_TOPICS: Record<string, string> = {
+  "the-gods": "The gods",
+  "heracles": "The universal hero (Heracles)",
+  "temples": "Religion and the city: temples",
+  "foundation-stories": "Myth and the city: foundation stories",
+  "festivals": "Festivals",
+  "myth-and-symbols-of-power": "Myth and symbols of power",
+  "death-and-burial": "Death and burial",
+  "journeying-to-the-underworld": "Journeying to the underworld",
+};
+const REVISION_BASE = "https://lfmcnally.github.io/version2/subjects/classical-civilisation/myth-and-religion";
+const TAUGHT_MAX_CHARS = 20000;
+
+async function fetchTaught(topic?: string | null): Promise<string | null> {
+  if (!topic || !(topic in MYTH_TOPICS)) return null;
+  try {
+    const res = await fetch(`${REVISION_BASE}/${topic}/revision.html`);
+    if (!res.ok) return null;
+    let html = await res.text();
+    html = html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ");
+    const text = html.replace(/<[^>]+>/g, " ")
+      .replace(/&amp;/g, "&").replace(/&middot;/g, "·").replace(/&mdash;/g, "—").replace(/&ndash;/g, "–")
+      .replace(/&rsquo;/g, "’").replace(/&[a-z]+;/gi, " ").replace(/\s+/g, " ").trim();
+    return text.slice(0, TAUGHT_MAX_CHARS) || null;
+  } catch (_e) { return null; }
+}
+
 const POINTS_SYSTEM = (subject: string) =>
   `You are marking a GCSE ${subject} short answer against the teacher's ` +
   "mark scheme. Award whole marks only, between 0 and the maximum. Credit a point if the " +
@@ -162,7 +192,9 @@ const ESSAY_SYSTEM = (stemType: string) => {
     "Do NOT flag minor imprecision where the underlying knowledge is sound (e.g. saying the peplos was 'woven' when the source " +
     "shows it being 'folded' — women did weave it), and do NOT flag valid on-spec comparisons; when unsure whether something is " +
     "truly wrong, do not flag it. Wrong facts are never credited and, where they materially undermine the answer, hold the level " +
-    "down. Use [] if there are none. Never invent credit for content not in the answer.\n\n" +
+    "down. Use [] if there are none. If AUTHORITATIVE TAUGHT CONTENT is provided below, treat it as the canonical source of " +
+    "truth for what is accurate and on-spec: credit facts consistent with it, and never flag as inaccurate anything it supports. " +
+    "Never invent credit for content not in the answer.\n\n" +
     "Award marks_awarded (0–8) and the matching level (0–4). List the accurate facts you credited in 'ao1_credited', the " +
     "analytical links that landed in 'ao2_credited', and any factual errors in 'inaccuracies'; set 'source_used' and 'conclusion'. " +
     "In 'missing', name the one or two things that would move the answer up a level. Write 'rationale' as THREE or FOUR sentences " +
@@ -192,10 +224,12 @@ async function markOne(apiKey: string, question: { prompt: string; marks: number
   const translation = style === "translation";
   const essay = style === "essay";
   const tagging = translation && nuggets.length > 0;
-  const essayScheme: { stem_type?: string; source?: string; indicative?: unknown } =
+  const essayScheme: { stem_type?: string; source?: string; indicative?: unknown; topic?: string } =
     (essay && scheme?.essay_scheme && typeof scheme.essay_scheme === "object")
-    ? scheme.essay_scheme as { stem_type?: string; source?: string; indicative?: unknown } : {};
+    ? scheme.essay_scheme as { stem_type?: string; source?: string; indicative?: unknown; topic?: string } : {};
   const stemType = essayScheme.stem_type === "in_what_ways" ? "in_what_ways" : "evaluative";
+  const topic = (essayScheme.topic ?? "").trim();
+  const taught = essay ? await fetchTaught(topic) : null;
   let userText: string;
   if (essay) {
     const indicative: string[] = Array.isArray(essayScheme.indicative) ? (essayScheme.indicative as unknown[]).map((s) => String(s)).filter(Boolean) : [];
@@ -203,6 +237,7 @@ async function markOne(apiKey: string, question: { prompt: string; marks: number
     userText =
       `8-mark question (4 AO1 + 4 AO2 = 8 marks): ${question.prompt}\n\n` +
       (essayScheme.source ? `Printed source the student must use:\n"""${essayScheme.source}"""\n\n` : "Printed source: (none supplied)\n\n") +
+      (taught ? `AUTHORITATIVE TAUGHT CONTENT — OCR Myth & Religion revision ("${MYTH_TOPICS[topic]}"). Treat this as the canonical source of truth for what is accurate and on-spec:\n"""${taught}"""\n\n` : "") +
       `Indicative content — creditworthy facts (from the revision pages):\n${indicBullets}\n` +
       (scheme?.marking_notes ? `\nMarking notes: ${scheme.marking_notes}\n` : "") +
       `\nStudent answer:\n"""${answerText}"""`;
