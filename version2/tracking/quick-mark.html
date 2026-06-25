@@ -46,6 +46,25 @@ textarea.f { resize: vertical; min-height: 56px; }
 .mlist li.ao2 { border-left: 3px solid var(--brand); }
 .mlist li.miss { border-left: 3px solid #c08a2a; color: #8a5a00; }
 .mlist li.next { border-left: 3px solid var(--muted); color: var(--muted); }
+.mlist li.bad { border-left: 3px solid #c0392b; color: #8a1f15; }
+.rsec { margin-top: 14px; }
+.rsec h4 { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 5px; font-weight: 700; }
+/* Print sheet — hidden on screen, shown alone when printing */
+.print-sheet { display: none; }
+.ps-title { font-family: 'Lora', serif; font-size: 20px; font-weight: 700; margin: 0 0 2px; color: #111; }
+.ps-meta { font-size: 11px; color: #555; margin-bottom: 10px; }
+.ps-score { font-size: 22px; font-weight: 700; margin: 8px 0; color: #111; }
+.ps-sec { margin: 9px 0; }
+.ps-sec h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; margin: 0 0 3px; color: #333; }
+.ps-sec ul { margin: 0; padding-left: 18px; }
+.ps-sec li { font-size: 12px; margin: 2px 0; }
+.ps-sec > div { font-size: 12.5px; }
+.ps-answer { white-space: pre-wrap; font-size: 11px; color: #333; border-top: 1px solid #bbb; padding-top: 8px; margin-top: 12px; }
+@media print {
+  body * { visibility: hidden; }
+  #printSheet, #printSheet * { visibility: visible; }
+  #printSheet { display: block; position: absolute; left: 0; top: 0; width: 100%; padding: 4mm 6mm; }
+}
 .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; font-size: 13px; padding: 9px 18px; border-radius: 8px; opacity: 0; transition: opacity .2s; z-index: 100; }
 .toast.show { opacity: 1; }
 </style>
@@ -153,6 +172,7 @@ textarea.f { resize: vertical; min-height: 56px; }
 
   </main>
 </div>
+<div id="printSheet" class="print-sheet"></div>
 <div id="toast" class="toast"></div>
 
 <script>
@@ -185,27 +205,58 @@ function applyStyle(){
 
 function bindPts(){ $('pts').querySelectorAll('[data-rmpt]').forEach(b=>b.onclick=()=>b.closest('.sp').remove()); }
 
+function liList(arr, cls){ return (Array.isArray(arr)?arr:[]).filter(Boolean).map(s=>'<li'+(cls?' class="'+cls+'"':'')+'>'+esc(String(s))+'</li>').join(''); }
+function strip(s, re){ return String(s).replace(re,''); }
+
 function renderResult(r){
   const isEssay = $('style').value==='essay';
-  const items = (Array.isArray(r.matched)?r.matched:[]).map(m=>{
+  const ao1=[], ao2=[], nexts=[], other=[];
+  (Array.isArray(r.matched)?r.matched:[]).forEach(m=>{
     const s=String(m);
-    let cls='ao1', label=s;
-    if(s.startsWith('AO1:')){ cls='ao1'; }
-    else if(s.startsWith('AO2:')){ cls='ao2'; }
-    else if(s.startsWith('missing:')){ cls='miss'; }
-    else if(s.startsWith('next:')){ cls='next'; }
-    else if(s.startsWith('serious:')){ cls='miss'; }
-    else if(s.startsWith('minor:')){ cls='next'; }
-    return '<li class="'+cls+'">'+esc(label)+'</li>';
-  }).join('');
-  const flags = isEssay ? '<div class="muted" style="margin-top:8px;">Source used: <b>'+(r.source_used?'yes':'no')+'</b> · Conclusion: <b>'+(r.conclusion?'yes':'no')+'</b></div>' : '';
-  $('resultBox').innerHTML = '<div class="result">' +
-    '<div class="scoreline"><span class="score">'+r.marks+' / '+r.max+'</span>'+(isEssay&&r.level!=null?'<span class="lvl">Level '+r.level+'</span>':'')+'</div>' +
-    (r.rationale?'<div class="rat">'+esc(r.rationale)+'</div>':'') +
-    flags +
-    (items?'<ul class="mlist">'+items+'</ul>':'') +
-  '</div>';
+    if(s.startsWith('AO1:')) ao1.push(strip(s,/^AO1:\s*/));
+    else if(s.startsWith('AO2:')) ao2.push(strip(s,/^AO2:\s*/));
+    else if(s.startsWith('missing:')) nexts.push(strip(s,/^missing:\s*/));
+    else if(s.startsWith('next:')) nexts.push(strip(s,/^next:\s*/));
+    else if(s.startsWith('serious:')) nexts.push(strip(s,/^serious:\s*/));
+    else if(s.startsWith('minor:')) nexts.push(strip(s,/^minor:\s*/));
+    else other.push(s);
+  });
+  const inacc = Array.isArray(r.inaccuracies)?r.inaccuracies.filter(Boolean):[];
+  const pts = isEssay ? ao1 : (ao1.concat(other));
+
+  let html = '<div class="result">';
+  html += '<div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px;">';
+  html += '<div class="scoreline"><span class="score">'+r.marks+' / '+r.max+'</span>'+(isEssay&&r.level!=null?'<span class="lvl">Level '+r.level+'</span>':'')+'</div>';
+  html += '<button class="btn ghost sm" type="button" onclick="window.print()">Print feedback</button>';
+  html += '</div>';
+  if(r.rationale) html += '<div class="rat">'+esc(r.rationale)+'</div>';
+  if(isEssay) html += '<div class="muted" style="margin-top:8px;">Source used: <b>'+(r.source_used?'yes':'no')+'</b> · Weighing conclusion: <b>'+(r.conclusion?'yes':'no')+'</b></div>';
+  if(pts.length) html += '<div class="rsec"><h4>'+(isEssay?'AO1 — knowledge credited':'Points credited')+'</h4><ul class="mlist">'+liList(pts,'ao1')+'</ul></div>';
+  if(isEssay && ao2.length) html += '<div class="rsec"><h4>AO2 — analysis credited</h4><ul class="mlist">'+liList(ao2,'ao2')+'</ul></div>';
+  if(inacc.length) html += '<div class="rsec"><h4>Factual inaccuracies</h4><ul class="mlist">'+liList(inacc,'bad')+'</ul></div>';
+  if(nexts.length) html += '<div class="rsec"><h4>To improve</h4><ul class="mlist">'+liList(nexts,'next')+'</ul></div>';
+  html += '</div>';
+  $('resultBox').innerHTML = html;
+
+  buildPrintSheet(r, isEssay, pts, ao2, inacc, nexts);
   $('resultBox').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function buildPrintSheet(r, isEssay, pts, ao2, inacc, nexts){
+  const q=$('prompt').value.trim(), a=$('answer').value.trim(), subj=$('subject').value;
+  let h='';
+  h += '<div class="ps-title">'+esc(subj)+(isEssay?' — 8-mark feedback':' — marking feedback')+'</div>';
+  h += '<div class="ps-meta">Marked by Classicalia AI · '+esc(new Date().toLocaleDateString())+'</div>';
+  if(q) h += '<div class="ps-sec"><h3>Question</h3><div>'+esc(q)+'</div></div>';
+  h += '<div class="ps-score">'+r.marks+' / '+r.max+(isEssay&&r.level!=null?'  (Level '+r.level+')':'')+'</div>';
+  if(r.rationale) h += '<div class="ps-sec"><h3>Feedback</h3><div>'+esc(r.rationale)+'</div></div>';
+  if(isEssay) h += '<div class="ps-sec"><h3>Checklist</h3><div>Source used: '+(r.source_used?'yes':'no')+' · Weighing conclusion: '+(r.conclusion?'yes':'no')+'</div></div>';
+  if(pts.length) h += '<div class="ps-sec"><h3>'+(isEssay?'AO1 — knowledge credited':'Points credited')+'</h3><ul>'+liList(pts)+'</ul></div>';
+  if(isEssay && ao2.length) h += '<div class="ps-sec"><h3>AO2 — analysis credited</h3><ul>'+liList(ao2)+'</ul></div>';
+  if(inacc.length) h += '<div class="ps-sec"><h3>Factual inaccuracies</h3><ul>'+liList(inacc)+'</ul></div>';
+  if(nexts.length) h += '<div class="ps-sec"><h3>To improve</h3><ul>'+liList(nexts)+'</ul></div>';
+  if(a) h += '<div class="ps-answer"><b>Answer</b>\n'+esc(a)+'</div>';
+  $('printSheet').innerHTML = h;
 }
 
 async function doMark(){

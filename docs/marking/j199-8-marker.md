@@ -69,3 +69,22 @@ Plus the question prompt, the student's answer, and optional `marking_notes`.
   will need that cap widened and a bigger AO1/AO2 grid.
 - Essay answers run ~250–300 words (~1600–1900 chars), so essay tests should set
   the per-test answer-length cap above the 1200 default.
+
+## Calibration anchors
+Question: *"The Great Panathenaia was enjoyable for all Athenians."* (Source E:
+the Panathenaic frieze, the peplos being folded.)
+
+- **Level 2 (≈4–5).** Agree/disagree/conclusion shape present, but mostly
+  **narration** with thin AO2; a **factual error** (attributes the *theoric
+  fund* to the Panathenaia — that's the City Dionysia); and **filler** that
+  makes no point ("no surviving data on whether slaves were involved"). The
+  source is alluded to (the peplos) but not anchored. → marker should flag the
+  theoric-fund inaccuracy, note the narration/AO2 gap, and hold it to Level 2.
+- **Level 4 (≈7–8).** **Anchors Source E** (women weaving the peplos), accurate
+  detail (peplos as the ship's sail; Dipylon gate → Acropolis procession),
+  **three+ analysed points each side** with real AO2 ("more a job than enjoyable
+  — the time pressure…"), and a conclusion. Minor coaching: the conclusion
+  asserts "for all" without fully weighing its own strong "against" points.
+
+The AO2 **WEIGHTING** rule in the prompt is what separates these two:
+narration-heavy answers cap at Level 2; Levels 3–4 need most points analysed.

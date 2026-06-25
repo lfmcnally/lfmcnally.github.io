@@ -121,14 +121,25 @@ const ESSAY_SYSTEM = (stemType: string) => {
       : "For this evaluative stem it must commit to one side and say why it outweighs.\n\n" +
         "STEM: this is an EVALUATIVE question ('how far / to what extent / who is more…'). Reward genuine argument on BOTH " +
         "sides plus a committed conclusion.\n\n") +
+    "WEIGHTING: AO2 (analysis) is half the marks. An answer that mainly NARRATES accurate facts with little analysis tying them " +
+    "to the question should not exceed Level 2 (4 marks), however wide its knowledge; reserve Levels 3–4 for answers where most " +
+    "points are genuinely analysed against the question. Give NO credit for vague generalisations, or for 'there is no evidence / " +
+    "we don't know' filler that makes no point.\n\n" +
+    "PREFERRED STRUCTURE (use ONLY to inform your structure feedback): a full-mark answer typically makes about THREE AO1+AO2 " +
+    "pairs on one side, THREE on the other, then a short CONCLUSION that weighs the two sides and commits to one. Comment briefly " +
+    "on how the answer compares and whether that weighing conclusion is present. IMPORTANT: this is only ONE effective shape — do " +
+    "NOT lower the mark for an answer that reaches the same range of accurate, well-analysed evidence through a different structure. " +
+    "Mark on the quality, accuracy and analysis of the content, never on conformity to this template.\n\n" +
     "ACCURACY: credit only facts that are accurate for OCR Myth and Religion as taught on the revision pages. Treat the " +
     "indicative content provided as the canonical creditworthy material, but also credit other accurate, on-spec facts the " +
-    "student brings. Do NOT credit vague, irrelevant or factually wrong claims, and never invent credit for content not in the answer.\n\n" +
-    "Award marks_awarded (0–8) and the matching level (0–4). List the accurate facts you credited in 'ao1_credited' and the " +
-    "analytical links that landed in 'ao2_credited'; set 'source_used' and 'conclusion'. In 'missing', name the one or two " +
-    "things that would move the answer up a level. Write 'rationale' as TWO or THREE sentences spoken directly TO the student " +
-    "('you') in a warm, specific coaching voice: what landed, then the most useful next step. Do not restate the mark total " +
-    "or refer to 'the student'.";
+    "student brings. List every factually WRONG or inaccurate claim in 'inaccuracies' (give the claim and a brief correction); " +
+    "wrong facts are never credited and, where they materially undermine the answer, hold the level down. Use [] if there are none. " +
+    "Never invent credit for content not in the answer.\n\n" +
+    "Award marks_awarded (0–8) and the matching level (0–4). List the accurate facts you credited in 'ao1_credited', the " +
+    "analytical links that landed in 'ao2_credited', and any factual errors in 'inaccuracies'; set 'source_used' and 'conclusion'. " +
+    "In 'missing', name the one or two things that would move the answer up a level. Write 'rationale' as THREE or FOUR sentences " +
+    "spoken directly TO the student ('you') in a warm, specific coaching voice: what landed, a brief word on structure (the " +
+    "agree/disagree balance and the conclusion), then the most useful next step. Do not restate the mark total or refer to 'the student'.";
 };
 
 const POINTS_SCHEMA = {
@@ -154,12 +165,13 @@ const TRANSLATION_SCHEMA = {
 };
 const ESSAY_SCHEMA = {
   type: "object", additionalProperties: false,
-  required: ["marks_awarded", "level", "ao1_credited", "ao2_credited", "source_used", "conclusion", "missing", "rationale"],
+  required: ["marks_awarded", "level", "ao1_credited", "ao2_credited", "inaccuracies", "source_used", "conclusion", "missing", "rationale"],
   properties: {
     marks_awarded: { type: "integer", description: "0–8." },
     level:         { type: "integer", description: "OCR level 0–4." },
     ao1_credited:  { type: "array", items: { type: "string" }, description: "Accurate facts the student used (AO1)." },
     ao2_credited:  { type: "array", items: { type: "string" }, description: "Analytical links that tied a fact to the question (AO2)." },
+    inaccuracies:  { type: "array", items: { type: "string" }, description: "Factually wrong/inaccurate claims: the claim + a brief correction. [] if none." },
     source_used:   { type: "boolean", description: "Did the answer quote or name a feature of the printed source?" },
     conclusion:    { type: "boolean", description: "Is there a judgement/synthesis at the end?" },
     missing:       { type: "array", items: { type: "string" }, description: "One or two things that would move the answer up a level." },
@@ -347,7 +359,7 @@ Deno.serve(async (req) => {
     }
     const textBlock = (anth.content || []).find((b: { type: string }) => b.type === "text");
     let parsed: { marks_awarded?: number; matched_points?: string[]; minor_errors?: string[]; serious_errors?: string[];
-      ao1_credited?: string[]; ao2_credited?: string[]; source_used?: boolean; conclusion?: boolean; missing?: string[]; rationale?: string };
+      ao1_credited?: string[]; ao2_credited?: string[]; inaccuracies?: string[]; source_used?: boolean; conclusion?: boolean; missing?: string[]; rationale?: string };
     try { parsed = JSON.parse(textBlock?.text ?? "{}"); } catch { return json({ error: "could not parse marks" }, 502); }
 
     // Clamp to the question's range as a guard.
@@ -356,6 +368,7 @@ Deno.serve(async (req) => {
     const matched = essay
       ? [...arr(parsed.ao1_credited).map((p) => `AO1: ${p}`),
          ...arr(parsed.ao2_credited).map((p) => `AO2: ${p}`),
+         ...arr(parsed.inaccuracies).map((m) => `inaccurate: ${m}`),
          ...(parsed.source_used ? [] : ["missing: a reference to the source"]),
          ...(parsed.conclusion ? [] : ["missing: a concluding judgement"]),
          ...arr(parsed.missing).map((m) => `next: ${m}`)]
