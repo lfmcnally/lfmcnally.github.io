@@ -1,0 +1,164 @@
+/* ============================================================
+   Classicalia — Classroom (presentation) mode
+   Shared across the GCSE set-text section pages.
+
+   Pair with classroom.js. To enable on a page that has the
+   #latinCol / #englishCol parallel columns and a `vocabData` map:
+     <link rel="stylesheet" href="/version2/assets/css/classroom.css">
+     <script src="/version2/assets/js/classroom.js"></script>
+   The script injects the button + overlay; no other markup needed.
+   ============================================================ */
+
+/* ── Entry button in the controls bar ── */
+.ctrl-present { display: inline-flex; align-items: center; gap: 6px; }
+.ctrl-present svg { width: 13px; height: 13px; }
+/* .ctrl-btn.ctrl-present beats the page's inline .ctrl-btn regardless of link order */
+.ctrl-btn.ctrl-present { border-color: #bcd3ff; color: var(--brand); background: #f4f8ff; }
+.ctrl-btn.ctrl-present:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+/* ── Controls-bar fit: let the bar wrap instead of overlapping once the
+   Classroom button is added. Higher specificity so it overrides the
+   inline per-page .controls-bar-inner (which sets a fixed height). ── */
+.controls-bar .controls-bar-inner {
+  height: auto;
+  min-height: 48px;
+  flex-wrap: wrap;
+  row-gap: 10px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+.controls-bar .controls-left,
+.controls-bar .controls-right { flex-wrap: wrap; }
+.controls-bar .key-hint { white-space: nowrap; }
+
+/* ── Full-screen white overlay ── */
+.present-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: #fff;
+  display: none;
+  flex-direction: column;
+  font-size: 20px;            /* passage base size — A−/A+ scale this */
+  --present-lh: 1.6;          /* line spacing — Spacing −/+ scale this */
+}
+.present-overlay.open { display: flex; }
+
+/* top bar */
+.present-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 28px;
+  border-bottom: 1px solid var(--rule);
+}
+.present-bar-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.present-eyebrow {
+  font-family: 'Lora', serif; font-style: italic; font-weight: 700;
+  font-size: 19px; color: var(--navy); line-height: 1.15;
+}
+.present-lines {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--muted);
+}
+.present-bar-right { display: flex; align-items: center; gap: 8px; flex: none; flex-wrap: wrap; justify-content: flex-end; }
+.present-ctrl {
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+  letter-spacing: 0.03em; padding: 7px 14px; border-radius: 5px;
+  border: 1px solid var(--rule); background: #fff; color: var(--muted);
+  cursor: pointer; transition: all 0.12s; white-space: nowrap;
+}
+.present-ctrl:hover { border-color: var(--brand); color: var(--brand); background: #f4f8ff; }
+.present-ctrl.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+.present-ctrl-exit { color: var(--ink); }
+.present-ctrl-exit:hover { border-color: #d05656; color: #d05656; background: #fef4f4; }
+.present-fontsize { display: inline-flex; }
+.present-fontsize .present-ctrl:first-child { border-radius: 5px 0 0 5px; }
+.present-fontsize .present-ctrl:last-child  { border-radius: 0 5px 5px 0; margin-left: -1px; }
+.present-adjust { display: inline-flex; align-items: center; gap: 7px; }
+.present-adjust-label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+}
+
+/* scroll area + parallel text */
+.present-scroll { flex: 1; overflow: auto; padding: 30px 44px 72px; }
+.present-grid { max-width: 1500px; margin: 0 auto; }
+
+.present-colhead {
+  display: grid;
+  grid-template-columns: 52px minmax(0,1fr) minmax(0,1fr);
+  margin-bottom: 10px;
+}
+.present-colhead span {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--muted);
+}
+.present-colhead .ch-latin { grid-column: 2; }
+.present-colhead .ch-eng   { grid-column: 3; padding-left: 36px; }
+
+.present-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0,1fr) minmax(0,1fr);
+  align-items: baseline;   /* line number sits on the Latin text's baseline */
+}
+.present-num {
+  font-family: 'Lora', serif; font-style: italic; font-weight: 600;
+  font-size: 0.72em; color: var(--brand); opacity: 0.6;
+}
+.present-latin {
+  font-family: 'Lora', serif; font-style: italic;
+  font-size: 1.5em; line-height: var(--present-lh, 1.6); color: var(--navy);
+  padding: 0.32em 36px 0.32em 0;
+  overflow-wrap: break-word;
+}
+.present-english {
+  font-size: 1em; line-height: var(--present-lh, 1.6); color: var(--ink);
+  padding: 0.5em 0 0.5em 36px;
+  overflow-wrap: break-word;
+}
+/* continuous column divider — drawn as one line so it doesn't depend on
+   the row cells stretching (they no longer do, see align-items: baseline) */
+.present-rows { position: relative; }
+.present-rows::after {
+  content: ''; position: absolute; top: 0; bottom: 0;
+  left: calc(50% + 26px); width: 1px;
+  background: var(--rule-faint); pointer-events: none;
+}
+/* Latin-only mode (English hidden) */
+.present-grid.no-english .present-row     { grid-template-columns: 52px minmax(0,1fr); }
+.present-grid.no-english .present-colhead { grid-template-columns: 52px minmax(0,1fr); }
+.present-grid.no-english .present-english,
+.present-grid.no-english .ch-eng { display: none; }
+.present-grid.no-english .present-rows::after { display: none; }
+
+/* hoverable Latin words */
+.pw {
+  cursor: pointer; border-radius: 3px; padding: 0 1px;
+  transition: background 0.1s, color 0.1s;
+}
+.pw:hover { background: var(--brand); color: #fff; }
+
+.present-hint {
+  text-align: center; margin-top: 26px;
+  font-family: 'Lora', serif; font-style: italic;
+  font-size: 12.5px; color: var(--muted);
+}
+
+/* hover tooltip */
+.present-tip {
+  position: fixed; z-index: 320; max-width: 320px;
+  background: var(--navy); color: #fff;
+  border-radius: 8px; padding: 11px 14px;
+  box-shadow: 0 10px 30px rgba(14,30,63,0.3);
+  display: none; pointer-events: none;
+}
+.present-tip.visible { display: block; }
+.present-tip-head {
+  font-family: 'Lora', serif; font-style: italic; font-weight: 600;
+  font-size: 16px; color: #fff; margin-bottom: 2px;
+}
+.present-tip-gloss { font-size: 13px; color: #cdddf5; line-height: 1.4; }
+.present-tip-parse { font-size: 11.5px; color: #8fa8cc; line-height: 1.45; margin-top: 6px; }
