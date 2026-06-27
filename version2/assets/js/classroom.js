@@ -79,6 +79,8 @@
     let built = false, base = 20, lh = 1.6, engHidden = false;
 
     // Build the clean parallel text from the existing Latin / English columns.
+    // Verse (e.g. Ovid's Baucis) keeps its line-by-line rows; prose (marked with
+    // data-flow="prose" on #latinCol) flows as continuous parallel paragraphs.
     function build() {
       const titleEl = document.querySelector('.passage-title');
       const deckEl  = document.querySelector('.passage-deck');
@@ -89,7 +91,13 @@
         const sub = deckEl ? deckEl.textContent.split('—')[0].trim() : '';
         sEl.textContent = (sub ? sub + ' · ' : '') + 'Classroom view';
       }
+      if (latinCol.dataset.flow === 'prose') buildFlow(); else buildRows();
+      built = true;
+    }
 
+    // ── Verse: aligned line-by-line rows ──
+    function buildRows() {
+      grid.classList.remove('present-grid-flow');
       // English text keyed by line number.
       const engByNum = {};
       englishCol.querySelectorAll('.line-row').forEach(r => {
@@ -132,7 +140,56 @@
         pw.addEventListener('mouseenter', () => showTip(pw));
         pw.addEventListener('mouseleave', hideTip);
       });
-      built = true;
+    }
+
+    // ── Prose: continuous parallel paragraphs (Latin left, English right) ──
+    function buildFlow() {
+      grid.classList.add('present-grid-flow');
+      let lat = '';
+      latinCol.querySelectorAll('.wg').forEach(wg => {
+        const order = wg.dataset.order || '';
+        const lw = wg.querySelector('.lat-w');
+        let w = (lw ? lw.textContent : '').trim();
+        if (!w) return;
+        const enclitic = w.charAt(0) === '-';   // -que / -ne join to the previous word
+        if (enclitic) w = w.slice(1);
+        if (lat && !enclitic) lat += ' ';
+        lat += '<span class="pw" data-order="' + order + '">' + w + '</span>';
+      });
+      let eng = '';
+      englishCol.querySelectorAll('.eng-w').forEach(ew => {
+        const order = ew.dataset.order || '';
+        const t = (ew.textContent || '').trim();
+        if (!t) return;
+        const startsPunct = /^[,.;:!?’”")\]]/.test(t);
+        if (eng && !startsPunct) eng += ' ';
+        eng += '<span class="ew" data-order="' + order + '">' + t + '</span>';
+      });
+      grid.innerHTML =
+        '<div class="present-colhead present-colhead-flow"><span class="ch-latin">Latin</span><span class="ch-eng">English</span></div>' +
+        '<div class="present-flow">' +
+          '<div class="present-latin-col">' + lat + '</div>' +
+          '<div class="present-english-col">' + eng + '</div>' +
+        '</div>' +
+        '<div class="present-hint">Hover any Latin word for its dictionary form and meaning — its English lights up too.</div>';
+
+      grid.querySelectorAll('.pw').forEach(pw => {
+        pw.addEventListener('mouseenter', () => { showTip(pw); mark('.ew', pw.dataset.order, true); });
+        pw.addEventListener('mouseleave', () => { hideTip(); mark('.ew', pw.dataset.order, false); });
+      });
+      grid.querySelectorAll('.ew').forEach(ew => {
+        ew.addEventListener('mouseenter', () => mark('.pw', ew.dataset.order, true));
+        ew.addEventListener('mouseleave', () => mark('.pw', ew.dataset.order, false));
+      });
+    }
+
+    // Cross-highlight the paired word(s) in the other column.
+    function mark(sel, order, on) {
+      if (!order) return;
+      grid.querySelectorAll(sel).forEach(el => {
+        const o = el.dataset.order || '';
+        if (o === order || o.split(',').indexOf(order) !== -1) el.classList.toggle('xref', on);
+      });
     }
 
     function showTip(pw) {
