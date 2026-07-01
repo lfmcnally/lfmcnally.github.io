@@ -8,7 +8,8 @@
 //
 // It reuses the SAME marking styles as mark-answer / mark-test:
 //   points      — credit creditworthy scheme points
-//   translation — OCR holistic /5 sense grid (Latin/Greek)
+//   translation — OCR holistic /5 sense grid, one sentence (Latin/Greek)
+//   passage     — OCR sectioned longer translation: N sections of /5, mark per section + total (Latin/Greek)
 //   essay       — OCR GCSE Classical Civ 8-marker, 4-level grid (4 AO1 + 4 AO2)
 //
 // Request (teacher JWT):
@@ -97,11 +98,9 @@ const POINTS_SYSTEM = (subject: string) =>
   "and constructive: say what you credited and, if marks were lost, what to add next time. Do " +
   "not refer to \"the student\" in the third person, and do not restate the marks total.";
 
-const TRANSLATION_SYSTEM = (subject: string) =>
-  `You are an OCR GCSE ${subject} examiner marking ONE sentence translated from ${subject} into ` +
-  "English with the official holistic 5-mark grid. Judge the PROPORTION OF SENSE communicated " +
-  "(who did what to whom), not word-by-word ticks, comparing the student's English with the correct " +
-  "translation provided. Award a whole number from 0 to 5:\n" +
+// The official OCR holistic 5-mark sense grid, shared by the single-sentence
+// `translation` style and the sectioned `passage` style below.
+const SENSE_GRID =
   "5 — perfectly accurate: no errors or omissions, or one inconsequential error.\n" +
   "4 — essentially correct, but two inconsequential errors, or one more serious error.\n" +
   "3 — overall meaning clear, but more serious errors or omissions.\n" +
@@ -118,9 +117,36 @@ const TRANSLATION_SYSTEM = (subject: string) =>
   "(missed purpose clause, gerundive, ablative absolute); errors of voice; errors of person (except he/she).\n" +
   "A single word with several errors counts as at most one serious error. Never penalise the same " +
   "vocabulary error twice, or an error that is a knock-on consequence of an earlier one. Accept any " +
-  "correct word order and any equally valid English rendering; do not penalise clumsy but accurate English.\n" +
+  "correct word order and any equally valid English rendering; do not penalise clumsy but accurate English.\n";
+
+const TRANSLATION_SYSTEM = (subject: string) =>
+  `You are an OCR GCSE ${subject} examiner marking ONE sentence translated from ${subject} into ` +
+  "English with the official holistic 5-mark grid. Judge the PROPORTION OF SENSE communicated " +
+  "(who did what to whom), not word-by-word ticks, comparing the student's English with the correct " +
+  "translation provided. Award a whole number from 0 to 5:\n" +
+  SENSE_GRID +
   "List the band-defining issues in 'serious_errors' and 'minor_errors'. Write 'rationale' as ONE short " +
   "sentence spoken directly TO the student (\"you\"), naming what set the band; do not restate the mark.";
+
+// Sectioned passage translation. A continuous passage is marked in `sections`
+// sub-sections of 5 marks each (OCR's approach for longer translations), giving
+// a mark per section and a total. The marker segments the ORIGINAL-language
+// passage itself, since a pasted passage carries no official sub-division.
+const PASSAGE_SYSTEM = (subject: string, sections: number) =>
+  `You are an OCR ${subject} examiner marking a CONTINUOUS PASSAGE translated from ${subject} into ` +
+  `English. Longer translations are marked in sub-sections of 5 marks each. Divide the ORIGINAL ${subject} ` +
+  `passage into EXACTLY ${sections} consecutive sections of roughly equal length (total ${sections * 5} marks), ` +
+  "each section a run of one or more whole sentences or self-contained clauses — never split mid-clause. The " +
+  "sections must cover the passage from beginning to end with no gaps and no overlaps, in order. Align each " +
+  "section of the student's English translation with the corresponding stretch of the passage. " +
+  "Mark EACH section 0–5 with the official holistic sense grid below, judging the PROPORTION OF SENSE " +
+  "communicated (who did what to whom) in that section, not word-by-word ticks:\n" +
+  SENSE_GRID +
+  "For every section return: the ORIGINAL-language text of that section (in 'latin'), the whole-number mark " +
+  "0–5 (in 'marks'), and ONE short note (in 'note') naming what set that section's band. Cover the whole " +
+  "passage even where the student left a section untranslated (score it 0). Do not restate the section mark " +
+  "inside its note. Then write 'rationale' as ONE or TWO sentences of overall feedback spoken directly TO the " +
+  "student (\"you\") — warm and specific about what to fix next; do not restate the total.";
 
 const ESSAY_SYSTEM = (stemType: string) => {
   const inWhatWays = stemType === "in_what_ways";
@@ -199,6 +225,26 @@ const TRANSLATION_SCHEMA = {
     rationale:      { type: "string", description: "One short sentence of feedback addressed to the student as 'you'." },
   },
 };
+const PASSAGE_SCHEMA = {
+  type: "object", additionalProperties: false,
+  required: ["sections", "rationale"],
+  properties: {
+    sections: {
+      type: "array",
+      description: "One entry per 5-mark section, in passage order, covering the whole passage.",
+      items: {
+        type: "object", additionalProperties: false,
+        required: ["latin", "marks", "note"],
+        properties: {
+          latin: { type: "string", description: "The original-language text of this section." },
+          marks: { type: "integer", description: "Holistic band 0–5 for this section." },
+          note:  { type: "string", description: "One short note naming what set this section's band." },
+        },
+      },
+    },
+    rationale: { type: "string", description: "One or two sentences of overall feedback addressed to the student as 'you'." },
+  },
+};
 const ESSAY_SCHEMA = {
   type: "object", additionalProperties: false,
   required: ["marks_awarded", "level", "ao1_credited", "ao2_credited", "inaccuracies", "source_used", "conclusion", "missing", "rationale"],
@@ -240,11 +286,13 @@ Deno.serve(async (req) => {
     };
     try { payload = await req.json(); } catch { return json({ error: "invalid JSON" }, 400); }
 
-    const style = ["points", "translation", "essay"].includes(payload.mark_style ?? "") ? payload.mark_style! : "points";
+    const style = ["points", "translation", "passage", "essay"].includes(payload.mark_style ?? "") ? payload.mark_style! : "points";
     const subject = subjectFor(payload.subject);
     const prompt = (payload.prompt ?? "").trim();
     const answerText = (payload.answer_text ?? "").trim().slice(0, MAX_ANSWER_CHARS);
-    const maxMarks = Math.max(1, Math.min(30, Math.round(Number(payload.marks ?? (style === "essay" ? 8 : style === "translation" ? 5 : 1)))));
+    const maxMarks = Math.max(1, Math.min(30, Math.round(Number(payload.marks ?? (style === "essay" ? 8 : style === "passage" ? 25 : style === "translation" ? 5 : 1)))));
+    // Passage translations are marked in 5-mark sections; derive the section count from the total.
+    const sectionCount = Math.max(1, Math.min(6, Math.round(maxMarks / 5)));
     if (!prompt) return json({ error: "missing question" }, 400);
     if (!answerText) return json({ error: "empty answer" }, 400);
     const scheme = payload.scheme ?? {};
@@ -267,6 +315,7 @@ Deno.serve(async (req) => {
 
     const essay = style === "essay";
     const translation = style === "translation";
+    const passage = style === "passage";
     const essayScheme: { stem_type?: string; source?: string; indicative?: unknown } =
       (essay && scheme.essay_scheme && typeof scheme.essay_scheme === "object") ? scheme.essay_scheme : {};
     const stemType = essayScheme.stem_type === "in_what_ways" ? "in_what_ways" : "evaluative";
@@ -290,6 +339,13 @@ Deno.serve(async (req) => {
         (scheme.model_answer ? `Correct translation: ${scheme.model_answer}\n` : "Correct translation: (not supplied — judge from the original)\n") +
         (scheme.marking_notes ? `Marking notes: ${scheme.marking_notes}\n` : "") +
         `\nStudent's English translation:\n"""${answerText}"""`;
+    } else if (passage) {
+      userText =
+        `${subject} passage to translate into English, marked in ${sectionCount} sections of 5 (total ${sectionCount * 5} marks):\n` +
+        `"""${prompt}"""\n\n` +
+        (scheme.model_answer ? `Correct translation of the whole passage:\n"""${scheme.model_answer}"""\n` : "Correct translation: (not supplied — judge from the original)\n") +
+        (scheme.marking_notes ? `\nMarking notes: ${scheme.marking_notes}\n` : "") +
+        `\nStudent's English translation:\n"""${answerText}"""`;
     } else {
       const points: Array<{ text?: string; marks?: number }> = Array.isArray(scheme.scheme_points) ? scheme.scheme_points as [] : [];
       const bullets = points.map((p) => `- ${p.text ?? ""}${p.marks ? ` (${p.marks} mark${p.marks > 1 ? "s" : ""})` : ""}`).join("\n") || "- (no points listed)";
@@ -301,15 +357,15 @@ Deno.serve(async (req) => {
         `\nStudent answer:\n"""${answerText}"""`;
     }
 
-    const system = essay ? ESSAY_SYSTEM(stemType) : translation ? TRANSLATION_SYSTEM(subject) : POINTS_SYSTEM(subject);
-    const schema = essay ? ESSAY_SCHEMA : translation ? TRANSLATION_SCHEMA : POINTS_SCHEMA;
+    const system = essay ? ESSAY_SYSTEM(stemType) : passage ? PASSAGE_SYSTEM(subject, sectionCount) : translation ? TRANSLATION_SYSTEM(subject) : POINTS_SYSTEM(subject);
+    const schema = essay ? ESSAY_SCHEMA : passage ? PASSAGE_SCHEMA : translation ? TRANSLATION_SCHEMA : POINTS_SCHEMA;
 
     // -- 5. Mark with Claude ------------------------------------------------
     const anthRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
-        model: MODEL, max_tokens: essay ? 900 : MAX_OUTPUT_TOKENS, system,
+        model: MODEL, max_tokens: essay ? 900 : passage ? 300 + sectionCount * 160 : MAX_OUTPUT_TOKENS, system,
         messages: [{ role: "user", content: [{ type: "text", text: userText }] }],
         output_config: { format: { type: "json_schema", schema } },
       }),
@@ -328,8 +384,26 @@ Deno.serve(async (req) => {
     let parsed: {
       marks_awarded?: number; level?: number; matched_points?: string[]; minor_errors?: string[]; serious_errors?: string[];
       ao1_credited?: string[]; ao2_credited?: string[]; inaccuracies?: string[]; source_used?: boolean; conclusion?: boolean; missing?: string[]; rationale?: string;
+      sections?: Array<{ latin?: string; marks?: number; note?: string }>;
     };
     try { parsed = JSON.parse(block?.text ?? "{}"); } catch { return json({ error: "could not parse marks" }, 502); }
+
+    // -- 6a. Passage: per-section marks summed to a total ------------------
+    if (passage) {
+      const sections = (Array.isArray(parsed.sections) ? parsed.sections : []).map((s) => ({
+        latin: String(s?.latin ?? "").slice(0, 600),
+        marks: Math.max(0, Math.min(5, Math.round(Number(s?.marks ?? 0)))),
+        max: 5,
+        note: String(s?.note ?? "").slice(0, 300),
+      }));
+      const total = sections.reduce((a, s) => a + s.marks, 0);
+      const maxTotal = sections.length ? sections.length * 5 : sectionCount * 5;
+      return json({
+        marks: total, max: maxTotal, sections,
+        matched: [], rationale: String(parsed.rationale ?? "").slice(0, 800),
+        cost_micros: costMicros,
+      });
+    }
 
     const marks = Math.max(0, Math.min(maxMarks, Math.round(Number(parsed.marks_awarded ?? 0))));
     const arr = (v: unknown) => (Array.isArray(v) ? v as string[] : []);
