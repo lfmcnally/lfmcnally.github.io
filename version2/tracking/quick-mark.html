@@ -113,9 +113,22 @@ textarea.f { resize: vertical; min-height: 56px; }
         </div>
       </div>
 
-      <div class="field" style="max-width:160px;">
-        <label class="lbl">Marks</label>
-        <input id="marks" class="f" type="number" min="1" max="30" value="1">
+      <div class="grid2 field">
+        <div style="max-width:160px;">
+          <label class="lbl">Marks</label>
+          <input id="marks" class="f" type="number" min="1" max="30" value="1">
+          <div id="marksHint" class="muted hint"></div>
+        </div>
+        <div>
+          <label class="lbl">Marking leniency</label>
+          <select id="leniency" class="f">
+            <option value="lenient">Lenient</option>
+            <option value="slightly_lenient">Slightly lenient</option>
+            <option value="standard" selected>Standard</option>
+            <option value="slightly_strict">Slightly strict</option>
+            <option value="strict">Strict</option>
+          </select>
+        </div>
       </div>
 
       <div class="field">
@@ -214,6 +227,13 @@ function styleHint(style){
   return 'The AI credits each creditworthy point the answer conveys, allowing synonyms and paraphrase.';
 }
 
+function updateMarksHint(){
+  const h = $('marksHint');
+  if($('style').value!=='passage'){ h.textContent=''; return; }
+  const n = Math.max(1, Math.min(6, Math.round((+$('marks').value||25)/5)));
+  h.textContent = 'Split into '+n+' section'+(n>1?'s':'')+' of 5 (total '+(n*5)+')';
+}
+
 function applyStyle(){
   const v = $('style').value, tr = v==='translation', pa = v==='passage', es = v==='essay';
   $('styleHint').innerHTML = styleHint(v);
@@ -227,6 +247,7 @@ function applyStyle(){
   if(tr && (+mk.value||1) < 2) mk.value = 5;
   if(pa && (+mk.value||1) < 10) mk.value = 25;
   if(es) mk.value = 8;
+  updateMarksHint();
 }
 
 function bindPts(){ $('pts').querySelectorAll('[data-rmpt]').forEach(b=>b.onclick=()=>b.closest('.sp').remove()); }
@@ -351,6 +372,7 @@ async function doMark(){
     subject: $('subject').value,
     mark_style: style,
     marks: Math.max(1, Math.min(30, +$('marks').value||1)),
+    leniency: $('leniency').value,
     topic: style==='essay' ? $('topic').value : '',
     prompt, answer_text: answer, scheme,
   };
@@ -382,6 +404,7 @@ async function doMark(){
   bindPts();
   $('addPt').addEventListener('click', ()=>{ $('pts').insertAdjacentHTML('beforeend', spRow('','')); bindPts(); });
   $('style').addEventListener('change', applyStyle);
+  $('marks').addEventListener('input', updateMarksHint);
   $('markBtn').addEventListener('click', doMark);
   applyStyle();
 })();

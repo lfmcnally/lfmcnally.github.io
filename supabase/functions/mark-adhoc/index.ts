@@ -15,10 +15,11 @@
 // Request (teacher JWT):
 //   POST {
 //     subject?: "Latin" | "Classical Greek" | "Classical Civilisation",
-//     mark_style: "points" | "translation" | "essay",
+//     mark_style: "points" | "translation" | "passage" | "essay",
 //     marks: number,
 //     prompt: string,
 //     answer_text: string,
+//     leniency?: "lenient" | "slightly_lenient" | "standard" | "slightly_strict" | "strict",
 //     scheme?: { scheme_points?, model_answer?, marking_notes?, essay_scheme? }
 //   }
 // Returns: { marks, max, level?, source_used?, conclusion?, matched, rationale, cost_micros }
@@ -134,19 +135,25 @@ const TRANSLATION_SYSTEM = (subject: string) =>
 // passage itself, since a pasted passage carries no official sub-division.
 const PASSAGE_SYSTEM = (subject: string, sections: number) =>
   `You are an OCR ${subject} examiner marking a CONTINUOUS PASSAGE translated from ${subject} into ` +
-  `English. Longer translations are marked in sub-sections of 5 marks each. Divide the ORIGINAL ${subject} ` +
-  `passage into EXACTLY ${sections} consecutive sections of roughly equal length (total ${sections * 5} marks), ` +
-  "each section a run of one or more whole sentences or self-contained clauses — never split mid-clause. The " +
-  "sections must cover the passage from beginning to end with no gaps and no overlaps, in order. Align each " +
-  "section of the student's English translation with the corresponding stretch of the passage. " +
-  "Mark EACH section 0–5 with the official holistic sense grid below, judging the PROPORTION OF SENSE " +
-  "communicated (who did what to whom) in that section, not word-by-word ticks:\n" +
+  `English. Longer translations are marked in sub-sections of 5 marks each, for a total of ${sections * 5} marks.\n` +
+  `SEGMENTATION — THIS IS CRITICAL. You MUST divide the ORIGINAL ${subject} passage into EXACTLY ${sections} ` +
+  "sections, every one of which contains original-language text. NEVER return an empty, blank or placeholder " +
+  `section, and never return more or fewer than ${sections}. The sections must be CONTIGUOUS and roughly EQUAL in ` +
+  `length (by number of words of ${subject}), together covering the passage from its very first word to its very ` +
+  "last with no gaps and no overlaps, in order. Break at sentence ends when you can; but when the passage has fewer " +
+  `sentences than the ${sections} sections required, SPLIT the longer sentences at natural clause or phrase ` +
+  "boundaries — at a comma, a semicolon, or a conjunction such as et, -que, sed, postquam, ubi, cum, quod, igitur, " +
+  `deinde — so that you still produce EXACTLY ${sections} non-empty sections. Base the division ENTIRELY on the ` +
+  `amount of ${subject}, NOT on how much the student translated.\n` +
+  "Then align each section of the student's English with the corresponding stretch of the passage and mark it " +
+  "0–5 with the official holistic sense grid below, judging the PROPORTION OF SENSE communicated (who did what to " +
+  "whom) in that section, not word-by-word ticks:\n" +
   SENSE_GRID +
-  "For every section return: the ORIGINAL-language text of that section (in 'latin'), the whole-number mark " +
-  "0–5 (in 'marks'), and ONE short note (in 'note') naming what set that section's band. Cover the whole " +
-  "passage even where the student left a section untranslated (score it 0). Do not restate the section mark " +
-  "inside its note. Then write 'rationale' as ONE or TWO sentences of overall feedback spoken directly TO the " +
-  "student (\"you\") — warm and specific about what to fix next; do not restate the total.";
+  "For every section return: the ORIGINAL-language text of that section (in 'latin'), the whole-number mark 0–5 " +
+  "(in 'marks'), and ONE short note (in 'note') naming what set that section's band. Where the student left a " +
+  "section untranslated, still give its original text and score it 0. Do not restate the section mark inside its " +
+  "note. Then write 'rationale' as ONE or TWO sentences of overall feedback spoken directly TO the student " +
+  "(\"you\") — warm and specific about what to fix next; do not restate the total.";
 
 const ESSAY_SYSTEM = (stemType: string) => {
   const inWhatWays = stemType === "in_what_ways";
@@ -261,6 +268,16 @@ const ESSAY_SCHEMA = {
   },
 };
 
+// Optional teacher-set marking stance, appended to any style's system prompt so
+// the teacher can nudge the whole mark harsher or more lenient.
+const LENIENCY: Record<string, string> = {
+  lenient:          " OVERALL STANCE — mark LENIENTLY: give the student the benefit of the doubt on every borderline judgement and lean to the higher mark.",
+  slightly_lenient: " OVERALL STANCE — mark SLIGHTLY LENIENTLY: on borderline judgements, lean to the higher mark.",
+  standard:         "",
+  slightly_strict:  " OVERALL STANCE — mark SLIGHTLY STRICTLY: on borderline judgements lean to the lower mark and expect precision.",
+  strict:           " OVERALL STANCE — mark STRICTLY: expect precise, fully accurate answers; on borderline judgements lean to the lower mark and do not overlook errors.",
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
@@ -281,7 +298,7 @@ Deno.serve(async (req) => {
 
     // -- 2. Payload ---------------------------------------------------------
     let payload: {
-      subject?: string; mark_style?: string; marks?: number; prompt?: string; answer_text?: string; topic?: string;
+      subject?: string; mark_style?: string; marks?: number; prompt?: string; answer_text?: string; topic?: string; leniency?: string;
       scheme?: { scheme_points?: unknown; model_answer?: string; marking_notes?: string; essay_scheme?: { stem_type?: string; source?: string; indicative?: unknown } };
     };
     try { payload = await req.json(); } catch { return json({ error: "invalid JSON" }, 400); }
@@ -357,7 +374,9 @@ Deno.serve(async (req) => {
         `\nStudent answer:\n"""${answerText}"""`;
     }
 
-    const system = essay ? ESSAY_SYSTEM(stemType) : passage ? PASSAGE_SYSTEM(subject, sectionCount) : translation ? TRANSLATION_SYSTEM(subject) : POINTS_SYSTEM(subject);
+    const baseSystem = essay ? ESSAY_SYSTEM(stemType) : passage ? PASSAGE_SYSTEM(subject, sectionCount) : translation ? TRANSLATION_SYSTEM(subject) : POINTS_SYSTEM(subject);
+    const leniency = (payload.leniency && payload.leniency in LENIENCY) ? payload.leniency : "standard";
+    const system = baseSystem + (LENIENCY[leniency] ?? "");
     const schema = essay ? ESSAY_SCHEMA : passage ? PASSAGE_SCHEMA : translation ? TRANSLATION_SCHEMA : POINTS_SCHEMA;
 
     // -- 5. Mark with Claude ------------------------------------------------
@@ -391,11 +410,11 @@ Deno.serve(async (req) => {
     // -- 6a. Passage: per-section marks summed to a total ------------------
     if (passage) {
       const sections = (Array.isArray(parsed.sections) ? parsed.sections : []).map((s) => ({
-        latin: String(s?.latin ?? "").slice(0, 600),
+        latin: String(s?.latin ?? "").trim().slice(0, 600),
         marks: Math.max(0, Math.min(5, Math.round(Number(s?.marks ?? 0)))),
         max: 5,
         note: String(s?.note ?? "").slice(0, 300),
-      }));
+      })).filter((s) => s.latin.length > 0);   // drop any empty/padding section, so a phantom 0 can't tank the total
       const total = sections.reduce((a, s) => a + s.marks, 0);
       const maxTotal = sections.length ? sections.length * 5 : sectionCount * 5;
       return json({
