@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Classicalia — Redesign prototype</title>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0E1E3F; --brand:#1A6FFF; --ink:#1c2540; --muted:#5e6a85;
+    --rule:#d8dde8; --rule-faint:#e9ecf1; --paper:#fff; --cream:#fbfaf6;
+    --latin:#1A6FFF; --civ:#8b5cf6; --alevel:#0f9d8f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;color:var(--ink);background:var(--cream)}
+  a{text-decoration:none;color:inherit}
+  .serif{font-family:'Lora',serif;font-style:italic}
+
+  /* ---------- SHELL ---------- */
+  .app{display:flex;min-height:100vh}
+  .rail{width:248px;flex:none;background:var(--navy);color:#fff;position:sticky;top:0;height:100vh;
+        display:flex;flex-direction:column;padding:22px 14px 14px}
+  .rail-logo{font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:22px;color:#fff;
+             padding:0 10px 18px;letter-spacing:-.01em}
+  .rail-logo span{color:#6ba0ff}
+  .tnav{display:flex;flex-direction:column;gap:2px}
+  .tnav-item{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:8px;
+             font-size:13.5px;font-weight:600;color:#9fb2d4;cursor:pointer;transition:all .12s}
+  .tnav-item:hover{background:rgba(255,255,255,.06);color:#dbe6fb}
+  .tnav-item.active{background:rgba(107,160,255,.16);color:#fff}
+  .tnav-item svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:2;
+                 stroke-linecap:round;stroke-linejoin:round}
+  .rail-label{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#5a6d92;
+              font-weight:700;padding:16px 11px 8px}
+
+  /* active-course context block in the rail */
+  .rail-course{margin:6px 0 2px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+               border-radius:10px;padding:10px;display:none}
+  .rail-course.show{display:block}
+  .rail-course-top{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+  .rc-dot{width:9px;height:9px;border-radius:3px;flex:none}
+  .rc-name{font-size:12.5px;font-weight:700;color:#fff;line-height:1.2}
+  .rc-back{font-size:11px;color:#7f93b8;cursor:pointer;margin-top:2px;display:inline-block}
+  .rc-back:hover{color:#bcd0f5}
+  .verb{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:6px;font-size:12.5px;
+        font-weight:600;color:#9fb2d4;cursor:pointer}
+  .verb:hover{background:rgba(255,255,255,.06);color:#e3ecfb}
+  .verb.active{color:#fff;background:rgba(107,160,255,.18)}
+  .verb .vd{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none;opacity:.6}
+
+  .rail-foot{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}
+  .acct{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer}
+  .acct:hover{background:rgba(255,255,255,.06)}
+  .avatar{width:30px;height:30px;border-radius:50%;background:#6ba0ff;color:#0b1830;display:flex;
+          align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}
+  .acct-name{font-size:12.5px;font-weight:600;color:#dbe6fb;line-height:1.2}
+  .acct-role{font-size:10.5px;color:#7f93b8}
+  .role-toggle{display:flex;background:rgba(255,255,255,.06);border-radius:8px;padding:3px;margin-top:10px}
+  .role-toggle button{flex:1;border:none;background:transparent;color:#8ea3c9;font-family:inherit;
+        font-size:11px;font-weight:700;padding:6px;border-radius:6px;cursor:pointer}
+  .role-toggle button.on{background:#6ba0ff;color:#0b1830}
+
+  /* ---------- MAIN ---------- */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{background:var(--navy);color:#fff;padding:34px 44px 30px;position:relative;overflow:hidden}
+  .tb-eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#6ba0ff;font-weight:700;margin-bottom:8px}
+  .tb-title{font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:32px;line-height:1.05;letter-spacing:-.02em}
+  .tb-deck{font-size:13px;color:#8fa8cc;margin-top:8px;max-width:60ch;line-height:1.6}
+  .content{padding:30px 44px 80px;max-width:1080px}
+
+  /* verb tab bar (main) */
+  .vtabs{display:flex;gap:4px;background:var(--navy);padding:0 44px;border-top:1px solid rgba(255,255,255,.08)}
+  .vtab{padding:13px 16px 12px;font-size:13px;font-weight:700;color:#8fa8cc;cursor:pointer;
+        border-bottom:2px solid transparent;display:flex;align-items:center;gap:8px}
+  .vtab:hover{color:#cfe0ff}
+  .vtab.active{color:#fff;border-bottom-color:#6ba0ff}
+  .vtab small{font-size:10.5px;font-weight:600;color:#6f85ad}
+
+  /* cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+  .card{background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:22px;
+        transition:transform .12s,box-shadow .12s,border-color .12s;cursor:pointer;position:relative}
+  .card:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(14,30,63,.1);border-color:#b8d0ff}
+  .card-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .glyph{width:44px;height:44px;border-radius:11px;color:#fff;display:flex;align-items:center;
+         justify-content:center;font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:20px;flex:none}
+  .card-title{font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:19px;color:var(--navy);line-height:1.15}
+  .card-sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .meter{height:7px;background:var(--rule-faint);border-radius:4px;overflow:hidden;margin:14px 0 6px}
+  .meter i{display:block;height:100%;border-radius:4px}
+  .meter-row{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);font-weight:600}
+  .due{margin-top:16px;padding:10px 12px;background:var(--cream);border:1px solid var(--rule-faint);
+       border-radius:8px;font-size:12px;color:var(--ink);display:flex;align-items:center;gap:8px}
+  .due b{color:var(--navy)}
+  .pill{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
+  .pill.due-soon{background:#fff1e8;color:#c2571a}
+  .pill.ok{background:#eafaf1;color:#127a4a}
+
+  .add-card{border:1.5px dashed var(--rule);background:transparent;display:flex;flex-direction:column;
+            align-items:center;justify-content:center;gap:8px;color:var(--muted);min-height:180px;text-align:center}
+  .add-card:hover{border-color:var(--brand);color:var(--brand)}
+  .add-card .plus{font-size:30px;line-height:1;font-weight:300}
+
+  /* section + rows */
+  .sec{margin-top:30px}
+  .sec:first-child{margin-top:6px}
+  .sec-h{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:12px}
+  .sec-note{font-weight:500;text-transform:none;letter-spacing:0;color:#9aa4bb}
+  .panel{background:var(--paper);border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+  .row{display:flex;align-items:center;gap:14px;padding:14px 18px;border-bottom:1px solid var(--rule-faint);cursor:pointer}
+  .row:last-child{border-bottom:none}
+  .row:hover{background:var(--cream)}
+  .row-code{font-size:11px;font-weight:700;color:var(--muted);width:66px;flex:none}
+  .row-main{flex:1;min-width:0}
+  .row-title{font-family:'Lora',serif;font-style:italic;font-weight:600;font-size:15px;color:var(--navy)}
+  .row-desc{font-size:12px;color:var(--muted);margin-top:2px}
+  .row-arrow{color:var(--rule);font-size:18px}
+  .row:hover .row-arrow{color:var(--brand)}
+  .badge{font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+  .b-live{background:#eef4ff;color:var(--brand)}
+  .b-soon{background:var(--rule-faint);color:var(--muted)}
+  .b-done{background:#eafaf1;color:#127a4a}
+
+  .collapsed-note{padding:13px 18px;font-size:12px;color:var(--muted);background:var(--cream);cursor:pointer;
+                  display:flex;align-items:center;gap:8px}
+  .collapsed-note:hover{color:var(--brand)}
+
+  /* assess mode groups */
+  .mode{background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:20px;margin-bottom:16px}
+  .mode-h{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .mode-tag{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px}
+  .mt-drill{background:#eafaf1;color:#127a4a}
+  .mt-practice{background:#fff6e8;color:#b4801a}
+  .mt-test{background:#eef4ff;color:var(--brand)}
+  .mode-title{font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:17px;color:var(--navy)}
+  .mode-desc{font-size:12.5px;color:var(--muted);line-height:1.55;margin-bottom:14px}
+  .chips{display:flex;flex-wrap:wrap;gap:9px}
+  .chip{border:1px solid var(--rule);border-radius:8px;padding:9px 13px;font-size:12.5px;font-weight:600;
+        color:var(--navy);background:var(--cream);cursor:pointer;display:flex;align-items:center;gap:9px}
+  .chip:hover{border-color:var(--brand);color:var(--brand)}
+  .chip .dd{width:7px;height:7px;border-radius:50%;flex:none}
+
+  /* progress bits */
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+  .stat{background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:18px}
+  .stat-n{font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:30px;color:var(--navy);line-height:1}
+  .stat-l{font-size:11px;color:var(--muted);margin-top:6px;font-weight:600}
+  .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:11px}
+  .bar-label{width:150px;font-size:12.5px;color:var(--ink);font-weight:600;flex:none}
+  .bar{flex:1;height:9px;background:var(--rule-faint);border-radius:5px;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:5px;background:var(--brand)}
+  .bar-v{width:42px;text-align:right;font-size:11.5px;color:var(--muted);font-weight:700;flex:none}
+  .heat{display:flex;gap:4px;flex-wrap:wrap;max-width:560px}
+  .heat i{width:15px;height:15px;border-radius:3px;background:var(--rule-faint)}
+
+  /* teacher */
+  .quad{display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--rule);border-radius:12px;
+        overflow:hidden;border:1px solid var(--rule);aspect-ratio:16/7;min-height:190px}
+  .q{padding:14px 16px;position:relative}
+  .q1{background:#eef4ff}.q2{background:#fff6e8}.q3{background:#eafaf1}.q4{background:#fdecec}
+  .q-name{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .q-dots{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px}
+  .q-dot{width:22px;height:22px;border-radius:50%;background:var(--navy);color:#fff;font-size:9px;font-weight:700;
+         display:flex;align-items:center;justify-content:center}
+  .assign-btn{background:var(--navy);color:#fff;border:none;font-family:inherit;font-size:13px;font-weight:700;
+              padding:11px 18px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+  .assign-btn:hover{background:#16305f}
+  .assign-pop{margin-top:12px;background:var(--paper);border:1px solid var(--rule);border-radius:12px;
+              overflow:hidden;max-width:520px;display:none}
+  .assign-pop.show{display:block}
+  .assign-opt{display:flex;gap:13px;padding:15px 18px;border-bottom:1px solid var(--rule-faint);cursor:pointer}
+  .assign-opt:last-child{border-bottom:none}
+  .assign-opt:hover{background:var(--cream)}
+  .ao-ic{width:38px;height:38px;border-radius:9px;background:var(--cream);border:1px solid var(--rule);
+         display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+  .ao-t{font-weight:700;font-size:13.5px;color:var(--navy)}
+  .ao-d{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.45}
+
+  /* views */
+  .view{display:none}.view.show{display:block}
+
+  /* prototype ribbon + explainer */
+  .ribbon{position:fixed;top:0;right:0;z-index:60;background:#111a2e;color:#9fb2d4;font-size:11px;font-weight:700;
+          letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;border-bottom-left-radius:10px;
+          border-left:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1);cursor:pointer}
+  .ribbon:hover{color:#fff}
+  .explain{position:fixed;inset:0;background:rgba(10,18,34,.55);backdrop-filter:blur(2px);z-index:70;
+           display:none;align-items:center;justify-content:center;padding:24px}
+  .explain.show{display:flex}
+  .explain-box{background:var(--paper);max-width:640px;border-radius:14px;overflow:hidden;
+               box-shadow:0 30px 90px rgba(0,0,0,.4)}
+  .explain-head{background:var(--navy);color:#fff;padding:24px 28px}
+  .explain-head h2{font-family:'Lora',serif;font-style:italic;font-size:23px;font-weight:700}
+  .explain-head p{color:#8fa8cc;font-size:13px;margin-top:6px}
+  .explain-body{padding:22px 28px 26px;font-size:13.5px;line-height:1.6;color:var(--ink)}
+  .explain-body li{margin:0 0 10px 18px}
+  .explain-body b{color:var(--navy)}
+  .explain-x{float:right;background:rgba(255,255,255,.12);border:none;color:#fff;width:30px;height:30px;
+             border-radius:50%;cursor:pointer;font-size:16px}
+  .flash{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;
+         padding:11px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:80;opacity:0;
+         transition:opacity .2s,transform .2s;pointer-events:none}
+  .flash.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+
+  @media(max-width:820px){
+    .rail{position:fixed;left:-260px;transition:left .2s;z-index:50}
+    .stat-row{grid-template-columns:1fr 1fr}
+    .vtabs,.topbar,.content{padding-left:20px;padding-right:20px}
+  }
+</style>
+</head>
+<body>
+
+<div class="ribbon" onclick="openExplain()">◆ Prototype — what am I looking at?</div>
+
+<div class="app">
+  <!-- ============ RAIL (one shell, always present) ============ -->
+  <aside class="rail">
+    <div class="rail-logo" onclick="go('home')" style="cursor:pointer">Classic<span>alia</span></div>
+
+    <!-- STUDENT rail -->
+    <div id="railStudent">
+      <div class="tnav">
+        <div class="tnav-item" data-nav="home" onclick="go('home')">
+          <svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg><span>My courses</span></div>
+        <div class="tnav-item" data-nav="progress" onclick="go('progress-all')">
+          <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 4-5"/></svg><span>Progress</span></div>
+        <div class="tnav-item" data-nav="todo" onclick="flash('Prototype: To-do aggregates every course’s due items')">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 11l2 2 4-4"/></svg><span>To-do</span>
+          <span style="margin-left:auto;background:#c2571a;color:#fff;font-size:10px;font-weight:700;border-radius:999px;padding:1px 7px">3</span></div>
+        <div class="tnav-item" data-nav="friends" onclick="flash('Prototype: Friends — compare coverage with classmates')">
+          <svg viewBox="0 0 24 24"><circle cx="8" cy="9" r="2.4"/><circle cx="16" cy="9" r="2.4"/><path d="M3.5 19a4.5 4.5 0 0 1 9 0M11.5 19a4.5 4.5 0 0 1 9 0"/></svg><span>Friends</span></div>
+      </div>
+
+      <!-- active-course context: the "course → four verbs" spine, in the nav -->
+      <div class="rail-course" id="railCourse">
+        <div class="rail-course-top">
+          <span class="rc-dot" id="rcDot"></span>
+          <div><div class="rc-name" id="rcName">—</div><span class="rc-back" onclick="go('home')">‹ All courses</span></div>
+        </div>
+        <div class="verb" data-verb="learn" onclick="setVerb('learn')"><span class="vd"></span>Learn</div>
+        <div class="verb" data-verb="practise" onclick="setVerb('practise')"><span class="vd"></span>Practise</div>
+        <div class="verb" data-verb="assess" onclick="setVerb('assess')"><span class="vd"></span>Assess</div>
+        <div class="verb" data-verb="progress" onclick="setVerb('progress')"><span class="vd"></span>Progress</div>
+      </div>
+    </div>
+
+    <!-- TEACHER rail -->
+    <div id="railTeacher" style="display:none">
+      <div class="tnav">
+        <div class="tnav-item active"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M17 6a3 3 0 0 1 0 6M16 20a6 6 0 0 0-3-5"/></svg><span>Classes</span></div>
+        <div class="tnav-item" onclick="toggleAssign(true)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Assign</span></div>
+        <div class="tnav-item" onclick="flash('Prototype: one marking queue — weekly tests, bank & quick-mark together')"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Mark</span><span style="margin-left:auto;background:#c2571a;color:#fff;font-size:10px;font-weight:700;border-radius:999px;padding:1px 7px">3</span></div>
+        <div class="tnav-item" onclick="flash('Prototype: browse & assign ready-made assessments')"><svg viewBox="0 0 24 24"><path d="M3 7l2-3h6l2 3h6a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg><span>Bank</span></div>
+        <div class="tnav-item" onclick="flash('Prototype: classroom tools — visualiser, Do Now console')"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/></svg><span>Tools</span></div>
+      </div>
+    </div>
+
+    <div class="rail-foot">
+      <div class="acct">
+        <span class="avatar" id="acctAv">AS</span>
+        <div><div class="acct-name" id="acctName">Ada Stephens</div><div class="acct-role" id="acctRole">Student · Year 10</div></div>
+      </div>
+      <div class="role-toggle">
+        <button id="roleStudent" class="on" onclick="setRole('student')">Student view</button>
+        <button id="roleTeacher" onclick="setRole('teacher')">Teacher view</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <div class="topbar">
+      <div class="tb-eyebrow" id="tbEyebrow">Workspace</div>
+      <div class="tb-title" id="tbTitle">My courses</div>
+      <div class="tb-deck" id="tbDeck">Everything you’re studying, in one place. Pick a course to learn, practise, get assessed, and see your progress — without leaving your workspace.</div>
+    </div>
+
+    <!-- verb tabs appear only inside a course -->
+    <div class="vtabs" id="vtabs" style="display:none">
+      <div class="vtab" data-vtab="learn" onclick="setVerb('learn')">Learn <small>content</small></div>
+      <div class="vtab" data-vtab="practise" onclick="setVerb('practise')">Practise <small>drills</small></div>
+      <div class="vtab" data-vtab="assess" onclick="setVerb('assess')">Assess <small>gets marked</small></div>
+      <div class="vtab" data-vtab="progress" onclick="setVerb('progress')">Progress <small>how I’m doing</small></div>
+    </div>
+
+    <div class="content">
+      <!-- HOME: my courses -->
+      <div class="view show" id="view-home"><div class="grid" id="courseGrid"></div></div>
+
+      <!-- ALL-COURSES PROGRESS -->
+      <div class="view" id="view-progress-all"></div>
+
+      <!-- COURSE hub (verb content injected) -->
+      <div class="view" id="view-course"></div>
+
+      <!-- TEACHER -->
+      <div class="view" id="view-teacher"></div>
+    </div>
+  </div>
+</div>
+
+<!-- explainer -->
+<div class="explain" id="explain">
+  <div class="explain-box">
+    <div class="explain-head">
+      <button class="explain-x" onclick="closeExplain()">&times;</button>
+      <h2>The redesign, in one screen</h2>
+      <p>A clickable mock of the target navigation — no login, demo data only.</p>
+    </div>
+    <div class="explain-body">
+      <p style="margin-bottom:12px">Today Classicalia is two disconnected worlds: a marketing <b>site</b> (subjects) and a separate <b>app</b> (tracking). This prototype shows them merged into <b>one shell</b>:</p>
+      <ul>
+        <li><b>One nav, everywhere.</b> The navy rail is always present — learning content and your progress live in the same place. No jumping to a different site.</li>
+        <li><b>Your courses are home.</b> Login lands on <b>My courses</b> (the <i>tracked_courses</i> spine made visible), not a dense dashboard.</li>
+        <li><b>Every course has four verbs:</b> <b>Learn</b> (content) · <b>Practise</b> (drills &amp; games) · <b>Assess</b> (things that get marked) · <b>Progress</b>. Any future feature slots under one of these — that’s what stops the sprawl.</li>
+        <li><b>“Assessment” means one thing</b> with three clear modes: <b>Drill</b>, <b>Practice</b>, <b>Test</b> — replacing today’s five overlapping surfaces.</li>
+        <li><b>Teachers get the mirror:</b> flip to <b>Teacher view</b> (bottom-left) — one <b>Assign</b> button instead of four authoring flows.</li>
+      </ul>
+      <p style="margin-top:14px;color:var(--muted);font-size:12.5px">Try: open <b>GCSE Latin</b> → click <b>Assess</b>. Then flip to <b>Teacher view</b> → <b>Assign</b>.</p>
+    </div>
+  </div>
+</div>
+
+<div class="flash" id="flash"></div>
+
+<script>
+/* ---------------- demo data ---------------- */
+const COURSES = [
+  { id:'lat-gcse', name:'GCSE Latin', code:'OCR J282', colour:'var(--latin)', glyph:'L',
+    mastery:72, due:{txt:'Weekly test — Chapter 12 vocab', when:'due Thu', soon:true} },
+  { id:'civ-myth', name:'Myth &amp; Religion', code:'GCSE Class. Civ. · J199', colour:'var(--civ)', glyph:'Ω',
+    mastery:58, due:{txt:'Reading — Temples &amp; sacrifice', when:'due Mon', soon:false} },
+  { id:'lat-a', name:'A-Level Latin', code:'OCR H443', colour:'var(--alevel)', glyph:'L',
+    mastery:41, due:{txt:'Bank assessment — Tacitus, Annals XIV', when:'due Fri', soon:false} },
+];
+
+const LEARN = {
+  'lat-gcse':[
+    {code:'J282/04',t:'Baucis et Philemon &amp; otium',d:'Verse set text — 6 sections, parallel text reader',b:'live'},
+    {code:'J282/03',t:'Cupid &amp; Psyche (Apuleius)',d:'Prose set text — continuous facing translation',b:'live'},
+    {code:'J282/01',t:'Language — accidence &amp; syntax',d:'Grammar lessons for the Language paper',b:'soon'},
+  ],
+  'civ-myth':[
+    {code:'1',t:'The gods &amp; their worship',d:'6 lessons — Olympians, cult, festivals',b:'live'},
+    {code:'2',t:'Temples &amp; sacrifice',d:'5 lessons — sacred space, ritual',b:'live'},
+    {code:'3',t:'Myth &amp; the symbolism of death',d:'4 lessons — underworld, heroes',b:'soon'},
+  ],
+  'lat-a':[
+    {code:'H443/02',t:'Tacitus, Annals XII &amp; XIV',d:'Prose set text — Group 1 live, notes &amp; vocab',b:'live'},
+    {code:'H443/03',t:'Virgil, Aeneid Book 2',d:'Verse set text',b:'soon'},
+  ],
+};
+
+const PRACTISE = {
+  'lat-gcse':[
+    {ic:'📚',t:'Vocabulary tester',d:'Spaced-repetition drill — GCSE Latin list, by chapter'},
+    {ic:'-ae',t:'Noun endings',d:'Decline the model nouns; parse GCSE forms'},
+    {ic:'-ō',t:'Verb endings',d:'Conjugate through tenses, active &amp; passive'},
+    {ic:'✨',t:'AI practice',d:'Target one grammar point — endless bespoke sentences'},
+    {ic:'🏛',t:'Latin Quest',d:'Win laurels by mastering vocabulary, chapter by chapter'},
+  ],
+  'civ-myth':[
+    {ic:'?',t:'Myth &amp; Religion quiz',d:'Self-test the OCR topics, question by question'},
+    {ic:'✨',t:'AI practice',d:'Source-analysis prompts on the prescribed sources'},
+  ],
+  'lat-a':[
+    {ic:'📚',t:'Vocabulary tester',d:'A-Level Latin list, spaced repetition'},
+    {ic:'✨',t:'AI practice',d:'Unseen translation, difficulty gated to what you’ve met'},
+  ],
+};
+
+const ASSESS = {
+  'lat-gcse':{
+    drill:[{c:'var(--latin)',t:'Chapter 12 vocab — race'},{c:'var(--latin)',t:'Live Do Now (join class)'}],
+    practice:[{c:'#b4801a',t:'Ablative absolute'},{c:'#b4801a',t:'Purpose clauses'}],
+    test:[{c:'var(--brand)',t:'Weekly test: Ch.12 vocab · due Thu'},{c:'var(--brand)',t:'Bank: Verbs — present system'}],
+  },
+  'civ-myth':{
+    drill:[{c:'var(--civ)',t:'Key terms — race'}],
+    practice:[{c:'#b4801a',t:'Source explanation practice'}],
+    test:[{c:'var(--brand)',t:'Bank: The Olympian gods (12 marks)'}],
+  },
+  'lat-a':{
+    drill:[{c:'var(--alevel)',t:'A-Level core vocab — race'}],
+    practice:[{c:'#b4801a',t:'Indirect statement'}],
+    test:[{c:'var(--brand)',t:'Bank: Tacitus, Annals XIV · due Fri'}],
+  },
+};
+
+const CHAPTERS = {
+  'lat-gcse':[['Chapters 1–5',94],['Chapters 6–8',81],['Chapters 9–11',70],['Chapter 12',38],['Set text: Baucis',66]],
+  'civ-myth':[['The gods',72],['Temples & sacrifice',54],['Festivals',49],['Prescribed sources',61]],
+  'lat-a':[['Core vocab',58],['Tacitus XII',44],['Tacitus XIV',31],['Syntax: subjunctives',39]],
+};
+
+/* ---------------- state ---------------- */
+let role='student', activeCourse=null, verb='learn';
+const $=(id)=>document.getElementById(id);
+function courseById(id){return COURSES.find(c=>c.id===id)}
+
+/* ---------------- render: home ---------------- */
+function renderHome(){
+  let h='';
+  COURSES.forEach(c=>{
+    h+=`<div class="card" onclick="openCourse('${c.id}')">
+      <div class="card-top">
+        <span class="glyph" style="background:${c.colour}">${c.glyph}</span>
+        <div><div class="card-title">${c.name}</div><div class="card-sub">${c.code}</div></div>
+      </div>
+      <div class="meter"><i style="width:${c.mastery}%;background:${c.colour}"></i></div>
+      <div class="meter-row"><span>Mastery</span><span>${c.mastery}%</span></div>
+      <div class="due"><span class="pill ${c.due.soon?'due-soon':'ok'}">${c.due.when}</span><span><b>Next:</b> ${c.due.txt}</span></div>
+    </div>`;
+  });
+  h+=`<div class="card add-card" onclick="flash('Prototype: pick any course to self-track — no teacher needed')">
+        <span class="plus">+</span><div><b>Add a course</b><div class="card-sub">Track any subject yourself</div></div>
+      </div>
+      <div class="card add-card" onclick="flash('Prototype: enter a class code from your teacher')">
+        <span class="plus">⌨</span><div><b>Join a class</b><div class="card-sub">Enter a code from your teacher</div></div>
+      </div>`;
+  $('courseGrid').innerHTML=h;
+}
+
+/* ---------------- render: all-courses progress ---------------- */
+function renderProgressAll(){
+  let h=`<div class="stat-row">
+      <div class="stat"><div class="stat-n">3</div><div class="stat-l">Courses</div></div>
+      <div class="stat"><div class="stat-n">57%</div><div class="stat-l">Avg mastery</div></div>
+      <div class="stat"><div class="stat-n">12</div><div class="stat-l">Day streak</div></div>
+      <div class="stat"><div class="stat-n">3</div><div class="stat-l">Due this week</div></div>
+    </div>`;
+  h+=`<div class="sec"><div class="sec-h">Mastery by course</div><div class="panel" style="padding:20px">`;
+  COURSES.forEach(c=>{
+    h+=`<div class="bar-row"><span class="bar-label">${c.name}</span>
+        <span class="bar"><i style="width:${c.mastery}%;background:${c.colour}"></i></span>
+        <span class="bar-v">${c.mastery}%</span></div>`;
+  });
+  h+=`</div></div>`;
+  h+=`<div class="sec"><div class="sec-h">Activity <span class="sec-note">last 5 weeks</span></div><div class="panel" style="padding:20px"><div class="heat">`;
+  const lv=['var(--rule-faint)','#cfe0ff','#8fbcff','#4f95ff','var(--brand)'];
+  for(let i=0;i<35;i++){const n=[0,1,1,2,3,4,2,0,3,1][i%10];h+=`<i style="background:${lv[n]}"></i>`;}
+  h+=`</div></div></div>`;
+  $('view-progress-all').innerHTML=h;
+}
+
+/* ---------------- render: course verbs ---------------- */
+function renderCourse(){
+  const c=courseById(activeCourse); if(!c)return;
+  let h='';
+  if(verb==='learn'){
+    h+=`<div class="sec"><div class="sec-h">Set texts &amp; lessons <span class="sec-note">what you learn</span></div><div class="panel">`;
+    LEARN[c.id].forEach(r=>{
+      const dead=r.b!=='live';
+      h+=`<div class="row" onclick="${dead?`flash('Prototype: “${strip(r.t)}” is planned — not linked until it’s real')`:`flash('Prototype: opens the ${strip(r.t)} reader')`}">
+        <span class="row-code">${r.code}</span>
+        <div class="row-main"><div class="row-title">${r.t}</div><div class="row-desc">${r.d}</div></div>
+        <span class="badge ${r.b==='live'?'b-live':'b-soon'}">${r.b==='live'?'Live':'Planned'}</span>
+        <span class="row-arrow">›</span></div>`;
+    });
+    h+=`</div><div class="collapsed-note" onclick="flash('Prototype: forthcoming content is collapsed — never 50 dead links')">▸ 3 more components planned for later cycles — hidden until built</div></div>`;
+  }
+  if(verb==='practise'){
+    h+=`<div class="sec"><div class="sec-h">Practise <span class="sec-note">self-serve — as much as you like, nothing marked</span></div><div class="grid">`;
+    PRACTISE[c.id].forEach(t=>{
+      h+=`<div class="card" onclick="flash('Prototype: launches ${strip(t.t)} for this course')">
+        <div class="card-top"><span class="glyph" style="background:${c.colour};font-size:15px">${t.ic}</span>
+        <div class="card-title" style="font-size:16px">${t.t}</div></div>
+        <div class="row-desc">${t.d}</div></div>`;
+    });
+    h+=`</div></div>`;
+  }
+  if(verb==='assess'){
+    const a=ASSESS[c.id];
+    h+=`<div class="mode"><div class="mode-h"><span class="mode-tag mt-drill">Drill</span><span class="mode-title">Fast recall reps</span></div>
+      <div class="mode-desc">Quick, auto-marked reps that build mastery. Can run live &amp; competitive in class (“Do Now”).</div>
+      <div class="chips">${a.drill.map(x=>`<div class="chip" onclick="flash('Prototype: starts a drill')"><span class="dd" style="background:${x.c}"></span>${x.t}</div>`).join('')}</div></div>`;
+    h+=`<div class="mode"><div class="mode-h"><span class="mode-tag mt-practice">Practice</span><span class="mode-title">Targeted, AI-generated</span></div>
+      <div class="mode-desc">Unlimited bespoke practice on one thing you’re working on. Formative feedback, nothing goes on your record.</div>
+      <div class="chips">${a.practice.map(x=>`<div class="chip" onclick="flash('Prototype: generates practice')"><span class="dd" style="background:${x.c}"></span>${x.t}</div>`).join('')}</div></div>`;
+    h+=`<div class="mode"><div class="mode-h"><span class="mode-tag mt-test">Test</span><span class="mode-title">Marked work with a due date</span></div>
+      <div class="mode-desc">A real piece of assessed work — whether your teacher set it or you picked it from the bank. AI marks it, your teacher can override. <b>This one folds today’s “weekly test” and “bank” into one thing.</b></div>
+      <div class="chips">${a.test.map(x=>`<div class="chip" onclick="flash('Prototype: opens the test')"><span class="dd" style="background:${x.c}"></span>${x.t}</div>`).join('')}</div></div>`;
+  }
+  if(verb==='progress'){
+    h+=`<div class="stat-row">
+      <div class="stat"><div class="stat-n">${c.mastery}%</div><div class="stat-l">Mastery</div></div>
+      <div class="stat"><div class="stat-n">83%</div><div class="stat-l">Avg test score</div></div>
+      <div class="stat"><div class="stat-n">1</div><div class="stat-l">Due this week</div></div>
+      <div class="stat"><div class="stat-n">6h</div><div class="stat-l">Time this month</div></div></div>`;
+    h+=`<div class="sec"><div class="sec-h">Mastery by topic — tap a weak one to practise</div><div class="panel" style="padding:20px">`;
+    CHAPTERS[c.id].forEach(([n,v])=>{
+      const weak=v<50;
+      h+=`<div class="bar-row"><span class="bar-label">${n}</span>
+        <span class="bar"><i style="width:${v}%;background:${weak?'#c2571a':c.colour}"></i></span>
+        <span class="bar-v">${v}%</span></div>`;
+    });
+    h+=`</div></div>`;
+  }
+  $('view-course').innerHTML=h;
+}
+
+/* ---------------- render: teacher ---------------- */
+function renderTeacher(){
+  const h=`
+    <div class="sec"><div class="sec-h">Year 10 Latin — 24 students <span class="sec-note">who needs what, at a glance</span></div>
+      <div class="quad">
+        <div class="q q1"><div class="q-name">Needs stretch</div><div class="q-dots">
+          <div class="q-dot">AS</div><div class="q-dot">RP</div><div class="q-dot">TK</div><div class="q-dot">+5</div></div></div>
+        <div class="q q2"><div class="q-name">Coasting</div><div class="q-dots">
+          <div class="q-dot">JM</div><div class="q-dot">LC</div></div></div>
+        <div class="q q3"><div class="q-name">Praise the effort</div><div class="q-dots">
+          <div class="q-dot">DW</div><div class="q-dot">HN</div><div class="q-dot">+3</div></div></div>
+        <div class="q q4"><div class="q-name">Needs support</div><div class="q-dots">
+          <div class="q-dot">MB</div><div class="q-dot">SF</div><div class="q-dot">+1</div></div></div>
+      </div>
+    </div>
+    <div class="sec"><div class="sec-h">Set something for this class</div>
+      <button class="assign-btn" onclick="toggleAssign()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Assign</button>
+      <div class="assign-pop" id="assignPop">
+        <div class="assign-opt" onclick="flash('Prototype: author questions or pull from the bank → set a due date')">
+          <span class="ao-ic">📝</span><div><div class="ao-t">Test</div><div class="ao-d">Author your own, or pick from the bank. AI marks it; you can override. Due date.</div></div></div>
+        <div class="assign-opt" onclick="flash('Prototype: pick class + topic range → go live on the board')">
+          <span class="ao-ic">⚡</span><div><div class="ao-t">Do Now</div><div class="ao-d">A live vocab drill on the board — leaderboard, optional game mode.</div></div></div>
+        <div class="assign-opt" onclick="flash('Prototype: pick a lesson/set text → set a due date')">
+          <span class="ao-ic">📖</span><div><div class="ao-t">Reading</div><div class="ao-d">Assign a lesson or set-text section with a due date.</div></div></div>
+      </div>
+    </div>
+    <div class="sec"><div class="sec-h">Marking queue <span class="sec-note">weekly tests, bank &amp; quick-marks — one place</span></div>
+      <div class="panel">
+        <div class="row" onclick="flash('Prototype: opens the marking view')"><span class="row-code">Test</span><div class="row-main"><div class="row-title">Ch.12 vocab — 18 submitted</div><div class="row-desc">AI-marked · 4 flagged for your review</div></div><span class="badge b-soon">Review</span><span class="row-arrow">›</span></div>
+        <div class="row" onclick="flash('Prototype: opens the marking view')"><span class="row-code">Bank</span><div class="row-main"><div class="row-title">Tacitus Annals XIV — A-Level</div><div class="row-desc">11 submitted · all auto-marked</div></div><span class="badge b-done">Done</span><span class="row-arrow">›</span></div>
+        <div class="row" onclick="flash('Prototype: mark a single pasted answer')"><span class="row-code">Quick</span><div class="row-main"><div class="row-title">One-off answer to mark</div><div class="row-desc">Paste a handwritten answer — spot-mark it</div></div><span class="badge b-soon">Open</span><span class="row-arrow">›</span></div>
+      </div>
+    </div>`;
+  $('view-teacher').innerHTML=h;
+}
+
+/* ---------------- navigation ---------------- */
+function showView(v){document.querySelectorAll('.view').forEach(e=>e.classList.remove('show'));$('view-'+v).classList.add('show');}
+function setNavActive(k){document.querySelectorAll('#railStudent [data-nav]').forEach(e=>e.classList.toggle('active',e.dataset.nav===k));}
+
+function go(where){
+  if(where==='home'){
+    activeCourse=null;
+    $('railCourse').classList.remove('show');$('vtabs').style.display='none';
+    setNavActive('home');
+    $('tbEyebrow').textContent='Workspace';$('tbTitle').textContent='My courses';
+    $('tbDeck').innerHTML='Everything you’re studying, in one place. Pick a course to learn, practise, get assessed, and see your progress — without leaving your workspace.';
+    renderHome();showView('home');
+  } else if(where==='progress-all'){
+    activeCourse=null;$('railCourse').classList.remove('show');$('vtabs').style.display='none';
+    setNavActive('progress');
+    $('tbEyebrow').textContent='Workspace';$('tbTitle').textContent='Progress';
+    $('tbDeck').textContent='How you’re doing across every course you track.';
+    renderProgressAll();showView('progress-all');
+  }
+}
+
+function openCourse(id){
+  activeCourse=id;verb='learn';setNavActive('');
+  const c=courseById(id);
+  $('rcDot').style.background=c.colour;$('rcName').innerHTML=c.name;
+  $('railCourse').classList.add('show');
+  $('tbEyebrow').innerHTML=c.code;$('tbTitle').innerHTML=c.name;
+  $('tbDeck').innerHTML='One course, four things: <b>Learn</b> the content · <b>Practise</b> freely · <b>Assess</b> what gets marked · track your <b>Progress</b>.';
+  $('vtabs').style.display='flex';
+  setVerb('learn');showView('course');
+}
+
+function setVerb(v){
+  verb=v;
+  document.querySelectorAll('[data-verb]').forEach(e=>e.classList.toggle('active',e.dataset.verb===v));
+  document.querySelectorAll('[data-vtab]').forEach(e=>e.classList.toggle('active',e.dataset.vtab===v));
+  renderCourse();showView('course');
+}
+
+function setRole(r){
+  role=r;
+  const st=r==='student';
+  $('roleStudent').classList.toggle('on',st);$('roleTeacher').classList.toggle('on',!st);
+  $('railStudent').style.display=st?'':'none';$('railTeacher').style.display=st?'none':'';
+  $('acctAv').textContent=st?'AS':'LM';
+  $('acctName').textContent=st?'Ada Stephens':'L. McNally';
+  $('acctRole').textContent=st?'Student · Year 10':'Teacher · Classics';
+  if(st){go('home');}
+  else{
+    $('tbEyebrow').textContent='Teaching';$('tbTitle').textContent='Classes';
+    $('tbDeck').innerHTML='Your classes, the interventions view, and <b>one</b> place to set work &mdash; and one place to mark it.';
+    $('vtabs').style.display='none';renderTeacher();showView('teacher');
+  }
+}
+
+function toggleAssign(fromNav){
+  if(role!=='teacher'){setRole('teacher');}
+  const p=$('assignPop');
+  if(!p){setTimeout(()=>toggleAssign(),0);return;}
+  if(fromNav){p.classList.add('show');p.scrollIntoView({behavior:'smooth',block:'center'});}
+  else p.classList.toggle('show');
+}
+
+/* ---------------- misc ---------------- */
+function strip(s){return s.replace(/&amp;/g,'&').replace(/<[^>]+>/g,'')}
+let flashT;
+function flash(msg){const f=$('flash');f.innerHTML=msg;f.classList.add('show');clearTimeout(flashT);flashT=setTimeout(()=>f.classList.remove('show'),2600);}
+function openExplain(){$('explain').classList.add('show')}
+function closeExplain(){$('explain').classList.remove('show')}
+$('explain').addEventListener('click',e=>{if(e.target.id==='explain')closeExplain()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeExplain()});
+
+/* boot */
+renderHome();
+setTimeout(openExplain,350);
+</script>
+</body>
+</html>
