@@ -47,6 +47,12 @@ textarea.f { resize: vertical; min-height: 56px; }
 .mlist li.miss { border-left: 3px solid #c08a2a; color: #8a5a00; }
 .mlist li.next { border-left: 3px solid var(--muted); color: var(--muted); }
 .mlist li.bad { border-left: 3px solid #c0392b; color: #8a1f15; }
+.secs { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.secs li { border: 1px solid var(--rule); border-radius: 8px; padding: 9px 11px; background: var(--paper); }
+.sechead { display: flex; align-items: baseline; gap: 8px; }
+.secmk { font-family: 'Lora', serif; font-weight: 700; font-size: 15px; color: var(--navy); white-space: nowrap; }
+.seclat { font-style: italic; color: var(--ink); font-size: 13.5px; }
+.secnote { margin-top: 3px; font-size: 12.5px; color: var(--muted); }
 .rsec { margin-top: 14px; }
 .rsec h4 { font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 5px; font-weight: 700; }
 /* Print sheet — hidden on screen, shown alone when printing */
@@ -99,7 +105,8 @@ textarea.f { resize: vertical; min-height: 56px; }
           <label class="lbl">Marking style</label>
           <select id="style" class="f">
             <option value="points">Points-based — credit scheme points</option>
-            <option value="translation">Translation — holistic band /5 (Latin / Greek)</option>
+            <option value="translation">Translation — holistic band /5, one sentence (Latin / Greek)</option>
+            <option value="passage">Passage — sectioned translation, mark per section (Latin / Greek)</option>
             <option value="essay">Essay — OCR 8-marker, levels /8 (Classical Civ)</option>
           </select>
           <div id="styleHint" class="muted hint"></div>
@@ -112,7 +119,7 @@ textarea.f { resize: vertical; min-height: 56px; }
       </div>
 
       <div class="field">
-        <label class="lbl">Question / prompt</label>
+        <label class="lbl" id="promptLabel">Question / prompt</label>
         <textarea id="prompt" class="f" rows="2" placeholder="The question the student answered"></textarea>
       </div>
 
@@ -171,7 +178,7 @@ textarea.f { resize: vertical; min-height: 56px; }
       </div>
 
       <div class="field">
-        <label class="lbl">Student's answer</label>
+        <label class="lbl" id="answerLabel">Student's answer</label>
         <textarea id="answer" class="f" rows="8" placeholder="Type or paste the student's answer here"></textarea>
       </div>
 
@@ -201,20 +208,24 @@ function gate(msg){ $('app').classList.add('hidden'); const g=$('gate'); g.class
 function spRow(text, mk){ return '<div class="sp"><input class="f txt" placeholder="creditworthy point" value="'+esc(text||'')+'"><input class="f mk" type="number" min="1" placeholder="mk" value="'+(mk||'')+'"><button class="btn danger sm" type="button" data-rmpt>×</button></div>'; }
 
 function styleHint(style){
-  if(style==='translation') return 'Put the Latin/Greek in the question and the correct English in <b>Model answer</b>. Marked holistically /5 by proportion of sense (OCR J282/J292 grid) — set marks to <b>5</b>.';
+  if(style==='translation') return 'Put one Latin/Greek sentence above and the correct English in <b>Correct translation</b>. Marked holistically /5 by proportion of sense (OCR J282/J292 grid) — set marks to <b>5</b>.';
+  if(style==='passage') return 'Paste the whole Latin/Greek passage above and the student\'s English below. Set the <b>total</b> marks (e.g. 25 or 30) — it\'s split into 5-mark sections, each marked on the OCR sense grid, giving a mark per section and an overall total.';
   if(style==='essay') return 'OCR GCSE Civ 8-marker. Set marks to <b>8</b>. Put the question above, the source and indicative facts below. Marked on OCR\'s 4-level grid (4 AO1 + 4 AO2).';
   return 'The AI credits each creditworthy point the answer conveys, allowing synonyms and paraphrase.';
 }
 
 function applyStyle(){
-  const v = $('style').value, tr = v==='translation', es = v==='essay';
+  const v = $('style').value, tr = v==='translation', pa = v==='passage', es = v==='essay';
   $('styleHint').innerHTML = styleHint(v);
-  $('box-points').classList.toggle('hidden', es);
+  $('box-points').classList.toggle('hidden', es || pa);
   $('box-essay').classList.toggle('hidden', !es);
   $('box-model').classList.toggle('hidden', es);
-  $('modelLabel').textContent = tr ? 'Correct translation (recommended)' : 'Model answer (optional)';
+  $('modelLabel').textContent = (tr || pa) ? 'Correct translation (recommended)' : 'Model answer (optional)';
+  $('promptLabel').textContent = pa ? 'Latin / Greek passage' : (tr ? 'Latin / Greek sentence' : 'Question / prompt');
+  $('answerLabel').textContent = (tr || pa) ? 'Student\'s translation' : 'Student\'s answer';
   const mk = $('marks');
   if(tr && (+mk.value||1) < 2) mk.value = 5;
+  if(pa && (+mk.value||1) < 10) mk.value = 25;
   if(es) mk.value = 8;
 }
 
@@ -223,7 +234,48 @@ function bindPts(){ $('pts').querySelectorAll('[data-rmpt]').forEach(b=>b.onclic
 function liList(arr, cls){ return (Array.isArray(arr)?arr:[]).filter(Boolean).map(s=>'<li'+(cls?' class="'+cls+'"':'')+'>'+esc(String(s))+'</li>').join(''); }
 function strip(s, re){ return String(s).replace(re,''); }
 
+function renderPassage(r){
+  const secs = Array.isArray(r.sections) ? r.sections : [];
+  let html = '<div class="result">';
+  html += '<div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px;">';
+  html += '<div class="scoreline"><span class="score">'+r.marks+' / '+r.max+'</span></div>';
+  html += '<button class="btn ghost sm" type="button" onclick="window.print()">Print feedback</button>';
+  html += '</div>';
+  if(r.rationale) html += '<div class="rat">'+esc(r.rationale)+'</div>';
+  if(secs.length){
+    html += '<div class="rsec"><h4>Marks by section</h4><ul class="secs">';
+    secs.forEach((s,i)=>{
+      html += '<li><div class="sechead"><span class="secmk">'+s.marks+' / '+(s.max||5)+'</span>'
+           + '<span class="seclat">'+esc(s.latin||('Section '+(i+1)))+'</span></div>'
+           + (s.note?'<div class="secnote">'+esc(s.note)+'</div>':'')+'</li>';
+    });
+    html += '</ul></div>';
+  }
+  html += '</div>';
+  $('resultBox').innerHTML = html;
+  buildPassagePrintSheet(r, secs);
+  $('resultBox').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function buildPassagePrintSheet(r, secs){
+  const q=$('prompt').value.trim(), a=$('answer').value.trim(), subj=$('subject').value;
+  let h='';
+  h += '<div class="ps-title">'+esc(subj)+' — translation feedback</div>';
+  h += '<div class="ps-meta">Marked by Classicalia AI · '+esc(new Date().toLocaleDateString())+'</div>';
+  h += '<div class="ps-score">'+r.marks+' / '+r.max+'</div>';
+  if(r.rationale) h += '<div class="ps-sec"><h3>Feedback</h3><div>'+esc(r.rationale)+'</div></div>';
+  if(secs.length){
+    h += '<div class="ps-sec"><h3>Marks by section</h3><ul>';
+    secs.forEach((s,i)=>{ h += '<li><b>'+s.marks+'/'+(s.max||5)+'</b> — '+esc(s.latin||('Section '+(i+1)))+(s.note?' — '+esc(s.note):'')+'</li>'; });
+    h += '</ul></div>';
+  }
+  if(q) h += '<div class="ps-answer"><b>Passage</b>\n'+esc(q)+'</div>';
+  if(a) h += '<div class="ps-answer"><b>Student\'s translation</b>\n'+esc(a)+'</div>';
+  $('printSheet').innerHTML = h;
+}
+
 function renderResult(r){
+  if($('style').value==='passage') return renderPassage(r);
   const isEssay = $('style').value==='essay';
   const ao1=[], ao2=[], nexts=[], other=[];
   (Array.isArray(r.matched)?r.matched:[]).forEach(m=>{
