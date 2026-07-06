@@ -31,6 +31,7 @@
     const bg = opts.background || '#0E1E3F';
     const lineAlpha = opts.lineAlpha != null ? opts.lineAlpha : 0.15;
     const lineRgb = opts.lineRgb || '26,111,255';
+    const starRgb = opts.starRgb || '255,255,255';
 
     function draw() {
       const w = canvas.offsetWidth, h = canvas.offsetHeight;
@@ -55,19 +56,19 @@
       for (let i = 0; i < dust; i++) {
         ctx.beginPath();
         ctx.arc(rs() * w, rs() * h, 0.35 + rs() * 0.45, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${0.08 + rs() * 0.13})`;
+        ctx.fillStyle = `rgba(${starRgb},${0.08 + rs() * 0.13})`;
         ctx.fill();
       }
       for (let i = 0; i < mid; i++) {
         ctx.beginPath();
         ctx.arc(rs() * w, rs() * h, 0.6 + rs() * 0.9, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${0.2 + rs() * 0.3})`;
+        ctx.fillStyle = `rgba(${starRgb},${0.2 + rs() * 0.3})`;
         ctx.fill();
       }
       for (let i = 0; i < bright; i++) {
         ctx.beginPath();
         ctx.arc(rs() * w, rs() * h, 1.2 + rs() * 1.3, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${0.5 + rs() * 0.4})`;
+        ctx.fillStyle = `rgba(${starRgb},${0.5 + rs() * 0.4})`;
         ctx.fill();
       }
 
@@ -108,7 +109,7 @@
       for (const n of nodes) {
         ctx.beginPath();
         ctx.arc(n.x, n.y, 1.0 + rstar() * 1.5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255,255,255,${0.42 + rstar() * 0.5})`;
+        ctx.fillStyle = `rgba(${starRgb},${0.42 + rstar() * 0.5})`;
         ctx.fill();
       }
     }
@@ -129,7 +130,11 @@
     canvases.forEach(c => {
       instances.push(create(c, {
         seed: parseInt(c.dataset.seed || '101', 10),
-        nodeRegion: parseFloat(c.dataset.region || '0.7')
+        nodeRegion: parseFloat(c.dataset.region || '0.7'),
+        background: c.dataset.bg || undefined,
+        starRgb: c.dataset.star || undefined,
+        lineRgb: c.dataset.line || undefined,
+        lineAlpha: c.dataset.lineAlpha != null ? parseFloat(c.dataset.lineAlpha) : undefined
       }));
     });
     let t;
