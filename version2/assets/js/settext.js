@@ -1,5 +1,5 @@
 /* ============================================================
-   Classicalia — Verse literature (line-level) set-text pages
+   Classicalia — Set-text pages: line- or sense-unit reveal
    Pair with /version2/assets/css/verse-lit.css
 
    Expects, in the page:
