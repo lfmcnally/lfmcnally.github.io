@@ -42,6 +42,16 @@ let selImg = null;
 let dragSt = null;
 let resizeSt = null;
 
+// Text-box state (declared up front so applyToolState can reference safely)
+const textLayer = document.getElementById('text-layer');
+let selTxt = null;
+let txDragSt = null;
+let txResizeSt = null;
+let currentFontFamily = 'Segoe UI, system-ui, sans-serif';
+let currentFontSize  = 18;
+let currentBold      = false;
+let currentItalic    = false;
+
 // EmbedPDF tool ID for each of our logical tools
 const EPDF_TOOL = {
   pen:    'ink',
@@ -221,6 +231,30 @@ async function renderPageThumb(p, canvas) {
     }
     // Strokes (re-uses the main drawStroke())
     p.strokes.forEach(st => drawStroke(ctx, st));
+    // Text boxes — render the plain-text content at the box origin
+    for (const t of (p.texts || [])) {
+      ctx.save();
+      ctx.fillStyle   = t.color || '#000';
+      ctx.font        = `${t.italic ? 'italic ' : ''}${t.bold ? '700 ' : ''}${t.fontSize || 18}px ${t.fontFamily || 'sans-serif'}`;
+      ctx.textBaseline = 'top';
+      const txt = stripHtml(t.html || '');
+      // wrap roughly to box width — quick heuristic, no full layout
+      let y = t.y, lineH = (t.fontSize || 18) * 1.2;
+      const words = txt.split(/\s+/);
+      let line = '';
+      for (const w of words) {
+        const test = line ? (line + ' ' + w) : w;
+        if (ctx.measureText(test).width > t.w - 12 && line) {
+          ctx.fillText(line, t.x + 6, y);
+          y += lineH;
+          line = w;
+        } else {
+          line = test;
+        }
+      }
+      if (line) ctx.fillText(line, t.x + 6, y);
+      ctx.restore();
+    }
     ctx.restore();
     return;
   }
@@ -305,6 +339,7 @@ function switchPage(idx) {
   activeIdx = idx;
   const p = pages[idx];
   selImg = null;
+  selTxt = null;
   console.log(`[switchPage] idx=${idx}, type=${p.type}, embedDocId=${p.embedDocId}`);
 
   if (p.type === 'pdf') {
@@ -321,6 +356,7 @@ function switchPage(idx) {
     blankHostEl.classList.remove('hidden');
     setupBlankCanvas();
     rebuildImgLayer(p);
+    rebuildTextLayer(p);
     replayStrokes(p);
   }
 
@@ -365,6 +401,7 @@ document.getElementById('btn-add-blank').addEventListener('click', () => {
     zoom: 1.0,
     strokes: [],
     images: [],
+    texts: [],
     redo: [],
   });
   switchPage(pages.length - 1);
@@ -467,6 +504,17 @@ function applyToolState() {
     drawCanvas.style.pointerEvents = 'auto';
     imgLayer.style.pointerEvents   = 'none';
   }
+
+  // Live-apply current colour to the selected text box (if any) when the
+  // user picks a different swatch.
+  const t = (typeof getActiveText === 'function') ? getActiveText() : null;
+  if (t && t.color !== currentColor) {
+    t.color = currentColor;
+    const edit = textLayer?.querySelector(`.tx-obj[data-id="${t.id}"] .tx-edit`);
+    if (edit) edit.style.color = currentColor;
+    schedThumb(activeIdx);
+  }
+  if (typeof refreshFontUI === 'function') refreshFontUI();
 }
 
 // ── Undo / Redo ──────────────────────────────────────────────────────
@@ -618,8 +666,9 @@ fileImg.addEventListener('change', async e => {
 
 // ── Clipboard paste (image → blank page) ─────────────────────────────
 document.addEventListener('paste', async e => {
-  // Skip if the user is typing in a normal input
+  // Skip if the user is typing in a normal input or contenteditable
   if (['INPUT', 'TEXTAREA'].includes(e.target?.tagName)) return;
+  if (e.target?.isContentEditable) return;
   const p = pages[activeIdx];
   if (!p || p.type !== 'blank') return;
   const items = e.clipboardData?.items || [];
@@ -705,6 +754,8 @@ async function deleteSelected() {
     if (selImg) {
       deleteImage(selImg, p);
       schedThumb(activeIdx);
+    } else if (selTxt) {
+      deleteText(selTxt, p);
     }
     return;
   }
@@ -725,6 +776,8 @@ async function deleteSelected() {
 // Ctrl/Cmd-Z and so Mac users get the same behaviour.
 window.addEventListener('keydown', e => {
   if (['INPUT', 'TEXTAREA'].includes(e.target?.tagName)) return;
+  // Don't intercept keys while a text box is being edited
+  if (e.target?.isContentEditable) return;
   const k = e.key.toLowerCase();
   const meta = e.ctrlKey || e.metaKey;
 
@@ -793,20 +846,30 @@ drawCanvas.addEventListener('pointerdown', e => {
   rebuildImgLayer(p);
 
   if (currentTool === 'text') {
-    const txt = window.prompt('Text:');
-    if (txt) {
-      const pt = ptToBlankContent(e);
-      p.strokes.push({
-        type: 'text',
-        x: pt.x,
-        y: pt.y,
-        text: txt,
-        colour: currentColor,
-        size: currentSize,
-      });
-      p.redo = [];
-      replayStrokes(p);
-    }
+    const pt = ptToBlankContent(e);
+    if (!p.texts) p.texts = [];
+    const t = {
+      id: newId(),
+      x: pt.x, y: pt.y, w: 240,
+      html: '',
+      fontFamily: currentFontFamily,
+      fontSize: currentFontSize,
+      bold: currentBold,
+      italic: currentItalic,
+      color: currentColor,
+    };
+    p.texts.push(t);
+    selTxt = t.id;
+    rebuildTextLayer(p);
+    // Auto-focus the new box for typing
+    setTimeout(() => {
+      const wrap = textLayer.querySelector(`.tx-obj[data-id="${t.id}"]`);
+      if (wrap) {
+        wrap.classList.add('editing');
+        wrap.querySelector('.tx-edit')?.focus();
+      }
+    }, 0);
+    e.preventDefault();
     return;
   }
 
@@ -967,6 +1030,199 @@ document.addEventListener('pointerup', () => {
   resizeSt = null;
 });
 
+// ── Text boxes (PowerPoint-style) on blank pages ─────────────────────
+function applyTextStyle(el, t) {
+  el.style.fontFamily = t.fontFamily;
+  el.style.fontSize   = t.fontSize + 'px';
+  el.style.fontWeight = t.bold ? '700' : '400';
+  el.style.fontStyle  = t.italic ? 'italic' : 'normal';
+  el.style.color      = t.color;
+}
+
+function rebuildTextLayer(p) {
+  textLayer.innerHTML = '';
+  if (p?.type !== 'blank' || !p.texts) return;
+  for (const t of p.texts) mkTextEl(t, p);
+}
+
+function mkTextEl(t, p) {
+  const wrap = document.createElement('div');
+  wrap.className = 'tx-obj' + (t.id === selTxt ? ' selected' : '');
+  wrap.dataset.id = String(t.id);
+  wrap.style.cssText = `left:${t.x}px;top:${t.y}px;width:${t.w}px;`;
+
+  const edit = document.createElement('div');
+  edit.className = 'tx-edit';
+  edit.contentEditable = 'true';
+  edit.spellcheck = false;
+  edit.innerHTML = t.html || '';
+  applyTextStyle(edit, t);
+  edit.addEventListener('input', () => {
+    t.html = edit.innerHTML;
+    schedThumb(activeIdx);
+  });
+  edit.addEventListener('blur', () => {
+    wrap.classList.remove('editing');
+    if (!edit.textContent.trim()) {
+      // empty box — drop it
+      p.texts = p.texts.filter(x => x.id !== t.id);
+      if (selTxt === t.id) selTxt = null;
+      rebuildTextLayer(p);
+    }
+  });
+  // Stop pointer events during edit from triggering drag
+  edit.addEventListener('pointerdown', e => e.stopPropagation());
+  wrap.appendChild(edit);
+
+  const rh = document.createElement('div');
+  rh.className = 'rh';
+  wrap.appendChild(rh);
+
+  const db = document.createElement('button');
+  db.className = 'delbtn';
+  db.textContent = '×';
+  db.addEventListener('pointerdown', ev => { ev.stopPropagation(); deleteText(t.id, p); });
+  wrap.appendChild(db);
+
+  wrap.addEventListener('pointerdown', e => {
+    if (currentTool !== 'select' && currentTool !== 'text') return;
+    if (wrap.classList.contains('editing')) return;
+    e.stopPropagation();
+    selTxt = t.id;
+    selImg = null;
+    rebuildTextLayer(p);
+    rebuildImgLayer(p);
+    if (e.target === rh) startTextResize(e, t);
+    else if (e.target !== db) {
+      if (currentTool === 'text') {
+        // Enter edit mode immediately
+        wrap.classList.add('editing');
+        edit.focus();
+      } else {
+        startTextDrag(e, t);
+      }
+    }
+  });
+
+  // Double-click in any tool enters edit mode
+  wrap.addEventListener('dblclick', e => {
+    e.stopPropagation();
+    wrap.classList.add('editing');
+    edit.focus();
+    // place caret at end
+    const range = document.createRange();
+    range.selectNodeContents(edit);
+    range.collapse(false);
+    const sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+
+  textLayer.appendChild(wrap);
+}
+
+function deleteText(id, p) {
+  p.texts = (p.texts || []).filter(x => x.id !== id);
+  if (selTxt === id) selTxt = null;
+  rebuildTextLayer(p);
+  schedThumb(activeIdx);
+}
+function startTextDrag(e, t) {
+  const pt = ptToBlankContent(e);
+  txDragSt = { t, ox: pt.x - t.x, oy: pt.y - t.y };
+}
+function startTextResize(e, t) {
+  const pt = ptToBlankContent(e);
+  txResizeSt = { t, sx: pt.x, sw: t.w };
+}
+document.addEventListener('pointermove', e => {
+  if (txDragSt) {
+    const pt = ptToBlankContent(e);
+    txDragSt.t.x = Math.max(0, pt.x - txDragSt.ox);
+    txDragSt.t.y = Math.max(0, pt.y - txDragSt.oy);
+    const el = textLayer.querySelector(`[data-id="${txDragSt.t.id}"]`);
+    if (el) { el.style.left = txDragSt.t.x + 'px'; el.style.top = txDragSt.t.y + 'px'; }
+  }
+  if (txResizeSt) {
+    const pt = ptToBlankContent(e);
+    txResizeSt.t.w = Math.max(80, txResizeSt.sw + pt.x - txResizeSt.sx);
+    const el = textLayer.querySelector(`[data-id="${txResizeSt.t.id}"]`);
+    if (el) el.style.width = txResizeSt.t.w + 'px';
+  }
+});
+document.addEventListener('pointerup', () => {
+  if (txDragSt || txResizeSt) schedThumb(activeIdx);
+  txDragSt = null;
+  txResizeSt = null;
+});
+
+// ── Toolbar font controls ────────────────────────────────────────────
+const fontFamilyEl = document.getElementById('font-family');
+const fontSizeEl   = document.getElementById('font-size');
+const btnBold      = document.getElementById('btn-bold');
+const btnItalic    = document.getElementById('btn-italic');
+
+function getActiveText() {
+  const p = pages[activeIdx];
+  if (!p || p.type !== 'blank' || !p.texts) return null;
+  return p.texts.find(t => t.id === selTxt) || null;
+}
+
+function refreshFontUI() {
+  const t = getActiveText();
+  if (t) {
+    fontFamilyEl.value = t.fontFamily;
+    fontSizeEl.value   = String(t.fontSize);
+    btnBold.classList.toggle('active', !!t.bold);
+    btnItalic.classList.toggle('active', !!t.italic);
+  } else {
+    fontFamilyEl.value = currentFontFamily;
+    fontSizeEl.value   = String(currentFontSize);
+    btnBold.classList.toggle('active', currentBold);
+    btnItalic.classList.toggle('active', currentItalic);
+  }
+}
+
+function updateActiveTextStyle(patch) {
+  const t = getActiveText();
+  if (t) {
+    Object.assign(t, patch);
+    const wrap = textLayer.querySelector(`.tx-obj[data-id="${t.id}"]`);
+    const edit = wrap?.querySelector('.tx-edit');
+    if (edit) applyTextStyle(edit, t);
+    schedThumb(activeIdx);
+  }
+}
+
+fontFamilyEl.addEventListener('change', () => {
+  currentFontFamily = fontFamilyEl.value;
+  updateActiveTextStyle({ fontFamily: currentFontFamily });
+});
+fontSizeEl.addEventListener('change', () => {
+  currentFontSize = parseInt(fontSizeEl.value, 10) || 18;
+  updateActiveTextStyle({ fontSize: currentFontSize });
+});
+btnBold.addEventListener('click', () => {
+  currentBold = !currentBold;
+  btnBold.classList.toggle('active', currentBold);
+  updateActiveTextStyle({ bold: currentBold });
+});
+btnItalic.addEventListener('click', () => {
+  currentItalic = !currentItalic;
+  btnItalic.classList.toggle('active', currentItalic);
+  updateActiveTextStyle({ italic: currentItalic });
+});
+
+// Click outside any text box → blur (commit) the editing one
+document.addEventListener('pointerdown', e => {
+  if (!textLayer.contains(e.target)) {
+    textLayer.querySelectorAll('.tx-obj.editing').forEach(w => {
+      w.classList.remove('editing');
+      w.querySelector('.tx-edit')?.blur();
+    });
+  }
+}, true);
+
 // ── Utilities ────────────────────────────────────────────────────────
 function readDataURL(file) {
   return new Promise((res, rej) => {
@@ -975,6 +1231,11 @@ function readDataURL(file) {
     r.onerror = rej;
     r.readAsDataURL(file);
   });
+}
+function stripHtml(html) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  return tmp.textContent || '';
 }
 function loadImage(src) {
   return new Promise((res, rej) => {
@@ -1031,6 +1292,7 @@ async function serialiseLesson() {
         zoom: p.zoom || 1,
         strokes: p.strokes || [],
         images: p.images || [],
+        texts: p.texts || [],
       });
     } else if (p.type === 'pdf') {
       // First try EmbedPDF's exportPlugin so any annotations are baked in.
@@ -1203,6 +1465,7 @@ async function loadLesson(id) {
         zoom: sp.zoom || 1,
         strokes: sp.strokes || [],
         images: sp.images || [],
+        texts: sp.texts || [],
         redo: [],
       });
     } else if (sp.type === 'pdf' && sp.pdfBase64 && docManager) {
