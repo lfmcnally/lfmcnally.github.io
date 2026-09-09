@@ -130,9 +130,20 @@ async function redirectIfLoggedIn() {
 // REQUEST PASSWORD RESET
 // ============================================
 // Sends a password reset email to the user
+// The canonical site origin. Supabase only honours redirect URLs that match its
+// allow-list, so www/apex mismatches would otherwise silently drop the user on
+// the Site URL (the homepage) instead of the reset page.
+function canonicalOrigin() {
+    const host = window.location.hostname;
+    if (host === 'classicalia.co.uk' || host === 'www.classicalia.co.uk') {
+        return 'https://classicalia.co.uk';
+    }
+    return window.location.origin;
+}
+
 async function requestPasswordReset(email) {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/auth/reset-password.html'
+        redirectTo: canonicalOrigin() + '/auth/reset-password.html'
     });
 
     if (error) {
