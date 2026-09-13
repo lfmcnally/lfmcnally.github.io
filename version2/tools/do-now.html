@@ -14,7 +14,7 @@
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/account-menu.js" defer></script>
 <style>
-  .dn-body { max-width: 1180px; margin: 0 auto; padding: 36px 40px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 28px; align-items: start; }
+  .dn-body { max-width: 1560px; margin: 0 auto; padding: 36px 40px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 640px; gap: 32px; align-items: start; }
 
   .dn-panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; margin-bottom: 20px; }
   .dn-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--rule-faint); }
@@ -104,13 +104,20 @@
   .sheet td.q { font-size: 12pt; font-weight: 700; }
   .sheet .qnum { display: inline-block; min-width: 20px; font-weight: 700; }
   .sheet .ans { display: block; }
+  .sheet .q-text { display: inline; outline: none; border-radius: 3px; padding: 0 2px; margin: 0 -2px; cursor: text; }
+  .sheet .q-text:hover { background: #eef4ff; box-shadow: 0 0 0 1px #cfe0ff; }
+  .sheet .q-text:focus { background: #eef4ff; box-shadow: 0 0 0 2px var(--brand); }
   .sheet .ans-line { display: block; }
   .sheet-score { margin-top: 18px; border: 2px solid #000; padding: 9px; text-align: center; font-size: 14pt; font-weight: 700; }
   .sheet-foot { margin-top: 14px; font-size: 8.5pt; color: #555; text-align: right; }
 
+  @media (max-width: 1440px) {
+    .dn-body { max-width: 1180px; grid-template-columns: minmax(0, 1fr) 460px; }
+  }
   @media (max-width: 1080px) {
     .dn-body { grid-template-columns: minmax(0, 1fr); }
     .dn-side { position: static; }
+    .dn-preview-stage { max-width: 640px; }
   }
   @media (max-width: 620px) {
     .dn-body { padding: 28px 20px 70px; }
@@ -124,10 +131,12 @@
     .header, .support-band, .footer, .dn-main, .dn-preview-label, .dn-print-hide { display: none !important; }
     .dn-body { display: block; padding: 0; max-width: none; }
     .dn-side { position: static; }
-    .dn-preview-wrap { border: none; background: #fff; padding: 0; border-radius: 0; }
-    .dn-preview-stage { overflow: visible; }
+    /* The wrapper clips the scaled preview on screen; at full size it must not. */
+    .dn-preview-wrap { border: none; background: #fff; padding: 0; border-radius: 0; overflow: visible; }
+    .dn-preview-stage { overflow: visible; height: auto !important; }
     .sheet { transform: none !important; width: auto; min-height: 0; box-shadow: none; padding: 1.5cm; }
     .sheet tr { break-inside: avoid; }
+    .sheet .q-text { background: none !important; box-shadow: none !important; }
   }
 </style>
 </head>
@@ -294,7 +303,7 @@
         <div class="dn-import-actions" id="dnImportActions" hidden>
           <div class="dn-btn-row">
             <button class="dn-btn" id="dnSelectAll" type="button">Select all</button>
-            <button class="dn-btn" id="dnSelectNone" type="button">Clear</button>
+            <button class="dn-btn" id="dnSelectNone" type="button">Clear selection</button>
           </div>
           <div class="dn-random">
             <label for="dnRandomCount">Pick at random</label>
@@ -313,7 +322,7 @@
         <div class="dn-btn-row">
           <button class="dn-btn" id="dnShuffle" type="button">Shuffle</button>
           <button class="dn-btn" id="dnPaste" type="button">Paste a list</button>
-          <button class="dn-btn" id="dnClear" type="button">Clear</button>
+          <button class="dn-btn" id="dnClear" type="button">Clear all</button>
         </div>
       </div>
       <div class="dn-panel-body">
@@ -340,7 +349,7 @@
 
   <aside class="dn-side">
     <div class="dn-preview-wrap">
-      <div class="dn-preview-label">Preview &mdash; A4</div>
+      <div class="dn-preview-label">Preview &mdash; A4 <span id="dnPages"></span> <span style="font-weight:600; letter-spacing:0; text-transform:none;">&middot; click a question to edit it here</span></div>
       <div class="dn-preview-stage" id="dnStage">
         <div class="sheet" id="dnSheet"></div>
       </div>
@@ -515,7 +524,10 @@
   }
 
   function buildSheet() {
-    var list = filled();
+    var list = [];
+    questions.forEach(function (q, idx) {
+      if (q.trim() !== '') { list.push({ text: q, idx: idx }); }
+    });
     var title = val('dnTitle').trim() || 'Do Now';
     var name = val('dnName').trim();
     var dateRaw = val('dnDate');
@@ -539,9 +551,11 @@
       answerCell = '<span class="ans">' + new Array(count + 1).join(line) + '</span>';
     }
 
-    var rows = list.map(function (q, i) {
+    var rows = list.map(function (item, i) {
       var num = checked('dnNumbers') ? '<span class="qnum">' + (i + 1) + '.</span> ' : '';
-      return '<tr><td class="q">' + num + escapeHtml(q) + '</td>' +
+      return '<tr><td class="q">' + num +
+             '<span class="q-text" contenteditable="true" spellcheck="false" data-q="' + item.idx + '">' +
+             escapeHtml(item.text) + '</span></td>' +
              '<td>' + answerCell + '</td></tr>';
     }).join('');
 
@@ -575,6 +589,8 @@
     sheetEl.innerHTML = html;
   }
 
+  var A4_HEIGHT_PX = 29.7 / 2.54 * 96;   // portrait A4 at 96dpi
+
   function scalePreview() {
     // The sheet is a real A4 page; shrink it to fit the preview column.
     var available = stageEl.clientWidth;
@@ -583,6 +599,16 @@
     var scale = Math.min(1, available / natural);
     sheetEl.style.transform = 'scale(' + scale + ')';
     stageEl.style.height = (sheetEl.scrollHeight * scale) + 'px';
+    showPageCount();
+  }
+
+  // scrollHeight ignores the transform, so it is the real printed height.
+  function showPageCount() {
+    var label = document.getElementById('dnPages');
+    if (!label) return;
+    var pages = Math.max(1, Math.ceil(sheetEl.scrollHeight / A4_HEIGHT_PX - 0.02));
+    label.textContent = '· ' + pages + (pages === 1 ? ' page' : ' pages');
+    label.style.color = pages > 1 ? '#b45309' : '';
   }
 
   function saveDraft() {
@@ -594,10 +620,51 @@
     writeStore(DRAFT_KEY, { settings: settings, questions: questions });
   }
 
+  var editingInPreview = false;
+
   function update() {
+    if (editingInPreview) {
+      // Rebuilding the sheet mid-keystroke would blow away the caret.
+      scalePreview();
+      saveDraft();
+      return;
+    }
     buildSheet();
     scalePreview();
     saveDraft();
+  }
+
+  // Typing into the preview edits the question it came from.
+  sheetEl.addEventListener('input', function (e) {
+    var cell = e.target.closest ? e.target.closest('.q-text') : null;
+    if (!cell) return;
+    var idx = parseInt(cell.getAttribute('data-q'), 10);
+    if (isNaN(idx) || idx < 0 || idx >= questions.length) return;
+    editingInPreview = true;
+    questions[idx] = cell.textContent;
+    var box = rowsInputs()[idx];
+    if (box) { box.value = cell.textContent; autoGrow(box); }
+    saveDraft();
+  });
+
+  sheetEl.addEventListener('focusout', function (e) {
+    var cell = e.target.closest ? e.target.closest('.q-text') : null;
+    if (!cell) return;
+    editingInPreview = false;
+    // An emptied cell would vanish from the sheet, so drop the row properly.
+    renderQuestions();
+    update();
+  });
+
+  sheetEl.addEventListener('keydown', function (e) {
+    var cell = e.target.closest ? e.target.closest('.q-text') : null;
+    if (!cell) return;
+    if (e.key === 'Enter') { e.preventDefault(); cell.blur(); }
+    if (e.key === 'Escape') { cell.blur(); }
+  });
+
+  function rowsInputs() {
+    return questionsEl.querySelectorAll('.dn-q-input');
   }
 
   function applySettings(settings) {
@@ -1091,7 +1158,10 @@
   });
 
   window.addEventListener('resize', scalePreview);
-  window.addEventListener('beforeprint', function () { sheetEl.style.transform = 'none'; });
+  window.addEventListener('beforeprint', function () {
+    sheetEl.style.transform = 'none';
+    stageEl.style.height = 'auto';
+  });
   window.addEventListener('afterprint', scalePreview);
 
   /* ── start up ── */

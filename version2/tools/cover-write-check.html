@@ -109,8 +109,9 @@
     .header, .support-band, .footer, .cw-main, .cw-preview-label, .cw-print-hide { display: none !important; }
     .cw-body { display: block; padding: 0; max-width: none; }
     .cw-side { position: static; }
-    .cw-preview-wrap { border: none; background: #fff; padding: 0; border-radius: 0; }
-    .cw-preview-stage { overflow: visible; }
+    /* The wrapper clips the scaled preview on screen; at full size it must not. */
+    .cw-preview-wrap { border: none; background: #fff; padding: 0; border-radius: 0; overflow: visible; }
+    .cw-preview-stage { overflow: visible; height: auto !important; }
     .sheet { transform: none !important; width: auto; min-height: 0; box-shadow: none; padding: 1cm 1.2cm; }
     .sheet tr { break-inside: avoid; }
   }
@@ -228,7 +229,7 @@
 
   <aside class="cw-side">
     <div class="cw-preview-wrap">
-      <div class="cw-preview-label">Preview &mdash; A4 landscape</div>
+      <div class="cw-preview-label">Preview &mdash; A4 landscape <span id="cwPages"></span></div>
       <div class="cw-preview-stage" id="cwStage">
         <div class="sheet" id="cwSheet"></div>
       </div>
@@ -492,6 +493,8 @@
     sheetEl.innerHTML = html;
   }
 
+  var A4_LANDSCAPE_HEIGHT_PX = 21 / 2.54 * 96;   // landscape A4 at 96dpi
+
   function scalePreview() {
     // The sheet is a real A4 landscape page; shrink it to fit the preview column.
     var available = stageEl.clientWidth;
@@ -500,6 +503,16 @@
     var scale = Math.min(1, available / natural);
     sheetEl.style.transform = 'scale(' + scale + ')';
     stageEl.style.height = (sheetEl.scrollHeight * scale) + 'px';
+    showPageCount();
+  }
+
+  // scrollHeight ignores the transform, so it is the real printed height.
+  function showPageCount() {
+    var label = document.getElementById('cwPages');
+    if (!label) return;
+    var pages = Math.max(1, Math.ceil(sheetEl.scrollHeight / A4_LANDSCAPE_HEIGHT_PX - 0.02));
+    label.textContent = '· ' + pages + (pages === 1 ? ' page' : ' pages');
+    label.style.color = pages > 1 ? '#b45309' : '';
   }
 
   function saveDraft() {
@@ -672,7 +685,10 @@
   });
 
   window.addEventListener('resize', scalePreview);
-  window.addEventListener('beforeprint', function () { sheetEl.style.transform = 'none'; });
+  window.addEventListener('beforeprint', function () {
+    sheetEl.style.transform = 'none';
+    stageEl.style.height = 'auto';
+  });
   window.addEventListener('afterprint', scalePreview);
 
   /* ── start up ── */
