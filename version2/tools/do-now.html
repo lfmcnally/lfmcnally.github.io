@@ -58,6 +58,23 @@
 
   .dn-empty { font-size: 13.5px; color: var(--muted); font-style: italic; padding: 6px 0 12px; }
 
+  /* import picker */
+  .dn-import-filters { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .dn-import-status { font-size: 13px; color: var(--muted); margin-top: 14px; }
+  .dn-picker { margin-top: 14px; max-height: 320px; overflow-y: auto; border: 1px solid var(--rule); border-radius: 9px; padding: 4px 0; }
+  .dn-pick { display: flex; align-items: flex-start; gap: 10px; padding: 7px 14px; cursor: pointer; }
+  .dn-pick:hover { background: var(--cream); }
+  .dn-pick input { margin-top: 3px; width: 15px; height: 15px; flex: none; accent-color: var(--brand); cursor: pointer; }
+  .dn-pick-text { font-size: 13.5px; line-height: 1.45; color: var(--ink); }
+  .dn-pick-meta { display: block; font-size: 11.5px; color: var(--muted); }
+  .dn-picker-more { font-size: 12px; color: var(--muted); font-style: italic; padding: 9px 14px; border-top: 1px solid var(--rule-faint); }
+  .dn-import-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; }
+  .dn-random { display: flex; align-items: center; gap: 8px; }
+  .dn-random label { font-size: 13px; color: var(--muted); }
+  .dn-random input { width: 68px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 8px 10px; }
+  .dn-import-actions .primary { margin-left: auto; }
+
   /* saved sets */
   .dn-set { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rule-faint); }
   .dn-set:last-child { border-bottom: none; }
@@ -214,6 +231,79 @@
           <label class="dn-check"><input type="checkbox" id="dnNumbers" checked> Number the questions</label>
           <label class="dn-check"><input type="checkbox" id="dnFooter"> Classicalia footer</label>
         </div>
+      </div>
+    </section>
+
+    <section class="dn-panel">
+      <div class="dn-panel-head">
+        <h2 class="dn-panel-title">Import from a set</h2>
+        <button class="dn-btn" id="dnImportToggle" type="button" aria-expanded="false">Open</button>
+      </div>
+      <div class="dn-panel-body" id="dnImportBody" hidden>
+
+        <div class="dn-grid dn-grid-2">
+          <div class="dn-field">
+            <label for="dnSource">Set</label>
+            <select id="dnSource">
+              <option value="">Choose a set&hellip;</option>
+              <option value="latin-gcse">Latin vocabulary &mdash; OCR GCSE</option>
+              <option value="latin-alevel">Latin vocabulary &mdash; A Level</option>
+              <option value="suburani">Latin vocabulary &mdash; Suburani</option>
+              <option value="greek-gcse">Greek vocabulary &mdash; OCR GCSE</option>
+              <option value="greek-alevel">Greek vocabulary &mdash; A Level</option>
+              <option value="myth">Myth &amp; Religion questions</option>
+            </select>
+          </div>
+          <div class="dn-field" id="dnDirectionField" hidden>
+            <label for="dnDirection">Ask in</label>
+            <select id="dnDirection">
+              <option value="term">The language &rarr; they write the meaning</option>
+              <option value="english">English &rarr; they write the language</option>
+              <option value="both">Both, side by side (word = meaning)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="dn-grid dn-grid-3 dn-import-filters" id="dnFilters" style="margin-top: 14px;" hidden>
+          <div class="dn-field" id="dnChapterFromField">
+            <label for="dnChapterFrom">From chapter</label>
+            <select id="dnChapterFrom"></select>
+          </div>
+          <div class="dn-field" id="dnChapterToField">
+            <label for="dnChapterTo">To chapter</label>
+            <select id="dnChapterTo"></select>
+          </div>
+          <div class="dn-field" id="dnTopicField" hidden>
+            <label for="dnTopic">Topic</label>
+            <select id="dnTopic"></select>
+          </div>
+          <div class="dn-field" id="dnSubtopicField" hidden>
+            <label for="dnSubtopic">Section</label>
+            <select id="dnSubtopic"></select>
+          </div>
+          <div class="dn-field">
+            <label for="dnSearch">Search</label>
+            <input type="text" id="dnSearch" placeholder="Filter the list&hellip;">
+          </div>
+        </div>
+
+        <div class="dn-import-status" id="dnImportStatus" hidden></div>
+
+        <div class="dn-picker" id="dnPicker" hidden></div>
+
+        <div class="dn-import-actions" id="dnImportActions" hidden>
+          <div class="dn-btn-row">
+            <button class="dn-btn" id="dnSelectAll" type="button">Select all</button>
+            <button class="dn-btn" id="dnSelectNone" type="button">Clear</button>
+          </div>
+          <div class="dn-random">
+            <label for="dnRandomCount">Pick at random</label>
+            <input type="number" id="dnRandomCount" min="1" value="10">
+            <button class="dn-btn" id="dnRandomPick" type="button">Pick</button>
+          </div>
+          <button class="dn-btn primary" id="dnImportAdd" type="button">Add selected</button>
+        </div>
+
       </div>
     </section>
 
@@ -575,6 +665,358 @@
       wrap.appendChild(row);
     });
   }
+
+  /* ── importing from a set ──
+     The vocabulary and quiz banks are large, so each one is fetched only
+     when it is chosen, by injecting the same data file the tester uses. */
+
+  var SOURCES = {
+    'latin-gcse':   { kind: 'vocab', label: 'Latin vocabulary — OCR GCSE', global: 'VOCAB_LATIN_GCSE',   src: ['/version2/tools/vocab/data/latin-gcse.js'] },
+    'latin-alevel': { kind: 'vocab', label: 'Latin vocabulary — A Level',  global: 'VOCAB_LATIN_ALEVEL', src: ['/version2/tools/vocab/data/latin-alevel.js'] },
+    'suburani':     { kind: 'vocab', label: 'Latin vocabulary — Suburani', global: 'VOCAB_SUBURANI',     src: ['/version2/tools/vocab/data/suburani.js'] },
+    'greek-gcse':   { kind: 'vocab', label: 'Greek vocabulary — OCR GCSE', global: 'VOCAB_GREEK_GCSE',   src: ['/version2/tools/vocab/data/greek-gcse.js'] },
+    'greek-alevel': { kind: 'vocab', label: 'Greek vocabulary — A Level',  global: 'VOCAB_GREEK_ALEVEL', src: ['/version2/tools/vocab/data/greek-alevel.js'] },
+    'myth':         { kind: 'quiz',  label: 'Myth & Religion questions',   global: 'CivQuiz',
+                      src: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8'].map(function (n) {
+                        return '/version2/tools/quiz/data/myth-' + n + '.js';
+                      }) }
+  };
+
+  var MAX_SHOWN = 300;   // the A Level lists run to thousands; keep the DOM sane
+
+  var catalogue = [];    // every item in the loaded set
+  var visible = [];      // the items passing the current filters
+  var picked = {};       // id → true
+  var loaded = {};       // source key → true
+
+  var importBody = document.getElementById('dnImportBody');
+  var pickerEl = document.getElementById('dnPicker');
+  var statusEl = document.getElementById('dnImportStatus');
+  var filtersEl = document.getElementById('dnFilters');
+  var actionsEl = document.getElementById('dnImportActions');
+
+  // The data files declare their banks with a top-level `const`, which is a
+  // lexical global rather than a property of window, so read it by name.
+  function readGlobal(name) {
+    try {
+      return new Function('return typeof ' + name + ' !== "undefined" ? ' + name + ' : undefined')();
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  // The eight topic files load in parallel, so sort them back into topic order.
+  function mythTopics() {
+    var topics = (window.CivQuiz && window.CivQuiz.topics) || [];
+    return topics.slice().sort(function (a, b) { return String(a.id).localeCompare(String(b.id), 'en', { numeric: true }); });
+  }
+
+  function loadScripts(paths, done) {
+    var remaining = paths.length;
+    var failed = false;
+    if (!remaining) { done(true); return; }
+    paths.forEach(function (path) {
+      var el = document.createElement('script');
+      el.src = path;
+      el.onload = function () { if (--remaining === 0) { done(!failed); } };
+      el.onerror = function () { failed = true; if (--remaining === 0) { done(false); } };
+      document.head.appendChild(el);
+    });
+  }
+
+  function buildCatalogue(key) {
+    var source = SOURCES[key];
+    catalogue = [];
+
+    if (source.kind === 'vocab') {
+      var list = readGlobal(source.global) || [];
+      list.forEach(function (w, i) {
+        var term = w.latin || w.greek || '';
+        if (!term) return;
+        catalogue.push({
+          id: key + ':' + i,
+          term: term,
+          english: w.english || '',
+          info: w.info || '',
+          chapter: typeof w.chapter === 'number' ? w.chapter : null
+        });
+      });
+    } else {
+      var topics = mythTopics();
+      topics.forEach(function (topic) {
+        (topic.questions || []).forEach(function (q) {
+          catalogue.push({
+            id: key + ':' + q.id,
+            term: q.q,
+            english: (q.answers && q.answers[0]) || '',
+            topic: topic.id,
+            topicTitle: topic.title,
+            subtopic: q.subtopic || ''
+          });
+        });
+      });
+    }
+  }
+
+  function fillSelect(select, values, labeller) {
+    select.innerHTML = '';
+    values.forEach(function (v) {
+      var opt = document.createElement('option');
+      opt.value = String(v);
+      opt.textContent = labeller ? labeller(v) : String(v);
+      select.appendChild(opt);
+    });
+  }
+
+  function setupFilters(key) {
+    var isVocab = SOURCES[key].kind === 'vocab';
+
+    document.getElementById('dnDirectionField').hidden = !isVocab;
+    document.getElementById('dnChapterFromField').hidden = !isVocab;
+    document.getElementById('dnChapterToField').hidden = !isVocab;
+    document.getElementById('dnTopicField').hidden = isVocab;
+    document.getElementById('dnSubtopicField').hidden = isVocab;
+
+    if (isVocab) {
+      var chapters = [];
+      catalogue.forEach(function (item) {
+        if (item.chapter !== null && chapters.indexOf(item.chapter) === -1) { chapters.push(item.chapter); }
+      });
+      chapters.sort(function (a, b) { return a - b; });
+      fillSelect(document.getElementById('dnChapterFrom'), chapters);
+      fillSelect(document.getElementById('dnChapterTo'), chapters);
+      if (chapters.length) {
+        document.getElementById('dnChapterFrom').value = String(chapters[0]);
+        document.getElementById('dnChapterTo').value = String(chapters[chapters.length - 1]);
+      }
+    } else {
+      var topics = [{ id: '', title: 'All topics' }];
+      mythTopics().forEach(function (t) {
+        topics.push({ id: t.id, title: t.id + ' ' + t.title });
+      });
+      var topicSelect = document.getElementById('dnTopic');
+      topicSelect.innerHTML = '';
+      topics.forEach(function (t) {
+        var opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.title;
+        topicSelect.appendChild(opt);
+      });
+      refreshSubtopics();
+    }
+
+    filtersEl.hidden = false;
+  }
+
+  function refreshSubtopics() {
+    var topic = document.getElementById('dnTopic').value;
+    var subs = [''];
+    catalogue.forEach(function (item) {
+      if (topic && item.topic !== topic) return;
+      if (item.subtopic && subs.indexOf(item.subtopic) === -1) { subs.push(item.subtopic); }
+    });
+    var select = document.getElementById('dnSubtopic');
+    select.innerHTML = '';
+    subs.forEach(function (s) {
+      var opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s || 'All sections';
+      select.appendChild(opt);
+    });
+  }
+
+  function applyFilters() {
+    var key = document.getElementById('dnSource').value;
+    if (!key) { visible = []; return; }
+    var isVocab = SOURCES[key].kind === 'vocab';
+    var search = document.getElementById('dnSearch').value.trim().toLowerCase();
+
+    var from = parseInt(document.getElementById('dnChapterFrom').value, 10);
+    var to = parseInt(document.getElementById('dnChapterTo').value, 10);
+    if (isVocab && !isNaN(from) && !isNaN(to) && from > to) { var swap = from; from = to; to = swap; }
+
+    var topic = document.getElementById('dnTopic').value;
+    var subtopic = document.getElementById('dnSubtopic').value;
+
+    visible = catalogue.filter(function (item) {
+      if (isVocab) {
+        if (item.chapter === null) return false;
+        if (!isNaN(from) && item.chapter < from) return false;
+        if (!isNaN(to) && item.chapter > to) return false;
+      } else {
+        if (topic && item.topic !== topic) return false;
+        if (subtopic && item.subtopic !== subtopic) return false;
+      }
+      if (search) {
+        var hay = (item.term + ' ' + item.english + ' ' + (item.info || '')).toLowerCase();
+        if (hay.indexOf(search) === -1) return false;
+      }
+      return true;
+    });
+  }
+
+  function renderPicker() {
+    pickerEl.innerHTML = '';
+    var shown = visible.slice(0, MAX_SHOWN);
+
+    shown.forEach(function (item) {
+      var row = document.createElement('label');
+      row.className = 'dn-pick';
+
+      var box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = !!picked[item.id];
+      box.addEventListener('change', function () {
+        if (box.checked) { picked[item.id] = true; } else { delete picked[item.id]; }
+        renderStatus();
+      });
+
+      var text = document.createElement('span');
+      text.className = 'dn-pick-text';
+      var meta = item.chapter !== null && item.chapter !== undefined
+        ? 'Chapter ' + item.chapter
+        : [item.topicTitle, item.subtopic].filter(Boolean).join(' · ');
+      text.innerHTML = escapeHtml(item.term) +
+        (item.english ? ' <span style="color:var(--muted)">&mdash; ' + escapeHtml(item.english) + '</span>' : '') +
+        (meta ? '<span class="dn-pick-meta">' + escapeHtml(meta) + '</span>' : '');
+
+      row.appendChild(box);
+      row.appendChild(text);
+      pickerEl.appendChild(row);
+    });
+
+    if (visible.length > shown.length) {
+      var more = document.createElement('div');
+      more.className = 'dn-picker-more';
+      more.textContent = 'Showing the first ' + shown.length + ' of ' + visible.length +
+        ' — narrow it down by chapter or search. "Select all" and "Pick" still use all ' + visible.length + '.';
+      pickerEl.appendChild(more);
+    }
+
+    if (!visible.length) {
+      var none = document.createElement('div');
+      none.className = 'dn-picker-more';
+      none.textContent = 'Nothing matches those filters.';
+      pickerEl.appendChild(none);
+    }
+
+    pickerEl.hidden = false;
+    actionsEl.hidden = false;
+    renderStatus();
+  }
+
+  function renderStatus() {
+    var count = Object.keys(picked).length;
+    statusEl.hidden = false;
+    statusEl.textContent = visible.length + ' available · ' + count + ' selected';
+  }
+
+  function refreshPicker() {
+    applyFilters();
+    renderPicker();
+  }
+
+  function questionFor(item, direction) {
+    if (!item.english) return item.term;
+    if (direction === 'english') return item.english;
+    if (direction === 'both') return item.term + ' = ' + item.english;
+    return item.term;
+  }
+
+  document.getElementById('dnImportToggle').addEventListener('click', function () {
+    var open = importBody.hidden;
+    importBody.hidden = !open;
+    this.textContent = open ? 'Close' : 'Open';
+    this.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+
+  document.getElementById('dnSource').addEventListener('change', function () {
+    var key = this.value;
+    picked = {};
+    pickerEl.hidden = true;
+    actionsEl.hidden = true;
+    filtersEl.hidden = true;
+
+    if (!key) { statusEl.hidden = true; return; }
+
+    statusEl.hidden = false;
+    statusEl.textContent = 'Loading ' + SOURCES[key].label + '…';
+
+    var go = function () {
+      buildCatalogue(key);
+      if (!catalogue.length) {
+        statusEl.textContent = 'That set could not be loaded. Try again, or check your connection.';
+        return;
+      }
+      setupFilters(key);
+      refreshPicker();
+    };
+
+    if (loaded[key]) { go(); return; }
+    loadScripts(SOURCES[key].src, function (ok) {
+      if (!ok && !readGlobal(SOURCES[key].global)) {
+        statusEl.textContent = 'That set could not be loaded. Try again, or check your connection.';
+        return;
+      }
+      loaded[key] = true;
+      go();
+    });
+  });
+
+  ['dnChapterFrom', 'dnChapterTo', 'dnSubtopic'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', refreshPicker);
+  });
+  document.getElementById('dnTopic').addEventListener('change', function () {
+    refreshSubtopics();
+    refreshPicker();
+  });
+  document.getElementById('dnSearch').addEventListener('input', refreshPicker);
+
+  document.getElementById('dnSelectAll').addEventListener('click', function () {
+    visible.forEach(function (item) { picked[item.id] = true; });
+    renderPicker();
+  });
+
+  document.getElementById('dnSelectNone').addEventListener('click', function () {
+    picked = {};
+    renderPicker();
+  });
+
+  document.getElementById('dnRandomPick').addEventListener('click', function () {
+    var want = parseInt(document.getElementById('dnRandomCount').value, 10);
+    if (isNaN(want) || want < 1) return;
+    var pool = visible.slice();
+    for (var i = pool.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+    }
+    picked = {};
+    pool.slice(0, want).forEach(function (item) { picked[item.id] = true; });
+    renderPicker();
+  });
+
+  document.getElementById('dnImportAdd').addEventListener('click', function () {
+    var direction = document.getElementById('dnDirection').value;
+
+    // Add them in the order they appear in the set, not the order they were ticked.
+    var added = 0;
+    catalogue.forEach(function (item) {
+      if (!picked[item.id]) return;
+      questions.push(questionFor(item, direction));
+      added++;
+    });
+
+    if (!added) { window.alert('Tick some words or questions first, or use "Pick" to take some at random.'); return; }
+
+    // Drop the blank rows sitting there rather than import after them.
+    questions = questions.filter(function (q) { return q.trim() !== ''; });
+
+    picked = {};
+    renderQuestions();
+    update();
+    renderPicker();
+    statusEl.textContent = added + (added === 1 ? ' item' : ' items') + ' added to the sheet below.';
+  });
 
   /* ── wiring ── */
 
