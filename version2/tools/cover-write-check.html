@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Look Cover Write Check — Classicalia</title>
+<meta name="description" content="Type in a vocabulary list and print a fold-over look, cover, write, check worksheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<style>
+  .cw-body { max-width: 1240px; margin: 0 auto; padding: 36px 40px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 28px; align-items: start; }
+
+  .cw-panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; margin-bottom: 20px; }
+  .cw-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--rule-faint); }
+  .cw-panel-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 18px; color: var(--navy); }
+  .cw-panel-body { padding: 20px; }
+
+  .cw-grid { display: grid; gap: 14px; }
+  .cw-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .cw-field label { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .cw-field input[type="text"], .cw-field input[type="date"], .cw-field select {
+    width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 9px 11px; }
+  .cw-field input:focus, .cw-field select:focus, .cw-row input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,111,255,.12); }
+
+  .cw-check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+  .cw-check input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+  .cw-checks { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule-faint); }
+
+  .cw-btn { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: var(--navy); background: var(--paper);
+    border: 1px solid var(--rule); border-radius: 7px; padding: 8px 14px; cursor: pointer; transition: background .12s, border-color .12s; }
+  .cw-btn:hover { background: var(--cream); border-color: #b8d0ff; }
+  .cw-btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .cw-btn.primary:hover { background: #3b82ff; }
+  .cw-btn.big { font-size: 15px; padding: 13px 22px; width: 100%; }
+  .cw-btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* vocabulary rows */
+  .cw-row-head { display: grid; gap: 8px; align-items: center; padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--rule-faint);
+    font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .cw-row { display: grid; gap: 8px; align-items: center; padding: 7px 0; }
+  .cw-row, .cw-row-head { grid-template-columns: 26px 1fr 1fr 96px; }
+  .cw-body.no-chapter .cw-row, .cw-body.no-chapter .cw-row-head { grid-template-columns: 26px 1fr 1fr 96px; }
+  .cw-body.with-chapter .cw-row, .cw-body.with-chapter .cw-row-head { grid-template-columns: 26px 62px 1fr 1fr 96px; }
+  .cw-num { font-size: 12.5px; font-weight: 700; color: var(--muted); text-align: right; }
+  .cw-row input { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 8px 11px; }
+  .cw-row-tools { display: flex; gap: 4px; justify-content: flex-end; }
+  .cw-icon-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1;
+    color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 6px; cursor: pointer; }
+  .cw-icon-btn:hover { background: var(--cream); border-color: var(--rule); color: var(--navy); }
+  .cw-icon-btn.danger:hover { color: #c02626; border-color: #f0c8c8; background: #fdf3f3; }
+
+  .cw-empty { font-size: 13.5px; color: var(--muted); font-style: italic; padding: 6px 0 12px; }
+
+  .cw-set { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rule-faint); }
+  .cw-set:last-child { border-bottom: none; }
+  .cw-set-name { font-size: 13.5px; font-weight: 600; color: var(--navy); }
+  .cw-set-meta { font-size: 11.5px; color: var(--muted); }
+
+  .cw-note { font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 12px; }
+
+  /* preview — a scaled A4 landscape page */
+  .cw-side { position: sticky; top: 24px; }
+  .cw-preview-wrap { background: var(--cream); border: 1px solid var(--rule); border-radius: 12px; padding: 18px; overflow: hidden; }
+  .cw-preview-label { font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .cw-preview-stage { width: 100%; overflow: hidden; }
+
+  /* the sheet itself — shared by preview and print */
+  .sheet { width: 29.7cm; min-height: 21cm; padding: 1cm 1.2cm; background: #fff; color: #000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transform-origin: top left; box-shadow: 0 6px 24px rgba(14,30,63,.12); }
+  .sheet-head { border: 2px solid #000; padding: 10px 15px; margin-bottom: 8px; }
+  .sheet-title { font-size: 16pt; font-weight: 700; text-align: center; margin: 0 0 4px; line-height: 1.2; }
+  .sheet-meta { display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 11pt; }
+  .sheet-meta span.rule { border-bottom: 1px solid #000; display: inline-block; min-width: 120px; }
+  .sheet-instr { font-size: 9pt; color: #555; text-align: center; margin: 0 0 8px; }
+  .sheet table { width: 100%; border-collapse: collapse; font-size: 10pt; table-layout: fixed; }
+  .sheet th { border: 1px solid #000; padding: 6px 8px; text-align: center; background: #f0f0f0; font-weight: 700; font-size: 9pt; }
+  .sheet td { border: 1px solid #000; padding: 4px 6px; vertical-align: middle; height: 26px; }
+  .sheet td.chapter, .sheet th.chapter { text-align: center; font-size: 9pt; color: #555; }
+  .sheet td.prompt { font-weight: 700; }
+  .sheet .fold { border-left: 3px dashed #999 !important; }
+  .sheet .fold-hint { display: block; font-size: 7pt; color: #999; font-weight: 400; }
+  .sheet tr.score td { text-align: center; font-weight: 700; font-size: 9pt; }
+  .sheet-foot { margin-top: 10px; font-size: 8.5pt; color: #555; text-align: right; }
+
+  @media (max-width: 1180px) {
+    .cw-body { grid-template-columns: minmax(0, 1fr); }
+    .cw-side { position: static; }
+  }
+  @media (max-width: 620px) {
+    .cw-body { padding: 28px 20px 70px; }
+    .cw-grid-3 { grid-template-columns: 1fr; }
+    .cw-row, .cw-row-head, .cw-body.with-chapter .cw-row, .cw-body.with-chapter .cw-row-head { grid-template-columns: 22px 1fr 56px; }
+    .cw-row-head span.hide-sm, .cw-row input.hide-sm { display: none; }
+  }
+
+  /* PRINT — only the sheet, at full size, landscape */
+  @media print {
+    @page { size: A4 landscape; margin: 0; }
+    body { background: #fff; }
+    .header, .support-band, .footer, .cw-main, .cw-preview-label, .cw-print-hide { display: none !important; }
+    .cw-body { display: block; padding: 0; max-width: none; }
+    .cw-side { position: static; }
+    .cw-preview-wrap { border: none; background: #fff; padding: 0; border-radius: 0; }
+    .cw-preview-stage { overflow: visible; }
+    .sheet { transform: none !important; width: auto; min-height: 0; box-shadow: none; padding: 1cm 1.2cm; }
+    .sheet tr { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header cw-print-hide">
+  <canvas class="header-sky" data-starfield data-seed="827" data-region="0.8"></canvas>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo"><img src="/version2/assets/images/classicalia-wordmark.png" alt="Classicalia"></a>
+      <div class="nav-links">
+        <a href="/version2/subjects/latin/" class="nav-link">Latin</a>
+        <a href="/version2/subjects/greek/" class="nav-link">Greek</a>
+        <a href="/version2/subjects/classical-civilisation/" class="nav-link">Class. Civ.</a>
+        <div class="nav-div"></div>
+        <a href="/version2/tools/" class="nav-link active">Tools</a>
+        <a href="#" class="nav-link">About</a>
+        <a href="https://buymeacoffee.com/lfmcnally" class="nav-support" target="_blank" rel="noopener">Support us</a>
+        <div data-account-menu></div>
+      </div>
+    </div>
+  </nav>
+  <div class="header-inner">
+    <div class="header-eyebrow">For the classroom</div>
+    <h1 class="header-title">Look Cover Write Check</h1>
+    <p class="header-deck">Type in a vocabulary list and print a fold-over worksheet &mdash; pupils fold the answers out of sight, write from memory, then unfold to mark themselves. Any subject, any language.</p>
+  </div>
+</div>
+
+<div class="cw-body with-chapter" id="cwBody">
+
+  <main class="cw-main">
+
+    <section class="cw-panel">
+      <div class="cw-panel-head">
+        <h2 class="cw-panel-title">Worksheet settings</h2>
+      </div>
+      <div class="cw-panel-body">
+        <div class="cw-grid cw-grid-3">
+          <div class="cw-field">
+            <label for="cwTitle">Title</label>
+            <input type="text" id="cwTitle" value="Look Cover Write Check" placeholder="e.g. Chapter 4 vocabulary">
+          </div>
+          <div class="cw-field">
+            <label for="cwName">Name field</label>
+            <input type="text" id="cwName" placeholder="Leave blank for a line">
+          </div>
+          <div class="cw-field">
+            <label for="cwDate">Date</label>
+            <input type="date" id="cwDate">
+          </div>
+        </div>
+
+        <div class="cw-grid cw-grid-3" style="margin-top: 14px;">
+          <div class="cw-field">
+            <label for="cwCol1">Prompt column</label>
+            <input type="text" id="cwCol1" value="Latin" placeholder="e.g. Latin">
+          </div>
+          <div class="cw-field">
+            <label for="cwCol2">Answer column (folds away)</label>
+            <input type="text" id="cwCol2" value="English" placeholder="e.g. English">
+          </div>
+          <div class="cw-field">
+            <label for="cwAttempts">Attempts</label>
+            <select id="cwAttempts">
+              <option value="1">1 attempt</option>
+              <option value="2" selected>2 attempts</option>
+              <option value="3">3 attempts</option>
+              <option value="4">4 attempts</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="cw-checks">
+          <label class="cw-check"><input type="checkbox" id="cwChapter"> Chapter column</label>
+          <label class="cw-check"><input type="checkbox" id="cwScore" checked> Score row at the bottom</label>
+          <label class="cw-check"><input type="checkbox" id="cwFooter"> Classicalia footer</label>
+        </div>
+      </div>
+    </section>
+
+    <section class="cw-panel">
+      <div class="cw-panel-head">
+        <h2 class="cw-panel-title">Vocabulary</h2>
+        <div class="cw-btn-row">
+          <button class="cw-btn" id="cwShuffle" type="button">Shuffle</button>
+          <button class="cw-btn" id="cwPaste" type="button">Paste a list</button>
+          <button class="cw-btn" id="cwClear" type="button">Clear</button>
+        </div>
+      </div>
+      <div class="cw-panel-body">
+        <div class="cw-row-head" id="cwRowHead"></div>
+        <div id="cwRows"></div>
+        <div class="cw-empty" id="cwEmpty" hidden>No words yet &mdash; add one below, or paste a list.</div>
+        <div class="cw-btn-row" style="margin-top: 14px;">
+          <button class="cw-btn primary" id="cwAdd" type="button">+ Add word</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="cw-panel">
+      <div class="cw-panel-head">
+        <h2 class="cw-panel-title">Saved lists</h2>
+        <button class="cw-btn" id="cwSave" type="button">Save this list</button>
+      </div>
+      <div class="cw-panel-body">
+        <div id="cwSets"></div>
+        <p class="cw-note">Saved lists are stored in this browser only, so they stay on this computer and are lost if you clear your browsing data.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="cw-side">
+    <div class="cw-preview-wrap">
+      <div class="cw-preview-label">Preview &mdash; A4 landscape</div>
+      <div class="cw-preview-stage" id="cwStage">
+        <div class="sheet" id="cwSheet"></div>
+      </div>
+    </div>
+    <div style="margin-top: 16px;" class="cw-print-hide">
+      <button class="cw-btn primary big" id="cwPrint" type="button">Print worksheet</button>
+      <p class="cw-note">Printing opens your browser's print dialogue. Choose A4 landscape and, if the sheet looks cramped, turn off "headers and footers" there.</p>
+    </div>
+  </aside>
+
+</div>
+
+<!-- SUPPORT BAND -->
+<div class="support-band cw-print-hide">
+  <canvas class="support-sky" data-starfield data-seed="512" data-region="1" data-bg="#e8f0fe" data-star="26,111,255" data-line="26,111,255" data-line-alpha="0.2"></canvas>
+  <div class="support-inner">
+    <div class="support-text">
+      <div class="support-eyebrow">Support Classicalia</div>
+      <h2 class="support-title">Free for every student &mdash; with your help</h2>
+      <p class="support-body">Classicalia has no paywalls, no ads, and no subscriptions. But hosting, tools, and the time to write new resources all cost something, and the project relies on donations to keep running. If the site has helped you or your students, you can help keep it going.</p>
+    </div>
+    <div class="support-action">
+      <a href="https://buymeacoffee.com/lfmcnally" class="support-cta" target="_blank" rel="noopener">Support Classicalia &#9829;</a>
+      <div class="support-note">A one-off donation, or join as a monthly supporter &mdash; it takes less than a minute.</div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer cw-print-hide">
+  <div class="footer-inner">
+    <a href="/version2/" class="footer-logo"><img src="/version2/assets/images/classicalia-wordmark-navy.png" alt="Classicalia"></a>
+    <div class="footer-links">
+      <a href="/version2/tools/" class="footer-link">Tools</a>
+      <a href="/version2/subjects/latin/" class="footer-link">Latin</a>
+      <a href="/version2/subjects/greek/" class="footer-link">Greek</a>
+      <a href="/version2/subjects/classical-civilisation/" class="footer-link">Classical Civilisation</a>
+      <a href="https://buymeacoffee.com/lfmcnally" class="footer-link footer-link-support" target="_blank" rel="noopener">Support us &#9829;</a>
+    </div>
+    <div class="footer-copy">classicalia.co.uk · Free for all</div>
+  </div>
+</footer>
+
+<script src="/version2/assets/js/starfield.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var STORE_KEY = 'classicalia.coverWriteCheck.sets';
+  var DRAFT_KEY = 'classicalia.coverWriteCheck.draft';
+  var ORDINALS = ['1st', '2nd', '3rd', '4th'];
+
+  var words = [];   // { chapter, col1, col2 }
+  var rowsEl = document.getElementById('cwRows');
+  var headEl = document.getElementById('cwRowHead');
+  var emptyEl = document.getElementById('cwEmpty');
+  var sheetEl = document.getElementById('cwSheet');
+  var stageEl = document.getElementById('cwStage');
+  var bodyEl = document.getElementById('cwBody');
+
+  var settingIds = ['cwTitle', 'cwName', 'cwDate', 'cwCol1', 'cwCol2', 'cwAttempts', 'cwChapter', 'cwScore', 'cwFooter'];
+
+  function val(id) { return document.getElementById(id).value; }
+  function checked(id) { return document.getElementById(id).checked; }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ── storage ── */
+
+  function readStore(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  }
+
+  function writeStore(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private mode, full quota */ }
+  }
+
+  /* ── vocabulary rows ── */
+
+  function renderHead() {
+    var showChapter = checked('cwChapter');
+    bodyEl.classList.toggle('with-chapter', showChapter);
+    bodyEl.classList.toggle('no-chapter', !showChapter);
+
+    var cells = '<span></span>';
+    if (showChapter) { cells += '<span>Ch</span>'; }
+    cells += '<span>' + escapeHtml(val('cwCol1').trim() || 'Prompt') + '</span>';
+    cells += '<span>' + escapeHtml(val('cwCol2').trim() || 'Answer') + '</span>';
+    cells += '<span></span>';
+    headEl.innerHTML = cells;
+  }
+
+  function renderRows(focusIndex) {
+    var showChapter = checked('cwChapter');
+    rowsEl.innerHTML = '';
+
+    words.forEach(function (w, i) {
+      var row = document.createElement('div');
+      row.className = 'cw-row';
+
+      var num = document.createElement('div');
+      num.className = 'cw-num';
+      num.textContent = (i + 1) + '.';
+      row.appendChild(num);
+
+      if (showChapter) {
+        row.appendChild(textInput(w.chapter, 'Ch', function (v) { words[i].chapter = v; }));
+      }
+
+      var first = textInput(w.col1, val('cwCol1').trim() || 'Prompt', function (v) { words[i].col1 = v; });
+      var second = textInput(w.col2, val('cwCol2').trim() || 'Answer', function (v) { words[i].col2 = v; });
+      second.classList.add('hide-sm');
+      row.appendChild(first);
+      row.appendChild(second);
+
+      first.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); second.focus(); }
+      });
+      second.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); addWord(i + 1); }
+      });
+
+      var tools = document.createElement('div');
+      tools.className = 'cw-row-tools';
+      tools.appendChild(iconBtn('↑', 'Move up', i === 0, function () { move(i, -1); }));
+      tools.appendChild(iconBtn('↓', 'Move down', i === words.length - 1, function () { move(i, 1); }));
+      tools.appendChild(iconBtn('✕', 'Remove', false, function () { remove(i); }, true));
+      row.appendChild(tools);
+
+      rowsEl.appendChild(row);
+
+      if (focusIndex === i) { first.focus(); }
+    });
+
+    emptyEl.hidden = words.length > 0;
+  }
+
+  function textInput(value, placeholder, onInput) {
+    var el = document.createElement('input');
+    el.type = 'text';
+    el.value = value || '';
+    el.placeholder = placeholder;
+    el.addEventListener('input', function () { onInput(el.value); update(); });
+    return el;
+  }
+
+  function iconBtn(glyph, label, disabled, onClick, danger) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cw-icon-btn' + (danger ? ' danger' : '');
+    b.textContent = glyph;
+    b.title = label;
+    b.setAttribute('aria-label', label);
+    if (disabled) { b.disabled = true; b.style.opacity = '.3'; }
+    else { b.addEventListener('click', onClick); }
+    return b;
+  }
+
+  function addWord(at) {
+    var index = typeof at === 'number' ? at : words.length;
+    words.splice(index, 0, { chapter: '', col1: '', col2: '' });
+    renderRows(index);
+    update();
+  }
+
+  function remove(i) {
+    words.splice(i, 1);
+    renderRows();
+    update();
+  }
+
+  function move(i, delta) {
+    var j = i + delta;
+    if (j < 0 || j >= words.length) return;
+    var tmp = words[i];
+    words[i] = words[j];
+    words[j] = tmp;
+    renderRows(j);
+    update();
+  }
+
+  /* ── the sheet ── */
+
+  function filled() {
+    return words.filter(function (w) { return (w.col1 || '').trim() !== '' || (w.col2 || '').trim() !== ''; });
+  }
+
+  function buildSheet() {
+    var list = filled();
+    var title = val('cwTitle').trim() || 'Look Cover Write Check';
+    var name = val('cwName').trim();
+    var dateRaw = val('cwDate');
+    var date = dateRaw ? new Date(dateRaw + 'T00:00:00').toLocaleDateString('en-GB') : '';
+    var col1 = val('cwCol1').trim() || 'Prompt';
+    var col2 = val('cwCol2').trim() || 'Answer';
+    var attempts = parseInt(val('cwAttempts'), 10) || 2;
+    var showChapter = checked('cwChapter');
+
+    // Attempts take a bit over half the width; the rest goes to chapter, prompt and answer.
+    var attemptWidth = Math.floor(56 / attempts);
+    var sideWidth = showChapter ? 20 : 22;
+
+    var headCells = '';
+    for (var a = 0; a < attempts; a++) {
+      headCells += '<th style="width:' + attemptWidth + '%">' + (ORDINALS[a] || ('Attempt ' + (a + 1))) + '</th>';
+    }
+    if (showChapter) { headCells += '<th class="chapter" style="width:4%">Ch</th>'; }
+    headCells += '<th style="width:' + sideWidth + '%">' + escapeHtml(col1) + '</th>';
+    headCells += '<th class="fold" style="width:' + sideWidth + '%">' + escapeHtml(col2) +
+                 '<span class="fold-hint">&larr; fold here</span></th>';
+
+    var rows = list.map(function (w) {
+      var cells = '';
+      for (var a = 0; a < attempts; a++) { cells += '<td></td>'; }
+      if (showChapter) { cells += '<td class="chapter">' + escapeHtml(w.chapter || '') + '</td>'; }
+      cells += '<td class="prompt">' + escapeHtml(w.col1 || '') + '</td>';
+      cells += '<td class="fold">' + escapeHtml(w.col2 || '') + '</td>';
+      return '<tr>' + cells + '</tr>';
+    }).join('');
+
+    if (!rows) {
+      var blanks = '';
+      for (var b = 0; b < attempts; b++) { blanks += '<td></td>'; }
+      if (showChapter) { blanks += '<td class="chapter"></td>'; }
+      rows = '<tr>' + blanks +
+             '<td class="prompt" style="color:#999; font-weight:400; font-style:italic;">Your words will appear here.</td>' +
+             '<td class="fold"></td></tr>';
+    }
+
+    if (checked('cwScore')) {
+      var scoreCells = '';
+      for (var s = 0; s < attempts; s++) { scoreCells += '<td>__ / ' + (list.length || '__') + '</td>'; }
+      scoreCells += '<td colspan="' + ((showChapter ? 1 : 0) + 2) + '"></td>';
+      rows += '<tr class="score">' + scoreCells + '</tr>';
+    }
+
+    var html = '';
+    html += '<div class="sheet-head">';
+    html += '<h2 class="sheet-title">' + escapeHtml(title) + '</h2>';
+    html += '<div class="sheet-meta">';
+    html += '<span><strong>Name:</strong> <span class="rule">' + (name ? '&nbsp;' + escapeHtml(name) : '') + '</span></span>';
+    html += '<span>' + list.length + ' word' + (list.length === 1 ? '' : 's') + '</span>';
+    html += '<span><strong>Date:</strong> <span class="rule">' + (date ? '&nbsp;' + escapeHtml(date) : '') + '</span></span>';
+    html += '</div></div>';
+
+    html += '<p class="sheet-instr">Write your answers in the attempt columns. Fold along the dashed line to hide the ' +
+            escapeHtml(col2.toLowerCase()) + ' column, then unfold to check.</p>';
+
+    html += '<table><thead><tr>' + headCells + '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+    if (checked('cwFooter')) {
+      html += '<div class="sheet-foot">classicalia.co.uk</div>';
+    }
+
+    sheetEl.innerHTML = html;
+  }
+
+  function scalePreview() {
+    // The sheet is a real A4 landscape page; shrink it to fit the preview column.
+    var available = stageEl.clientWidth;
+    if (!available) return;
+    var natural = sheetEl.scrollWidth || 1;
+    var scale = Math.min(1, available / natural);
+    sheetEl.style.transform = 'scale(' + scale + ')';
+    stageEl.style.height = (sheetEl.scrollHeight * scale) + 'px';
+  }
+
+  function saveDraft() {
+    var settings = {};
+    settingIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      settings[id] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    writeStore(DRAFT_KEY, { settings: settings, words: words });
+  }
+
+  function update() {
+    buildSheet();
+    scalePreview();
+    saveDraft();
+  }
+
+  function applySettings(settings) {
+    if (!settings) return;
+    settingIds.forEach(function (id) {
+      if (!(id in settings)) return;
+      var el = document.getElementById(id);
+      if (el.type === 'checkbox') { el.checked = !!settings[id]; }
+      else { el.value = settings[id]; }
+    });
+  }
+
+  /* ── saved lists ── */
+
+  function renderSets() {
+    var sets = readStore(STORE_KEY, []);
+    var wrap = document.getElementById('cwSets');
+    wrap.innerHTML = '';
+
+    if (!sets.length) {
+      wrap.innerHTML = '<div class="cw-empty">Nothing saved yet. Build a list, then press &ldquo;Save this list&rdquo;.</div>';
+      return;
+    }
+
+    sets.forEach(function (set, i) {
+      var row = document.createElement('div');
+      row.className = 'cw-set';
+
+      var info = document.createElement('div');
+      info.innerHTML = '<div class="cw-set-name">' + escapeHtml(set.name) + '</div>' +
+        '<div class="cw-set-meta">' + set.words.length + ' word' + (set.words.length === 1 ? '' : 's') +
+        ' · saved ' + escapeHtml(set.saved || '') + '</div>';
+
+      var tools = document.createElement('div');
+      tools.className = 'cw-btn-row';
+
+      var load = document.createElement('button');
+      load.type = 'button';
+      load.className = 'cw-btn';
+      load.textContent = 'Load';
+      load.addEventListener('click', function () {
+        words = set.words.map(function (w) { return { chapter: w.chapter || '', col1: w.col1 || '', col2: w.col2 || '' }; });
+        applySettings(set.settings);
+        renderHead();
+        renderRows();
+        update();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'cw-btn';
+      del.textContent = 'Delete';
+      del.addEventListener('click', function () {
+        if (!window.confirm('Delete "' + set.name + '"?')) return;
+        var all = readStore(STORE_KEY, []);
+        all.splice(i, 1);
+        writeStore(STORE_KEY, all);
+        renderSets();
+      });
+
+      tools.appendChild(load);
+      tools.appendChild(del);
+      row.appendChild(info);
+      row.appendChild(tools);
+      wrap.appendChild(row);
+    });
+  }
+
+  /* ── wiring ── */
+
+  settingIds.forEach(function (id) {
+    var el = document.getElementById(id);
+    el.addEventListener('input', update);
+    el.addEventListener('change', update);
+  });
+
+  // The chapter toggle and the column names change the row layout, so redraw the rows too.
+  ['cwChapter', 'cwCol1', 'cwCol2'].forEach(function (id) {
+    document.getElementById(id).addEventListener('change', function () { renderHead(); renderRows(); });
+    document.getElementById(id).addEventListener('input', function () { renderHead(); renderRows(); });
+  });
+
+  document.getElementById('cwAdd').addEventListener('click', function () { addWord(); });
+
+  document.getElementById('cwShuffle').addEventListener('click', function () {
+    for (var i = words.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = words[i]; words[i] = words[j]; words[j] = tmp;
+    }
+    renderRows();
+    update();
+  });
+
+  document.getElementById('cwClear').addEventListener('click', function () {
+    if (words.length && !window.confirm('Clear every word on this list?')) return;
+    words = [];
+    renderRows();
+    update();
+  });
+
+  document.getElementById('cwPaste').addEventListener('click', function () {
+    var text = window.prompt('Paste your list, one pair per line.\nSeparate the two columns with a tab, a comma, an equals sign or " - ".');
+    if (!text) return;
+    // Pasting fills the list, so drop the blank rows sitting there rather than paste after them.
+    words = filled();
+
+    text.split(/\r?\n/).forEach(function (line) {
+      var clean = line.replace(/^\s*\d+[.)]\s*/, '').trim();
+      if (!clean) return;
+      // Split on the first separator only, so a dash or comma inside the meaning survives.
+      var parts = clean.match(/^(.*?)(?:\t+|\s*=\s*|\s*,\s*|\s+-\s+)(.*)$/);
+      var col1 = parts ? parts[1].trim() : clean;
+      var col2 = parts ? parts[2].replace(/^[-=,\s]+/, '').trim() : '';
+      if (col1 || col2) { words.push({ chapter: '', col1: col1, col2: col2 }); }
+    });
+    renderRows();
+    update();
+  });
+
+  document.getElementById('cwSave').addEventListener('click', function () {
+    var list = filled();
+    if (!list.length) { window.alert('Add at least one word before saving.'); return; }
+    var suggested = val('cwTitle').trim() || 'Vocabulary list';
+    var name = window.prompt('Name this list:', suggested);
+    if (!name) return;
+
+    var settings = {};
+    settingIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      settings[id] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+
+    var sets = readStore(STORE_KEY, []);
+    var entry = {
+      name: name.trim(),
+      words: list,
+      settings: settings,
+      saved: new Date().toLocaleDateString('en-GB')
+    };
+    var existing = sets.findIndex(function (s) { return s.name === entry.name; });
+    if (existing > -1) {
+      if (!window.confirm('A list called "' + entry.name + '" already exists. Replace it?')) return;
+      sets[existing] = entry;
+    } else {
+      sets.unshift(entry);
+    }
+    writeStore(STORE_KEY, sets);
+    renderSets();
+  });
+
+  document.getElementById('cwPrint').addEventListener('click', function () {
+    if (!filled().length) { window.alert('Add at least one word before printing.'); return; }
+    window.print();
+  });
+
+  window.addEventListener('resize', scalePreview);
+  window.addEventListener('beforeprint', function () { sheetEl.style.transform = 'none'; });
+  window.addEventListener('afterprint', scalePreview);
+
+  /* ── start up ── */
+
+  var draft = readStore(DRAFT_KEY, null);
+  if (draft && Array.isArray(draft.words) && draft.words.length) {
+    applySettings(draft.settings);
+    words = draft.words.map(function (w) { return { chapter: w.chapter || '', col1: w.col1 || '', col2: w.col2 || '' }; });
+  } else {
+    words = [];
+    for (var i = 0; i < 8; i++) { words.push({ chapter: '', col1: '', col2: '' }); }
+  }
+
+  renderHead();
+  renderRows();
+  renderSets();
+  update();
+})();
+</script>
+</body>
+</html>
