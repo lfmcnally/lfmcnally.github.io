@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Do Now builder — Classicalia</title>
+<meta name="description" content="Type your questions, set the layout, and print a Do Now / starter sheet for any subject.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<style>
+  .dn-body { max-width: 1180px; margin: 0 auto; padding: 36px 40px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 28px; align-items: start; }
+
+  .dn-panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; margin-bottom: 20px; }
+  .dn-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--rule-faint); }
+  .dn-panel-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 18px; color: var(--navy); }
+  .dn-panel-body { padding: 20px; }
+
+  .dn-grid { display: grid; gap: 14px; }
+  .dn-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .dn-grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .dn-field label { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .dn-field input[type="text"], .dn-field input[type="date"], .dn-field select {
+    width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 9px 11px; }
+  .dn-field input:focus, .dn-field select:focus, .dn-q-input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,111,255,.12); }
+
+  .dn-check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+  .dn-check input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+  .dn-checks { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule-faint); }
+
+  .dn-btn { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: var(--navy); background: var(--paper);
+    border: 1px solid var(--rule); border-radius: 7px; padding: 8px 14px; cursor: pointer; transition: background .12s, border-color .12s; }
+  .dn-btn:hover { background: var(--cream); border-color: #b8d0ff; }
+  .dn-btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .dn-btn.primary:hover { background: #3b82ff; }
+  .dn-btn.big { font-size: 15px; padding: 13px 22px; width: 100%; }
+  .dn-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .dn-btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* question rows */
+  .dn-q { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--rule-faint); }
+  .dn-q:last-child { border-bottom: none; }
+  .dn-q-num { flex: none; width: 26px; height: 34px; display: flex; align-items: center; justify-content: center;
+    font-size: 12.5px; font-weight: 700; color: var(--muted); }
+  .dn-q-input { flex: 1; min-width: 0; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); line-height: 1.5;
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 8px 11px; resize: vertical; min-height: 34px; }
+  .dn-q-tools { flex: none; display: flex; gap: 4px; }
+  .dn-icon-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1;
+    color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 6px; cursor: pointer; }
+  .dn-icon-btn:hover { background: var(--cream); border-color: var(--rule); color: var(--navy); }
+  .dn-icon-btn.danger:hover { color: #c02626; border-color: #f0c8c8; background: #fdf3f3; }
+
+  .dn-empty { font-size: 13.5px; color: var(--muted); font-style: italic; padding: 6px 0 12px; }
+
+  /* saved sets */
+  .dn-set { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rule-faint); }
+  .dn-set:last-child { border-bottom: none; }
+  .dn-set-name { font-size: 13.5px; font-weight: 600; color: var(--navy); }
+  .dn-set-meta { font-size: 11.5px; color: var(--muted); }
+
+  .dn-note { font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 12px; }
+
+  /* preview — a scaled A4 page */
+  .dn-side { position: sticky; top: 24px; }
+  .dn-preview-wrap { background: var(--cream); border: 1px solid var(--rule); border-radius: 12px; padding: 18px; overflow: hidden; }
+  .dn-preview-label { font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .dn-preview-stage { width: 100%; overflow: hidden; }
+
+  /* the sheet itself — shared by preview and print */
+  .sheet { width: 21cm; min-height: 29.7cm; padding: 1.5cm; background: #fff; color: #000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transform-origin: top left; box-shadow: 0 6px 24px rgba(14,30,63,.12); }
+  .sheet-head { border: 2px solid #000; padding: 14px; margin-bottom: 18px; }
+  .sheet-title { font-size: 20pt; font-weight: 700; text-align: center; margin: 0 0 12px; line-height: 1.2; }
+  .sheet-meta { display: flex; justify-content: space-between; gap: 16px; font-size: 12pt; }
+  .sheet-meta span.rule { border-bottom: 1px solid #000; display: inline-block; min-width: 150px; }
+  .sheet-instr { font-size: 10.5pt; font-style: italic; margin: 0 0 14px; }
+  .sheet table { width: 100%; border-collapse: collapse; font-size: 11pt; }
+  .sheet th { border: 1px solid #000; padding: 9px 10px; text-align: left; background: #f0f0f0; font-weight: 700; }
+  .sheet td { border: 1px solid #000; padding: 8px 10px; vertical-align: top; }
+  .sheet td.q { font-size: 12pt; font-weight: 700; }
+  .sheet .qnum { display: inline-block; min-width: 20px; font-weight: 700; }
+  .sheet .ans { display: block; }
+  .sheet .ans-line { display: block; }
+  .sheet-score { margin-top: 18px; border: 2px solid #000; padding: 9px; text-align: center; font-size: 14pt; font-weight: 700; }
+  .sheet-foot { margin-top: 14px; font-size: 8.5pt; color: #555; text-align: right; }
+
+  @media (max-width: 1080px) {
+    .dn-body { grid-template-columns: minmax(0, 1fr); }
+    .dn-side { position: static; }
+  }
+  @media (max-width: 620px) {
+    .dn-body { padding: 28px 20px 70px; }
+    .dn-grid-3, .dn-grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* PRINT — only the sheet, at full size */
+  @media print {
+    @page { size: A4; margin: 0; }
+    body { background: #fff; }
+    .header, .support-band, .footer, .dn-main, .dn-preview-label, .dn-print-hide { display: none !important; }
+    .dn-body { display: block; padding: 0; max-width: none; }
+    .dn-side { position: static; }
+    .dn-preview-wrap { border: none; background: #fff; padding: 0; border-radius: 0; }
+    .dn-preview-stage { overflow: visible; }
+    .sheet { transform: none !important; width: auto; min-height: 0; box-shadow: none; padding: 1.5cm; }
+    .sheet tr { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header dn-print-hide">
+  <canvas class="header-sky" data-starfield data-seed="311" data-region="0.8"></canvas>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo"><img src="/version2/assets/images/classicalia-wordmark.png" alt="Classicalia"></a>
+      <div class="nav-links">
+        <a href="/version2/subjects/latin/" class="nav-link">Latin</a>
+        <a href="/version2/subjects/greek/" class="nav-link">Greek</a>
+        <a href="/version2/subjects/classical-civilisation/" class="nav-link">Class. Civ.</a>
+        <div class="nav-div"></div>
+        <a href="/version2/tools/" class="nav-link active">Tools</a>
+        <a href="#" class="nav-link">About</a>
+        <a href="https://buymeacoffee.com/lfmcnally" class="nav-support" target="_blank" rel="noopener">Support us</a>
+        <div data-account-menu></div>
+      </div>
+    </div>
+  </nav>
+  <div class="header-inner">
+    <div class="header-eyebrow">For the classroom</div>
+    <h1 class="header-title">Do Now builder</h1>
+    <p class="header-deck">Type in your questions, set the layout, and print a starter sheet for any subject &mdash; no account needed. Saved sets stay in this browser.</p>
+  </div>
+</div>
+
+<div class="dn-body">
+
+  <main class="dn-main">
+
+    <section class="dn-panel">
+      <div class="dn-panel-head">
+        <h2 class="dn-panel-title">Sheet settings</h2>
+      </div>
+      <div class="dn-panel-body">
+        <div class="dn-grid dn-grid-3">
+          <div class="dn-field">
+            <label for="dnTitle">Title</label>
+            <input type="text" id="dnTitle" value="Do Now" placeholder="e.g. Do Now">
+          </div>
+          <div class="dn-field">
+            <label for="dnName">Name field</label>
+            <input type="text" id="dnName" placeholder="Leave blank for a line">
+          </div>
+          <div class="dn-field">
+            <label for="dnDate">Date</label>
+            <input type="date" id="dnDate">
+          </div>
+        </div>
+
+        <div class="dn-grid dn-grid-2" style="margin-top: 14px;">
+          <div class="dn-field">
+            <label for="dnLeft">Left column heading</label>
+            <input type="text" id="dnLeft" value="Question" placeholder="e.g. Question">
+          </div>
+          <div class="dn-field">
+            <label for="dnRight">Right column heading</label>
+            <input type="text" id="dnRight" value="Answer" placeholder="e.g. Answer">
+          </div>
+        </div>
+
+        <div class="dn-grid dn-grid-3" style="margin-top: 14px;">
+          <div class="dn-field">
+            <label for="dnSpace">Answer space</label>
+            <select id="dnSpace">
+              <option value="20">Small — one line</option>
+              <option value="35" selected>Medium — a sentence</option>
+              <option value="60">Large — a few lines</option>
+              <option value="100">Extra large — a paragraph</option>
+            </select>
+          </div>
+          <div class="dn-field">
+            <label for="dnSplit">Column split</label>
+            <select id="dnSplit">
+              <option value="30">30 / 70</option>
+              <option value="40" selected>40 / 60</option>
+              <option value="50">50 / 50</option>
+              <option value="60">60 / 40</option>
+            </select>
+          </div>
+          <div class="dn-field">
+            <label for="dnLines">Answer lines</label>
+            <select id="dnLines">
+              <option value="blank" selected>Blank space</option>
+              <option value="ruled">Ruled lines</option>
+              <option value="dotted">Dotted lines</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="dn-field" style="margin-top: 14px;">
+          <label for="dnInstr">Instruction line (optional)</label>
+          <input type="text" id="dnInstr" placeholder="e.g. Work in silence. You have five minutes.">
+        </div>
+
+        <div class="dn-checks">
+          <label class="dn-check"><input type="checkbox" id="dnScore" checked> Score box at the bottom</label>
+          <label class="dn-check"><input type="checkbox" id="dnNumbers" checked> Number the questions</label>
+          <label class="dn-check"><input type="checkbox" id="dnFooter"> Classicalia footer</label>
+        </div>
+      </div>
+    </section>
+
+    <section class="dn-panel">
+      <div class="dn-panel-head">
+        <h2 class="dn-panel-title">Questions</h2>
+        <div class="dn-btn-row">
+          <button class="dn-btn" id="dnShuffle" type="button">Shuffle</button>
+          <button class="dn-btn" id="dnPaste" type="button">Paste a list</button>
+          <button class="dn-btn" id="dnClear" type="button">Clear</button>
+        </div>
+      </div>
+      <div class="dn-panel-body">
+        <div id="dnQuestions"></div>
+        <div class="dn-empty" id="dnEmpty" hidden>No questions yet &mdash; add one below, or paste a list.</div>
+        <div class="dn-btn-row" style="margin-top: 14px;">
+          <button class="dn-btn primary" id="dnAdd" type="button">+ Add question</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="dn-panel">
+      <div class="dn-panel-head">
+        <h2 class="dn-panel-title">Saved sets</h2>
+        <button class="dn-btn" id="dnSave" type="button">Save this sheet</button>
+      </div>
+      <div class="dn-panel-body">
+        <div id="dnSets"></div>
+        <p class="dn-note">Saved sets are stored in this browser only, so they stay on this computer and are lost if you clear your browsing data.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="dn-side">
+    <div class="dn-preview-wrap">
+      <div class="dn-preview-label">Preview &mdash; A4</div>
+      <div class="dn-preview-stage" id="dnStage">
+        <div class="sheet" id="dnSheet"></div>
+      </div>
+    </div>
+    <div style="margin-top: 16px;" class="dn-print-hide">
+      <button class="dn-btn primary big" id="dnPrint" type="button">Print sheet</button>
+      <p class="dn-note">Printing opens your browser's print dialogue. Choose A4 and, if the sheet looks cramped, turn off "headers and footers" there.</p>
+    </div>
+  </aside>
+
+</div>
+
+<!-- SUPPORT BAND -->
+<div class="support-band dn-print-hide">
+  <canvas class="support-sky" data-starfield data-seed="512" data-region="1" data-bg="#e8f0fe" data-star="26,111,255" data-line="26,111,255" data-line-alpha="0.2"></canvas>
+  <div class="support-inner">
+    <div class="support-text">
+      <div class="support-eyebrow">Support Classicalia</div>
+      <h2 class="support-title">Free for every student &mdash; with your help</h2>
+      <p class="support-body">Classicalia has no paywalls, no ads, and no subscriptions. But hosting, tools, and the time to write new resources all cost something, and the project relies on donations to keep running. If the site has helped you or your students, you can help keep it going.</p>
+    </div>
+    <div class="support-action">
+      <a href="https://buymeacoffee.com/lfmcnally" class="support-cta" target="_blank" rel="noopener">Support Classicalia &#9829;</a>
+      <div class="support-note">A one-off donation, or join as a monthly supporter &mdash; it takes less than a minute.</div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer dn-print-hide">
+  <div class="footer-inner">
+    <a href="/version2/" class="footer-logo"><img src="/version2/assets/images/classicalia-wordmark-navy.png" alt="Classicalia"></a>
+    <div class="footer-links">
+      <a href="/version2/tools/" class="footer-link">Tools</a>
+      <a href="/version2/subjects/latin/" class="footer-link">Latin</a>
+      <a href="/version2/subjects/greek/" class="footer-link">Greek</a>
+      <a href="/version2/subjects/classical-civilisation/" class="footer-link">Classical Civilisation</a>
+      <a href="https://buymeacoffee.com/lfmcnally" class="footer-link footer-link-support" target="_blank" rel="noopener">Support us &#9829;</a>
+    </div>
+    <div class="footer-copy">classicalia.co.uk · Free for all</div>
+  </div>
+</footer>
+
+<script src="/version2/assets/js/starfield.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var STORE_KEY = 'classicalia.doNow.sets';
+  var DRAFT_KEY = 'classicalia.doNow.draft';
+
+  var questions = [];   // array of strings
+  var questionsEl = document.getElementById('dnQuestions');
+  var emptyEl = document.getElementById('dnEmpty');
+  var sheetEl = document.getElementById('dnSheet');
+  var stageEl = document.getElementById('dnStage');
+
+  var settingIds = ['dnTitle', 'dnName', 'dnDate', 'dnLeft', 'dnRight', 'dnSpace', 'dnSplit', 'dnLines', 'dnInstr', 'dnScore', 'dnNumbers', 'dnFooter'];
+
+  function val(id) { return document.getElementById(id).value; }
+  function checked(id) { return document.getElementById(id).checked; }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ── storage ── */
+
+  function readStore(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  }
+
+  function writeStore(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private mode, full quota */ }
+  }
+
+  /* ── question rows ── */
+
+  function renderQuestions(focusIndex) {
+    questionsEl.innerHTML = '';
+    questions.forEach(function (q, i) {
+      var row = document.createElement('div');
+      row.className = 'dn-q';
+
+      var num = document.createElement('div');
+      num.className = 'dn-q-num';
+      num.textContent = (i + 1) + '.';
+
+      var input = document.createElement('textarea');
+      input.className = 'dn-q-input';
+      input.rows = 1;
+      input.value = q;
+      input.placeholder = 'Type a question…';
+      input.addEventListener('input', function () {
+        questions[i] = input.value;
+        autoGrow(input);
+        update();
+      });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          addQuestion(i + 1);
+        }
+      });
+
+      var tools = document.createElement('div');
+      tools.className = 'dn-q-tools';
+      tools.appendChild(iconBtn('↑', 'Move up', i === 0, function () { move(i, -1); }));
+      tools.appendChild(iconBtn('↓', 'Move down', i === questions.length - 1, function () { move(i, 1); }));
+      tools.appendChild(iconBtn('✕', 'Remove', false, function () { remove(i); }, true));
+
+      row.appendChild(num);
+      row.appendChild(input);
+      row.appendChild(tools);
+      questionsEl.appendChild(row);
+      autoGrow(input);
+
+      if (focusIndex === i) { input.focus(); }
+    });
+
+    emptyEl.hidden = questions.length > 0;
+  }
+
+  function iconBtn(glyph, label, disabled, onClick, danger) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'dn-icon-btn' + (danger ? ' danger' : '');
+    b.textContent = glyph;
+    b.title = label;
+    b.setAttribute('aria-label', label);
+    if (disabled) { b.disabled = true; b.style.opacity = '.3'; }
+    else { b.addEventListener('click', onClick); }
+    return b;
+  }
+
+  function autoGrow(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.max(34, el.scrollHeight) + 'px';
+  }
+
+  function addQuestion(at) {
+    var index = typeof at === 'number' ? at : questions.length;
+    questions.splice(index, 0, '');
+    renderQuestions(index);
+    update();
+  }
+
+  function remove(i) {
+    questions.splice(i, 1);
+    renderQuestions();
+    update();
+  }
+
+  function move(i, delta) {
+    var j = i + delta;
+    if (j < 0 || j >= questions.length) return;
+    var tmp = questions[i];
+    questions[i] = questions[j];
+    questions[j] = tmp;
+    renderQuestions(j);
+    update();
+  }
+
+  /* ── the sheet ── */
+
+  function filled() {
+    return questions.filter(function (q) { return q.trim() !== ''; });
+  }
+
+  function buildSheet() {
+    var list = filled();
+    var title = val('dnTitle').trim() || 'Do Now';
+    var name = val('dnName').trim();
+    var dateRaw = val('dnDate');
+    var date = dateRaw ? new Date(dateRaw + 'T00:00:00').toLocaleDateString('en-GB') : '';
+    var left = val('dnLeft').trim() || 'Question';
+    var right = val('dnRight').trim() || 'Answer';
+    var space = parseInt(val('dnSpace'), 10) || 35;
+    var split = parseInt(val('dnSplit'), 10) || 40;
+    var lines = val('dnLines');
+    var instr = val('dnInstr').trim();
+
+    // Answer space: either a plain gap, or a stack of writing lines filling the same height.
+    var answerCell;
+    if (lines === 'blank') {
+      answerCell = '<span class="ans" style="height:' + space + 'px"></span>';
+    } else {
+      var gap = 22;
+      var count = Math.max(1, Math.round(space / gap));
+      var stroke = lines === 'dotted' ? '1px dotted #888' : '1px solid #000';
+      var line = '<span class="ans-line" style="height:' + gap + 'px; border-bottom:' + stroke + '"></span>';
+      answerCell = '<span class="ans">' + new Array(count + 1).join(line) + '</span>';
+    }
+
+    var rows = list.map(function (q, i) {
+      var num = checked('dnNumbers') ? '<span class="qnum">' + (i + 1) + '.</span> ' : '';
+      return '<tr><td class="q">' + num + escapeHtml(q) + '</td>' +
+             '<td>' + answerCell + '</td></tr>';
+    }).join('');
+
+    if (!rows) {
+      rows = '<tr><td class="q" style="color:#999; font-weight:400; font-style:italic;">Your questions will appear here.</td>' +
+             '<td>' + answerCell + '</td></tr>';
+    }
+
+    var html = '';
+    html += '<div class="sheet-head">';
+    html += '<h2 class="sheet-title">' + escapeHtml(title) + '</h2>';
+    html += '<div class="sheet-meta">';
+    html += '<div><strong>Name:</strong> <span class="rule">' + (name ? '&nbsp;' + escapeHtml(name) : '') + '</span></div>';
+    html += '<div><strong>Date:</strong> <span class="rule">' + (date ? '&nbsp;' + escapeHtml(date) : '') + '</span></div>';
+    html += '</div></div>';
+
+    if (instr) { html += '<p class="sheet-instr">' + escapeHtml(instr) + '</p>'; }
+
+    html += '<table><thead><tr>' +
+            '<th style="width:' + split + '%">' + escapeHtml(left) + '</th>' +
+            '<th style="width:' + (100 - split) + '%">' + escapeHtml(right) + '</th>' +
+            '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+    if (checked('dnScore')) {
+      html += '<div class="sheet-score">Score: _____ / ' + (list.length || '____') + '</div>';
+    }
+    if (checked('dnFooter')) {
+      html += '<div class="sheet-foot">classicalia.co.uk</div>';
+    }
+
+    sheetEl.innerHTML = html;
+  }
+
+  function scalePreview() {
+    // The sheet is a real A4 page; shrink it to fit the preview column.
+    var available = stageEl.clientWidth;
+    if (!available) return;
+    var natural = sheetEl.scrollWidth || 1;
+    var scale = Math.min(1, available / natural);
+    sheetEl.style.transform = 'scale(' + scale + ')';
+    stageEl.style.height = (sheetEl.scrollHeight * scale) + 'px';
+  }
+
+  function saveDraft() {
+    var settings = {};
+    settingIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      settings[id] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    writeStore(DRAFT_KEY, { settings: settings, questions: questions });
+  }
+
+  function update() {
+    buildSheet();
+    scalePreview();
+    saveDraft();
+  }
+
+  function applySettings(settings) {
+    if (!settings) return;
+    settingIds.forEach(function (id) {
+      if (!(id in settings)) return;
+      var el = document.getElementById(id);
+      if (el.type === 'checkbox') { el.checked = !!settings[id]; }
+      else { el.value = settings[id]; }
+    });
+  }
+
+  /* ── saved sets ── */
+
+  function renderSets() {
+    var sets = readStore(STORE_KEY, []);
+    var wrap = document.getElementById('dnSets');
+    wrap.innerHTML = '';
+
+    if (!sets.length) {
+      wrap.innerHTML = '<div class="dn-empty">Nothing saved yet. Build a sheet, then press &ldquo;Save this sheet&rdquo;.</div>';
+      return;
+    }
+
+    sets.forEach(function (set, i) {
+      var row = document.createElement('div');
+      row.className = 'dn-set';
+
+      var info = document.createElement('div');
+      info.innerHTML = '<div class="dn-set-name">' + escapeHtml(set.name) + '</div>' +
+        '<div class="dn-set-meta">' + set.questions.length + ' question' + (set.questions.length === 1 ? '' : 's') +
+        ' · saved ' + escapeHtml(set.saved || '') + '</div>';
+
+      var tools = document.createElement('div');
+      tools.className = 'dn-btn-row';
+
+      var load = document.createElement('button');
+      load.type = 'button';
+      load.className = 'dn-btn';
+      load.textContent = 'Load';
+      load.addEventListener('click', function () {
+        questions = set.questions.slice();
+        applySettings(set.settings);
+        renderQuestions();
+        update();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'dn-btn';
+      del.textContent = 'Delete';
+      del.addEventListener('click', function () {
+        if (!window.confirm('Delete "' + set.name + '"?')) return;
+        var all = readStore(STORE_KEY, []);
+        all.splice(i, 1);
+        writeStore(STORE_KEY, all);
+        renderSets();
+      });
+
+      tools.appendChild(load);
+      tools.appendChild(del);
+      row.appendChild(info);
+      row.appendChild(tools);
+      wrap.appendChild(row);
+    });
+  }
+
+  /* ── wiring ── */
+
+  settingIds.forEach(function (id) {
+    document.getElementById(id).addEventListener('input', update);
+    document.getElementById(id).addEventListener('change', update);
+  });
+
+  document.getElementById('dnAdd').addEventListener('click', function () { addQuestion(); });
+
+  document.getElementById('dnShuffle').addEventListener('click', function () {
+    for (var i = questions.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = questions[i]; questions[i] = questions[j]; questions[j] = tmp;
+    }
+    renderQuestions();
+    update();
+  });
+
+  document.getElementById('dnClear').addEventListener('click', function () {
+    if (questions.length && !window.confirm('Clear every question on this sheet?')) return;
+    questions = [];
+    renderQuestions();
+    update();
+  });
+
+  document.getElementById('dnPaste').addEventListener('click', function () {
+    var text = window.prompt('Paste your questions, one per line:');
+    if (!text) return;
+    text.split(/\r?\n/).forEach(function (line) {
+      var q = line.replace(/^\s*\d+[.)]\s*/, '').trim();
+      if (q) questions.push(q);
+    });
+    renderQuestions();
+    update();
+  });
+
+  document.getElementById('dnSave').addEventListener('click', function () {
+    var list = filled();
+    if (!list.length) { window.alert('Add at least one question before saving.'); return; }
+    var suggested = val('dnTitle').trim() || 'Do Now';
+    var name = window.prompt('Name this set:', suggested);
+    if (!name) return;
+
+    var settings = {};
+    settingIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      settings[id] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+
+    var sets = readStore(STORE_KEY, []);
+    var entry = {
+      name: name.trim(),
+      questions: list,
+      settings: settings,
+      saved: new Date().toLocaleDateString('en-GB')
+    };
+    var existing = sets.findIndex(function (s) { return s.name === entry.name; });
+    if (existing > -1) {
+      if (!window.confirm('A set called "' + entry.name + '" already exists. Replace it?')) return;
+      sets[existing] = entry;
+    } else {
+      sets.unshift(entry);
+    }
+    writeStore(STORE_KEY, sets);
+    renderSets();
+  });
+
+  document.getElementById('dnPrint').addEventListener('click', function () {
+    if (!filled().length) { window.alert('Add at least one question before printing.'); return; }
+    window.print();
+  });
+
+  window.addEventListener('resize', scalePreview);
+  window.addEventListener('beforeprint', function () { sheetEl.style.transform = 'none'; });
+  window.addEventListener('afterprint', scalePreview);
+
+  /* ── start up ── */
+
+  var draft = readStore(DRAFT_KEY, null);
+  if (draft && Array.isArray(draft.questions) && draft.questions.length) {
+    applySettings(draft.settings);
+    questions = draft.questions.slice();
+  } else {
+    questions = ['', '', '', '', ''];
+  }
+
+  renderQuestions();
+  renderSets();
+  update();
+})();
+</script>
+</body>
+</html>
