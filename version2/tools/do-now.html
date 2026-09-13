@@ -131,8 +131,9 @@
     .header, .support-band, .footer, .dn-main, .dn-preview-label, .dn-print-hide { display: none !important; }
     .dn-body { display: block; padding: 0; max-width: none; }
     .dn-side { position: static; }
-    .dn-preview-wrap { border: none; background: #fff; padding: 0; border-radius: 0; }
-    .dn-preview-stage { overflow: visible; }
+    /* The wrapper clips the scaled preview on screen; at full size it must not. */
+    .dn-preview-wrap { border: none; background: #fff; padding: 0; border-radius: 0; overflow: visible; }
+    .dn-preview-stage { overflow: visible; height: auto !important; }
     .sheet { transform: none !important; width: auto; min-height: 0; box-shadow: none; padding: 1.5cm; }
     .sheet tr { break-inside: avoid; }
     .sheet .q-text { background: none !important; box-shadow: none !important; }
@@ -348,7 +349,7 @@
 
   <aside class="dn-side">
     <div class="dn-preview-wrap">
-      <div class="dn-preview-label">Preview &mdash; A4 <span style="font-weight:600; letter-spacing:0; text-transform:none;">&middot; click a question to edit it here</span></div>
+      <div class="dn-preview-label">Preview &mdash; A4 <span id="dnPages"></span> <span style="font-weight:600; letter-spacing:0; text-transform:none;">&middot; click a question to edit it here</span></div>
       <div class="dn-preview-stage" id="dnStage">
         <div class="sheet" id="dnSheet"></div>
       </div>
@@ -588,6 +589,8 @@
     sheetEl.innerHTML = html;
   }
 
+  var A4_HEIGHT_PX = 29.7 / 2.54 * 96;   // portrait A4 at 96dpi
+
   function scalePreview() {
     // The sheet is a real A4 page; shrink it to fit the preview column.
     var available = stageEl.clientWidth;
@@ -596,6 +599,16 @@
     var scale = Math.min(1, available / natural);
     sheetEl.style.transform = 'scale(' + scale + ')';
     stageEl.style.height = (sheetEl.scrollHeight * scale) + 'px';
+    showPageCount();
+  }
+
+  // scrollHeight ignores the transform, so it is the real printed height.
+  function showPageCount() {
+    var label = document.getElementById('dnPages');
+    if (!label) return;
+    var pages = Math.max(1, Math.ceil(sheetEl.scrollHeight / A4_HEIGHT_PX - 0.02));
+    label.textContent = '· ' + pages + (pages === 1 ? ' page' : ' pages');
+    label.style.color = pages > 1 ? '#b45309' : '';
   }
 
   function saveDraft() {
@@ -1145,7 +1158,10 @@
   });
 
   window.addEventListener('resize', scalePreview);
-  window.addEventListener('beforeprint', function () { sheetEl.style.transform = 'none'; });
+  window.addEventListener('beforeprint', function () {
+    sheetEl.style.transform = 'none';
+    stageEl.style.height = 'auto';
+  });
   window.addEventListener('afterprint', scalePreview);
 
   /* ── start up ── */
