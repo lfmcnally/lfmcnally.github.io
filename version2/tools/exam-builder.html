@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam paper builder — Classicalia</title>
+<meta name="description" content="Write your questions, set the answer space and the marks, and print a properly formatted exam paper — marks in square brackets, consistent every time.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<style>
+  .ex-body { max-width: 1560px; margin: 0 auto; padding: 36px 40px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 640px; gap: 32px; align-items: start; }
+
+  .ex-panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; margin-bottom: 20px; }
+  .ex-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--rule-faint); }
+  .ex-panel-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 18px; color: var(--navy); }
+  .ex-panel-body { padding: 20px; }
+
+  .ex-grid { display: grid; gap: 14px; }
+  .ex-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .ex-grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .ex-field label { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .ex-field input[type="text"], .ex-field input[type="date"], .ex-field select, .ex-field textarea {
+    width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 9px 11px; }
+  .ex-field textarea { resize: vertical; min-height: 66px; line-height: 1.5; }
+  .ex-field input:focus, .ex-field select:focus, .ex-field textarea:focus, .ex-q-input:focus, .ex-q-marks:focus, .ex-q-lines:focus {
+    outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,111,255,.12); }
+
+  .ex-check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+  .ex-check input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+  .ex-checks { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule-faint); }
+
+  .ex-btn { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: var(--navy); background: var(--paper);
+    border: 1px solid var(--rule); border-radius: 7px; padding: 8px 14px; cursor: pointer; transition: background .12s, border-color .12s; }
+  .ex-btn:hover { background: var(--cream); border-color: #b8d0ff; }
+  .ex-btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .ex-btn.primary:hover { background: #3b82ff; }
+  .ex-btn.big { font-size: 15px; padding: 13px 22px; width: 100%; }
+  .ex-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .ex-btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* question rows */
+  .ex-q { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rule-faint); }
+  .ex-q:last-child { border-bottom: none; }
+  .ex-q.is-section { background: var(--cream); margin: 0 -20px; padding: 10px 20px; border-radius: 0; }
+  .ex-q-label { flex: none; width: 34px; padding-top: 9px; font-size: 12.5px; font-weight: 700; color: var(--muted); text-align: right; }
+  .ex-q-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+  .ex-q-input { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); line-height: 1.5;
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 8px 11px; resize: vertical; min-height: 34px; }
+  .ex-q-opts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .ex-q-opt { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+  .ex-q-marks, .ex-q-lines { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 8px; }
+  .ex-q-marks { width: 62px; }
+  .ex-q-lines { width: 74px; }
+  .ex-q-kind { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; color: var(--navy);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 7px; }
+  .ex-q-tools { flex: none; display: flex; gap: 4px; padding-top: 3px; }
+  .ex-icon-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1;
+    color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 6px; cursor: pointer; }
+  .ex-icon-btn:hover { background: var(--cream); border-color: var(--rule); color: var(--navy); }
+  .ex-icon-btn.danger:hover { color: #c02626; border-color: #f0c8c8; background: #fdf3f3; }
+
+  .ex-empty { font-size: 13.5px; color: var(--muted); font-style: italic; padding: 6px 0 12px; }
+  .ex-total { font-size: 13px; color: var(--muted); }
+  .ex-total strong { color: var(--navy); }
+
+  /* saved papers */
+  .ex-set { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rule-faint); }
+  .ex-set:last-child { border-bottom: none; }
+  .ex-set-name { font-size: 13.5px; font-weight: 600; color: var(--navy); }
+  .ex-set-meta { font-size: 11.5px; color: var(--muted); }
+
+  .ex-note { font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 12px; }
+
+  /* preview — a scaled A4 page */
+  .ex-side { position: sticky; top: 24px; }
+  .ex-preview-wrap { background: var(--cream); border: 1px solid var(--rule); border-radius: 12px; padding: 18px; overflow: hidden; }
+  .ex-preview-label { font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .ex-preview-stage { width: 100%; overflow: hidden; }
+
+  /* ── the paper itself — shared by preview and print ── */
+  .paper-sheet { width: 21cm; min-height: 29.7cm; padding: 1.8cm 1.6cm; background: #fff; color: #000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11.5pt; line-height: 1.45;
+    transform-origin: top left; box-shadow: 0 6px 24px rgba(14,30,63,.12); }
+  .paper-sheet.serif { font-family: 'Times New Roman', Times, Georgia, serif; }
+
+  .p-head { border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 16px; }
+  .p-school { font-size: 10.5pt; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 6px; }
+  .p-title { font-size: 19pt; font-weight: 700; margin: 0 0 4px; line-height: 1.2; }
+  .p-subtitle { font-size: 12.5pt; margin: 0 0 10px; }
+  .p-fields { display: flex; flex-wrap: wrap; gap: 8px 26px; font-size: 11pt; margin-top: 10px; }
+  .p-fields .rule { border-bottom: 1px solid #000; display: inline-block; min-width: 130px; }
+  .p-facts { display: flex; flex-wrap: wrap; gap: 4px 26px; font-size: 11pt; margin-top: 10px; }
+
+  .p-instr { border: 1px solid #000; padding: 10px 12px; margin-bottom: 18px; font-size: 10.5pt; }
+  .p-instr-title { font-weight: 700; margin: 0 0 5px; }
+  .p-instr ul { margin: 0; padding-left: 17px; }
+  .p-instr li { margin: 2px 0; }
+
+  .p-section { margin: 22px 0 12px; }
+  .p-section-title { font-size: 13pt; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; margin: 0; border-bottom: 1px solid #000; padding-bottom: 4px; }
+  .p-section-note { font-size: 10.5pt; font-style: italic; margin: 6px 0 0; }
+  .p-section-total { text-align: right; font-weight: 700; font-size: 10.5pt; margin: 10px 0 0; border-top: 1px solid #000; padding-top: 5px; }
+
+  .p-stimulus { border: 1px solid #000; background: #f7f7f7; padding: 11px 13px; margin: 0 0 14px; font-size: 10.5pt; white-space: pre-wrap; }
+
+  /* A question is a flex row: the number sits in its own gutter, the text flows
+     beside it, and the marks float to the right margin of that text. */
+  .p-q { display: flex; gap: 8px; margin: 0 0 14px; break-inside: avoid; page-break-inside: avoid; }
+  .p-q.lvl-1 { padding-left: 0; }
+  .p-q.lvl-2 { padding-left: 1.1cm; }
+  .p-q.lvl-3 { padding-left: 2.2cm; }
+  .p-q-num { flex: none; min-width: 1.05cm; font-weight: 700; }
+  .p-q.lvl-2 .p-q-num, .p-q.lvl-3 .p-q-num { font-weight: 400; }
+  .p-q-main { flex: 1; min-width: 0; }
+  .p-q-text { margin: 0; }
+  .p-marks { float: right; margin-left: 12px; font-weight: 700; white-space: nowrap; }
+  .p-q-text .q-edit { outline: none; border-radius: 3px; padding: 0 2px; margin: 0 -2px; cursor: text; }
+  .p-q-text .q-edit:hover { background: #eef4ff; box-shadow: 0 0 0 1px #cfe0ff; }
+  .p-q-text .q-edit:focus { background: #eef4ff; box-shadow: 0 0 0 2px var(--brand); }
+
+  .p-answer { margin-top: 8px; }
+  .p-line { display: block; border-bottom: 1px solid #000; }
+  .p-line.dotted { border-bottom-style: dotted; border-bottom-color: #666; }
+  .p-line.faint { border-bottom-color: #aaa; }
+  .p-blank { display: block; }
+  .p-grid { display: block; background-image: linear-gradient(#ccc 1px, transparent 1px), linear-gradient(90deg, #ccc 1px, transparent 1px); background-size: 5mm 5mm; border: 1px solid #000; }
+
+  .p-end { text-align: center; font-weight: 700; font-size: 11pt; margin-top: 26px; border-top: 2px solid #000; padding-top: 10px; }
+  .p-foot { margin-top: 14px; font-size: 8.5pt; color: #555; text-align: right; }
+
+  @media (max-width: 1440px) {
+    .ex-body { max-width: 1180px; grid-template-columns: minmax(0, 1fr) 460px; }
+  }
+  @media (max-width: 1080px) {
+    .ex-body { grid-template-columns: minmax(0, 1fr); }
+    .ex-side { position: static; }
+    .ex-preview-stage { max-width: 640px; }
+  }
+  @media (max-width: 620px) {
+    .ex-body { padding: 28px 20px 70px; }
+    .ex-grid-3, .ex-grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* PRINT — only the paper, at full size */
+  @media print {
+    @page { size: A4; margin: 0; }
+    body { background: #fff; }
+    .header, .support-band, .footer, .ex-main, .ex-preview-label, .ex-print-hide { display: none !important; }
+    .ex-body { display: block; padding: 0; max-width: none; }
+    .ex-side { position: static; }
+    .ex-preview-wrap { border: none; background: #fff; padding: 0; border-radius: 0; overflow: visible; }
+    .ex-preview-stage { overflow: visible; height: auto !important; width: auto !important; max-width: none !important; }
+    .paper-sheet { transform: none !important; width: auto; min-height: 0; box-shadow: none; padding: 1.8cm 1.6cm; }
+    .p-head, .p-instr, .p-section { break-inside: avoid; page-break-inside: avoid; }
+    .p-q-text .q-edit { background: none !important; box-shadow: none !important; }
+    .p-stimulus { background: #f7f7f7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header ex-print-hide">
+  <canvas class="header-sky" data-starfield data-seed="417" data-region="0.8"></canvas>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo"><img src="/version2/assets/images/classicalia-wordmark.png" alt="Classicalia"></a>
+      <div class="nav-links">
+        <a href="/version2/subjects/latin/" class="nav-link">Latin</a>
+        <a href="/version2/subjects/greek/" class="nav-link">Greek</a>
+        <a href="/version2/subjects/classical-civilisation/" class="nav-link">Class. Civ.</a>
+        <div class="nav-div"></div>
+        <a href="/version2/tools/" class="nav-link active">Tools</a>
+        <a href="#" class="nav-link">About</a>
+        <a href="https://buymeacoffee.com/lfmcnally" class="nav-support" target="_blank" rel="noopener">Support us</a>
+        <div data-account-menu></div>
+      </div>
+    </div>
+  </nav>
+  <div class="header-inner">
+    <div class="header-eyebrow">For the classroom</div>
+    <h1 class="header-title">Exam paper builder</h1>
+    <p class="header-deck">Write your questions, set the answer space and the marks, and print a proper exam paper &mdash; numbered questions, lettered parts, marks in square brackets at the right margin, and the same formatting on every test you set.</p>
+  </div>
+</div>
+
+<div class="ex-body">
+
+  <main class="ex-main">
+
+    <section class="ex-panel">
+      <div class="ex-panel-head">
+        <h2 class="ex-panel-title">Paper details</h2>
+      </div>
+      <div class="ex-panel-body">
+        <div class="ex-grid ex-grid-2">
+          <div class="ex-field">
+            <label for="exTitle">Title</label>
+            <input type="text" id="exTitle" value="End of Unit Test" placeholder="e.g. End of Unit Test">
+          </div>
+          <div class="ex-field">
+            <label for="exSubtitle">Subtitle</label>
+            <input type="text" id="exSubtitle" placeholder="e.g. Latin — Chapters 1–4">
+          </div>
+        </div>
+
+        <div class="ex-grid ex-grid-3" style="margin-top: 14px;">
+          <div class="ex-field">
+            <label for="exSchool">School or department</label>
+            <input type="text" id="exSchool" placeholder="e.g. Department of Classics">
+          </div>
+          <div class="ex-field">
+            <label for="exTime">Time allowed</label>
+            <input type="text" id="exTime" placeholder="e.g. 45 minutes">
+          </div>
+          <div class="ex-field">
+            <label for="exDate">Date on the paper</label>
+            <input type="date" id="exDate">
+          </div>
+        </div>
+
+        <div class="ex-field" style="margin-top: 14px;">
+          <label for="exInstr">Instructions to candidates (one per line)</label>
+          <textarea id="exInstr" rows="3" placeholder="Answer all questions.&#10;Write your answers in the spaces provided.&#10;The marks for each question are shown in brackets."></textarea>
+        </div>
+
+        <div class="ex-checks">
+          <label class="ex-check"><input type="checkbox" id="exName" checked> Name and class lines</label>
+          <label class="ex-check"><input type="checkbox" id="exTotalBox" checked> Total marks in the header</label>
+          <label class="ex-check"><input type="checkbox" id="exSectionTotals" checked> Total at the end of each section</label>
+          <label class="ex-check"><input type="checkbox" id="exEnd" checked> &ldquo;End of paper&rdquo; line</label>
+          <label class="ex-check"><input type="checkbox" id="exFooter"> Classicalia footer</label>
+        </div>
+      </div>
+    </section>
+
+    <section class="ex-panel">
+      <div class="ex-panel-head">
+        <h2 class="ex-panel-title">House style</h2>
+      </div>
+      <div class="ex-panel-body">
+        <div class="ex-grid ex-grid-3">
+          <div class="ex-field">
+            <label for="exLineStyle">Answer lines</label>
+            <select id="exLineStyle">
+              <option value="ruled" selected>Ruled lines</option>
+              <option value="dotted">Dotted lines</option>
+              <option value="faint">Faint ruled lines</option>
+              <option value="blank">Blank space</option>
+              <option value="grid">Squared paper</option>
+            </select>
+          </div>
+          <div class="ex-field">
+            <label for="exLineGap">Line spacing</label>
+            <select id="exLineGap">
+              <option value="18">Tight &mdash; 18px</option>
+              <option value="24" selected>Normal &mdash; 24px</option>
+              <option value="30">Wide &mdash; 30px</option>
+              <option value="38">Extra wide &mdash; 38px</option>
+            </select>
+          </div>
+          <div class="ex-field">
+            <label for="exFont">Typeface</label>
+            <select id="exFont">
+              <option value="sans" selected>Sans serif</option>
+              <option value="serif">Serif</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="ex-grid ex-grid-3" style="margin-top: 14px;">
+          <div class="ex-field">
+            <label for="exMarkFormat">Marks shown as</label>
+            <select id="exMarkFormat">
+              <option value="plain" selected>[3]</option>
+              <option value="marks">[3 marks]</option>
+              <option value="marksSingular">[3 marks] / [1 mark]</option>
+            </select>
+          </div>
+          <div class="ex-field">
+            <label for="exNumbering">Question numbering</label>
+            <select id="exNumbering">
+              <option value="number" selected>1. &nbsp;(a) &nbsp;(i)</option>
+              <option value="bare">1 &nbsp;(a) &nbsp;(i)</option>
+              <option value="q">Q1 &nbsp;(a) &nbsp;(i)</option>
+            </select>
+          </div>
+          <div class="ex-field">
+            <label for="exDefaultLines">Default answer lines</label>
+            <select id="exDefaultLines">
+              <option value="0">None</option>
+              <option value="1">1 line</option>
+              <option value="2" selected>2 lines</option>
+              <option value="3">3 lines</option>
+              <option value="5">5 lines</option>
+              <option value="8">8 lines</option>
+            </select>
+          </div>
+        </div>
+        <p class="ex-note">The default is used for new questions only &mdash; each question keeps whatever you set on its own row.</p>
+      </div>
+    </section>
+
+    <section class="ex-panel">
+      <div class="ex-panel-head">
+        <h2 class="ex-panel-title">Questions</h2>
+        <div class="ex-btn-row">
+          <button class="ex-btn" id="exPaste" type="button">Paste a list</button>
+          <button class="ex-btn" id="exClear" type="button">Clear all</button>
+        </div>
+      </div>
+      <div class="ex-panel-body">
+        <div id="exItems"></div>
+        <div class="ex-empty" id="exEmpty" hidden>Nothing on the paper yet &mdash; add a question below, or paste a list.</div>
+        <div class="ex-btn-row" style="margin-top: 14px; align-items: center;">
+          <button class="ex-btn primary" id="exAddQ" type="button">+ Question</button>
+          <button class="ex-btn" id="exAddPart" type="button">+ Part (a)</button>
+          <button class="ex-btn" id="exAddSub" type="button">+ Sub-part (i)</button>
+          <button class="ex-btn" id="exAddSection" type="button">+ Section</button>
+          <button class="ex-btn" id="exAddStimulus" type="button">+ Source / stimulus</button>
+          <span class="ex-total" id="exTotalLabel" style="margin-left: auto;"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="ex-panel">
+      <div class="ex-panel-head">
+        <h2 class="ex-panel-title">Saved papers</h2>
+        <button class="ex-btn" id="exSave" type="button">Save this paper</button>
+      </div>
+      <div class="ex-panel-body">
+        <div id="exSets"></div>
+        <p class="ex-note">Saved papers are stored in this browser only, so they stay on this computer and are lost if you clear your browsing data.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="ex-side">
+    <div class="ex-preview-wrap">
+      <div class="ex-preview-label">Preview &mdash; A4 <span id="exPages"></span> <span style="font-weight:600; letter-spacing:0; text-transform:none;">&middot; click a question to edit it here</span></div>
+      <div class="ex-preview-stage" id="exStage">
+        <div class="paper-sheet" id="exSheet"></div>
+      </div>
+    </div>
+    <div style="margin-top: 16px;" class="ex-print-hide">
+      <button class="ex-btn primary big" id="exPrint" type="button">Print paper</button>
+      <p class="ex-note">Printing opens your browser's print dialogue. Choose A4 and, if the paper looks cramped, turn off &ldquo;headers and footers&rdquo; there.</p>
+    </div>
+  </aside>
+
+</div>
+
+<!-- SUPPORT BAND -->
+<div class="support-band ex-print-hide">
+  <canvas class="support-sky" data-starfield data-seed="512" data-region="1" data-bg="#e8f0fe" data-star="26,111,255" data-line="26,111,255" data-line-alpha="0.2"></canvas>
+  <div class="support-inner">
+    <div class="support-text">
+      <div class="support-eyebrow">Support Classicalia</div>
+      <h2 class="support-title">Free for every student &mdash; with your help</h2>
+      <p class="support-body">Classicalia has no paywalls, no ads, and no subscriptions. But hosting, tools, and the time to write new resources all cost something, and the project relies on donations to keep running. If the site has helped you or your students, you can help keep it going.</p>
+    </div>
+    <div class="support-action">
+      <a href="https://buymeacoffee.com/lfmcnally" class="support-cta" target="_blank" rel="noopener">Support Classicalia &#9829;</a>
+      <div class="support-note">A one-off donation, or join as a monthly supporter &mdash; it takes less than a minute.</div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer ex-print-hide">
+  <div class="footer-inner">
+    <a href="/version2/" class="footer-logo"><img src="/version2/assets/images/classicalia-wordmark-navy.png" alt="Classicalia"></a>
+    <div class="footer-links">
+      <a href="/version2/tools/" class="footer-link">Tools</a>
+      <a href="/version2/subjects/latin/" class="footer-link">Latin</a>
+      <a href="/version2/subjects/greek/" class="footer-link">Greek</a>
+      <a href="/version2/subjects/classical-civilisation/" class="footer-link">Classical Civilisation</a>
+      <a href="https://buymeacoffee.com/lfmcnally" class="footer-link footer-link-support" target="_blank" rel="noopener">Support us &#9829;</a>
+    </div>
+    <div class="footer-copy">classicalia.co.uk · Free for all</div>
+  </div>
+</footer>
+
+<script src="/version2/assets/js/starfield.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var STORE_KEY = 'classicalia.examBuilder.papers';
+  var DRAFT_KEY = 'classicalia.examBuilder.draft';
+
+  /* An item is one row of the paper:
+       kind 'q'        — a numbered question          (1, 2, 3…)
+       kind 'part'     — a lettered part              ((a), (b)…)  resets under each question
+       kind 'sub'      — a roman sub-part             ((i), (ii)…) resets under each part
+       kind 'section'  — a section heading, with the text after a pipe used as its rubric
+       kind 'stimulus' — a boxed source or passage, unnumbered and unmarked
+     Sections and stimuli carry no marks and no answer lines. */
+  var items = [];
+
+  var itemsEl = document.getElementById('exItems');
+  var emptyEl = document.getElementById('exEmpty');
+  var sheetEl = document.getElementById('exSheet');
+  var stageEl = document.getElementById('exStage');
+
+  var settingIds = ['exTitle', 'exSubtitle', 'exSchool', 'exTime', 'exDate', 'exInstr',
+                    'exName', 'exTotalBox', 'exSectionTotals', 'exEnd', 'exFooter',
+                    'exLineStyle', 'exLineGap', 'exFont', 'exMarkFormat', 'exNumbering', 'exDefaultLines'];
+
+  var KIND_LABELS = { q: 'Question', part: 'Part (a)', sub: 'Sub-part (i)', section: 'Section', stimulus: 'Source' };
+  var SCORABLE = { q: true, part: true, sub: true };
+
+  function val(id) { return document.getElementById(id).value; }
+  function checked(id) { return document.getElementById(id).checked; }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ── storage ── */
+
+  function readStore(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  }
+
+  function writeStore(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private mode, full quota */ }
+  }
+
+  /* ── numbering ──
+     Worked out in one pass so the editor rows and the printed paper always agree. */
+
+  var ROMAN = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x', 'xi', 'xii',
+               'xiii', 'xiv', 'xv', 'xvi', 'xvii', 'xviii', 'xix', 'xx'];
+
+  function roman(n) { return ROMAN[n - 1] || String(n); }
+  function letter(n) {
+    // (a)…(z), then (aa), (bb) — far beyond anything a real paper needs.
+    var i = n - 1;
+    var ch = String.fromCharCode(97 + (i % 26));
+    return new Array(Math.floor(i / 26) + 2).join(ch);
+  }
+
+  function numbering() {
+    var style = val('exNumbering');
+    var q = 0, part = 0, sub = 0;
+    return items.map(function (item) {
+      if (item.kind === 'q') { q++; part = 0; sub = 0;
+        return style === 'q' ? 'Q' + q : style === 'bare' ? String(q) : q + '.';
+      }
+      if (item.kind === 'part') { part++; sub = 0; return '(' + letter(part) + ')'; }
+      if (item.kind === 'sub') { sub++; return '(' + roman(sub) + ')'; }
+      return '';
+    });
+  }
+
+  /* ── marks ── */
+
+  function marksOf(item) {
+    if (!SCORABLE[item.kind]) return 0;
+    var n = parseInt(item.marks, 10);
+    return isNaN(n) || n < 0 ? 0 : n;
+  }
+
+  // A question marked through its lettered parts would be counted twice if the
+  // question itself were added as well, so the parts win wherever they carry
+  // marks of their own. A parent whose parts are unmarked still counts.
+  function countedTwice(i) {
+    var item = items[i];
+    if (item.kind === 'q') return hasMarkedChildren(i, 'part');
+    if (item.kind === 'part') return hasMarkedChildren(i, 'sub');
+    return false;
+  }
+
+  function countedMarks() {
+    var total = 0;
+    items.forEach(function (item, i) {
+      if (!SCORABLE[item.kind] || countedTwice(i)) return;
+      total += marksOf(item);
+    });
+    return total;
+  }
+
+  function hasMarkedChildren(i, childKind) {
+    var stop = { part: ['q'], sub: ['q', 'part'] }[childKind];
+    var found = false;
+    for (var j = i + 1; j < items.length; j++) {
+      var k = items[j].kind;
+      if (k === childKind) { if (marksOf(items[j]) > 0) found = true; continue; }
+      if (stop.indexOf(k) > -1) break;
+    }
+    return found;
+  }
+
+  function sectionTotals() {
+    // marks[i] is the running total for the section the item at i belongs to,
+    // keyed by the index of that section's heading (-1 before the first heading).
+    var totals = {};
+    var current = -1;
+    items.forEach(function (item, i) {
+      if (item.kind === 'section') { current = i; totals[current] = 0; return; }
+      if (!SCORABLE[item.kind] || countedTwice(i)) return;
+      totals[current] = (totals[current] || 0) + marksOf(item);
+    });
+    return totals;
+  }
+
+  function markLabel(n) {
+    var format = val('exMarkFormat');
+    if (format === 'marks') return '[' + n + ' marks]';
+    if (format === 'marksSingular') return '[' + n + (n === 1 ? ' mark]' : ' marks]');
+    return '[' + n + ']';
+  }
+
+  /* ── editor rows ── */
+
+  function renderItems(focusIndex) {
+    itemsEl.innerHTML = '';
+    var labels = numbering();
+
+    items.forEach(function (item, i) {
+      var row = document.createElement('div');
+      row.className = 'ex-q' + (item.kind === 'section' ? ' is-section' : '');
+
+      var label = document.createElement('div');
+      label.className = 'ex-q-label';
+      label.textContent = item.kind === 'section' ? '§' : item.kind === 'stimulus' ? '¶' : labels[i];
+
+      var main = document.createElement('div');
+      main.className = 'ex-q-main';
+
+      var input = document.createElement('textarea');
+      input.className = 'ex-q-input';
+      input.rows = 1;
+      input.value = item.text;
+      input.placeholder = item.kind === 'section' ? 'Section heading, e.g. Section A — Comprehension'
+        : item.kind === 'stimulus' ? 'Paste the source, passage or stimulus…'
+        : 'Type the question…';
+      input.addEventListener('input', function () {
+        item.text = input.value;
+        autoGrow(input);
+        update();
+      });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          addItem(item.kind === 'section' || item.kind === 'stimulus' ? 'q' : item.kind, i + 1);
+        }
+      });
+      main.appendChild(input);
+
+      var opts = document.createElement('div');
+      opts.className = 'ex-q-opts';
+
+      var kind = document.createElement('select');
+      kind.className = 'ex-q-kind';
+      Object.keys(KIND_LABELS).forEach(function (k) {
+        var o = document.createElement('option');
+        o.value = k;
+        o.textContent = KIND_LABELS[k];
+        if (k === item.kind) o.selected = true;
+        kind.appendChild(o);
+      });
+      kind.addEventListener('change', function () {
+        item.kind = kind.value;
+        renderItems();
+        update();
+      });
+      opts.appendChild(kind);
+
+      if (SCORABLE[item.kind]) {
+        opts.appendChild(optField('Marks', markInput(item)));
+        opts.appendChild(optField('Answer space', linesInput(item)));
+        if (countedTwice(i) && marksOf(item) > 0) {
+          var hint = document.createElement('span');
+          hint.className = 'ex-q-opt';
+          hint.style.fontStyle = 'italic';
+          hint.textContent = 'still printed, but the total counts its parts instead';
+          opts.appendChild(hint);
+        }
+      } else if (item.kind === 'section') {
+        opts.appendChild(optField('Rubric', rubricInput(item)));
+      }
+
+      main.appendChild(opts);
+
+      var tools = document.createElement('div');
+      tools.className = 'ex-q-tools';
+      tools.appendChild(iconBtn('↑', 'Move up', i === 0, function () { move(i, -1); }));
+      tools.appendChild(iconBtn('↓', 'Move down', i === items.length - 1, function () { move(i, 1); }));
+      tools.appendChild(iconBtn('⧉', 'Duplicate', false, function () { duplicate(i); }));
+      tools.appendChild(iconBtn('✕', 'Remove', false, function () { remove(i); }, true));
+
+      row.appendChild(label);
+      row.appendChild(main);
+      row.appendChild(tools);
+      itemsEl.appendChild(row);
+      autoGrow(input);
+
+      if (focusIndex === i) { input.focus(); }
+    });
+
+    emptyEl.hidden = items.length > 0;
+  }
+
+  function optField(labelText, control) {
+    var wrap = document.createElement('label');
+    wrap.className = 'ex-q-opt';
+    wrap.appendChild(document.createTextNode(labelText));
+    wrap.appendChild(control);
+    return wrap;
+  }
+
+  function markInput(item) {
+    var input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.className = 'ex-q-marks';
+    input.value = item.marks === '' || item.marks == null ? '' : item.marks;
+    input.placeholder = '—';
+    input.addEventListener('input', function () {
+      item.marks = input.value;
+      update();
+    });
+    return input;
+  }
+
+  function linesInput(item) {
+    var select = document.createElement('select');
+    select.className = 'ex-q-lines';
+    [['0', 'None'], ['1', '1 line'], ['2', '2 lines'], ['3', '3 lines'], ['4', '4 lines'],
+     ['5', '5 lines'], ['6', '6 lines'], ['8', '8 lines'], ['10', '10 lines'], ['12', '12 lines'],
+     ['15', '15 lines'], ['20', '20 lines'], ['page', 'Rest of page']].forEach(function (pair) {
+      var o = document.createElement('option');
+      o.value = pair[0];
+      o.textContent = pair[1];
+      if (String(item.lines) === pair[0]) o.selected = true;
+      select.appendChild(o);
+    });
+    select.addEventListener('change', function () {
+      item.lines = select.value;
+      update();
+    });
+    return select;
+  }
+
+  function rubricInput(item) {
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'ex-q-marks';
+    input.style.width = '220px';
+    input.value = item.note || '';
+    input.placeholder = 'e.g. Answer all questions.';
+    input.addEventListener('input', function () {
+      item.note = input.value;
+      update();
+    });
+    return input;
+  }
+
+  function iconBtn(glyph, label, disabled, onClick, danger) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ex-icon-btn' + (danger ? ' danger' : '');
+    b.textContent = glyph;
+    b.title = label;
+    b.setAttribute('aria-label', label);
+    if (disabled) { b.disabled = true; b.style.opacity = '.3'; }
+    else { b.addEventListener('click', onClick); }
+    return b;
+  }
+
+  function autoGrow(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.max(34, el.scrollHeight) + 'px';
+  }
+
+  function blankItem(kind) {
+    return {
+      kind: kind,
+      text: '',
+      marks: '',
+      lines: SCORABLE[kind] ? val('exDefaultLines') : '0',
+      note: ''
+    };
+  }
+
+  function addItem(kind, at) {
+    var index = typeof at === 'number' ? at : items.length;
+    items.splice(index, 0, blankItem(kind));
+    renderItems(index);
+    update();
+  }
+
+  function duplicate(i) {
+    var copy = JSON.parse(JSON.stringify(items[i]));
+    items.splice(i + 1, 0, copy);
+    renderItems(i + 1);
+    update();
+  }
+
+  function remove(i) {
+    items.splice(i, 1);
+    renderItems();
+    update();
+  }
+
+  function move(i, delta) {
+    var j = i + delta;
+    if (j < 0 || j >= items.length) return;
+    var tmp = items[i];
+    items[i] = items[j];
+    items[j] = tmp;
+    renderItems(j);
+    update();
+  }
+
+  function filled() {
+    return items.filter(function (item) { return item.text.trim() !== ''; });
+  }
+
+  /* ── the paper ── */
+
+  function answerSpace(item) {
+    var style = val('exLineStyle');
+    var gap = parseInt(val('exLineGap'), 10) || 24;
+    var raw = String(item.lines == null ? '0' : item.lines);
+    if (raw === '0') return '';
+
+    // "Rest of page" is a generous fixed block rather than a true measurement:
+    // the honest version would need to know where the question lands on the page.
+    var count = raw === 'page' ? 18 : (parseInt(raw, 10) || 0);
+    if (!count) return '';
+
+    if (style === 'blank') {
+      return '<div class="p-answer"><span class="p-blank" style="height:' + (count * gap) + 'px"></span></div>';
+    }
+    if (style === 'grid') {
+      var height = Math.max(gap, Math.round(count * gap / 18.9) * 18.9);   // snap to whole 5mm squares
+      return '<div class="p-answer"><span class="p-grid" style="height:' + height + 'px"></span></div>';
+    }
+    var cls = style === 'dotted' ? 'p-line dotted' : style === 'faint' ? 'p-line faint' : 'p-line';
+    var line = '<span class="' + cls + '" style="height:' + gap + 'px"></span>';
+    return '<div class="p-answer">' + new Array(count + 1).join(line) + '</div>';
+  }
+
+  function buildSheet() {
+    var labels = numbering();
+    var totals = sectionTotals();
+    var showSectionTotals = checked('exSectionTotals');
+    var title = val('exTitle').trim() || 'Exam paper';
+    var subtitle = val('exSubtitle').trim();
+    var school = val('exSchool').trim();
+    var time = val('exTime').trim();
+    var dateRaw = val('exDate');
+    var date = dateRaw ? new Date(dateRaw + 'T00:00:00').toLocaleDateString('en-GB') : '';
+    var total = countedMarks();
+
+    sheetEl.className = 'paper-sheet' + (val('exFont') === 'serif' ? ' serif' : '');
+
+    var html = '';
+
+    /* header */
+    html += '<div class="p-head">';
+    if (school) { html += '<p class="p-school">' + escapeHtml(school) + '</p>'; }
+    html += '<h2 class="p-title">' + escapeHtml(title) + '</h2>';
+    if (subtitle) { html += '<p class="p-subtitle">' + escapeHtml(subtitle) + '</p>'; }
+
+    var facts = [];
+    if (time) { facts.push('<div><strong>Time allowed:</strong> ' + escapeHtml(time) + '</div>'); }
+    if (checked('exTotalBox')) { facts.push('<div><strong>Total marks:</strong> ' + (total || '____') + '</div>'); }
+    if (date) { facts.push('<div><strong>Date:</strong> ' + escapeHtml(date) + '</div>'); }
+    if (facts.length) { html += '<div class="p-facts">' + facts.join('') + '</div>'; }
+
+    if (checked('exName')) {
+      html += '<div class="p-fields">' +
+              '<div><strong>Name:</strong> <span class="rule"></span></div>' +
+              '<div><strong>Class:</strong> <span class="rule" style="min-width:80px"></span></div>' +
+              (date ? '' : '<div><strong>Date:</strong> <span class="rule" style="min-width:90px"></span></div>') +
+              '</div>';
+    }
+    html += '</div>';
+
+    /* instructions */
+    var instr = val('exInstr').split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+    if (instr.length) {
+      html += '<div class="p-instr"><p class="p-instr-title">Instructions</p><ul>' +
+              instr.map(function (l) { return '<li>' + escapeHtml(l) + '</li>'; }).join('') +
+              '</ul></div>';
+    }
+
+    /* body */
+    var openSection = -1;
+    var body = '';
+
+    items.forEach(function (item, i) {
+      if (item.text.trim() === '' && item.kind !== 'section') return;
+
+      if (item.kind === 'section') {
+        if (openSection > -1 && showSectionTotals && totals[openSection]) {
+          body += sectionTotalLine(openSection, totals);
+        }
+        openSection = i;
+        body += '<div class="p-section"><h3 class="p-section-title">' + escapeHtml(item.text || 'Section') + '</h3>';
+        if (item.note && item.note.trim()) { body += '<p class="p-section-note">' + escapeHtml(item.note.trim()) + '</p>'; }
+        body += '</div>';
+        return;
+      }
+
+      if (item.kind === 'stimulus') {
+        body += '<div class="p-stimulus">' + escapeHtml(item.text) + '</div>';
+        return;
+      }
+
+      var level = item.kind === 'q' ? 1 : item.kind === 'part' ? 2 : 3;
+      var marks = marksOf(item);
+      var marksHtml = marks > 0 ? '<span class="p-marks">' + markLabel(marks) + '</span>' : '';
+
+      body += '<div class="p-q lvl-' + level + '">' +
+              '<div class="p-q-num">' + escapeHtml(labels[i]) + '</div>' +
+              '<div class="p-q-main"><p class="p-q-text">' + marksHtml +
+              '<span class="q-edit" contenteditable="true" spellcheck="false" data-item="' + i + '">' +
+              escapeHtml(item.text) + '</span></p>' +
+              answerSpace(item) +
+              '</div></div>';
+    });
+
+    if (openSection > -1 && showSectionTotals && totals[openSection]) {
+      body += sectionTotalLine(openSection, totals);
+    }
+
+    if (!body) {
+      body = '<p style="color:#999; font-style:italic;">Your questions will appear here.</p>';
+    }
+    html += body;
+
+    if (checked('exEnd')) {
+      html += '<div class="p-end">END OF PAPER' + (total ? ' &nbsp;·&nbsp; TOTAL: ' + total + ' MARKS' : '') + '</div>';
+    }
+    if (checked('exFooter')) {
+      html += '<div class="p-foot">classicalia.co.uk</div>';
+    }
+
+    sheetEl.innerHTML = html;
+  }
+
+  function sectionTotalLine(index, totals) {
+    // "Section A — Comprehension" reads as "[Total for Section A: 20 marks]",
+    // the way a real paper prints it.
+    var name = (items[index].text || 'this section').trim().split(/\s+[—–-]\s+|:/)[0].trim();
+    return '<p class="p-section-total">[Total for ' + escapeHtml(name) + ': ' + totals[index] + ' marks]</p>';
+  }
+
+  var A4_HEIGHT_PX = 29.7 / 2.54 * 96;   // portrait A4 at 96dpi
+
+  function scalePreview() {
+    // The sheet is a real A4 page; shrink it to fit the preview column.
+    var available = stageEl.clientWidth;
+    if (!available) return;
+    var natural = sheetEl.scrollWidth || 1;
+    var scale = Math.min(1, available / natural);
+    sheetEl.style.transform = 'scale(' + scale + ')';
+    stageEl.style.height = (sheetEl.scrollHeight * scale) + 'px';
+    showPageCount();
+  }
+
+  // scrollHeight ignores the transform, so it is the real printed height.
+  function showPageCount() {
+    var label = document.getElementById('exPages');
+    if (!label) return;
+    var pages = Math.max(1, Math.ceil(sheetEl.scrollHeight / A4_HEIGHT_PX - 0.02));
+    label.textContent = '· ' + pages + (pages === 1 ? ' page' : ' pages');
+  }
+
+  function showTotal() {
+    var label = document.getElementById('exTotalLabel');
+    var total = countedMarks();
+    var count = items.filter(function (it) { return SCORABLE[it.kind] && it.text.trim() !== ''; }).length;
+    label.innerHTML = count
+      ? count + (count === 1 ? ' question' : ' questions') + ' · <strong>' + total + ' marks</strong>'
+      : '';
+  }
+
+  function saveDraft() {
+    writeStore(DRAFT_KEY, { settings: collectSettings(), items: items });
+  }
+
+  function collectSettings() {
+    var settings = {};
+    settingIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      settings[id] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    return settings;
+  }
+
+  function applySettings(settings) {
+    if (!settings) return;
+    settingIds.forEach(function (id) {
+      if (!(id in settings)) return;
+      var el = document.getElementById(id);
+      if (el.type === 'checkbox') { el.checked = !!settings[id]; }
+      else { el.value = settings[id]; }
+    });
+  }
+
+  var editingInPreview = false;
+
+  function update() {
+    showTotal();
+    if (editingInPreview) {
+      // Rebuilding the sheet mid-keystroke would blow away the caret.
+      scalePreview();
+      saveDraft();
+      return;
+    }
+    buildSheet();
+    scalePreview();
+    saveDraft();
+  }
+
+  /* Typing into the preview edits the question it came from. */
+
+  sheetEl.addEventListener('input', function (e) {
+    var cell = e.target.closest ? e.target.closest('.q-edit') : null;
+    if (!cell) return;
+    var idx = parseInt(cell.getAttribute('data-item'), 10);
+    if (isNaN(idx) || idx < 0 || idx >= items.length) return;
+    editingInPreview = true;
+    items[idx].text = cell.textContent;
+    var box = itemsEl.querySelectorAll('.ex-q-input')[idx];
+    if (box) { box.value = cell.textContent; autoGrow(box); }
+    saveDraft();
+  });
+
+  sheetEl.addEventListener('focusout', function (e) {
+    var cell = e.target.closest ? e.target.closest('.q-edit') : null;
+    if (!cell) return;
+    editingInPreview = false;
+    // An emptied question would vanish from the paper, so redraw both sides properly.
+    renderItems();
+    update();
+  });
+
+  sheetEl.addEventListener('keydown', function (e) {
+    var cell = e.target.closest ? e.target.closest('.q-edit') : null;
+    if (!cell) return;
+    if (e.key === 'Enter') { e.preventDefault(); cell.blur(); }
+    if (e.key === 'Escape') { cell.blur(); }
+  });
+
+  /* ── saved papers ── */
+
+  function renderSets() {
+    var sets = readStore(STORE_KEY, []);
+    var wrap = document.getElementById('exSets');
+    wrap.innerHTML = '';
+
+    if (!sets.length) {
+      wrap.innerHTML = '<div class="ex-empty">Nothing saved yet. Build a paper, then press &ldquo;Save this paper&rdquo;.</div>';
+      return;
+    }
+
+    sets.forEach(function (set, i) {
+      var row = document.createElement('div');
+      row.className = 'ex-set';
+
+      var count = set.items.filter(function (it) { return SCORABLE[it.kind]; }).length;
+      var info = document.createElement('div');
+      info.innerHTML = '<div class="ex-set-name">' + escapeHtml(set.name) + '</div>' +
+        '<div class="ex-set-meta">' + count + ' question' + (count === 1 ? '' : 's') +
+        (set.marks ? ' · ' + set.marks + ' marks' : '') +
+        ' · saved ' + escapeHtml(set.saved || '') + '</div>';
+
+      var tools = document.createElement('div');
+      tools.className = 'ex-btn-row';
+
+      var load = document.createElement('button');
+      load.type = 'button';
+      load.className = 'ex-btn';
+      load.textContent = 'Load';
+      load.addEventListener('click', function () {
+        items = JSON.parse(JSON.stringify(set.items));
+        applySettings(set.settings);
+        renderItems();
+        update();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'ex-btn';
+      del.textContent = 'Delete';
+      del.addEventListener('click', function () {
+        if (!window.confirm('Delete "' + set.name + '"?')) return;
+        var all = readStore(STORE_KEY, []);
+        all.splice(i, 1);
+        writeStore(STORE_KEY, all);
+        renderSets();
+      });
+
+      tools.appendChild(load);
+      tools.appendChild(del);
+      row.appendChild(info);
+      row.appendChild(tools);
+      wrap.appendChild(row);
+    });
+  }
+
+  /* ── wiring ── */
+
+  settingIds.forEach(function (id) {
+    var el = document.getElementById(id);
+    el.addEventListener('input', update);
+    el.addEventListener('change', function () {
+      // Numbering and the mark format change the editor labels too.
+      renderItems();
+      update();
+    });
+  });
+
+  document.getElementById('exAddQ').addEventListener('click', function () { addItem('q'); });
+  document.getElementById('exAddPart').addEventListener('click', function () { addItem('part'); });
+  document.getElementById('exAddSub').addEventListener('click', function () { addItem('sub'); });
+  document.getElementById('exAddSection').addEventListener('click', function () { addItem('section'); });
+  document.getElementById('exAddStimulus').addEventListener('click', function () { addItem('stimulus'); });
+
+  document.getElementById('exClear').addEventListener('click', function () {
+    if (items.length && !window.confirm('Clear every question on this paper?')) return;
+    items = [];
+    renderItems();
+    update();
+  });
+
+  /* Pasting understands the shorthand teachers already write:
+       "Translate the passage. [10]"   → a question worth 10
+       "(a) Name the consul. [2]"      → a lettered part
+       "(i) Give one reason. [1]"      → a roman sub-part
+       "## Section A — Comprehension"  → a section heading */
+  document.getElementById('exPaste').addEventListener('click', function () {
+    var text = window.prompt('Paste your questions, one per line.\n\nPut the marks in square brackets at the end — [3].\nStart a line with (a) or (i) for a part, or ## for a section heading.');
+    if (!text) return;
+
+    text.split(/\r?\n/).forEach(function (rawLine) {
+      var line = rawLine.trim();
+      if (!line) return;
+
+      if (/^#{1,3}\s*/.test(line)) {
+        var section = blankItem('section');
+        section.text = line.replace(/^#{1,3}\s*/, '').trim();
+        items.push(section);
+        return;
+      }
+
+      var kind = 'q';
+      if (/^\((?:[ivx]+)\)\s*/i.test(line)) { kind = 'sub'; line = line.replace(/^\([ivx]+\)\s*/i, ''); }
+      else if (/^\([a-z]{1,2}\)\s*/i.test(line)) { kind = 'part'; line = line.replace(/^\([a-z]{1,2}\)\s*/i, ''); }
+      else { line = line.replace(/^(?:Q\s*)?\d+[.)]\s*/i, ''); }
+
+      var marks = '';
+      var match = line.match(/\[\s*(\d+)\s*(?:marks?)?\s*\]\s*$/i);
+      if (match) {
+        marks = match[1];
+        line = line.slice(0, match.index).trim();
+      }
+
+      var item = blankItem(kind);
+      item.text = line;
+      item.marks = marks;
+      items.push(item);
+    });
+
+    // Drop the blank rows sitting there rather than paste after them.
+    items = items.filter(function (it) { return it.text.trim() !== ''; });
+
+    renderItems();
+    update();
+  });
+
+  document.getElementById('exSave').addEventListener('click', function () {
+    var list = filled();
+    if (!list.length) { window.alert('Add at least one question before saving.'); return; }
+    var suggested = val('exTitle').trim() || 'Exam paper';
+    var name = window.prompt('Name this paper:', suggested);
+    if (!name) return;
+
+    var sets = readStore(STORE_KEY, []);
+    var entry = {
+      name: name.trim(),
+      items: list,
+      marks: countedMarks(),
+      settings: collectSettings(),
+      saved: new Date().toLocaleDateString('en-GB')
+    };
+    var existing = sets.findIndex(function (s) { return s.name === entry.name; });
+    if (existing > -1) {
+      if (!window.confirm('A paper called "' + entry.name + '" already exists. Replace it?')) return;
+      sets[existing] = entry;
+    } else {
+      sets.unshift(entry);
+    }
+    writeStore(STORE_KEY, sets);
+    renderSets();
+  });
+
+  document.getElementById('exPrint').addEventListener('click', function () {
+    if (!filled().length) { window.alert('Add at least one question before printing.'); return; }
+    window.print();
+  });
+
+  window.addEventListener('resize', scalePreview);
+  window.addEventListener('beforeprint', function () {
+    sheetEl.style.transform = 'none';
+    stageEl.style.height = 'auto';
+  });
+  window.addEventListener('afterprint', scalePreview);
+
+  /* ── start up ── */
+
+  var draft = readStore(DRAFT_KEY, null);
+  if (draft && Array.isArray(draft.items) && draft.items.length) {
+    applySettings(draft.settings);
+    items = draft.items;
+  } else {
+    items = [blankItem('q'), blankItem('q'), blankItem('q')];
+  }
+
+  renderItems();
+  renderSets();
+  update();
+})();
+</script>
+</body>
+</html>
