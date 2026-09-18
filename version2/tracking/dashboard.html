@@ -22,6 +22,7 @@
 <script src="/version2/tools/quiz/data/myth-1.6.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.7.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.8.js"></script>
+<script src="/version2/tools/quiz/data/homeric-1.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/bkt-store.js"></script>
@@ -641,6 +642,55 @@ body { background:#f4f6fa; }
     </div>
   </div>
 
+  <div id="course-homeric" class="hidden">
+    <div class="action-strip" id="homericActions">
+      <a href="/version2/tools/quiz/the-homeric-world.html?mode=donow" class="act-btn"><div><div class="lbl">Lesson starter</div><div class="ttl">Today's Do Now</div></div><span class="arr">→</span></a>
+      <a href="/version2/tools/quiz/the-homeric-world.html?mode=learn" class="act-btn"><div><div class="lbl">Work through</div><div class="ttl">In order</div></div><span class="arr">→</span></a>
+      <a href="/version2/tools/quiz/the-homeric-world.html?mode=review" class="act-btn"><div><div class="lbl">Recommended</div><div class="ttl">Smart review</div></div><span class="arr">→</span></a>
+      <a href="/version2/tools/quiz/the-homeric-world.html" class="act-btn secondary"><div><div class="lbl">Practice</div><div class="ttl">Practise everything</div></div><span class="arr">→</span></a>
+    </div>
+    <div class="wordmap-card">
+      <div class="wordmap-head">
+        <span class="wordmap-title" id="hwTitle">Question confidence map</span>
+        <div class="conf-legend">
+          <span class="conf-legend-swatch p-unseen"></span>Not seen
+          <span class="conf-legend-sep">·</span>
+          <span class="conf-legend-swatch p-verylow"></span>Very low
+          <span class="conf-legend-sep">·</span>
+          <span class="conf-legend-swatch p-low"></span>Low
+          <span class="conf-legend-sep">·</span>
+          <span class="conf-legend-swatch p-mid"></span>Mid
+          <span class="conf-legend-sep">·</span>
+          <span class="conf-legend-swatch p-high"></span>Strong
+          <span class="conf-legend-sep">·</span>
+          <span class="conf-legend-swatch p-building"></span>Building
+          <span class="conf-legend-sep">·</span>
+          <span class="conf-legend-swatch p-secure"></span>Secure
+        </div>
+      </div>
+      <div class="wordmap-body"><div class="wordmap" id="hwMap"></div></div>
+    </div>
+    <div class="dash-grid">
+      <div>
+        <div class="dash-card">
+          <div class="dash-card-head"><span class="dash-card-title">Focus next — lowest confidence</span></div>
+          <div id="hwFocus"></div>
+        </div>
+      </div>
+      <div>
+        <div class="dash-card">
+          <div class="dash-card-head"><span class="dash-card-title">Secure questions</span></div>
+          <div class="secure-count-wrap">
+            <div class="secure-count" id="hwSecureCount">0</div>
+            <div class="secure-total" id="hwSecureTotal"></div>
+          </div>
+          <div class="secure-desc">A question becomes secure once you answer it correctly with high confidence on at least three different days.</div>
+          <div class="secure-bar-wrap"><div class="secure-bar"><div class="secure-bar-fill" id="hwSecureBar" style="width:0%"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="course-not-yet" class="hidden">
     <div class="empty-state-dashboard">
       <h2 id="notYetTitle">Coming soon</h2>
@@ -1004,7 +1054,7 @@ function renderDashboard(words, recentlyPractised) {
 // Each tab corresponds to a v2 course type. The body for that type is shown
 // when the tab is active; courses that aren't yet shipped (no bodyId in
 // course-map.js) route to the shared #course-not-yet placeholder.
-const COURSE_BODY_IDS = ['course-vocab', 'course-myth', 'course-not-yet', 'course-empty'];
+const COURSE_BODY_IDS = ['course-vocab', 'course-myth', 'course-homeric', 'course-not-yet', 'course-empty'];
 
 function hideAllCourseBodies() {
   COURSE_BODY_IDS.forEach(id => {
@@ -1262,18 +1312,26 @@ document.getElementById('wordmapSort').addEventListener('click', (e) => {
   const overlay = document.getElementById('helpOverlay');
   const openBtn = document.getElementById('helpBtn');
   const closeBtn = document.getElementById('helpClose');
+  // The question-tracking help text is shared by both Classical Civ courses;
+  // only the heading names the course you are looking at.
+  const CIV_HELP = [
+    { bodyId: 'course-myth',    title: 'Your Myth & Religion progress, tracked properly' },
+    { bodyId: 'course-homeric', title: 'Your Homeric World progress, tracked properly' }
+  ];
   function open()  {
-    const mythView = document.getElementById('course-myth');
-    const onMyth = mythView && !mythView.classList.contains('hidden');
+    const onCiv = CIV_HELP.find(c => {
+      const el = document.getElementById(c.bodyId);
+      return el && !el.classList.contains('hidden');
+    }) || null;
     const bodyLatin = document.getElementById('helpBodyLatin');
     const bodyMyth  = document.getElementById('helpBodyMyth');
     if (bodyLatin && bodyMyth) {
-      bodyLatin.classList.toggle('hidden', onMyth);
-      bodyMyth.classList.toggle('hidden', !onMyth);
+      bodyLatin.classList.toggle('hidden', !!onCiv);
+      bodyMyth.classList.toggle('hidden', !onCiv);
     }
     const title = document.getElementById('helpTitle');
-    if (title) title.textContent = onMyth
-      ? 'Your Myth & Religion progress, tracked properly'
+    if (title) title.textContent = onCiv
+      ? onCiv.title
       : 'Your vocabulary, tracked properly';
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
@@ -1547,24 +1605,29 @@ init().then(() => {
 });
 </script>
 <script>
-// ── Myth & Religion course view (self-contained content; the union-driven
-// tab strip in the main script decides when to show it and triggers the
-// first render via window.ClassicaliaLazyRender) ──
-(function () {
-  const TOPICS = (window.CivQuiz && window.CivQuiz.topics) || [];
-  const viewMyth = document.getElementById('course-myth');
-  if (!viewMyth) return;
+// ── Classical Civ course views (self-contained content; the union-driven tab
+// strip in the main script decides when to show one and triggers the first
+// render via window.ClassicaliaLazyRender).
+//
+// Both civ courses — Myth & Religion and the Homeric World — track quiz
+// questions the same way, so one renderer serves both: it is handed the
+// course's topics, its body element and the ids of that body's own widgets.
+function civCourseView(cfg) {
+  const TOPICS = cfg.topics || [];
+  const viewEl = document.getElementById(cfg.bodyId);
+  if (!viewEl) return;
+  const ids = cfg.ids;
   let rendered = false;
 
   function ensureRendered() {
     if (rendered) return;
     rendered = true;
-    renderMyth();
+    renderCourse();
   }
 
   // Register with the global lazy-render hook so the tab strip can invoke us
-  // the first time the user activates the Myth tab.
-  (window.ClassicaliaLazyRender = window.ClassicaliaLazyRender || {})['civ-gcse'] = ensureRendered;
+  // the first time the user activates this course's tab.
+  (window.ClassicaliaLazyRender = window.ClassicaliaLazyRender || {})[cfg.type] = ensureRendered;
 
   function esc(x) { return String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   function colourClass(s) {
@@ -1610,7 +1673,7 @@ init().then(() => {
     el.addEventListener('mouseleave', () => { tt.style.display = 'none'; });
   }
 
-  async function renderMyth() {
+  async function renderCourse() {
     rendered = true;
     if (!TOPICS.length || !window.ClassicaliaBKT) return;
     const store = await window.ClassicaliaBKT.open({ vocabList: TOPICS[0].list });
@@ -1633,7 +1696,7 @@ init().then(() => {
     // confidence map: topic heading, then a subheading per subtopic
     const titleOf = {};
     for (const t of TOPICS) titleOf[t.id] = t.title;
-    const map = document.getElementById('cmMap');
+    const map = document.getElementById(ids.map);
     map.innerHTML = '';
     const topicOrder = [], byTopic = new Map();
     for (const s of states) {
@@ -1664,10 +1727,10 @@ init().then(() => {
 
     // secure count
     const secure = states.filter(s => s.p >= 0.95 && s.days >= 3).length;
-    document.getElementById('cmSecureCount').textContent = secure;
-    document.getElementById('cmSecureTotal').textContent = '/ ' + states.length + ' questions';
-    document.getElementById('cmSecureBar').style.width = states.length ? Math.round(secure / states.length * 100) + '%' : '0%';
-    document.getElementById('cmTitle').textContent = 'Question confidence map — ' + states.length + ' questions';
+    document.getElementById(ids.secureCount).textContent = secure;
+    document.getElementById(ids.secureTotal).textContent = '/ ' + states.length + ' questions';
+    document.getElementById(ids.secureBar).style.width = states.length ? Math.round(secure / states.length * 100) + '%' : '0%';
+    document.getElementById(ids.title).textContent = 'Question confidence map — ' + states.length + ' questions';
 
     // focus list: the subtopics with the lowest confidence, judged on the
     // questions actually attempted (a subtopic you've never touched isn't
@@ -1690,7 +1753,7 @@ init().then(() => {
     ranked.sort((a, b) => a.avg - b.avg);
     const focusGroups = ranked.slice(0, 3);
 
-    const fbox = document.getElementById('cmFocus');
+    const fbox = document.getElementById(ids.focus);
     fbox.innerHTML = '';
     if (!focusGroups.length) {
       fbox.innerHTML = states.some(s => s.t > 0)
@@ -1715,7 +1778,23 @@ init().then(() => {
       fbox.appendChild(row);
     }
   }
-})();
+}
+
+civCourseView({
+  type: 'civ-gcse',
+  bodyId: 'course-myth',
+  topics: (window.CivQuiz && window.CivQuiz.topics) || [],
+  ids: { map: 'cmMap', focus: 'cmFocus', title: 'cmTitle',
+         secureCount: 'cmSecureCount', secureTotal: 'cmSecureTotal', secureBar: 'cmSecureBar' }
+});
+
+civCourseView({
+  type: 'civ-homeric',
+  bodyId: 'course-homeric',
+  topics: (window.HomericQuiz && window.HomericQuiz.topics) || [],
+  ids: { map: 'hwMap', focus: 'hwFocus', title: 'hwTitle',
+         secureCount: 'hwSecureCount', secureTotal: 'hwSecureTotal', secureBar: 'hwSecureBar' }
+});
 </script>
 <script src="/version2/assets/js/starfield.js"></script>
 <script>

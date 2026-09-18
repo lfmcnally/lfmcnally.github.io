@@ -17,6 +17,7 @@
   const COURSE_TYPES = [
     { type: 'latin-gcse',   label: 'GCSE Latin',                vocabList: 'latin-gcse',        bodyId: 'course-vocab' },
     { type: 'civ-gcse',     label: 'Myth & Religion',           vocabList: 'civ-myth-religion', bodyId: 'course-myth'  },
+    { type: 'civ-homeric',  label: 'The Homeric World',         vocabList: 'civ-homeric-world', bodyId: 'course-homeric' },
     { type: 'latin-prep',   label: 'KS3 Latin',                 vocabList: 'latin-suburani',    bodyId: 'course-vocab' },
     { type: 'latin-alevel', label: 'A-Level Latin',             vocabList: 'latin-alevel',      bodyId: 'course-vocab' },
     { type: 'greek-gcse',   label: 'GCSE Greek',                vocabList: 'greek-gcse',        bodyId: 'course-vocab' },
