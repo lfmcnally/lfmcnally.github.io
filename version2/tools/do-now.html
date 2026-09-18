@@ -56,6 +56,15 @@
   .dn-icon-btn:hover { background: var(--cream); border-color: var(--rule); color: var(--navy); }
   .dn-icon-btn.danger:hover { color: #c02626; border-color: #f0c8c8; background: #fdf3f3; }
 
+  .dn-fmt { display: flex; gap: 4px; margin-right: 4px; }
+  .dn-fmt button { width: 30px; height: 30px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--navy);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; cursor: pointer; }
+  .dn-fmt button:hover { background: var(--cream); border-color: #b8d0ff; }
+  .dn-fmt button:disabled { opacity: .45; cursor: not-allowed; }
+  .dn-fmt .b { font-weight: 700; }
+  .dn-fmt .i { font-style: italic; font-family: Georgia, serif; }
+  .dn-fmt .u { text-decoration: underline; }
+
   .dn-empty { font-size: 13.5px; color: var(--muted); font-style: italic; padding: 6px 0 12px; }
 
   /* import picker */
@@ -113,6 +122,9 @@
   .sheet td { border: 1px solid #000; padding: 8px 10px; vertical-align: top; }
   .sheet td.q { font-size: 12pt; font-weight: 700; }
   .sheet .qnum { display: inline-block; min-width: 20px; font-weight: 700; }
+  /* The number stays bold; the question itself is regular, so a word the
+     teacher marks bold actually reads as bold. */
+  .sheet .q-text { font-weight: 400; }
   .sheet .ans { display: block; }
   .sheet .q-text { display: inline; outline: none; border-radius: 3px; padding: 0 2px; margin: 0 -2px; cursor: text; }
   .sheet .q-text:hover { background: #eef4ff; box-shadow: 0 0 0 1px #cfe0ff; }
@@ -346,6 +358,11 @@
       <div class="dn-panel-head">
         <h2 class="dn-panel-title">Questions</h2>
         <div class="dn-btn-row">
+          <div class="dn-fmt" id="dnFmt">
+            <button class="b" type="button" data-mark="**" title="Bold (Ctrl+B)" aria-label="Bold">B</button>
+            <button class="i" type="button" data-mark="*" title="Italic (Ctrl+I)" aria-label="Italic">I</button>
+            <button class="u" type="button" data-mark="__" title="Underline (Ctrl+U)" aria-label="Underline">U</button>
+          </div>
           <button class="dn-btn" id="dnShuffle" type="button">Shuffle</button>
           <button class="dn-btn" id="dnPaste" type="button">Paste a list</button>
           <button class="dn-btn" id="dnClear" type="button">Clear all</button>
@@ -357,6 +374,7 @@
         <div class="dn-btn-row" style="margin-top: 14px;">
           <button class="dn-btn primary" id="dnAdd" type="button">+ Add question</button>
         </div>
+        <p class="dn-note">Select a word and press <strong>B</strong>, <em>I</em> or <span style="text-decoration:underline">U</span> above &mdash; or type the marks yourself: <code>**bold**</code>, <code>*italics*</code>, <code>__underline__</code>. Pressing the same button again takes the formatting off.</p>
       </div>
     </section>
 
@@ -443,6 +461,84 @@
     });
   }
 
+  /* ── inline formatting ──
+     The question stays a plain string; a few marks inside it carry the
+     formatting, so saved sets and pasted lists need no new shape. */
+
+  function formatText(str) {
+    var html = escapeHtml(str);
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    html = html.replace(/__([^_]+)__/g, '<u>$1</u>');
+    return html;
+  }
+
+  function hasMarks(str) {
+    return /\*\*[^*]+\*\*|\*[^*]+\*|__[^_]+__/.test(str);
+  }
+
+  // Wrapping is a toggle: marks already around the selection come off again,
+  // whether the user included them in the selection or not.
+  function toggleMark(input, mark) {
+    var value = input.value;
+    var start = input.selectionStart;
+    var end = input.selectionEnd;
+    var before = value.slice(0, start);
+    var selected = value.slice(start, end);
+    var after = value.slice(end);
+    var width = mark.length;
+    var caret;
+
+    if (selected.length > width * 2 &&
+        selected.slice(0, width) === mark && selected.slice(-width) === mark) {
+      selected = selected.slice(width, -width);
+      caret = [start, start + selected.length];
+    } else if (before.slice(-width) === mark && after.slice(0, width) === mark) {
+      before = before.slice(0, -width);
+      after = after.slice(width);
+      caret = [before.length, before.length + selected.length];
+    } else {
+      caret = selected
+        ? [start + width, start + width + selected.length]
+        : [start + width, start + width];
+      selected = mark + selected + mark;
+    }
+
+    input.value = before + selected + after;
+    input.setSelectionRange(caret[0], caret[1]);
+    input.focus();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  var MARK_KEYS = { b: '**', i: '*', u: '__' };
+  var activeInput = null;
+
+  function wireFormatting(input) {
+    input.addEventListener('focus', function () { activeInput = input; });
+    input.addEventListener('keydown', function (e) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      var mark = MARK_KEYS[e.key.toLowerCase()];
+      if (!mark) return;
+      e.preventDefault();
+      toggleMark(input, mark);
+    });
+  }
+
+  document.getElementById('dnFmt').addEventListener('mousedown', function (e) {
+    // Keep the focus (and so the selection) in the question box.
+    if (e.target.getAttribute('data-mark')) { e.preventDefault(); }
+  });
+
+  document.getElementById('dnFmt').addEventListener('click', function (e) {
+    var mark = e.target.getAttribute && e.target.getAttribute('data-mark');
+    if (!mark) return;
+    if (!activeInput || !document.body.contains(activeInput)) {
+      window.alert('Click into a question first, then select the words to format.');
+      return;
+    }
+    toggleMark(activeInput, mark);
+  });
+
   /* ── storage ── */
 
   function readStore(key, fallback) {
@@ -478,6 +574,7 @@
         autoGrow(input);
         update();
       });
+      wireFormatting(input);
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
@@ -583,7 +680,7 @@
       var num = checked('dnNumbers') ? '<span class="qnum">' + (i + 1) + '.</span> ' : '';
       return '<tr><td class="q">' + num +
              '<span class="q-text" contenteditable="true" spellcheck="false" data-q="' + item.idx + '">' +
-             escapeHtml(item.text) + '</span></td>' +
+             formatText(item.text) + '</span></td>' +
              '<td>' + answerCell + '</td></tr>';
     }).join('');
 
@@ -661,6 +758,16 @@
     scalePreview();
     saveDraft();
   }
+
+  // A formatted question shows its marks again while it is being edited here,
+  // so typing cannot quietly flatten the <strong> and <em> back to plain text.
+  sheetEl.addEventListener('focusin', function (e) {
+    var cell = e.target.closest ? e.target.closest('.q-text') : null;
+    if (!cell) return;
+    var idx = parseInt(cell.getAttribute('data-q'), 10);
+    if (isNaN(idx) || idx < 0 || idx >= questions.length) return;
+    if (hasMarks(questions[idx])) { cell.textContent = questions[idx]; }
+  });
 
   // Typing into the preview edits the question it came from.
   sheetEl.addEventListener('input', function (e) {
@@ -1191,6 +1298,11 @@
 
   window.addEventListener('resize', scalePreview);
   window.addEventListener('beforeprint', function () {
+    // A cell still being edited is showing its formatting marks, and those
+    // must not reach the paper.
+    if (sheetEl.contains(document.activeElement)) { document.activeElement.blur(); }
+    editingInPreview = false;
+    buildSheet();
     sheetEl.style.transform = 'none';
     stageEl.style.height = 'auto';
   });
