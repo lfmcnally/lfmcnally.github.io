@@ -67,6 +67,10 @@
   .ex-icon-btn:hover { background: var(--cream); border-color: var(--rule); color: var(--navy); }
   .ex-icon-btn.danger:hover { color: #c02626; border-color: #f0c8c8; background: #fdf3f3; }
 
+  .ex-thumb { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+  .ex-thumb img { height: 54px; width: auto; max-width: 120px; border: 1px solid var(--rule); border-radius: 6px; background: var(--cream); }
+  .ex-thumb-name { font-size: 11.5px; color: var(--muted); }
+
   .ex-fmt { display: flex; gap: 4px; margin-right: 4px; }
   .ex-fmt button { width: 30px; height: 30px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--navy);
     background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; cursor: pointer; }
@@ -155,7 +159,13 @@
   .p-section-note { font-size: 10.5pt; font-style: italic; margin: 6px 0 0; }
   .p-section-total { text-align: right; font-weight: 700; font-size: 10.5pt; margin: 10px 0 0; border-top: 1px solid #000; padding-top: 5px; }
 
-  .p-stimulus { border: 1px solid #000; background: #f7f7f7; padding: 11px 13px; margin: 0 0 14px; font-size: 10.5pt; white-space: pre-wrap; }
+  .p-stimulus { border: 1px solid #000; background: #f7f7f7; padding: 11px 13px; margin: 0 0 14px; font-size: 10.5pt; white-space: pre-wrap;
+    break-inside: avoid; page-break-inside: avoid; }
+  .p-stimulus img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  .p-stimulus img + .p-caption { margin-top: 8px; }
+  .p-stimulus .p-caption { white-space: pre-wrap; text-align: center; }
+  .p-stimulus[data-width="small"] img { max-width: 45%; }
+  .p-stimulus[data-width="medium"] img { max-width: 70%; }
 
   /* A question is a flex row: the number sits in its own gutter, the text flows
      beside it, and the marks float to the right margin of that text. */
@@ -215,6 +225,7 @@
     .p-q-text .q-edit { background: none !important; box-shadow: none !important; }
     .p-foot img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .p-stimulus { background: #f7f7f7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-stimulus img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
 </head>
@@ -603,8 +614,16 @@
     } catch (e) { return fallback; }
   }
 
+  // Returns false when the browser refuses the write — a paper carrying
+  // pictures can outgrow the quota, and a save that quietly did nothing
+  // would be worse than one that says so.
   function writeStore(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private mode, full quota */ }
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   /* ── numbering ──
@@ -722,6 +741,20 @@
         update();
       });
       wireFormatting(input);
+      if (item.kind === 'stimulus') {
+        input.addEventListener('paste', function (e) {
+          var items = (e.clipboardData && e.clipboardData.items) || [];
+          for (var n = 0; n < items.length; n++) {
+            if (items[n].kind !== 'file') continue;
+            var file = items[n].getAsFile();
+            if (file && /^image\//.test(file.type)) {
+              e.preventDefault();
+              attachImage(item, file);
+              return;
+            }
+          }
+        });
+      }
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
@@ -761,9 +794,65 @@
         }
       } else if (item.kind === 'section') {
         opts.appendChild(optField('Rubric', rubricInput(item)));
+      } else if (item.kind === 'stimulus') {
+        var picker = document.createElement('input');
+        picker.type = 'file';
+        picker.accept = 'image/*';
+        picker.hidden = true;
+        picker.addEventListener('change', function () {
+          if (picker.files && picker.files[0]) { attachImage(item, picker.files[0]); }
+          picker.value = '';
+        });
+
+        var choose = document.createElement('button');
+        choose.type = 'button';
+        choose.className = 'ex-btn';
+        choose.style.padding = '5px 10px';
+        choose.style.fontSize = '12px';
+        choose.textContent = item.image ? 'Replace picture' : 'Add a picture';
+        choose.addEventListener('click', function () { picker.click(); });
+
+        opts.appendChild(choose);
+        opts.appendChild(picker);
+
+        if (item.image) {
+          opts.appendChild(optField('Width', imageWidthInput(item)));
+          var drop = document.createElement('button');
+          drop.type = 'button';
+          drop.className = 'ex-btn';
+          drop.style.padding = '5px 10px';
+          drop.style.fontSize = '12px';
+          drop.textContent = 'Remove picture';
+          drop.addEventListener('click', function () {
+            item.image = '';
+            renderItems();
+            update();
+          });
+          opts.appendChild(drop);
+        } else {
+          var hintPaste = document.createElement('span');
+          hintPaste.className = 'ex-q-opt';
+          hintPaste.style.fontStyle = 'italic';
+          hintPaste.textContent = 'or paste one into the box';
+          opts.appendChild(hintPaste);
+        }
       }
 
       main.appendChild(opts);
+
+      if (item.kind === 'stimulus' && item.image) {
+        var thumb = document.createElement('div');
+        thumb.className = 'ex-thumb';
+        var preview = document.createElement('img');
+        preview.src = item.image;
+        preview.alt = '';
+        var name = document.createElement('span');
+        name.className = 'ex-thumb-name';
+        name.textContent = 'The text below prints as the caption.';
+        thumb.appendChild(preview);
+        thumb.appendChild(name);
+        main.appendChild(thumb);
+      }
 
       var tools = document.createElement('div');
       tools.className = 'ex-q-tools';
@@ -825,6 +914,23 @@
     return select;
   }
 
+  function imageWidthInput(item) {
+    var select = document.createElement('select');
+    select.className = 'ex-q-lines';
+    [['full', 'Full width'], ['medium', 'Medium'], ['small', 'Small']].forEach(function (pair) {
+      var o = document.createElement('option');
+      o.value = pair[0];
+      o.textContent = pair[1];
+      if ((item.imageWidth || 'full') === pair[0]) { o.selected = true; }
+      select.appendChild(o);
+    });
+    select.addEventListener('change', function () {
+      item.imageWidth = select.value;
+      update();
+    });
+    return select;
+  }
+
   function rubricInput(item) {
     var input = document.createElement('input');
     input.type = 'text';
@@ -856,13 +962,67 @@
     el.style.height = Math.max(34, el.scrollHeight) + 'px';
   }
 
+  /* ── pictures on a source ──
+     The picture is kept in the paper itself as a data URL, so a saved paper
+     stays one self-contained thing with no files to lose. That only works if
+     it is small, hence the scaling down on the way in. */
+
+  var MAX_IMAGE_EDGE = 1400;   // plenty for a printed A4 source
+  var IMAGE_QUALITY = 0.82;
+
+  function readImage(file, done) {
+    if (!file || !/^image\//.test(file.type)) {
+      window.alert('That is not a picture. Choose a JPEG, PNG, GIF or WebP.');
+      return;
+    }
+    var reader = new FileReader();
+    reader.onerror = function () { window.alert('That picture could not be read.'); };
+    reader.onload = function () { shrink(String(reader.result), file.type, done); };
+    reader.readAsDataURL(file);
+  }
+
+  // Scaled down and re-encoded, so the browser's storage can hold the paper.
+  // Anything with transparency stays a PNG; everything else becomes a JPEG.
+  function shrink(dataUrl, type, done) {
+    var img = new Image();
+    img.onerror = function () { window.alert('That picture could not be read.'); };
+    img.onload = function () {
+      var scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(img.width, img.height));
+      if (scale === 1 && dataUrl.length < 400000) { done(dataUrl); return; }
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      var ctx = canvas.getContext('2d');
+      var keepsAlpha = /png|webp|gif/i.test(type);
+      if (!keepsAlpha) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      try {
+        done(keepsAlpha ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', IMAGE_QUALITY));
+      } catch (e) {
+        done(dataUrl);   // a tainted canvas is no reason to lose the picture
+      }
+    };
+    img.src = dataUrl;
+  }
+
+  function attachImage(item, file) {
+    readImage(file, function (dataUrl) {
+      item.image = dataUrl;
+      if (!item.imageWidth) { item.imageWidth = 'full'; }
+      renderItems();
+      update();
+    });
+  }
+
   function blankItem(kind) {
     return {
       kind: kind,
       text: '',
       marks: '',
       lines: SCORABLE[kind] ? val('exDefaultLines') : '0',
-      note: ''
+      note: '',
+      image: '',
+      imageWidth: 'full'
     };
   }
 
@@ -897,7 +1057,9 @@
   }
 
   function filled() {
-    return items.filter(function (item) { return item.text.trim() !== ''; });
+    return items.filter(function (item) {
+      return item.text.trim() !== '' || (item.kind === 'stimulus' && item.image);
+    });
   }
 
   /* ── the paper ── */
@@ -1054,7 +1216,8 @@
     var body = '';
 
     items.forEach(function (item, i) {
-      if (item.text.trim() === '' && item.kind !== 'section') return;
+      // A source can be a picture with nothing written under it.
+      if (item.text.trim() === '' && item.kind !== 'section' && !(item.kind === 'stimulus' && item.image)) return;
 
       if (item.kind === 'section') {
         if (openSection > -1 && showSectionTotals && totals[openSection]) {
@@ -1068,7 +1231,10 @@
       }
 
       if (item.kind === 'stimulus') {
-        body += '<div class="p-stimulus">' + formatText(item.text) + '</div>';
+        body += '<div class="p-stimulus" data-width="' + (item.imageWidth || 'full') + '">' +
+                (item.image ? '<img src="' + escapeHtml(item.image) + '" alt="">' : '') +
+                (item.text.trim() ? '<div class="p-caption">' + formatText(item.text) + '</div>' : '') +
+                '</div>';
         return;
       }
 
@@ -1375,7 +1541,11 @@
     } else {
       sets.unshift(entry);
     }
-    writeStore(STORE_KEY, sets);
+    if (!writeStore(STORE_KEY, sets)) {
+      window.alert('There was not enough room in this browser to save that paper. ' +
+        'Pictures take up most of the space, so removing one, or deleting a saved paper you no longer need, should make room.');
+      return;
+    }
     renderSets();
   });
 
