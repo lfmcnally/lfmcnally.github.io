@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Practice test — Classicalia</title>
+<meta name="description" content="Build a Do Now for yourself from any Classicalia list, answer it on screen, and have it marked — a way to see where you are before the real thing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<style>
+  .pt-body { max-width: 860px; margin: 0 auto; padding: 36px 40px 90px; }
+
+  .pt-panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; margin-bottom: 20px; }
+  .pt-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--rule-faint); }
+  .pt-panel-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 18px; color: var(--navy); }
+  .pt-panel-body { padding: 20px; }
+
+  .pt-grid { display: grid; gap: 14px; }
+  .pt-grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .pt-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .pt-field label { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .pt-field input[type="text"], .pt-field select {
+    width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 9px 11px; }
+  .pt-field input:focus, .pt-field select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,111,255,.12); }
+
+  .pt-btn { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: var(--navy); background: var(--paper);
+    border: 1px solid var(--rule); border-radius: 7px; padding: 8px 14px; cursor: pointer; transition: background .12s, border-color .12s; }
+  .pt-btn:hover { background: var(--cream); border-color: #b8d0ff; }
+  .pt-btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .pt-btn.primary:hover { background: #3b82ff; }
+  .pt-btn.big { font-size: 15px; padding: 13px 22px; }
+  .pt-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .pt-btn-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  .pt-status { font-size: 13px; color: var(--muted); margin-top: 14px; }
+  .pt-note { font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 12px; }
+
+  /* sitting the test */
+  .pt-bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 12px 18px; margin-bottom: 18px; }
+  .pt-bar-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 16px; color: var(--navy); }
+  .pt-bar-meta { font-size: 12.5px; color: var(--muted); }
+  .pt-bar-meta strong { color: var(--navy); }
+
+  .pt-q { border-bottom: 1px solid var(--rule-faint); padding: 16px 0; display: flex; gap: 14px; align-items: flex-start; }
+  .pt-q:last-child { border-bottom: none; }
+  .pt-q-num { flex: none; width: 28px; padding-top: 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
+  .pt-q-main { flex: 1; min-width: 0; }
+  .pt-q-prompt { font-size: 15.5px; color: var(--ink); line-height: 1.5; margin: 0 0 10px; }
+  .pt-q-prompt .term { font-weight: 700; color: var(--navy); }
+  .pt-q-input { width: 100%; max-width: 420px; font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 10px 12px; }
+  .pt-q-input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,111,255,.12); }
+
+  .pt-opts { display: grid; gap: 8px; }
+  .pt-opt { display: flex; align-items: flex-start; gap: 10px; font-size: 14.5px; color: var(--ink); line-height: 1.45;
+    border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+  .pt-opt:hover { background: var(--cream); border-color: #b8d0ff; }
+  .pt-opt input { margin-top: 3px; accent-color: var(--brand); cursor: pointer; }
+  .pt-opt.chosen { border-color: var(--brand); background: #eef4ff; }
+
+  /* results */
+  .pt-score { text-align: center; padding: 26px 20px; }
+  .pt-score-big { font-family: 'Lora', serif; font-weight: 700; font-size: 44px; color: var(--navy); line-height: 1.1; }
+  .pt-score-pct { font-size: 14px; color: var(--muted); margin-top: 6px; }
+  .pt-score-bar { height: 10px; border-radius: 999px; background: var(--cream); border: 1px solid var(--rule); overflow: hidden; margin: 18px auto 0; max-width: 420px; }
+  .pt-score-bar span { display: block; height: 100%; background: var(--brand); }
+
+  .pt-result { border-bottom: 1px solid var(--rule-faint); padding: 14px 0; display: flex; gap: 12px; align-items: flex-start; }
+  .pt-result:last-child { border-bottom: none; }
+  .pt-mark { flex: none; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: #fff; background: #16a34a; }
+  .pt-mark.wrong { background: #c02626; }
+  .pt-result-main { flex: 1; min-width: 0; font-size: 14px; line-height: 1.5; }
+  .pt-result-q { color: var(--ink); }
+  .pt-result-q .term { font-weight: 700; color: var(--navy); }
+  .pt-result-line { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .pt-result-line .yours { color: #c02626; }
+  .pt-result-line .right { color: #15803d; font-weight: 600; }
+  .pt-result-info { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 3px; }
+  .pt-result-tools { flex: none; }
+  .pt-mini { font-family: 'DM Sans', sans-serif; font-size: 11.5px; font-weight: 600; color: var(--navy);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 9px; cursor: pointer; }
+  .pt-mini:hover { background: var(--cream); border-color: #b8d0ff; }
+
+  .pt-history { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--rule-faint); font-size: 13px; }
+  .pt-history:last-child { border-bottom: none; }
+  .pt-history-set { color: var(--navy); font-weight: 600; }
+  .pt-history-meta { color: var(--muted); font-size: 11.5px; }
+
+  .pt-empty { font-size: 13.5px; color: var(--muted); font-style: italic; }
+
+  @media (max-width: 620px) {
+    .pt-body { padding: 28px 20px 70px; }
+    .pt-grid-2, .pt-grid-3 { grid-template-columns: 1fr; }
+    .pt-bar { flex-direction: column; align-items: flex-start; gap: 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <canvas class="header-sky" data-starfield data-seed="822" data-region="0.8"></canvas>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo"><img src="/version2/assets/images/classicalia-wordmark.png" alt="Classicalia"></a>
+      <div class="nav-links">
+        <a href="/version2/subjects/latin/" class="nav-link">Latin</a>
+        <a href="/version2/subjects/greek/" class="nav-link">Greek</a>
+        <a href="/version2/subjects/classical-civilisation/" class="nav-link">Class. Civ.</a>
+        <div class="nav-div"></div>
+        <a href="/version2/tools/" class="nav-link active">Tools</a>
+        <a href="#" class="nav-link">About</a>
+        <a href="https://buymeacoffee.com/lfmcnally" class="nav-support" target="_blank" rel="noopener">Support us</a>
+        <div data-account-menu></div>
+      </div>
+    </div>
+  </nav>
+  <div class="header-inner">
+    <div class="header-eyebrow">Test yourself</div>
+    <h1 class="header-title">Practice test</h1>
+    <p class="header-deck">Build a Do Now for yourself from any of the lists, answer it on screen, and have it marked. A way to see where you actually are after revising &mdash; before you sit the real one in class.</p>
+  </div>
+</div>
+
+<div class="pt-body">
+
+  <!-- ── 1. setting the test up ── -->
+  <section class="pt-panel" id="ptSetup">
+    <div class="pt-panel-head">
+      <h2 class="pt-panel-title">Set your test</h2>
+    </div>
+    <div class="pt-panel-body">
+
+      <div class="pt-grid pt-grid-2">
+        <div class="pt-field">
+          <label for="ptSource">List</label>
+          <select id="ptSource">
+            <option value="">Choose a list&hellip;</option>
+            <option value="latin-gcse">Latin vocabulary &mdash; OCR GCSE</option>
+            <option value="latin-alevel">Latin vocabulary &mdash; A Level</option>
+            <option value="suburani">Latin vocabulary &mdash; Suburani</option>
+            <option value="greek-gcse">Greek vocabulary &mdash; OCR GCSE</option>
+            <option value="greek-alevel">Greek vocabulary &mdash; A Level</option>
+            <option value="myth">Myth &amp; Religion questions</option>
+            <option value="homeric">The Homeric World questions</option>
+          </select>
+        </div>
+        <div class="pt-field" id="ptDirectionField" hidden>
+          <label for="ptDirection">Ask me</label>
+          <select id="ptDirection">
+            <option value="term">The word &rarr; I type the meaning</option>
+            <option value="english">The meaning &rarr; I type the word</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-grid pt-grid-3" id="ptFilters" style="margin-top: 14px;" hidden>
+        <div class="pt-field" id="ptChapterFromField">
+          <label for="ptChapterFrom">From chapter</label>
+          <select id="ptChapterFrom"></select>
+        </div>
+        <div class="pt-field" id="ptChapterToField">
+          <label for="ptChapterTo">To chapter</label>
+          <select id="ptChapterTo"></select>
+        </div>
+        <div class="pt-field" id="ptTopicField" hidden>
+          <label for="ptTopic">Topic</label>
+          <select id="ptTopic"></select>
+        </div>
+        <div class="pt-field">
+          <label for="ptCount">How many questions</label>
+          <select id="ptCount">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+            <option value="30">30</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-status" id="ptStatus" hidden></div>
+
+      <div class="pt-btn-row" style="margin-top: 18px;">
+        <button class="pt-btn primary big" id="ptStart" type="button" disabled>Start the test</button>
+      </div>
+      <p class="pt-note">Nothing is sent anywhere and no account is needed. Your last few scores are kept in this browser so you can see whether you are getting better.</p>
+    </div>
+  </section>
+
+  <!-- ── 2. sitting it ── -->
+  <div id="ptTest" hidden>
+    <div class="pt-bar">
+      <div>
+        <div class="pt-bar-title" id="ptTestTitle">Practice test</div>
+        <div class="pt-bar-meta" id="ptProgress"></div>
+      </div>
+      <div class="pt-btn-row">
+        <span class="pt-bar-meta" id="ptTimer">0:00</span>
+        <button class="pt-btn" id="ptAbandon" type="button">Start again</button>
+        <button class="pt-btn primary" id="ptMark" type="button">Mark my answers</button>
+      </div>
+    </div>
+    <section class="pt-panel">
+      <div class="pt-panel-body" id="ptQuestions"></div>
+    </section>
+    <div class="pt-btn-row">
+      <button class="pt-btn primary big" id="ptMarkFoot" type="button">Mark my answers</button>
+    </div>
+  </div>
+
+  <!-- ── 3. how it went ── -->
+  <div id="ptResults" hidden>
+    <section class="pt-panel">
+      <div class="pt-score">
+        <div class="pt-score-big" id="ptScore">0 / 0</div>
+        <div class="pt-score-pct" id="ptScorePct"></div>
+        <div class="pt-score-bar"><span id="ptScoreFill" style="width: 0%"></span></div>
+      </div>
+    </section>
+    <section class="pt-panel">
+      <div class="pt-panel-head">
+        <h2 class="pt-panel-title">Your answers</h2>
+        <div class="pt-btn-row">
+          <button class="pt-btn" id="ptRetryWrong" type="button">Retry the ones I missed</button>
+          <button class="pt-btn primary" id="ptAgain" type="button">New test</button>
+        </div>
+      </div>
+      <div class="pt-panel-body" id="ptResultList"></div>
+    </section>
+  </div>
+
+  <!-- ── recent attempts ── -->
+  <section class="pt-panel" id="ptHistoryPanel">
+    <div class="pt-panel-head">
+      <h2 class="pt-panel-title">Recent attempts</h2>
+      <button class="pt-btn" id="ptClearHistory" type="button">Clear</button>
+    </div>
+    <div class="pt-panel-body" id="ptHistory"></div>
+  </section>
+
+</div>
+
+<!-- SUPPORT BAND -->
+<div class="support-band">
+  <canvas class="support-sky" data-starfield data-seed="512" data-region="1" data-bg="#e8f0fe" data-star="26,111,255" data-line="26,111,255" data-line-alpha="0.2"></canvas>
+  <div class="support-inner">
+    <div class="support-text">
+      <div class="support-eyebrow">Support Classicalia</div>
+      <h2 class="support-title">Free for every student &mdash; with your help</h2>
+      <p class="support-body">Classicalia has no paywalls, no ads, and no subscriptions. But hosting, tools, and the time to write new resources all cost something, and the project relies on donations to keep running. If the site has helped you or your students, you can help keep it going.</p>
+    </div>
+    <div class="support-action">
+      <a href="https://buymeacoffee.com/lfmcnally" class="support-cta" target="_blank" rel="noopener">Support Classicalia &#9829;</a>
+      <div class="support-note">A one-off donation, or join as a monthly supporter &mdash; it takes less than a minute.</div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <a href="/version2/" class="footer-logo"><img src="/version2/assets/images/classicalia-wordmark-navy.png" alt="Classicalia"></a>
+    <div class="footer-links">
+      <a href="/version2/tools/" class="footer-link">Tools</a>
+      <a href="/version2/subjects/latin/" class="footer-link">Latin</a>
+      <a href="/version2/subjects/greek/" class="footer-link">Greek</a>
+      <a href="/version2/subjects/classical-civilisation/" class="footer-link">Classical Civilisation</a>
+      <a href="https://buymeacoffee.com/lfmcnally" class="footer-link footer-link-support" target="_blank" rel="noopener">Support us &#9829;</a>
+    </div>
+    <div class="footer-copy">classicalia.co.uk · Free for all</div>
+  </div>
+</footer>
+
+<script src="/version2/assets/js/starfield.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var HISTORY_KEY = 'classicalia.practiceTest.history';
+  var SETUP_KEY = 'classicalia.practiceTest.setup';
+  var MAX_HISTORY = 8;
+
+  /* The same banks the Do Now builder imports from, loaded only when chosen. */
+  var SOURCES = {
+    'latin-gcse':   { kind: 'vocab', label: 'Latin vocabulary — OCR GCSE', global: 'VOCAB_LATIN_GCSE',   src: ['/version2/tools/vocab/data/latin-gcse.js'] },
+    'latin-alevel': { kind: 'vocab', label: 'Latin vocabulary — A Level',  global: 'VOCAB_LATIN_ALEVEL', src: ['/version2/tools/vocab/data/latin-alevel.js'] },
+    'suburani':     { kind: 'vocab', label: 'Latin vocabulary — Suburani', global: 'VOCAB_SUBURANI',     src: ['/version2/tools/vocab/data/suburani.js'] },
+    'greek-gcse':   { kind: 'vocab', label: 'Greek vocabulary — OCR GCSE', global: 'VOCAB_GREEK_GCSE',   src: ['/version2/tools/vocab/data/greek-gcse.js'] },
+    'greek-alevel': { kind: 'vocab', label: 'Greek vocabulary — A Level',  global: 'VOCAB_GREEK_ALEVEL', src: ['/version2/tools/vocab/data/greek-alevel.js'] },
+    'myth':         { kind: 'quiz',  label: 'Myth & Religion questions',   global: 'CivQuiz',
+                      src: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8'].map(function (n) {
+                        return '/version2/tools/quiz/data/myth-' + n + '.js';
+                      }) },
+    'homeric':      { kind: 'quiz',  label: 'The Homeric World questions', global: 'HomericQuiz',
+                      src: ['/version2/tools/quiz/data/homeric-1.js'] }
+  };
+
+  var catalogue = [];   // every item in the chosen list
+  var pool = [];        // the items passing the filters
+  var loaded = {};      // source key → true
+  var questions = [];   // the test being sat
+  var startedAt = 0;
+  var timerId = null;
+
+  function el(id) { return document.getElementById(id); }
+  function val(id) { return el(id).value; }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function readStore(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  }
+
+  function writeStore(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private mode, full quota */ }
+  }
+
+  function shuffle(list) {
+    for (var i = list.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = list[i]; list[i] = list[j]; list[j] = tmp;
+    }
+    return list;
+  }
+
+  /* ── marking ──
+     The same tolerant comparison the vocabulary tester uses, with accents
+     stripped as well so a missing macron or a final sigma is not a mistake. */
+
+  function normaliseAnswer(s) {
+    return String(s || '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')   // macrons, accents, breathings
+      .replace(/ς/g, 'σ')                                  // final sigma
+      .replace(/\([^)]*\)/g, ' ')                          // bracketed glosses
+      .replace(/[\-./…]+/g, ' ')
+      .replace(/[^\p{L}\p{N}\s]/gu, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // Layered acceptance, strictest first: an exact match to any comma or
+  // semicolon separated alternative, then the same ignoring spaces and
+  // hyphens, then every word of the alternative present in the answer, then
+  // a substring match for words long enough not to match by accident.
+  function matches(userInput, correctText) {
+    var u = normaliseAnswer(userInput);
+    if (!u) return false;
+    var uCompact = u.replace(/\s/g, '');
+    var uWords = u.split(' ').filter(Boolean);
+
+    var variants = String(correctText).split(/[,;]/).map(normaliseAnswer).filter(Boolean);
+    if (!variants.length) {
+      variants = String(correctText).replace(/[()\[\]]/g, ' ').split(/[,;]/).map(normaliseAnswer).filter(Boolean);
+    }
+
+    for (var i = 0; i < variants.length; i++) {
+      var v = variants[i];
+      if (u === v) return true;
+      var vCompact = v.replace(/\s/g, '');
+      if (uCompact === vCompact) return true;
+      var vWords = v.split(' ').filter(Boolean);
+      if (!vWords.length) continue;
+      if (vWords.every(function (w) { return uWords.indexOf(w) > -1; })) return true;
+      if (vWords.every(function (w) { return w.length >= 4 && uCompact.indexOf(w) > -1; })) return true;
+    }
+    return false;
+  }
+
+  /* ── loading a list ── */
+
+  function readGlobal(name) {
+    try {
+      return new Function('return typeof ' + name + ' !== "undefined" ? ' + name + ' : undefined')();
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  function quizTopics(key) {
+    var bank = window[(SOURCES[key] && SOURCES[key].global) || 'CivQuiz'];
+    var topics = (bank && bank.topics) || [];
+    return topics.slice().sort(function (a, b) {
+      return String(a.id).localeCompare(String(b.id), 'en', { numeric: true });
+    });
+  }
+
+  function loadScripts(paths, done) {
+    var remaining = paths.length;
+    var failed = false;
+    if (!remaining) { done(true); return; }
+    paths.forEach(function (path) {
+      var script = document.createElement('script');
+      script.src = path;
+      script.onload = function () { if (--remaining === 0) { done(!failed); } };
+      script.onerror = function () { failed = true; if (--remaining === 0) { done(false); } };
+      document.head.appendChild(script);
+    });
+  }
+
+  function buildCatalogue(key) {
+    var source = SOURCES[key];
+    catalogue = [];
+
+    if (source.kind === 'vocab') {
+      (readGlobal(source.global) || []).forEach(function (w, i) {
+        var term = w.latin || w.greek || '';
+        if (!term || !w.english) return;
+        catalogue.push({
+          id: key + ':' + i,
+          term: term,
+          english: w.english,
+          info: w.info || '',
+          chapter: typeof w.chapter === 'number' ? w.chapter : null
+        });
+      });
+    } else {
+      quizTopics(key).forEach(function (topic) {
+        (topic.questions || []).forEach(function (q) {
+          if (!q.q || !q.answers || !q.answers.length) return;
+          catalogue.push({
+            id: key + ':' + q.id,
+            question: q.q,
+            answers: q.answers.slice(),
+            topic: topic.id,
+            topicTitle: topic.title
+          });
+        });
+      });
+    }
+  }
+
+  function fillSelect(select, values, labeller) {
+    select.innerHTML = '';
+    values.forEach(function (v) {
+      var opt = document.createElement('option');
+      opt.value = String(v.id !== undefined ? v.id : v);
+      opt.textContent = labeller ? labeller(v) : String(v.title !== undefined ? v.title : v);
+      select.appendChild(opt);
+    });
+  }
+
+  function setupFilters(key) {
+    var isVocab = SOURCES[key].kind === 'vocab';
+    el('ptDirectionField').hidden = !isVocab;
+    el('ptChapterFromField').hidden = !isVocab;
+    el('ptChapterToField').hidden = !isVocab;
+    el('ptTopicField').hidden = isVocab;
+    el('ptFilters').hidden = false;
+
+    if (isVocab) {
+      var chapters = [];
+      catalogue.forEach(function (item) {
+        if (item.chapter !== null && chapters.indexOf(item.chapter) === -1) { chapters.push(item.chapter); }
+      });
+      chapters.sort(function (a, b) { return a - b; });
+      if (!chapters.length) {
+        el('ptChapterFromField').hidden = true;
+        el('ptChapterToField').hidden = true;
+      } else {
+        fillSelect(el('ptChapterFrom'), chapters);
+        fillSelect(el('ptChapterTo'), chapters);
+        el('ptChapterFrom').value = String(chapters[0]);
+        el('ptChapterTo').value = String(chapters[chapters.length - 1]);
+      }
+    } else {
+      var topics = [{ id: '', title: 'All topics' }];
+      quizTopics(key).forEach(function (t) { topics.push({ id: t.id, title: t.id + ' ' + t.title }); });
+      fillSelect(el('ptTopic'), topics);
+    }
+  }
+
+  function refreshPool() {
+    var key = val('ptSource');
+    if (!key) { pool = []; return; }
+    var isVocab = SOURCES[key].kind === 'vocab';
+
+    pool = catalogue.filter(function (item) {
+      if (isVocab) {
+        if (el('ptChapterFromField').hidden) return true;
+        var from = parseInt(val('ptChapterFrom'), 10);
+        var to = parseInt(val('ptChapterTo'), 10);
+        if (isNaN(from) || isNaN(to)) return true;
+        if (item.chapter === null) return false;
+        return item.chapter >= Math.min(from, to) && item.chapter <= Math.max(from, to);
+      }
+      var topic = val('ptTopic');
+      return !topic || item.topic === topic;
+    });
+
+    var wanted = parseInt(val('ptCount'), 10) || 10;
+    var status = el('ptStatus');
+    status.hidden = false;
+    if (!pool.length) {
+      status.textContent = 'Nothing matches those choices yet.';
+      el('ptStart').disabled = true;
+    } else {
+      status.textContent = pool.length + (pool.length === 1 ? ' question' : ' questions') + ' to choose from' +
+        (pool.length < wanted ? ' — your test will be ' + pool.length + ' long.' : '.');
+      el('ptStart').disabled = false;
+    }
+  }
+
+  /* ── building a test ── */
+
+  function makeQuestions(items) {
+    var key = val('ptSource');
+    var direction = val('ptDirection');
+    var isVocab = SOURCES[key].kind === 'vocab';
+
+    return items.map(function (item) {
+      if (!isVocab) {
+        var correct = item.answers[0];
+        return {
+          kind: 'choice',
+          item: item,
+          prompt: item.question,
+          options: shuffle(item.answers.slice()),
+          correct: correct,
+          response: null,
+          right: false,
+          overridden: false
+        };
+      }
+      var askTerm = direction !== 'english';
+      return {
+        kind: 'type',
+        item: item,
+        prompt: askTerm ? item.term : item.english,
+        promptLabel: askTerm ? 'What does this mean?' : 'What is the word for this?',
+        correct: askTerm ? item.english : item.term,
+        response: '',
+        right: false,
+        overridden: false
+      };
+    });
+  }
+
+  function startTest(items) {
+    questions = makeQuestions(items);
+    el('ptSetup').hidden = true;
+    el('ptResults').hidden = true;
+    el('ptHistoryPanel').hidden = true;
+    el('ptTest').hidden = false;
+    el('ptTestTitle').textContent = SOURCES[val('ptSource')].label;
+    renderQuestions();
+    startTimer();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    var first = el('ptQuestions').querySelector('.pt-q-input');
+    if (first) { first.focus(); }
+  }
+
+  function renderQuestions() {
+    var wrap = el('ptQuestions');
+    wrap.innerHTML = '';
+
+    questions.forEach(function (q, i) {
+      var row = document.createElement('div');
+      row.className = 'pt-q';
+
+      var num = document.createElement('div');
+      num.className = 'pt-q-num';
+      num.textContent = (i + 1) + '.';
+
+      var main = document.createElement('div');
+      main.className = 'pt-q-main';
+
+      var prompt = document.createElement('p');
+      prompt.className = 'pt-q-prompt';
+      if (q.kind === 'type') {
+        prompt.innerHTML = '<span class="term">' + escapeHtml(q.prompt) + '</span>';
+      } else {
+        prompt.textContent = q.prompt;
+      }
+      main.appendChild(prompt);
+
+      if (q.kind === 'type') {
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'pt-q-input';
+        input.autocomplete = 'off';
+        input.spellcheck = false;
+        input.placeholder = q.promptLabel;
+        input.value = q.response;
+        input.addEventListener('input', function () {
+          q.response = input.value;
+          showProgress();
+        });
+        input.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          var boxes = wrap.querySelectorAll('.pt-q-input');
+          if (boxes[i + 1]) { boxes[i + 1].focus(); }
+          else { input.blur(); }
+        });
+        main.appendChild(input);
+      } else {
+        var opts = document.createElement('div');
+        opts.className = 'pt-opts';
+        q.options.forEach(function (option) {
+          var label = document.createElement('label');
+          label.className = 'pt-opt' + (q.response === option ? ' chosen' : '');
+          var radio = document.createElement('input');
+          radio.type = 'radio';
+          radio.name = 'q' + i;
+          radio.checked = q.response === option;
+          radio.addEventListener('change', function () {
+            q.response = option;
+            opts.querySelectorAll('.pt-opt').forEach(function (o) { o.classList.remove('chosen'); });
+            label.classList.add('chosen');
+            showProgress();
+          });
+          label.appendChild(radio);
+          label.appendChild(document.createTextNode(option));
+          opts.appendChild(label);
+        });
+        main.appendChild(opts);
+      }
+
+      row.appendChild(num);
+      row.appendChild(main);
+      wrap.appendChild(row);
+    });
+
+    showProgress();
+  }
+
+  function answered() {
+    return questions.filter(function (q) {
+      return q.kind === 'type' ? q.response.trim() !== '' : q.response !== null;
+    }).length;
+  }
+
+  function showProgress() {
+    el('ptProgress').innerHTML = '<strong>' + answered() + '</strong> of ' + questions.length + ' answered';
+  }
+
+  /* ── the clock ── */
+
+  function startTimer() {
+    startedAt = Date.now();
+    stopTimer();
+    timerId = setInterval(showTimer, 1000);
+    showTimer();
+  }
+
+  function stopTimer() {
+    if (timerId) { clearInterval(timerId); timerId = null; }
+  }
+
+  function elapsed() {
+    return Math.max(0, Math.round((Date.now() - startedAt) / 1000));
+  }
+
+  function clockText(seconds) {
+    var mins = Math.floor(seconds / 60);
+    var secs = seconds % 60;
+    return mins + ':' + (secs < 10 ? '0' : '') + secs;
+  }
+
+  function showTimer() {
+    el('ptTimer').textContent = clockText(elapsed());
+  }
+
+  /* ── marking ── */
+
+  function mark() {
+    var blank = questions.length - answered();
+    if (blank && !window.confirm(blank + (blank === 1 ? ' question is' : ' questions are') + ' still blank. Mark it anyway?')) {
+      return;
+    }
+    stopTimer();
+
+    questions.forEach(function (q) {
+      q.overridden = false;
+      q.right = q.kind === 'choice'
+        ? q.response === q.correct
+        : matches(q.response, q.correct);
+    });
+
+    el('ptTest').hidden = true;
+    el('ptResults').hidden = false;
+    el('ptHistoryPanel').hidden = false;
+    renderResults();
+    recordAttempt();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function score() {
+    return questions.filter(function (q) { return q.right; }).length;
+  }
+
+  function showScore() {
+    var got = score();
+    var total = questions.length;
+    var pct = total ? Math.round(got / total * 100) : 0;
+    el('ptScore').textContent = got + ' / ' + total;
+    el('ptScorePct').textContent = pct + '% · ' + clockText(elapsed());
+    el('ptScoreFill').style.width = pct + '%';
+  }
+
+  function renderResults() {
+    var wrap = el('ptResultList');
+    wrap.innerHTML = '';
+
+    questions.forEach(function (q, i) {
+      var row = document.createElement('div');
+      row.className = 'pt-result';
+
+      var mark = document.createElement('div');
+      mark.className = 'pt-mark' + (q.right ? '' : ' wrong');
+      mark.textContent = q.right ? '✓' : '✕';
+
+      var main = document.createElement('div');
+      main.className = 'pt-result-main';
+
+      var question = document.createElement('div');
+      question.className = 'pt-result-q';
+      question.innerHTML = (i + 1) + '. ' + (q.kind === 'type'
+        ? '<span class="term">' + escapeHtml(q.prompt) + '</span>'
+        : escapeHtml(q.prompt));
+      main.appendChild(question);
+
+      var given = q.kind === 'type' ? q.response.trim() : (q.response || '');
+      var line = document.createElement('div');
+      line.className = 'pt-result-line';
+      if (q.right) {
+        line.innerHTML = 'You said <span class="right">' + escapeHtml(given || '—') + '</span>' +
+          (q.overridden ? ' · marked right by you' : '');
+      } else {
+        line.innerHTML = 'You said <span class="yours">' + escapeHtml(given || 'nothing') + '</span>' +
+          ' · the answer is <span class="right">' + escapeHtml(q.correct) + '</span>';
+      }
+      main.appendChild(line);
+
+      if (q.kind === 'type' && q.item.info) {
+        var info = document.createElement('div');
+        info.className = 'pt-result-info';
+        info.textContent = q.item.info;
+        main.appendChild(info);
+      }
+
+      var tools = document.createElement('div');
+      tools.className = 'pt-result-tools';
+      // Vocabulary answers are messy; a near miss the marking missed is the
+      // student's call, not the machine's.
+      if (q.kind === 'type' && !q.right && given) {
+        var claim = document.createElement('button');
+        claim.type = 'button';
+        claim.className = 'pt-mini';
+        claim.textContent = 'I was right';
+        claim.addEventListener('click', function () {
+          q.right = true;
+          q.overridden = true;
+          renderResults();
+          recordAttempt(true);
+        });
+        tools.appendChild(claim);
+      }
+
+      row.appendChild(mark);
+      row.appendChild(main);
+      row.appendChild(tools);
+      wrap.appendChild(row);
+    });
+
+    showScore();
+    el('ptRetryWrong').disabled = questions.every(function (q) { return q.right; });
+  }
+
+  /* ── recent attempts ──
+     The last attempt is replaced rather than added again when a near miss is
+     claimed, so one test leaves one line. */
+
+  var lastAttemptAt = 0;
+
+  function recordAttempt(replace) {
+    var list = readStore(HISTORY_KEY, []);
+    var entry = {
+      at: replace && lastAttemptAt ? lastAttemptAt : Date.now(),
+      label: SOURCES[val('ptSource')].label,
+      score: score(),
+      total: questions.length,
+      seconds: elapsed()
+    };
+    lastAttemptAt = entry.at;
+    if (replace && list.length && list[0].at === entry.at) { list[0] = entry; }
+    else { list.unshift(entry); }
+    writeStore(HISTORY_KEY, list.slice(0, MAX_HISTORY));
+    renderHistory();
+  }
+
+  function renderHistory() {
+    var list = readStore(HISTORY_KEY, []);
+    var wrap = el('ptHistory');
+    wrap.innerHTML = '';
+    if (!list.length) {
+      wrap.innerHTML = '<div class="pt-empty">Nothing yet. Your scores will show up here once you have sat one.</div>';
+      return;
+    }
+    list.forEach(function (entry) {
+      var row = document.createElement('div');
+      row.className = 'pt-history';
+      var pct = entry.total ? Math.round(entry.score / entry.total * 100) : 0;
+      row.innerHTML = '<div><div class="pt-history-set">' + escapeHtml(entry.label) + '</div>' +
+        '<div class="pt-history-meta">' + new Date(entry.at).toLocaleDateString('en-GB') +
+        ' · ' + clockText(entry.seconds || 0) + '</div></div>' +
+        '<div class="pt-history-set">' + entry.score + ' / ' + entry.total + ' · ' + pct + '%</div>';
+      wrap.appendChild(row);
+    });
+  }
+
+  /* ── wiring ── */
+
+  el('ptSource').addEventListener('change', function () {
+    var key = val('ptSource');
+    el('ptFilters').hidden = true;
+    el('ptDirectionField').hidden = true;
+    el('ptStart').disabled = true;
+    if (!key) { el('ptStatus').hidden = true; return; }
+
+    var status = el('ptStatus');
+    status.hidden = false;
+    status.textContent = 'Loading ' + SOURCES[key].label + '…';
+
+    function ready() {
+      buildCatalogue(key);
+      if (!catalogue.length) {
+        status.textContent = 'That list could not be loaded. Try another one.';
+        return;
+      }
+      setupFilters(key);
+      refreshPool();
+      saveSetup();
+    }
+
+    if (loaded[key]) { ready(); return; }
+    loadScripts(SOURCES[key].src, function (ok) {
+      loaded[key] = true;
+      if (!ok) { status.textContent = 'That list could not be loaded. Try another one.'; return; }
+      ready();
+    });
+  });
+
+  ['ptChapterFrom', 'ptChapterTo', 'ptTopic', 'ptCount', 'ptDirection'].forEach(function (id) {
+    el(id).addEventListener('change', function () { refreshPool(); saveSetup(); });
+  });
+
+  el('ptStart').addEventListener('click', function () {
+    if (!pool.length) return;
+    var wanted = parseInt(val('ptCount'), 10) || 10;
+    startTest(shuffle(pool.slice()).slice(0, Math.min(wanted, pool.length)));
+  });
+
+  el('ptMark').addEventListener('click', mark);
+  el('ptMarkFoot').addEventListener('click', mark);
+
+  el('ptAbandon').addEventListener('click', function () {
+    if (answered() && !window.confirm('Leave this test and start again?')) return;
+    stopTimer();
+    backToSetup();
+  });
+
+  el('ptAgain').addEventListener('click', backToSetup);
+
+  el('ptRetryWrong').addEventListener('click', function () {
+    var missed = questions.filter(function (q) { return !q.right; }).map(function (q) { return q.item; });
+    if (!missed.length) return;
+    startTest(shuffle(missed));
+  });
+
+  el('ptClearHistory').addEventListener('click', function () {
+    if (!window.confirm('Clear your recent scores?')) return;
+    writeStore(HISTORY_KEY, []);
+    renderHistory();
+  });
+
+  function backToSetup() {
+    stopTimer();
+    el('ptTest').hidden = true;
+    el('ptResults').hidden = true;
+    el('ptSetup').hidden = false;
+    el('ptHistoryPanel').hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ── remembering the last set-up ── */
+
+  function saveSetup() {
+    writeStore(SETUP_KEY, {
+      source: val('ptSource'),
+      direction: val('ptDirection'),
+      count: val('ptCount')
+    });
+  }
+
+  function restoreSetup() {
+    var saved = readStore(SETUP_KEY, null);
+    if (!saved || !saved.source || !SOURCES[saved.source]) return;
+    el('ptCount').value = saved.count || '10';
+    el('ptSource').value = saved.source;
+    el('ptSource').dispatchEvent(new Event('change'));
+    if (saved.direction) {
+      el('ptDirection').value = saved.direction;
+    }
+  }
+
+  window.addEventListener('beforeunload', function (e) {
+    if (el('ptTest').hidden || !answered()) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+
+  renderHistory();
+  restoreSetup();
+})();
+</script>
+</body>
+</html>
