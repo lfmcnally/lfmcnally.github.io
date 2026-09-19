@@ -213,6 +213,14 @@
   .p-blank { display: block; }
   .p-grid { display: block; background-image: linear-gradient(#ccc 1px, transparent 1px), linear-gradient(90deg, #ccc 1px, transparent 1px); background-size: 5mm 5mm; border: 1px solid #000; }
 
+  /* A spare page for answers that outgrew their space. Its height is the
+     printable area less a few millimetres, and anything over that is clipped,
+     so a stray line can never tip it onto a page of its own. */
+  .p-extra { break-before: page; page-break-before: always;
+    height: calc(29.7cm - 3.6cm - 4mm); overflow: hidden; }
+  .p-extra-head { font-size: 11.5pt; font-weight: 700; margin: 0 0 4px; }
+  .p-extra-note { font-size: 9.5pt; font-style: italic; margin: 0 0 12px; }
+
   .p-end { text-align: center; font-weight: 700; font-size: 11pt; margin-top: 26px; border-top: 2px solid #000; padding-top: 10px; }
   .p-foot { margin-top: 14px; font-size: 8.5pt; color: #555; text-align: center; }
   .p-foot img { height: 20px; width: auto; display: inline-block;
@@ -413,6 +421,16 @@
             </select>
           </div>
           <div class="ex-field">
+            <label for="exExtraPages">Extra writing pages</label>
+            <select id="exExtraPages">
+              <option value="0" selected>None</option>
+              <option value="1">1 page</option>
+              <option value="2">2 pages</option>
+              <option value="3">3 pages</option>
+              <option value="4">4 pages</option>
+            </select>
+          </div>
+          <div class="ex-field">
             <label for="exDefaultLines">Default answer lines</label>
             <select id="exDefaultLines">
               <option value="0">None</option>
@@ -539,7 +557,7 @@
   var settingIds = ['exTitle', 'exSubtitle', 'exSchool', 'exTime', 'exDate', 'exInstr',
                     'exCover', 'exPaperRef', 'exMaterials', 'exCoverNote', 'exMarkGrid', 'exRunHead',
                     'exName', 'exTotalBox', 'exSectionTotals', 'exEnd', 'exFooter',
-                    'exLineStyle', 'exLineGap', 'exFont', 'exMarkFormat', 'exNumbering', 'exDefaultLines'];
+                    'exLineStyle', 'exLineGap', 'exFont', 'exMarkFormat', 'exNumbering', 'exDefaultLines', 'exExtraPages'];
 
   var KIND_LABELS = { q: 'Question', part: 'Part (a)', sub: 'Sub-part (i)', section: 'Section', stimulus: 'Source' };
   var SCORABLE = { q: true, part: true, sub: true };
@@ -1217,16 +1235,7 @@
     var count = raw === 'page' ? 18 : (parseInt(raw, 10) || 0);
     if (!count) return '';
 
-    if (style === 'blank') {
-      return '<div class="p-answer"><span class="p-blank" style="height:' + (count * gap) + 'px"></span></div>';
-    }
-    if (style === 'grid') {
-      var height = Math.max(gap, Math.round(count * gap / 18.9) * 18.9);   // snap to whole 5mm squares
-      return '<div class="p-answer"><span class="p-grid" style="height:' + height + 'px"></span></div>';
-    }
-    var cls = style === 'dotted' ? 'p-line dotted' : style === 'faint' ? 'p-line faint' : 'p-line';
-    var line = '<span class="' + cls + '" style="height:' + gap + 'px"></span>';
-    return '<div class="p-answer">' + new Array(count + 1).join(line) + '</div>';
+    return ruledBlock(count);
   }
 
   function instructionsBox() {
@@ -1421,11 +1430,55 @@
     if (checked('exEnd')) {
       html += '<div class="p-end">END OF PAPER' + (total ? ' &nbsp;·&nbsp; TOTAL: ' + total + ' MARKS' : '') + '</div>';
     }
+
+    html += extraPages();
     if (checked('exFooter')) {
       html += '<div class="p-foot"><img src="/version2/assets/images/classicalia-wordmark-navy.png" alt="Classicalia"></div>';
     }
 
     sheetEl.innerHTML = html;
+  }
+
+  var PAGE_CONTENT_HEIGHT = (29.7 - 3.6 - 0.4) / 2.54 * 96;   // the page inside its margins, less the slack, in px
+  var EXTRA_HEAD_HEIGHT = 46;                                 // the heading and its note
+
+  // Spare pages for an answer that outgrew the space left for it. Each one is
+  // a page of its own, ruled the same way as the rest of the paper.
+  function extraPages() {
+    var wanted = parseInt(val('exExtraPages'), 10) || 0;
+    if (!wanted) return '';
+
+    var gap = parseInt(val('exLineGap'), 10) || 24;
+    var lines = Math.max(1, Math.floor((PAGE_CONTENT_HEIGHT - EXTRA_HEAD_HEIGHT) / gap));
+    var html = '';
+
+    for (var n = 0; n < wanted; n++) {
+      html += '<div class="p-break">Page break</div>' +
+              '<div class="p-extra">' +
+              '<p class="p-extra-head">Additional writing space' +
+              (wanted > 1 ? ' (' + (n + 1) + ' of ' + wanted + ')' : '') + '</p>' +
+              '<p class="p-extra-note">Write the number of the question you are answering beside your answer.</p>' +
+              ruledBlock(lines) +
+              '</div>';
+    }
+    return html;
+  }
+
+  // The same ruling the answer spaces use, for a given number of lines.
+  function ruledBlock(count) {
+    var style = val('exLineStyle');
+    var gap = parseInt(val('exLineGap'), 10) || 24;
+
+    if (style === 'blank') {
+      return '<div class="p-answer"><span class="p-blank" style="height:' + (count * gap) + 'px"></span></div>';
+    }
+    if (style === 'grid') {
+      var height = Math.max(gap, Math.round(count * gap / 18.9) * 18.9);
+      return '<div class="p-answer"><span class="p-grid" style="height:' + height + 'px"></span></div>';
+    }
+    var cls = style === 'dotted' ? 'p-line dotted' : style === 'faint' ? 'p-line faint' : 'p-line';
+    var line = '<span class="' + cls + '" style="height:' + gap + 'px"></span>';
+    return '<div class="p-answer">' + new Array(count + 1).join(line) + '</div>';
   }
 
   function sectionTotalLine(index, totals) {
