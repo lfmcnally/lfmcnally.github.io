@@ -101,7 +101,15 @@
   .ex-side { position: sticky; top: 24px; }
   .ex-preview-wrap { background: var(--cream); border: 1px solid var(--rule); border-radius: 12px; padding: 18px; overflow: hidden; }
   .ex-preview-label { font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
-  .ex-preview-stage { width: 100%; overflow: hidden; }
+  .ex-preview-stage { width: 100%; overflow-x: hidden; overflow-y: auto; max-height: calc(100vh - 240px); }
+  .ex-paper-fit { position: relative; }
+  .ex-paper { transform-origin: top left; }
+  .ex-page { margin: 0 auto; }
+  .ex-page-wrap { margin-bottom: 22px; }
+  .ex-page-wrap:last-child { margin-bottom: 0; }
+  .ex-page-label { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--muted); text-align: center; padding-top: 7px; }
+  #exSheet { display: none; }
 
   /* ── the paper itself — shared by preview and print ── */
   .paper-sheet { width: 21cm; min-height: 29.7cm; padding: 1.8cm 1.6cm; background: #fff; color: #000;
@@ -232,7 +240,7 @@
   @media (max-width: 1080px) {
     .ex-body { grid-template-columns: minmax(0, 1fr); }
     .ex-side { position: static; }
-    .ex-preview-stage { max-width: 640px; }
+    .ex-preview-stage { max-width: 640px; max-height: none; }
   }
   @media (max-width: 620px) {
     .ex-body { padding: 28px 20px 70px; }
@@ -249,7 +257,8 @@
     .ex-body { display: block; padding: 0; max-width: none; }
     .ex-side { position: static; }
     .ex-preview-wrap { border: none; background: #fff; padding: 0; border-radius: 0; overflow: visible; }
-    .ex-preview-stage { overflow: visible; height: auto !important; width: auto !important; max-width: none !important; }
+    .ex-preview-stage { display: none !important; }
+    #exSheet { display: block !important; }
     .paper-sheet { transform: none !important; width: auto; min-height: 0; box-shadow: none; padding: 0; }
     .p-head, .p-instr, .p-section { break-inside: avoid; page-break-inside: avoid; }
     .p-break { display: none !important; }
@@ -491,8 +500,14 @@
     <div class="ex-preview-wrap">
       <div class="ex-preview-label">Preview &mdash; A4 <span id="exPages"></span> <span style="font-weight:600; letter-spacing:0; text-transform:none;">&middot; click a question to edit it here</span></div>
       <div class="ex-preview-stage" id="exStage">
-        <div class="paper-sheet" id="exSheet"></div>
+        <div class="ex-paper-fit" id="exFit">
+          <div class="ex-paper" id="exPaper"></div>
+        </div>
       </div>
+      <!-- The paper as one continuous flow. Hidden on screen, and what the
+           browser actually prints, so printing is not at the mercy of the
+           preview's own reckoning of where the pages fall. -->
+      <div class="paper-sheet" id="exSheet" aria-hidden="true"></div>
     </div>
     <div style="margin-top: 16px;" class="ex-print-hide">
       <button class="ex-btn primary big" id="exPrint" type="button">Print paper</button>
@@ -553,6 +568,8 @@
   var emptyEl = document.getElementById('exEmpty');
   var sheetEl = document.getElementById('exSheet');
   var stageEl = document.getElementById('exStage');
+  var fitEl = document.getElementById('exFit');
+  var paperEl = document.getElementById('exPaper');
 
   var settingIds = ['exTitle', 'exSubtitle', 'exSchool', 'exTime', 'exDate', 'exInstr',
                     'exCover', 'exPaperRef', 'exMaterials', 'exCoverNote', 'exMarkGrid', 'exRunHead',
@@ -1437,6 +1454,101 @@
     }
 
     sheetEl.innerHTML = html;
+    paginate(html);
+  }
+
+  /* ── the preview, page by page ──
+     The printed sheet is one continuous flow and the browser breaks it where
+     it will. For the preview we do the same reckoning ourselves: pour the
+     blocks into an A4 page until the next one would run past the bottom, then
+     start a fresh page. Each page is its own sheet, so the preview scrolls
+     through the paper the way it comes off the printer. */
+
+  var PAGE_BOX_HEIGHT = (29.7 - 3.6) / 2.54 * 96;   // the page inside its margins
+  var PAGE_PAD_TOP = 1.8 / 2.54 * 96;
+
+  function paginate(html) {
+    var source = document.createElement('div');
+    source.innerHTML = html;
+    var nodes = [].slice.call(source.childNodes);
+    var font = val('exFont');
+
+    paperEl.innerHTML = '';
+    var page = null;
+    var count = 0;
+
+    function newPage() {
+      var wrap = document.createElement('div');
+      wrap.className = 'ex-page-wrap';
+      page = document.createElement('div');
+      page.className = 'paper-sheet ex-page';
+      page.setAttribute('data-font', font);
+      page.style.position = 'relative';
+      wrap.appendChild(page);
+      var label = document.createElement('div');
+      label.className = 'ex-page-label';
+      wrap.appendChild(label);
+      paperEl.appendChild(wrap);
+      count += 1;
+    }
+
+    function overflows(node) {
+      if (!node.offsetParent) return false;                 // a node with no box of its own
+      return (node.offsetTop + node.offsetHeight - PAGE_PAD_TOP) > (PAGE_BOX_HEIGHT + 1);
+    }
+
+    newPage();
+    nodes.forEach(function (node) {
+      // The dashed "page break" marker stands in for a break on a single
+      // scroll; with real pages the break itself says it.
+      if (node.nodeType === 1 && node.classList.contains('p-break')) {
+        if (page.childNodes.length) { newPage(); }
+        return;
+      }
+      var forcedBefore = node.nodeType === 1 && node.classList.contains('p-extra');
+      if (forcedBefore && page.childNodes.length) { newPage(); }
+
+      page.appendChild(node);
+      if (!forcedBefore && page.childNodes.length > 1 && overflows(node)) {
+        newPage();
+        page.appendChild(node);
+      }
+
+      // A cover page is a page in its own right, whatever follows it.
+      if (node.nodeType === 1 && node.classList.contains('p-cover')) { newPage(); }
+    });
+
+    // A trailing empty page from a forced break at the very end.
+    if (page && !page.childNodes.length && count > 1) {
+      paperEl.removeChild(paperEl.lastChild);
+      count -= 1;
+    }
+
+    var labels = paperEl.querySelectorAll('.ex-page-label');
+    for (var i = 0; i < labels.length; i++) {
+      labels[i].textContent = 'Page ' + (i + 1) + ' of ' + labels.length;
+    }
+
+    // A picture only has its height once it has loaded, so lay out again then.
+    var pics = paperEl.querySelectorAll('img');
+    for (var j = 0; j < pics.length; j++) {
+      if (pics[j].complete) continue;
+      pics[j].addEventListener('load', relayout);
+      pics[j].addEventListener('error', relayout);
+    }
+    return count;
+  }
+
+  var relayoutPending = false;
+  function relayout() {
+    if (relayoutPending) return;
+    relayoutPending = true;
+    window.setTimeout(function () {
+      relayoutPending = false;
+      if (editingInPreview) return;
+      paginate(sheetEl.innerHTML);
+      scalePreview();
+    }, 30);
   }
 
   var PAGE_CONTENT_HEIGHT = (29.7 - 3.6 - 0.4) / 2.54 * 96;   // the page inside its margins, less the slack, in px
@@ -1488,27 +1600,29 @@
     return '<p class="p-section-total">[Total for ' + escapeHtml(name) + ': ' + totals[index] + ' marks]</p>';
   }
 
-  var A4_HEIGHT_PX = 29.7 / 2.54 * 96;   // portrait A4 at 96dpi
+  var A4_WIDTH_PX = 21 / 2.54 * 96;      // portrait A4 at 96dpi
 
   var previewScale = 1;
 
   function scalePreview() {
-    // The sheet is a real A4 page; shrink it to fit the preview column.
+    // The pages are real A4; shrink the stack to fit the preview column. The
+    // transform leaves the layout alone, so the scrolling box is told the
+    // scaled height by hand.
     var available = stageEl.clientWidth;
     if (!available) return;
-    var natural = sheetEl.scrollWidth || 1;
+    var natural = A4_WIDTH_PX;
     var scale = Math.min(1, available / natural);
     previewScale = scale;
-    sheetEl.style.transform = 'scale(' + scale + ')';
-    stageEl.style.height = (sheetEl.scrollHeight * scale) + 'px';
+    paperEl.style.transform = 'scale(' + scale + ')';
+    paperEl.style.width = natural + 'px';
+    fitEl.style.height = (paperEl.offsetHeight * scale) + 'px';
     showPageCount();
   }
 
-  // scrollHeight ignores the transform, so it is the real printed height.
   function showPageCount() {
     var label = document.getElementById('exPages');
     if (!label) return;
-    var pages = Math.max(1, Math.ceil(sheetEl.scrollHeight / A4_HEIGHT_PX - 0.02));
+    var pages = Math.max(1, paperEl.querySelectorAll('.ex-page').length);
     label.textContent = '· ' + pages + (pages === 1 ? ' page' : ' pages');
   }
 
@@ -1570,7 +1684,7 @@
      the grip just measures it out in the sheet's own coordinates, since the
      preview is a scaled-down A4 page. */
 
-  sheetEl.addEventListener('pointerdown', function (e) {
+  paperEl.addEventListener('pointerdown', function (e) {
     if (!e.target.closest) return;
     var grip = e.target.closest('.p-grip');
     var frame = grip ? grip.parentNode : e.target.closest('.p-frame');
@@ -1636,7 +1750,7 @@
 
   // A formatted question shows its marks again while it is being edited here,
   // so typing cannot quietly flatten the <strong> and <em> back to plain text.
-  sheetEl.addEventListener('focusin', function (e) {
+  paperEl.addEventListener('focusin', function (e) {
     var cell = e.target.closest ? e.target.closest('.q-edit') : null;
     if (!cell) return;
     var idx = parseInt(cell.getAttribute('data-item'), 10);
@@ -1644,7 +1758,7 @@
     if (hasMarks(items[idx].text)) { cell.textContent = items[idx].text; }
   });
 
-  sheetEl.addEventListener('input', function (e) {
+  paperEl.addEventListener('input', function (e) {
     var cell = e.target.closest ? e.target.closest('.q-edit') : null;
     if (!cell) return;
     var idx = parseInt(cell.getAttribute('data-item'), 10);
@@ -1656,7 +1770,7 @@
     saveDraft();
   });
 
-  sheetEl.addEventListener('focusout', function (e) {
+  paperEl.addEventListener('focusout', function (e) {
     var cell = e.target.closest ? e.target.closest('.q-edit') : null;
     if (!cell) return;
     editingInPreview = false;
@@ -1665,7 +1779,7 @@
     update();
   });
 
-  sheetEl.addEventListener('keydown', function (e) {
+  paperEl.addEventListener('keydown', function (e) {
     var cell = e.target.closest ? e.target.closest('.q-edit') : null;
     if (!cell) return;
     if (e.key === 'Enter') { e.preventDefault(); cell.blur(); }
@@ -1839,11 +1953,9 @@
   window.addEventListener('beforeprint', function () {
     // A cell still being edited is showing its formatting marks, and those
     // must not reach the paper.
-    if (sheetEl.contains(document.activeElement)) { document.activeElement.blur(); }
+    if (paperEl.contains(document.activeElement)) { document.activeElement.blur(); }
     editingInPreview = false;
     buildSheet();
-    sheetEl.style.transform = 'none';
-    stageEl.style.height = 'auto';
   });
   window.addEventListener('afterprint', scalePreview);
 
