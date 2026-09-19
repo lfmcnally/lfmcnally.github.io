@@ -59,9 +59,13 @@
     background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 8px; }
   .ex-q-marks { width: 62px; }
   .ex-q-lines { width: 74px; }
+  .ex-q-slot-count { width: 96px; }
   .ex-q-kind { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; color: var(--navy);
     background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 7px; }
   .ex-q-tools { flex: none; display: flex; gap: 4px; padding-top: 3px; }
+  .ex-slots { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .ex-slot { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--muted); }
+  .ex-slot strong { font-weight: 700; color: var(--navy); }
   .ex-icon-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1;
     color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 6px; cursor: pointer; }
   .ex-icon-btn:hover { background: var(--cream); border-color: var(--rule); color: var(--navy); }
@@ -215,6 +219,13 @@
   .p-q-text .q-edit:focus { background: #eef4ff; box-shadow: 0 0 0 2px var(--brand); }
 
   .p-answer { margin-top: 8px; }
+  /* "Give two reasons" answered as 1) and 2), each with its own ruling. The
+     number sits in the margin beside the first line of its answer. */
+  .p-answer-slots { margin-top: 8px; }
+  .p-slot { position: relative; padding-left: 0.85cm; }
+  .p-slot + .p-slot { margin-top: 10px; }
+  .p-slot .p-answer { margin-top: 0; }
+  .p-slot-num { position: absolute; left: 0; top: 0; }
   .p-line { display: block; border-bottom: 1px solid #000; }
   .p-line.dotted { border-bottom-style: dotted; border-bottom-color: #666; }
   .p-line.faint { border-bottom-color: #aaa; }
@@ -777,6 +788,7 @@
   function normaliseItems() {
     items.forEach(function (item) {
       if (item.kind === 'stimulus') { figuresOf(item); }
+      if (SCORABLE[item.kind]) { slotsOf(item); }
     });
   }
 
@@ -852,7 +864,8 @@
 
       if (SCORABLE[item.kind]) {
         opts.appendChild(optField('Marks', markInput(item)));
-        opts.appendChild(optField('Answer space', linesInput(item)));
+        if (!slotsOf(item).length) { opts.appendChild(optField('Answer space', linesInput(item))); }
+        opts.appendChild(optField('Numbered answers', slotCountInput(item)));
         if (countedTwice(i) && marksOf(item) > 0) {
           var hint = document.createElement('span');
           hint.className = 'ex-q-opt';
@@ -896,6 +909,10 @@
       }
 
       main.appendChild(opts);
+
+      if (SCORABLE[item.kind] && slotsOf(item).length) {
+        main.appendChild(slotFields(item));
+      }
 
       if (item.kind === 'stimulus' && figuresOf(item).length) {
         main.appendChild(figureCards(item, i));
@@ -942,12 +959,14 @@
     return input;
   }
 
+  var LINE_CHOICES = [['0', 'None'], ['1', '1 line'], ['2', '2 lines'], ['3', '3 lines'], ['4', '4 lines'],
+    ['5', '5 lines'], ['6', '6 lines'], ['8', '8 lines'], ['10', '10 lines'], ['12', '12 lines'],
+    ['15', '15 lines'], ['20', '20 lines'], ['page', 'Rest of page']];
+
   function linesInput(item) {
     var select = document.createElement('select');
     select.className = 'ex-q-lines';
-    [['0', 'None'], ['1', '1 line'], ['2', '2 lines'], ['3', '3 lines'], ['4', '4 lines'],
-     ['5', '5 lines'], ['6', '6 lines'], ['8', '8 lines'], ['10', '10 lines'], ['12', '12 lines'],
-     ['15', '15 lines'], ['20', '20 lines'], ['page', 'Rest of page']].forEach(function (pair) {
+    LINE_CHOICES.forEach(function (pair) {
       var o = document.createElement('option');
       o.value = pair[0];
       o.textContent = pair[1];
@@ -956,6 +975,61 @@
     });
     select.addEventListener('change', function () {
       item.lines = select.value;
+      update();
+    });
+    return select;
+  }
+
+  function slotCountInput(item) {
+    var select = document.createElement('select');
+    select.className = 'ex-q-lines ex-q-slot-count';
+    var options = [['0', 'No']];
+    for (var n = 2; n <= MAX_SLOTS; n++) { options.push([String(n), n + ' answers']); }
+    options.forEach(function (pair) {
+      var o = document.createElement('option');
+      o.value = pair[0];
+      o.textContent = pair[1];
+      if (slotsOf(item).length === parseInt(pair[0], 10)) o.selected = true;
+      select.appendChild(o);
+    });
+    select.addEventListener('change', function () {
+      setSlotCount(item, parseInt(select.value, 10) || 0);
+      renderItems();
+      update();
+    });
+    return select;
+  }
+
+  // One line picker per numbered answer, so "1)" and "2)" can have different
+  // amounts of room.
+  function slotFields(item) {
+    var wrap = document.createElement('div');
+    wrap.className = 'ex-slots';
+    slotsOf(item).forEach(function (value, n) {
+      var field = document.createElement('label');
+      field.className = 'ex-slot';
+      var num = document.createElement('strong');
+      num.textContent = (n + 1) + ')';
+      field.appendChild(num);
+      field.appendChild(slotLinesInput(item, n));
+      wrap.appendChild(field);
+    });
+    return wrap;
+  }
+
+  function slotLinesInput(item, index) {
+    var select = document.createElement('select');
+    select.className = 'ex-q-lines';
+    LINE_CHOICES.forEach(function (pair) {
+      if (pair[0] === '0' || pair[0] === 'page') return;   // a numbered answer always has room
+      var o = document.createElement('option');
+      o.value = pair[0];
+      o.textContent = pair[1];
+      if (String(slotsOf(item)[index]) === pair[0]) o.selected = true;
+      select.appendChild(o);
+    });
+    select.addEventListener('change', function () {
+      slotsOf(item)[index] = select.value;
       update();
     });
     return select;
@@ -1199,8 +1273,34 @@
       marks: '',
       lines: SCORABLE[kind] ? val('exDefaultLines') : '0',
       note: '',
-      figures: []
+      figures: [],
+      slots: []
     };
+  }
+
+  /* ── numbered answer slots ──
+     A question like "Give two reasons" wants a numbered space for each
+     reason rather than one block of lines. The slots are the lines each
+     numbered answer gets, so they can be set apart from one another; an
+     empty list means the question keeps its single answer space. Papers
+     saved before this have no list at all. */
+
+  var MAX_SLOTS = 8;
+
+  function slotsOf(item) {
+    if (!Array.isArray(item.slots)) { item.slots = []; }
+    return item.slots;
+  }
+
+  function setSlotCount(item, count) {
+    var slots = slotsOf(item);
+    while (slots.length > count) { slots.pop(); }
+    while (slots.length < count) {
+      // A new slot starts at the last one's length, or the question's own.
+      var carry = slots.length ? slots[slots.length - 1]
+        : (item.lines && item.lines !== '0' && item.lines !== 'page' ? item.lines : val('exDefaultLines'));
+      slots.push(String(carry));
+    }
   }
 
   function addItem(kind, at) {
@@ -1242,8 +1342,9 @@
   /* ── the paper ── */
 
   function answerSpace(item) {
-    var style = val('exLineStyle');
-    var gap = parseInt(val('exLineGap'), 10) || 24;
+    var slots = slotsOf(item);
+    if (slots.length) return slotAnswers(slots);
+
     var raw = String(item.lines == null ? '0' : item.lines);
     if (raw === '0') return '';
 
@@ -1574,6 +1675,18 @@
               '</div>';
     }
     return html;
+  }
+
+  // A numbered space for each answer: "1)" beside its own lines, then "2)".
+  function slotAnswers(slots) {
+    var gap = parseInt(val('exLineGap'), 10) || 24;
+    return '<div class="p-answer-slots">' + slots.map(function (raw, n) {
+      var count = parseInt(raw, 10) || 0;
+      return '<div class="p-slot">' +
+             '<span class="p-slot-num" style="line-height:' + gap + 'px">' + (n + 1) + ')</span>' +
+             (count ? ruledBlock(count) : '') +
+             '</div>';
+    }).join('') + '</div>';
   }
 
   // The same ruling the answer spaces use, for a given number of lines.
