@@ -67,9 +67,15 @@
   .ex-icon-btn:hover { background: var(--cream); border-color: var(--rule); color: var(--navy); }
   .ex-icon-btn.danger:hover { color: #c02626; border-color: #f0c8c8; background: #fdf3f3; }
 
-  .ex-thumb { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
-  .ex-thumb img { height: 54px; width: auto; max-width: 120px; border: 1px solid var(--rule); border-radius: 6px; background: var(--cream); }
-  .ex-thumb-name { font-size: 11.5px; color: var(--muted); }
+  .ex-figs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+  .ex-fig { display: flex; align-items: flex-start; gap: 10px; border: 1px solid var(--rule); border-radius: 9px; padding: 8px 10px; background: var(--cream); }
+  .ex-fig img { height: 54px; width: auto; max-width: 110px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); }
+  .ex-fig-side { display: flex; flex-direction: column; gap: 6px; }
+  .ex-fig-caption { width: 190px; font-family: 'DM Sans', sans-serif; font-size: 12.5px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 8px; }
+  .ex-fig-row { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+  .ex-fig-width { width: 62px; font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 4px 6px; }
 
   .ex-fmt { display: flex; gap: 4px; margin-right: 4px; }
   .ex-fmt button { width: 30px; height: 30px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--navy);
@@ -161,11 +167,20 @@
 
   .p-stimulus { border: 1px solid #000; background: #f7f7f7; padding: 11px 13px; margin: 0 0 14px; font-size: 10.5pt; white-space: pre-wrap;
     break-inside: avoid; page-break-inside: avoid; }
-  .p-stimulus img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
-  .p-stimulus img + .p-caption { margin-top: 8px; }
-  .p-stimulus .p-caption { white-space: pre-wrap; text-align: center; }
-  .p-stimulus[data-width="small"] img { max-width: 45%; }
-  .p-stimulus[data-width="medium"] img { max-width: 70%; }
+  .p-stimulus .p-lead { white-space: pre-wrap; margin: 0 0 10px; }
+  .p-figures { display: flex; align-items: stretch; justify-content: center; gap: 14px; }
+  /* A column each, so two pictures of different heights still line their
+     captions up along the bottom. */
+  .p-figure { flex: 1 1 0; min-width: 0; position: relative; display: flex; flex-direction: column; }
+  .p-figure img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  .p-caption { white-space: pre-wrap; text-align: center; margin-top: auto; padding-top: 7px; }
+
+  /* the corner grip — on screen only, and only while the preview is live */
+  .p-grip { position: absolute; width: 16px; height: 16px; right: 0; bottom: 0; cursor: nwse-resize;
+    background: var(--brand); border: 2px solid #fff; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    opacity: 0; transition: opacity .12s; touch-action: none; }
+  .p-figure:hover .p-grip, .p-grip.dragging { opacity: 1; }
+  .p-figure.sizing img { outline: 2px solid var(--brand); outline-offset: 2px; }
 
   /* A question is a flex row: the number sits in its own gutter, the text flows
      beside it, and the marks float to the right margin of that text. */
@@ -226,6 +241,7 @@
     .p-foot img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .p-stimulus { background: #f7f7f7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .p-stimulus img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-grip { display: none !important; }
   }
 </style>
 </head>
@@ -713,7 +729,14 @@
 
   /* ── editor rows ── */
 
+  function normaliseItems() {
+    items.forEach(function (item) {
+      if (item.kind === 'stimulus') { figuresOf(item); }
+    });
+  }
+
   function renderItems(focusIndex) {
+    normaliseItems();
     itemsEl.innerHTML = '';
     var labels = numbering();
 
@@ -749,7 +772,7 @@
             var file = items[n].getAsFile();
             if (file && /^image\//.test(file.type)) {
               e.preventDefault();
-              attachImage(item, file);
+              attachFigure(item, file);
               return;
             }
           }
@@ -795,63 +818,42 @@
       } else if (item.kind === 'section') {
         opts.appendChild(optField('Rubric', rubricInput(item)));
       } else if (item.kind === 'stimulus') {
+        var figures = figuresOf(item);
+
         var picker = document.createElement('input');
         picker.type = 'file';
         picker.accept = 'image/*';
         picker.hidden = true;
         picker.addEventListener('change', function () {
-          if (picker.files && picker.files[0]) { attachImage(item, picker.files[0]); }
+          if (picker.files && picker.files[0]) { attachFigure(item, picker.files[0]); }
           picker.value = '';
         });
 
-        var choose = document.createElement('button');
-        choose.type = 'button';
-        choose.className = 'ex-btn';
-        choose.style.padding = '5px 10px';
-        choose.style.fontSize = '12px';
-        choose.textContent = item.image ? 'Replace picture' : 'Add a picture';
-        choose.addEventListener('click', function () { picker.click(); });
-
-        opts.appendChild(choose);
-        opts.appendChild(picker);
-
-        if (item.image) {
-          opts.appendChild(optField('Width', imageWidthInput(item)));
-          var drop = document.createElement('button');
-          drop.type = 'button';
-          drop.className = 'ex-btn';
-          drop.style.padding = '5px 10px';
-          drop.style.fontSize = '12px';
-          drop.textContent = 'Remove picture';
-          drop.addEventListener('click', function () {
-            item.image = '';
-            renderItems();
-            update();
-          });
-          opts.appendChild(drop);
-        } else {
-          var hintPaste = document.createElement('span');
-          hintPaste.className = 'ex-q-opt';
-          hintPaste.style.fontStyle = 'italic';
-          hintPaste.textContent = 'or paste one into the box';
-          opts.appendChild(hintPaste);
+        if (figures.length < MAX_FIGURES) {
+          var choose = document.createElement('button');
+          choose.type = 'button';
+          choose.className = 'ex-btn';
+          choose.style.padding = '5px 10px';
+          choose.style.fontSize = '12px';
+          choose.textContent = figures.length ? 'Add a second picture' : 'Add a picture';
+          choose.addEventListener('click', function () { picker.click(); });
+          opts.appendChild(choose);
+          opts.appendChild(picker);
         }
+
+        var hintPaste = document.createElement('span');
+        hintPaste.className = 'ex-q-opt';
+        hintPaste.style.fontStyle = 'italic';
+        hintPaste.textContent = figures.length
+          ? 'drag the corner of a picture in the preview to resize it'
+          : 'or paste one into the box';
+        opts.appendChild(hintPaste);
       }
 
       main.appendChild(opts);
 
-      if (item.kind === 'stimulus' && item.image) {
-        var thumb = document.createElement('div');
-        thumb.className = 'ex-thumb';
-        var preview = document.createElement('img');
-        preview.src = item.image;
-        preview.alt = '';
-        var name = document.createElement('span');
-        name.className = 'ex-thumb-name';
-        name.textContent = 'The text below prints as the caption.';
-        thumb.appendChild(preview);
-        thumb.appendChild(name);
-        main.appendChild(thumb);
+      if (item.kind === 'stimulus' && figuresOf(item).length) {
+        main.appendChild(figureCards(item, i));
       }
 
       var tools = document.createElement('div');
@@ -914,21 +916,12 @@
     return select;
   }
 
-  function imageWidthInput(item) {
-    var select = document.createElement('select');
-    select.className = 'ex-q-lines';
-    [['full', 'Full width'], ['medium', 'Medium'], ['small', 'Small']].forEach(function (pair) {
-      var o = document.createElement('option');
-      o.value = pair[0];
-      o.textContent = pair[1];
-      if ((item.imageWidth || 'full') === pair[0]) { o.selected = true; }
-      select.appendChild(o);
-    });
-    select.addEventListener('change', function () {
-      item.imageWidth = select.value;
-      update();
-    });
-    return select;
+  var MIN_FIGURE_WIDTH = 15;
+
+  function clampWidth(value) {
+    var n = Math.round(Number(value));
+    if (isNaN(n)) return 100;
+    return Math.max(MIN_FIGURE_WIDTH, Math.min(100, n));
   }
 
   function rubricInput(item) {
@@ -943,6 +936,86 @@
       update();
     });
     return input;
+  }
+
+  function figureCards(item, index) {
+    var wrap = document.createElement('div');
+    wrap.className = 'ex-figs';
+
+    figuresOf(item).forEach(function (figure, f) {
+      var card = document.createElement('div');
+      card.className = 'ex-fig';
+
+      var thumb = document.createElement('img');
+      thumb.src = figure.image;
+      thumb.alt = '';
+
+      var side = document.createElement('div');
+      side.className = 'ex-fig-side';
+
+      var caption = document.createElement('input');
+      caption.type = 'text';
+      caption.className = 'ex-fig-caption';
+      caption.value = figure.caption;
+      caption.placeholder = 'Caption, e.g. ' + figureLabel(f);
+      caption.addEventListener('input', function () {
+        figure.caption = caption.value;
+        update();
+      });
+      side.appendChild(caption);
+
+      var row = document.createElement('div');
+      row.className = 'ex-fig-row';
+
+      var width = document.createElement('input');
+      width.type = 'number';
+      width.min = String(MIN_FIGURE_WIDTH);
+      width.max = '100';
+      width.className = 'ex-fig-width';
+      width.setAttribute('data-width-for', index + ':' + f);
+      width.value = String(clampWidth(figure.width));
+      width.addEventListener('input', function () {
+        figure.width = clampWidth(width.value);
+        update();
+      });
+      row.appendChild(width);
+      row.appendChild(document.createTextNode('% wide'));
+
+      var swap = document.createElement('input');
+      swap.type = 'file';
+      swap.accept = 'image/*';
+      swap.hidden = true;
+      swap.addEventListener('change', function () {
+        if (swap.files && swap.files[0]) { attachFigure(item, swap.files[0], f); }
+        swap.value = '';
+      });
+
+      row.appendChild(miniBtn('Replace', function () { swap.click(); }));
+      row.appendChild(miniBtn('Remove', function () {
+        item.figures.splice(f, 1);
+        renderItems();
+        update();
+      }));
+      row.appendChild(swap);
+      side.appendChild(row);
+
+      card.appendChild(thumb);
+      card.appendChild(side);
+      wrap.appendChild(card);
+    });
+
+    return wrap;
+  }
+
+  function miniBtn(label, onClick) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ex-btn';
+    b.style.padding = '3px 8px';
+    b.style.fontSize = '11.5px';
+    b.textContent = label;
+    b.addEventListener('click', onClick);
+    return b;
   }
 
   function iconBtn(glyph, label, disabled, onClick, danger) {
@@ -1005,10 +1078,49 @@
     img.src = dataUrl;
   }
 
-  function attachImage(item, file) {
+  var MAX_FIGURES = 2;          // two sources side by side is as many as an A4 width carries
+  var LEGACY_WIDTHS = { full: 100, medium: 70, small: 45 };
+
+  // A source used to hold one picture, with the row's text acting as its
+  // caption. It now holds up to two figures, each with its own caption and
+  // its own width, so papers written before this keep their shape.
+  function figuresOf(item) {
+    if (!item.figures) {
+      item.figures = [];
+      if (item.image) {
+        item.figures.push({
+          image: item.image,
+          caption: item.text || '',
+          width: LEGACY_WIDTHS[item.imageWidth] || 100
+        });
+        item.text = '';
+      }
+      item.image = '';
+    }
+    return item.figures;
+  }
+
+  function figureLabel(index) {
+    return 'Source ' + String.fromCharCode(65 + index);   // A, then B
+  }
+
+  function attachFigure(item, file, at) {
     readImage(file, function (dataUrl) {
-      item.image = dataUrl;
-      if (!item.imageWidth) { item.imageWidth = 'full'; }
+      var figures = figuresOf(item);
+      if (typeof at === 'number' && figures[at]) {
+        figures[at].image = dataUrl;
+      } else if (figures.length < MAX_FIGURES) {
+        figures.push({
+          image: dataUrl,
+          // Two pictures want telling apart, so the second arrives labelled
+          // and the first is named to match.
+          caption: figures.length ? figureLabel(figures.length) : '',
+          width: 100
+        });
+        if (figures.length === 2 && !figures[0].caption.trim()) {
+          figures[0].caption = figureLabel(0);
+        }
+      }
       renderItems();
       update();
     });
@@ -1021,8 +1133,7 @@
       marks: '',
       lines: SCORABLE[kind] ? val('exDefaultLines') : '0',
       note: '',
-      image: '',
-      imageWidth: 'full'
+      figures: []
     };
   }
 
@@ -1058,7 +1169,7 @@
 
   function filled() {
     return items.filter(function (item) {
-      return item.text.trim() !== '' || (item.kind === 'stimulus' && item.image);
+      return item.text.trim() !== '' || (item.kind === 'stimulus' && figuresOf(item).length > 0);
     });
   }
 
@@ -1131,6 +1242,7 @@
   }
 
   function buildSheet() {
+    normaliseItems();
     var labels = numbering();
     var totals = sectionTotals();
     var showSectionTotals = checked('exSectionTotals');
@@ -1217,7 +1329,7 @@
 
     items.forEach(function (item, i) {
       // A source can be a picture with nothing written under it.
-      if (item.text.trim() === '' && item.kind !== 'section' && !(item.kind === 'stimulus' && item.image)) return;
+      if (item.text.trim() === '' && item.kind !== 'section' && !(item.kind === 'stimulus' && figuresOf(item).length)) return;
 
       if (item.kind === 'section') {
         if (openSection > -1 && showSectionTotals && totals[openSection]) {
@@ -1231,9 +1343,18 @@
       }
 
       if (item.kind === 'stimulus') {
-        body += '<div class="p-stimulus" data-width="' + (item.imageWidth || 'full') + '">' +
-                (item.image ? '<img src="' + escapeHtml(item.image) + '" alt="">' : '') +
-                (item.text.trim() ? '<div class="p-caption">' + formatText(item.text) + '</div>' : '') +
+        var figures = figuresOf(item);
+        var figuresHtml = figures.map(function (figure, f) {
+          return '<div class="p-figure">' +
+                 '<img src="' + escapeHtml(figure.image) + '" alt="" style="width: ' + clampWidth(figure.width) + '%">' +
+                 (figure.caption.trim() ? '<div class="p-caption">' + formatText(figure.caption) + '</div>' : '') +
+                 '<span class="p-grip" data-fig="' + i + ':' + f + '"></span>' +
+                 '</div>';
+        }).join('');
+
+        body += '<div class="p-stimulus">' +
+                (item.text.trim() ? '<div class="p-lead">' + formatText(item.text) + '</div>' : '') +
+                (figuresHtml ? '<div class="p-figures">' + figuresHtml + '</div>' : '') +
                 '</div>';
         return;
       }
@@ -1279,12 +1400,15 @@
 
   var A4_HEIGHT_PX = 29.7 / 2.54 * 96;   // portrait A4 at 96dpi
 
+  var previewScale = 1;
+
   function scalePreview() {
     // The sheet is a real A4 page; shrink it to fit the preview column.
     var available = stageEl.clientWidth;
     if (!available) return;
     var natural = sheetEl.scrollWidth || 1;
     var scale = Math.min(1, available / natural);
+    previewScale = scale;
     sheetEl.style.transform = 'scale(' + scale + ')';
     stageEl.style.height = (sheetEl.scrollHeight * scale) + 'px';
     showPageCount();
@@ -1350,6 +1474,57 @@
     scalePreview();
     saveDraft();
   }
+
+  /* ── sizing a picture by its corner ──
+     The number in the row and the grip in the preview are the same setting;
+     the grip just measures it out in the sheet's own coordinates, since the
+     preview is a scaled-down A4 page. */
+
+  sheetEl.addEventListener('pointerdown', function (e) {
+    var grip = e.target.closest ? e.target.closest('.p-grip') : null;
+    if (!grip) return;
+
+    var ref = (grip.getAttribute('data-fig') || '').split(':');
+    var item = items[parseInt(ref[0], 10)];
+    var figure = item && item.figures && item.figures[parseInt(ref[1], 10)];
+    if (!figure) return;
+
+    e.preventDefault();
+    var figureEl = grip.parentNode;
+    var img = figureEl.querySelector('img');
+    var column = figureEl.getBoundingClientRect().width / (previewScale || 1);
+    if (!column) return;
+
+    var startX = e.clientX;
+    var startWidth = clampWidth(figure.width);
+    var live = startWidth;
+
+    grip.classList.add('dragging');
+    figureEl.classList.add('sizing');
+    grip.setPointerCapture(e.pointerId);
+
+    function moveTo(event) {
+      var moved = (event.clientX - startX) / (previewScale || 1);
+      live = clampWidth(startWidth + (moved / column) * 100);
+      img.style.width = live + '%';
+      var box = document.querySelector('[data-width-for="' + ref[0] + ':' + ref[1] + '"]');
+      if (box) { box.value = String(live); }
+    }
+
+    function finish() {
+      grip.removeEventListener('pointermove', moveTo);
+      grip.removeEventListener('pointerup', finish);
+      grip.removeEventListener('pointercancel', finish);
+      grip.classList.remove('dragging');
+      figureEl.classList.remove('sizing');
+      figure.width = live;
+      update();
+    }
+
+    grip.addEventListener('pointermove', moveTo);
+    grip.addEventListener('pointerup', finish);
+    grip.addEventListener('pointercancel', finish);
+  });
 
   /* Typing into the preview edits the question it came from. */
 
