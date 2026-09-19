@@ -171,16 +171,22 @@
   .p-figures { display: flex; align-items: stretch; justify-content: center; gap: 14px; }
   /* A column each, so two pictures of different heights still line their
      captions up along the bottom. */
-  .p-figure { flex: 1 1 0; min-width: 0; position: relative; display: flex; flex-direction: column; }
-  .p-figure img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
-  .p-caption { white-space: pre-wrap; text-align: center; margin-top: auto; padding-top: 7px; }
+  .p-figure { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+  /* The frame carries the picture's width and how far it sits from centre, so
+     the grip and the drag both travel with the picture itself. */
+  .p-frame { position: relative; margin: 0 auto; }
+  .p-figure img { display: block; width: 100%; height: auto; }
+  /* The caption keeps under its own picture when that picture is moved. */
+  .p-caption { position: relative; white-space: pre-wrap; text-align: center; margin-top: auto; padding-top: 7px; }
 
   /* the corner grip — on screen only, and only while the preview is live */
   .p-grip { position: absolute; width: 16px; height: 16px; right: 0; bottom: 0; cursor: nwse-resize;
     background: var(--brand); border: 2px solid #fff; border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,.3);
     opacity: 0; transition: opacity .12s; touch-action: none; }
-  .p-figure:hover .p-grip, .p-grip.dragging { opacity: 1; }
-  .p-figure.sizing img { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .p-frame:hover .p-grip, .p-grip.dragging { opacity: 1; }
+  .p-frame.sizing img, .p-frame.moving img { outline: 2px solid var(--brand); outline-offset: 2px; }
+  .p-frame img { cursor: grab; touch-action: none; }
+  .p-frame.moving img { cursor: grabbing; }
 
   /* A question is a flex row: the number sits in its own gutter, the text flows
      beside it, and the marks float to the right margin of that text. */
@@ -242,6 +248,7 @@
     .p-stimulus { background: #f7f7f7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .p-stimulus img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .p-grip { display: none !important; }
+    .p-frame img { cursor: auto; }
   }
 </style>
 </head>
@@ -845,7 +852,7 @@
         hintPaste.className = 'ex-q-opt';
         hintPaste.style.fontStyle = 'italic';
         hintPaste.textContent = figures.length
-          ? 'drag the corner of a picture in the preview to resize it'
+          ? 'in the preview: drag a picture to move it, its corner to resize it'
           : 'or paste one into the box';
         opts.appendChild(hintPaste);
       }
@@ -924,6 +931,20 @@
     return Math.max(MIN_FIGURE_WIDTH, Math.min(100, n));
   }
 
+  // A picture narrower than its column can slide within it. The offset is
+  // measured from the centre in points of the column's width, so it cannot
+  // carry the picture past either edge — and a full-width picture cannot move.
+  function offsetRoom(figure) {
+    return (100 - clampWidth(figure.width)) / 2;
+  }
+
+  function clampOffset(figure, value) {
+    var room = offsetRoom(figure);
+    var n = Number(value);
+    if (isNaN(n)) n = 0;
+    return Math.round(Math.max(-room, Math.min(room, n)));
+  }
+
   function rubricInput(item) {
     var input = document.createElement('input');
     input.type = 'text';
@@ -976,6 +997,8 @@
       width.value = String(clampWidth(figure.width));
       width.addEventListener('input', function () {
         figure.width = clampWidth(width.value);
+        // A wider picture has less room to sit off centre.
+        figure.offset = clampOffset(figure, figure.offset);
         update();
       });
       row.appendChild(width);
@@ -990,6 +1013,10 @@
         swap.value = '';
       });
 
+      row.appendChild(miniBtn('Centre', function () {
+        figure.offset = 0;
+        update();
+      }));
       row.appendChild(miniBtn('Replace', function () { swap.click(); }));
       row.appendChild(miniBtn('Remove', function () {
         item.figures.splice(f, 1);
@@ -1115,7 +1142,8 @@
           // Two pictures want telling apart, so the second arrives labelled
           // and the first is named to match.
           caption: figures.length ? figureLabel(figures.length) : '',
-          width: 100
+          width: 100,
+          offset: 0
         });
         if (figures.length === 2 && !figures[0].caption.trim()) {
           figures[0].caption = figureLabel(0);
@@ -1345,10 +1373,16 @@
       if (item.kind === 'stimulus') {
         var figures = figuresOf(item);
         var figuresHtml = figures.map(function (figure, f) {
+          var ref = i + ':' + f;
+          var offset = clampOffset(figure, figure.offset);
           return '<div class="p-figure">' +
-                 '<img src="' + escapeHtml(figure.image) + '" alt="" style="width: ' + clampWidth(figure.width) + '%">' +
-                 (figure.caption.trim() ? '<div class="p-caption">' + formatText(figure.caption) + '</div>' : '') +
-                 '<span class="p-grip" data-fig="' + i + ':' + f + '"></span>' +
+                 '<div class="p-frame" data-fig="' + ref + '" style="width: ' + clampWidth(figure.width) + '%; left: ' + offset + '%">' +
+                 '<img src="' + escapeHtml(figure.image) + '" alt="">' +
+                 '<span class="p-grip" data-fig="' + ref + '"></span>' +
+                 '</div>' +
+                 (figure.caption.trim()
+                   ? '<div class="p-caption" style="left: ' + offset + '%">' + formatText(figure.caption) + '</div>'
+                   : '') +
                  '</div>';
         }).join('');
 
@@ -1481,49 +1515,65 @@
      preview is a scaled-down A4 page. */
 
   sheetEl.addEventListener('pointerdown', function (e) {
-    var grip = e.target.closest ? e.target.closest('.p-grip') : null;
-    if (!grip) return;
+    if (!e.target.closest) return;
+    var grip = e.target.closest('.p-grip');
+    var frame = grip ? grip.parentNode : e.target.closest('.p-frame');
+    if (!frame) return;
 
-    var ref = (grip.getAttribute('data-fig') || '').split(':');
+    var ref = (frame.getAttribute('data-fig') || '').split(':');
     var item = items[parseInt(ref[0], 10)];
     var figure = item && item.figures && item.figures[parseInt(ref[1], 10)];
     if (!figure) return;
 
-    e.preventDefault();
-    var figureEl = grip.parentNode;
-    var img = figureEl.querySelector('img');
-    var column = figureEl.getBoundingClientRect().width / (previewScale || 1);
+    // The frame's own width is the picture's; its parent is the column the
+    // picture moves within, and both are needed in the sheet's coordinates.
+    var column = frame.parentNode.getBoundingClientRect().width / (previewScale || 1);
     if (!column) return;
 
+    e.preventDefault();
+    var sizing = !!grip;
+    var handle = grip || frame;
     var startX = e.clientX;
     var startWidth = clampWidth(figure.width);
-    var live = startWidth;
+    var startOffset = clampOffset(figure, figure.offset);
+    var liveWidth = startWidth;
+    var liveOffset = startOffset;
 
-    grip.classList.add('dragging');
-    figureEl.classList.add('sizing');
-    grip.setPointerCapture(e.pointerId);
+    frame.classList.add(sizing ? 'sizing' : 'moving');
+    if (grip) { grip.classList.add('dragging'); }
+    handle.setPointerCapture(e.pointerId);
 
     function moveTo(event) {
-      var moved = (event.clientX - startX) / (previewScale || 1);
-      live = clampWidth(startWidth + (moved / column) * 100);
-      img.style.width = live + '%';
-      var box = document.querySelector('[data-width-for="' + ref[0] + ':' + ref[1] + '"]');
-      if (box) { box.value = String(live); }
+      var moved = ((event.clientX - startX) / (previewScale || 1) / column) * 100;
+      if (sizing) {
+        liveWidth = clampWidth(startWidth + moved);
+        frame.style.width = liveWidth + '%';
+        // Widening eats into the room the picture had to sit off centre.
+        liveOffset = clampOffset({ width: liveWidth }, liveOffset);
+        frame.style.left = liveOffset + '%';
+        var box = document.querySelector('[data-width-for="' + ref[0] + ':' + ref[1] + '"]');
+        if (box) { box.value = String(liveWidth); }
+      } else {
+        liveOffset = clampOffset(figure, startOffset + moved);
+        frame.style.left = liveOffset + '%';
+      }
     }
 
     function finish() {
-      grip.removeEventListener('pointermove', moveTo);
-      grip.removeEventListener('pointerup', finish);
-      grip.removeEventListener('pointercancel', finish);
-      grip.classList.remove('dragging');
-      figureEl.classList.remove('sizing');
-      figure.width = live;
+      handle.removeEventListener('pointermove', moveTo);
+      handle.removeEventListener('pointerup', finish);
+      handle.removeEventListener('pointercancel', finish);
+      frame.classList.remove('sizing');
+      frame.classList.remove('moving');
+      if (grip) { grip.classList.remove('dragging'); }
+      figure.width = liveWidth;
+      figure.offset = liveOffset;
       update();
     }
 
-    grip.addEventListener('pointermove', moveTo);
-    grip.addEventListener('pointerup', finish);
-    grip.addEventListener('pointercancel', finish);
+    handle.addEventListener('pointermove', moveTo);
+    handle.addEventListener('pointerup', finish);
+    handle.addEventListener('pointercancel', finish);
   });
 
   /* Typing into the preview edits the question it came from. */
