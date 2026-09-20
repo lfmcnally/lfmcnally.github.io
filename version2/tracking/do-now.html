@@ -17,6 +17,7 @@
 <script src="/version2/tools/quiz/data/myth-1.6.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.7.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.8.js"></script>
+<script src="/version2/tools/quiz/data/homeric-1.js"></script>
 <script src="/version2/tools/vocab/data/latin-gcse.js"></script>
 <script src="/version2/tools/vocab/data/suburani.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -185,7 +186,15 @@ let lbSort = 'correct';   // 'correct' (most correct) or 'accuracy' (highest %)
 
 function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function timeAgo(iso){ if(!iso) return ''; const ms=Date.now()-new Date(iso).getTime(); const m=Math.floor(ms/60000); if(m<1) return 'just now'; if(m<60) return m+'m ago'; const h=Math.floor(m/60); if(h<24) return h+'h ago'; return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short'}); }
-function civSubtopicsOf(topicId){ const t=((window.CivQuiz&&window.CivQuiz.topics)||[]).find(x=>x.id===topicId); if(!t) return []; const seen=[]; for(const q of t.questions) if(!seen.includes(q.subtopic)) seen.push(q.subtopic); return seen; }
+// A Classical Civ class studies both courses, so a Do Now is set against one
+// of them. `civList` is the list currently chosen in the picker.
+const CIV_COURSES = [
+  { list: 'civ-myth-religion', label: 'Myth & Religion',   topics: () => (window.CivQuiz && window.CivQuiz.topics) || [] },
+  { list: 'civ-homeric-world', label: 'The Homeric World', topics: () => (window.HomericQuiz && window.HomericQuiz.topics) || [] }
+];
+let civList = CIV_COURSES[0].list;
+function civTopics(list){ const c = CIV_COURSES.find(x => x.list === (list || civList)); return c ? c.topics() : []; }
+function civSubtopicsOf(topicId, list){ const t=civTopics(list).find(x=>x.id===topicId); if(!t) return []; const seen=[]; for(const q of t.questions) if(!seen.includes(q.subtopic)) seen.push(q.subtopic); return seen; }
 
 async function init(){
   const area = document.getElementById('classArea');
@@ -273,12 +282,12 @@ function renderClass(idx){
 }
 
 function renderCivSetup(cls){
-  const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
   const area = document.getElementById('classArea');
   area.innerHTML = `
     <div class="dn-card">
       <div class="dn-card-head"><span class="dn-card-title">Set today's Do Now</span><span id="dnStatus" class="dn-status"></span></div>
       <div class="dn-controls">
+        <select id="dnCourse" class="dn-select"></select>
         <select id="dnTopic" class="dn-select"></select>
         <button id="dnSet" class="dn-btn dn-btn-primary" type="button">Set as today's Do Now</button>
         <button id="dnClear" class="dn-btn" type="button">Stop &amp; show results</button>
@@ -292,8 +301,16 @@ function renderCivSetup(cls){
     <div class="dn-card"><div id="dnSummary"></div></div>
     <div class="dn-card" id="dnArchiveCard" style="display:none;"><div class="dn-card-head"><span class="dn-card-title">Past Do Nows</span></div><div id="dnArchive"></div></div>`;
 
+  const courseSel = document.getElementById('dnCourse');
+  CIV_COURSES.forEach(c => { const o = document.createElement('option'); o.value = c.list; o.textContent = c.label; courseSel.appendChild(o); });
+  courseSel.value = civList;
+
   const sel = document.getElementById('dnTopic');
-  topics.forEach(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = 'Topic ' + t.id + ' — ' + t.title; sel.appendChild(o); });
+  function fillTopics(){
+    sel.innerHTML = '';
+    civTopics().forEach(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = 'Topic ' + t.id + ' — ' + t.title; sel.appendChild(o); });
+  }
+  fillTopics();
 
   function renderSubs(topicId, checkedSet){
     const box = document.getElementById('dnSubs'); box.innerHTML = '';
@@ -308,7 +325,14 @@ function renderCivSetup(cls){
 
   (async () => {
     let current = null;
-    try { const { data } = await sb.from('v2_do_now').select('topic_id, subtopics, active, updated_at').eq('class_id', cls.id).maybeSingle(); current = data; } catch (_e) {}
+    try { const { data } = await sb.from('v2_do_now').select('vocab_list, topic_id, subtopics, active, updated_at').eq('class_id', cls.id).maybeSingle(); current = data; } catch (_e) {}
+    // Open on the course the running Do Now belongs to.
+    if (current && current.active && current.vocab_list && CIV_COURSES.some(c => c.list === current.vocab_list)) {
+      civList = current.vocab_list;
+      courseSel.value = civList;
+      fillTopics();
+    }
+    const topics = civTopics();
     const initialTopic = (current && current.active && current.topic_id && topics.some(t => t.id === current.topic_id)) ? current.topic_id : (topics[0] && topics[0].id);
     if (initialTopic) sel.value = initialTopic;
     const checkedSet = (current && current.active && Array.isArray(current.subtopics) && current.subtopics.length) ? new Set(current.subtopics) : null;
@@ -319,13 +343,18 @@ function renderCivSetup(cls){
   })();
 
   sel.addEventListener('change', () => renderSubs(sel.value, null));
+  courseSel.addEventListener('change', () => {
+    civList = courseSel.value;
+    fillTopics();
+    renderSubs(sel.value, null);
+  });
 
   document.getElementById('dnSet').addEventListener('click', async () => {
     const status = document.getElementById('dnStatus');
     const subs = Array.from(document.querySelectorAll('#dnSubs input:checked')).map(i => i.value);
     if (!subs.length) { status.textContent = 'Tick at least one subtopic.'; status.style.color = '#dc2626'; return; }
     const allSubs = subs.length === civSubtopicsOf(sel.value).length;
-    const payload = { class_id: cls.id, vocab_list: 'civ-myth-religion', topic_id: sel.value, subtopics: allSubs ? null : subs, active: true, updated_at: new Date().toISOString() };
+    const payload = { class_id: cls.id, vocab_list: civList, topic_id: sel.value, subtopics: allSubs ? null : subs, active: true, updated_at: new Date().toISOString() };
     status.textContent = 'Saving…'; status.style.color = 'var(--muted)';
     const { error } = await sb.from('v2_do_now').upsert(payload, { onConflict: 'class_id' });
     if (error) { status.textContent = 'Could not save: ' + error.message; status.style.color = '#dc2626'; return; }
@@ -546,12 +575,14 @@ function startGameBoard(cls){
 async function fetchDoNowData(cls){
   const ids = cls.students.map(s => s.id);
   let dn = null;
-  try { const { data } = await sb.from('v2_do_now').select('updated_at, active, topic_id').eq('class_id', cls.id).maybeSingle(); dn = data; } catch (_e) {}
+  try { const { data } = await sb.from('v2_do_now').select('updated_at, active, topic_id, vocab_list').eq('class_id', cls.id).maybeSingle(); dn = data; } catch (_e) {}
   if (!dn || !dn.updated_at || !ids.length) return { dn: (dn && dn.updated_at) ? dn : null, rows: [] };
   let sessions = [];
   try {
+    // Count against the list the running Do Now was set on — a Classical Civ
+    // class can run one on either of its two courses.
     const { data, error } = await sb.from('vocab_sessions').select('student_id, answered, correct, last_answer_at')
-      .eq('vocab_list', cls.vocabList).gte('started_at', dn.updated_at).in('student_id', ids);
+      .eq('vocab_list', dn.vocab_list || cls.vocabList).gte('started_at', dn.updated_at).in('student_id', ids);
     if (!error) sessions = data || [];
   } catch (_e) {}
   const by = new Map();

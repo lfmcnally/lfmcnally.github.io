@@ -22,6 +22,7 @@
 <script src="/version2/tools/quiz/data/myth-1.6.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.7.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.8.js"></script>
+<script src="/version2/tools/quiz/data/homeric-1.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/course-map.js"></script>
@@ -63,6 +64,23 @@ body { background:var(--cream); }
 .dash-body { max-width:1200px;margin:0 auto;padding:32px 40px 80px; }
 
 /* overview */
+/* Course strip — only shown for a class that covers more than one course
+   (a GCSE Classical Civ class studies Myth & Religion and the Homeric World),
+   letting the teacher see the two together or one at a time. */
+.course-strip { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.course-strip-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); margin-right: 2px;
+}
+.course-chip {
+  font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
+  padding: 6px 14px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--cream); color: var(--muted);
+}
+.course-chip:hover { border-color: var(--brand); color: var(--brand); }
+.course-chip.active { background: var(--navy); border-color: var(--navy); color: #fff; }
+.course-chip .chip-n { opacity: 0.65; font-weight: 500; margin-left: 5px; }
+
 .overview-band { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px; }
 .ov-stat.ov-goal:hover { border-color:var(--brand); }
 .ov-stat.ov-goal .ov-sub { color:var(--brand);font-weight:600; }
@@ -384,6 +402,7 @@ body { background:#f4f6fa; }
 
 <!-- BODY -->
 <div class="dash-body">
+  <div class="course-strip" id="courseStrip" style="display:none;"></div>
   <div class="overview-band" id="overviewBand"></div>
   <div class="dash-card" id="assignmentsCard" style="margin-bottom:20px;display:none;">
     <div class="dash-card-head">
@@ -479,6 +498,43 @@ const DAYS_REQUIRED = 3;        // mirrors the dashboard's mastery rule
 // profile course picker — see /version2/assets/js/course-map.js.
 const SUBJECT_VOCAB_LIST = window.ClassicaliaCourseMap.SUBJECT_VOCAB_LIST;
 
+// A class can cover more than one course. A GCSE Classical Civilisation class
+// typically studies Myth & Religion AND the Homeric World, and the teacher
+// needs to see progress across both, so its progress is read from both banks
+// and the class view can be filtered to one of them.
+//
+// Each entry: { list, label, short, topics() } in the order they are shown.
+const CIV_COURSES = [
+  { list: 'civ-myth-religion', label: 'Myth & Religion',  short: 'Myth',    topics: () => (window.CivQuiz && window.CivQuiz.topics) || [] },
+  { list: 'civ-homeric-world', label: 'The Homeric World', short: 'Homeric', topics: () => (window.HomericQuiz && window.HomericQuiz.topics) || [] }
+];
+
+// Every vocab_list a class of this type draws on, in display order.
+function vocabListsForType(type) {
+  if (type === 'civ-gcse') return CIV_COURSES.map(c => c.list);
+  const one = SUBJECT_VOCAB_LIST[type];
+  return one ? [one] : [];
+}
+function civCourseByList(list) { return CIV_COURSES.find(c => c.list === list) || null; }
+
+// Which course the class view is currently narrowed to (null = all of them).
+let courseFilter = null;
+
+// A student's tracked questions/words as the current view sees them. With no
+// course filter this is every row; with one it is that course's rows only, so
+// the counts in the class table, the student panel and the export all agree
+// with the questions the view is showing.
+function wordsInView(s) {
+  if (!courseFilter) return s.words;
+  const out = new Map();
+  for (const [k, w] of s.words.entries()) if (w.list === courseFilter) out.set(k, w);
+  return out;
+}
+function sessionsInView(s) {
+  const all = s.sessions || [];
+  return courseFilter ? all.filter(r => r.vocab_list === courseFilter) : all;
+}
+
 // Canonical word lists (headword → english) + chapter lookups, one per
 // vocab course. CANONICAL/CHAPTER_OF are kept for back-compat with any code
 // path that still reaches for the Latin-default; new code should go through
@@ -548,27 +604,57 @@ const LATIN_MODEL = {
   groupSort:  (a, b) => a - b
 };
 
+// One model over both Classical Civ banks. Question ids are unique across the
+// two ("1.1-A-01" for Myth, "1-B-01" for the Homeric World), so they share one
+// keyspace safely. Group keys carry the course, both so that headings read
+// sensibly when the two are shown together and so that a topic id can never
+// match the wrong course's topic of the same number.
 function buildCivModel() {
-  const label = new Map(), group = new Map(), order = [];
-  const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
-  for (const t of topics) {
-    for (const q of t.questions) {
-      label.set(q.id, q.q);
-      group.set(q.id, t.id + ' ' + q.subtopic);   // group key: "1.1 Key ideas"
-      order.push(q.id);
+  const label = new Map(), group = new Map(), listOf = new Map(), order = [];
+  for (const course of CIV_COURSES) {
+    for (const t of course.topics()) {
+      for (const q of t.questions) {
+        label.set(q.id, q.q);
+        group.set(q.id, course.short + ' ' + t.id + ' ' + q.subtopic);
+        listOf.set(q.id, course.list);
+        order.push(q.id);
+      }
     }
   }
+  const courseIndex = l => CIV_COURSES.findIndex(c => c.list === l);
   return {
     itemNoun: 'question', itemNounPl: 'questions', groupNoun: 'Topic', subNoun: 'Subtopic',
-    keys:       () => order,
+    // Honours the class view's course filter, so every consumer of keys() —
+    // the class table, the heatmap, the student panel, the printed report —
+    // narrows to one course together.
+    keys:       () => courseFilter ? order.filter(k => listOf.get(k) === courseFilter) : order,
+    allKeys:    () => order,
+    listOf:     k => listOf.get(k) || null,
     mainLabel:  k => label.get(k) || k,
-    subLabel:   k => (group.get(k) || '').replace(/^\S+\s/, ''),  // drop topic prefix
+    subLabel:   k => (group.get(k) || '').replace(/^\S+\s+\S+\s/, ''),  // drop course + topic
     groupKeyOf: k => group.get(k) || '',
     groupLabel: g => g,
     groupShort: g => g,
     sortAlpha:  (a, b) => (label.get(a) || '').localeCompare(label.get(b) || ''),
-    groupSort:  (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true })
+    groupSort:  (a, b) => {
+      const ca = courseIndex(listOf.get(civFirstKeyOfGroup(a))), cb = courseIndex(listOf.get(civFirstKeyOfGroup(b)));
+      if (ca !== cb) return ca - cb;
+      return String(a).localeCompare(String(b), undefined, { numeric: true });
+    }
   };
+}
+// Group keys are strings, so to sort groups by course we need a question from
+// each. Built lazily off the model once it exists.
+let civGroupSample = null;
+function civFirstKeyOfGroup(g) {
+  if (!civGroupSample) {
+    civGroupSample = new Map();
+    for (const k of CIV_MODEL.allKeys()) {
+      const key = CIV_MODEL.groupKeyOf(k);
+      if (!civGroupSample.has(key)) civGroupSample.set(key, k);
+    }
+  }
+  return civGroupSample.get(g) || '';
 }
 const CIV_MODEL = buildCivModel();
 // Greek model is structurally identical to the Latin one — same noun
@@ -882,26 +968,29 @@ async function reloadClasses() {
       .select('student_id, users:student_id (id, full_name, email)')
       .eq('class_id', c.id);
     const memberRows = members || [];
-    const vocabList = SUBJECT_VOCAB_LIST[c.type] || null;
+    // A class can cover more than one course (Classical Civ does), so read
+    // every list it draws on in one query and keep the list on each row.
+    const vocabLists = vocabListsForType(c.type);
+    cls.vocabLists = vocabLists;
     const studentIds = memberRows.map(m => m.student_id);
 
     // One batched query each for the whole class, run together.
     const bktByStudent = new Map();
     const sessByStudent = new Map();
-    if (vocabList && studentIds.length) {
+    if (vocabLists.length && studentIds.length) {
       const [bktRows, sessRows] = await Promise.all([
         fetchAllRows(() => window.supabase
           .from('vocab_bkt')
-          .select('student_id, word_latin, p_know, trials, correct, last_seen_at, distinct_correct_days, next_review_at')
+          .select('student_id, vocab_list, word_latin, p_know, trials, correct, last_seen_at, distinct_correct_days, next_review_at')
           .in('student_id', studentIds)
-          .eq('vocab_list', vocabList)
+          .in('vocab_list', vocabLists)
           .order('student_id', { ascending: true })
           .order('word_latin', { ascending: true })),
         fetchAllRows(() => window.supabase
           .from('vocab_sessions')
-          .select('student_id, started_at, answered')
+          .select('student_id, vocab_list, started_at, answered')
           .in('student_id', studentIds)
-          .eq('vocab_list', vocabList)
+          .in('vocab_list', vocabLists)
           .order('student_id', { ascending: true })
           .order('started_at', { ascending: true }))
       ]);
@@ -932,6 +1021,7 @@ async function reloadClasses() {
           p: row.p_know,
           t: row.trials,
           correct: row.correct,
+          list: row.vocab_list || null,
           last_seen_at: row.last_seen_at,
           distinct_correct_days: row.distinct_correct_days || 0,
           next_review_at: row.next_review_at || null
@@ -941,6 +1031,7 @@ async function reloadClasses() {
         }
       }
       const sess = sessByStudent.get(m.student_id) || [];
+      student.sessions = sess;          // kept so the course filter can re-count
       student.sessionCount = sess.length;
       student.practiceDays = new Set(sess.map(r => (r.started_at || '').slice(0, 10)).filter(Boolean)).size;
       const weekStart = startOfThisWeekISO();
@@ -1059,10 +1150,21 @@ let assignmentsByClass = {};   // class_id → rows (cached per load)
 
 // Items (headwords / question ids) covered by an assignment, via the active model.
 function asgScopeItems(a) {
+  // An assignment's scope is fixed when it is set, so it reads the whole
+  // model rather than the class view's current course filter.
+  const keys = activeModel.allKeys ? activeModel.allKeys() : activeModel.keys();
   if (a.scope_kind === 'topic') {
-    return activeModel.keys().filter(k => String(activeModel.groupKeyOf(k)).startsWith(a.topic_id + ' '));
+    // Topic ids repeat across the Classical Civ courses (Myth has 1.1-1.8,
+    // the Homeric World has 1), so the assignment's own vocab_list decides
+    // which course's topic it means.
+    const course = civCourseByList(a.vocab_list);
+    const prefix = (course ? course.short + ' ' : '') + a.topic_id + ' ';
+    return keys.filter(k => {
+      if (activeModel.listOf && a.vocab_list && activeModel.listOf(k) !== a.vocab_list) return false;
+      return String(activeModel.groupKeyOf(k)).startsWith(prefix);
+    });
   }
-  return activeModel.keys().filter(k => {
+  return keys.filter(k => {
     const g = activeModel.groupKeyOf(k);
     return g >= a.chapter_from && g <= a.chapter_to;
   });
@@ -1081,7 +1183,10 @@ function asgStudentProgress(a, s) {
   return { pct, met, total: items.length, done: pct >= a.target_pct };
 }
 function asgScopeLabel(a) {
-  if (a.scope_kind === 'topic') return 'Topic ' + a.topic_id;
+  if (a.scope_kind === 'topic') {
+    const course = civCourseByList(a.vocab_list);
+    return (course ? course.label + ' · ' : '') + 'Topic ' + a.topic_id;
+  }
   const noun = activeModel.groupNoun || 'Set';
   return a.chapter_to > a.chapter_from ? `${noun}s ${a.chapter_from}–${a.chapter_to}` : `${noun} ${a.chapter_from}`;
 }
@@ -1147,9 +1252,18 @@ function openNewAssignment() {
   document.getElementById('asgError').style.display = 'none';
 
   if (isCiv) {
-    const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
-    document.getElementById('asgTopic').innerHTML = topics.map(t =>
-      `<option value="${escapeHtml(t.id)}">${escapeHtml(t.id + (t.title ? ' ' + t.title : ''))}</option>`).join('');
+    // A Classical Civ class covers both courses, so the picker groups the
+    // topics by course and each option carries the list it belongs to.
+    const lists = cls.vocabLists || vocabListsForType(cls.type);
+    document.getElementById('asgTopic').innerHTML = lists.map(list => {
+      const course = civCourseByList(list);
+      if (!course) return '';
+      const opts = course.topics().map(t =>
+        `<option value="${escapeHtml(t.id)}" data-list="${escapeHtml(list)}">${escapeHtml(t.id + (t.title ? ' ' + t.title : ''))}</option>`).join('');
+      return lists.length > 1
+        ? `<optgroup label="${escapeHtml(course.label)}">${opts}</optgroup>`
+        : opts;
+    }).join('');
   } else {
     // Hint the available set range from the model.
     const groups = Array.from(new Set(activeModel.keys().map(k => activeModel.groupKeyOf(k)))).filter(n => typeof n === 'number');
@@ -1176,9 +1290,13 @@ async function submitAssignment() {
   const pct = parseInt(document.getElementById('asgPct').value, 10);
   if (!pct || pct < 1 || pct > 100) return fail('Enter a target percentage between 1 and 100.');
 
+  const topicSel = document.getElementById('asgTopic');
+  const pickedList = isCiv
+    ? ((topicSel.selectedOptions[0] && topicSel.selectedOptions[0].dataset.list) || null)
+    : (SUBJECT_VOCAB_LIST[cls.type] || null);
   const row = {
     class_id:    cls.id,
-    vocab_list:  SUBJECT_VOCAB_LIST[cls.type] || null,
+    vocab_list:  pickedList,
     target_kind: document.getElementById('asgTargetKind').value,
     target_pct:  pct,
     due_date:    document.getElementById('asgDue').value || null,
@@ -1189,7 +1307,7 @@ async function submitAssignment() {
 
   if (isCiv) {
     row.scope_kind = 'topic';
-    row.topic_id = document.getElementById('asgTopic').value;
+    row.topic_id = topicSel.value;
     if (!row.topic_id) return fail('Pick a topic.');
   } else {
     row.scope_kind = 'range';
@@ -1261,7 +1379,7 @@ async function renderClassGrammar(cls) {
 // ── Class export (CSV + printable report) ──────────────────────────────────
 function studentStatsFor(s) {
   let secure = 0, struggling = 0, sumP = 0, withP = 0, attempted = 0;
-  for (const w of s.words.values()) {
+  for (const w of wordsInView(s).values()) {
     const c = classifyWord(w);
     if (c === 'secure') secure++;
     if (c === 'struggling') struggling++;
@@ -1337,10 +1455,52 @@ function printClassReport(cls) {
   w.document.open(); w.document.write(html); w.document.close(); w.focus();
 }
 
+// The course strip for a class covering more than one course. "All courses"
+// shows both banks together; a chip narrows every panel on the page to one.
+// The count on each chip is that course's average secure questions per
+// student, so a teacher can see at a glance which course is lagging.
+function renderCourseStrip(cls) {
+  const strip = document.getElementById('courseStrip');
+  const lists = cls.vocabLists || [];
+  if (lists.length < 2) { strip.style.display = 'none'; strip.innerHTML = ''; return; }
+
+  function avgSecureFor(list) {
+    if (!cls.students.length) return 0;
+    let total = 0;
+    for (const s of cls.students) {
+      for (const w of s.words.values()) {
+        if ((list === null || w.list === list) && classifyWord(w) === 'secure') total++;
+      }
+    }
+    return Math.round(total / cls.students.length);
+  }
+
+  const chips = [{ list: null, label: 'All courses' }]
+    .concat(lists.map(l => ({ list: l, label: (civCourseByList(l) || {}).label || l })));
+
+  strip.innerHTML = '<span class="course-strip-label">Course</span>' + chips.map(c => {
+    const active = (courseFilter || null) === c.list;
+    return `<button type="button" class="course-chip${active ? ' active' : ''}" data-list="${escapeHtml(c.list || '')}">`
+         + escapeHtml(c.label)
+         + `<span class="chip-n">${avgSecureFor(c.list)} secure</span></button>`;
+  }).join('');
+  strip.style.display = '';
+
+  strip.querySelectorAll('.course-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      courseFilter = btn.dataset.list || null;
+      renderClass(currentClassIdx);
+    });
+  });
+}
+
 function renderClass(idx) {
   currentClassIdx = idx;
   const cls = classes[idx];
   activeModel = modelForType(cls.type);
+  // A filter only applies to the class that offers it.
+  if (courseFilter && !(cls.vocabLists || []).includes(courseFilter)) courseFilter = null;
+  renderCourseStrip(cls);
   // selecting a class always returns to the class dashboard view
   const sp = document.getElementById('studentPanel');
   if (sp) sp.classList.remove('open');
@@ -1362,7 +1522,7 @@ function renderClass(idx) {
     else                   inactiveCount++;
 
     let sSecure = 0, sStrug = 0;
-    for (const [latin, w] of s.words.entries()) {
+    for (const [latin, w] of wordsInView(s).entries()) {
       const c2 = classifyWord(w);
       if (c2 === 'secure')     sSecure++;
       if (c2 === 'struggling') sStrug++;
@@ -1379,7 +1539,7 @@ function renderClass(idx) {
   const goal = cls.weeklyGoal;
   const goalHit = goal != null ? students.filter(s => (s.answeredThisWeek | 0) >= goal).length : 0;
   document.getElementById('overviewBand').innerHTML = `
-    <div class="ov-stat"><div class="ov-n">${studentCount}</div><div class="ov-label">Students</div><div class="ov-sub">${escapeHtml(prettyType(cls.type))}</div></div>
+    <div class="ov-stat"><div class="ov-n">${studentCount}</div><div class="ov-label">Students</div><div class="ov-sub">${escapeHtml(courseFilter ? ((civCourseByList(courseFilter) || {}).label || prettyType(cls.type)) : prettyType(cls.type))}</div></div>
     <div class="ov-stat"><div class="ov-n">${avgSecure}</div><div class="ov-label">Avg secure ${activeModel.itemNounPl}</div><div class="ov-sub">across the class</div></div>
     <div class="ov-stat"><div class="ov-n green">${activeCount}</div><div class="ov-label">Active this week</div><div class="ov-sub">${idleCount} idle · ${inactiveCount} inactive</div></div>
     <div class="ov-stat"><div class="ov-n amber">${avgStruggling}</div><div class="ov-label">Avg struggling ${activeModel.itemNounPl}</div><div class="ov-sub">high attempts, low confidence</div></div>
@@ -1410,7 +1570,7 @@ function renderClass(idx) {
   } else {
     body.innerHTML = students.map(s => {
       let secure = 0, struggling = 0, sumP = 0, withP = 0;
-      for (const w of s.words.values()) {
+      for (const w of wordsInView(s).values()) {
         const c2 = classifyWord(w);
         if (c2 === 'secure') secure++;
         if (c2 === 'struggling') struggling++;
@@ -1510,11 +1670,13 @@ function openStudent(studentId) {
   if (!s) return;
   panelClassId = cls.id;
   document.getElementById('panelName').textContent = s.name;
-  const sessionBit = s.sessionCount ? ` · ${s.sessionCount} session${s.sessionCount===1?'':'s'} over ${s.practiceDays} day${s.practiceDays===1?'':'s'}` : '';
+  const inView = sessionsInView(s);
+  const viewDays = new Set(inView.map(r => (r.started_at || '').slice(0, 10)).filter(Boolean)).size;
+  const sessionBit = inView.length ? ` · ${inView.length} session${inView.length===1?'':'s'} over ${viewDays} day${viewDays===1?'':'s'}` : '';
   document.getElementById('panelMeta').textContent = `${cls.name} · ${prettyType(cls.type)} · last active ${timeAgo(s.lastSeen)}${sessionBit}`;
 
   let secure = 0, nearly = 0, struggling = [], building = 0, due = 0;
-  for (const [latin, w] of s.words.entries()) {
+  for (const [latin, w] of wordsInView(s).entries()) {
     const c2 = classifyWord(w);
     if (c2 === 'secure') secure++;
     else if (c2 === 'building') building++;
