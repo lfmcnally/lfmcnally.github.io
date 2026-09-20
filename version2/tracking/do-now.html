@@ -194,6 +194,13 @@ const CIV_COURSES = [
 ];
 let civList = CIV_COURSES[0].list;
 function civTopics(list){ const c = CIV_COURSES.find(x => x.list === (list || civList)); return c ? c.topics() : []; }
+// The courses this class is assigned (v2_classes.courses); all of them where
+// the teacher hasn't narrowed it, or where the column isn't there yet.
+function civCoursesFor(cls){
+  const assigned = (cls && cls.courses) || [];
+  const picked = CIV_COURSES.filter(c => assigned.includes(c.list));
+  return picked.length ? picked : CIV_COURSES;
+}
 function civSubtopicsOf(topicId, list){ const t=civTopics(list).find(x=>x.id===topicId); if(!t) return []; const seen=[]; for(const q of t.questions) if(!seen.includes(q.subtopic)) seen.push(q.subtopic); return seen; }
 
 async function init(){
@@ -214,7 +221,7 @@ const DO_NOW_TYPES = { 'civ-gcse': 'civ-myth-religion', 'latin-gcse': 'latin-gcs
 
 async function loadClasses(myId){
   const area = document.getElementById('classArea');
-  const { data, error } = await sb.from('v2_classes').select('id, name, type, teacher_id').order('created_at', { ascending: true });
+  const { data, error } = await sb.from('v2_classes').select('*').order('created_at', { ascending: true });
   if (error) throw error;
   // Only classes this teacher *owns* can have a Do Now set on them. RLS also
   // lets a teacher see classes they're a member of (e.g. a test class), so
@@ -226,7 +233,7 @@ async function loadClasses(myId){
     let members = [];
     try { const { data } = await sb.from('v2_class_members').select('student_id, users:student_id (full_name, email)').eq('class_id', c.id); members = data || []; } catch (_e) {}
     const students = members.map(m => ({ id: m.student_id, name: (m.users && m.users.full_name) || ((m.users && m.users.email) || '').split('@')[0] || 'Student' }));
-    classes.push({ id: c.id, name: c.name, type: c.type, vocabList: DO_NOW_TYPES[c.type], students });
+    classes.push({ id: c.id, name: c.name, type: c.type, courses: Array.isArray(c.courses) ? c.courses.filter(Boolean) : [], vocabList: DO_NOW_TYPES[c.type], students });
   }
   const wanted = new URLSearchParams(location.search).get('class');
   let startIdx = classes.findIndex(c => c.id === wanted);
@@ -302,7 +309,11 @@ function renderCivSetup(cls){
     <div class="dn-card" id="dnArchiveCard" style="display:none;"><div class="dn-card-head"><span class="dn-card-title">Past Do Nows</span></div><div id="dnArchive"></div></div>`;
 
   const courseSel = document.getElementById('dnCourse');
-  CIV_COURSES.forEach(c => { const o = document.createElement('option'); o.value = c.list; o.textContent = c.label; courseSel.appendChild(o); });
+  const available = civCoursesFor(cls);
+  available.forEach(c => { const o = document.createElement('option'); o.value = c.list; o.textContent = c.label; courseSel.appendChild(o); });
+  // A class studying only one course doesn't need the picker.
+  courseSel.style.display = available.length > 1 ? '' : 'none';
+  if (!available.some(c => c.list === civList)) civList = available[0].list;
   courseSel.value = civList;
 
   const sel = document.getElementById('dnTopic');
@@ -327,7 +338,7 @@ function renderCivSetup(cls){
     let current = null;
     try { const { data } = await sb.from('v2_do_now').select('vocab_list, topic_id, subtopics, active, updated_at').eq('class_id', cls.id).maybeSingle(); current = data; } catch (_e) {}
     // Open on the course the running Do Now belongs to.
-    if (current && current.active && current.vocab_list && CIV_COURSES.some(c => c.list === current.vocab_list)) {
+    if (current && current.active && current.vocab_list && available.some(c => c.list === current.vocab_list)) {
       civList = current.vocab_list;
       courseSel.value = civList;
       fillTopics();

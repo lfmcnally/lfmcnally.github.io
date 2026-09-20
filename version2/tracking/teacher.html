@@ -64,22 +64,32 @@ body { background:var(--cream); }
 .dash-body { max-width:1200px;margin:0 auto;padding:32px 40px 80px; }
 
 /* overview */
-/* Course strip — only shown for a class that covers more than one course
-   (a GCSE Classical Civ class studies Myth & Religion and the Homeric World),
-   letting the teacher see the two together or one at a time. */
-.course-strip { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-.course-strip-label {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--muted); margin-right: 2px;
+/* Course tabs — shown for a class that covers more than one course (a
+   Classics class may be assigned both Myth & Religion and the Homeric World),
+   so the teacher can switch between them without making a second class. */
+.course-tabbar {
+  display: flex; align-items: flex-end; gap: 2px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--rule); margin-bottom: 18px;
 }
-.course-chip {
-  font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
-  padding: 6px 14px; border-radius: 999px; cursor: pointer;
-  border: 1px solid var(--rule); background: var(--cream); color: var(--muted);
+.course-tab-btn {
+  font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 600;
+  color: var(--muted); background: none; border: none; cursor: pointer;
+  padding: 10px 16px; border-bottom: 2px solid transparent; margin-bottom: -1px;
 }
-.course-chip:hover { border-color: var(--brand); color: var(--brand); }
-.course-chip.active { background: var(--navy); border-color: var(--navy); color: #fff; }
-.course-chip .chip-n { opacity: 0.65; font-weight: 500; margin-left: 5px; }
+.course-tab-btn:hover { color: var(--navy); background: rgba(14,30,63,0.03); }
+.course-tab-btn.active { color: var(--navy); font-weight: 700; border-bottom-color: var(--brand); }
+.course-tab-btn .tab-n {
+  display: inline-block; margin-left: 7px; font-size: 11px; font-weight: 600;
+  color: var(--muted); background: var(--cream); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 1px 7px;
+}
+.course-tab-btn.active .tab-n { color: var(--brand); border-color: var(--brand); background: var(--paper); }
+.course-tab-edit {
+  margin-left: auto; align-self: center; font-family: 'DM Sans', sans-serif;
+  font-size: 12px; font-weight: 600; color: var(--brand);
+  background: none; border: none; cursor: pointer; padding: 8px 10px;
+}
+.course-tab-edit:hover { text-decoration: underline; }
 
 .overview-band { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px; }
 .ov-stat.ov-goal:hover { border-color:var(--brand); }
@@ -354,6 +364,25 @@ body { background:#f4f6fa; }
     </header>
 
 <!-- NEW ASSIGNMENT MODAL -->
+<div id="modalCourses" class="t-modal" style="display:none;position:fixed;inset:0;background:rgba(14,30,63,0.55);backdrop-filter:blur(2px);z-index:300;overflow-y:auto;padding:48px 16px;">
+  <div style="background:var(--paper);max-width:420px;margin:0 auto;border-radius:10px;overflow:hidden;box-shadow:0 24px 80px rgba(14,30,63,0.3);">
+    <div style="background:var(--navy);padding:24px 28px;position:relative;">
+      <button class="t-modal-close" data-modal="modalCourses" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:white;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:18px;line-height:1;">&times;</button>
+      <div style="font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:22px;color:white;">Courses</div>
+      <div style="font-size:12px;color:#8fa8cc;margin-top:4px;" id="courseModalClass"></div>
+    </div>
+    <div style="padding:24px 28px;">
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:14px;">Which courses does this class study? Each one gets its own tab, so you can follow the same students across all of them.</div>
+      <div id="courseModalList"></div>
+      <div id="courseModalError" style="color:#dc2626;font-size:12.5px;margin:10px 0;display:none;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+        <button class="t-modal-close" data-modal="modalCourses" type="button" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;padding:9px 16px;border-radius:5px;border:1px solid var(--rule);background:var(--cream);color:var(--ink);cursor:pointer;">Cancel</button>
+        <button id="courseModalSave" type="button" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;padding:9px 16px;border-radius:5px;border:none;background:var(--brand);color:white;cursor:pointer;">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="modalAssign" class="t-modal" style="display:none;position:fixed;inset:0;background:rgba(14,30,63,0.55);backdrop-filter:blur(2px);z-index:300;overflow-y:auto;padding:48px 16px;">
   <div style="background:var(--paper);max-width:480px;margin:0 auto;border-radius:10px;overflow:hidden;box-shadow:0 24px 80px rgba(14,30,63,0.3);">
     <div style="background:var(--navy);padding:24px 28px;position:relative;">
@@ -402,7 +431,7 @@ body { background:#f4f6fa; }
 
 <!-- BODY -->
 <div class="dash-body">
-  <div class="course-strip" id="courseStrip" style="display:none;"></div>
+  <div class="course-tabbar" id="courseTabbar" style="display:none;"></div>
   <div class="overview-band" id="overviewBand"></div>
   <div class="dash-card" id="assignmentsCard" style="margin-bottom:20px;display:none;">
     <div class="dash-card-head">
@@ -509,12 +538,35 @@ const CIV_COURSES = [
   { list: 'civ-homeric-world', label: 'The Homeric World', short: 'Homeric', topics: () => (window.HomericQuiz && window.HomericQuiz.topics) || [] }
 ];
 
-// Every vocab_list a class of this type draws on, in display order.
-function vocabListsForType(type) {
+// The courses a class of this type covers by default, when the teacher has
+// not assigned any explicitly.
+function defaultVocabListsForType(type) {
   if (type === 'civ-gcse') return CIV_COURSES.map(c => c.list);
   const one = SUBJECT_VOCAB_LIST[type];
   return one ? [one] : [];
 }
+
+// Every vocab_list a class draws on, in display order. A teacher can assign
+// courses per class (v2_classes.courses), so one Classics class can cover
+// Myth & Religion, the Homeric World, or both. Falls back to the type's
+// default where nothing is assigned, or where the column isn't there yet.
+function vocabListsFor(cls) {
+  if (!cls) return [];
+  const assigned = Array.isArray(cls.courses) ? cls.courses.filter(Boolean) : [];
+  return assigned.length ? assigned : defaultVocabListsForType(cls.type);
+}
+
+// The courses a class could be assigned, for the picker.
+function assignableCoursesFor(type) {
+  if (type === 'civ-gcse') return CIV_COURSES.map(c => ({ list: c.list, label: c.label }));
+  const one = SUBJECT_VOCAB_LIST[type];
+  return one ? [{ list: one, label: prettyType(type) }] : [];
+}
+
+// Set when v2_classes carries the `courses` column (migration 078). Until the
+// migration is applied, the course picker is hidden and every class falls back
+// to its type's default.
+let classCoursesAvailable = false;
 function civCourseByList(list) { return CIV_COURSES.find(c => c.list === list) || null; }
 
 // Which course the class view is currently narrowed to (null = all of them).
@@ -873,6 +925,7 @@ async function init() {
   });
   document.getElementById('newAssignmentBtn').addEventListener('click', openNewAssignment);
   document.getElementById('asgSubmit').addEventListener('click', submitAssignment);
+document.getElementById('courseModalSave').addEventListener('click', saveCoursePicker);
   document.getElementById('exportCsvBtn').addEventListener('click', () => { const c = classes[currentClassIdx]; if (c) exportClassCSV(c); });
   document.getElementById('printReportBtn').addEventListener('click', () => { const c = classes[currentClassIdx]; if (c) printClassReport(c); });
   document.getElementById('btnAddStudents').addEventListener('click', () => {
@@ -920,6 +973,7 @@ async function reloadClasses() {
 
   // Are the ordering/archiving columns available yet?
   manageColsAvailable = !!(classRows && classRows.length && ('archived' in classRows[0]));
+  classCoursesAvailable = !!(classRows && classRows.length && ('courses' in classRows[0]));
 
   const allRows = (classRows || []).slice().sort((a, b) => {
     const pa = (a.position == null) ? Infinity : a.position;
@@ -962,7 +1016,7 @@ async function reloadClasses() {
   // member list) instead of two queries per student — the old N+1 that made
   // loading slow for teachers with several full classes.
   classes = await Promise.all(activeRows.map(async (c) => {
-    const cls = { id: c.id, name: c.name, type: c.type, students: [], weeklyGoal: (c.weekly_goal != null ? c.weekly_goal : null), chapter: (c.grammar_chapter != null ? c.grammar_chapter : null) };
+    const cls = { id: c.id, name: c.name, type: c.type, courses: Array.isArray(c.courses) ? c.courses : [], students: [], weeklyGoal: (c.weekly_goal != null ? c.weekly_goal : null), chapter: (c.grammar_chapter != null ? c.grammar_chapter : null) };
     const { data: members } = await window.supabase
       .from('v2_class_members')
       .select('student_id, users:student_id (id, full_name, email)')
@@ -970,7 +1024,7 @@ async function reloadClasses() {
     const memberRows = members || [];
     // A class can cover more than one course (Classical Civ does), so read
     // every list it draws on in one query and keep the list on each row.
-    const vocabLists = vocabListsForType(c.type);
+    const vocabLists = vocabListsFor(cls);
     cls.vocabLists = vocabLists;
     const studentIds = memberRows.map(m => m.student_id);
 
@@ -1254,7 +1308,7 @@ function openNewAssignment() {
   if (isCiv) {
     // A Classical Civ class covers both courses, so the picker groups the
     // topics by course and each option carries the list it belongs to.
-    const lists = cls.vocabLists || vocabListsForType(cls.type);
+    const lists = cls.vocabLists || vocabListsFor(cls);
     document.getElementById('asgTopic').innerHTML = lists.map(list => {
       const course = civCourseByList(list);
       if (!course) return '';
@@ -1455,14 +1509,16 @@ function printClassReport(cls) {
   w.document.open(); w.document.write(html); w.document.close(); w.focus();
 }
 
-// The course strip for a class covering more than one course. "All courses"
-// shows both banks together; a chip narrows every panel on the page to one.
-// The count on each chip is that course's average secure questions per
-// student, so a teacher can see at a glance which course is lagging.
-function renderCourseStrip(cls) {
-  const strip = document.getElementById('courseStrip');
+// The course tabs for a class. A tab per course the class is assigned, plus
+// "All courses" when there is more than one: selecting a tab narrows every
+// panel on the page to that course. The count on each tab is that course's
+// average secure questions per student, so a teacher can see at a glance
+// which course is lagging. Hidden for a class with only one course.
+function renderCourseTabs(cls) {
+  const bar = document.getElementById('courseTabbar');
   const lists = cls.vocabLists || [];
-  if (lists.length < 2) { strip.style.display = 'none'; strip.innerHTML = ''; return; }
+  const canEdit = classCoursesAvailable && assignableCoursesFor(cls.type).length > 1;
+  if (lists.length < 2 && !canEdit) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
 
   function avgSecureFor(list) {
     if (!cls.students.length) return 0;
@@ -1475,23 +1531,65 @@ function renderCourseStrip(cls) {
     return Math.round(total / cls.students.length);
   }
 
-  const chips = [{ list: null, label: 'All courses' }]
-    .concat(lists.map(l => ({ list: l, label: (civCourseByList(l) || {}).label || l })));
+  const tabs = lists.length > 1 ? [{ list: null, label: 'All courses' }] : [];
+  for (const l of lists) tabs.push({ list: l, label: (civCourseByList(l) || {}).label || prettyType(cls.type) });
 
-  strip.innerHTML = '<span class="course-strip-label">Course</span>' + chips.map(c => {
-    const active = (courseFilter || null) === c.list;
-    return `<button type="button" class="course-chip${active ? ' active' : ''}" data-list="${escapeHtml(c.list || '')}">`
-         + escapeHtml(c.label)
-         + `<span class="chip-n">${avgSecureFor(c.list)} secure</span></button>`;
-  }).join('');
-  strip.style.display = '';
+  bar.innerHTML = tabs.map(t => {
+    // With a single course there is no "All courses" tab, so that one course
+    // is the active view whether or not a filter is set.
+    const active = (courseFilter || null) === t.list || (tabs.length === 1 && !courseFilter);
+    return `<button type="button" class="course-tab-btn${active ? ' active' : ''}" data-list="${escapeHtml(t.list || '')}">`
+         + escapeHtml(t.label)
+         + `<span class="tab-n">${avgSecureFor(t.list)}</span></button>`;
+  }).join('') + (canEdit ? '<button type="button" class="course-tab-edit" id="courseTabEdit">Edit courses</button>' : '');
+  bar.style.display = '';
 
-  strip.querySelectorAll('.course-chip').forEach(btn => {
+  bar.querySelectorAll('.course-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       courseFilter = btn.dataset.list || null;
       renderClass(currentClassIdx);
     });
   });
+  const edit = document.getElementById('courseTabEdit');
+  if (edit) edit.addEventListener('click', () => openCoursePicker(cls));
+}
+
+// Which courses this class studies. Saved to v2_classes.courses, so the same
+// class can be followed across both without a second class being created.
+function openCoursePicker(cls) {
+  const options = assignableCoursesFor(cls.type);
+  const current = new Set(vocabListsFor(cls));
+  document.getElementById('courseModalClass').textContent = cls.name;
+  document.getElementById('courseModalList').innerHTML = options.map(o =>
+    `<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--rule);border-radius:6px;margin-bottom:8px;cursor:pointer;font-size:14px;">
+       <input type="checkbox" value="${escapeHtml(o.list)}"${current.has(o.list) ? ' checked' : ''}>
+       <span>${escapeHtml(o.label)}</span>
+     </label>`).join('');
+  document.getElementById('courseModalError').style.display = 'none';
+  openModal('modalCourses');
+}
+
+async function saveCoursePicker() {
+  const cls = classes[currentClassIdx];
+  if (!cls) return;
+  const err = document.getElementById('courseModalError');
+  const picked = Array.from(document.querySelectorAll('#courseModalList input:checked')).map(i => i.value);
+  if (!picked.length) {
+    err.textContent = 'Pick at least one course.';
+    err.style.display = 'block';
+    return;
+  }
+  const { error } = await window.supabase
+    .from('v2_classes').update({ courses: picked }).eq('id', cls.id);
+  if (error) {
+    err.textContent = /column.*courses/i.test(error.message || '')
+      ? 'Assigning courses needs database migration 078, which hasn\'t been applied yet.'
+      : 'Could not save: ' + error.message;
+    err.style.display = 'block';
+    return;
+  }
+  closeModal('modalCourses');
+  await reloadClasses();    // a course change alters which banks are read
 }
 
 function renderClass(idx) {
@@ -1500,7 +1598,7 @@ function renderClass(idx) {
   activeModel = modelForType(cls.type);
   // A filter only applies to the class that offers it.
   if (courseFilter && !(cls.vocabLists || []).includes(courseFilter)) courseFilter = null;
-  renderCourseStrip(cls);
+  renderCourseTabs(cls);
   // selecting a class always returns to the class dashboard view
   const sp = document.getElementById('studentPanel');
   if (sp) sp.classList.remove('open');
