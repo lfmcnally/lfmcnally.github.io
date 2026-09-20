@@ -170,6 +170,10 @@
   .p-grid-marks th, .p-grid-marks td { border: 1px solid #000; padding: 5px 4px; text-align: center; min-width: 1.5cm; }
   .p-grid-marks th { font-weight: 700; }
   .p-grid-marks td { height: 30px; }
+  .p-grid-sections { width: 13cm; }
+  .p-grid-sections .p-grid-name { text-align: left; min-width: 7.5cm; font-weight: 400; }
+  .p-grid-sections th.p-grid-name { font-weight: 700; }
+  .p-grid-sections .p-grid-total td { font-weight: 700; }
 
   /* the preview shows where a page break falls; print uses the real break */
   .p-break { display: flex; align-items: center; gap: 10px; margin: 6px 0 22px; font-size: 8.5pt;
@@ -503,6 +507,14 @@
             </select>
           </div>
           <div class="ex-field">
+            <label for="exGridStyle">Mark grid</label>
+            <select id="exGridStyle">
+              <option value="auto" selected>By section, if there are any</option>
+              <option value="section">By section</option>
+              <option value="question">By question</option>
+            </select>
+          </div>
+          <div class="ex-field">
             <label for="exDefaultLines">Default answer lines</label>
             <select id="exDefaultLines">
               <option value="0">None</option>
@@ -641,7 +653,7 @@
   var settingIds = ['exTitle', 'exSubtitle', 'exSchool', 'exTime', 'exDate', 'exInstr',
                     'exCover', 'exPaperRef', 'exMaterials', 'exCoverNote', 'exMarkGrid', 'exRunHead', 'exPageFoot',
                     'exName', 'exTotalBox', 'exSectionTotals', 'exEnd', 'exFooter',
-                    'exLineStyle', 'exLineGap', 'exFont', 'exMarkFormat', 'exNumbering', 'exDefaultLines', 'exExtraPages'];
+                    'exLineStyle', 'exLineGap', 'exFont', 'exMarkFormat', 'exNumbering', 'exDefaultLines', 'exExtraPages', 'exGridStyle'];
 
   var KIND_LABELS = { q: 'Question', part: 'Part (a)', sub: 'Sub-part (i)', section: 'Section', stimulus: 'Source' };
   var SCORABLE = { q: true, part: true, sub: true };
@@ -1654,7 +1666,60 @@
 
   var GRID_COLUMNS = 10;   // more than this across an A4 and the boxes are too narrow to write in
 
+  /* The sections of the paper, each with what it is worth, for a grid that
+     is marked a section at a time rather than a question at a time. The
+     questions before the first heading are a group of their own. */
+  function markGroups() {
+    var totals = sectionTotals();
+    var labels = numbering();
+    var groups = [];
+    var leading = [];
+
+    items.forEach(function (item, i) {
+      if (item.kind === 'section' && item.text.trim()) {
+        groups.push({ name: item.text.trim(), marks: totals[i] || 0 });
+      } else if (!groups.length && item.kind === 'q' && item.text.trim()) {
+        leading.push(labels[i].replace(/\.$/, ''));
+      }
+    });
+
+    if (!groups.length) return [];
+    if (leading.length) {
+      groups.unshift({
+        name: leading.length > 1 ? 'Questions ' + leading[0] + '\u2013' + leading[leading.length - 1]
+                                 : 'Question ' + leading[0],
+        marks: totals[-1] || 0
+      });
+    }
+    return groups;
+  }
+
+  // A row for each section, its marks beside it, and the total underneath.
+  function sectionGrid(groups) {
+    var total = countedMarks();
+    var showAvailable = groups.some(function (g) { return g.marks > 0; });
+
+    var html = '<div class="p-grid-marks"><p class="p-grid-marks-title">For the examiner\u2019s use</p>' +
+               '<table class="p-grid-sections"><tr><th class="p-grid-name">Section</th>' +
+               (showAvailable ? '<th>Marks</th>' : '') + '<th>Mark</th></tr>';
+
+    groups.forEach(function (group) {
+      html += '<tr><td class="p-grid-name">' + escapeHtml(group.name) + '</td>' +
+              (showAvailable ? '<td>' + (group.marks || '') + '</td>' : '') +
+              '<td></td></tr>';
+    });
+
+    html += '<tr class="p-grid-total"><td class="p-grid-name">Total</td>' +
+            (showAvailable ? '<td>' + (total || '') + '</td>' : '') +
+            '<td></td></tr>';
+
+    return html + '</table></div>';
+  }
+
   function markGrid() {
+    var groups = markGroups();
+    if (val('exGridStyle') !== 'question' && groups.length) { return sectionGrid(groups); }
+
     var list = questionTotals();
     if (!list.length) return '';
 
