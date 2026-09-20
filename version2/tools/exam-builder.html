@@ -67,6 +67,7 @@
   .ex-q-kind { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; color: var(--navy);
     background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 7px; }
   .ex-q-tools { flex: none; display: flex; gap: 4px; padding-top: 3px; }
+  #exCrestThumb { height: 30px; width: auto; max-width: 150px; border: 1px solid var(--rule); border-radius: 5px; background: var(--paper); padding: 2px 5px; }
   .ex-q-note { font-size: 13px; background: var(--cream); }
   .ex-q-toggle { padding: 5px 10px; font-size: 12px; }
   .ex-q-toggle.is-on { border-color: var(--brand); color: var(--brand); }
@@ -146,8 +147,10 @@
   .p-facts { display: flex; flex-wrap: wrap; gap: 4px 26px; font-size: 11pt; margin-top: 10px; }
 
   /* cover page — a whole A4 of its own, with the questions starting overleaf */
-  .ex-page.has-foot .p-cover { min-height: calc(29.7cm - 3.6cm - 4px - 24px); }
-  .ex-page.has-foot .p-extra { height: calc(29.7cm - 3.6cm - 4mm - 24px); }
+  /* A school's crest at the head of the paper. */
+  .p-crest { text-align: center; margin: 0 0 12px; }
+  .p-crest img { width: auto; max-width: 70%; }
+
   .p-cover { min-height: calc(29.7cm - 3.6cm - 4px); display: flex; flex-direction: column; break-after: page; page-break-after: always; }
   .p-cover-head { text-align: center; border-bottom: 2px solid #000; padding-bottom: 16px; }
   .p-cover .p-title { font-size: 26pt; margin-top: 6px; }
@@ -283,7 +286,9 @@
   .p-page-foot .end { text-align: right; font-weight: 700; }
 
   .p-end { text-align: center; font-weight: 700; font-size: 11pt; margin-top: 26px; border-top: 2px solid #000; padding-top: 10px; }
-  .p-foot { margin-top: 14px; font-size: 8.5pt; color: #555; text-align: center; }
+  .p-foot { position: absolute; left: 1.6cm; right: 1.6cm; bottom: 1.8cm; margin: 0;
+    font-size: 8.5pt; color: #555; text-align: center; }
+  .ex-page.has-foot .p-foot { bottom: calc(1.8cm + 26px); }
   .p-foot img { height: 20px; width: auto; display: inline-block;
     filter: grayscale(1) brightness(0); opacity: .65; }
 
@@ -324,13 +329,15 @@
       break-after: page; page-break-after: always; }
     /* A block taller than a page of its own is let out rather than cut off. */
     .ex-page.is-tall { height: auto; min-height: 0 !important; overflow: visible; }
-    .ex-page-wrap:last-child .ex-page { break-after: auto; page-break-after: auto; height: auto; overflow: visible; }
+    .ex-page-wrap:last-child .ex-page { break-after: auto; page-break-after: auto; }
     .p-page-foot { left: 0 !important; right: 0 !important; bottom: 0 !important; }
+    .p-foot { left: 0 !important; right: 0 !important; bottom: 0 !important; }
+    .ex-page.has-foot .p-foot { bottom: 26px !important; }
     .p-head, .p-instr, .p-section { break-inside: avoid; page-break-inside: avoid; }
     .p-break { display: none !important; }
     .p-grid-marks table { break-inside: avoid; page-break-inside: avoid; }
     .p-q-text .q-edit { background: none !important; box-shadow: none !important; }
-    .p-foot img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .p-foot img, .p-crest img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .p-stimulus { background: #f7f7f7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .p-stimulus img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .p-grip { display: none !important; }
@@ -413,6 +420,21 @@
           <label class="ex-check"><input type="checkbox" id="exPageFoot" checked> Page numbers and &ldquo;turn over&rdquo;</label>
           <label class="ex-check"><input type="checkbox" id="exMarkGrid"> Examiner&rsquo;s mark grid</label>
           <label class="ex-check"><input type="checkbox" id="exFooter"> Classicalia footer</label>
+        </div>
+
+        <div class="ex-checks" style="gap: 12px;">
+          <label class="ex-check"><input type="checkbox" id="exCrest"> School crest at the top</label>
+          <button class="ex-btn" id="exCrestPick" type="button" style="padding: 5px 10px; font-size: 12px;">Choose an image&hellip;</button>
+          <select id="exCrestSize" class="ex-q-lines">
+            <option value="small">Small</option>
+            <option value="medium" selected>Medium</option>
+            <option value="large">Large</option>
+          </select>
+          <img id="exCrestThumb" alt="" hidden>
+          <button class="ex-btn" id="exCrestClear" type="button" hidden style="padding: 5px 10px; font-size: 12px;">Remove</button>
+          <span class="ex-q-opt" id="exCrestNote" style="font-style: italic;">Your school&rsquo;s crest or wordmark. It is kept in this browser and used on every paper.</span>
+          <input type="file" id="exCrestFile" accept="image/*" hidden>
+          <input type="hidden" id="exCrestData">
         </div>
 
         <div id="exCoverFields" hidden style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--rule-faint);">
@@ -653,7 +675,8 @@
   var settingIds = ['exTitle', 'exSubtitle', 'exSchool', 'exTime', 'exDate', 'exInstr',
                     'exCover', 'exPaperRef', 'exMaterials', 'exCoverNote', 'exMarkGrid', 'exRunHead', 'exPageFoot',
                     'exName', 'exTotalBox', 'exSectionTotals', 'exEnd', 'exFooter',
-                    'exLineStyle', 'exLineGap', 'exFont', 'exMarkFormat', 'exNumbering', 'exDefaultLines', 'exExtraPages', 'exGridStyle'];
+                    'exLineStyle', 'exLineGap', 'exFont', 'exMarkFormat', 'exNumbering', 'exDefaultLines', 'exExtraPages', 'exGridStyle',
+                    'exCrest', 'exCrestSize', 'exCrestData'];
 
   var KIND_LABELS = { q: 'Question', part: 'Part (a)', sub: 'Sub-part (i)', section: 'Section', stimulus: 'Source' };
   var SCORABLE = { q: true, part: true, sub: true };
@@ -1565,6 +1588,18 @@
     return ruledBlock(count);
   }
 
+  /* The school's own crest, at the head of the cover or, without one, at the
+     head of the paper. Its height is set here rather than left to the
+     picture, since a crest and a wordmark come in very different shapes. */
+  var CREST_HEIGHTS = { small: 1.2, medium: 1.8, large: 2.6 };
+
+  function crestHtml() {
+    var data = val('exCrestData');
+    if (!checked('exCrest') || !data) return '';
+    var height = CREST_HEIGHTS[val('exCrestSize')] || CREST_HEIGHTS.medium;
+    return '<div class="p-crest"><img src="' + escapeHtml(data) + '" alt="" style="height:' + height + 'cm"></div>';
+  }
+
   // A question, source or section can be made to start a page of its own.
   function breakClass(item) {
     return item.pageBreak ? ' p-page-start' : '';
@@ -1759,8 +1794,9 @@
     if (cover) {
       /* A cover page of its own: everything about the paper, and nothing to
          answer, so a sealed paper gives nothing away before it is opened. */
-      html += '<div class="p-cover">';
+      html += '<div class="p-cover" style="min-height:' + Math.floor(pageBox()) + 'px">';
       html += '<div class="p-cover-head">';
+      html += crestHtml();
       if (school) { html += '<p class="p-school">' + escapeHtml(school) + '</p>'; }
       html += '<h2 class="p-title">' + escapeHtml(title) + '</h2>';
       if (subtitle) { html += '<p class="p-subtitle">' + escapeHtml(subtitle) + '</p>'; }
@@ -1797,6 +1833,7 @@
     } else {
       /* header */
       html += '<div class="p-head">';
+      html += crestHtml();
       if (school) { html += '<p class="p-school">' + escapeHtml(school) + '</p>'; }
       html += '<h2 class="p-title">' + escapeHtml(title) + '</h2>';
       if (subtitle) { html += '<p class="p-subtitle">' + escapeHtml(subtitle) + '</p>'; }
@@ -1907,11 +1944,16 @@
 
   var PAGE_BOX_HEIGHT = (29.7 - 3.6) / 2.54 * 96;   // the page inside its margins
   var PAGE_PAD_TOP = 1.8 / 2.54 * 96;
-  var PAGE_FOOT_ROOM = 24;                          // kept clear for the page's number
+  var PAGE_SLACK = 0.4 / 2.54 * 96;                 // a few millimetres, so a page cannot tip onto the next
+  var PAGE_PRINT_HEIGHT = PAGE_BOX_HEIGHT - PAGE_SLACK;   // what a printed page really holds
+  var PAGE_FOOT_ROOM = 22;                          // kept clear for the page's number
+  var WORDMARK_ROOM = 30;                           // and for the Classicalia footer
 
-  // What a page holds, once the foot of the page has had its share.
+  // What a page holds, once the feet of the page have had their share.
   function pageBox() {
-    return PAGE_BOX_HEIGHT - (checked('exPageFoot') ? PAGE_FOOT_ROOM : 0);
+    return PAGE_PRINT_HEIGHT -
+           (checked('exPageFoot') ? PAGE_FOOT_ROOM : 0) -
+           (checked('exFooter') ? WORDMARK_ROOM : 0);
   }
 
   function paginate(html) {
@@ -1921,6 +1963,15 @@
     var font = val('exFont');
     var limit = pageBox();
     var withFoot = checked('exPageFoot');
+
+    // The Classicalia footer belongs at the foot of the last page rather than
+    // wherever the flow happens to leave it, so it is set aside here and put
+    // back once the pages are known.
+    var wordmark = null;
+    nodes = nodes.filter(function (node) {
+      if (node.nodeType === 1 && node.classList.contains('p-foot')) { wordmark = node; return false; }
+      return true;
+    });
 
     paperEl.innerHTML = '';
     var page = null;
@@ -1943,6 +1994,17 @@
 
     function used(node) {
       return node.offsetTop + node.offsetHeight - PAGE_PAD_TOP;
+    }
+
+    // The wordmark and the page's number are pinned to the foot of the page,
+    // so neither of them says how much of it has been used.
+    function lastContent(pg) {
+      if (!pg) return null;
+      for (var n = pg.children.length - 1; n >= 0; n--) {
+        var kid = pg.children[n];
+        if (!kid.classList.contains('p-foot') && !kid.classList.contains('p-page-foot')) return kid;
+      }
+      return null;
     }
 
     function overflows(node) {
@@ -1981,6 +2043,15 @@
     if (page && !page.childNodes.length && count > 1) {
       paperEl.removeChild(paperEl.lastChild);
       count -= 1;
+      page = paperEl.lastChild.querySelector('.ex-page');
+    }
+
+    if (wordmark) {
+      var tail = lastContent(page);
+      // Only if the last page has room for it; otherwise it takes a page of
+      // its own, at the foot of that one.
+      if (tail && used(tail) > limit) { newPage(); }
+      page.appendChild(wordmark);
     }
 
     /* A single block too tall for a page of its own is left to run on rather
@@ -1993,8 +2064,8 @@
     var i;
 
     for (i = 0; i < pages.length; i++) {
-      var kids = pages[i].children;
-      var height = kids.length ? used(kids[kids.length - 1]) : 0;
+      var tallest = lastContent(pages[i]);
+      var height = tallest ? used(tallest) : 0;
       var span = Math.max(1, Math.ceil((height - 1) / limit));
       if (span > 1) {
         pages[i].classList.add('is-tall');
@@ -2066,7 +2137,6 @@
     }, 30);
   }
 
-  var PAGE_CONTENT_HEIGHT = (29.7 - 3.6 - 0.4) / 2.54 * 96;   // the page inside its margins, less the slack, in px
   var EXTRA_HEAD_HEIGHT = 46;                                 // the heading and its note
 
   // Spare pages for an answer that outgrew the space left for it. Each one is
@@ -2076,13 +2146,13 @@
     if (!wanted) return '';
 
     var gap = parseInt(val('exLineGap'), 10) || 24;
-    var lines = Math.max(1, Math.floor((PAGE_CONTENT_HEIGHT - EXTRA_HEAD_HEIGHT -
-      (checked('exPageFoot') ? PAGE_FOOT_ROOM : 0)) / gap));
+    var box = pageBox();
+    var lines = Math.max(1, Math.floor((box - EXTRA_HEAD_HEIGHT) / gap));
     var html = '';
 
     for (var n = 0; n < wanted; n++) {
       html += '<div class="p-break">Page break</div>' +
-              '<div class="p-extra">' +
+              '<div class="p-extra" style="height:' + Math.floor(box) + 'px">' +
               '<p class="p-extra-head">Additional writing space' +
               (wanted > 1 ? ' (' + (n + 1) + ' of ' + wanted + ')' : '') + '</p>' +
               '<p class="p-extra-note">Write the number of the question you are answering beside your answer.</p>' +
@@ -2450,6 +2520,54 @@
     update();
   });
 
+  /* ── the school's crest ──
+     Kept in this browser rather than in the paper, since a school keeps its
+     crest from one paper to the next; it rides along in a saved paper too,
+     so a paper opened on another computer still carries it. */
+
+  var CREST_KEY = 'classicalia.examBuilder.crest';
+
+  function showCrest() {
+    var data = val('exCrestData');
+    var thumb = document.getElementById('exCrestThumb');
+    var note = document.getElementById('exCrestNote');
+    thumb.hidden = !data;
+    if (data) { thumb.src = data; }
+    document.getElementById('exCrestClear').hidden = !data;
+    note.textContent = data
+      ? 'Kept in this browser and used on every paper.'
+      : 'Choose your school\u2019s crest or wordmark. It is kept in this browser and used on every paper.';
+  }
+
+  document.getElementById('exCrestPick').addEventListener('click', function () {
+    document.getElementById('exCrestFile').click();
+  });
+
+  document.getElementById('exCrestFile').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    readImage(file, function (dataUrl) {
+      document.getElementById('exCrestData').value = dataUrl;
+      document.getElementById('exCrest').checked = true;
+      writeStore(CREST_KEY, dataUrl);
+      showCrest();
+      update();
+    });
+  });
+
+  document.getElementById('exCrestClear').addEventListener('click', function () {
+    if (!window.confirm('Remove the crest?')) return;
+    document.getElementById('exCrestData').value = '';
+    document.getElementById('exCrest').checked = false;
+    writeStore(CREST_KEY, '');
+    showCrest();
+    update();
+  });
+
+  document.getElementById('exCrestSize').addEventListener('change', update);
+  document.getElementById('exCrest').addEventListener('change', update);
+
   /* ── a paper as a file ──
      Saved papers live in this browser alone, so a paper can also be kept as
      a file: somewhere safe, on another computer, or passed to a colleague. */
@@ -2578,6 +2696,13 @@
   } else {
     items = [blankItem('q'), blankItem('q'), blankItem('q')];
   }
+
+  // A crest chosen on an earlier paper is still this school's crest.
+  if (!val('exCrestData')) {
+    var savedCrest = readStore(CREST_KEY, '');
+    if (savedCrest) { document.getElementById('exCrestData').value = savedCrest; }
+  }
+  showCrest();
 
   renderItems();
   renderSets();
