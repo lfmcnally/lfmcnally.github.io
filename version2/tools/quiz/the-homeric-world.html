@@ -113,6 +113,58 @@
 .btn-next:disabled { opacity: 0.35; cursor: default; }
 .hidden { display: none !important; }
 .pk-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* typed-answer mode */
+.mode-toggle { display: flex; gap: 8px; margin-bottom: 4px; }
+.mode-btn {
+  flex: 1; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  padding: 10px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--cream); color: var(--muted);
+}
+.mode-btn:hover { border-color: var(--brand); color: var(--brand); }
+.mode-btn.active { background: var(--navy); border-color: var(--navy); color: #fff; }
+.mode-note { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin: 8px 0 4px; }
+
+.typed-input {
+  width: 100%; box-sizing: border-box; font-family: inherit; font-size: 15px;
+  line-height: 1.55; color: var(--ink); padding: 13px 15px; border-radius: 9px;
+  border: 1px solid var(--rule); background: var(--cream); resize: vertical;
+}
+.typed-input:focus { outline: none; border-color: var(--brand); background: var(--paper); }
+.typed-input:disabled { color: var(--muted); }
+.btn-reveal {
+  margin-top: 12px; width: 100%; font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 700; padding: 12px 18px; border-radius: 8px;
+  border: none; background: var(--brand); color: #fff; cursor: pointer;
+}
+.btn-reveal:hover { opacity: 0.92; }
+
+.typed-answer { margin-top: 18px; }
+.typed-answer-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 7px;
+}
+.typed-answer-text {
+  font-size: 15px; line-height: 1.6; color: var(--navy); padding: 13px 15px;
+  border-radius: 9px; background: #f0fdf4; border: 1px solid #bbf7d0; margin-bottom: 18px;
+}
+.self-mark { display: flex; gap: 8px; }
+.mark-btn {
+  flex: 1; font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700;
+  padding: 12px 10px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--paper); color: var(--ink);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.mark-btn .key {
+  font-size: 10px; font-weight: 700; color: var(--muted); background: var(--cream);
+  border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px;
+}
+.mark-btn:hover:not(:disabled) { border-color: var(--navy); }
+.mark-btn:disabled { cursor: default; opacity: 0.4; }
+.mark-btn.picked { opacity: 1; }
+.mark-btn.picked.mark-right { background: #dcfce7; border-color: #16a34a; color: #14532d; }
+.mark-btn.picked.mark-part  { background: #fef3c7; border-color: #d97706; color: #78350f; }
+.mark-btn.picked.mark-wrong { background: #fee2e2; border-color: #dc2626; color: #7f1d1d; }
 </style>
 </head>
 <body>
@@ -151,6 +203,13 @@
     <h2>Choose what to practise</h2>
     <div class="sub" id="setupSub">Your answers are tracked question by question, so the quiz focuses on what you find hardest.</div>
 
+    <div class="field-label">Answer mode</div>
+    <div class="mode-toggle" id="modeToggle">
+      <button type="button" class="mode-btn active" data-mode="choice">Multiple choice</button>
+      <button type="button" class="mode-btn" data-mode="typed">Type your answer</button>
+    </div>
+    <div class="mode-note" id="modeNote"></div>
+
     <div class="field-label">Topic</div>
     <select class="topic-select" id="topicSelect"></select>
 
@@ -173,6 +232,20 @@
     <div class="q-progress"><span id="qProgressBar"></span></div>
     <div class="q-text" id="qText"></div>
     <div class="mc-list" id="qOptions"></div>
+    <div class="hidden" id="qTyped">
+      <textarea class="typed-input" id="qTypedInput" rows="3" placeholder="Type your answer&hellip;" autocomplete="off" spellcheck="false"></textarea>
+      <button class="btn-reveal" id="revealBtn" type="button">Show the answer</button>
+      <div class="typed-answer hidden" id="qTypedAnswer">
+        <div class="typed-answer-label">Answer</div>
+        <div class="typed-answer-text" id="qModelAnswer"></div>
+        <div class="typed-answer-label">Mark yourself</div>
+        <div class="self-mark">
+          <button class="mark-btn mark-right" type="button" data-credit="1"><span class="key">1</span>Right</button>
+          <button class="mark-btn mark-part"  type="button" data-credit="0.5"><span class="key">2</span>Nearly</button>
+          <button class="mark-btn mark-wrong" type="button" data-credit="0"><span class="key">3</span>Wrong</button>
+        </div>
+      </div>
+    </div>
     <div class="quiz-controls">
       <button class="btn-ghost" id="backBtn">&larr; Menu</button>
       <button class="btn-next" id="nextBtn" disabled>Next &rarr;</button>
@@ -220,6 +293,22 @@ let selected = new Set();  // selected subtopic labels
 let pool = [];             // active question states
 let current = null;
 let answered = false;
+// 'choice' = multiple choice; 'typed' = write the answer, then mark yourself
+// against the model answer. Remembered per device.
+let answerMode = 'choice';
+const MODE_KEY = 'classicalia.quizAnswerMode';
+try { const m = localStorage.getItem(MODE_KEY); if (m === 'typed' || m === 'choice') answerMode = m; } catch (_e) {}
+const MODE_NOTES = {
+  choice: 'Pick from four options. Your confidence moves with each answer.',
+  typed:  'Write your answer, then mark it Right, Nearly or Wrong. Nearly lifts your confidence less than Right, and only Right counts towards securing a question.'
+};
+function setAnswerMode(mode) {
+  answerMode = (mode === 'typed') ? 'typed' : 'choice';
+  try { localStorage.setItem(MODE_KEY, answerMode); } catch (_e) {}
+  document.querySelectorAll('#modeToggle .mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === answerMode));
+  const note = document.getElementById('modeNote');
+  if (note) note.textContent = MODE_NOTES[answerMode];
+}
 // 'standard' = drill the chosen pool by confidence (manual quiz, Do Now)
 // 'order'    = work through the whole topic in subtopic order, introducing new
 //              questions only as earlier ones become Secure
@@ -319,16 +408,26 @@ function buildSubtopics() {
 }
 
 // ── BKT update ──
-function bktUpdate(s, correct) {
+// A self-marked answer earns partial credit, so the update takes a credit in
+// [0,1] rather than a boolean: 1 for right, 0.5 for nearly, 0 for wrong.
+// Multiple choice passes 1 or 0 and behaves exactly as before.
+//
+// The two posteriors are the ones a right and a wrong answer would give, and
+// a part-right answer lands between them in proportion to its credit — it
+// lifts confidence, but by less than knowing the answer outright.
+function bktUpdate(s, credit) {
+  const c = Math.max(0, Math.min(1, Number(credit) || 0));
   const p = s.pKnow, { pG, pS, pT } = BKT;
-  const posterior = correct
-    ? (p*(1-pS)) / (p*(1-pS) + (1-p)*pG)
-    : (p*pS)     / (p*pS     + (1-p)*(1-pG));
+  const postRight = (p*(1-pS)) / (p*(1-pS) + (1-p)*pG);
+  const postWrong = (p*pS)     / (p*pS     + (1-p)*(1-pG));
+  const posterior = postWrong + (postRight - postWrong) * c;
   s.pKnow = posterior + (1-posterior)*pT;
   s.trials++;
-  if (correct) s.correct++;
+  // Only a fully right answer counts towards the run of correct days that
+  // makes a question Secure — "nearly" moves confidence, but doesn't prove it.
+  if (c >= 1) s.correct++;
   const today = todayISO();
-  if (correct && s.lastCorrectDate !== today) { s.distinctCorrectDays = (s.distinctCorrectDays|0)+1; s.lastCorrectDate = today; }
+  if (c >= 1 && s.lastCorrectDate !== today) { s.distinctCorrectDays = (s.distinctCorrectDays|0)+1; s.lastCorrectDate = today; }
   if (store) {
     store.update(s.id, {
       p_know: s.pKnow, trials: s.trials, correct: s.correct,
@@ -572,9 +671,17 @@ function nextQuestion() {
   document.getElementById('qProgressBar').style.width = sessionTarget ? Math.min(100, Math.round(sessionAnswered/sessionTarget*100)) + '%' : '0%';
   document.getElementById('qText').textContent = current.q;
 
-  const correctText = current.answers[0];
-  const opts = shuffle(current.answers.slice());
+  if (answerMode === 'typed') renderTypedQuestion(current);
+  else renderChoiceQuestion(current);
+  document.getElementById('nextBtn').disabled = true;
+}
+
+function renderChoiceQuestion(s) {
+  document.getElementById('qTyped').classList.add('hidden');
   const box = document.getElementById('qOptions');
+  box.classList.remove('hidden');
+  const correctText = s.answers[0];
+  const opts = shuffle(s.answers.slice());
   box.innerHTML = '';
   opts.forEach((text, i) => {
     const btn = document.createElement('button');
@@ -583,7 +690,46 @@ function nextQuestion() {
     btn.addEventListener('click', () => choose(btn, text === correctText, correctText));
     box.appendChild(btn);
   });
-  document.getElementById('nextBtn').disabled = true;
+}
+
+function renderTypedQuestion(s) {
+  document.getElementById('qOptions').classList.add('hidden');
+  const wrap = document.getElementById('qTyped');
+  wrap.classList.remove('hidden');
+  const input = document.getElementById('qTypedInput');
+  input.value = '';
+  input.disabled = false;
+  document.getElementById('revealBtn').classList.remove('hidden');
+  document.getElementById('qTypedAnswer').classList.add('hidden');
+  document.getElementById('qModelAnswer').textContent = s.answers[0];
+  document.querySelectorAll('#qTyped .mark-btn').forEach(b => {
+    b.disabled = false;
+    b.classList.remove('picked');
+  });
+  input.focus();
+}
+
+// Reveal the model answer and hand over to self-marking. The typed answer is
+// never stored or graded automatically — the student judges it.
+function revealTyped() {
+  if (answered) return;
+  document.getElementById('qTypedInput').disabled = true;
+  document.getElementById('revealBtn').classList.add('hidden');
+  document.getElementById('qTypedAnswer').classList.remove('hidden');
+}
+
+function markTyped(btn, credit) {
+  if (answered) return;
+  answered = true;
+  sessionAnswered++;
+  if (credit >= 1) sessionCorrect++;
+  bktUpdate(current, credit);
+  recordSessionAnswer(credit >= 1);
+  paintPKnowDot(current);
+  document.querySelectorAll('#qTyped .mark-btn').forEach(b => { b.disabled = true; });
+  btn.classList.add('picked');
+  document.getElementById('qCounter').textContent = 'Answered: ' + sessionAnswered;
+  document.getElementById('nextBtn').disabled = false;
 }
 
 function choose(btn, correct, correctText) {
@@ -591,7 +737,7 @@ function choose(btn, correct, correctText) {
   answered = true;
   sessionAnswered++;
   if (correct) sessionCorrect++;
-  bktUpdate(current, correct);
+  bktUpdate(current, correct ? 1 : 0);
   recordSessionAnswer(correct);
   paintPKnowDot(current);   // reflect the updated confidence straight away
 
@@ -641,13 +787,37 @@ function init() {
     else subtopics.forEach(st => selected.add(st.label));
     renderSetup();
   });
+  document.querySelectorAll('#modeToggle .mode-btn').forEach(b => {
+    b.addEventListener('click', () => setAnswerMode(b.dataset.mode));
+  });
+  setAnswerMode(answerMode);
+  document.getElementById('revealBtn').addEventListener('click', revealTyped);
+  document.querySelectorAll('#qTyped .mark-btn').forEach(b => {
+    b.addEventListener('click', () => markTyped(b, parseFloat(b.dataset.credit)));
+  });
   document.getElementById('startBtn').addEventListener('click', startQuiz);
   document.getElementById('backBtn').addEventListener('click', backToMenu);
   document.getElementById('nextBtn').addEventListener('click', () => { if (answered) nextQuestion(); });
 
   document.addEventListener('keydown', e => {
     if (document.getElementById('quiz').classList.contains('hidden')) return;
-    if (!answered && e.key >= '1' && e.key <= '4') {
+    const typing = e.target === document.getElementById('qTypedInput');
+    // While the answer box has focus, only Enter does anything — every other
+    // key belongs to what the student is writing.
+    if (typing) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); revealTyped(); }
+      return;
+    }
+    if (!answered && answerMode === 'typed') {
+      const revealed = !document.getElementById('qTypedAnswer').classList.contains('hidden');
+      if (!revealed && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); revealTyped(); return; }
+      if (revealed && e.key >= '1' && e.key <= '3') {
+        const b = document.querySelectorAll('#qTyped .mark-btn')[parseInt(e.key)-1];
+        if (b) b.click();
+        return;
+      }
+    }
+    if (!answered && answerMode === 'choice' && e.key >= '1' && e.key <= '4') {
       const b = document.querySelectorAll('#qOptions .mc-btn')[parseInt(e.key)-1];
       if (b) b.click();
     } else if (answered && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight')) {
