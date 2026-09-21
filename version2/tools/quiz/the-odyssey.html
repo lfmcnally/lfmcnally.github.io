@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Odyssey — Topic Tester — Classicalia</title>
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="data/odyssey-explain-1.js"></script>
+<script src="data/odyssey-1.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/bkt-store.js"></script>
+<style>
+.quiz-wrap { max-width: 760px; margin: 0 auto; padding: 32px 24px 80px; }
+
+/* sync pill */
+.sync-pill {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600;
+  letter-spacing: 0.04em; color: var(--muted); background: var(--cream);
+  border: 1px solid var(--rule); border-radius: 999px; padding: 5px 12px; margin-bottom: 22px;
+}
+.sync-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; }
+.sync-pill.cloud .dot { background: #22c55e; }
+.sync-pill a { color: var(--brand); text-decoration: none; font-weight: 700; }
+
+/* do now banner */
+.donow-banner {
+  background: linear-gradient(120deg, #eef3ff, #f7f5ff); border: 1px solid var(--rule);
+  border-left: 3px solid var(--brand); border-radius: 8px; padding: 12px 16px;
+  font-size: 13px; color: var(--navy); line-height: 1.5; margin-bottom: 18px;
+}
+.donow-banner strong { font-weight: 700; }
+
+/* do now finished screen */
+#doNowDone { text-align: center; }
+#doNowDone h2 { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:24px;color:var(--navy);margin:0 0 10px; }
+.dn-result-msg { font-size:14px;color:var(--ink);line-height:1.5;margin-bottom:18px; }
+.dn-result-score { font-size:14px;color:var(--muted);margin-bottom:22px; }
+.dn-result-score .dn-big { display:block;font-family:'Lora',serif;font-weight:700;font-size:42px;color:var(--brand);line-height:1.1;margin-bottom:4px; }
+
+/* setup */
+.quiz-card { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 26px 28px; }
+#quiz.quiz-card { position: relative; }
+/* per-question confidence dot (mirrors the Latin tester) */
+.p-know-dot {
+  position: absolute; top: 14px; left: 16px; box-sizing: content-box;
+  width: 8px; height: 8px; padding: 6px;     /* transparent ring = bigger hover target */
+  border-radius: 50%; background: var(--rule); background-clip: content-box; cursor: help;
+}
+.p-know-dot.low    { background: #f87171; }
+.p-know-dot.mid    { background: #fbbf24; }
+.p-know-dot.high   { background: #34d399; }
+.p-know-dot.master { background: var(--brand); }
+.quiz-card h2 {
+  font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 22px;
+  color: var(--navy); margin: 0 0 4px;
+}
+.quiz-card .sub { font-size: 12.5px; color: var(--muted); margin-bottom: 22px; }
+.field-label { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); margin: 18px 0 10px; }
+.topic-select {
+  width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--navy);
+  padding: 10px 12px; border: 1px solid var(--rule); border-radius: 7px; background: var(--cream);
+}
+.subtopic-row {
+  display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 12px;
+  padding: 9px 0; border-bottom: 1px dotted var(--rule-faint); cursor: pointer;
+}
+.subtopic-row:last-child { border-bottom: none; }
+.subtopic-row input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+.subtopic-name { font-size: 13.5px; color: var(--ink); line-height: 1.4; }
+.subtopic-count { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.subtopic-meta { display: flex; align-items: center; gap: 10px; }
+.mini-bar { width: 70px; height: 5px; border-radius: 3px; background: var(--rule-faint); overflow: hidden; }
+.mini-bar span { display: block; height: 100%; background: var(--brand); border-radius: 3px; }
+.select-toggle { font-size: 11px; font-weight: 700; color: var(--brand); background: none; border: none; cursor: pointer; letter-spacing: 0.04em; }
+.start-btn {
+  margin-top: 22px; width: 100%; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700;
+  color: white; background: var(--brand); border: none; border-radius: 8px; padding: 14px; cursor: pointer;
+  transition: opacity 0.12s;
+}
+.start-btn:hover { opacity: 0.9; }
+.start-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* quiz */
+.quiz-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.quiz-meta .subtopic-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.quiz-meta .counter { font-size: 12px; font-weight: 600; color: var(--muted); }
+.q-progress { height: 5px; border-radius: 3px; background: var(--rule-faint); overflow: hidden; margin-bottom: 22px; }
+.q-progress span { display: block; height: 100%; background: var(--brand); width: 0; transition: width 0.3s; }
+.q-text {
+  font-family: 'Lora', serif; font-weight: 600; font-size: 19px; color: var(--navy);
+  line-height: 1.5; margin-bottom: 22px;
+}
+.mc-list { display: flex; flex-direction: column; gap: 10px; }
+.mc-btn {
+  text-align: left; font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.45; color: var(--ink);
+  background: var(--cream); border: 1.5px solid var(--rule); border-radius: 8px; padding: 13px 15px;
+  cursor: pointer; transition: border-color 0.12s, background 0.12s;
+  display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start;
+}
+.mc-btn .key { font-weight: 700; color: var(--muted); font-size: 12px; padding-top: 1px; }
+.mc-btn:hover:not(:disabled) { border-color: var(--brand); }
+.mc-btn:disabled { cursor: default; }
+.mc-btn.correct { border-color: #22c55e; background: #f0fdf4; color: #15803d; }
+.mc-btn.correct .key { color: #15803d; }
+.mc-btn.wrong { border-color: #f87171; background: #fef2f2; color: #b91c1c; }
+.mc-btn.wrong .key { color: #b91c1c; }
+.mc-btn.dim { opacity: 0.55; }
+.quiz-controls { display: flex; align-items: center; justify-content: space-between; margin-top: 22px; }
+.btn-ghost { font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; color: var(--muted); background: none; border: 1px solid var(--rule); padding: 9px 16px; border-radius: 7px; cursor: pointer; }
+.btn-ghost:hover { color: var(--navy); border-color: var(--navy); }
+.btn-next { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; color: white; background: var(--brand); border: none; padding: 10px 22px; border-radius: 7px; cursor: pointer; }
+.btn-next:disabled { opacity: 0.35; cursor: default; }
+.hidden { display: none !important; }
+.pk-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* typed-answer mode */
+.mode-toggle { display: flex; gap: 8px; margin-bottom: 4px; }
+.mode-btn {
+  flex: 1; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  padding: 10px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--cream); color: var(--muted);
+}
+.mode-btn:hover { border-color: var(--brand); color: var(--brand); }
+.mode-btn.active { background: var(--navy); border-color: var(--navy); color: #fff; }
+.mode-note { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin: 8px 0 4px; }
+
+.typed-input {
+  width: 100%; box-sizing: border-box; font-family: inherit; font-size: 15px;
+  line-height: 1.55; color: var(--ink); padding: 13px 15px; border-radius: 9px;
+  border: 1px solid var(--rule); background: var(--cream); resize: vertical;
+}
+.typed-input:focus { outline: none; border-color: var(--brand); background: var(--paper); }
+.typed-input:disabled { color: var(--muted); }
+.btn-reveal {
+  margin-top: 12px; width: 100%; font-family: 'DM Sans', sans-serif;
+  font-size: 14px; font-weight: 700; padding: 12px 18px; border-radius: 8px;
+  border: none; background: var(--brand); color: #fff; cursor: pointer;
+}
+.btn-reveal:hover { opacity: 0.92; }
+
+.typed-answer { margin-top: 18px; }
+.typed-answer-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 7px;
+}
+.typed-answer-text {
+  font-size: 15px; line-height: 1.6; color: var(--navy); padding: 13px 15px;
+  border-radius: 9px; background: #f0fdf4; border: 1px solid #bbf7d0; margin-bottom: 18px;
+}
+.self-mark { display: flex; gap: 8px; }
+.mark-btn {
+  flex: 1; font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700;
+  padding: 12px 10px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--paper); color: var(--ink);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.mark-btn .key {
+  font-size: 10px; font-weight: 700; color: var(--muted); background: var(--cream);
+  border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px;
+}
+.mark-btn:hover:not(:disabled) { border-color: var(--navy); }
+.mark-btn:disabled { cursor: default; opacity: 0.4; }
+.mark-btn.picked { opacity: 1; }
+.mark-btn.picked.mark-right { background: #dcfce7; border-color: #16a34a; color: #14532d; }
+.mark-btn.picked.mark-part  { background: #fef3c7; border-color: #d97706; color: #78350f; }
+.mark-btn.picked.mark-wrong { background: #fee2e2; border-color: #dc2626; color: #7f1d1d; }
+/* The gauge's suggestion — a hint, not a verdict; the student still chooses. */
+.mark-btn.suggested { border-color: var(--navy); box-shadow: inset 0 0 0 1px var(--navy); }
+
+/* closeness gauge (explain questions) */
+.gauge { margin-top: 18px; }
+.gauge-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 7px; }
+.gauge-label { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.gauge-pct { font-family: 'Lora', serif; font-weight: 700; font-size: 20px; color: var(--navy); }
+.gauge-bar { height: 7px; border-radius: 4px; background: var(--rule-faint); overflow: hidden; }
+.gauge-bar span { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--brand); transition: width 0.35s; }
+.gauge-bar.low span  { background: #f87171; }
+.gauge-bar.mid span  { background: #fbbf24; }
+.gauge-bar.high span { background: #22c55e; }
+.gauge-points { list-style: none; margin: 14px 0 0; padding: 0; }
+.gauge-point {
+  display: grid; grid-template-columns: 18px 1fr; gap: 9px; align-items: baseline;
+  font-size: 13.5px; line-height: 1.5; color: var(--ink); padding: 4px 0;
+}
+.gauge-point .gp-mark { font-weight: 700; font-size: 13px; }
+.gauge-point.hit .gp-mark  { color: #16a34a; }
+.gauge-point.miss .gp-mark { color: #b91c1c; }
+.gauge-point.miss { color: var(--muted); }
+.gauge-note { font-size: 11.5px; color: var(--muted); line-height: 1.55; margin-top: 12px; }
+.explain-q .q-text { font-size: 18px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <canvas class="header-sky" data-starfield data-seed="317" data-region="0.8"></canvas>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo"><img src="/version2/assets/images/classicalia-wordmark.png" alt="Classicalia"></a>
+      <div class="nav-links">
+        <a href="/version2/subjects/latin/" class="nav-link">Latin</a>
+        <a href="/version2/subjects/greek/" class="nav-link">Greek</a>
+        <a href="/version2/subjects/classical-civilisation/" class="nav-link active">Class. Civ.</a>
+        <div class="nav-div"></div>
+        <a href="/version2/tools/" class="nav-link">Tools</a>
+        <a href="#" class="nav-link">About</a>
+        <a href="#" class="nav-cta">Sign in</a>
+      </div>
+    </div>
+  </nav>
+  <div class="header-inner">
+    <div class="header-eyebrow">A-Level Classical Civilisation &middot; The Odyssey</div>
+    <h1 class="header-title">Topic Tester</h1>
+    <p class="header-deck">Knowledge check and explain questions, book by book, with progress tracking &mdash; pick a topic, choose how you want to answer, and tick the books you have read</p>
+  </div>
+</div>
+
+<div class="quiz-wrap">
+
+  <div class="sync-pill" id="syncPill"><span class="dot"></span><span id="syncText">Saving progress on this device</span></div>
+
+  <div class="donow-banner hidden" id="doNowBanner"></div>
+
+  <!-- SETUP -->
+  <div class="quiz-card" id="setup">
+    <h2>Choose what to practise</h2>
+    <div class="sub" id="setupSub">Your answers are tracked question by question, so the tester focuses on what you find hardest.</div>
+
+    <div class="field-label">Answer mode</div>
+    <div class="mode-toggle" id="modeToggle">
+      <button type="button" class="mode-btn active" data-mode="choice">Multiple choice</button>
+      <button type="button" class="mode-btn" data-mode="typed">Type your answer</button>
+      <button type="button" class="mode-btn" data-mode="explain">Explain questions</button>
+    </div>
+    <div class="mode-note" id="modeNote"></div>
+
+    <div class="field-label">Topic</div>
+    <select class="topic-select" id="topicSelect"></select>
+
+    <div class="field-label" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Books</span>
+      <button class="select-toggle" id="toggleAll">Select none</button>
+    </div>
+    <div id="subtopicList"></div>
+
+    <button class="start-btn" id="startBtn">Start tester</button>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="quiz-card hidden" id="quiz">
+    <div class="p-know-dot" id="qDot"></div>
+    <div class="quiz-meta">
+      <span class="subtopic-tag" id="qSubtopic"></span>
+      <span class="counter" id="qCounter"></span>
+    </div>
+    <div class="q-progress"><span id="qProgressBar"></span></div>
+    <div class="q-text" id="qText"></div>
+    <div class="mc-list" id="qOptions"></div>
+    <div class="hidden" id="qTyped">
+      <textarea class="typed-input" id="qTypedInput" rows="3" placeholder="Type your answer&hellip;" autocomplete="off" spellcheck="false"></textarea>
+      <button class="btn-reveal" id="revealBtn" type="button">Show the answer</button>
+      <div class="gauge hidden" id="qGauge">
+        <div class="gauge-head">
+          <span class="gauge-label">How close you got</span>
+          <span class="gauge-pct" id="qGaugePct">0%</span>
+        </div>
+        <div class="gauge-bar"><span id="qGaugeFill"></span></div>
+        <ul class="gauge-points" id="qGaugePoints"></ul>
+        <div class="gauge-note" id="qGaugeNote"></div>
+      </div>
+      <div class="typed-answer hidden" id="qTypedAnswer">
+        <div class="typed-answer-label" id="qModelLabel">Answer</div>
+        <div class="typed-answer-text" id="qModelAnswer"></div>
+        <div class="typed-answer-label">Mark yourself</div>
+        <div class="self-mark">
+          <button class="mark-btn mark-right" type="button" data-credit="1"><span class="key">1</span><span class="mark-label">Right</span></button>
+          <button class="mark-btn mark-part"  type="button" data-credit="0.5"><span class="key">2</span><span class="mark-label">Nearly</span></button>
+          <button class="mark-btn mark-wrong" type="button" data-credit="0"><span class="key">3</span><span class="mark-label">Wrong</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="quiz-controls">
+      <button class="btn-ghost" id="backBtn">&larr; Menu</button>
+      <button class="btn-next" id="nextBtn" disabled>Next &rarr;</button>
+    </div>
+  </div>
+
+  <!-- DO NOW FINISHED -->
+  <div class="quiz-card hidden" id="doNowDone"></div>
+
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <a href="/version2/" class="footer-logo"><img src="/version2/assets/images/classicalia-wordmark-navy.png" alt="Classicalia"></a>
+    <div class="footer-links">
+      <a href="/version2/subjects/latin/" class="footer-link">Latin</a>
+      <a href="/version2/subjects/greek/" class="footer-link">Greek</a>
+      <a href="/version2/subjects/classical-civilisation/" class="footer-link">Classical Civilisation</a>
+    </div>
+    <span class="footer-copy">classicalia.co.uk &middot; Free for all</span>
+  </div>
+</footer>
+
+<script>
+// ── BKT model (identical to the vocabulary tester) ──
+const BKT = { pL0: 0.30, pT: 0.12, pG: 0.32, pS: 0.15, mastery: 0.95 };
+const MASTERY = { daysRequired: 3 };
+
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; }
+  return a;
+}
+function isSecure(s) { return s.pKnow >= BKT.mastery && (s.distinctCorrectDays|0) >= MASTERY.daysRequired; }
+
+const TOPICS = (window.OdysseyQuiz && window.OdysseyQuiz.topics) || [];
+let topic = null;          // active topic object
+let store = null;          // BKT store for the topic's list
+let stateById = new Map(); // id -> question state
+let subtopics = [];        // [{label, ids:[]}] in first-appearance order
+let selected = new Set();  // selected subtopic labels
+let pool = [];             // active question states
+let current = null;
+let answered = false;
+// 'choice'  = multiple choice
+// 'typed'   = write the multiple-choice answer out, then mark yourself against it
+// 'explain' = the A-Level explain questions: write two or three sentences, have
+//             the answer gauged against the model one, then mark yourself
+// Remembered per device.
+let answerMode = 'choice';
+const MODE_KEY = 'classicalia.quizAnswerMode';
+try { const m = localStorage.getItem(MODE_KEY); if (m === 'typed' || m === 'choice' || m === 'explain') answerMode = m; } catch (_e) {}
+const MODE_NOTES = {
+  choice:  'Pick from four options. Your confidence moves with each answer.',
+  typed:   'Write your answer, then mark it Right, Nearly or Wrong. Nearly lifts your confidence less than Right, and only Right counts towards securing a question.',
+  explain: 'A-Level explain questions — no options. Write two or three sentences, and the tester gauges how much of the model answer you covered before you mark yourself Full, Nearly or Incorrect.'
+};
+const MARK_LABELS = {
+  choice:  ['Right', 'Nearly', 'Wrong'],
+  typed:   ['Right', 'Nearly', 'Wrong'],
+  explain: ['Full', 'Nearly', 'Incorrect']
+};
+
+// The explain questions live in their own file, so a topic falls back to the
+// global bank if the data files happened to load the other way round.
+function explainBank(t) {
+  if (t && t.explain && t.explain.length) return t.explain;
+  return (window.OdysseyExplain && window.OdysseyExplain[t && t.id]) || [];
+}
+// The questions the current mode draws on. Explain questions are tracked in
+// the same BKT list under their own ids, so switching mode keeps both records.
+function bank() {
+  if (!topic) return [];
+  return answerMode === 'explain' ? explainBank(topic) : topic.questions;
+}
+function allQuestions(t) { return (t.questions || []).concat(explainBank(t)); }
+function setAnswerMode(mode) {
+  const before = answerMode;
+  answerMode = (mode === 'typed' || mode === 'explain') ? mode : 'choice';
+  try { localStorage.setItem(MODE_KEY, answerMode); } catch (_e) {}
+  document.querySelectorAll('#modeToggle .mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === answerMode));
+  const note = document.getElementById('modeNote');
+  if (note) note.textContent = MODE_NOTES[answerMode];
+  const labels = MARK_LABELS[answerMode];
+  document.querySelectorAll('#qTyped .mark-btn .mark-label').forEach((el, i) => { el.textContent = labels[i]; });
+  // Explain questions are a different bank, so the subtopic list and its
+  // counts have to be rebuilt when the mode changes between the two.
+  const swapped = (before === 'explain') !== (answerMode === 'explain');
+  if (swapped && topic) { buildSubtopics(); selected = new Set(subtopics.map(st => st.label)); renderSetup(); }
+}
+// 'standard' = drill the chosen pool by confidence (manual quiz, Do Now)
+// 'order'    = work through the whole topic in subtopic order, introducing new
+//              questions only as earlier ones become Secure
+// 'review'   = consolidate everything answered-but-weak first, then introduce
+//              never-seen questions once those are securing
+let strategy = 'standard';
+let sessionAnswered = 0, sessionTarget = 0, sessionCorrect = 0;
+let userId = null;         // signed-in user id (for session logging + Do Now)
+let doNowActive = null;    // { topicId, updatedAt } when in a Do Now session
+let doNowWatch = null;     // interval that watches for the teacher stopping it
+
+// ── session logging — one vocab_sessions row per run, created on first
+// answer (signed-in cloud users only; anonymous practice isn't logged) ──
+let sessionLog = { id: null, list: null, answered: 0, correct: 0, creating: false };
+let sessionFlushTimer = null;
+
+async function fetchUserId() {
+  if (!window.supabase || !window.supabase.auth) return null;
+  try {
+    const { data } = await window.supabase.auth.getSession();
+    return (data && data.session && data.session.user) ? data.session.user.id : null;
+  } catch (_e) { return null; }
+}
+
+function beginSessionLog(listKey) {
+  flushSessionLog();
+  sessionLog = { id: null, list: listKey, answered: 0, correct: 0, creating: false };
+}
+function recordSessionAnswer(isCorrect) {
+  if (!userId || !store || store.mode !== 'cloud') return;
+  sessionLog.answered++;
+  if (isCorrect) sessionLog.correct++;
+  if (!sessionFlushTimer) sessionFlushTimer = setTimeout(flushSessionLog, 1500);
+}
+async function flushSessionLog() {
+  if (sessionFlushTimer) { clearTimeout(sessionFlushTimer); sessionFlushTimer = null; }
+  if (!userId || sessionLog.answered === 0) return;
+  const nowIso = new Date().toISOString();
+  try {
+    if (!sessionLog.id) {
+      if (sessionLog.creating) return;
+      sessionLog.creating = true;
+      const { data, error } = await window.supabase
+        .from('vocab_sessions')
+        .insert({ student_id: userId, vocab_list: sessionLog.list, answered: sessionLog.answered, correct: sessionLog.correct, last_answer_at: nowIso })
+        .select('id').single();
+      sessionLog.creating = false;
+      if (!error && data) sessionLog.id = data.id;
+    } else {
+      await window.supabase
+        .from('vocab_sessions')
+        .update({ answered: sessionLog.answered, correct: sessionLog.correct, last_answer_at: nowIso })
+        .eq('id', sessionLog.id);
+    }
+  } catch (_e) { sessionLog.creating = false; }
+}
+
+// ── store / state ──
+async function openStoreForTopic() {
+  if (!window.ClassicaliaBKT) return;
+  store = await window.ClassicaliaBKT.open({ vocabList: topic.list });
+  setSyncPill();
+  const stored = await store.loadAll();   // Map keyed by question id
+  stateById = new Map();
+  for (const q of allQuestions(topic)) {
+    const s = stored.get(q.id);
+    stateById.set(q.id, {
+      id: q.id, subtopic: q.subtopic, q: q.q, answers: q.answers || null,
+      model: q.model || null, points: q.points || null,
+      pKnow:               s ? s.p_know : BKT.pL0,
+      trials:              s ? (s.trials|0) : 0,
+      correct:             s ? (s.correct|0) : 0,
+      distinctCorrectDays: s ? (s.distinct_correct_days|0) : 0,
+      lastCorrectDate:     s ? (s.last_correct_date||null) : null
+    });
+  }
+}
+
+function setSyncPill() {
+  const pill = document.getElementById('syncPill');
+  if (store && store.mode === 'cloud') {
+    pill.classList.add('cloud');
+    document.getElementById('syncText').innerHTML = 'Synced to your account';
+  } else {
+    pill.classList.remove('cloud');
+    document.getElementById('syncText').innerHTML =
+      'Saving on this device &middot; <a href="/version2/subjects/classical-civilisation/">sign in to sync</a>';
+  }
+}
+
+function buildSubtopics() {
+  subtopics = [];
+  const seen = new Map();
+  for (const q of bank()) {
+    if (!seen.has(q.subtopic)) { seen.set(q.subtopic, { label: q.subtopic, ids: [] }); subtopics.push(seen.get(q.subtopic)); }
+    seen.get(q.subtopic).ids.push(q.id);
+  }
+}
+
+// ── BKT update ──
+// A self-marked answer earns partial credit, so the update takes a credit in
+// [0,1] rather than a boolean: 1 for right, 0.5 for nearly, 0 for wrong.
+// Multiple choice passes 1 or 0 and behaves exactly as before.
+//
+// The two posteriors are the ones a right and a wrong answer would give, and
+// a part-right answer lands between them in proportion to its credit — it
+// lifts confidence, but by less than knowing the answer outright.
+function bktUpdate(s, credit) {
+  const c = Math.max(0, Math.min(1, Number(credit) || 0));
+  const p = s.pKnow, { pG, pS, pT } = BKT;
+  const postRight = (p*(1-pS)) / (p*(1-pS) + (1-p)*pG);
+  const postWrong = (p*pS)     / (p*pS     + (1-p)*(1-pG));
+  const posterior = postWrong + (postRight - postWrong) * c;
+  s.pKnow = posterior + (1-posterior)*pT;
+  s.trials++;
+  // Only a fully right answer counts towards the run of correct days that
+  // makes a question Secure — "nearly" moves confidence, but doesn't prove it.
+  if (c >= 1) s.correct++;
+  const today = todayISO();
+  if (c >= 1 && s.lastCorrectDate !== today) { s.distinctCorrectDays = (s.distinctCorrectDays|0)+1; s.lastCorrectDate = today; }
+  if (store) {
+    store.update(s.id, {
+      p_know: s.pKnow, trials: s.trials, correct: s.correct,
+      distinct_correct_days: s.distinctCorrectDays|0, last_correct_date: s.lastCorrectDate||null
+    });
+  }
+}
+
+// ── selection ──
+// Pick from `list` weighted toward lowest pKnow (a small floor lets secure
+// items still recur occasionally).
+function weightedPick(list) {
+  if (!list.length) return null;
+  const weights = list.map(s => 1 - s.pKnow + 0.05);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < list.length; i++) { r -= weights[i]; if (r <= 0) return list[i]; }
+  return list[list.length - 1];
+}
+
+// Smart-mode tuning: a question is "strong" (no longer actively drilled) at
+// this confidence; only this many are kept in flight before new ones come in.
+const SMART = { strongP: 0.9, activeCap: 12, introChance: 0.35 };
+
+function pickNext() {
+  const order = new Map(subtopics.map((st, i) => [st.label, i]));
+  const idxOf = s => (order.has(s.subtopic) ? order.get(s.subtopic) : 0);
+
+  // 'order' — work through the topic in subtopic order. Drill the earliest
+  // subtopic that still has unmastered questions (new and seen alike) before
+  // any later subtopic surfaces. As its questions become Secure they drop out,
+  // advancing the frontier.
+  if (strategy === 'order') {
+    const unmastered = pool.filter(s => !isSecure(s));
+    if (!unmastered.length) return weightedPick(pool);
+    let frontier = Infinity;
+    for (const s of unmastered) { const i = idxOf(s); if (i < frontier) frontier = i; }
+    const front = unmastered.filter(s => idxOf(s) === frontier);
+    return weightedPick(front.length ? front : unmastered);
+  }
+
+  // 'review' — consolidate everything answered-but-weak first; introduce
+  // never-seen questions (in subtopic order) only once fewer than the cap are
+  // still being learned, so new material arrives as old material secures.
+  if (strategy === 'review') {
+    const active = pool.filter(s => (s.trials | 0) > 0 && s.pKnow < SMART.strongP && !isSecure(s));
+    const fresh = pool.filter(s => (s.trials | 0) === 0).sort((a, b) => idxOf(a) - idxOf(b));
+    const canIntroduce = fresh.length > 0 && active.length < SMART.activeCap;
+    if (canIntroduce && (active.length === 0 || Math.random() < SMART.introChance)) return fresh[0];
+    if (active.length) return weightedPick(active);
+    if (fresh.length) return fresh[0];
+    const unmastered = pool.filter(s => !isSecure(s));
+    return unmastered.length ? weightedPick(unmastered) : pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // 'standard' — drill the chosen pool, weighted toward what's hardest.
+  const unmastered = pool.filter(s => !isSecure(s));
+  return weightedPick(unmastered.length ? unmastered : pool);
+}
+
+// ── setup rendering ──
+function renderSetup() {
+  const list = document.getElementById('subtopicList');
+  list.innerHTML = '';
+  for (const st of subtopics) {
+    const states = st.ids.map(id => stateById.get(id));
+    const avg = states.reduce((a,s)=>a+s.pKnow,0) / states.length;
+    const secure = states.filter(isSecure).length;
+    const row = document.createElement('label');
+    row.className = 'subtopic-row';
+    row.innerHTML =
+      '<input type="checkbox" ' + (selected.has(st.label)?'checked':'') + '>' +
+      '<span class="subtopic-name">' + st.label + '</span>' +
+      '<span class="subtopic-meta"><span class="mini-bar"><span style="width:' + Math.round(avg*100) + '%"></span></span>' +
+      '<span class="subtopic-count">' + secure + '/' + st.ids.length + '</span></span>';
+    row.querySelector('input').addEventListener('change', e => {
+      if (e.target.checked) selected.add(st.label); else selected.delete(st.label);
+      updateStartState();
+    });
+    list.appendChild(row);
+  }
+  updateStartState();
+}
+function updateStartState() {
+  const n = bank().filter(q => selected.has(q.subtopic)).length;
+  document.getElementById('startBtn').disabled = n === 0;
+  document.getElementById('startBtn').textContent = n === 0 ? 'Select a book' : 'Start tester (' + n + ' questions)';
+  document.getElementById('toggleAll').textContent = selected.size === subtopics.length ? 'Select none' : 'Select all';
+}
+
+// ── quiz ──
+function startQuiz() {
+  strategy = 'standard';
+  pool = bank().filter(q => selected.has(q.subtopic)).map(q => stateById.get(q.id));
+  if (!pool.length) return;
+  document.getElementById('doNowBanner').classList.add('hidden');
+  sessionAnswered = 0; sessionTarget = pool.length;
+  beginSessionLog(topic.list);
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('quiz').classList.remove('hidden');
+  current = null;
+  nextQuestion();
+}
+
+// Shared launcher for the two smart modes: take the whole topic and start.
+function startSmart(mode) {
+  strategy = mode;                       // 'order' | 'review'
+  selected = new Set(subtopics.map(st => st.label));
+  pool = bank().map(q => stateById.get(q.id));
+  if (!pool.length) return;
+  document.getElementById('doNowBanner').classList.add('hidden');
+  sessionAnswered = 0; sessionTarget = pool.length;
+  beginSessionLog(topic.list);
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('quiz').classList.remove('hidden');
+  current = null;
+  nextQuestion();
+}
+
+// Learn / work through: go through the whole topic in subtopic order,
+// introducing new questions only as earlier ones become Secure.
+function startLearn() { startSmart('order'); }
+
+// Smart review: consolidate everything you've answered-but-not-secured first,
+// then introduce never-seen questions once those are securing.
+function startReview() { startSmart('review'); }
+
+// ── Do Now: load the assignment the teacher set for this student's class,
+// and drill that topic (and any chosen subtopics) straight away ──
+function showDoNowMessage(msg) { document.getElementById('setupSub').textContent = msg; }
+
+function setDoNowBanner(className, t, selSet) {
+  const subs = Array.from(selSet);
+  const allSubs = subs.length === subtopics.length;
+  const banner = document.getElementById('doNowBanner');
+  banner.innerHTML = "<strong>Today's Do Now</strong> &middot; " + escapeHtml(className || 'your class') +
+    " &middot; Topic " + escapeHtml(t.id) + " &mdash; " + escapeHtml(t.title) +
+    (allSubs ? '' : " &middot; " + subs.map(escapeHtml).join(', '));
+  banner.classList.remove('hidden');
+}
+
+async function startDoNow() {
+  userId = userId || await fetchUserId();
+  if (!userId) { showDoNowMessage('Sign in to load your class’s Do Now, or pick a topic below to practise.'); return; }
+  let res = null;
+  try {
+    const { data } = await window.supabase.rpc('get_my_do_now', { p_vocab_list: 'civ-odyssey' });
+    res = data;
+  } catch (_e) { res = null; }
+  if (!res || !res.ok) { showDoNowMessage('No Do Now has been set for your class yet — pick a topic below to practise.'); return; }
+  const idx = TOPICS.findIndex(t => t.id === res.topic_id);
+  if (idx < 0) { showDoNowMessage('Your teacher set a Do Now for a topic that isn’t available here yet.'); return; }
+  await loadTopic(idx);
+  if (Array.isArray(res.subtopics) && res.subtopics.length) {
+    const valid = res.subtopics.filter(l => subtopics.some(st => st.label === l));
+    selected = new Set(valid.length ? valid : subtopics.map(st => st.label));
+  } else {
+    selected = new Set(subtopics.map(st => st.label));
+  }
+  strategy = 'standard';
+  pool = bank().filter(q => selected.has(q.subtopic)).map(q => stateById.get(q.id));
+  if (!pool.length) { showDoNowMessage('No questions found for today’s Do Now.'); return; }
+  setDoNowBanner(res.class_name, topic, selected);
+  sessionAnswered = 0; sessionTarget = pool.length; sessionCorrect = 0;
+  doNowActive = { topicId: res.topic_id, updatedAt: res.updated_at };
+  if (doNowWatch) clearInterval(doNowWatch);
+  doNowWatch = setInterval(checkDoNowStillActive, 12000);
+  beginSessionLog(topic.list);
+  document.getElementById('doNowDone').classList.add('hidden');
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('quiz').classList.remove('hidden');
+  current = null;
+  nextQuestion();
+}
+
+// While a Do Now is running, watch for the teacher stopping it (or setting a
+// new one). When that happens, end the student's session and show results so
+// they can't keep going.
+async function checkDoNowStillActive() {
+  if (!doNowActive) return;
+  let res = null;
+  try {
+    const { data } = await window.supabase.rpc('get_my_do_now', { p_vocab_list: 'civ-odyssey' });
+    res = data;
+  } catch (_e) { return; }   // network blip — don't cut the student off on a transient error
+  if (!res) return;
+  if (!res.ok) { endDoNow('Your teacher has stopped the Do Now.'); return; }
+  if (res.updated_at !== doNowActive.updatedAt || res.topic_id !== doNowActive.topicId) {
+    endDoNow('Your teacher has started a new Do Now — reload the page to begin it.');
+  }
+}
+
+function endDoNow(reason) {
+  if (doNowWatch) { clearInterval(doNowWatch); doNowWatch = null; }
+  doNowActive = null;
+  flushSessionLog();
+  const total = sessionAnswered, correct = sessionCorrect;
+  const pct = total ? Math.round(correct / total * 100) : 0;
+  document.getElementById('quiz').classList.add('hidden');
+  document.getElementById('doNowBanner').classList.add('hidden');
+  const done = document.getElementById('doNowDone');
+  done.innerHTML =
+    '<h2>Do Now finished</h2>' +
+    '<div class="dn-result-msg">' + escapeHtml(reason || 'Your teacher has ended the Do Now.') + '</div>' +
+    '<div class="dn-result-score"><span class="dn-big">' + correct + ' / ' + total + '</span>' +
+    (total ? 'correct &middot; ' + pct + '%' : 'You didn’t answer any questions.') + '</div>' +
+    '<button class="btn-ghost" id="dnDoneMenu" type="button">Back to menu</button>';
+  done.classList.remove('hidden');
+  const mb = document.getElementById('dnDoneMenu');
+  if (mb) mb.addEventListener('click', () => {
+    done.classList.add('hidden');
+    document.getElementById('setup').classList.remove('hidden');
+    renderSetup();
+  });
+}
+
+// Colour the confidence dot for the current question and expose the % on
+// hover — the same rating students see on the Latin tester and the dashboard.
+function paintPKnowDot(s) {
+  const dot = document.getElementById('qDot');
+  if (!dot) return;
+  const p = s.pKnow;
+  dot.className = 'p-know-dot';
+  if (p >= BKT.mastery)   dot.classList.add('master');
+  else if (p >= 0.7)      dot.classList.add('high');
+  else if (p >= 0.4)      dot.classList.add('mid');
+  else                    dot.classList.add('low');
+  dot.title = 'Your confidence: ' + Math.round(p * 100) + '%';
+  dot.setAttribute('aria-label', dot.title);
+}
+
+function nextQuestion() {
+  let pick, tries = 0;
+  do { pick = pickNext(); tries++; } while (pick === current && tries < 6 && pool.length > 1);
+  current = pick;
+  answered = false;
+
+  paintPKnowDot(current);
+  document.getElementById('qSubtopic').textContent = current.subtopic;
+  document.getElementById('qCounter').textContent = 'Answered: ' + sessionAnswered;
+  document.getElementById('qProgressBar').style.width = sessionTarget ? Math.min(100, Math.round(sessionAnswered/sessionTarget*100)) + '%' : '0%';
+  document.getElementById('qText').textContent = current.q;
+
+  document.getElementById('quiz').classList.toggle('explain-q', answerMode === 'explain');
+  if (answerMode === 'choice') renderChoiceQuestion(current);
+  else renderTypedQuestion(current);
+  document.getElementById('nextBtn').disabled = true;
+}
+
+function renderChoiceQuestion(s) {
+  document.getElementById('qTyped').classList.add('hidden');
+  const box = document.getElementById('qOptions');
+  box.classList.remove('hidden');
+  const correctText = s.answers[0];
+  const opts = shuffle(s.answers.slice());
+  box.innerHTML = '';
+  opts.forEach((text, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'mc-btn';
+    btn.innerHTML = '<span class="key">' + (i+1) + '</span><span>' + escapeHtml(text) + '</span>';
+    btn.addEventListener('click', () => choose(btn, text === correctText, correctText));
+    box.appendChild(btn);
+  });
+}
+
+function renderTypedQuestion(s) {
+  document.getElementById('qOptions').classList.add('hidden');
+  const wrap = document.getElementById('qTyped');
+  wrap.classList.remove('hidden');
+  const explain = answerMode === 'explain';
+  const input = document.getElementById('qTypedInput');
+  input.value = '';
+  input.disabled = false;
+  input.rows = explain ? 6 : 3;
+  input.placeholder = explain ? 'Write two or three sentences…' : 'Type your answer…';
+  document.getElementById('revealBtn').textContent = explain ? 'Check my answer' : 'Show the answer';
+  document.getElementById('revealBtn').classList.remove('hidden');
+  document.getElementById('qTypedAnswer').classList.add('hidden');
+  document.getElementById('qGauge').classList.add('hidden');
+  document.getElementById('qModelLabel').textContent = explain ? 'Model answer' : 'Answer';
+  document.getElementById('qModelAnswer').textContent = explain ? (s.model || '') : s.answers[0];
+  document.querySelectorAll('#qTyped .mark-btn').forEach(b => {
+    b.disabled = false;
+    b.classList.remove('picked');
+  });
+  input.focus();
+}
+
+// Strip an answer back to bare words so the gauge can look for wording in it:
+// lowercase, apostrophes dropped (so "Odysseus'" meets "odysseus"), every
+// other punctuation mark turned into a space.
+function normaliseAnswer(text) {
+  return (' ' + String(text || '').toLowerCase().replace(/[’']/g, '') + ' ')
+    .replace(/[^a-z0-9]+/g, ' ');
+}
+
+// How much of the model answer the student's wording covers. This is a word
+// match, not comprehension: it can miss a point made in other words entirely,
+// so it only ever suggests a mark — see gaugeTyped below.
+function gaugeAnswer(s, text) {
+  const points = s.points || [];
+  const hay = normaliseAnswer(text);
+  const written = hay.trim().length > 0;
+  const results = points.map(p => ({
+    label: p.label,
+    hit: written && (p.any || []).some(v => hay.indexOf(normaliseAnswer(v).trim()) > -1)
+  }));
+  const hits = results.filter(r => r.hit).length;
+  const pct = results.length ? Math.round(hits / results.length * 100) : 0;
+  const suggestion = pct >= 67 ? 1 : (pct >= 34 ? 0.5 : 0);
+  return { results, hits, total: results.length, pct, suggestion };
+}
+
+function paintGauge(s, text) {
+  const g = gaugeAnswer(s, text);
+  const box = document.getElementById('qGauge');
+  document.getElementById('qGaugePct').textContent = g.pct + '%';
+  const bar = document.getElementById('qGaugeFill');
+  bar.style.width = g.pct + '%';
+  const wrap = bar.parentElement;
+  wrap.className = 'gauge-bar ' + (g.pct >= 67 ? 'high' : (g.pct >= 34 ? 'mid' : 'low'));
+  const list = document.getElementById('qGaugePoints');
+  list.innerHTML = '';
+  for (const r of g.results) {
+    const li = document.createElement('li');
+    li.className = 'gauge-point ' + (r.hit ? 'hit' : 'miss');
+    li.innerHTML = '<span class="gp-mark">' + (r.hit ? '&#10003;' : '&#10007;') + '</span><span>' + escapeHtml(r.label) + '</span>';
+    list.appendChild(li);
+  }
+  document.getElementById('qGaugeNote').textContent =
+    'You covered ' + g.hits + ' of ' + g.total + ' marking points. The gauge matches wording, not meaning, ' +
+    'so read the model answer and give yourself the mark you think it deserves.';
+  box.classList.remove('hidden');
+  // Nudge towards the gauge's reading, without choosing for the student.
+  const credits = [1, 0.5, 0];
+  document.querySelectorAll('#qTyped .mark-btn').forEach((b, i) => {
+    b.classList.toggle('suggested', credits[i] === g.suggestion);
+  });
+}
+
+// Reveal the model answer and hand over to self-marking. The typed answer is
+// never stored or marked automatically — on explain questions the gauge
+// suggests a mark from the wording, but the student still judges it.
+function revealTyped() {
+  if (answered) return;
+  const input = document.getElementById('qTypedInput');
+  input.disabled = true;
+  document.getElementById('revealBtn').classList.add('hidden');
+  if (answerMode === 'explain') paintGauge(current, input.value);
+  document.getElementById('qTypedAnswer').classList.remove('hidden');
+}
+
+function markTyped(btn, credit) {
+  if (answered) return;
+  answered = true;
+  sessionAnswered++;
+  if (credit >= 1) sessionCorrect++;
+  bktUpdate(current, credit);
+  recordSessionAnswer(credit >= 1);
+  paintPKnowDot(current);
+  document.querySelectorAll('#qTyped .mark-btn').forEach(b => { b.disabled = true; b.classList.remove('suggested'); });
+  btn.classList.add('picked');
+  document.getElementById('qCounter').textContent = 'Answered: ' + sessionAnswered;
+  document.getElementById('nextBtn').disabled = false;
+}
+
+function choose(btn, correct, correctText) {
+  if (answered) return;
+  answered = true;
+  sessionAnswered++;
+  if (correct) sessionCorrect++;
+  bktUpdate(current, correct ? 1 : 0);
+  recordSessionAnswer(correct);
+  paintPKnowDot(current);   // reflect the updated confidence straight away
+
+  const buttons = Array.from(document.querySelectorAll('#qOptions .mc-btn'));
+  buttons.forEach(b => {
+    b.disabled = true;
+    const label = b.querySelector('span:last-child').textContent;
+    if (label === correctText) b.classList.add('correct');
+    else if (b === btn) b.classList.add('wrong');
+    else b.classList.add('dim');
+  });
+  document.getElementById('qCounter').textContent = 'Answered: ' + sessionAnswered;
+  document.getElementById('nextBtn').disabled = false;
+}
+
+function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function backToMenu() {
+  if (doNowWatch) { clearInterval(doNowWatch); doNowWatch = null; }
+  doNowActive = null;
+  document.getElementById('quiz').classList.add('hidden');
+  document.getElementById('doNowDone').classList.add('hidden');
+  document.getElementById('doNowBanner').classList.add('hidden');
+  document.getElementById('setup').classList.remove('hidden');
+  if (store) store.flush();
+  flushSessionLog();
+  renderSetup();
+}
+
+// ── init ──
+function init() {
+  if (!TOPICS.length) {
+    document.getElementById('setupSub').textContent = 'No question topics are loaded yet.';
+    document.getElementById('startBtn').disabled = true;
+    return;
+  }
+  const sel = document.getElementById('topicSelect');
+  TOPICS.forEach((t, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = 'Topic ' + t.id + ' — ' + t.title;
+    sel.appendChild(o);
+  });
+  sel.addEventListener('change', () => loadTopic(parseInt(sel.value)));
+
+  document.getElementById('toggleAll').addEventListener('click', () => {
+    if (selected.size === subtopics.length) selected.clear();
+    else subtopics.forEach(st => selected.add(st.label));
+    renderSetup();
+  });
+  document.querySelectorAll('#modeToggle .mode-btn').forEach(b => {
+    b.addEventListener('click', () => setAnswerMode(b.dataset.mode));
+  });
+  setAnswerMode(answerMode);
+  document.getElementById('revealBtn').addEventListener('click', revealTyped);
+  document.querySelectorAll('#qTyped .mark-btn').forEach(b => {
+    b.addEventListener('click', () => markTyped(b, parseFloat(b.dataset.credit)));
+  });
+  document.getElementById('startBtn').addEventListener('click', startQuiz);
+  document.getElementById('backBtn').addEventListener('click', backToMenu);
+  document.getElementById('nextBtn').addEventListener('click', () => { if (answered) nextQuestion(); });
+
+  document.addEventListener('keydown', e => {
+    if (document.getElementById('quiz').classList.contains('hidden')) return;
+    const typing = e.target === document.getElementById('qTypedInput');
+    // While the answer box has focus, only Enter does anything — every other
+    // key belongs to what the student is writing.
+    if (typing) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); revealTyped(); }
+      return;
+    }
+    if (!answered && answerMode !== 'choice') {
+      const revealed = !document.getElementById('qTypedAnswer').classList.contains('hidden');
+      if (!revealed && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); revealTyped(); return; }
+      if (revealed && e.key >= '1' && e.key <= '3') {
+        const b = document.querySelectorAll('#qTyped .mark-btn')[parseInt(e.key)-1];
+        if (b) b.click();
+        return;
+      }
+    }
+    if (!answered && answerMode === 'choice' && e.key >= '1' && e.key <= '4') {
+      const b = document.querySelectorAll('#qOptions .mc-btn')[parseInt(e.key)-1];
+      if (b) b.click();
+    } else if (answered && (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight')) {
+      e.preventDefault(); nextQuestion();
+    }
+  });
+
+  const mode = new URLSearchParams(location.search).get('mode');
+  fetchUserId().then(id => { userId = id; });
+  loadTopic(0).then(() => {
+    if (mode === 'donow') startDoNow();
+    else if (mode === 'review') startReview();
+    else if (mode === 'learn') startLearn();
+  });
+}
+
+async function loadTopic(i) {
+  topic = TOPICS[i];
+  buildSubtopics();
+  selected = new Set(subtopics.map(st => st.label));
+  await openStoreForTopic();
+  renderSetup();
+}
+
+// re-flush before leaving
+window.addEventListener('beforeunload', () => { if (doNowWatch) clearInterval(doNowWatch); if (store) store.flush(); flushSessionLog(); });
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+</script>
+<script src="/version2/assets/js/starfield.js"></script>
+</body>
+</html>
