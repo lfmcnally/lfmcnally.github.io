@@ -189,6 +189,9 @@
 .gauge-point.miss .gp-mark { color: #b91c1c; }
 .gauge-point.miss { color: var(--muted); }
 .gauge-note { font-size: 11.5px; color: var(--muted); line-height: 1.55; margin-top: 12px; }
+/* A recall answer is scanned for its own words, so they sit in a row */
+.gauge-points--words { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.gauge-points--words .gauge-point { grid-template-columns: 14px auto; gap: 6px; padding: 2px 0; }
 .explain-q .q-text { font-size: 18px; }
 </style>
 </head>
@@ -238,9 +241,9 @@
 
     <div class="field-label">Answer mode</div>
     <div class="mode-toggle" id="modeToggle">
-      <button type="button" class="mode-btn active" data-mode="choice">Multiple choice</button>
-      <button type="button" class="mode-btn" data-mode="typed">Type your answer</button>
+      <button type="button" class="mode-btn active" data-mode="typed">Write &amp; mark</button>
       <button type="button" class="mode-btn" data-mode="explain">Explain questions</button>
+      <button type="button" class="mode-btn" data-mode="choice">Multiple choice</button>
     </div>
     <div class="mode-note" id="modeNote"></div>
 
@@ -341,13 +344,16 @@ let answered = false;
 // 'explain' = the A-Level explain questions: write two or three sentences, have
 //             the answer gauged against the model one, then mark yourself
 // Remembered per device.
-let answerMode = 'choice';
-const MODE_KEY = 'classicalia.quizAnswerMode';
+// A-Level work is written, so this tester opens on Write & mark rather than
+// multiple choice. The preference is its own key: a student who prefers
+// multiple choice on a GCSE tester shouldn't land in it here.
+let answerMode = 'typed';
+const MODE_KEY = 'classicalia.quizAnswerMode.odyssey';
 try { const m = localStorage.getItem(MODE_KEY); if (m === 'typed' || m === 'choice' || m === 'explain') answerMode = m; } catch (_e) {}
 const MODE_NOTES = {
-  choice:  'Pick from four options. Your confidence moves with each answer.',
-  typed:   'Write your answer, then mark it Right, Nearly or Wrong. Nearly lifts your confidence less than Right, and only Right counts towards securing a question.',
-  explain: 'A-Level explain questions — no options. Write two or three sentences, and the tester gauges how much of the model answer you covered before you mark yourself Full, Nearly or Incorrect.'
+  choice:  'Pick from four options. Quick recall practice — your confidence moves with each answer.',
+  typed:   'Write the answer out, and the tester scans it for what the answer needs before you mark yourself Right, Nearly or Wrong. Nearly lifts your confidence less than Right, and only Right counts towards securing a question.',
+  explain: 'A-Level explain questions — no options. Write two or three sentences, and the tester scans them against the marking points the model answer is made of before you mark yourself Full, Nearly or Incorrect.'
 };
 const MARK_LABELS = {
   choice:  ['Right', 'Nearly', 'Wrong'],
@@ -777,7 +783,7 @@ function renderTypedQuestion(s) {
   input.disabled = false;
   input.rows = explain ? 6 : 3;
   input.placeholder = explain ? 'Write two or three sentences…' : 'Type your answer…';
-  document.getElementById('revealBtn').textContent = explain ? 'Check my answer' : 'Show the answer';
+  document.getElementById('revealBtn').textContent = 'Check my answer';
   document.getElementById('revealBtn').classList.remove('hidden');
   document.getElementById('qTypedAnswer').classList.add('hidden');
   document.getElementById('qGauge').classList.add('hidden');
@@ -798,21 +804,81 @@ function normaliseAnswer(text) {
     .replace(/[^a-z0-9]+/g, ' ');
 }
 
-// How much of the model answer the student's wording covers. This is a word
-// match, not comprehension: it can miss a point made in other words entirely,
-// so it only ever suggests a mark — see gaugeTyped below.
+// Words that carry no answer on their own, so the scan never asks for them.
+const SCAN_SKIP = new Set(('a an the of to in on at by for with and or nor but so than then that this these those ' +
+  'is are was were be been being has have had do does did will would can could may might must shall should ' +
+  'he she it they them him her his hers its their theirs who whom whose which what when where why how ' +
+  'as from into out up down over under after before while during about against between through ' +
+  'not no all any each every both one own some more most other another same such very just still even only ' +
+  'i you we me my your our us there here own').split(' '));
+
+function scanWords(text) { return normaliseAnswer(text).trim().split(' ').filter(Boolean); }
+
+// Levenshtein, capped — used so a near-miss spelling still counts.
+function editDistance(a, b) {
+  if (a === b) return 0;
+  if (Math.abs(a.length - b.length) > 2) return 3;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const row = [i];
+    for (let j = 1; j <= b.length; j++) {
+      row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = row;
+  }
+  return prev[b.length];
+}
+
+// Does the student's answer use this word? Generous on purpose: a shared stem
+// counts (weaving/weaves), and so does a small slip or a variant spelling
+// (Athena for Athene, Polyphemos for Polyphemus).
+function usesWord(written, word) {
+  // Stem matching is held to longer words and a five-letter stem, so near
+  // neighbours that matter stay apart — Mentes is not Mentor.
+  const stemOf = x => (x.length >= 6 ? x.slice(0, Math.max(5, x.length - 2)) : null);
+  const stem = stemOf(word);
+  return written.some(w => {
+    if (w === word) return true;
+    if (stem && w.startsWith(stem)) return true;
+    const ws = stemOf(w);
+    if (ws && word.startsWith(ws)) return true;
+    return word.length >= 5 && editDistance(w, word) <= (word.length > 7 ? 2 : 1);
+  });
+}
+
+// What an answer has to contain. Explain questions carry their marking points;
+// a recall question's answer is short enough to scan for its own words, so the
+// words that carry it become the points.
+function pointsFor(s) {
+  if (s.points && s.points.length) return s.points;
+  const seen = new Set();
+  const words = [];
+  for (const w of scanWords(s.answers ? s.answers[0] : '')) {
+    if (SCAN_SKIP.has(w) || seen.has(w)) continue;
+    seen.add(w);
+    words.push({ label: w, word: w });
+  }
+  return words;
+}
+
+// How much of the answer the student's wording covers. This is a word match,
+// not comprehension: it can miss a point made in other words entirely, so it
+// only ever suggests a mark — the student still marks the answer.
 function gaugeAnswer(s, text) {
-  const points = s.points || [];
+  const points = pointsFor(s);
   const hay = normaliseAnswer(text);
-  const written = hay.trim().length > 0;
+  const written = scanWords(text);
+  const any = hay.trim().length > 0;
   const results = points.map(p => ({
     label: p.label,
-    hit: written && (p.any || []).some(v => hay.indexOf(normaliseAnswer(v).trim()) > -1)
+    hit: any && (p.any
+      ? p.any.some(v => hay.indexOf(normaliseAnswer(v).trim()) > -1)
+      : usesWord(written, p.word))
   }));
   const hits = results.filter(r => r.hit).length;
   const pct = results.length ? Math.round(hits / results.length * 100) : 0;
   const suggestion = pct >= 67 ? 1 : (pct >= 34 ? 0.5 : 0);
-  return { results, hits, total: results.length, pct, suggestion };
+  return { results, hits, total: results.length, pct, suggestion, derived: !(s.points && s.points.length) };
 }
 
 function paintGauge(s, text) {
@@ -824,6 +890,7 @@ function paintGauge(s, text) {
   const wrap = bar.parentElement;
   wrap.className = 'gauge-bar ' + (g.pct >= 67 ? 'high' : (g.pct >= 34 ? 'mid' : 'low'));
   const list = document.getElementById('qGaugePoints');
+  list.className = 'gauge-points' + (g.derived ? ' gauge-points--words' : '');
   list.innerHTML = '';
   for (const r of g.results) {
     const li = document.createElement('li');
@@ -831,9 +898,11 @@ function paintGauge(s, text) {
     li.innerHTML = '<span class="gp-mark">' + (r.hit ? '&#10003;' : '&#10007;') + '</span><span>' + escapeHtml(r.label) + '</span>';
     list.appendChild(li);
   }
-  document.getElementById('qGaugeNote').textContent =
-    'You covered ' + g.hits + ' of ' + g.total + ' marking points. The gauge matches wording, not meaning, ' +
-    'so read the model answer and give yourself the mark you think it deserves.';
+  document.getElementById('qGaugeNote').textContent = g.derived
+    ? 'Your answer has ' + g.hits + ' of the ' + g.total + ' word' + (g.total === 1 ? '' : 's') +
+      ' the answer turns on. The scan matches wording, not meaning, so read the answer and give yourself the mark you think it deserves.'
+    : 'You covered ' + g.hits + ' of ' + g.total + ' marking points. The scan matches wording, not meaning, ' +
+      'so read the model answer and give yourself the mark you think it deserves.';
   box.classList.remove('hidden');
   // Nudge towards the gauge's reading, without choosing for the student.
   const credits = [1, 0.5, 0];
@@ -842,15 +911,15 @@ function paintGauge(s, text) {
   });
 }
 
-// Reveal the model answer and hand over to self-marking. The typed answer is
-// never stored or marked automatically — on explain questions the gauge
-// suggests a mark from the wording, but the student still judges it.
+// Reveal the answer and hand over to self-marking. The written answer is never
+// stored or marked automatically — the scan suggests a mark from the wording,
+// but the student still judges it.
 function revealTyped() {
   if (answered) return;
   const input = document.getElementById('qTypedInput');
   input.disabled = true;
   document.getElementById('revealBtn').classList.add('hidden');
-  if (answerMode === 'explain') paintGauge(current, input.value);
+  if (answerMode !== 'choice') paintGauge(current, input.value);
   document.getElementById('qTypedAnswer').classList.remove('hidden');
 }
 
