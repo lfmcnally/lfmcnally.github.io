@@ -23,6 +23,8 @@
 <script src="/version2/tools/quiz/data/myth-1.7.js"></script>
 <script src="/version2/tools/quiz/data/myth-1.8.js"></script>
 <script src="/version2/tools/quiz/data/homeric-1.js"></script>
+<script src="/version2/tools/quiz/data/odyssey-explain-1.js"></script>
+<script src="/version2/tools/quiz/data/odyssey-1.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/bkt-store.js"></script>
@@ -691,6 +693,55 @@ body { background:#f4f6fa; }
     </div>
   </div>
 
+  <div id="course-odyssey" class="hidden">
+    <div class="action-strip" id="odysseyActions">
+      <a href="/version2/subjects/classical-civilisation/the-odyssey/tester.html?mode=learn" class="act-btn"><div><div class="lbl">Work through</div><div class="ttl">In order</div></div><span class="arr">&rarr;</span></a>
+      <a href="/version2/subjects/classical-civilisation/the-odyssey/tester.html?mode=review" class="act-btn"><div><div class="lbl">Recommended</div><div class="ttl">Smart review</div></div><span class="arr">&rarr;</span></a>
+      <a href="/version2/subjects/classical-civilisation/the-odyssey/tester.html" class="act-btn secondary"><div><div class="lbl">Practice</div><div class="ttl">Practise everything</div></div><span class="arr">&rarr;</span></a>
+      <a href="/version2/subjects/classical-civilisation/the-odyssey/" class="act-btn secondary"><div><div class="lbl">Course</div><div class="ttl">The Odyssey</div></div><span class="arr">&rarr;</span></a>
+    </div>
+    <div class="wordmap-card">
+      <div class="wordmap-head">
+        <span class="wordmap-title" id="odTitle">Question confidence map</span>
+        <div class="conf-legend">
+          <span class="conf-legend-swatch p-unseen"></span>Not seen
+          <span class="conf-legend-sep">&middot;</span>
+          <span class="conf-legend-swatch p-verylow"></span>Very low
+          <span class="conf-legend-sep">&middot;</span>
+          <span class="conf-legend-swatch p-low"></span>Low
+          <span class="conf-legend-sep">&middot;</span>
+          <span class="conf-legend-swatch p-mid"></span>Mid
+          <span class="conf-legend-sep">&middot;</span>
+          <span class="conf-legend-swatch p-high"></span>Strong
+          <span class="conf-legend-sep">&middot;</span>
+          <span class="conf-legend-swatch p-building"></span>Building
+          <span class="conf-legend-sep">&middot;</span>
+          <span class="conf-legend-swatch p-secure"></span>Secure
+        </div>
+      </div>
+      <div class="wordmap-body"><div class="wordmap" id="odMap"></div></div>
+    </div>
+    <div class="dash-grid">
+      <div>
+        <div class="dash-card">
+          <div class="dash-card-head"><span class="dash-card-title">Focus next &mdash; lowest confidence</span></div>
+          <div id="odFocus"></div>
+        </div>
+      </div>
+      <div>
+        <div class="dash-card">
+          <div class="dash-card-head"><span class="dash-card-title">Secure questions</span></div>
+          <div class="secure-count-wrap">
+            <div class="secure-count" id="odSecureCount">0</div>
+            <div class="secure-total" id="odSecureTotal"></div>
+          </div>
+          <div class="secure-desc">A question becomes secure once you answer it correctly with high confidence on at least three different days.</div>
+          <div class="secure-bar-wrap"><div class="secure-bar"><div class="secure-bar-fill" id="odSecureBar" style="width:0%"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="course-not-yet" class="hidden">
     <div class="empty-state-dashboard">
       <h2 id="notYetTitle">Coming soon</h2>
@@ -1054,7 +1105,7 @@ function renderDashboard(words, recentlyPractised) {
 // Each tab corresponds to a v2 course type. The body for that type is shown
 // when the tab is active; courses that aren't yet shipped (no bodyId in
 // course-map.js) route to the shared #course-not-yet placeholder.
-const COURSE_BODY_IDS = ['course-vocab', 'course-myth', 'course-homeric', 'course-not-yet', 'course-empty'];
+const COURSE_BODY_IDS = ['course-vocab', 'course-myth', 'course-homeric', 'course-odyssey', 'course-not-yet', 'course-empty'];
 
 function hideAllCourseBodies() {
   COURSE_BODY_IDS.forEach(id => {
@@ -1316,7 +1367,8 @@ document.getElementById('wordmapSort').addEventListener('click', (e) => {
   // only the heading names the course you are looking at.
   const CIV_HELP = [
     { bodyId: 'course-myth',    title: 'Your Myth & Religion progress, tracked properly' },
-    { bodyId: 'course-homeric', title: 'Your Homeric World progress, tracked properly' }
+    { bodyId: 'course-homeric', title: 'Your Homeric World progress, tracked properly' },
+    { bodyId: 'course-odyssey', title: 'Your Odyssey progress, tracked properly' }
   ];
   function open()  {
     const onCiv = CIV_HELP.find(c => {
@@ -1794,6 +1846,20 @@ civCourseView({
   topics: (window.HomericQuiz && window.HomericQuiz.topics) || [],
   ids: { map: 'hwMap', focus: 'hwFocus', title: 'hwTitle',
          secureCount: 'hwSecureCount', secureTotal: 'hwSecureTotal', secureBar: 'hwSecureBar' }
+});
+
+// The Odyssey tracks two banks in one list — the multiple-choice questions and
+// the A-Level explain questions — so the map is fed both, and a student sees
+// every question they have answered whichever mode they answered it in.
+civCourseView({
+  type: 'civ-alevel',
+  bodyId: 'course-odyssey',
+  topics: ((window.OdysseyQuiz && window.OdysseyQuiz.topics) || []).map(t => ({
+    id: t.id, title: t.title, list: t.list,
+    questions: (t.questions || []).concat(t.explain || [])
+  })),
+  ids: { map: 'odMap', focus: 'odFocus', title: 'odTitle',
+         secureCount: 'odSecureCount', secureTotal: 'odSecureTotal', secureBar: 'odSecureBar' }
 });
 </script>
 <script src="/version2/assets/js/starfield.js"></script>
