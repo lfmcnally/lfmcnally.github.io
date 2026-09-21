@@ -22,7 +22,7 @@
     { type: 'latin-alevel', label: 'A-Level Latin',             vocabList: 'latin-alevel',      bodyId: 'course-vocab' },
     { type: 'greek-gcse',   label: 'GCSE Greek',                vocabList: 'greek-gcse',        bodyId: 'course-vocab' },
     { type: 'greek-alevel', label: 'A-Level Greek',             vocabList: 'greek-alevel',      bodyId: 'course-vocab' },
-    { type: 'civ-alevel',   label: 'A-Level Classical Civ.',    vocabList: null,                bodyId: null }
+    { type: 'civ-alevel',   label: 'A-Level Civ. — The Odyssey', vocabList: 'civ-odyssey',     bodyId: 'course-odyssey' }
   ];
 
   const byType = new Map(COURSE_TYPES.map(c => [c.type, c]));
@@ -38,6 +38,8 @@
   function shipped() { return COURSE_TYPES.filter(c => c.bodyId); }
 
   // Subset shown on the profile picker as disabled "coming soon" chips.
+  // Empty while every catalogued course is shipped — the picker simply
+  // renders no chips then, and fills again as new courses are added.
   function comingSoon() { return COURSE_TYPES.filter(c => !c.bodyId); }
 
   // Back-compat shape for code that previously inlined `SUBJECT_VOCAB_LIST`.
