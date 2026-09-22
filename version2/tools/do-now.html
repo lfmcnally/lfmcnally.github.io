@@ -65,6 +65,11 @@
   .dn-fmt .i { font-style: italic; font-family: Georgia, serif; }
   .dn-fmt .u { text-decoration: underline; }
 
+  /* a section heading among the question rows */
+  .dn-q.dn-sec { background: var(--cream); border: 1px solid var(--rule-faint); border-radius: 8px; padding: 9px 10px; margin: 10px 0; }
+  .dn-sec .dn-q-num { width: auto; padding: 0 6px 0 2px; font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; }
+  .dn-sec .dn-q-input { font-weight: 700; color: var(--navy); }
+
   .dn-empty { font-size: 13.5px; color: var(--muted); font-style: italic; padding: 6px 0 12px; }
 
   /* import picker */
@@ -130,6 +135,12 @@
   .sheet .q-text:hover { background: #eef4ff; box-shadow: 0 0 0 1px #cfe0ff; }
   .sheet .q-text:focus { background: #eef4ff; box-shadow: 0 0 0 2px var(--brand); }
   .sheet .ans-line { display: block; }
+  /* A section heading runs the full width of the table and carries its own
+     tint, so the paper shows where one block of questions ends. */
+  .sheet td.sec { background: #e4e4e4; font-size: 11.5pt; font-weight: 700; letter-spacing: .03em; padding: 7px 10px; }
+  .sheet .sec-text { display: inline; outline: none; border-radius: 3px; padding: 0 2px; margin: 0 -2px; cursor: text; }
+  .sheet .sec-text:hover { background: #eef4ff; box-shadow: 0 0 0 1px #cfe0ff; }
+  .sheet .sec-text:focus { background: #eef4ff; box-shadow: 0 0 0 2px var(--brand); }
   .sheet-score { margin-top: 18px; border: 2px solid #000; padding: 9px; text-align: center; font-size: 14pt; font-weight: 700; }
   .sheet-foot { margin-top: 14px; font-size: 8.5pt; color: #555; text-align: center; }
   .sheet-foot img { height: 20px; width: auto; display: inline-block;
@@ -163,7 +174,10 @@
     .dn-preview-stage { overflow: visible; height: auto !important; width: auto !important; max-width: none !important; }
     .sheet { transform: none !important; width: auto; min-height: 0; box-shadow: none; padding: 0; }
     .sheet tr { break-inside: avoid; }
-    .sheet .q-text { background: none !important; box-shadow: none !important; }
+    /* A heading must never be the last thing on a page. */
+    .sheet tr.sec-row { break-after: avoid; }
+    .sheet td.sec { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .sheet .q-text, .sheet .sec-text { background: none !important; box-shadow: none !important; }
     .sheet-foot img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 </style>
@@ -280,6 +294,7 @@
         <div class="dn-checks">
           <label class="dn-check"><input type="checkbox" id="dnScore" checked> Score box at the bottom</label>
           <label class="dn-check"><input type="checkbox" id="dnNumbers" checked> Number the questions</label>
+          <label class="dn-check"><input type="checkbox" id="dnRestart" checked> Start again at 1 in each section</label>
           <label class="dn-check"><input type="checkbox" id="dnFooter"> Classicalia footer</label>
         </div>
       </div>
@@ -349,6 +364,10 @@
             <button class="dn-btn" id="dnSelectNone" type="button">Clear selection</button>
           </div>
           <div class="dn-random">
+            <label for="dnImportSection">Into a section called</label>
+            <input type="text" id="dnImportSection" style="width: 170px;" placeholder="Optional">
+          </div>
+          <div class="dn-random">
             <label for="dnRandomCount">Pick at random</label>
             <input type="number" id="dnRandomCount" min="1" value="10">
             <button class="dn-btn" id="dnRandomPick" type="button">Pick</button>
@@ -378,7 +397,9 @@
         <div class="dn-empty" id="dnEmpty" hidden>No questions yet &mdash; add one below, or paste a list.</div>
         <div class="dn-btn-row" style="margin-top: 14px;">
           <button class="dn-btn primary" id="dnAdd" type="button">+ Add question</button>
+          <button class="dn-btn" id="dnAddSection" type="button">+ Add section</button>
         </div>
+        <p class="dn-note">A section heading breaks the sheet into blocks &mdash; five on vocabulary, say, then five on the story. Everything below a heading belongs to it, until the next one.</p>
         <p class="dn-note">Select a word and press <strong>B</strong>, <em>I</em> or <span style="text-decoration:underline">U</span> above &mdash; or type the marks yourself: <code>**bold**</code>, <code>*italics*</code>, <code>__underline__</code>. Pressing the same button again takes the formatting off.</p>
       </div>
     </section>
@@ -398,7 +419,7 @@
 
   <aside class="dn-side">
     <div class="dn-preview-wrap">
-      <div class="dn-preview-label">Preview &mdash; A4 <span id="dnPages"></span> <span style="font-weight:600; letter-spacing:0; text-transform:none;">&middot; click a question to edit it here</span></div>
+      <div class="dn-preview-label">Preview &mdash; A4 <span id="dnPages"></span> <span style="font-weight:600; letter-spacing:0; text-transform:none;">&middot; click a question or heading to edit it here</span></div>
       <div class="dn-preview-stage" id="dnStage">
         <div class="sheet" id="dnSheet"></div>
       </div>
@@ -449,13 +470,31 @@
   var STORE_KEY = 'classicalia.doNow.sets';
   var DRAFT_KEY = 'classicalia.doNow.draft';
 
-  var questions = [];   // array of strings
+  /* A sheet is a list of items in order: questions, and the section headings
+     that group them. Older saved sets and drafts held plain strings, so every
+     list read back from storage goes through normalise() first. */
+  var items = [];
   var questionsEl = document.getElementById('dnQuestions');
   var emptyEl = document.getElementById('dnEmpty');
   var sheetEl = document.getElementById('dnSheet');
   var stageEl = document.getElementById('dnStage');
 
-  var settingIds = ['dnTitle', 'dnName', 'dnDate', 'dnLeft', 'dnRight', 'dnSpace', 'dnSplit', 'dnLines', 'dnFont', 'dnInstr', 'dnScore', 'dnNumbers', 'dnFooter'];
+  var settingIds = ['dnTitle', 'dnName', 'dnDate', 'dnLeft', 'dnRight', 'dnSpace', 'dnSplit', 'dnLines', 'dnFont', 'dnInstr', 'dnScore', 'dnNumbers', 'dnRestart', 'dnFooter'];
+
+  function question(text) { return { type: 'q', text: text || '' }; }
+  function section(title) { return { type: 'section', text: title || '' }; }
+  function isSection(item) { return item && item.type === 'section'; }
+
+  function normalise(list) {
+    var out = [];
+    (list || []).forEach(function (entry) {
+      if (typeof entry === 'string') { out.push(question(entry)); }
+      else if (entry && typeof entry.text === 'string') {
+        out.push(entry.type === 'section' ? section(entry.text) : question(entry.text));
+      }
+    });
+    return out;
+  }
 
   function val(id) { return document.getElementById(id).value; }
   function checked(id) { return document.getElementById(id).checked; }
@@ -559,23 +598,39 @@
 
   /* ── question rows ── */
 
-  function renderQuestions(focusIndex) {
+  // The number a question carries in the editor, which is the number it will
+  // carry on the sheet: counting restarts under a heading when that is asked for.
+  function editorNumbers() {
+    var restart = checked('dnRestart');
+    var n = 0;
+    return items.map(function (item) {
+      if (isSection(item)) { if (restart && item.text.trim() !== '') { n = 0; } return null; }
+      n++;
+      return n;
+    });
+  }
+
+  function renderItems(focusIndex) {
     questionsEl.innerHTML = '';
-    questions.forEach(function (q, i) {
+    var numbering = editorNumbers();
+
+    items.forEach(function (item, i) {
+      var heading = isSection(item);
+
       var row = document.createElement('div');
-      row.className = 'dn-q';
+      row.className = 'dn-q' + (heading ? ' dn-sec' : '');
 
       var num = document.createElement('div');
       num.className = 'dn-q-num';
-      num.textContent = (i + 1) + '.';
+      num.textContent = heading ? 'Section' : numbering[i] + '.';
 
       var input = document.createElement('textarea');
       input.className = 'dn-q-input';
       input.rows = 1;
-      input.value = q;
-      input.placeholder = 'Type a question…';
+      input.value = item.text;
+      input.placeholder = heading ? 'Name this section…' : 'Type a question…';
       input.addEventListener('input', function () {
-        questions[i] = input.value;
+        item.text = input.value;
         autoGrow(input);
         update();
       });
@@ -590,8 +645,8 @@
       var tools = document.createElement('div');
       tools.className = 'dn-q-tools';
       tools.appendChild(iconBtn('↑', 'Move up', i === 0, function () { move(i, -1); }));
-      tools.appendChild(iconBtn('↓', 'Move down', i === questions.length - 1, function () { move(i, 1); }));
-      tools.appendChild(iconBtn('✕', 'Remove', false, function () { remove(i); }, true));
+      tools.appendChild(iconBtn('↓', 'Move down', i === items.length - 1, function () { move(i, 1); }));
+      tools.appendChild(iconBtn('✕', heading ? 'Remove section' : 'Remove', false, function () { remove(i); }, true));
 
       row.appendChild(num);
       row.appendChild(input);
@@ -602,7 +657,7 @@
       if (focusIndex === i) { input.focus(); }
     });
 
-    emptyEl.hidden = questions.length > 0;
+    emptyEl.hidden = items.length > 0;
   }
 
   function iconBtn(glyph, label, disabled, onClick, danger) {
@@ -622,40 +677,58 @@
     el.style.height = Math.max(34, el.scrollHeight) + 'px';
   }
 
-  function addQuestion(at) {
-    var index = typeof at === 'number' ? at : questions.length;
-    questions.splice(index, 0, '');
-    renderQuestions(index);
+  function insert(entry, at) {
+    var index = typeof at === 'number' ? at : items.length;
+    items.splice(index, 0, entry);
+    renderItems(index);
     update();
   }
 
+  function addQuestion(at) { insert(question(''), at); }
+  function addSection(at) { insert(section(''), at); }
+
   function remove(i) {
-    questions.splice(i, 1);
-    renderQuestions();
+    items.splice(i, 1);
+    renderItems();
     update();
   }
 
   function move(i, delta) {
     var j = i + delta;
-    if (j < 0 || j >= questions.length) return;
-    var tmp = questions[i];
-    questions[i] = questions[j];
-    questions[j] = tmp;
-    renderQuestions(j);
+    if (j < 0 || j >= items.length) return;
+    var tmp = items[i];
+    items[i] = items[j];
+    items[j] = tmp;
+    renderItems(j);
     update();
   }
 
   /* ── the sheet ── */
 
+  // What actually reaches the paper: anything still blank is left out.
+  function sheetItems() {
+    var list = [];
+    items.forEach(function (item, idx) {
+      if (item.text.trim() === '') return;
+      list.push({ type: item.type, text: item.text, idx: idx });
+    });
+    // A heading with nothing under it would print as a stray bar.
+    return list.filter(function (entry, i) {
+      if (entry.type !== 'section') return true;
+      for (var j = i + 1; j < list.length; j++) {
+        if (list[j].type === 'section') return false;
+        return true;
+      }
+      return false;
+    });
+  }
+
   function filled() {
-    return questions.filter(function (q) { return q.trim() !== ''; });
+    return sheetItems().filter(function (entry) { return entry.type !== 'section'; });
   }
 
   function buildSheet() {
-    var list = [];
-    questions.forEach(function (q, idx) {
-      if (q.trim() !== '') { list.push({ text: q, idx: idx }); }
-    });
+    var list = sheetItems();
     var title = val('dnTitle').trim() || 'Do Now';
     var name = val('dnName').trim();
     var dateRaw = val('dnDate');
@@ -681,8 +754,17 @@
       answerCell = '<span class="ans">' + new Array(count + 1).join(line) + '</span>';
     }
 
-    var rows = list.map(function (item, i) {
-      var num = checked('dnNumbers') ? '<span class="qnum">' + (i + 1) + '.</span> ' : '';
+    var restart = checked('dnRestart');
+    var count = 0;
+    var rows = list.map(function (item) {
+      if (item.type === 'section') {
+        if (restart) { count = 0; }
+        return '<tr class="sec-row"><td class="sec" colspan="2">' +
+               '<span class="sec-text" contenteditable="true" spellcheck="false" data-q="' + item.idx + '">' +
+               formatText(item.text) + '</span></td></tr>';
+      }
+      count++;
+      var num = checked('dnNumbers') ? '<span class="qnum">' + count + '.</span> ' : '';
       return '<tr><td class="q">' + num +
              '<span class="q-text" contenteditable="true" spellcheck="false" data-q="' + item.idx + '">' +
              formatText(item.text) + '</span></td>' +
@@ -710,7 +792,8 @@
             '</tr></thead><tbody>' + rows + '</tbody></table>';
 
     if (checked('dnScore')) {
-      html += '<div class="sheet-score">Score: _____ / ' + (list.length || '____') + '</div>';
+      var marks = list.filter(function (entry) { return entry.type !== 'section'; }).length;
+      html += '<div class="sheet-score">Score: _____ / ' + (marks || '____') + '</div>';
     }
     if (checked('dnFooter')) {
       html += '<div class="sheet-foot"><img src="/version2/assets/images/classicalia-wordmark-navy.png" alt="Classicalia"></div>';
@@ -747,7 +830,7 @@
       var el = document.getElementById(id);
       settings[id] = el.type === 'checkbox' ? el.checked : el.value;
     });
-    writeStore(DRAFT_KEY, { settings: settings, questions: questions });
+    writeStore(DRAFT_KEY, { settings: settings, questions: items });
   }
 
   var editingInPreview = false;
@@ -766,41 +849,44 @@
 
   // A formatted question shows its marks again while it is being edited here,
   // so typing cannot quietly flatten the <strong> and <em> back to plain text.
-  sheetEl.addEventListener('focusin', function (e) {
-    var cell = e.target.closest ? e.target.closest('.q-text') : null;
-    if (!cell) return;
+  function cellItem(e) {
+    var cell = e.target.closest ? e.target.closest('.q-text, .sec-text') : null;
+    if (!cell) return null;
     var idx = parseInt(cell.getAttribute('data-q'), 10);
-    if (isNaN(idx) || idx < 0 || idx >= questions.length) return;
-    if (hasMarks(questions[idx])) { cell.textContent = questions[idx]; }
+    if (isNaN(idx) || idx < 0 || idx >= items.length) return null;
+    return { cell: cell, idx: idx, item: items[idx] };
+  }
+
+  sheetEl.addEventListener('focusin', function (e) {
+    var hit = cellItem(e);
+    if (!hit) return;
+    if (hasMarks(hit.item.text)) { hit.cell.textContent = hit.item.text; }
   });
 
   // Typing into the preview edits the question it came from.
   sheetEl.addEventListener('input', function (e) {
-    var cell = e.target.closest ? e.target.closest('.q-text') : null;
-    if (!cell) return;
-    var idx = parseInt(cell.getAttribute('data-q'), 10);
-    if (isNaN(idx) || idx < 0 || idx >= questions.length) return;
+    var hit = cellItem(e);
+    if (!hit) return;
     editingInPreview = true;
-    questions[idx] = cell.textContent;
-    var box = rowsInputs()[idx];
-    if (box) { box.value = cell.textContent; autoGrow(box); }
+    hit.item.text = hit.cell.textContent;
+    var box = rowsInputs()[hit.idx];
+    if (box) { box.value = hit.cell.textContent; autoGrow(box); }
     saveDraft();
   });
 
   sheetEl.addEventListener('focusout', function (e) {
-    var cell = e.target.closest ? e.target.closest('.q-text') : null;
-    if (!cell) return;
+    if (!cellItem(e)) return;
     editingInPreview = false;
-    // An emptied cell would vanish from the sheet, so drop the row properly.
-    renderQuestions();
+    // An emptied cell would vanish from the sheet, so redraw the rows properly.
+    renderItems();
     update();
   });
 
   sheetEl.addEventListener('keydown', function (e) {
-    var cell = e.target.closest ? e.target.closest('.q-text') : null;
-    if (!cell) return;
-    if (e.key === 'Enter') { e.preventDefault(); cell.blur(); }
-    if (e.key === 'Escape') { cell.blur(); }
+    var hit = cellItem(e);
+    if (!hit) return;
+    if (e.key === 'Enter') { e.preventDefault(); hit.cell.blur(); }
+    if (e.key === 'Escape') { hit.cell.blur(); }
   });
 
   function rowsInputs() {
@@ -834,8 +920,12 @@
       row.className = 'dn-set';
 
       var info = document.createElement('div');
+      var entries = normalise(set.questions);
+      var count = entries.filter(function (entry) { return !isSection(entry); }).length;
+      var sections = entries.filter(isSection).length;
       info.innerHTML = '<div class="dn-set-name">' + escapeHtml(set.name) + '</div>' +
-        '<div class="dn-set-meta">' + set.questions.length + ' question' + (set.questions.length === 1 ? '' : 's') +
+        '<div class="dn-set-meta">' + count + ' question' + (count === 1 ? '' : 's') +
+        (sections ? ' · ' + sections + ' section' + (sections === 1 ? '' : 's') : '') +
         ' · saved ' + escapeHtml(set.saved || '') + '</div>';
 
       var tools = document.createElement('div');
@@ -846,9 +936,9 @@
       load.className = 'dn-btn';
       load.textContent = 'Load';
       load.addEventListener('click', function () {
-        questions = set.questions.slice();
+        items = normalise(set.questions);
         applySettings(set.settings);
-        renderQuestions();
+        renderItems();
         update();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
@@ -1208,25 +1298,30 @@
 
   document.getElementById('dnImportAdd').addEventListener('click', function () {
     var direction = document.getElementById('dnDirection').value;
+    var heading = document.getElementById('dnImportSection').value.trim();
 
     // Add them in the order they appear in the set, not the order they were ticked.
-    var added = 0;
+    var incoming = [];
     catalogue.forEach(function (item) {
       if (!picked[item.id]) return;
-      questions.push(questionFor(item, direction));
-      added++;
+      incoming.push(question(questionFor(item, direction)));
     });
+    var added = incoming.length;
 
     if (!added) { window.alert('Tick some words or questions first, or use "Pick" to take some at random.'); return; }
 
     // Drop the blank rows sitting there rather than import after them.
-    questions = questions.filter(function (q) { return q.trim() !== ''; });
+    items = items.filter(function (entry) { return entry.text.trim() !== ''; });
+
+    if (heading) { items.push(section(heading)); }
+    items = items.concat(incoming);
 
     picked = {};
-    renderQuestions();
+    renderItems();
     update();
     renderPicker();
-    statusEl.textContent = added + (added === 1 ? ' item' : ' items') + ' added to the sheet below.';
+    statusEl.textContent = added + (added === 1 ? ' item' : ' items') + ' added to the sheet below' +
+      (heading ? ', under "' + heading + '".' : '.');
   });
 
   /* ── wiring ── */
@@ -1237,37 +1332,48 @@
   });
 
   document.getElementById('dnAdd').addEventListener('click', function () { addQuestion(); });
+  document.getElementById('dnAddSection').addEventListener('click', function () { addSection(); });
 
+  // Questions shuffle within their own section; the headings stay put, and so
+  // does the block of questions each one names.
   document.getElementById('dnShuffle').addEventListener('click', function () {
-    for (var i = questions.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var tmp = questions[i]; questions[i] = questions[j]; questions[j] = tmp;
+    var start = 0;
+    for (var i = 0; i <= items.length; i++) {
+      if (i === items.length || isSection(items[i])) {
+        for (var a = i - 1; a > start; a--) {
+          var b = start + Math.floor(Math.random() * (a - start + 1));
+          var tmp = items[a]; items[a] = items[b]; items[b] = tmp;
+        }
+        start = i + 1;
+      }
     }
-    renderQuestions();
+    renderItems();
     update();
   });
 
   document.getElementById('dnClear').addEventListener('click', function () {
-    if (questions.length && !window.confirm('Clear every question on this sheet?')) return;
-    questions = [];
-    renderQuestions();
+    if (items.length && !window.confirm('Clear every question and section on this sheet?')) return;
+    items = [];
+    renderItems();
     update();
   });
 
   document.getElementById('dnPaste').addEventListener('click', function () {
-    var text = window.prompt('Paste your questions, one per line:');
+    var text = window.prompt('Paste your questions, one per line. Begin a line with ## to make it a section heading:');
     if (!text) return;
     text.split(/\r?\n/).forEach(function (line) {
+      var heading = line.match(/^\s*#{2,}\s*(.+)$/);
+      if (heading) { items.push(section(heading[1].trim())); return; }
       var q = line.replace(/^\s*\d+[.)]\s*/, '').trim();
-      if (q) questions.push(q);
+      if (q) items.push(question(q));
     });
-    renderQuestions();
+    renderItems();
     update();
   });
 
   document.getElementById('dnSave').addEventListener('click', function () {
-    var list = filled();
-    if (!list.length) { window.alert('Add at least one question before saving.'); return; }
+    if (!filled().length) { window.alert('Add at least one question before saving.'); return; }
+    var list = items.filter(function (entry) { return entry.text.trim() !== ''; });
     var suggested = val('dnTitle').trim() || 'Do Now';
     var name = window.prompt('Name this set:', suggested);
     if (!name) return;
@@ -1318,12 +1424,12 @@
   var draft = readStore(DRAFT_KEY, null);
   if (draft && Array.isArray(draft.questions) && draft.questions.length) {
     applySettings(draft.settings);
-    questions = draft.questions.slice();
+    items = normalise(draft.questions);
   } else {
-    questions = ['', '', '', '', ''];
+    items = [question(''), question(''), question(''), question(''), question('')];
   }
 
-  renderQuestions();
+  renderItems();
   renderSets();
   update();
 })();
