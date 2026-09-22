@@ -414,6 +414,13 @@ tr:hover .spark-bar { background: rgba(0,102,255,0.4); }
       <div><div class="m-section-label">Students</div>
         <div id="cs-students"></div>
       </div>
+      <div id="cs-coteachers-section" style="display:none">
+        <div class="m-section-label">Co-teachers</div>
+        <p style="font-size:0.8rem;color:var(--g-text-secondary);margin-bottom:8px">Co-teachers can see this class and set homework for it. Only you, as the owner, can add or remove them.</p>
+        <div id="cs-coteachers"></div>
+        <div style="display:flex;gap:8px;margin-top:8px"><input class="field-input" id="cs-coteacher-email" type="email" placeholder="teacher@school.edu" style="flex:1"><button class="btn btn-primary btn-sm" onclick="addCoTeacher()">Add</button></div>
+        <div id="cs-coteacher-msg" style="font-size:0.8rem;margin-top:8px"></div>
+      </div>
     </div>
     <div class="m-footer">
       <button class="btn btn-secondary" style="color:var(--g-red);border-color:var(--g-red)" onclick="confirmDeleteClass()">Delete class</button>
@@ -460,7 +467,7 @@ tr:hover .spark-bar { background: rgba(0,102,255,0.4); }
 const AVC=['#0066ff','#34A853','#FBBC04','#EA4335','#7c3aed','#06b6d4','#ec4899','#2dd4bf','#f97316','#84cc16'];
 const CIV_TOPICS={'civ-gcse':[{id:'t1',name:'Topic 3 — Temples',slug:'temples',colour:'#7c3aed',qCount:32},{id:'t2',name:'Topic 4 — Festivals',slug:'festivals',colour:'#ec4899',qCount:28},{id:'t3',name:'Topic 5 — Foundation Stories',slug:'foundation',colour:'#06b6d4',qCount:24},{id:'t4',name:'Topic 6 — Politics',slug:'politics',colour:'#FBBC04',qCount:35}],'civ-alevel':[{id:'a1',name:'Topic 1 — Augustus & Succession',slug:'augustus',colour:'#f97316',qCount:40},{id:'a2',name:'Topic 2 — Roman Architecture',slug:'architecture',colour:'#34A853',qCount:30},{id:'a3',name:'Topic 3 — Alexander the Great',slug:'alexander',colour:'#06b6d4',qCount:38},{id:'a4',name:'Topic 4 — Greek Theatre',slug:'theatre',colour:'#ec4899',qCount:26}]};
 
-let currentUser=null, teacherClasses=[], allStudentData=[], currCls=null, currClsStudents=[], currStu=null, lastPage='overview';
+let currentUser=null, teacherClasses=[], allStudentData=[], currCls=null, currClsStudents=[], currStu=null, lastPage='overview', classCoTeachers=[];
 let wItems=[],wMode='practice',wDue='Tomorrow';
 let hwTab='vocab',vList='gcse',vDue='Tomorrow',civCourse='gcse',civTopic=null,civDue='Tomorrow';
 
@@ -549,6 +556,7 @@ async function loadTeacherClasses(){
     supabase.from('classes').select('*').eq('teacher_id',currentUser.id).order('created_at'),
     supabase.from('class_teachers').select('class_id, classes(*)').eq('teacher_id',currentUser.id)
   ]);
+  if(coRes.error) console.warn('Could not load co-taught classes:',coRes.error.message);
   const seen=new Set();teacherClasses=[];
   [...(ownRes.data||[]),...(coRes.data||[]).map(ct=>ct.classes).filter(Boolean)].forEach(c=>{if(!seen.has(c.id)){seen.add(c.id);teacherClasses.push(c);}});
 
@@ -1454,9 +1462,73 @@ async function openClassSettings(){
       '</div>';
     }).join('');
   }
+  // Co-teachers (owner only)
+  await loadCoTeachers();
+
   document.getElementById('cs-ov').classList.add('open');
 }
 function closeClassSettings(){document.getElementById('cs-ov').classList.remove('open');}
+
+// ── CO-TEACHERS ───
+function coTeacherMsg(text,isError){
+  const el=document.getElementById('cs-coteacher-msg');
+  el.textContent=text||'';
+  el.style.color=isError?'var(--g-red)':'var(--g-text-secondary)';
+}
+
+async function loadCoTeachers(){
+  const section=document.getElementById('cs-coteachers-section');
+  // Only the class owner manages co-teachers (the demo class has no owner)
+  if(!currCls||currCls.teacher_id!==currentUser.id){section.style.display='none';return;}
+  section.style.display='';
+  document.getElementById('cs-coteacher-email').value='';
+  coTeacherMsg('');
+  const el=document.getElementById('cs-coteachers');
+  const {data,error}=await supabase.from('class_teachers')
+    .select('id, teacher_id, users:teacher_id(id, full_name, email)')
+    .eq('class_id',currCls.id);
+  if(error){
+    classCoTeachers=[];
+    el.innerHTML='<p style="color:var(--g-red)">Could not load co-teachers: '+error.message+'</p>';
+    return;
+  }
+  classCoTeachers=(data||[]).map(e=>({id:e.id,teacher_id:e.teacher_id,...(e.users||{})}));
+  if(!classCoTeachers.length){
+    el.innerHTML='<p style="color:var(--g-text-secondary)">No co-teachers yet.</p>';
+    return;
+  }
+  el.innerHTML=classCoTeachers.map(t=>{
+    const name=t.full_name||t.email||'Unknown';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--g-border)">'+
+      '<div><div style="font-weight:500">'+name+'</div>'+(t.email?'<div style="font-size:0.78rem;color:var(--g-text-secondary)">'+t.email+'</div>':'')+'</div>'+
+      '<button class="btn btn-secondary btn-sm" style="color:var(--g-red);border-color:var(--g-red);font-size:0.75rem" onclick="removeCoTeacher(\''+t.id+'\',\''+name.replace(/'/g,"\\'")+'\')">Remove</button>'+
+    '</div>';
+  }).join('');
+}
+
+async function addCoTeacher(){
+  if(!currCls) return;
+  const email=document.getElementById('cs-coteacher-email').value.trim().toLowerCase();
+  if(!email){coTeacherMsg('Enter the teacher\'s email address.',true);return;}
+  const {data:teacher,error}=await supabase.from('users').select('id, full_name, email, role').eq('email',email).maybeSingle();
+  if(error){coTeacherMsg('Could not look that email up: '+error.message,true);return;}
+  if(!teacher){coTeacherMsg('No Classicalia account found with that email.',true);return;}
+  if(teacher.role!=='teacher'){coTeacherMsg('That account is not a teacher account.',true);return;}
+  if(teacher.id===currentUser.id){coTeacherMsg('You already own this class.',true);return;}
+  if(classCoTeachers.some(ct=>ct.teacher_id===teacher.id)){coTeacherMsg('They are already a co-teacher of this class.',true);return;}
+  const {error:insErr}=await supabase.from('class_teachers').insert({class_id:currCls.id,teacher_id:teacher.id});
+  if(insErr){coTeacherMsg('Could not add them: '+insErr.message,true);return;}
+  await loadCoTeachers();
+  coTeacherMsg((teacher.full_name||email)+' can now co-teach this class.',false);
+}
+
+async function removeCoTeacher(entryId,name){
+  if(!confirm('Remove '+name+' as a co-teacher of this class?')) return;
+  const {error}=await supabase.from('class_teachers').delete().eq('id',entryId);
+  if(error){coTeacherMsg('Could not remove them: '+error.message,true);return;}
+  await loadCoTeachers();
+  coTeacherMsg(name+' is no longer a co-teacher.',false);
+}
 
 async function saveChapterLimit(){
   if(!currCls) return;
