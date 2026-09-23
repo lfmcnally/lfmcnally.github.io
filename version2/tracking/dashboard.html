@@ -495,8 +495,6 @@ body { background:#f4f6fa; }
     <div class="hw-head"><span class="hw-title">Homework</span></div>
     <div id="hwList"></div>
   </div>
-  <!-- Open weekly test for the course being viewed (filled below). -->
-  <div id="testSlot"></div>
   <div id="course-vocab">
   <div class="anon-banner" id="anonBanner" style="display:none;">
     <div class="anon-pitch">
@@ -663,6 +661,11 @@ const VOCAB_COURSES = {
 // Track which vocab course's data is currently rendered, so tab switches can
 // short-circuit when the same course is reselected.
 let currentVocabCourse = 'latin-gcse';
+// The vocab course whose data is actually drawn in #course-vocab (null until
+// the first render). Compared against, rather than currentVocabCourse, so a
+// student whose first tab is a Class. Civ. course still gets their Latin
+// rendered when they switch to it.
+let renderedVocabCourse = null;
 
 function isVocabCourse(type) {
   return Object.prototype.hasOwnProperty.call(VOCAB_COURSES, type);
@@ -1067,7 +1070,7 @@ function showCourseBody(type) {
     document.getElementById(bodyId).classList.remove('hidden');
     // Vocab courses share a single body (#course-vocab) — when the active
     // course changes we need to re-render against the new language's data.
-    if (isVocabCourse(type) && type !== currentVocabCourse) {
+    if (isVocabCourse(type) && type !== renderedVocabCourse) {
       currentVocabCourse = type;
       loadVocabCourse(type);
     } else if (isVocabCourse(type)) {
@@ -1203,8 +1206,9 @@ async function init() {
   // language.
   const activeTab = document.querySelector('#courseTabs .course-tab.active');
   if (activeTab && isVocabCourse(activeTab.dataset.courseType)) {
+    // showCourseBody has normally drawn it already; only load if it hasn't.
     currentVocabCourse = activeTab.dataset.courseType;
-    await loadVocabCourse(currentVocabCourse);
+    if (renderedVocabCourse !== currentVocabCourse) await loadVocabCourse(currentVocabCourse);
   } else if (document.getElementById('course-vocab') &&
              !document.getElementById('course-vocab').classList.contains('hidden')) {
     // No tabs visible (single-course mode) but vocab body is shown — render it.
@@ -1217,6 +1221,7 @@ async function init() {
 // re-run whenever the user switches between vocab tabs.
 async function loadVocabCourse(courseType) {
   currentVocabCourse = courseType;
+  renderedVocabCourse = courseType;
   updateVocabTesterLinks();
 
   // Relabel the "Chapter" sort button to match the course's group noun.
@@ -1913,42 +1918,7 @@ civCourseView({
 });
 </script>
 <script src="/version2/assets/js/starfield.js"></script>
-<script>
-// Surface an open Weekly Test above the course it belongs to (by class type).
-// RLS already limits weekly_tests to the student's own classes; re-evaluated
-// on every tab click.
-(async function(){
-  try {
-    const sb = window.supabase;
-    if (!sb || !sb.auth || !sb.from) return;
-    const { data: au } = await sb.auth.getUser();
-    if (!au || !au.user) return;
-    const { data } = await sb.from('weekly_tests').select('id, v2_classes(type)').eq('status', 'open');
-    const openTypes = new Set((data || []).map(t => t.v2_classes && t.v2_classes.type).filter(Boolean));
-    if (!openTypes.size) return;
-    const TAKE = '/version2/tracking/weekly-test-take.html';
-    function btn(){
-      const a = document.createElement('a');
-      a.href = TAKE; a.className = 'act-btn test';
-      a.innerHTML = '<div><div class="lbl">New</div><div class="ttl">Weekly test</div></div><span class="arr">→</span>';
-      return a;
-    }
-    function refresh(){
-      const slot = document.getElementById('testSlot');
-      if (!slot) return;
-      const active = document.querySelector('#courseTabs .course-tab.active');
-      const type = active && active.dataset.courseType;
-      if (type && openTypes.has(type)) {
-        if (!slot.firstChild) { const a = btn(); a.style.cssText = 'display:flex;margin-bottom:20px;max-width:320px;'; slot.appendChild(a); }
-      } else { slot.innerHTML = ''; }
-    }
-    refresh();
-    setTimeout(refresh, 400);
-    const tabs = document.getElementById('courseTabs');
-    if (tabs) tabs.addEventListener('click', () => setTimeout(refresh, 50));
-  } catch (e) { /* non-fatal */ }
-})();
-</script>
+
 
 </body>
 </html>

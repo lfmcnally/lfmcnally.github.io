@@ -640,6 +640,7 @@ body { background: var(--cream); }
     <div class="stat"><div class="stat-n" id="statLearning">0</div><div class="stat-label">Learning</div></div>
     <div class="stat"><div class="stat-n" id="statCorrect">0</div><div class="stat-label">Correct</div></div>
     <div class="stat"><div class="stat-n" id="statStreak">0</div><div class="stat-label">Streak</div></div>
+    <div class="stat" id="statCoverWrap" style="display:none;"><div class="stat-n" id="statCover">0/0</div><div class="stat-label">Covered</div></div>
   </div>
 
   <div class="progress-bar-wrap">
@@ -1013,6 +1014,10 @@ async function startSessionWithPool(pool, mode, strategy) {
     };
   });
 
+  retryQueue = [];
+  coverageAsked = new Set();
+  if (sessionStrategy === 'coverage') buildCoveragePass(false);
+
   currentMode = mode || selectedMode;
   streak = 0;
   totalCorrect = 0;
@@ -1123,7 +1128,7 @@ async function maybeAutoStart() {
   const clean = pool.map(({ p, t, distinctCorrectDays, nextReviewAt, ...rest }) => rest);
   // A queue or an assigned range is focused → standard selector; a plain smart
   // session (?auto=1) gets the frontier + throttle strategy.
-  await startSessionWithPool(clean, 'mc', (queueName || hasRange) ? 'standard' : 'smart');
+  await startSessionWithPool(clean, 'mc', queueName ? 'standard' : (hasRange ? 'coverage' : 'smart'));
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1235,7 +1240,47 @@ const SMART_STRONG_P = 0.9;
 const SMART_ACTIVE_CAP = 12;
 const SMART_INTRODUCE_CHANCE = 0.35;
 
+// ═══════════════════════════════════════════════════════
+// COVERAGE SESSIONS (a chapter range from the progress page or homework)
+// ═══════════════════════════════════════════════════════
+// Every word in the range is asked once before any word repeats, so choosing
+// "chapter 1 to 1" really does test the whole of chapter 1. The pass runs
+// due-for-review words first, then the weakest, then unseen words, then the
+// ones already known. A missed word comes back after a short gap without
+// holding up the pass. Once every word has been asked, further passes cycle
+// through whatever still isn't mastered (or everything, if all of it is).
+let coverageOrder = [];        // words still to ask in the current pass
+let coverageAsked = new Set(); // distinct words asked at least once this session
+let retryQueue = [];           // [{ word, at }] missed words to bring back
+const RETRY_GAP = 4;           // answers to wait before re-asking a missed word
+
+function buildCoveragePass(onlyWeak) {
+  const now = Date.now();
+  const rank = w => {
+    if (w.nextReviewAt && Date.parse(w.nextReviewAt) <= now &&
+        (w.distinctCorrectDays | 0) >= MASTERY.daysRequired) return 0;   // due for review
+    if (w.trials > 0 && w.pKnow < BKT.mastery) return 1;                  // seen, still weak
+    if (w.trials === 0) return 2;                                          // not seen yet
+    return 3;                                                              // already known
+  };
+  let pool = onlyWeak ? activeWords.filter(w => w.pKnow < BKT.mastery) : activeWords;
+  if (!pool.length) pool = activeWords;
+  coverageOrder = pool.slice().sort((a, b) =>
+    (rank(a) - rank(b)) || (a.pKnow - b.pKnow) || ((a.chapter || 0) - (b.chapter || 0)));
+}
+
+function pickCoverageWord() {
+  const r = retryQueue.findIndex(x => x.at <= totalAnswered && x.word !== currentWord);
+  if (r >= 0) return retryQueue.splice(r, 1)[0].word;
+  if (!coverageOrder.length) buildCoveragePass(true);
+  let i = coverageOrder.findIndex(w => w !== currentWord);
+  if (i < 0) i = 0;
+  return coverageOrder.splice(i, 1)[0];
+}
+
 function pickNextWord() {
+  if (sessionStrategy === 'coverage') return pickCoverageWord();
+
   // 1. Highest priority: words Due for spaced-repetition review (every strategy).
   const now = Date.now();
   const due = activeWords.filter(w =>
@@ -1428,6 +1473,12 @@ function handleAnswer(isCorrect, clickedBtn) {
 
   // BKT update — returns transition metadata for the flash logic below
   const transition = bktUpdate(currentWord, isCorrect);
+  if (sessionStrategy === 'coverage') {
+    coverageAsked.add(currentWord);
+    if (!isCorrect && !retryQueue.some(x => x.word === currentWord)) {
+      retryQueue.push({ word: currentWord, at: totalAnswered + RETRY_GAP });
+    }
+  }
   recordSessionAnswer(isCorrect);
 
   // update dot (colour + hover % tooltip)
@@ -1471,6 +1522,11 @@ function handleAnswer(isCorrect, clickedBtn) {
 // STATS
 // ═══════════════════════════════════════════════════════
 function updateStats() {
+  const coverWrap = document.getElementById('statCoverWrap');
+  if (coverWrap) {
+    coverWrap.style.display = sessionStrategy === 'coverage' ? '' : 'none';
+    document.getElementById('statCover').textContent = coverageAsked.size + '/' + activeWords.length;
+  }
   const mastered = activeWords.filter(w => w.pKnow >= BKT.mastery).length;
   const learning = activeWords.filter(w => w.pKnow < BKT.mastery).length;
   const pct = Math.round((mastered / activeWords.length) * 100);
