@@ -282,16 +282,6 @@ body { background: var(--cream); }
 /* App shell + sidebar nav live in classicalia.css; only the page background is page-local. */
 body { background:#f4f6fa; }
 
-/* Grammar nuggets as a grid of square tiles (bigger cousins of the vocab boxes) */
-.nug-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(116px,1fr)); gap:9px; margin:2px 0 4px; }
-.nug-tile { position:relative; display:flex; flex-direction:column; gap:8px; min-height:88px; padding:14px 12px 10px; border:1px solid var(--rule); border-radius:11px; background:var(--paper); text-decoration:none; overflow:hidden; transition:transform .1s, box-shadow .1s, border-color .1s; }
-.nug-tile.practise { cursor:pointer; }
-.nug-tile.practise:hover { border-color:var(--brand); box-shadow:0 5px 16px rgba(14,30,63,.09); transform:translateY(-1px); }
-.nug-bar { position:absolute; left:0; top:0; height:4px; width:100%; background:#e8eaf0; }
-.nug-bar > span { display:block; height:100%; transition:width .3s; }
-.nug-name { font-size:12.5px; font-weight:600; line-height:1.25; color:var(--navy); flex:1; }
-.nug-foot { display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--muted); font-variant-numeric:tabular-nums; }
-.nug-dot { width:9px; height:9px; border-radius:50%; flex:none; }
 </style>
 </head>
 <body>
@@ -605,7 +595,6 @@ body { background:#f4f6fa; }
       </div>
     </div>
   </div>
-  <div id="grammarPanel" style="display:none;margin-top:20px;"></div>
   </div><!-- /course-vocab -->
 
   <div id="course-myth" class="hidden">
@@ -1958,34 +1947,47 @@ function civCourseView(cfg) {
   }
 }
 
-// Topic picker for content courses: the quiz runs one topic at a time, so the
-// buttons open whichever topic the student is studying (remembered per course
-// in this browser) instead of always starting at topic 1.
+// Topic range for content courses, mirroring the vocab chapter range: the
+// buttons open a quiz on just the topics the student picks (e.g. 1.1 to 1.3)
+// instead of always starting at topic 1. Remembered per course in this
+// browser. Courses with a single topic don't need it, so it stays hidden.
 function topicScope(stripId, courseType, topics) {
   const box = document.querySelector('[data-topic-scope="' + stripId + '"]');
   const strip = document.getElementById(stripId);
-  if (!box || !strip || !topics.length) return;
-  const key = 'classicalia.topic.' + courseType;
-  let chosen = null;
-  try { chosen = localStorage.getItem(key); } catch (_e) { chosen = null; }
-  if (!topics.some(t => String(t.id) === chosen)) chosen = String(topics[0].id);
+  if (!box || !strip || topics.length < 2) return;
+  const key = 'classicalia.topicRange.' + courseType;
+  const ids = topics.map(t => String(t.id));
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(key) || 'null'); } catch (_e) { saved = null; }
+  let from = ids[0], to = ids[0];
+  if (saved && ids.includes(saved.from) && ids.includes(saved.to) && ids.indexOf(saved.from) <= ids.indexOf(saved.to)) {
+    from = saved.from; to = saved.to;
+  }
   const esc = x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
-  box.innerHTML = '<span>Topic I\'m studying</span><select aria-label="Topic">' +
-    topics.map(t => '<option value="' + esc(t.id) + '">' + esc(t.id + ' ' + (t.title || '')) + '</option>').join('') + '</select>';
-  const sel = box.querySelector('select');
-  sel.value = chosen;
+  const opts = topics.map(t => '<option value="' + esc(t.id) + '">' + esc(t.id + ' ' + (t.title || '')) + '</option>').join('');
+  box.innerHTML = '<span>Topics</span><select aria-label="From topic">' + opts + '</select><span>to</span><select aria-label="To topic">' + opts + '</select>';
+  const [fromSel, toSel] = box.querySelectorAll('select');
+  fromSel.value = from; toSel.value = to;
   function apply() {
     strip.querySelectorAll('a.act-btn').forEach(a => {
       const url = new URL(a.getAttribute('href'), location.origin);
       if (!/tester\.html$|\/quiz\//.test(url.pathname)) return;   // e.g. the course page link
-      url.searchParams.set('topic', sel.value);
+      url.searchParams.set('topic', fromSel.value);
+      if (toSel.value !== fromSel.value) url.searchParams.set('to', toSel.value);
+      else url.searchParams.delete('to');
       a.setAttribute('href', url.pathname + url.search);
     });
   }
-  sel.addEventListener('change', () => {
-    try { localStorage.setItem(key, sel.value); } catch (_e) { /* not remembered */ }
+  function onChange(ev) {
+    // Keep the range the right way round: moving one end past the other drags it along.
+    if (ids.indexOf(fromSel.value) > ids.indexOf(toSel.value)) {
+      if (ev.target === fromSel) toSel.value = fromSel.value; else fromSel.value = toSel.value;
+    }
+    try { localStorage.setItem(key, JSON.stringify({ from: fromSel.value, to: toSel.value })); } catch (_e) { /* not remembered */ }
     apply();
-  });
+  }
+  fromSel.addEventListener('change', onChange);
+  toSel.addEventListener('change', onChange);
   apply();
 }
 topicScope('mythActions', 'civ-gcse', (window.CivQuiz && window.CivQuiz.topics) || []);
@@ -2065,116 +2067,5 @@ civCourseView({
 })();
 </script>
 
-<!-- Grammar confidence panel (self-contained; nuggets RAG grid) -->
-<script>
-(async function(){
-  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-  try{
-    const sb = window.supabase; if(!sb) return;
-    const { data: au } = await sb.auth.getUser(); if(!au||!au.user) return;
-    const uid = au.user.id;
-    const [{ data: nugs }, { data: ev }, { data: mem }, { data: prof }] = await Promise.all([
-      sb.from('grammar_nuggets').select('id,code,category,title,revision_url,position,chapter').eq('subject','latin').eq('level','gcse').order('position'),
-      sb.from('student_nugget_events').select('nugget_id, correct').eq('student_id', uid),
-      sb.from('v2_class_members').select('class_id').eq('student_id', uid),
-      sb.from('users').select('grammar_chapter, can_self_serve_bank, can_manage_bank').eq('id', uid).maybeSingle(),
-    ]);
-    // Practice is an entitled feature (no paid tier yet) — granted in admin.
-    // Everyone still sees their confidence bars; non-entitled accounts get a
-    // greyed "coming soon" instead of a live Practise link.
-    const canPractiseFeature = !!(prof && (prof.can_self_serve_bank || prof.can_manage_bank));
-    if(!nugs || !nugs.length) return;                 // no taxonomy = nothing to show
-    if(!canPractiseFeature) return;                   // not switched on for this account: keep the page clear
-    // The student's current chapter = furthest of their classes' setting and
-    // their own; practice for a nugget runs at max(that, the nugget's chapter)
-    // so the target is always inside the vocab/grammar window.
-    let studentChapter = (prof && prof.grammar_chapter) || 0;
-    const classIds = (mem||[]).map(m=>m.class_id);
-    if(classIds.length){
-      const { data: cls } = await sb.from('v2_classes').select('grammar_chapter').in('id', classIds);
-      (cls||[]).forEach(c=>{ if((c.grammar_chapter||0) > studentChapter) studentChapter = c.grammar_chapter; });
-    }
-    const agg={}; (ev||[]).forEach(e=>{ const a=agg[e.nugget_id]||(agg[e.nugget_id]={seen:0,correct:0}); a.seen++; if(e.correct) a.correct++; });
-    const totalSeen = Object.keys(agg).reduce((s,k)=>s+agg[k].seen,0);
-    // Match the vocab confidence palette: blue = secure, green = building,
-    // red = worth a focus, grey = not practised. Recomputed every load from
-    // ALL of your events, so the bars move as you do more translations.
-    const colour=(a)=>{ if(!a||!a.seen) return '#e8eaf0'; const r=a.correct/a.seen; return r>=0.7?'#1A6FFF':r>=0.4?'#86efac':'#fca5a5'; };
-    // Group by chapter (Latin to GCSE), reading as a progression. Chapter 0 =
-    // the un-gated "common slips" that apply at every chapter, shown last.
-    const chapters=[]; nugs.forEach(n=>{ const ch=n.chapter||0; if(chapters.indexOf(ch)<0) chapters.push(ch); });
-    chapters.sort((a,b)=>(a===0?999:a)-(b===0?999:b));
-    // "Practise my weak spots" — the lowest-scoring concepts the student has
-    // actually been TAUGHT (chapter <= their class/own chapter), mixed. Needs a
-    // chapter set; without one we can't bound the vocab window, so hide it.
-    let weakBtn='';
-    if(canPractiseFeature && studentChapter>0){
-      const cands = nugs.filter(n=>(n.chapter||0)>0 && n.chapter<=studentChapter && agg[n.id] && agg[n.id].seen>0)
-        .map(n=>({n, r: agg[n.id].correct/agg[n.id].seen, seen: agg[n.id].seen}))
-        .sort((a,b)=> (a.r-b.r) || (b.seen-a.seen)).slice(0,4);
-      if(cands.length>=2){
-        const codes = cands.map(c=>c.n.code).join(',');
-        const href = '/version2/tracking/practice.html?nuggets='+encodeURIComponent(codes)+'&chapter='+studentChapter+'&title='+encodeURIComponent('Your weak spots');
-        weakBtn = '<a href="'+href+'" style="display:inline-block;margin-top:12px;text-decoration:none;background:var(--brand);color:#fff;font-size:13px;font-weight:700;padding:9px 15px;border-radius:8px;">Practise my weak spots →</a>';
-      }
-    }
-    let body='';
-    chapters.forEach(ch=>{
-      const items=nugs.filter(n=>(n.chapter||0)===ch);
-      const head = ch===0 ? 'Common slips · any chapter' : ('Chapter '+ch);
-      body+='<div style="margin:18px 0 8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--navy);">'+esc(head)+'</div>';
-      body+='<div class="nug-grid">'+items.map(function(n){
-        const a=agg[n.id]; const c=colour(a); const pct=a&&a.seen?Math.round(a.correct/a.seen*100):0;
-        // Practisable only if it's a concept the student has been taught: at or
-        // below their chapter (or, if no chapter is set, at the concept's own
-        // level). Practice draws on vocab up to that chapter.
-        const inWindow = (n.chapter||0) > 0 && (studentChapter===0 || n.chapter <= studentChapter);
-        const canPractise = inWindow && canPractiseFeature;
-        const lockedPractise = inWindow && !canPractiseFeature;
-        const tip = n.title + (a&&a.seen ? (' — '+a.correct+'/'+a.seen+' right') : ' — not practised yet') + (canPractise ? ' · click to practise' : (lockedPractise ? ' · practice coming soon' : ''));
-        const score = a&&a.seen ? (a.correct+'/'+a.seen) : '–';
-        const hint = canPractise ? ' · Practise →' : (lockedPractise ? ' · Soon' : '');
-        const tile =
-          '<span class="nug-bar"><span style="width:'+(a&&a.seen?Math.max(pct,6):0)+'%;background:'+c+';"></span></span>'+
-          '<span class="nug-name">'+esc(n.title)+'</span>'+
-          '<span class="nug-foot"><span class="nug-dot" style="background:'+c+';"></span>'+score+hint+'</span>';
-        const cls = 'nug-tile'+(canPractise?' practise':'');
-        if(canPractise){
-          const ch = studentChapter>0 ? studentChapter : n.chapter;
-          const href = '/version2/tracking/practice.html?nugget='+encodeURIComponent(n.code)+'&chapter='+ch+'&title='+encodeURIComponent(n.title);
-          return '<a class="'+cls+'" title="'+esc(tip)+'" href="'+href+'">'+tile+'</a>';
-        }
-        if(n.revision_url) return '<a class="'+cls+'" title="'+esc(tip)+'" href="'+esc(n.revision_url)+'">'+tile+'</a>';
-        return '<div class="'+cls+'" title="'+esc(tip)+'">'+tile+'</div>';
-      }).join('')+'</div>';
-    });
-    // Visual key — little pills instead of a sentence.
-    const KEY=[['#1A6FFF','Secure'],['#86efac','Building'],['#fca5a5','Worth a focus'],['#e8eaf0','Not practised']];
-    const keyHtml='<div style="display:flex;flex-wrap:wrap;gap:8px;">'+KEY.map(function(k){
-      return '<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);background:var(--paper);border:1px solid var(--rule);border-radius:999px;padding:3px 10px;">'+
-        '<span style="width:10px;height:10px;border-radius:50%;flex:none;background:'+k[0]+';"></span>'+k[1]+'</span>';
-    }).join('')+'</div>';
-    const el=document.getElementById('grammarPanel'); if(!el) return;
-    // When the practice feature isn't enabled, veil the whole panel with a
-    // frosted "coming soon" overlay (the bars still show faintly underneath).
-    const lockOverlay = canPractiseFeature ? '' :
-      '<div style="position:absolute;inset:0;background:rgba(244,245,248,0.6);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;border-radius:0 0 14px 14px;z-index:3;">'+
-        '<div style="text-align:center;background:var(--paper);border:1px solid var(--rule);box-shadow:0 6px 22px rgba(14,30,63,.14);border-radius:12px;padding:16px 22px;max-width:320px;">'+
-          '<div style="font-family:\'Lora\',serif;font-style:italic;font-weight:700;font-size:18px;color:var(--navy);">Targeted practice — coming soon</div>'+
-          '<div style="font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.5;">One-tap practice on any concept is on the way for your account.</div>'+
-        '</div>'+
-      '</div>';
-    el.innerHTML='<div class="dash-card"><div class="dash-card-head"><span class="dash-card-title">Grammar confidence · Latin GCSE</span></div>'+
-      '<div style="position:relative;padding:14px 18px;">'+ keyHtml +
-      (totalSeen?'':'<div style="font-size:12px;color:var(--muted);margin-top:8px;">Do a Latin translation to start filling these in.</div>')+
-      weakBtn+
-      body+ lockOverlay +'</div></div>';
-    function isLatinGcse(){ try{ if(typeof currentVocabCourse==='string') return currentVocabCourse==='latin-gcse'; }catch(e){} const t=document.querySelector('#courseTabs .course-tab.active'); return !t || t.dataset.courseType==='latin-gcse'; }
-    function updateVis(){ el.style.display = isLatinGcse() ? '' : 'none'; }
-    updateVis();
-    const tabs=document.getElementById('courseTabs'); if(tabs) tabs.addEventListener('click', function(){ setTimeout(updateVis,60); });
-  }catch(e){ /* non-fatal */ }
-})();
-</script>
 </body>
 </html>

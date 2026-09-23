@@ -36,8 +36,8 @@
   function labelFor(type) { const c = byType.get(type); return c ? c.label : type; }
   function bodyIdFor(type) { const c = byType.get(type); return c ? c.bodyId : null; }
   // The weak-spots link, narrowed to what the student chose on their progress
-  // page in this browser: a chapter range for vocab courses, a topic for
-  // content courses. With no choice saved it tests the whole course.
+  // page in this browser: a chapter range for vocab courses, a topic range
+  // for content courses. With no choice saved it tests the whole course.
   function weakSpotsUrlFor(type) {
     const c = byType.get(type);
     if (!c || !c.weakSpotsUrl) return null;
@@ -47,8 +47,11 @@
       if (scope && Number.isFinite(scope.from) && Number.isFinite(scope.to)) {
         url += '&from=' + scope.from + '&to=' + scope.to;
       }
-      const topic = localStorage.getItem('classicalia.topic.' + type);
-      if (topic) url += '&topic=' + encodeURIComponent(topic);
+      const topics = JSON.parse(localStorage.getItem('classicalia.topicRange.' + type) || 'null');
+      if (topics && topics.from) {
+        url += '&topic=' + encodeURIComponent(topics.from);
+        if (topics.to && topics.to !== topics.from) url += '&to=' + encodeURIComponent(topics.to);
+      }
     } catch (_e) { /* storage unavailable: whole course */ }
     return url;
   }
