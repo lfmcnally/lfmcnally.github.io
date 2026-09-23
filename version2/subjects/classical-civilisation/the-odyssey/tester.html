@@ -1035,7 +1035,26 @@ function init() {
   // ?topic=<id> (e.g. 1.2) opens that topic, so the dashboard can send a
   // student straight to the topic they're studying. Unknown ids fall back to
   // the first topic.
-  const topicIdx = Math.max(0, TOPICS.findIndex(t => String(t.id) === params.get('topic')));
+  let topicIdx = Math.max(0, TOPICS.findIndex(t => String(t.id) === params.get('topic')));
+  // ?topic=<id>&to=<id> covers a run of topics (e.g. 1.1 to 1.3) in one quiz.
+  // All topics in a course share one progress list, so the combined topic
+  // simply pools their questions.
+  const toIdx = TOPICS.findIndex(t => String(t.id) === params.get('to'));
+  if (toIdx > topicIdx) {
+    const run = TOPICS.slice(topicIdx, toIdx + 1);
+    if (run.every(t => t.list === run[0].list)) {
+      TOPICS.push({
+        id: run[0].id + '–' + run[run.length - 1].id,
+        title: 'Topics ' + run[0].id + ' to ' + run[run.length - 1].id,
+        list: run[0].list,
+        questions: run.flatMap(t => t.questions)
+      });
+      topicIdx = TOPICS.length - 1;
+      const o = document.createElement('option');
+      o.value = topicIdx; o.textContent = TOPICS[topicIdx].title;
+      sel.appendChild(o);
+    }
+  }
   sel.value = topicIdx;
   fetchUserId().then(id => { userId = id; });
   loadTopic(topicIdx).then(() => {
