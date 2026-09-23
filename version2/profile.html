@@ -56,6 +56,20 @@ body { background:var(--cream); }
 .avatar-swatch { width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;box-shadow:0 0 0 1px var(--rule);transition:transform 0.1s; }
 .avatar-swatch:hover { transform:scale(1.15); }
 .avatar-swatch.active { border-color:white;box-shadow:0 0 0 2px var(--ink); }
+.prof-section-label { font-size:10.5px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin:36px 0 12px; }
+.jump-row { display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 22px;border-bottom:1px solid var(--rule-faint); }
+.jump-row:last-child { border-bottom:none; }
+.jump-name { flex:1;min-width:160px;font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:16px;color:var(--navy); }
+.jump-actions { display:flex;gap:8px;flex-wrap:wrap; }
+.jump-btn { font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:6px;text-decoration:none;border:1px solid var(--rule);color:var(--navy);background:var(--paper); }
+.jump-btn:hover { border-color:var(--brand);color:var(--brand); }
+.jump-btn.test { background:#127a3e;border-color:#127a3e;color:#fff; }
+.jump-btn.test:hover { background:#0f6835;color:#fff; }
+.anon-pitch .anon-title { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:20px;color:var(--navy);margin-bottom:6px; }
+.anon-pitch p { font-size:13.5px;color:var(--muted);line-height:1.6;margin-bottom:14px; }
+.anon-actions { display:flex;gap:10px;flex-wrap:wrap; }
+.anon-actions a { text-decoration:none; }
+@media (max-width:640px) { .dash-header-inner, .prof-body { padding-left:16px;padding-right:16px; } .prof-field { grid-template-columns:1fr;gap:4px; } }
 </style>
 </head>
 <body>
@@ -78,16 +92,71 @@ body { background:var(--cream); }
   <div class="dash-header-inner">
     <div class="dash-eyebrow">My profile</div>
     <div class="dash-title" id="profGreeting">Your account</div>
-    <div class="dash-subtitle">Account details, the courses you're tracking, your sharing code, and the teachers who can see your progress.</div>
+    <div class="dash-subtitle">Your courses, who can see your progress, and your account settings.</div>
   </div>
 </div>
 
 <div class="prof-body">
 
-  <div id="anonNotice" class="notice" style="display:none;">
-    <strong>You're not signed in.</strong> <a href="/auth/login.html" style="color:#1A6FFF;font-weight:600;">Sign in</a> to see your profile.
+  <div id="anonNotice" class="prof-card" style="display:none;">
+    <div class="prof-card-body anon-pitch">
+      <div class="anon-title">Sign in to track your courses</div>
+      <p>Your profile is where you choose the courses you're studying. Once you have, Classicalia saves every answer you give in the testers, shows you what's secure and what isn't, and builds your tests around your weak spots.</p>
+      <div class="anon-actions">
+        <a href="/auth/register.html" class="code-btn primary">Create a free account</a>
+        <a href="/auth/login.html" class="code-btn">Sign in</a>
+      </div>
+    </div>
   </div>
 
+  <!-- JUMP BACK IN -->
+  <div class="prof-card" id="cardJump" style="display:none;">
+    <div class="prof-card-head"><span class="prof-card-title">Jump back in</span></div>
+    <div id="jumpList"></div>
+  </div>
+
+  <!-- MY COURSES -->
+  <a id="courses" style="position:relative;top:-80px;"></a>
+  <div class="prof-card" id="cardCourses" style="display:none;">
+    <div class="prof-card-head">
+      <span class="prof-card-title">Choose your courses</span>
+      <span class="code-toast" id="coursesToast">Saved</span>
+    </div>
+    <div class="prof-card-body">
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.5;">
+        Tick the courses you're studying. Every answer you give in their testers is saved to your account, and your progress page shows how you're getting on. You don't need a teacher to do this.
+      </div>
+      <div class="course-picker" id="coursePicker"></div>
+    </div>
+  </div>
+
+  <!-- SHARING CODE -->
+  <div class="prof-card" id="cardCode" style="display:none;">
+    <div class="prof-card-head">
+      <span class="prof-card-title">Your sharing code</span>
+      <span class="code-toast" id="codeToast">Copied to clipboard</span>
+    </div>
+    <div class="prof-card-body">
+      <div class="code-box">
+        <span class="code-display" id="codeDisplay">—</span>
+        <button class="code-btn primary" id="codeCopy" type="button">Copy</button>
+      </div>
+      <div class="code-help">
+        Give this code to a teacher and they can add you to a class, or to a classmate to become <a href="/version2/friends.html" style="color:var(--brand);font-weight:600;">friends</a> and compare scores.
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCESS -->
+  <div class="prof-card" id="cardTeachers" style="display:none;">
+    <div class="prof-card-head"><span class="prof-card-title">Access</span></div>
+    <div style="padding:14px 22px 0;font-size:12.5px;color:var(--muted);line-height:1.5;">
+      Teachers and classes that can see your progress. Ask your teacher if you need to be removed from a class.
+    </div>
+    <div id="teacherList"></div>
+  </div>
+
+  <div class="prof-section-label" id="settingsLabel" style="display:none;">Account settings</div>
   <!-- ACCOUNT -->
   <div class="prof-card" id="cardAccount" style="display:none;">
     <div class="prof-card-head"><span class="prof-card-title">Account</span></div>
@@ -160,47 +229,6 @@ body { background:var(--cream); }
     </div>
   </div>
 
-  <!-- MY COURSES -->
-  <a id="courses" style="position:relative;top:-80px;"></a>
-  <div class="prof-card" id="cardCourses" style="display:none;">
-    <div class="prof-card-head">
-      <span class="prof-card-title">My courses</span>
-      <span class="code-toast" id="coursesToast">Saved</span>
-    </div>
-    <div class="prof-card-body">
-      <div style="font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.5;">
-        Tick the courses you want to track on your dashboard. You don't need a teacher — pick whichever you're studying and your progress will be saved across devices.
-      </div>
-      <div class="course-picker" id="coursePicker"></div>
-    </div>
-  </div>
-
-  <!-- SHARING CODE -->
-  <div class="prof-card" id="cardCode" style="display:none;">
-    <div class="prof-card-head">
-      <span class="prof-card-title">Your sharing code</span>
-      <span class="code-toast" id="codeToast">Copied to clipboard</span>
-    </div>
-    <div class="prof-card-body">
-      <div class="code-box">
-        <span class="code-display" id="codeDisplay">—</span>
-        <button class="code-btn primary" id="codeCopy" type="button">Copy</button>
-      </div>
-      <div class="code-help">
-        Give this code to a teacher and they can add you to a class, or to a classmate to become <a href="/version2/friends.html" style="color:var(--brand);font-weight:600;">friends</a> and compare scores.
-      </div>
-    </div>
-  </div>
-
-  <!-- ACCESS -->
-  <div class="prof-card" id="cardTeachers" style="display:none;">
-    <div class="prof-card-head"><span class="prof-card-title">Access</span></div>
-    <div style="padding:14px 22px 0;font-size:12.5px;color:var(--muted);line-height:1.5;">
-      Teachers and classes that can see your progress. Ask your teacher if you need to be removed from a class.
-    </div>
-    <div id="teacherList"></div>
-  </div>
-
 </div>
 
 <script>
@@ -222,6 +250,7 @@ async function loadProfile() {
 
   // Show signed-in cards (courses card is student-only and revealed below)
   document.getElementById('cardAccount').style.display = '';
+  document.getElementById('settingsLabel').style.display = '';
   document.getElementById('cardPassword').style.display = '';
   document.getElementById('cardCode').style.display = '';
   document.getElementById('cardTeachers').style.display = '';
@@ -256,6 +285,7 @@ async function loadProfile() {
     if (tracked.available) {
       document.getElementById('cardCourses').style.display = '';
       renderCoursePicker(tracked.courses);
+      renderJumpList(tracked.courses);
     }
     await loadTeachers(user.id);
   } else {
@@ -317,6 +347,32 @@ function renderCoursePicker(trackedCourses) {
   });
 }
 
+// "Jump back in": one row per tracked course with its progress page and a
+// weak-spots test, so the profile doubles as the student's course launcher.
+function renderJumpList(types) {
+  const map = window.ClassicaliaCourseMap;
+  const card = document.getElementById('cardJump');
+  const list = document.getElementById('jumpList');
+  if (!map || !card || !list) return;
+  const shipped = types.filter(t => map.isShipped(t));
+  card.style.display = '';
+  if (!shipped.length) {
+    list.innerHTML = '<div class="empty-state">Tick a course below to start tracking it.</div>';
+    return;
+  }
+  list.innerHTML = shipped.map(t => {
+    const test = map.weakSpotsUrlFor(t);
+    return `
+      <div class="jump-row">
+        <div class="jump-name">${escapeHtml(map.labelFor(t))}</div>
+        <div class="jump-actions">
+          <a class="jump-btn" href="/version2/tracking/dashboard.html?course=${encodeURIComponent(t)}">My progress</a>
+          ${test ? `<a class="jump-btn test" href="${test}">Test my weak spots &rarr;</a>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
 async function onCourseToggle(ev) {
   const input = ev.target;
   const label = input.closest('.course-pick');
@@ -348,6 +404,7 @@ async function onCourseToggle(ev) {
     return;
   }
   label.classList.toggle('is-checked', input.checked);
+  renderJumpList(checkedTypes);
   const toast = document.getElementById('coursesToast');
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 1200);

@@ -6,6 +6,8 @@
 //   vocabList: the vocab_list / bkt-store key in vocab_bkt rows
 //   bodyId:    id of the <div> in dashboard.html that renders this course's
 //              progress (null = not yet wired, treated as "coming soon")
+//   weakSpotsUrl: the tester link that starts a session on the student's
+//              weakest and overdue items (used for "Test my weak spots")
 // }
 //
 // "shipped" is derived: a course is shipped iff bodyId is non-null. Adding a
@@ -14,15 +16,16 @@
 // read from the same list.
 
 (function () {
+  const V = '/version2/tools/vocab/', Q = '/version2/tools/quiz/';
   const COURSE_TYPES = [
-    { type: 'latin-gcse',   label: 'GCSE Latin',                vocabList: 'latin-gcse',        bodyId: 'course-vocab' },
-    { type: 'civ-gcse',     label: 'Myth & Religion',           vocabList: 'civ-myth-religion', bodyId: 'course-myth'  },
-    { type: 'civ-homeric',  label: 'The Homeric World',         vocabList: 'civ-homeric-world', bodyId: 'course-homeric' },
-    { type: 'latin-prep',   label: 'KS3 Latin',                 vocabList: 'latin-suburani',    bodyId: 'course-vocab' },
-    { type: 'latin-alevel', label: 'A-Level Latin',             vocabList: 'latin-alevel',      bodyId: 'course-vocab' },
-    { type: 'greek-gcse',   label: 'GCSE Greek',                vocabList: 'greek-gcse',        bodyId: 'course-vocab' },
-    { type: 'greek-alevel', label: 'A-Level Greek',             vocabList: 'greek-alevel',      bodyId: 'course-vocab' },
-    { type: 'civ-alevel',   label: 'A-Level Civ. — The Odyssey', vocabList: 'civ-odyssey',     bodyId: 'course-odyssey' }
+    { type: 'latin-gcse',   label: 'GCSE Latin',                vocabList: 'latin-gcse',        bodyId: 'course-vocab',   weakSpotsUrl: V + 'latinvocabtester.html?list=gcse&auto=1' },
+    { type: 'civ-gcse',     label: 'Myth & Religion',           vocabList: 'civ-myth-religion', bodyId: 'course-myth',    weakSpotsUrl: Q + 'myth-and-religion.html?mode=review' },
+    { type: 'civ-homeric',  label: 'The Homeric World',         vocabList: 'civ-homeric-world', bodyId: 'course-homeric', weakSpotsUrl: Q + 'the-homeric-world.html?mode=review' },
+    { type: 'latin-prep',   label: 'KS3 Latin',                 vocabList: 'latin-suburani',    bodyId: 'course-vocab',   weakSpotsUrl: V + 'latinvocabtester.html?list=suburani&auto=1' },
+    { type: 'latin-alevel', label: 'A-Level Latin',             vocabList: 'latin-alevel',      bodyId: 'course-vocab',   weakSpotsUrl: V + 'latinvocabtester.html?list=alevel&auto=1' },
+    { type: 'greek-gcse',   label: 'GCSE Greek',                vocabList: 'greek-gcse',        bodyId: 'course-vocab',   weakSpotsUrl: V + 'greekvocabtester.html?auto=1' },
+    { type: 'greek-alevel', label: 'A-Level Greek',             vocabList: 'greek-alevel',      bodyId: 'course-vocab',   weakSpotsUrl: V + 'greekvocabtester.html?list=alevel&auto=1' },
+    { type: 'civ-alevel',   label: 'A-Level Civ. — The Odyssey', vocabList: 'civ-odyssey',     bodyId: 'course-odyssey', weakSpotsUrl: '/version2/subjects/classical-civilisation/the-odyssey/tester.html?mode=review' }
   ];
 
   const byType = new Map(COURSE_TYPES.map(c => [c.type, c]));
@@ -32,6 +35,7 @@
   function vocabListFor(type) { const c = byType.get(type); return c ? c.vocabList : null; }
   function labelFor(type) { const c = byType.get(type); return c ? c.label : type; }
   function bodyIdFor(type) { const c = byType.get(type); return c ? c.bodyId : null; }
+  function weakSpotsUrlFor(type) { const c = byType.get(type); return c ? c.weakSpotsUrl || null : null; }
 
   // Subset that has a wired-up dashboard body block. Used by the profile
   // picker to decide which entries are tickable vs. "coming soon".
@@ -50,6 +54,6 @@
   window.ClassicaliaCourseMap = {
     COURSE_TYPES,
     SUBJECT_VOCAB_LIST,
-    get, isShipped, vocabListFor, labelFor, bodyIdFor, shipped, comingSoon
+    get, isShipped, vocabListFor, labelFor, bodyIdFor, weakSpotsUrlFor, shipped, comingSoon
   };
 })();
