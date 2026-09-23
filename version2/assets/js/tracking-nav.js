@@ -38,13 +38,12 @@
   const ADMIN = { key: 'admin', label: 'Admin', href: '/version2/admin/', icon: I.admin };
 
   const NAV = {
+    // Students get the essentials: their progress, work set by a teacher
+    // (weekly tests and assigned assessments are listed on To-do) and friends.
     student: [
-      { key: 'progress', label: 'Progress',        href: '/version2/tracking/dashboard.html',        icon: I.progress },
-      { key: 'todo',     label: 'To-do',           href: '/version2/tracking/todo.html',             icon: I.todo },
-      { key: 'bank',     label: 'Assessment bank', href: '/version2/tracking/bank.html',             icon: I.bank },
-      { key: 'weekly',   label: 'Weekly tests',    href: '/version2/tracking/weekly-test-take.html', icon: I.weekly },
-      { key: 'friends',  label: 'Friends',         href: '/version2/friends.html',                   icon: I.friends },
-      TOOLS
+      { key: 'progress', label: 'My progress',     href: '/version2/tracking/dashboard.html',        icon: I.progress },
+      { key: 'todo',     label: 'Set work',        href: '/version2/tracking/todo.html',             icon: I.todo },
+      { key: 'friends',  label: 'Friends',         href: '/version2/friends.html',                   icon: I.friends }
     ],
     teacher: [
       { key: 'classes',  label: 'Classes',         href: '/version2/tracking/teacher.html',          icon: I.classes },
