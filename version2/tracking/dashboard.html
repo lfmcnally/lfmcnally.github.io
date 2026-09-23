@@ -245,6 +245,10 @@ body { background: var(--cream); }
 .next-eyebrow { font-size:10px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#6ba0ff; margin-bottom:4px; }
 .next-title { font-family:'Lora',serif; font-style:italic; font-weight:700; font-size:22px; color:#fff; line-height:1.15; }
 .next-sub { font-size:13px; color:#b8c7e6; margin-top:4px; }
+.next-scope { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px; font-size:12.5px; color:#b8c7e6; }
+.next-scope select, .topic-scope select { font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,.3); background:#1a2b52; color:#fff; }
+.topic-scope { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; font-size:13px; color:var(--muted); }
+.topic-scope select { background:var(--paper); color:var(--navy); border-color:var(--rule); max-width:100%; }
 .next-actions, .anon-actions { display:flex; gap:10px; flex-wrap:wrap; }
 .next-btn { display:inline-block; background:#127a3e; color:#fff; font-weight:700; font-size:14px; padding:11px 18px; border-radius:8px; text-decoration:none; white-space:nowrap; }
 .next-btn:hover { background:#0f6835; }
@@ -484,9 +488,15 @@ body { background:#f4f6fa; }
       <div class="next-eyebrow">Your next step</div>
       <div class="next-title" id="nextTitle">Test your weak spots</div>
       <div class="next-sub" id="nextSub">A smart session picks your weakest and overdue words first.</div>
+      <div class="next-scope">
+        <span id="scopeNoun">Chapters</span>
+        <select id="scopeFrom" aria-label="From"></select>
+        <span>to</span>
+        <select id="scopeTo" aria-label="To"></select>
+      </div>
     </div>
     <div class="next-actions">
-      <a class="next-btn" id="nextBtn" href="/version2/tools/vocab/latinvocabtester.html?auto=1" data-vocab-tester data-tester-suffix="?auto=1">Test my weak spots &rarr;</a>
+      <a class="next-btn" id="nextBtn" href="/version2/tools/vocab/latinvocabtester.html?auto=1" data-vocab-tester data-tester-suffix="?auto=1" data-scoped>Test my weak spots &rarr;</a>
       <a class="next-btn secondary" href="/version2/tools/vocab/latinvocabtester.html" data-vocab-tester data-tester-suffix="">Choose what to practise</a>
     </div>
   </div>
@@ -599,6 +609,7 @@ body { background:#f4f6fa; }
   </div><!-- /course-vocab -->
 
   <div id="course-myth" class="hidden">
+    <div class="topic-scope" data-topic-scope="mythActions"></div>
     <div class="action-strip" id="mythActions">
       <a href="/version2/tools/quiz/myth-and-religion.html?mode=review" class="act-btn test"><div><div class="lbl">Recommended</div><div class="ttl">Test my weak spots</div></div><span class="arr">→</span></a>
       <a href="/version2/tools/quiz/myth-and-religion.html?mode=donow" class="act-btn secondary"><div><div class="lbl">Lesson starter</div><div class="ttl">Today's Do Now</div></div><span class="arr">→</span></a>
@@ -648,6 +659,7 @@ body { background:#f4f6fa; }
   </div>
 
   <div id="course-homeric" class="hidden">
+    <div class="topic-scope" data-topic-scope="homericActions"></div>
     <div class="action-strip" id="homericActions">
       <a href="/version2/tools/quiz/the-homeric-world.html?mode=review" class="act-btn test"><div><div class="lbl">Recommended</div><div class="ttl">Test my weak spots</div></div><span class="arr">→</span></a>
       <a href="/version2/tools/quiz/the-homeric-world.html?mode=donow" class="act-btn secondary"><div><div class="lbl">Lesson starter</div><div class="ttl">Today's Do Now</div></div><span class="arr">→</span></a>
@@ -697,6 +709,7 @@ body { background:#f4f6fa; }
   </div>
 
   <div id="course-odyssey" class="hidden">
+    <div class="topic-scope" data-topic-scope="odysseyActions"></div>
     <div class="action-strip" id="odysseyActions">
       <a href="/version2/subjects/classical-civilisation/the-odyssey/tester.html?mode=review" class="act-btn test"><div><div class="lbl">Recommended</div><div class="ttl">Test my weak spots</div></div><span class="arr">&rarr;</span></a>
       <a href="/version2/subjects/classical-civilisation/the-odyssey/tester.html?mode=learn" class="act-btn secondary"><div><div class="lbl">Work through</div><div class="ttl">In order</div></div><span class="arr">&rarr;</span></a>
@@ -879,6 +892,12 @@ function updateVocabTesterLinks() {
     } else {
       href = base + suffix;
     }
+    // The "Test my weak spots" button only tests the chapters the student
+    // has chosen (e.g. just chapter 2), not the whole book.
+    const scope = el.hasAttribute('data-scoped') ? currentScope() : null;
+    if (scope && !scope.all) {
+      href += (href.includes('?') ? '&' : '?') + 'from=' + scope.from + '&to=' + scope.to;
+    }
     if (el.tagName === 'A') el.setAttribute('href', href);
     el.dataset.testerHref = href;
   });
@@ -1047,7 +1066,8 @@ function renderDashboard(words, recentlyPractised) {
   const building   = words.filter(w => classify(w)==='building');
   const secure     = words.filter(w => classify(w)==='secure');
 
-  renderNextStep(words, { due, struggling, nearly, building, secure });
+  renderScopePicker();
+  renderNextStep(words);
 
   document.getElementById('qcd').textContent = due.length;
   document.getElementById('qcs').textContent = struggling.length;
@@ -1106,18 +1126,95 @@ function renderDashboard(words, recentlyPractised) {
   }
 }
 
-// The "Your next step" card: a one-line summary and the smart-session button.
-function renderNextStep(words, q) {
+// ── Chapter range ──
+// Students are usually only part-way through a course, so the next-step card
+// lets them pick which chapters to be tested on. The choice is remembered per
+// course in this browser; the first-time default is chapter 1 up to the
+// chapter their class (or they) have reached, where that's known.
+let studentChapter = 0;   // from users/v2_classes.grammar_chapter (Latin GCSE)
+
+function courseChapters(courseType) {
+  const chs = new Set(getCanonicalWords(courseType).map(w => w.ch));
+  return Array.from(chs).sort((a, b) => a - b);
+}
+function scopeKey(courseType) { return 'classicalia.scope.' + courseType; }
+function loadScope(courseType) {
+  const chs = courseChapters(courseType);
+  if (!chs.length) return null;
+  const lo = chs[0], hi = chs[chs.length - 1];
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(scopeKey(courseType)) || 'null'); } catch (_e) { saved = null; }
+  let from = lo, to = hi;
+  if (saved && chs.includes(saved.from) && chs.includes(saved.to) && saved.from <= saved.to) {
+    from = saved.from; to = saved.to;
+  } else if (courseType === 'latin-gcse' && studentChapter > 0) {
+    to = chs.filter(c => c <= studentChapter).pop() || hi;
+  }
+  return { from, to, all: from === lo && to === hi };
+}
+function saveScope(courseType, from, to) {
+  try { localStorage.setItem(scopeKey(courseType), JSON.stringify({ from, to })); } catch (_e) { /* private mode: not remembered */ }
+}
+function currentScope() { return loadScope(currentVocabCourse); }
+
+function renderScopePicker() {
+  const fromSel = document.getElementById('scopeFrom');
+  const toSel = document.getElementById('scopeTo');
+  if (!fromSel || !toSel) return;
+  const chs = courseChapters(currentVocabCourse);
+  const scope = loadScope(currentVocabCourse);
+  const noun = vocabGroupNoun();
+  document.getElementById('scopeNoun').textContent = noun + 's';
+  const opts = chs.map(c => `<option value="${c}">${noun} ${c}</option>`).join('');
+  fromSel.innerHTML = opts; toSel.innerHTML = opts;
+  if (scope) { fromSel.value = scope.from; toSel.value = scope.to; }
+}
+
+function onScopeChange(ev) {
+  const fromSel = document.getElementById('scopeFrom');
+  const toSel = document.getElementById('scopeTo');
+  let from = parseInt(fromSel.value, 10), to = parseInt(toSel.value, 10);
+  // Keep the range the right way round: moving one end past the other drags it along.
+  if (from > to) { if (ev && ev.target === fromSel) to = from; else from = to; }
+  fromSel.value = from; toSel.value = to;
+  saveScope(currentVocabCourse, from, to);
+  updateVocabTesterLinks();
+  renderNextStep(currentWords);
+}
+document.getElementById('scopeFrom').addEventListener('change', onScopeChange);
+document.getElementById('scopeTo').addEventListener('change', onScopeChange);
+
+async function loadStudentChapter(userId) {
+  let ch = 0;
+  try {
+    const { data: prof } = await window.supabase.from('users').select('grammar_chapter').eq('id', userId).maybeSingle();
+    ch = (prof && prof.grammar_chapter) || 0;
+    const { data: mem } = await window.supabase.from('v2_class_members').select('v2_classes(grammar_chapter)').eq('student_id', userId);
+    (mem || []).forEach(m => { const c = m.v2_classes && m.v2_classes.grammar_chapter; if (c > ch) ch = c; });
+  } catch (_e) { /* column may not exist yet: no default */ }
+  return ch;
+}
+
+// The "Your next step" card: a one-line summary and the smart-session button,
+// both limited to the chosen chapters.
+function renderNextStep(allWords) {
   const title = document.getElementById('nextTitle');
   const sub = document.getElementById('nextSub');
-  if (!title || !sub) return;
+  if (!title || !sub || !allWords) return;
+  const scope = currentScope();
+  const words = scope && !scope.all ? allWords.filter(w => w.ch >= scope.from && w.ch <= scope.to) : allWords;
+  const by = k => words.filter(w => classify(w) === k);
+  const q = { due: by('due'), struggling: by('struggling'), nearly: by('nearly'), secure: by('secure') };
+  const noun0 = vocabGroupNoun();
+  const where = !scope || scope.all ? '' :
+    (scope.from === scope.to ? `${noun0} ${scope.from}: ` : `${noun0}s ${scope.from}–${scope.to}: `);
   const btn = document.getElementById('nextBtn');
   const seen = words.filter(w => w.t > 0).length;
   if (btn) btn.innerHTML = seen ? 'Test my weak spots &rarr;' : 'Start a session &rarr;';
   const noun = words.length === 1 ? 'word' : 'words';
   if (!seen) {
     title.textContent = 'Start your first session';
-    sub.textContent = `${words.length} ${noun} on this course. Answer a few and your map below starts filling in.`;
+    sub.textContent = `${where}${words.length} ${noun} to learn. Answer a few and your map below starts filling in.`;
     return;
   }
   const weak = q.struggling.length + q.nearly.length;
@@ -1125,7 +1222,7 @@ function renderNextStep(words, q) {
   if (q.due.length) bits.push(`${q.due.length} due for review`);
   if (weak) bits.push(`${weak} to work on`);
   title.textContent = q.due.length ? 'Review what\'s due, then your weak spots' : 'Test your weak spots';
-  sub.textContent = bits.join(' · ');
+  sub.textContent = where + bits.join(' · ');
 }
 
 // ── Course tab strip (driven by user's tracked courses + class memberships) ──
@@ -1268,6 +1365,7 @@ async function init() {
   // showCourseBody once the active course tab is known, so it can scope its
   // counts to that course.
   if (observedUserId) { loadAssignments(); checkLiveGame(); }
+  if (observedUserId) studentChapter = await loadStudentChapter(observedUserId);
 
   // Build the tab strip from the user's tracked courses + class memberships.
   // For signed-in students with nothing tracked, this shows the empty state
@@ -1859,6 +1957,40 @@ function civCourseView(cfg) {
     }
   }
 }
+
+// Topic picker for content courses: the quiz runs one topic at a time, so the
+// buttons open whichever topic the student is studying (remembered per course
+// in this browser) instead of always starting at topic 1.
+function topicScope(stripId, courseType, topics) {
+  const box = document.querySelector('[data-topic-scope="' + stripId + '"]');
+  const strip = document.getElementById(stripId);
+  if (!box || !strip || !topics.length) return;
+  const key = 'classicalia.topic.' + courseType;
+  let chosen = null;
+  try { chosen = localStorage.getItem(key); } catch (_e) { chosen = null; }
+  if (!topics.some(t => String(t.id) === chosen)) chosen = String(topics[0].id);
+  const esc = x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  box.innerHTML = '<span>Topic I\'m studying</span><select aria-label="Topic">' +
+    topics.map(t => '<option value="' + esc(t.id) + '">' + esc(t.id + ' ' + (t.title || '')) + '</option>').join('') + '</select>';
+  const sel = box.querySelector('select');
+  sel.value = chosen;
+  function apply() {
+    strip.querySelectorAll('a.act-btn').forEach(a => {
+      const url = new URL(a.getAttribute('href'), location.origin);
+      if (!/tester\.html$|\/quiz\//.test(url.pathname)) return;   // e.g. the course page link
+      url.searchParams.set('topic', sel.value);
+      a.setAttribute('href', url.pathname + url.search);
+    });
+  }
+  sel.addEventListener('change', () => {
+    try { localStorage.setItem(key, sel.value); } catch (_e) { /* not remembered */ }
+    apply();
+  });
+  apply();
+}
+topicScope('mythActions', 'civ-gcse', (window.CivQuiz && window.CivQuiz.topics) || []);
+topicScope('homericActions', 'civ-homeric', (window.HomericQuiz && window.HomericQuiz.topics) || []);
+topicScope('odysseyActions', 'civ-alevel', (window.OdysseyQuiz && window.OdysseyQuiz.topics) || []);
 
 civCourseView({
   type: 'civ-gcse',

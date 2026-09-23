@@ -35,7 +35,23 @@
   function vocabListFor(type) { const c = byType.get(type); return c ? c.vocabList : null; }
   function labelFor(type) { const c = byType.get(type); return c ? c.label : type; }
   function bodyIdFor(type) { const c = byType.get(type); return c ? c.bodyId : null; }
-  function weakSpotsUrlFor(type) { const c = byType.get(type); return c ? c.weakSpotsUrl || null : null; }
+  // The weak-spots link, narrowed to what the student chose on their progress
+  // page in this browser: a chapter range for vocab courses, a topic for
+  // content courses. With no choice saved it tests the whole course.
+  function weakSpotsUrlFor(type) {
+    const c = byType.get(type);
+    if (!c || !c.weakSpotsUrl) return null;
+    let url = c.weakSpotsUrl;
+    try {
+      const scope = JSON.parse(localStorage.getItem('classicalia.scope.' + type) || 'null');
+      if (scope && Number.isFinite(scope.from) && Number.isFinite(scope.to)) {
+        url += '&from=' + scope.from + '&to=' + scope.to;
+      }
+      const topic = localStorage.getItem('classicalia.topic.' + type);
+      if (topic) url += '&topic=' + encodeURIComponent(topic);
+    } catch (_e) { /* storage unavailable: whole course */ }
+    return url;
+  }
 
   // Subset that has a wired-up dashboard body block. Used by the profile
   // picker to decide which entries are tickable vs. "coming soon".
