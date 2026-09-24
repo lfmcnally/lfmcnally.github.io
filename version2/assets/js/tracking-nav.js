@@ -45,11 +45,11 @@
       { key: 'todo',     label: 'Set work',        href: '/version2/tracking/todo.html',             icon: I.todo },
       { key: 'friends',  label: 'Friends',         href: '/version2/friends.html',                   icon: I.friends }
     ],
+    // Teachers: their classes, Do Now and the classroom tools. The assessment
+    // bank, weekly tests and quick mark pages still work by URL but are kept
+    // out of the menu.
     teacher: [
       { key: 'classes',  label: 'Classes',         href: '/version2/tracking/teacher.html',          icon: I.classes },
-      { key: 'bank',     label: 'Assessment bank', href: '/version2/tracking/bank.html',             icon: I.bank },
-      { key: 'weekly',   label: 'Weekly tests',    href: '/version2/tracking/weekly-test.html',      icon: I.weekly },
-      { key: 'quick',    label: 'Quick mark',      href: '/version2/tracking/quick-mark.html',       icon: I.quick },
       { key: 'donow',    label: 'Do Now',          href: '/version2/tracking/do-now.html',           icon: I.donow },
       TOOLS
     ]
@@ -89,18 +89,8 @@
       context = '<div style="flex:1"></div>';
     }
 
-    // Quick "+ New" for teachers — a one-press create menu in the sidebar.
-    const plus = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
-    const createHtml = (role === 'teacher') ? `
-      <div class="side-create">
-        <button class="tnav-create" type="button" data-create-toggle>${plus}<span>New</span></button>
-        <div class="tnav-create-pop" data-create-pop hidden>
-          <a href="/version2/tracking/teacher.html?create=class">New class</a>
-          <a href="/version2/tracking/weekly-test.html">New weekly test</a>
-          <a href="/version2/tracking/quick-mark.html">Quick mark an answer</a>
-          <a href="/version2/tracking/bank.html">Assign an assessment</a>
-        </div>
-      </div>` : '';
+    // (New classes are created from the "+" beside the Classes list.)
+    const createHtml = '';
 
     aside.innerHTML = `
       <canvas class="side-sky"></canvas>

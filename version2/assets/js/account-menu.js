@@ -81,7 +81,7 @@
           </div>
           <div class="account-menu-list">
             ${progressItem}
-            <a href="${COURSES_URL}" class="account-menu-item">My courses</a>
+            ${role === 'student' ? `<a href="${COURSES_URL}" class="account-menu-item">My courses</a>` : ''}
             <a href="${PROFILE_URL}" class="account-menu-item">My profile</a>
             ${friendsItem}
             ${teacherItem}

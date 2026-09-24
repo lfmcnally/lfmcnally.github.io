@@ -84,7 +84,7 @@ body { background:var(--cream); }
         <a href="/version2/subjects/greek/" class="nav-link">Greek</a>
         <a href="/version2/subjects/classical-civilisation/" class="nav-link">Class. Civ.</a>
         <div class="nav-div"></div>
-        <a href="/version2/tracking/dashboard.html" class="nav-link">My progress</a>
+        <a href="/version2/tracking/dashboard.html" class="nav-link" id="navHome">My progress</a>
         <div data-account-menu></div>
       </div>
     </div>
@@ -128,6 +128,16 @@ body { background:var(--cream); }
       </div>
       <div class="course-picker" id="coursePicker"></div>
     </div>
+  </div>
+
+  <!-- TEACHER: MY CLASSES -->
+  <div class="prof-card" id="cardClasses" style="display:none;">
+    <div class="prof-card-head">
+      <span class="prof-card-title">My classes</span>
+      <a href="/version2/tracking/teacher.html?create=class" class="code-btn" style="text-decoration:none;">+ New class</a>
+    </div>
+    <div id="classList"></div>
+    <div class="code-help" style="padding:0 22px 18px;">To add pupils, open a class and use <strong>+ Add students</strong> with each pupil's sharing code (shown on their profile).</div>
   </div>
 
   <!-- SHARING CODE -->
@@ -252,8 +262,6 @@ async function loadProfile() {
   document.getElementById('cardAccount').style.display = '';
   document.getElementById('settingsLabel').style.display = '';
   document.getElementById('cardPassword').style.display = '';
-  document.getElementById('cardCode').style.display = '';
-  document.getElementById('cardTeachers').style.display = '';
 
   // Profile row — fetch core columns first (these have existed since v1).
   const { data: profile, error: profileErr } = await window.supabase
@@ -278,6 +286,10 @@ async function loadProfile() {
   // 050 not yet applied) doesn't blow up the rest of the page.
   await initAvatar(user.id, profile.full_name || profile.email || user.email);
 
+  if (profile.role !== 'teacher') {
+    document.getElementById('cardCode').style.display = '';
+    document.getElementById('cardTeachers').style.display = '';
+  }
   if (profile.role === 'student') {
     // tracked_courses is fetched separately so a missing column (migration
     // not yet applied) doesn't blow up the rest of the page.
@@ -289,9 +301,11 @@ async function loadProfile() {
     }
     await loadTeachers(user.id);
   } else {
-    // Teachers don't have personal tracking — the courses picker stays hidden.
-    document.getElementById('teacherList').innerHTML =
-      '<div class="empty-state">Teachers don\'t need a sharing code — see your <a href="/version2/tracking/teacher.html" style="color:var(--brand);font-weight:600;">teacher dashboard</a>.</div>';
+    // Teachers: no personal tracking or sharing code; their classes instead.
+    document.querySelector('.dash-subtitle').textContent = 'Your classes and account settings.';
+    const nav = document.getElementById('navHome');
+    if (nav) { nav.textContent = 'My classes'; nav.setAttribute('href', '/version2/tracking/teacher.html'); }
+    await loadClasses(user.id);
   }
 }
 
@@ -408,6 +422,37 @@ async function onCourseToggle(ev) {
   const toast = document.getElementById('coursesToast');
   toast.classList.add('show');
   setTimeout(() => toast.classList.remove('show'), 1200);
+}
+
+// A teacher's classes, each linking straight to it on the teacher page.
+async function loadClasses(teacherId) {
+  const card = document.getElementById('cardClasses');
+  const list = document.getElementById('classList');
+  card.style.display = '';
+  const { data, error } = await window.supabase
+    .from('v2_classes').select('*').eq('teacher_id', teacherId);
+  if (error) { list.innerHTML = '<div class="empty-state">Could not load your classes right now.</div>'; return; }
+  const live = (data || []).filter(c => !c.archived);
+  if (!live.length) {
+    list.innerHTML = '<div class="empty-state">No classes yet. Create one to start tracking your pupils.</div>';
+    return;
+  }
+  const map = window.ClassicaliaCourseMap;
+  const counts = await Promise.all(live.map(async c => {
+    try {
+      const { count } = await window.supabase.from('v2_class_members')
+        .select('student_id', { count: 'exact', head: true }).eq('class_id', c.id);
+      return count || 0;
+    } catch (_e) { return null; }
+  }));
+  list.innerHTML = live.map((c, i) => `
+    <a class="teacher-row" href="/version2/tracking/teacher.html?class=${encodeURIComponent(c.id)}" style="text-decoration:none;">
+      <div class="teacher-info">
+        <div class="teacher-name">${escapeHtml(c.name || 'Class')}</div>
+        <div class="teacher-meta">${escapeHtml(map ? map.labelFor(c.type) : (c.type || ''))}${counts[i] != null ? ' · ' + counts[i] + ' pupil' + (counts[i] === 1 ? '' : 's') : ''}</div>
+      </div>
+      <span style="color:var(--brand);font-weight:700;font-size:13px;">Open &rarr;</span>
+    </a>`).join('');
 }
 
 async function loadTeachers(studentId) {
