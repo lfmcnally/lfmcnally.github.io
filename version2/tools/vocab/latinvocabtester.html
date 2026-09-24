@@ -936,11 +936,12 @@ body { background: var(--cream); }
 </div>
 
 <!-- ═══════════════════════════════════ TESTER SCREEN -->
+<div class="setup" id="sessionSummary" style="display:none;"></div>
 <div class="tester" id="testerScreen">
 
   <div class="donow-banner" id="doNowBanner" style="display:none;"></div>
 
-  <a href="#" class="exit-link exit-link-top" id="exitBtn">← Back to setup</a>
+  <a href="#" class="exit-link exit-link-top" id="exitBtn">← Finish session</a>
 
   <div class="stats-bar">
     <div class="stat"><div class="stat-n" id="statMastered">0</div><div class="stat-label">Mastered</div></div>
@@ -1594,6 +1595,7 @@ async function startSessionWithPool(pool, mode, strategy) {
 
   retryQueue = [];
   coverageAsked = new Set();
+  resetSessionSummary();
   if (sessionStrategy === 'coverage') buildCoveragePass(false);
 
   currentMode = mode || selectedMode;
@@ -2180,6 +2182,7 @@ function handleAnswer(isCorrect, clickedBtn) {
 
   // BKT update — returns transition metadata for the flash logic below
   const transition = bktUpdate(currentWord, isCorrect);
+  noteSessionAnswer(currentWord, isCorrect, transition);
   if (sessionStrategy === 'coverage') {
     coverageAsked.add(currentWord);
     if (!isCorrect && !retryQueue.some(x => x.word === currentWord)) {
@@ -2282,13 +2285,62 @@ document.getElementById('toggleType').addEventListener('click', () => {
 });
 
 // exit
+// ═══════════════════════════════════════════════════════
+// SESSION SUMMARY — shown when a student finishes a session, so they can see
+// what the practice did for them before heading back.
+// ═══════════════════════════════════════════════════════
+let sessionSeen = new Set(), sessionMissed = new Set(), sessionSecured = new Set();
+function resetSessionSummary() { sessionSeen = new Set(); sessionMissed = new Set(); sessionSecured = new Set(); }
+function noteSessionAnswer(word, isCorrect, transition) {
+  sessionSeen.add(word);
+  if (!isCorrect) sessionMissed.add(word);
+  if (transition && transition.becameSecure) sessionSecured.add(word);
+}
+function progressCourseType() {
+  return ({ gcse: 'latin-gcse', alevel: 'latin-alevel', suburani: 'latin-prep' })[selectedList] || null;
+}
+function showSessionSummary() {
+  const box = document.getElementById('sessionSummary');
+  const acc = totalAnswered ? Math.round(totalCorrect / totalAnswered * 100) : 0;
+  const missed = Array.from(sessionMissed).filter(w => w.pKnow < BKT.mastery).slice(0, 6);
+  const esc = x => String(x == null ? '' : x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const stat = (n, l) => `<div style="flex:1;min-width:110px;background:var(--cream,#fbfaf6);border:1px solid var(--rule,#d8dde8);border-radius:8px;padding:14px;text-align:center;">
+      <div style="font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:26px;color:var(--navy,#0E1E3F);">${n}</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#5e6a85);">${l}</div></div>`;
+  const type = progressCourseType();
+  box.innerHTML = `
+    <h2 style="font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:26px;color:var(--navy,#0E1E3F);margin:0 0 6px;">Session complete</h2>
+    <p style="font-size:14px;color:var(--muted,#5e6a85);margin:0 0 18px;">Every answer has been saved to your progress.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
+      ${stat(sessionSeen.size, 'Words practised')}${stat(acc + '%', 'Correct')}${stat(sessionSecured.size, 'Newly secure')}
+    </div>
+    ${missed.length ? `<div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted,#5e6a85);margin:0 0 8px;">These will come back soon</div>
+      <div style="border:1px solid var(--rule,#d8dde8);border-radius:8px;overflow:hidden;margin-bottom:18px;">${missed.map(w => `
+        <div style="display:flex;gap:10px;align-items:baseline;padding:9px 14px;border-bottom:1px solid var(--rule-faint,#e9ecf1);">
+          <span style="font-family:'Lora',serif;font-style:italic;font-weight:600;color:var(--navy,#0E1E3F);">${esc(w.latin)}</span>
+          <span style="font-size:13px;color:var(--muted,#5e6a85);">${esc(w.english)}</span></div>`).join('')}</div>` : ''}
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      ${type ? `<a class="start-btn" style="flex:1;text-align:center;text-decoration:none;display:block;" href="/version2/tracking/dashboard.html?course=${type}">See my progress</a>` : ''}
+      <button type="button" class="start-btn" id="summaryKeepGoing" style="flex:1;background:var(--paper,#fff);color:var(--navy,#0E1E3F);border:1px solid var(--rule,#d8dde8);">Keep going</button>
+    </div>`;
+  document.getElementById('testerScreen').style.display = 'none';
+  box.style.display = 'block';
+  document.getElementById('summaryKeepGoing').addEventListener('click', () => {
+    box.style.display = 'none';
+    document.getElementById('testerScreen').style.display = 'block';
+  });
+  window.scrollTo(0, 0);
+}
+
 document.getElementById('exitBtn').addEventListener('click', e => {
   e.preventDefault();
   if (activeStore && activeStore.flush) activeStore.flush();
   flushSessionLog();
   if (doNowWatch) { clearInterval(doNowWatch); doNowWatch = null; }
+  const wasDoNow = !!doNowActive;
   doNowActive = null;
   document.getElementById('doNowBanner').style.display = 'none';
+  if (totalAnswered > 0 && !wasDoNow) { showSessionSummary(); return; }
   document.getElementById('testerScreen').style.display = 'none';
   document.getElementById('setupScreen').style.display = 'block';
 });

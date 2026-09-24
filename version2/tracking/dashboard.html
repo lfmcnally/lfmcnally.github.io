@@ -587,9 +587,10 @@ body { background:#f4f6fa; }
 
   <div id="course-empty" class="hidden">
     <div class="empty-state-dashboard">
-      <h2>Choose your courses to start tracking</h2>
-      <p>Tick the courses you're studying. From then on, every answer you give in their testers is saved here, and you'll get tests built around your weak spots. You can change your courses any time.</p>
-      <a href="/version2/profile.html#courses" class="btn-set-up">Choose your courses →</a>
+      <h2>Which courses are you studying?</h2>
+      <p>Tick them below. From then on, every answer you give in their testers is saved here, and your tests focus on what you find hardest. You can change them any time on your profile.</p>
+      <div class="course-picker" id="firstCoursePicker" style="text-align:left;max-width:520px;margin:18px auto;"></div>
+      <button type="button" class="btn-set-up" id="firstCourseSave" disabled style="border:none;cursor:pointer;">Start tracking &rarr;</button>
     </div>
   </div>
 </div>
@@ -956,7 +957,10 @@ document.getElementById('vpAll').addEventListener('click', () => {
 // lets them pick which chapters to be tested on. The choice is remembered per
 // course in this browser; the first-time default is chapter 1 up to the
 // chapter their class (or they) have reached, where that's known.
-let studentChapter = 0;   // from users/v2_classes.grammar_chapter (Latin GCSE)
+// How far each course's class has got (v2_classes.grammar_chapter, set by the
+// teacher as "Class has reached"), keyed by course type: a chapter/set number
+// for vocab courses, a topic position for Myth & Religion.
+let classChapters = {};
 
 function courseChapters(courseType) {
   const chs = new Set(getCanonicalWords(courseType).map(w => w.ch));
@@ -972,13 +976,14 @@ function loadScope(courseType) {
   let from = lo, to = hi;
   if (saved && chs.includes(saved.from) && chs.includes(saved.to) && saved.from <= saved.to) {
     from = saved.from; to = saved.to;
-  } else if (courseType === 'latin-gcse' && studentChapter > 0) {
-    to = chs.filter(c => c <= studentChapter).pop() || hi;
+  } else if (classChapters[courseType] > 0) {
+    to = chs.filter(c => c <= classChapters[courseType]).pop() || hi;
   }
   return { from, to, all: from === lo && to === hi };
 }
 function saveScope(courseType, from, to) {
   try { localStorage.setItem(scopeKey(courseType), JSON.stringify({ from, to })); } catch (_e) { /* private mode: not remembered */ }
+  saveAccountRange(courseType, { from, to });
 }
 function currentScope() { return loadScope(currentVocabCourse); }
 
@@ -1007,15 +1012,44 @@ function onScopeChange(ev) {
 document.getElementById('scopeFrom').addEventListener('change', onScopeChange);
 document.getElementById('scopeTo').addEventListener('change', onScopeChange);
 
-async function loadStudentChapter(userId) {
-  let ch = 0;
+// Ranges saved to the pupil's account (users.course_ranges), so a chosen
+// range follows them to any device. null = column not available yet, in
+// which case the browser copy is all there is.
+let accountRanges = null;
+function rangeStorageKey(type) {
+  return (isVocabCourse(type) ? 'classicalia.scope.' : 'classicalia.topicRange.') + type;
+}
+async function loadAccountRanges(userId) {
   try {
+    const { data, error } = await window.supabase.from('users').select('course_ranges').eq('id', userId).maybeSingle();
+    if (error) return;
+    accountRanges = (data && data.course_ranges) || {};
+    // The account wins over whatever this browser remembered.
+    for (const [type, r] of Object.entries(accountRanges)) {
+      try { localStorage.setItem(rangeStorageKey(type), JSON.stringify(r)); } catch (_e) { /* not stored */ }
+    }
+  } catch (_e) { /* offline: keep the browser copy */ }
+}
+function saveAccountRange(type, range) {
+  if (!accountRanges || !observedUserId) return;
+  accountRanges[type] = range;
+  window.supabase.from('users').update({ course_ranges: accountRanges }).eq('id', observedUserId)
+    .then(() => {}, () => {});
+}
+
+async function loadClassChapters(userId) {
+  const out = {};
+  try {
+    // A pupil's own setting (older accounts) counts for GCSE Latin.
     const { data: prof } = await window.supabase.from('users').select('grammar_chapter').eq('id', userId).maybeSingle();
-    ch = (prof && prof.grammar_chapter) || 0;
-    const { data: mem } = await window.supabase.from('v2_class_members').select('v2_classes(grammar_chapter)').eq('student_id', userId);
-    (mem || []).forEach(m => { const c = m.v2_classes && m.v2_classes.grammar_chapter; if (c > ch) ch = c; });
-  } catch (_e) { /* column may not exist yet: no default */ }
-  return ch;
+    if (prof && prof.grammar_chapter) out['latin-gcse'] = prof.grammar_chapter;
+    const { data: mem } = await window.supabase.from('v2_class_members').select('v2_classes(type, grammar_chapter)').eq('student_id', userId);
+    (mem || []).forEach(m => {
+      const c = m.v2_classes;
+      if (c && c.type && c.grammar_chapter > (out[c.type] || 0)) out[c.type] = c.grammar_chapter;
+    });
+  } catch (_e) { /* column may not exist yet: no defaults */ }
+  return out;
 }
 
 // The "Your next step" card: a one-line summary and the smart-session button,
@@ -1119,6 +1153,36 @@ function renderCourseTabs(allowedTypes, activeType) {
   if (activeType) showCourseBody(activeType);
 }
 
+// Escape text before putting it into HTML (homework labels, course names).
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// First sign-in: no courses yet, so offer the picker inline rather than
+// sending the pupil off to their profile.
+function renderFirstCoursePicker(userId) {
+  const map = window.ClassicaliaCourseMap;
+  const box = document.getElementById('firstCoursePicker');
+  const btn = document.getElementById('firstCourseSave');
+  if (!map || !box || !btn) return;
+  box.innerHTML = map.shipped().map(c => `
+    <label class="course-pick" data-course-type="${c.type}">
+      <input type="checkbox" data-first-course>
+      <div class="course-pick-body"><div class="course-pick-label">${escapeHtml(c.label)}</div></div>
+    </label>`).join('');
+  const picked = () => Array.from(box.querySelectorAll('[data-first-course]:checked')).map(i => i.closest('.course-pick').dataset.courseType);
+  box.querySelectorAll('[data-first-course]').forEach(i => i.addEventListener('change', () => {
+    i.closest('.course-pick').classList.toggle('is-checked', i.checked);
+    btn.disabled = picked().length === 0;
+  }));
+  btn.addEventListener('click', async () => {
+    btn.disabled = true; btn.textContent = 'Saving…';
+    const { error } = await window.supabase.from('users').update({ tracked_courses: picked() }).eq('id', userId);
+    if (error) { btn.disabled = false; btn.innerHTML = 'Start tracking &rarr;'; alert('Could not save: ' + error.message); return; }
+    location.reload();
+  });
+}
+
 // Compute the set of course types this user should see tabs for.
 // Signed-out: just Latin (matches the current local-only fallback).
 // Signed-in:  tracked_courses ∪ types of classes they're a member of.
@@ -1158,6 +1222,7 @@ async function setupCourseStrip(userId) {
     document.getElementById('courseTabs').hidden = true;
     hideAllCourseBodies();
     document.getElementById('course-empty').classList.remove('hidden');
+    renderFirstCoursePicker(userId);
     return;
   }
 
@@ -1188,7 +1253,10 @@ async function init() {
   // showCourseBody once the active course tab is known, so it can scope its
   // counts to that course.
   if (observedUserId) { loadAssignments(); checkLiveGame(); }
-  if (observedUserId) studentChapter = await loadStudentChapter(observedUserId);
+  if (observedUserId) {
+    classChapters = await loadClassChapters(observedUserId);
+    await loadAccountRanges(observedUserId);
+  }
 
   // Build the tab strip from the user's tracked courses + class memberships.
   // For signed-in students with nothing tracked, this shows the empty state
@@ -1654,10 +1722,13 @@ function civCourseView(cfg) {
     try { saved = JSON.parse(localStorage.getItem(rangeKey) || 'null'); } catch (_e) { saved = null; }
     if (saved && topicIds.includes(saved.from) && topicIds.includes(saved.to) &&
         topicIds.indexOf(saved.from) <= topicIds.indexOf(saved.to)) return saved;
-    return { from: topicIds[0], to: topicIds[0] };
+    const reached = (typeof classChapters === 'object' && classChapters[cfg.type]) || 0;
+    const last = reached > 0 ? topicIds[Math.min(reached, topicIds.length) - 1] : topicIds[0];
+    return { from: topicIds[0], to: last };
   }
   function setRange(from, to) {
     try { localStorage.setItem(rangeKey, JSON.stringify({ from, to })); } catch (_e) { /* not remembered */ }
+    if (typeof saveAccountRange === 'function') saveAccountRange(cfg.type, { from, to });
     update();
   }
   function inRange(topicId) {
