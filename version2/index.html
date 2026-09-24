@@ -56,7 +56,14 @@
   .how-demo-stat { font-size: 12.5px; color: var(--ink); }
   .how-demo-stat b { color: var(--brand); }
   .how-map { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; }
-  .how-map i { aspect-ratio: 1; border-radius: 2px; display: block; }
+  .how-map i { aspect-ratio: 1; border-radius: 2px; display: block; cursor: pointer; transition: transform .1s, box-shadow .1s; }
+  .how-map i:hover { transform: scale(1.35); box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: relative; z-index: 2; }
+  .how-map-hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
+  .how-tip { position: fixed; display: none; background: var(--navy); color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 12px; pointer-events: none; z-index: 200; max-width: 240px; box-shadow: 0 4px 16px rgba(14,30,63,0.3); }
+  .how-tip .ht-latin { font-family: 'Lora', serif; font-style: italic; font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+  .how-tip .ht-english { color: #8fa8cc; font-size: 11.5px; margin-bottom: 4px; }
+  .how-tip .ht-conf { font-size: 10.5px; font-weight: 600; }
+  .how-tip .ht-attempts { font-size: 10.5px; color: #8fa8cc; margin-top: 3px; }
   .how-key { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 12px; font-size: 11px; color: var(--muted); }
   .how-key i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
   .how-demo-btn { margin-top: 14px; display: inline-block; background: #127a3e; color: #fff; font-weight: 700; font-size: 13px; padding: 9px 16px; border-radius: 7px; }
@@ -242,6 +249,9 @@
   </div>
 </header>
 
+<div class="how-tip" id="howTip" role="tooltip">
+  <div class="ht-latin"></div><div class="ht-english"></div><div class="ht-conf"></div><div class="ht-attempts"></div>
+</div>
 <!-- HOW IT WORKS: the case for signing in -->
 <section class="how-band" id="how-it-works">
   <div class="how-inner">
@@ -276,6 +286,7 @@
           <span class="how-demo-stat"><b>212</b> of 460 words secure</span>
         </div>
         <div class="how-map" id="howMap"></div>
+        <div class="how-map-hint">Hover over a square to see the word</div>
         <div class="how-key">
           <span><i style="background:#1A6FFF"></i>Secure</span>
           <span><i style="background:#86efac"></i>Getting there</span>
@@ -368,26 +379,77 @@
     el.addEventListener('click', e => { e.preventDefault(); openCurtain(); });
   });
 
-  // Illustrative confidence map for the "How it works" band. Seeded so it
-  // looks the same on every visit.
+  // Illustrative confidence map for the "How it works" band: the first
+  // chapters of GCSE Latin with made-up (but plausible) progress. Seeded so it
+  // looks the same on every visit. Hover or tap a square to see the word, as
+  // on the real progress page.
+  const HOW_WORDS = [["ad","to, towards, at",1],["ambulo","walk",1],["amicus","friend",1],["amo","love, like",1],["ancilla","slave-girl, slave-woman",1],["cibus","food",1],["circum","around",1],["clamo","shout",1],["contra","against",1],["dea","goddess",1],["deus","god",1],["dominus","master",1],["epistula","letter",1],["equus","horse",1],["et","and, even",1],["femina","woman",1],["gladius","sword",1],["hortus","garden",1],["in","into, onto",1],["insula","island, block of flats",1],["laboro","work, toil",1],["navigo","sail",1],["neco","kill",1],["non","not",1],["nunc","now",1],["nuntius","messenger, message, news",1],["paro","prepare, provide",1],["pecunia","money",1],["per","through, along",1],["porto","carry, bear, take",1],["puella","girl",1],["pugno","fight",1],["Roma","Rome",1],["saluto","greet",1],["sed","but",1],["semper","always",1],["servus","slave",1],["sum","be",1],["villa","house, country villa",1],["voco","call",1],["a, ab","from, away from, by",2],["ager","field",2],["annus","year",2],["aqua","water",2],["arma","arms, weapons",2],["audio","hear, listen to",2],["auxilium","help",2],["bellum","war",2],["bibo","drink",2],["cum","with",2],["custodio","guard",2],["de","from, down from, about",2],["decem","ten",2],["do","give",2],["donum","gift, present",2],["dormio","sleep",2],["duco","lead, take",2],["e, ex","from, out of, out",2],["habeo","have, hold",2],["hora","hour",2],["inquit","he/she says, he/she said",2],["invenio","find",2],["iubeo","order",2],["lego","read, choose",2],["liber","book",2],["mitto","send",2],["moneo","warn, advise",2],["murus","wall",2],["periculum","danger",2],["puer","boy",2],["punio","punish",2],["quinque","five",2],["scribo","write",2],["sedeo","sit",2],["taberna","shop, inn",2],["templum","temple",2],["terreo","frighten",2],["timeo","fear, be afraid",2],["traho","drag",2],["venio","come",2],["verbum","word",2],["video","see",2],["vinum","wine",2],["vir","man",2],["advenio","arrive",3],["aedifico","build",3],["bonus","good",3],["cado","fall",3],["cena","dinner, meal",3],["consilium","plan, idea, advice",3],["consumo","eat",3],["curro","run",3],["debeo","owe, ought, should, must",3],["deinde","then",3],["deleo","destroy",3],["discedo","depart, leave",3],["diu","for a long time",3],["domina","mistress",3],["festino","hurry",3],["forum","forum, market place",3],["habito","live",3],["inter","among, between",3],["invito","invite",3],["iratus","angry",3],["lacrimo","weep, cry",3],["laetus","happy",3],["libertus","freedman, ex-slave",3],["magnus","big, large, great",3],["malus","evil, bad",3],["maneo","remain, stay",3],["miser","miserable, wretched, sad",3],["multus","much, many",3],["nauta","sailor",3],["novus","new",3],["oppugno","attack",3],["parvus","small",3],["patria","country, homeland",3],["porta","gate",3],["possum","can, be able",3],["pulcher","beautiful, handsome",3],["quaero","search for, look for, ask",3],["-que","and",3],["Romanus","Roman",3],["statim","at once, immediately",3],["stultus","stupid, foolish",3],["subito","suddenly",3],["tandem","at last, finally",3],["terra","ground, land, country",3],["via","street, road, way",3],["amor","love",4],["caelum","sky, heaven",4],["capio","take, catch, capture, make (a plan)",4],["caput","head",4],["clamor","shout, shouting, noise",4],["cur?","why?",4],["dux","leader",4],["ego","I, me",4],["facio","make, do",4],["frater","brother",4],["fugio","run away, flee",4],["iter","journey",4],["iuvenis","young man",4],["longus","long",4],["mare","sea",4],["maritus","husband",4],["mater","mother",4],["medius","middle",4],["meus","my",4],["miles","soldier",4],["navis","ship",4],["-ne","(introduces question)",4],["nomen","name",4],["nonne …?","surely ... ?",4],["nox","night",4],["num ... ?","surely … not?",4],["pater","father",4],["peto","make for, seek, beg/ask for",4],["post","after, behind",4],["primus","first",4],["quando?","when?",4],["quo?","to where?",4],["regina","queen",4],["regnum","kingdom",4],["relinquo","leave, leave behind",4],["rex","king",4],["rideo","laugh, smile",4],["senex","old man",4],["specto","look at, watch",4]];
   (function drawHowMap() {
     const el = document.getElementById('howMap');
-    if (!el) return;
+    const tt = document.getElementById('howTip');
+    if (!el || !tt) return;
     let seed = 7;
     const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-    const cells = [];
-    for (let i = 0; i < 168; i++) {
-      const progress = 1 - i / 168;          // earlier chapters are further along
+    const between = (lo, hi) => lo + rnd() * (hi - lo);
+    const n = HOW_WORDS.length;
+    const cells = HOW_WORDS.map(([latin, english, ch], i) => {
+      const progress = 1 - i / n;          // earlier chapters are further along
       const r = rnd();
-      let c;
-      if (r < progress * 0.75)       c = '#1A6FFF';
-      else if (r < progress * 0.82)  c = '#a78bfa';
-      else if (r < progress * 0.95)  c = '#86efac';
-      else if (r < progress + 0.08)  c = '#fca5a5';
-      else                           c = '#e8eaf0';
-      cells.push('<i style="background:' + c + '"></i>');
+      let kind;
+      if (r < progress * 0.75)       kind = 'secure';
+      else if (r < progress * 0.82)  kind = 'due';
+      else if (r < progress * 0.95)  kind = 'strong';
+      else if (r < progress + 0.08)  kind = 'weak';
+      else                           kind = 'unseen';
+      const t = kind === 'unseen' ? 0 : Math.round(between(kind === 'weak' ? 5 : 4, 11));
+      const p = { secure: between(0.96, 0.99), due: between(0.95, 0.97), strong: between(0.7, 0.93), weak: between(0.15, 0.42), unseen: 0 }[kind];
+      const correct = kind === 'weak' ? Math.round(t * between(0.25, 0.45)) : kind === 'strong' ? Math.round(t * between(0.6, 0.8)) : Math.max(0, t - Math.round(between(0, 2)));
+      const days = kind === 'secure' || kind === 'due' ? Math.round(between(3, 6)) : kind === 'strong' ? Math.round(between(1, 2)) : 0;
+      return { latin, english, ch, kind, t, p, correct, days };
+    });
+    const COLOUR = { secure: '#1A6FFF', due: '#a78bfa', strong: '#86efac', weak: '#fca5a5', unseen: '#e8eaf0' };
+    el.innerHTML = cells.map((c, i) => '<i data-i="' + i + '" style="background:' + COLOUR[c.kind] + '"></i>').join('');
+
+    const pct = c => Math.round(c.p * 100) + '% confidence';
+    function label(c) {
+      if (c.kind === 'unseen') return 'Not yet seen';
+      if (c.kind === 'secure') return 'Secure · ' + pct(c);
+      if (c.kind === 'due')    return 'Due for review · last reviewed at ' + pct(c);
+      if (c.kind === 'strong') return 'Strong · ' + pct(c);
+      return (c.p >= 0.3 ? 'Low · ' : 'Very low · ') + pct(c);
     }
-    el.innerHTML = cells.join('');
+    function show(c, x, y) {
+      tt.querySelector('.ht-latin').textContent = c.latin;
+      tt.querySelector('.ht-english').textContent = c.english;
+      tt.querySelector('.ht-conf').textContent = label(c) + ' · Chapter ' + c.ch;
+      const att = c.t ? c.t + ' attempts · ' + c.correct + ' ✓ · ' + (c.t - c.correct) + ' ✗' +
+        (c.days ? ' · ' + c.days + ' day' + (c.days === 1 ? '' : 's') + ' correct' : '') : '';
+      const attEl = tt.querySelector('.ht-attempts');
+      attEl.textContent = att; attEl.style.display = att ? '' : 'none';
+      tt.style.display = 'block';
+      place(x, y);
+    }
+    function place(x, y) {
+      let left = x + 14, top = y + 14;
+      if (left + 250 > window.innerWidth) left = x - 260;
+      if (top + 90 > window.innerHeight) top = y - 90;
+      tt.style.left = Math.max(8, left) + 'px'; tt.style.top = Math.max(8, top) + 'px';
+    }
+    const cellOf = ev => { const t = ev.target.closest('#howMap i'); return t ? cells[+t.dataset.i] : null; };
+    // Mouse: hover. Touch: tap a square to see it for a few seconds (touch
+    // screens fire their own leave events straight after a tap, so hover
+    // handling is limited to real mouse pointers).
+    const isMouse = ev => ev.pointerType === 'mouse';
+    el.addEventListener('pointerover', ev => { if (!isMouse(ev)) return; const c = cellOf(ev); if (c) show(c, ev.clientX, ev.clientY); });
+    el.addEventListener('pointermove', ev => { if (isMouse(ev) && tt.style.display === 'block') place(ev.clientX, ev.clientY); });
+    el.addEventListener('pointerleave', ev => { if (isMouse(ev)) tt.style.display = 'none'; });
+    let hideTimer = null;
+    el.addEventListener('pointerup', ev => {
+      if (isMouse(ev)) return;
+      const c = cellOf(ev); if (!c) return;
+      show(c, ev.clientX, ev.clientY);
+      clearTimeout(hideTimer); hideTimer = setTimeout(() => { tt.style.display = 'none'; }, 3000);
+    });
   })();
   closeBtn.addEventListener('click', closeCurtain);
   closeBtnBot.addEventListener('click', closeCurtain);
