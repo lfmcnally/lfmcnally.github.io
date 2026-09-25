@@ -655,7 +655,7 @@ body { background: var(--cream); }
     <div class="progress-text" id="progressText">0%</div>
   </div>
 
-  <div class="mode-toggle">
+  <div class="mode-toggle" id="modeToggle">
     <button class="mode-btn active" id="toggleMC">Multiple choice</button>
     <button class="mode-btn" id="toggleType">Type answer</button>
   </div>
@@ -1029,7 +1029,9 @@ async function flushSessionLog() {
   } catch (_e) { sessionLog.creating = false; }
 }
 
-async function startSessionWithPool(pool, mode, strategy) {
+// lockMode: the session picks multiple choice or typing per word from the
+// student's confidence, with no switch to change it (weak-spots tests).
+async function startSessionWithPool(pool, mode, strategy, lockMode) {
   sessionStrategy = strategy || 'standard';
   await refreshActiveStore();
   const stored = activeStore ? await activeStore.loadAll() : new Map();
@@ -1053,7 +1055,8 @@ async function startSessionWithPool(pool, mode, strategy) {
   resetSessionSummary();
   if (sessionStrategy === 'coverage') buildCoveragePass(false);
 
-  currentMode = mode || selectedMode;
+  currentMode = lockMode ? 'mc' : (mode || selectedMode);
+  document.getElementById('modeToggle').style.display = lockMode ? 'none' : '';
   streak = 0;
   totalCorrect = 0;
   totalAnswered = 0;
@@ -1163,7 +1166,7 @@ async function maybeAutoStart() {
   const clean = pool.map(({ p, t, distinctCorrectDays, nextReviewAt, ...rest }) => rest);
   // A queue or an assigned range is focused → standard selector; a plain smart
   // session (?auto=1) gets the frontier + throttle strategy.
-  await startSessionWithPool(clean, 'mc', queueName ? 'standard' : (hasRange ? 'coverage' : 'smart'));
+  await startSessionWithPool(clean, 'mc', queueName ? 'standard' : (hasRange ? 'coverage' : 'smart'), true);
 }
 
 // ═══════════════════════════════════════════════════════
