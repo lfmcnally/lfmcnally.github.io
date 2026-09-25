@@ -370,11 +370,8 @@ if (typeof document !== 'undefined') (function () {
         st.pKnow = posterior + (1 - posterior) * BKT.pT;
         st.trials++;
         if (right) st.correct++;
-        const today = todayLocalISO();
-        if (right && st.lastCorrectDate !== today) {
-            st.distinctCorrectDays = (st.distinctCorrectDays | 0) + 1;
-            st.lastCorrectDate = today;
-        }
+        // Picking from choices never counts towards Secure: only a typed answer in
+        // the vocab tester adds a correct day.
         if (right && isSecure(st)) {
             if (!wasSecure) {
                 st.reviewIntervalDays = MASTERY.firstReviewDays;

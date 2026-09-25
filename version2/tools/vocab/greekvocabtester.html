@@ -727,6 +727,7 @@ async function ensureStoreFor(listId) {
   if (!window.ClassicaliaBKT) return null;
   try {
     bktStores[key] = await window.ClassicaliaBKT.open({ vocabList: key });
+    await demoteUntypedSecure(bktStores[key]);
   } catch (err) {
     console.warn('[bkt] failed to open store', err);
     return null;
@@ -771,6 +772,24 @@ const BKT = {
 // under the gate, so it returns to multiple choice until it is earned again.
 const TYPE_FROM_P = 0.7;
 const TYPED_MISS_P = 0.4;
+
+// Secure used to be reachable by multiple choice alone. A word that is Secure
+// but whose last correct day is before TYPED_SECURE_FROM (the earliest a word
+// can have been typed right on three different days) drops back one step to
+// Building: confidence is kept, the day count starts again, and the student
+// must type it correctly on three different days to make it Secure.
+const TYPED_SECURE_FROM = '2026-09-27';
+async function demoteUntypedSecure(store) {
+  if (!store) return;
+  const all = await store.loadAll();
+  for (const [latin, s] of all) {
+    if (s.p_know >= BKT.mastery && (s.distinct_correct_days | 0) >= MASTERY.daysRequired &&
+        (!s.last_correct_date || s.last_correct_date < TYPED_SECURE_FROM)) {
+      store.update(latin, { ...s, distinct_correct_days: 0, last_correct_date: null,
+                            next_review_at: null, review_interval_days: null });
+    }
+  }
+}
 
 // ═══════════════════════════════════════════════════════
 // MASTERY GATES — beyond raw BKT, a word becomes truly "Secure" only
