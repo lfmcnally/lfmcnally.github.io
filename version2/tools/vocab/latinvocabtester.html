@@ -592,6 +592,12 @@ body { background: var(--cream); }
 .mc-btn:disabled { cursor: default; }
 
 /* type input */
+.type-gate-note {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
 .type-wrap {
   display: flex;
   gap: 10px;
@@ -877,7 +883,7 @@ body { background: var(--cream); }
         <button class="opt-row selected" data-mode="mc" id="modemc">
           <div>
             <div class="opt-row-name">Multiple choice</div>
-            <div class="opt-row-desc">Choose the correct English translation from four options</div>
+            <div class="opt-row-desc">Choose the correct English translation from four options. Words you know well must be typed.</div>
           </div>
           <div class="opt-row-check"></div>
         </button>
@@ -1070,6 +1076,13 @@ const BKT = {
   mastery: 0.95
 };
 
+// TYPING GATE: once a word reaches this confidence it must be typed, even in
+// a multiple-choice session, so picking it out of four options is never
+// enough to secure it. Mistyping it drops confidence to TYPED_MISS_P, back
+// under the gate, so it returns to multiple choice until it is earned again.
+const TYPE_FROM_P = 0.7;
+const TYPED_MISS_P = 0.4;
+
 // ═══════════════════════════════════════════════════════
 // MASTERY GATES — beyond raw BKT, a word becomes truly "Secure" only
 // after correct retrievals on at least this many distinct calendar days.
@@ -1099,6 +1112,7 @@ let activeWords = [];      // current word pool with BKT state
 let sessionStrategy = 'standard';  // 'standard' | 'smart' (frontier + throttle)
 let currentWord = null;
 let currentMode = 'mc';    // 'mc' or 'type'
+let askMode = 'mc';        // how this word is asked: a well-known word is always typed
 let answered = false;
 let streak = 0;
 let totalCorrect = 0;
@@ -1820,7 +1834,7 @@ async function maybeAutoStart() {
 // Returns metadata about the transition this attempt caused, so the caller
 // (handleAnswer) can flash "Mastered!" only when a word actually becomes
 // Secure (rather than just crossing the BKT threshold).
-function bktUpdate(word, correct) {
+function bktUpdate(word, correct, typed) {
   const p = word.pKnow;
   const { pG, pS, pT } = BKT;
 
@@ -1836,6 +1850,7 @@ function bktUpdate(word, correct) {
     posterior = (p * pS) / (p * pS + (1 - p) * (1 - pG));
   }
   word.pKnow = posterior + (1 - posterior) * pT;
+  if (!correct && typed) word.pKnow = Math.min(word.pKnow, TYPED_MISS_P);
   word.trials++;
   if (correct) word.correct++;
 
@@ -2050,7 +2065,14 @@ function nextWord() {
   document.getElementById('nextBtn').classList.remove('visible');
 
   // render answer area
-  if (currentMode === 'mc') renderMC();
+  renderAnswerArea();
+}
+
+// Ask by multiple choice or typing: typing if the student chose it, or if the
+// word has passed the typing gate.
+function renderAnswerArea() {
+  askMode = (currentMode === 'type' || currentWord.pKnow >= TYPE_FROM_P) ? 'type' : 'mc';
+  if (askMode === 'mc') renderMC();
   else renderType();
 }
 
@@ -2144,7 +2166,10 @@ function checkTypingMatch(userInput, correctText, extraAccept) {
 
 function renderType() {
   const area = document.getElementById('answerArea');
+  const gateNote = currentMode === 'mc'
+    ? '<p class="type-gate-note">You know this one well now, so type it.</p>' : '';
   area.innerHTML = `
+    ${gateNote}
     <div class="type-wrap">
       <input class="type-input" id="typeInput" type="text" placeholder="Type the English translation…" autocomplete="off">
       <button class="type-submit" id="typeSubmit">Check</button>
@@ -2181,7 +2206,7 @@ function handleAnswer(isCorrect, clickedBtn) {
   totalAnswered++;
 
   // BKT update — returns transition metadata for the flash logic below
-  const transition = bktUpdate(currentWord, isCorrect);
+  const transition = bktUpdate(currentWord, isCorrect, askMode === 'type');
   noteSessionAnswer(currentWord, isCorrect, transition);
   if (sessionStrategy === 'coverage') {
     coverageAsked.add(currentWord);
@@ -2202,12 +2227,14 @@ function handleAnswer(isCorrect, clickedBtn) {
   } else {
     streak = 0;
     document.getElementById('feedback').innerHTML =
-      `✗ Incorrect <span class="correct-answer">— ${currentWord.english}</span>`;
+      `✗ Incorrect <span class="correct-answer">— ${currentWord.english}</span>` +
+      (askMode === 'type' && currentMode === 'mc'
+        ? '<div class="type-gate-note">Back to multiple choice for this word until you know it again.</div>' : '');
     document.getElementById('feedback').className = 'feedback wrong';
   }
 
   // colour MC buttons
-  if (currentMode === 'mc') {
+  if (askMode === 'mc') {
     document.querySelectorAll('.mc-btn').forEach(btn => {
       btn.disabled = true;
       if (btn.dataset.answer === currentWord.english) btn.classList.add('reveal');
@@ -2262,7 +2289,7 @@ document.addEventListener('keydown', e => {
     }
   }
   if (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Digit3' || e.code === 'Digit4') {
-    if (currentMode === 'mc' && !answered) {
+    if (askMode === 'mc' && !answered) {
       const idx = parseInt(e.code.replace('Digit','')) - 1;
       const btns = document.querySelectorAll('.mc-btn');
       if (btns[idx]) btns[idx].click();
@@ -2275,13 +2302,13 @@ document.getElementById('toggleMC').addEventListener('click', () => {
   currentMode = 'mc';
   document.getElementById('toggleMC').classList.add('active');
   document.getElementById('toggleType').classList.remove('active');
-  if (!answered) renderMC();
+  if (!answered) renderAnswerArea();
 });
 document.getElementById('toggleType').addEventListener('click', () => {
   currentMode = 'type';
   document.getElementById('toggleType').classList.add('active');
   document.getElementById('toggleMC').classList.remove('active');
-  if (!answered) renderType();
+  if (!answered) renderAnswerArea();
 });
 
 // exit
