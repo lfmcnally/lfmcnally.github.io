@@ -1,32 +1,41 @@
-// Aeneid IV parallel-text reader.
+// Parallel-text reader (used by Aeneid IV in /latin/interactive/aeneid4 and /version2).
 // Hover a Latin word for its dictionary entry and parsing; click a Latin word or an
 // English phrase to highlight it together with its partner in the other column.
 (function () {
   var sec = window.AENEID4_SECTION;
   var all = window.AENEID4_SECTIONS;
+  // Pages name their siblings differently (section1.html or section-1.html).
+  var pagePattern = document.body.dataset.pagePattern || 'section{n}.html';
+  function pageHref(n) { return pagePattern.replace('{n}', n); }
   var MARK = /\[([^\[\]|]+)\|([0-9]+(?:,[0-9]+)*)\]/g;
 
   function esc(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // ── Header, tabs, title ──
-  document.title = 'Aeneid IV · ' + sec.title + ' · Classicalia';
-  document.getElementById('hdr-tag').textContent = 'Aeneid IV · ' + sec.title;
-  document.getElementById('sec-tag').textContent = 'Section ' + sec.section + ' · ' + sec.title;
-  document.getElementById('sec-title').textContent = sec.subtitle;
+  function setText(id, text) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  // ── Header, tabs, title (each is optional: pages include the ones they use) ──
+  setText('hdr-tag', 'Aeneid IV · ' + sec.title);
+  setText('sec-tag', 'Section ' + sec.section + ' · ' + sec.title);
+  setText('sec-title', sec.subtitle);
 
   var tabs = document.getElementById('tabs');
-  all.forEach(function (s) {
-    var a = document.createElement('a');
-    a.href = 'section' + s.n + '.html';
-    a.className = 'tab' + (s.n === sec.section ? ' active' : '');
-    a.textContent = s.lines;
-    a.title = s.subtitle;
-    tabs.appendChild(a);
-  });
-  var activeTab = tabs.querySelector('.active');
-  if (activeTab) tabs.scrollLeft = activeTab.offsetLeft - tabs.clientWidth / 2 + activeTab.clientWidth / 2;
+  if (tabs) {
+    all.forEach(function (s) {
+      var a = document.createElement('a');
+      a.href = pageHref(s.n);
+      a.className = 'tab' + (s.n === sec.section ? ' active' : '');
+      a.textContent = s.lines;
+      a.title = s.subtitle;
+      tabs.appendChild(a);
+    });
+    var activeTab = tabs.querySelector('.active');
+    if (activeTab) tabs.scrollLeft = activeTab.offsetLeft - tabs.clientWidth / 2 + activeTab.clientWidth / 2;
+  }
 
   // ── Text ──
   var html = '';
@@ -54,17 +63,20 @@
   document.getElementById('text').innerHTML = html;
 
   // ── Prev / next ──
-  var idx = all.findIndex(function (s) { return s.n === sec.section; });
-  var pager = '';
-  if (idx > 0) {
-    var p = all[idx - 1];
-    pager += '<a href="section' + p.n + '.html"><div class="dir">&larr; Previous</div><div class="nm">' + p.lines + ': ' + esc(p.subtitle) + '</div></a>';
+  var pagerEl = document.getElementById('pager');
+  if (pagerEl) {
+    var idx = all.findIndex(function (s) { return s.n === sec.section; });
+    var pager = '';
+    if (idx > 0) {
+      var p = all[idx - 1];
+      pager += '<a href="' + pageHref(p.n) + '"><div class="dir">&larr; Previous</div><div class="nm">' + p.lines + ': ' + esc(p.subtitle) + '</div></a>';
+    }
+    if (idx < all.length - 1) {
+      var n = all[idx + 1];
+      pager += '<a class="next" href="' + pageHref(n.n) + '"><div class="dir">Next &rarr;</div><div class="nm">' + n.lines + ': ' + esc(n.subtitle) + '</div></a>';
+    }
+    pagerEl.innerHTML = pager;
   }
-  if (idx < all.length - 1) {
-    var n = all[idx + 1];
-    pager += '<a class="next" href="section' + n.n + '.html"><div class="dir">Next &rarr;</div><div class="nm">' + n.lines + ': ' + esc(n.subtitle) + '</div></a>';
-  }
-  document.getElementById('pager').innerHTML = pager;
 
   // ── Highlighting ──
   var textEl = document.getElementById('text');
@@ -100,7 +112,7 @@
     }
   });
   document.addEventListener('click', function (ev) {
-    if (!ev.target.closest('.w') && !ev.target.closest('.e') && !ev.target.closest('.btn')) {
+    if (!ev.target.closest('.w') && !ev.target.closest('.e') && !ev.target.closest('button')) {
       clearSel();
       hideTip();
     }
@@ -153,6 +165,7 @@
   function setHidden(on) {
     document.body.classList.toggle('hide-en', on);
     hideBtn.classList.toggle('on', on);
+    hideBtn.classList.toggle('active', on);
     hideBtn.textContent = on ? 'Show English' : 'Hide English';
     try { localStorage.setItem('aeneid4-hide-en', on ? '1' : '0'); } catch (e) {}
   }
