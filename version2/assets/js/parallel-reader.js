@@ -7,7 +7,9 @@
   // Pages name their siblings differently (section1.html or section-1.html).
   var pagePattern = document.body.dataset.pagePattern || 'section{n}.html';
   function pageHref(n) { return pagePattern.replace('{n}', n); }
-  var MARK = /\[([^\[\]|]+)\|([0-9]+(?:,[0-9]+)*)\]/g;
+  // [english|ids] links English to Latin word ids; {english|note} marks words the
+  // translator added, with a note on why.
+  var MARK = /\[([^\[\]|]+)\|([0-9]+(?:,[0-9]+)*)\]|\{([^{}|]+)\|([^{}|]+)\}/g;
 
   function esc(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -54,7 +56,11 @@
     MARK.lastIndex = 0;
     while ((m = MARK.exec(c.marked))) {
       en += esc(c.marked.slice(last, m.index));
-      en += '<span class="e" data-c="' + ci + '" data-ids="' + m[2] + '">' + esc(m[1]) + '</span>';
+      if (m[1] !== undefined) {
+        en += '<span class="e" data-c="' + ci + '" data-ids="' + m[2] + '">' + esc(m[1]) + '</span>';
+      } else {
+        en += '<span class="sup" data-note="' + esc(m[4]) + '">' + esc(m[3]) + '</span>';
+      }
       last = MARK.lastIndex;
     }
     en += esc(c.marked.slice(last));
@@ -84,6 +90,7 @@
 
   function clearSel() {
     textEl.querySelectorAll('.sel').forEach(function (el) { el.classList.remove('sel'); });
+    textEl.querySelectorAll('.sel-sup').forEach(function (el) { el.classList.remove('sel-sup'); });
     selKey = null;
   }
 
@@ -104,7 +111,16 @@
   textEl.addEventListener('click', function (ev) {
     var w = ev.target.closest('.w');
     var e = ev.target.closest('.e');
-    if (w) {
+    var sup = ev.target.closest('.sup');
+    if (sup) {
+      var wasOn = sup.classList.contains('sel-sup');
+      clearSel();
+      hideTip();
+      if (!wasOn) {
+        sup.classList.add('sel-sup');
+        showNote(sup);
+      }
+    } else if (w) {
       select(w.dataset.c, [w.dataset.id], 'w' + w.dataset.c + ':' + w.dataset.id);
       showTip(w);
     } else if (e) {
@@ -112,7 +128,7 @@
     }
   });
   document.addEventListener('click', function (ev) {
-    if (!ev.target.closest('.w') && !ev.target.closest('.e') && !ev.target.closest('button')) {
+    if (!ev.target.closest('.w') && !ev.target.closest('.e') && !ev.target.closest('.sup') && !ev.target.closest('button')) {
       clearSel();
       hideTip();
     }
@@ -127,9 +143,18 @@
 
   function showTip(el) {
     var w = sec.chunks[el.dataset.c].words[el.dataset.id - 1];
-    tip.innerHTML = '<div class="tip-form">' + esc(w.w) + '</div>' +
+    tip.classList.remove('note');
+    placeTip(el, '<div class="tip-form">' + esc(w.w) + '</div>' +
       '<div class="tip-vocab">' + esc(w.vocab) + '</div>' +
-      '<div class="tip-parse">' + esc(w.parse) + '</div>';
+      '<div class="tip-parse">' + esc(w.parse) + '</div>');
+  }
+  function showNote(el) {
+    tip.classList.add('note');
+    placeTip(el, '<div class="tip-parse">Added in the English</div>' +
+      '<div class="tip-note">' + esc(el.dataset.note) + '</div>');
+  }
+  function placeTip(el, inner) {
+    tip.innerHTML = inner;
     tip.style.left = '0px';
     tip.style.top = '0px';
     tip.classList.add('on');
