@@ -1,9 +1,9 @@
-// Parallel-text reader (used by Aeneid IV in /latin/interactive/aeneid4 and /version2).
+// Parallel-text reader for set texts (Aeneid IV, Nepos' Hannibal): v1 and /version2 pages.
 // Hover a Latin word for its dictionary entry and parsing; click a Latin word or an
 // English phrase to highlight it together with its partner in the other column.
 (function () {
-  var sec = window.AENEID4_SECTION;
-  var all = window.AENEID4_SECTIONS;
+  var sec = window.PR_SECTION || window.AENEID4_SECTION;
+  var all = window.PR_SECTIONS || window.AENEID4_SECTIONS;
   // Pages name their siblings differently (section1.html or section-1.html).
   var pagePattern = document.body.dataset.pagePattern || 'section{n}.html';
   function pageHref(n) { return pagePattern.replace('{n}', n); }
@@ -50,7 +50,9 @@
         var w = byId[tok];
         return '<span class="w" data-c="' + ci + '" data-id="' + tok + '">' + esc(w.w) + '</span>';
       }).join('');
-      return '<div class="line"><span class="lnum">' + l.n + '</span><span class="ltext">' + t + '</span></div>';
+      // Prose sense units have no line number.
+      var num = l.n === '' || l.n == null ? '' : '<span class="lnum">' + l.n + '</span>';
+      return '<div class="line">' + num + '<span class="ltext">' + t + '</span></div>';
     }).join('');
     var en = '', last = 0, m;
     MARK.lastIndex = 0;
@@ -192,10 +194,10 @@
     hideBtn.classList.toggle('on', on);
     hideBtn.classList.toggle('active', on);
     hideBtn.textContent = on ? 'Show English' : 'Hide English';
-    try { localStorage.setItem('aeneid4-hide-en', on ? '1' : '0'); } catch (e) {}
+    try { localStorage.setItem('pr-hide-en', on ? '1' : '0'); } catch (e) {}
   }
   hideBtn.addEventListener('click', function () {
     setHidden(!document.body.classList.contains('hide-en'));
   });
-  try { if (localStorage.getItem('aeneid4-hide-en') === '1') setHidden(true); } catch (e) {}
+  try { if (localStorage.getItem('pr-hide-en') === '1') setHidden(true); } catch (e) {}
 })();
