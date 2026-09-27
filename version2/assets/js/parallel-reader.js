@@ -1,15 +1,23 @@
-// Parallel-text reader (used by Aeneid IV in /latin/interactive/aeneid4 and /version2).
+// Parallel-text reader for set texts (Aeneid IV, Nepos' Hannibal): v1 and /version2 pages.
 // Hover a Latin word for its dictionary entry and parsing; click a Latin word or an
 // English phrase to highlight it together with its partner in the other column.
 (function () {
-  var sec = window.AENEID4_SECTION;
-  var all = window.AENEID4_SECTIONS;
+  var sec = window.PR_SECTION || window.AENEID4_SECTION;
+  var all = window.PR_SECTIONS || window.AENEID4_SECTIONS;
   // Pages name their siblings differently (section1.html or section-1.html).
   var pagePattern = document.body.dataset.pagePattern || 'section{n}.html';
   function pageHref(n) { return pagePattern.replace('{n}', n); }
   // [english|ids] links English to Latin word ids; {english|note} marks words the
   // translator added, with a note on why.
-  var MARK = /\[([^\[\]|]+)\|([0-9]+(?:,[0-9]+)*)\]|\{([^{}|]+)\|([^{}|]+)\}/g;
+  // An id is a Latin word in the same chunk (5) or, where the English runs over
+  // into a neighbouring row, chunk.word counting chunks from 1 (7.3).
+  var MARK = /\[([^\[\]|]+)\|([0-9]+(?:\.[0-9]+)?(?:,[0-9]+(?:\.[0-9]+)?)*)\]|\{([^{}|]+)\|([^{}|]+)\}/g;
+  function keysFor(ci, ids) {
+    return ids.split(',').map(function (x) {
+      var p = x.split('.');
+      return p.length === 2 ? (p[0] - 1) + ':' + p[1] : ci + ':' + x;
+    }).join(',');
+  }
 
   function esc(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -48,16 +56,18 @@
       var t = l.t.map(function (tok) {
         if (typeof tok === 'string') return esc(tok);
         var w = byId[tok];
-        return '<span class="w" data-c="' + ci + '" data-id="' + tok + '">' + esc(w.w) + '</span>';
+        return '<span class="w" data-c="' + ci + '" data-id="' + tok + '" data-key="' + ci + ':' + tok + '">' + esc(w.w) + '</span>';
       }).join('');
-      return '<div class="line"><span class="lnum">' + l.n + '</span><span class="ltext">' + t + '</span></div>';
+      // Prose sense units have no line number.
+      var num = l.n === '' || l.n == null ? '' : '<span class="lnum">' + l.n + '</span>';
+      return '<div class="line">' + num + '<span class="ltext">' + t + '</span></div>';
     }).join('');
     var en = '', last = 0, m;
     MARK.lastIndex = 0;
     while ((m = MARK.exec(c.marked))) {
       en += esc(c.marked.slice(last, m.index));
       if (m[1] !== undefined) {
-        en += '<span class="e" data-c="' + ci + '" data-ids="' + m[2] + '">' + esc(m[1]) + '</span>';
+        en += '<span class="e" data-keys="' + keysFor(ci, m[2]) + '">' + esc(m[1]) + '</span>';
       } else {
         en += '<span class="sup" data-note="' + esc(m[4]) + '">' + esc(m[3]) + '</span>';
       }
@@ -94,17 +104,16 @@
     selKey = null;
   }
 
-  function select(ci, ids, key) {
+  function select(keys, key) {
     if (selKey === key) { clearSel(); return; }
     clearSel();
     selKey = key;
-    ids.forEach(function (id) {
-      var w = textEl.querySelector('.w[data-c="' + ci + '"][data-id="' + id + '"]');
+    keys.forEach(function (k) {
+      var w = textEl.querySelector('.w[data-key="' + k + '"]');
       if (w) w.classList.add('sel');
     });
-    textEl.querySelectorAll('.e[data-c="' + ci + '"]').forEach(function (e) {
-      var eIds = e.dataset.ids.split(',');
-      if (eIds.some(function (x) { return ids.indexOf(x) !== -1; })) e.classList.add('sel');
+    textEl.querySelectorAll('.e').forEach(function (e) {
+      if (e.dataset.keys.split(',').some(function (k) { return keys.indexOf(k) !== -1; })) e.classList.add('sel');
     });
   }
 
@@ -121,10 +130,10 @@
         showNote(sup);
       }
     } else if (w) {
-      select(w.dataset.c, [w.dataset.id], 'w' + w.dataset.c + ':' + w.dataset.id);
+      select([w.dataset.key], 'w' + w.dataset.key);
       showTip(w);
     } else if (e) {
-      select(e.dataset.c, e.dataset.ids.split(','), 'e' + e.dataset.c + ':' + e.dataset.ids);
+      select(e.dataset.keys.split(','), 'e' + e.dataset.keys);
     }
   });
   document.addEventListener('click', function (ev) {
@@ -192,10 +201,10 @@
     hideBtn.classList.toggle('on', on);
     hideBtn.classList.toggle('active', on);
     hideBtn.textContent = on ? 'Show English' : 'Hide English';
-    try { localStorage.setItem('aeneid4-hide-en', on ? '1' : '0'); } catch (e) {}
+    try { localStorage.setItem('pr-hide-en', on ? '1' : '0'); } catch (e) {}
   }
   hideBtn.addEventListener('click', function () {
     setHidden(!document.body.classList.contains('hide-en'));
   });
-  try { if (localStorage.getItem('aeneid4-hide-en') === '1') setHidden(true); } catch (e) {}
+  try { if (localStorage.getItem('pr-hide-en') === '1') setHidden(true); } catch (e) {}
 })();
