@@ -10,6 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/bkt-store.js"></script>
+<script src="/version2/assets/js/homework.js"></script>
 <style>
 .quiz-wrap { max-width: 760px; margin: 0 auto; padding: 32px 24px 80px; }
 
@@ -335,6 +336,7 @@ async function fetchUserId() {
 }
 
 function beginSessionLog(listKey) {
+  hwRun = false;   // startHomework() switches it back on for homework runs
   flushSessionLog();
   sessionLog = { id: null, list: listKey, answered: 0, correct: 0, creating: false };
 }
@@ -556,6 +558,41 @@ function startLearn() { startSmart('order'); }
 // then introduce never-seen questions once those are securing.
 function startReview() { startSmart('review'); }
 
+// ── Homework: ?hw=<assignment id> opens the homework a teacher set — its
+// topic, narrowed to any hand-picked questions — and logs every answer to the
+// homework's attempt (homework.js) so the teacher can see the work. ──
+let hwRun = false;
+
+async function startHomework() {
+  const HW = window.ClassicaliaHomework;
+  const a = HW ? await HW.load() : null;
+  if (!a) {
+    showDoNowMessage(userId || await fetchUserId()
+      ? 'That homework couldn’t be found. It may have been deleted, or set for a different class.'
+      : 'Sign in to start your homework, then reload this page.');
+    return;
+  }
+  const idx = TOPICS.findIndex(t => String(t.id) === String(a.topic_id) && t.list === a.vocab_list);
+  if (a.scope_kind !== 'topic' || idx < 0) { showDoNowMessage('This homework isn’t for this quiz.'); return; }
+  if (topic !== TOPICS[idx]) await loadTopic(idx);
+  document.getElementById('topicSelect').value = idx;
+  selected = new Set(subtopics.map(st => st.label));
+  strategy = 'standard';
+  pool = HW.restrict(topic.questions, q => q.id, a).map(q => stateById.get(q.id));
+  if (!pool.length) { showDoNowMessage('No questions found for this homework.'); return; }
+  sessionAnswered = 0; sessionTarget = pool.length; sessionCorrect = 0;
+  beginSessionLog(topic.list);
+  hwRun = true;
+  HW.begin();
+  const banner = document.getElementById('doNowBanner');
+  banner.innerHTML = HW.bannerHtml(a);
+  banner.classList.remove('hidden');
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('quiz').classList.remove('hidden');
+  current = null;
+  nextQuestion();
+}
+
 // ── Do Now: load the assignment the teacher set for this student's class,
 // and drill that topic (and any chosen subtopics) straight away ──
 function showDoNowMessage(msg) { document.getElementById('setupSub').textContent = msg; }
@@ -674,6 +711,7 @@ function nextQuestion() {
 
   if (answerMode === 'typed') renderTypedQuestion(current);
   else renderChoiceQuestion(current);
+  if (hwRun && window.ClassicaliaHomework) window.ClassicaliaHomework.questionShown();
   document.getElementById('nextBtn').disabled = true;
 }
 
@@ -728,6 +766,10 @@ function markTyped(btn, credit) {
   bktUpdate(current, credit);
   noteSummaryAnswer(current, credit >= 1, wasSecureT);
   recordSessionAnswer(credit >= 1);
+  if (hwRun && window.ClassicaliaHomework) {
+    window.ClassicaliaHomework.answer(current.id, credit >= 1, document.getElementById('qTypedInput').value,
+      credit >= 1 ? 'self' : (credit > 0 ? 'self-nearly' : 'self-wrong'));
+  }
   paintPKnowDot(current);
   document.querySelectorAll('#qTyped .mark-btn').forEach(b => { b.disabled = true; });
   btn.classList.add('picked');
@@ -744,6 +786,9 @@ function choose(btn, correct, correctText) {
   bktUpdate(current, correct ? 1 : 0);
   noteSummaryAnswer(current, correct, wasSecureC);
   recordSessionAnswer(correct);
+  if (hwRun && window.ClassicaliaHomework) {
+    window.ClassicaliaHomework.answer(current.id, correct, btn.querySelector('span:last-child').textContent, 'mc');
+  }
   paintPKnowDot(current);   // reflect the updated confidence straight away
 
   const buttons = Array.from(document.querySelectorAll('#qOptions .mc-btn'));
@@ -903,7 +948,8 @@ function init() {
   sel.value = topicIdx;
   fetchUserId().then(id => { userId = id; });
   loadTopic(topicIdx).then(() => {
-    if (mode === 'donow') startDoNow();
+    if (params.get('hw')) startHomework();
+    else if (mode === 'donow') startDoNow();
     else if (mode === 'review') startReview();
     else if (mode === 'learn') startLearn();
   });

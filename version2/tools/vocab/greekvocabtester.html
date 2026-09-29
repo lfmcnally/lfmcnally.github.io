@@ -14,6 +14,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/bkt-store.js"></script>
+<script src="/version2/assets/js/homework.js"></script>
 <style>
 
 body { background: var(--cream); }
@@ -1032,6 +1033,7 @@ async function flushSessionLog() {
 // lockMode: the session picks multiple choice or typing per word from the
 // student's confidence, with no switch to change it (weak-spots tests).
 async function startSessionWithPool(pool, mode, strategy, lockMode) {
+  hwRun = false;   // startHomework() switches it back on for homework runs
   sessionStrategy = strategy || 'standard';
   await refreshActiveStore();
   const stored = activeStore ? await activeStore.loadAll() : new Map();
@@ -1096,6 +1098,42 @@ function classifyForQueue(w) {
   if (t < 4)     return 'learning';
   if (p < 0.4)   return 'struggling';
   return 'nearly';
+}
+
+// ═══════════════════════════════════════════════════════
+// HOMEWORK — ?hw=<assignment id> opens the homework a teacher set: its
+// chapter range, narrowed to any hand-picked words. Every answer is logged to
+// the homework's attempt (homework.js) so the teacher can see the work.
+// ═══════════════════════════════════════════════════════
+let hwRun = false;        // true while the running session is a homework run
+let lastResponse = null;  // what the student chose or typed, for the log
+
+async function startHomework() {
+  const HW = window.ClassicaliaHomework;
+  const a = HW ? await HW.load() : null;
+  if (!a) {
+    showAutoStartNotice(observedUserId
+      ? 'That homework couldn’t be found. It may have been deleted, or set for a different class.'
+      : 'Sign in to start your homework, then reload this page.');
+    return;
+  }
+  const listKey = Object.keys(VOCAB_LISTS).find(k => VOCAB_LISTS[k].storageKey === a.vocab_list);
+  if (!listKey || a.scope_kind !== 'range') { showAutoStartNotice('This homework isn’t for this tester.'); return; }
+  if (listKey !== selectedList) { selectList(listKey); await refreshActiveStore(); }
+  // Dedupe by headword first (as the dashboard does), then keep the range.
+  const seen = new Set();
+  let pool = (VOCAB_LISTS[listKey].data() || [])
+    .filter(w => w.chapter > 0 && !seen.has(w.greek) && seen.add(w.greek))
+    .filter(w => w.chapter >= a.chapter_from && w.chapter <= a.chapter_to);
+  pool = HW.restrict(pool, w => w.greek, a);
+  if (!pool.length) { showAutoStartNotice('No words found for this homework.'); return; }
+  await startSessionWithPool(pool, 'mc', 'coverage', true);
+  hwRun = true;
+  HW.begin();
+  showAutoStartNotice('');
+  const bar = document.getElementById('autoNotice');
+  bar.style.background = '#eef4ff'; bar.style.borderColor = '#c7d7f5'; bar.style.color = 'var(--navy,#0E1E3F)';
+  bar.innerHTML = HW.bannerHtml(a);
 }
 
 function showAutoStartNotice(message) {
@@ -1399,6 +1437,7 @@ function nextWord() {
 
   // render answer area
   renderAnswerArea();
+  if (hwRun && window.ClassicaliaHomework) window.ClassicaliaHomework.questionShown();
 }
 
 // Ask by multiple choice or typing: typing if the student chose it, or if the
@@ -1426,6 +1465,7 @@ function renderMC() {
       if (answered) return;
       answered = true;
       const isCorrect = btn.dataset.answer === currentWord.english;
+      lastResponse = btn.dataset.answer;
       handleAnswer(isCorrect, btn);
     });
   });
@@ -1498,6 +1538,7 @@ function renderType() {
     if (answered) return;
     answered = true;
     const isCorrect = checkTypingMatch(input.value, currentWord.english);
+    lastResponse = input.value;
     input.classList.add(isCorrect ? 'correct' : 'wrong');
     submit.disabled = true;
     // Blur so the next Enter is caught by the document-level handler
@@ -1530,6 +1571,7 @@ function handleAnswer(isCorrect, clickedBtn) {
     }
   }
   recordSessionAnswer(isCorrect);
+  if (hwRun && window.ClassicaliaHomework) window.ClassicaliaHomework.answer(currentWord.greek, isCorrect, lastResponse, askMode);
 
   // update dot (colour + hover % tooltip)
   paintPKnowDot(currentWord.pKnow);
@@ -1708,8 +1750,9 @@ let observedUserId = null;
   } catch (_err) { observedUserId = null; }
   await refreshActiveStore();
 
-  // If the URL says ?queue=... or ?auto=1, jump straight into a session.
-  await maybeAutoStart();
+  // ?hw=<id> opens a homework; ?queue=... or ?auto=1 jump straight into a session.
+  if (new URLSearchParams(window.location.search).get('hw')) await startHomework();
+  else await maybeAutoStart();
 
   if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
     window.supabase.auth.onAuthStateChange((_event, session) => {
