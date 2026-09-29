@@ -26,6 +26,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/course-map.js"></script>
+<script src="/version2/assets/js/homework.js"></script>
 <script src="/version2/assets/js/account-menu.js" defer></script>
 <style>
 body { background:var(--cream); }
@@ -514,13 +515,27 @@ body { background:#f4f6fa; }
       <div id="asgPickAllNote" style="font-size:12px;color:var(--muted);margin:-2px 0 16px;"></div>
 
       <label style="display:block;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Target</label>
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <select id="asgTargetKind" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;background:white;margin-bottom:10px;">
+        <option value="prep">Fill the prep bar: every item right several times</option>
+        <option value="secure">A percentage secure (correct on 3+ days)</option>
+        <option value="attempted">A percentage attempted at least once</option>
+      </select>
+      <div id="asgPrepOpts" style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:13px;color:var(--ink);">Correct answers each needs</span>
+          <select id="asgReps" style="padding:8px 10px;font-size:14px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;background:white;">
+            <option value="3">3 (quick)</option>
+            <option value="5" selected>5 (standard)</option>
+            <option value="8">8 (thorough)</option>
+            <option value="10">10 (very thorough)</option>
+          </select>
+          <span id="asgPrepEst" style="font-size:12.5px;font-weight:700;color:var(--brand);"></span>
+        </div>
+        <div id="asgPrepHelp" style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;"></div>
+      </div>
+      <div id="asgPctOpts" style="display:none;align-items:center;gap:10px;margin-bottom:16px;">
         <input id="asgPct" type="number" min="1" max="100" value="80" style="width:80px;padding:10px 12px;font-size:14px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;">
-        <span style="color:var(--muted);">%</span>
-        <select id="asgTargetKind" style="flex:1;padding:10px 12px;font-size:14px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;background:white;">
-          <option value="secure">secure (correct on 3+ days)</option>
-          <option value="attempted">attempted at least once</option>
-        </select>
+        <span style="color:var(--muted);">% of them</span>
       </div>
 
       <label style="display:block;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Due date <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted);">(optional)</span></label>
@@ -1395,6 +1410,34 @@ let assignmentsByClass = {};   // class_id → rows (cached per load)
 let hwAttemptsByAsg = new Map(); // assignment id → homework_attempts rows
 let hwAttemptsAvailable = false; // migration 082 applied?
 
+// What the homework asks for, in words.
+function asgTargetText(a) {
+  if (a.target_kind === 'prep') return `every ${activeModel.itemNoun} right ${a.reps || 5} times`;
+  return `target ${a.target_pct}% ${a.target_kind === 'secure' ? 'secure' : 'attempted'}`;
+}
+
+// Latest saved bar for a student on a prep homework (from their attempts).
+function prepPctFor(a, studentId) {
+  let best = null;
+  for (const r of (hwAttemptsByAsg.get(a.id) || [])) {
+    if (r.student_id !== studentId) continue;
+    const t = r.last_answer_at || r.started_at;
+    if (!best || t > (best.last_answer_at || best.started_at)) best = r;
+  }
+  return best ? (best.progress_pct | 0) : 0;
+}
+
+// Attempts for some assignments. progress_pct arrives with migration 083, so
+// fall back to the 082 columns if it isn't there yet.
+async function fetchHwAttempts(ids) {
+  const cols = 'id, assignment_id, student_id, started_at, last_answer_at, answered, correct, active_seconds';
+  let res = await window.supabase.from('homework_attempts').select(cols + ', progress_pct')
+    .in('assignment_id', ids).order('started_at', { ascending: false });
+  if (res.error) res = await window.supabase.from('homework_attempts').select(cols)
+    .in('assignment_id', ids).order('started_at', { ascending: false });
+  return res;
+}
+
 // "1h 05m", "12m", "40s", "—"
 function fmtDuration(secs) {
   secs = Math.round(secs || 0);
@@ -1435,6 +1478,10 @@ function asgWholeScope(a) {
 }
 function asgStudentProgress(a, s) {
   const items = asgScopeItems(a);
+  if (a.target_kind === 'prep') {
+    const pct = prepPctFor(a, s.id);
+    return { pct, met: pct, total: items.length, done: pct >= 100 };
+  }
   if (!items.length) return { pct: 0, met: 0, total: 0, done: false };
   let met = 0;
   for (const it of items) {
@@ -1489,11 +1536,7 @@ async function renderAssignments(cls) {
   hwAttemptsByAsg = new Map();
   try {
     const ids = rows.map(a => a.id);
-    const { data: att, error: attErr } = await window.supabase
-      .from('homework_attempts')
-      .select('id, assignment_id, student_id, started_at, last_answer_at, answered, correct, active_seconds')
-      .in('assignment_id', ids)
-      .order('started_at', { ascending: false });
+    const { data: att, error: attErr } = await fetchHwAttempts(ids);
     hwAttemptsAvailable = !attErr;
     for (const r of (att || [])) {
       if (!hwAttemptsByAsg.has(r.assignment_id)) hwAttemptsByAsg.set(r.assignment_id, []);
@@ -1507,14 +1550,13 @@ async function renderAssignments(cls) {
     const att = hwAttemptsByAsg.get(a.id) || [];
     const started = new Set(att.map(r => r.student_id)).size;
     const secs = att.reduce((n, r) => n + (r.active_seconds | 0), 0);
-    const targetTxt = `${a.target_pct}% ${a.target_kind === 'secure' ? 'secure' : 'attempted'}`;
     const evidence = hwAttemptsAvailable
       ? `<div style="font-size:11.5px;color:var(--muted);text-align:right;margin-top:2px;">${started} started · ${fmtDuration(secs)} in total</div>` : '';
     return `
       <div class="hw-trow" data-asg="${a.id}" style="display:flex;align-items:center;gap:16px;padding:13px 22px;border-bottom:1px solid var(--rule-faint);flex-wrap:wrap;">
         <div style="flex:1;min-width:200px;">
           <div style="font-family:'Lora',serif;font-style:italic;font-weight:600;font-size:15px;color:var(--navy);">${escapeHtml(asgScopeLabel(a))}</div>
-          <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">Target ${targetTxt}${asgDueLabel(a)}${a.note ? ' · ' + escapeHtml(a.note) : ''}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${escapeHtml(asgTargetText(a).replace(/^./, c => c.toUpperCase()))}${asgDueLabel(a)}${a.note ? ' · ' + escapeHtml(a.note) : ''}</div>
         </div>
         <div style="min-width:120px;">
           <div style="font-size:13px;font-weight:700;color:${done === total && total > 0 ? '#047857' : 'var(--navy)'};text-align:right;">${done}/${total} complete</div>
@@ -1580,7 +1622,9 @@ function openNewAssignment() {
   document.getElementById('asgPickSome').textContent = isCiv ? 'Choose questions' : 'Choose words';
   setAsgPickMode('all');
   document.getElementById('asgPct').value = '80';
-  document.getElementById('asgTargetKind').value = 'secure';
+  document.getElementById('asgTargetKind').value = 'prep';
+  document.getElementById('asgReps').value = '5';
+  syncAsgTarget();
   document.getElementById('asgNote').value = '';
   document.getElementById('asgDue').value = '';
   openModal('modalAssign');
@@ -1592,7 +1636,8 @@ async function submitAssignment() {
   const err = document.getElementById('asgError');
   function fail(msg) { err.textContent = msg; err.style.display = 'block'; }
   const isCiv = /^civ/.test(cls.type);
-  const pct = parseInt(document.getElementById('asgPct').value, 10);
+  const kind = document.getElementById('asgTargetKind').value;
+  const pct = kind === 'prep' ? 100 : parseInt(document.getElementById('asgPct').value, 10);
   if (!pct || pct < 1 || pct > 100) return fail('Enter a target percentage between 1 and 100.');
 
   const topicSel = document.getElementById('asgTopic');
@@ -1602,13 +1647,14 @@ async function submitAssignment() {
   const row = {
     class_id:    cls.id,
     vocab_list:  pickedList,
-    target_kind: document.getElementById('asgTargetKind').value,
+    target_kind: kind,
     target_pct:  pct,
     due_date:    document.getElementById('asgDue').value || null,
     note:        document.getElementById('asgNote').value.trim() || null,
     created_by:  myTeacherId
   };
   if (!row.vocab_list) return fail('This class type has no vocabulary list to assign yet.');
+  if (kind === 'prep') row.reps = parseInt(document.getElementById('asgReps').value, 10) || 5;
 
   if (isCiv) {
     row.scope_kind = 'topic';
@@ -1637,6 +1683,9 @@ async function submitAssignment() {
   if (error) {
     if (/relation .*v2_assignments.* does not exist/i.test(error.message || '')) {
       return fail('Homework isn\'t available yet — database migration 053 hasn\'t been applied.');
+    }
+    if (/reps|target_kind_check/i.test(error.message || '')) {
+      return fail('The prep bar needs database migration 083. Choose a percentage target for now, or apply the migration.');
     }
     if (/item_keys/i.test(error.message || '')) {
       return fail('Choosing a selection needs database migration 082. Set “All of it” for now, or apply the migration.');
@@ -1681,6 +1730,7 @@ function renderAsgPicker() {
   const noun = n => n === 1 ? activeModel.itemNoun : activeModel.itemNounPl;
   document.getElementById('asgPickAllNote').textContent = a
     ? `Every ${activeModel.itemNoun} in the scope: ${items.length} ${noun(items.length)}.` : '';
+  syncAsgTarget();
   if (asgPickMode !== 'some') return;
   const box = document.getElementById('asgPicker');
   if (!items.length) { box.innerHTML = `<div style="padding:14px;color:var(--muted);font-size:13px;">Nothing in that scope.</div>`; updateAsgPickCount(0); return; }
@@ -1726,7 +1776,33 @@ function updateAsgPickCount(total) {
   const n = Array.from(asgPicked).filter(k => inScope.has(k)).length;
   const warn = activeModel.itemNoun === 'word' && n > 0 && n < 4 ? ' · fewer than 4 gives fewer multiple-choice options' : '';
   document.getElementById('asgPickCount').textContent = `${n} of ${total} chosen${warn}`;
+  syncAsgTarget();
 }
+
+// Show the options for the chosen target, and estimate how long a prep bar
+// will take: about 8 seconds an answer, plus a third again for wrong answers
+// knocking items back.
+function syncAsgTarget() {
+  const prep = document.getElementById('asgTargetKind').value === 'prep';
+  document.getElementById('asgPrepOpts').style.display = prep ? '' : 'none';
+  document.getElementById('asgPctOpts').style.display = prep ? 'none' : 'flex';
+  if (!prep) return;
+  const a = asgDraftScope();
+  let n = a ? asgScopeItems(a, true).length : 0;
+  if (a && asgPickMode === 'some') {
+    const inScope = new Set(asgScopeItems(a, true));
+    n = Array.from(asgPicked).filter(k => inScope.has(k)).length;
+  }
+  const reps = parseInt(document.getElementById('asgReps').value, 10) || 5;
+  const mins = Math.max(1, Math.round(n * reps * 8 * 1.33 / 60));
+  document.getElementById('asgPrepEst').textContent = n ? `≈ ${mins} min for ${n} ${n === 1 ? activeModel.itemNoun : activeModel.itemNounPl}` : '';
+  const civ = activeModel.itemNoun === 'question';
+  document.getElementById('asgPrepHelp').textContent =
+    `Students fill a bar. Each ${activeModel.itemNoun} needs ${reps} correct answers${civ ? '' : ', the last two typed'}; a wrong answer knocks it back one. ` +
+    `Progress carries over between sittings, and it’s done when the bar is full.`;
+}
+document.getElementById('asgTargetKind').addEventListener('change', syncAsgTarget);
+document.getElementById('asgReps').addEventListener('change', syncAsgTarget);
 
 document.getElementById('asgPickAll').addEventListener('click', () => setAsgPickMode('all'));
 document.getElementById('asgPickSome').addEventListener('click', () => setAsgPickMode('some'));
@@ -1751,7 +1827,7 @@ async function openHwDetail(cls, a) {
   const tmp = document.createElement('div');
   tmp.innerHTML = asgDueLabel(a);
   document.getElementById('hwdMeta').textContent =
-    `${cls.name} · target ${a.target_pct}% ${a.target_kind === 'secure' ? 'secure' : 'attempted'} · set ${set}${tmp.textContent}${a.note ? ' · ' + a.note : ''}`;
+    `${cls.name} · ${asgTargetText(a)} · set ${set}${tmp.textContent}${a.note ? ' · ' + a.note : ''}`;
   document.getElementById('hwdSummary').innerHTML = '';
   document.getElementById('hwdTable').innerHTML = '<tr><td class="hwd-muted">Loading…</td></tr>';
   openModal('modalHwDetail');
@@ -1760,20 +1836,17 @@ async function openHwDetail(cls, a) {
   let rows = [];
   let available = true;
   try {
-    const { data, error } = await window.supabase
-      .from('homework_attempts')
-      .select('id, student_id, started_at, last_answer_at, answered, correct, active_seconds')
-      .eq('assignment_id', a.id)
-      .order('started_at', { ascending: false });
+    const { data, error } = await fetchHwAttempts([a.id]);
     if (error) available = false;
     rows = data || [];
+    if (!error) hwAttemptsByAsg.set(a.id, rows);
   } catch (_) { available = false; }
   const byStudent = new Map();
   for (const r of rows) {
     if (!byStudent.has(r.student_id)) byStudent.set(r.student_id, []);
     byStudent.get(r.student_id).push(r);
   }
-  hwdState = { cls, a, attempts: byStudent, available, open: new Set() };
+  hwdState = { cls, a, attempts: byStudent, available, open: new Set(), levels: new Map() };
   renderHwDetail();
 }
 
@@ -1805,9 +1878,8 @@ function renderHwDetail() {
 
   const pill = { done: '<span class="hwd-pill done">Complete</span>', prog: '<span class="hwd-pill prog">In progress</span>', none: '<span class="hwd-pill none">Not started</span>' };
   const due = a.due_date ? new Date(a.due_date + 'T23:59:59') : null;
-  let html = `<tr><th>Student</th><th>Status</th><th>Progress</th>${available ? '<th>Time</th><th>Attempts</th><th class="hwd-hide-sm">Answers</th>' : ''}<th class="hwd-hide-sm">Last worked</th></tr>`;
+  let html = `<tr><th>Student</th><th>Status</th><th>${a.target_kind === 'prep' ? 'Bar' : 'Progress'}</th>${available ? '<th>Time</th><th>Attempts</th><th class="hwd-hide-sm">Answers</th>' : ''}<th class="hwd-hide-sm">Last worked</th></tr>`;
   for (const r of rows) {
-    const acc = r.answered ? Math.round(r.correct / r.answered * 100) + '%' : '';
     const late = due && r.last && new Date(r.last) > due ? ' <span class="hwd-muted" title="Worked on after the due date">(after due)</span>' : '';
     const note = r.status === 'done' && available && !r.att.length
       ? '<div class="hwd-muted" style="margin-top:3px;">Met from earlier practice, no homework sessions</div>' : '';
@@ -1815,10 +1887,10 @@ function renderHwDetail() {
     html += `<tr class="hwd-srow${open ? ' open' : ''}" data-sid="${r.s.id}">
       <td><span class="hwd-name">${escapeHtml(r.s.name)}</span>${note}</td>
       <td>${pill[r.status]}</td>
-      <td style="white-space:nowrap;"><span class="hwd-bar"><span style="width:${Math.min(100, r.pr.pct)}%;${r.pr.done ? 'background:#059669' : ''}"></span></span>${r.pr.met}/${r.pr.total}</td>
+      <td style="white-space:nowrap;"><span class="hwd-bar"><span style="width:${Math.min(100, r.pr.pct)}%;${r.pr.done ? 'background:#059669' : ''}"></span></span>${a.target_kind === 'prep' ? r.pr.pct + '%' : r.pr.met + '/' + r.pr.total}</td>
       ${available ? `<td style="white-space:nowrap;font-weight:700;color:var(--navy);">${r.secs ? fmtDuration(r.secs) : '<span class="hwd-muted">—</span>'}</td>
       <td>${r.att.length || '<span class="hwd-muted">0</span>'}</td>
-      <td class="hwd-hide-sm" style="white-space:nowrap;">${r.answered ? `${r.answered} <span class="hwd-muted">· ${acc} right</span>` : '<span class="hwd-muted">—</span>'}</td>` : ''}
+      <td class="hwd-hide-sm" style="white-space:nowrap;">${r.answered || '<span class="hwd-muted">—</span>'}</td>` : ''}
       <td class="hwd-hide-sm" style="white-space:nowrap;">${r.last ? escapeHtml(fmtWhen(r.last)) + late : (r.s.lastSeen ? '<span class="hwd-muted">active ' + escapeHtml(timeAgo(r.s.lastSeen)) + '</span>' : '<span class="hwd-muted">—</span>')}</td>
     </tr>`;
     if (open) html += `<tr class="hwd-detail"><td colspan="${available ? 7 : 4}">${hwdStudentDetail(r)}</td></tr>`;
@@ -1831,6 +1903,35 @@ function renderHwDetail() {
     renderHwDetail();
   }));
   table.querySelectorAll('.hwd-att-head').forEach(h => h.addEventListener('click', () => toggleAttemptAnswers(h.dataset.att)));
+  if (a.target_kind === 'prep') hwdState.open.forEach(id => fillPrepLeft(id));
+}
+
+// Prep: each item's level for one student, rebuilt from their answers, so the
+// teacher sees exactly which items are still short of full.
+async function fillPrepLeft(studentId) {
+  const el = document.getElementById('hwdLeft-' + studentId);
+  if (!el || !window.ClassicaliaHomework) return;
+  const { a } = hwdState;
+  let lv = hwdState.levels.get(studentId);
+  if (!lv) {
+    const { data, error } = await window.supabase.from('homework_answers')
+      .select('item_key, correct, mode, answered_at')
+      .eq('assignment_id', a.id).eq('student_id', studentId)
+      .order('answered_at', { ascending: true }).limit(10000);
+    if (error) return;
+    lv = window.ClassicaliaHomework.prepLevels(a, data || []);
+    hwdState.levels.set(studentId, lv);
+  }
+  const reps = a.reps || 5;
+  const items = asgScopeItems(a);
+  const short = items.filter(k => (lv.get(k) || 0) < reps);
+  const target = document.getElementById('hwdLeft-' + studentId);
+  if (!target) return;
+  target.innerHTML = short.length
+    ? `<b>Still to fill (${short.length} of ${items.length}):</b> ` + short.slice(0, 40)
+        .map(k => `${escapeHtml(clip(activeModel.mainLabel(k), 40))} <span class="hwd-muted">${lv.get(k) || 0}/${reps}</span>`).join(', ') +
+      (short.length > 40 ? '…' : '')
+    : '<b style="color:#047857;">Every item filled ✓</b>';
 }
 
 function hwdStudentDetail(r) {
@@ -1856,6 +1957,7 @@ function hwdStudentDetail(r) {
     }).join('');
   }
   // What's still to do for this student, so the gap is visible.
+  if (a.target_kind === 'prep') return html + `<div class="hwd-left" id="hwdLeft-${r.s.id}">Loading…</div>`;
   const left = asgScopeItems(a).filter(k => {
     const w = r.s.words.get(k);
     if (!w) return true;

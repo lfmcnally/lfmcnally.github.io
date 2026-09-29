@@ -3,10 +3,17 @@
 // A homework link carries ?hw=<assignment id>. The practice page (vocab
 // tester or Civ quiz) calls ClassicaliaHomework.load() on boot; when it
 // returns an assignment, the page narrows its pool to the assignment's scope,
-// calls begin() as the session starts, questionShown() whenever a question
+// calls begin(keys) as the session starts, questionShown() whenever a question
 // appears and answer() whenever one is marked. This module then keeps a
 // homework_attempts row (timing + counts) and a homework_answers row per
 // answer, which the teacher's homework breakdown reads (migration 082).
+//
+// Prep homework (target_kind 'prep', migration 083) is a bar to fill: every
+// item has to be answered correctly `reps` times, a wrong answer knocks it
+// back one, and for vocab the last two reps must be typed. While a prep run
+// is going, the page asks pickPrep() which item comes next and mustType()
+// whether to ask it by typing. Levels carry over between sittings: load()
+// rebuilds them from the student's earlier answers.
 //
 // Shared helpers used by the student pages (dashboard, to-do, profile):
 //   courseFor(list)       tester/quiz details for a vocab_list
@@ -41,6 +48,40 @@
     }
     q.push('hw=' + encodeURIComponent(a.id));
     return c.base + '?' + q.join('&');
+  }
+
+  // What the student has to do, in words.
+  function targetText(a) {
+    if (a.target_kind === 'prep') {
+      const n = a.reps || 5;
+      return 'get every ' + (a.scope_kind === 'topic' ? 'question' : 'word') + ' right ' + n + ' times';
+    }
+    return a.target_pct + '% ' + (a.target_kind === 'secure' ? 'secure' : 'attempted');
+  }
+
+  // ── prep levels ──
+  // Replays answers (oldest first) into a level per item.
+  function prepLevels(a, answers, start) {
+    const reps = a.reps || 5, typed = !courseFor(a.vocab_list) || !courseFor(a.vocab_list).civ;
+    const lv = new Map(start || []);
+    for (const r of answers) {
+      const cur = lv.get(r.item_key) || 0;
+      if (r.correct) {
+        // For vocab, the last two reps only count when typed.
+        if (typed && cur >= reps - 2 && r.mode !== 'type') continue;
+        lv.set(r.item_key, Math.min(reps, cur + 1));
+      } else {
+        lv.set(r.item_key, Math.max(0, cur - 1));
+      }
+    }
+    return lv;
+  }
+  function prepPct(a, keys, lv) {
+    const reps = a.reps || 5;
+    if (!keys.length) return 0;
+    let sum = 0;
+    for (const k of keys) sum += Math.min(reps, lv.get(k) || 0);
+    return Math.floor(sum / (keys.length * reps) * 100);
   }
 
   function scopeLabel(a) {
@@ -128,11 +169,22 @@
     return restrict(items, k => k, a);
   }
 
-  // Live progress against the target, from the student's own BKT state.
+  // Live progress against the target. Prep homework reads the bar saved on the
+  // student's latest attempt; the others read their own BKT state.
   async function progress(a) {
     await ensureData(a.vocab_list);
     const items = scopeItems(a);
-    if (!items.length) return { pct: 0, total: 0, met: 0, done: false };
+    if (a.target_kind === 'prep') {
+      let pct = 0;
+      try {
+        const { data } = await window.supabase.from('homework_attempts')
+          .select('progress_pct, last_answer_at').eq('assignment_id', a.id)
+          .order('last_answer_at', { ascending: false, nullsFirst: false }).limit(1);
+        pct = (data && data[0] && data[0].progress_pct) | 0;
+      } catch (_) {}
+      return { pct, total: items.length, met: pct, done: pct >= 100, label: pct + '% of the bar' };
+    }
+    if (!items.length) return { pct: 0, total: 0, met: 0, done: false, label: '0/0' };
     let stored = new Map();
     try { const store = await window.ClassicaliaBKT.open({ vocabList: a.vocab_list }); stored = await store.loadAll(); } catch (_) {}
     let met = 0;
@@ -143,7 +195,7 @@
       else if ((st.trials | 0) > 0) met++;
     }
     const pct = Math.round(met / items.length * 100);
-    return { pct, total: items.length, met, done: pct >= a.target_pct };
+    return { pct, total: items.length, met, done: pct >= a.target_pct, label: met + '/' + items.length };
   }
 
   // The signed-in student's homework (only classes they're a member of, so a
@@ -183,6 +235,10 @@
   let flushTimer = null;
   let writing = false;
   let disabled = false;     // tables missing (migration 082 not applied)
+  let levels = new Map();   // prep: item → level, carried over from earlier sittings
+  let keys = [];            // prep: the items in this run
+  let recent = [];          // prep: last few items asked, to space repeats
+  let celebrated = false;
 
   async function load() {
     const id = new URLSearchParams(location.search).get('hw');
@@ -194,18 +250,54 @@
       const { data, error } = await window.supabase.from('v2_assignments').select('*').eq('id', id).maybeSingle();
       if (error || !data) return null;
       assignment = data;
+      if (data.target_kind === 'prep') {
+        const { data: ans } = await window.supabase.from('homework_answers')
+          .select('item_key, correct, mode, answered_at')
+          .eq('assignment_id', id).eq('student_id', userId)
+          .order('answered_at', { ascending: true }).limit(10000);
+        levels = prepLevels(data, ans || []);
+      }
       return data;
     } catch (_e) { return null; }
   }
 
-  function begin() {
+  function begin(itemKeys) {
     if (!assignment) return;
+    keys = (itemKeys || []).map(String);
+    celebrated = isPrep() && prepPct(assignment, keys, levels) >= 100;
     flush();
     attempt = { id: uuid(), started: new Date().toISOString(), answered: 0, correct: 0, activeMs: 0, created: false };
     shownAt = Date.now();
+    updateBar();
   }
 
   function questionShown() { shownAt = Date.now(); }
+
+  function isPrep() { return !!assignment && assignment.target_kind === 'prep'; }
+  function level(k) { return levels.get(String(k)) || 0; }
+
+  // Prep: the next item to ask, from `items` (whatever the page uses), keyed
+  // by keyOf. Weighted towards the emptiest items, never one of the last few
+  // asked while there's a choice. Once the bar is full it keeps practising.
+  function pickPrep(items, keyOf) {
+    const reps = assignment.reps || 5;
+    let pool = items.filter(x => level(keyOf(x)) < reps);
+    if (!pool.length) pool = items.slice();
+    const gap = Math.min(3, pool.length - 1);
+    const spaced = pool.filter(x => !recent.slice(-gap).includes(String(keyOf(x))));
+    if (spaced.length) pool = spaced;
+    const w = pool.map(x => Math.pow(reps - Math.min(reps, level(keyOf(x))) + 1, 2));
+    let r = Math.random() * w.reduce((t, v) => t + v, 0);
+    for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r <= 0) return pool[i]; }
+    return pool[pool.length - 1];
+  }
+  // Prep, vocab only: the last two reps of each word have to be typed.
+  function mustType(k) {
+    if (!isPrep()) return false;
+    const c = courseFor(assignment.vocab_list);
+    if (c && c.civ) return false;
+    return level(k) >= (assignment.reps || 5) - 2;
+  }
 
   // item: headword or question id; response: what the student gave;
   // mode: 'mc' | 'type' | 'self'.
@@ -227,6 +319,12 @@
       answered_at: new Date().toISOString()
     });
     shownAt = 0;
+    if (isPrep()) {
+      const k = String(item);
+      levels = prepLevels(assignment, [{ item_key: k, correct: !!correct, mode: mode }], levels);
+      recent.push(k); if (recent.length > 5) recent.shift();
+      updateBar();
+    }
     if (!flushTimer) flushTimer = setTimeout(flush, 2000);
   }
 
@@ -238,7 +336,7 @@
     const rows = pending.splice(0);
     try {
       // The attempt row must exist before its answers (foreign key).
-      const { error: aErr } = await window.supabase.from('homework_attempts').upsert({
+      const row = {
         id: a.id,
         assignment_id: assignment.id,
         student_id: userId,
@@ -247,42 +345,85 @@
         answered: a.answered,
         correct: a.correct,
         active_seconds: Math.round(a.activeMs / 1000)
-      });
+      };
+      if (isPrep()) row.progress_pct = prepPct(assignment, keys, levels);
+      const { error: aErr } = await window.supabase.from('homework_attempts').upsert(row);
       if (aErr) {
-        if (/homework_attempts|does not exist|schema cache/i.test(aErr.message || '')) disabled = true;
+        // A missing table or column won't fix itself; anything else retries.
+        if (/does not exist|schema cache|could not find/i.test(aErr.message || '')) disabled = true;
         else pending.unshift(...rows);
+        saveStatus(false, aErr.message);
+        console.warn('[homework] could not save attempt', aErr);
         return;
       }
       a.created = true;
       if (rows.length) {
         const { error: rErr } = await window.supabase.from('homework_answers').insert(rows);
-        if (rErr) pending.unshift(...rows);
+        if (rErr) { pending.unshift(...rows); saveStatus(false, rErr.message); console.warn('[homework] could not save answers', rErr); return; }
       }
+      saveStatus(true);
     } catch (_e) {
       pending.unshift(...rows);
+      saveStatus(false, 'no connection');
     } finally {
       writing = false;
       if (pending.length && !flushTimer && !disabled) flushTimer = setTimeout(flush, 4000);
     }
   }
 
-  // A small banner for the top of the practice page.
+  // A banner for the top of the practice page: what the homework is, whether
+  // answers are saving and, for prep homework, the bar to fill.
   function bannerHtml(a) {
     const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const d = dueInfo(a);
-    const target = a.target_pct + '% ' + (a.target_kind === 'secure' ? 'secure' : 'attempted');
-    return '<strong>Homework</strong> &middot; ' + esc(scopeLabel(a)) +
-      ' &middot; target ' + esc(target) + (a.due_date ? ' &middot; ' + esc(d.text) : '') +
-      (a.note ? ' &middot; ' + esc(a.note) : '');
+    let html = '<strong>Homework</strong> &middot; ' + esc(scopeLabel(a)) +
+      ' &middot; ' + esc(targetText(a)) + (a.due_date ? ' &middot; ' + esc(d.text) : '') +
+      (a.note ? ' &middot; ' + esc(a.note) : '') +
+      ' <span class="hw-save" style="font-size:12px;opacity:.75;"></span>';
+    if (a.target_kind === 'prep') {
+      html += '<div style="display:flex;align-items:center;gap:10px;margin-top:10px;">' +
+        '<div style="flex:1;height:12px;background:rgba(14,30,63,.12);border-radius:7px;overflow:hidden;">' +
+        '<div class="hwp-fill" style="height:100%;width:0;background:#1A6FFF;border-radius:7px;transition:width .4s ease;"></div></div>' +
+        '<b class="hwp-pct" style="min-width:42px;text-align:right;">0%</b></div>' +
+        '<div class="hwp-msg" style="font-size:12px;margin-top:6px;opacity:.8;"></div>';
+    }
+    return html;
+  }
+
+  function updateBar() {
+    if (!isPrep()) return;
+    const pct = prepPct(assignment, keys, levels);
+    const reps = assignment.reps || 5;
+    const full = keys.filter(k => level(k) >= reps).length;
+    document.querySelectorAll('.hwp-fill').forEach(el => {
+      el.style.width = pct + '%';
+      el.style.background = pct >= 100 ? '#059669' : '#1A6FFF';
+    });
+    document.querySelectorAll('.hwp-pct').forEach(el => { el.textContent = pct + '%'; });
+    const msg = pct >= 100
+      ? 'Homework complete ✓ You’ve filled the bar. You can stop here or keep practising.'
+      : full + ' of ' + keys.length + ' done. Each one needs ' + reps + ' correct answers' +
+        (mustTypeAny() ? ' (the last two typed)' : '') + '; a wrong answer knocks it back one.';
+    document.querySelectorAll('.hwp-msg').forEach(el => { el.textContent = msg; });
+    if (pct >= 100 && !celebrated) { celebrated = true; flush(); }
+  }
+  function mustTypeAny() { const c = courseFor(assignment.vocab_list); return !(c && c.civ); }
+
+  function saveStatus(ok, msg) {
+    document.querySelectorAll('.hw-save').forEach(el => {
+      el.textContent = ok ? '· saved' : '· not saving: ' + (msg || 'error');
+      el.style.color = ok ? '' : '#b91c1c';
+      el.style.opacity = ok ? '.75' : '1';
+    });
   }
 
   window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flush(); });
   window.addEventListener('pagehide', flush);
 
   window.ClassicaliaHomework = {
-    COURSES, courseFor, practiseHref, scopeLabel, dueInfo, restrict, bannerHtml,
-    ensureData, scopeItems, progress, loadMine,
-    load, begin, questionShown, answer, flush,
+    COURSES, courseFor, practiseHref, scopeLabel, dueInfo, restrict, bannerHtml, targetText,
+    ensureData, scopeItems, progress, loadMine, prepLevels, prepPct,
+    load, begin, questionShown, answer, flush, isPrep, pickPrep, mustType, level,
     get active() { return assignment; }
   };
 })();
