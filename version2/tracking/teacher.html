@@ -531,6 +531,10 @@ body { background:#f4f6fa; }
           </select>
           <span id="asgPrepEst" style="font-size:12.5px;font-weight:700;color:var(--brand);"></span>
         </div>
+        <div id="asgTypedRow" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;">
+          <span style="font-size:13px;color:var(--ink);">Of those, typed (not multiple choice)</span>
+          <select id="asgTyped" style="padding:8px 10px;font-size:14px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;background:white;"></select>
+        </div>
         <div id="asgPrepHelp" style="font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;"></div>
       </div>
       <div id="asgPctOpts" style="display:none;align-items:center;gap:10px;margin-bottom:16px;">
@@ -563,6 +567,7 @@ body { background:#f4f6fa; }
     </div>
     <div style="padding:22px 28px 28px;">
       <div class="hwd-sum" id="hwdSummary"></div>
+      <div style="display:flex;justify-content:flex-end;margin:-8px 0 8px;"><button type="button" id="hwdRefresh" style="font-size:12px;font-weight:600;padding:6px 12px;border-radius:5px;border:1px solid var(--rule);background:var(--paper);color:var(--brand);cursor:pointer;">↻ Refresh</button></div>
       <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px;">Click a student to see every homework attempt and each answer they gave. Time counts time spent on each question, capped at 90 seconds per question so an idle tab doesn’t count.</div>
       <div style="overflow-x:auto;"><table class="hwd-table" id="hwdTable"></table></div>
     </div>
@@ -1412,7 +1417,11 @@ let hwAttemptsAvailable = false; // migration 082 applied?
 
 // What the homework asks for, in words.
 function asgTargetText(a) {
-  if (a.target_kind === 'prep') return `every ${activeModel.itemNoun} right ${a.reps || 5} times`;
+  if (a.target_kind === 'prep') {
+    const reps = a.reps || 5;
+    const typed = window.ClassicaliaHomework ? window.ClassicaliaHomework.typedNeeded(a) : 0;
+    return `every ${activeModel.itemNoun} right ${reps} times` + (typed ? ` (${typed >= reps ? 'all' : typed} typed)` : '');
+  }
   return `target ${a.target_pct}% ${a.target_kind === 'secure' ? 'secure' : 'attempted'}`;
 }
 
@@ -1624,6 +1633,7 @@ function openNewAssignment() {
   document.getElementById('asgPct').value = '80';
   document.getElementById('asgTargetKind').value = 'prep';
   document.getElementById('asgReps').value = '5';
+  fillAsgTyped(true);
   syncAsgTarget();
   document.getElementById('asgNote').value = '';
   document.getElementById('asgDue').value = '';
@@ -1654,7 +1664,10 @@ async function submitAssignment() {
     created_by:  myTeacherId
   };
   if (!row.vocab_list) return fail('This class type has no vocabulary list to assign yet.');
-  if (kind === 'prep') row.reps = parseInt(document.getElementById('asgReps').value, 10) || 5;
+  if (kind === 'prep') {
+    row.reps = parseInt(document.getElementById('asgReps').value, 10) || 5;
+    if (activeModel.itemNoun === 'word') row.typed_reps = parseInt(document.getElementById('asgTyped').value, 10) || 0;
+  }
 
   if (isCiv) {
     row.scope_kind = 'topic';
@@ -1683,6 +1696,9 @@ async function submitAssignment() {
   if (error) {
     if (/relation .*v2_assignments.* does not exist/i.test(error.message || '')) {
       return fail('Homework isn\'t available yet — database migration 053 hasn\'t been applied.');
+    }
+    if (/typed_reps/i.test(error.message || '')) {
+      return fail('Choosing how many are typed needs database migration 084. Apply it, then set the homework again.');
     }
     if (/reps|target_kind_check/i.test(error.message || '')) {
       return fail('The prep bar needs database migration 083. Choose a percentage target for now, or apply the migration.');
@@ -1797,12 +1813,27 @@ function syncAsgTarget() {
   const mins = Math.max(1, Math.round(n * reps * 8 * 1.33 / 60));
   document.getElementById('asgPrepEst').textContent = n ? `≈ ${mins} min for ${n} ${n === 1 ? activeModel.itemNoun : activeModel.itemNounPl}` : '';
   const civ = activeModel.itemNoun === 'question';
+  document.getElementById('asgTypedRow').style.display = civ ? 'none' : 'flex';
+  const typed = civ ? 0 : Math.min(reps, parseInt(document.getElementById('asgTyped').value, 10) || 0);
+  const typedTxt = typed >= reps ? ', all of them typed' : typed ? `: multiple choice first, then the last ${typed} typed` : ', all multiple choice';
   document.getElementById('asgPrepHelp').textContent =
-    `Students fill a bar. Each ${activeModel.itemNoun} needs ${reps} correct answers${civ ? '' : ', the last two typed'}; a wrong answer knocks it back one. ` +
+    `Students fill a bar. Each ${activeModel.itemNoun} needs ${reps} correct answers${civ ? '' : typedTxt}; a wrong answer knocks it back one. ` +
     `Progress carries over between sittings, and it’s done when the bar is full.`;
 }
+// Typed-answer choices for the current number of reps; defaults to half,
+// rounded up (5 correct → the last 3 typed).
+function fillAsgTyped(reset) {
+  const sel = document.getElementById('asgTyped');
+  const reps = parseInt(document.getElementById('asgReps').value, 10) || 5;
+  const prev = parseInt(sel.value, 10);
+  let html = '';
+  for (let t = 0; t <= reps; t++) html += `<option value="${t}">${t === 0 ? 'none' : t === reps ? 'all ' + t : t}</option>`;
+  sel.innerHTML = html;
+  sel.value = String(!reset && Number.isFinite(prev) && prev <= reps ? prev : Math.ceil(reps / 2));
+}
 document.getElementById('asgTargetKind').addEventListener('change', syncAsgTarget);
-document.getElementById('asgReps').addEventListener('change', syncAsgTarget);
+document.getElementById('asgReps').addEventListener('change', () => { fillAsgTyped(true); syncAsgTarget(); });
+document.getElementById('asgTyped').addEventListener('change', syncAsgTarget);
 
 document.getElementById('asgPickAll').addEventListener('click', () => setAsgPickMode('all'));
 document.getElementById('asgPickSome').addEventListener('click', () => setAsgPickMode('some'));
@@ -1812,6 +1843,12 @@ document.getElementById('asgFrom').addEventListener('input', renderAsgPicker);
 document.getElementById('asgTo').addEventListener('input', renderAsgPicker);
 
 // ── Homework breakdown: per student, per attempt, per answer ───────────────
+document.getElementById('hwdRefresh').addEventListener('click', () => {
+  if (!hwdState) return;
+  const { cls, a } = hwdState;
+  openHwDetail(cls, a);
+  renderAssignments(cls);   // keep the list row behind it current too
+});
 let hwdState = null;   // { cls, a, attempts: Map(student → rows), open: Set }
 
 function fmtWhen(iso) {

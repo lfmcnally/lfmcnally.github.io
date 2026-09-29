@@ -10,7 +10,7 @@
 //
 // Prep homework (target_kind 'prep', migration 083) is a bar to fill: every
 // item has to be answered correctly `reps` times, a wrong answer knocks it
-// back one, and for vocab the last two reps must be typed. While a prep run
+// back one, and for vocab the last `typed_reps` must be typed. While a prep run
 // is going, the page asks pickPrep() which item comes next and mustType()
 // whether to ask it by typing. Levels carry over between sittings: load()
 // rebuilds them from the student's earlier answers.
@@ -53,22 +53,32 @@
   // What the student has to do, in words.
   function targetText(a) {
     if (a.target_kind === 'prep') {
-      const n = a.reps || 5;
-      return 'get every ' + (a.scope_kind === 'topic' ? 'question' : 'word') + ' right ' + n + ' times';
+      const n = a.reps || 5, t = typedNeeded(a);
+      return 'get every ' + (a.scope_kind === 'topic' ? 'question' : 'word') + ' right ' + n + ' times' +
+        (t ? ' (' + (t >= n ? 'all' : t) + ' typed)' : '');
     }
     return a.target_pct + '% ' + (a.target_kind === 'secure' ? 'secure' : 'attempted');
+  }
+
+  // How many of each item's reps must be typed (vocab only; Civ answers are
+  // self-marked, so typing can't be checked). The typed reps are the last ones.
+  function typedNeeded(a) {
+    const c = courseFor(a.vocab_list);
+    if (c && c.civ) return 0;
+    const reps = a.reps || 5;
+    return Math.min(reps, a.typed_reps == null ? 2 : a.typed_reps);
   }
 
   // ── prep levels ──
   // Replays answers (oldest first) into a level per item.
   function prepLevels(a, answers, start) {
-    const reps = a.reps || 5, typed = !courseFor(a.vocab_list) || !courseFor(a.vocab_list).civ;
+    const reps = a.reps || 5, typedFrom = reps - typedNeeded(a);
     const lv = new Map(start || []);
     for (const r of answers) {
       const cur = lv.get(r.item_key) || 0;
       if (r.correct) {
-        // For vocab, the last two reps only count when typed.
-        if (typed && cur >= reps - 2 && r.mode !== 'type') continue;
+        // The last typed_reps only count when typed.
+        if (cur >= typedFrom && r.mode !== 'type') continue;
         lv.set(r.item_key, Math.min(reps, cur + 1));
       } else {
         lv.set(r.item_key, Math.max(0, cur - 1));
@@ -291,12 +301,11 @@
     for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r <= 0) return pool[i]; }
     return pool[pool.length - 1];
   }
-  // Prep, vocab only: the last two reps of each word have to be typed.
+  // Prep, vocab only: the last typed_reps of each word have to be typed.
   function mustType(k) {
     if (!isPrep()) return false;
-    const c = courseFor(assignment.vocab_list);
-    if (c && c.civ) return false;
-    return level(k) >= (assignment.reps || 5) - 2;
+    const t = typedNeeded(assignment);
+    return t > 0 && level(k) >= (assignment.reps || 5) - t;
   }
 
   // item: headword or question id; response: what the student gave;
@@ -403,11 +412,15 @@
     const msg = pct >= 100
       ? 'Homework complete ✓ You’ve filled the bar. You can stop here or keep practising.'
       : full + ' of ' + keys.length + ' done. Each one needs ' + reps + ' correct answers' +
-        (mustTypeAny() ? ' (the last two typed)' : '') + '; a wrong answer knocks it back one.';
+        typedMsg() + '; a wrong answer knocks it back one.';
     document.querySelectorAll('.hwp-msg').forEach(el => { el.textContent = msg; });
     if (pct >= 100 && !celebrated) { celebrated = true; flush(); }
   }
-  function mustTypeAny() { const c = courseFor(assignment.vocab_list); return !(c && c.civ); }
+  function typedMsg() {
+    const t = typedNeeded(assignment), n = assignment.reps || 5;
+    if (!t) return '';
+    return t >= n ? ', all typed' : ' (the last ' + (t === 1 ? 'one' : t) + ' typed)';
+  }
 
   function saveStatus(ok, msg) {
     document.querySelectorAll('.hw-save').forEach(el => {
@@ -422,7 +435,7 @@
 
   window.ClassicaliaHomework = {
     COURSES, courseFor, practiseHref, scopeLabel, dueInfo, restrict, bannerHtml, targetText,
-    ensureData, scopeItems, progress, loadMine, prepLevels, prepPct,
+    ensureData, scopeItems, progress, loadMine, prepLevels, prepPct, typedNeeded,
     load, begin, questionShown, answer, flush, isPrep, pickPrep, mustType, level,
     get active() { return assignment; }
   };
