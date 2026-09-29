@@ -1034,6 +1034,7 @@ async function flushSessionLog() {
 // student's confidence, with no switch to change it (weak-spots tests).
 async function startSessionWithPool(pool, mode, strategy, lockMode) {
   hwRun = false;   // startHomework() switches it back on for homework runs
+  { const pt = document.getElementById('progressText'); if (pt) pt.parentElement.style.display = ''; }
   sessionStrategy = strategy || 'standard';
   await refreshActiveStore();
   const stored = activeStore ? await activeStore.loadAll() : new Map();
@@ -1129,11 +1130,17 @@ async function startHomework() {
   if (!pool.length) { showAutoStartNotice('No words found for this homework.'); return; }
   await startSessionWithPool(pool, 'mc', 'coverage', true);
   hwRun = true;
-  HW.begin();
   showAutoStartNotice('');
   const bar = document.getElementById('autoNotice');
   bar.style.background = '#eef4ff'; bar.style.borderColor = '#c7d7f5'; bar.style.color = 'var(--navy,#0E1E3F)';
   bar.innerHTML = HW.bannerHtml(a);
+  HW.begin(pool.map(w => w.greek));
+  if (HW.isPrep()) {
+    nextWord();   // re-pick the first word by the prep rules
+    // The homework bar replaces the tester's own mastery bar for this run.
+    const pb = document.getElementById('progressFill').parentElement.parentElement;
+    if (pb && pb.querySelector('#progressText')) pb.style.display = 'none';
+  }
 }
 
 function showAutoStartNotice(message) {
@@ -1356,6 +1363,10 @@ function pickCoverageWord() {
 }
 
 function pickNextWord() {
+  // Prep homework: the homework decides, filling the emptiest words first.
+  if (hwRun && window.ClassicaliaHomework && window.ClassicaliaHomework.isPrep()) {
+    return window.ClassicaliaHomework.pickPrep(activeWords, w => w.greek);
+  }
   if (sessionStrategy === 'coverage') return pickCoverageWord();
 
   // 1. Highest priority: words Due for spaced-repetition review (every strategy).
@@ -1444,6 +1455,10 @@ function nextWord() {
 // word has passed the typing gate.
 function renderAnswerArea() {
   askMode = (currentMode === 'type' || currentWord.pKnow >= TYPE_FROM_P) ? 'type' : 'mc';
+  // Prep homework: typing is decided by how far the word is up its bar.
+  if (hwRun && window.ClassicaliaHomework && window.ClassicaliaHomework.isPrep()) {
+    askMode = (currentMode === 'type' || window.ClassicaliaHomework.mustType(currentWord.greek)) ? 'type' : 'mc';
+  }
   if (askMode === 'mc') renderMC();
   else renderType();
 }
