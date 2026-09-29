@@ -28,6 +28,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/bkt-store.js"></script>
+<script src="/version2/assets/js/homework.js"></script>
 <script src="/version2/assets/js/course-map.js"></script>
 <script src="/version2/assets/js/account-menu.js" defer></script>
 <style>
@@ -122,6 +123,8 @@ body { background: var(--cream); }
 .hw-pct b { color:var(--navy); }
 .hw-btn { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;padding:8px 14px;border-radius:6px;border:none;background:var(--brand);color:white;cursor:pointer;text-decoration:none;white-space:nowrap; }
 .hw-btn:hover { background:#155ee0; }
+.hw-sub { padding:9px 22px;font-size:10px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--muted);background:var(--cream);border-bottom:1px solid var(--rule-faint); }
+.hw-again { font-size:11.5px;font-weight:600;color:var(--brand);text-decoration:none;white-space:nowrap; }
 .hw-done-badge { font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:white;background:#059669;border-radius:10px;padding:3px 9px; }
 
 /* word map */
@@ -493,7 +496,7 @@ body { background:#f4f6fa; }
   </div>
   <!-- Homework set by teachers for the student's classes. Hidden when none. -->
   <div class="hw-card" id="hwCard" style="display:none;">
-    <div class="hw-head"><span class="hw-title">Homework</span></div>
+    <div class="hw-head"><span class="hw-title" id="hwTitle">Homework</span></div>
     <div id="hwList"></div>
   </div>
   <div id="course-vocab">
@@ -1561,91 +1564,17 @@ async function saveWeeklyGoal(value) {
 }
 
 // ── Homework ───────────────────────────────────────────────────────────────
-// Lists assignments for the student's classes (RLS returns only theirs) and
-// computes live progress from their BKT state for each scope. Silent if the
-// v2_assignments table isn't there yet.
-function vocabCourseByList(list) {
-  for (const k in VOCAB_COURSES) if (VOCAB_COURSES[k].storageKey === list) return VOCAB_COURSES[k];
-  return null;
-}
-function courseLabelByList(list) {
-  const m = window.ClassicaliaCourseMap;
-  if (m && m.COURSE_TYPES) { const h = m.COURSE_TYPES.find(c => c.vocabList === list); if (h) return h.label; }
-  return list;
-}
-function hwScopeItems(a) {
-  if (a.scope_kind === 'topic') {
-    const topics = (window.CivQuiz && window.CivQuiz.topics) || [];
-    const ids = [];
-    for (const t of topics) if (String(t.id) === String(a.topic_id)) for (const q of t.questions) ids.push(q.id);
-    return ids;
-  }
-  const cfg = vocabCourseByList(a.vocab_list);
-  if (!cfg || !cfg.data) return [];
-  const data = cfg.data() || [], field = cfg.headwordField, seen = new Set();
-  for (const e of data) if (e.chapter > 0 && e.chapter >= a.chapter_from && e.chapter <= a.chapter_to) seen.add(e[field]);
-  return Array.from(seen);
-}
-async function hwProgress(a) {
-  const items = hwScopeItems(a);
-  if (!items.length) return { pct: 0, total: 0, met: 0, done: false };
-  let stored = new Map();
-  try { const store = await window.ClassicaliaBKT.open({ vocabList: a.vocab_list }); stored = await store.loadAll(); } catch (_) {}
-  let met = 0;
-  for (const it of items) {
-    const s = stored.get(it);
-    if (!s) continue;
-    if (a.target_kind === 'secure') { if (s.p_know >= 0.95 && (s.distinct_correct_days | 0) >= 3) met++; }
-    else if ((s.trials | 0) > 0) met++;
-  }
-  const pct = Math.round(met / items.length * 100);
-  return { pct, total: items.length, met, done: pct >= a.target_pct };
-}
-function hwPractiseHref(a) {
-  if (a.scope_kind === 'topic') return '/version2/tools/quiz/myth-and-religion.html';
-  const cfg = vocabCourseByList(a.vocab_list) || {};
-  const base = cfg.testerBase || '/version2/tools/vocab/latinvocabtester.html';
-  const parts = [];
-  if (cfg.testerList) parts.push('list=' + cfg.testerList);
-  parts.push('from=' + a.chapter_from, 'to=' + a.chapter_to, 'auto=1');
-  return base + '?' + parts.join('&');
-}
-function hwScopeLabel(a) {
-  if (a.scope_kind === 'topic') return 'Myth & Religion · Topic ' + escapeHtml(String(a.topic_id));
-  const cfg = vocabCourseByList(a.vocab_list);
-  const noun = (cfg && cfg.groupNoun) || 'Chapter';
-  const rng = a.chapter_to > a.chapter_from ? `${noun}s ${a.chapter_from}–${a.chapter_to}` : `${noun} ${a.chapter_from}`;
-  return escapeHtml(courseLabelByList(a.vocab_list)) + ' · ' + rng;
-}
-function hwDue(a) {
-  if (!a.due_date) return { text: 'No due date', cls: '' };
-  const due = new Date(a.due_date + 'T23:59:59');
-  const days = Math.ceil((due - Date.now()) / 86400000);
-  const nice = due.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  if (days < 0) return { text: 'Overdue · ' + nice, cls: 'over' };
-  if (days <= 2) return { text: 'Due ' + nice, cls: 'soon' };
-  return { text: 'Due ' + nice, cls: '' };
-}
-
-async function loadAssignments() {
-  let rows = null;
-  try {
-    const { data, error } = await window.supabase.from('v2_assignments').select('*');
-    if (error) return;       // table not there yet
-    rows = data || [];
-  } catch (_) { return; }
-  if (!rows.length) return;
-  rows.sort((a, b) => (a.due_date || '9999') < (b.due_date || '9999') ? -1 : 1);
-
-  const progs = await Promise.all(rows.map(hwProgress));
-  const list = document.getElementById('hwList');
-  list.innerHTML = rows.map((a, i) => {
-    const pr = progs[i], due = hwDue(a);
-    const targetTxt = `${a.target_pct}% ${a.target_kind === 'secure' ? 'secure' : 'attempted'}`;
-    return `
+// "To complete": homework set for the student's classes that they haven't hit
+// the target for yet, each opening straight into the set words or questions.
+// Finished homework sits underneath. Progress is live from their BKT state
+// (homework.js). Silent if the v2_assignments table isn't there yet.
+function hwRowHtml(a, pr) {
+  const HW = window.ClassicaliaHomework, due = HW.dueInfo(a);
+  const targetTxt = `${a.target_pct}% ${a.target_kind === 'secure' ? 'secure' : 'attempted'}`;
+  return `
       <div class="hw-row${pr.done ? ' done' : ''}">
         <div class="hw-info">
-          <div class="hw-scope">${hwScopeLabel(a)}</div>
+          <div class="hw-scope">${escapeHtml(HW.scopeLabel(a))}</div>
           <div class="hw-meta">Target: ${targetTxt} · <span class="hw-due ${due.cls}">${escapeHtml(due.text)}</span>${a.note ? ' · ' + escapeHtml(a.note) : ''}</div>
         </div>
         <div class="hw-prog">
@@ -1653,10 +1582,21 @@ async function loadAssignments() {
           <div class="hw-pct"><b>${pr.met}</b>/${pr.total} · ${pr.pct}%</div>
         </div>
         ${pr.done
-          ? '<span class="hw-done-badge">Done ✓</span>'
-          : `<a class="hw-btn" href="${hwPractiseHref(a)}">Practise →</a>`}
+          ? `<span class="hw-done-badge">Done ✓</span><a class="hw-again" href="${HW.practiseHref(a)}">Practise again</a>`
+          : `<a class="hw-btn" href="${HW.practiseHref(a)}">Start →</a>`}
       </div>`;
-  }).join('');
+}
+
+async function loadAssignments() {
+  if (!window.ClassicaliaHomework) return;
+  const rows = await window.ClassicaliaHomework.loadMine();
+  if (!rows.length) return;
+  const todo = rows.filter(r => !r.p.done), done = rows.filter(r => r.p.done);
+  document.getElementById('hwTitle').textContent = todo.length ? `To complete · ${todo.length}` : 'Homework';
+  document.getElementById('hwList').innerHTML =
+    (todo.length ? todo.map(r => hwRowHtml(r.a, r.p)).join('')
+                 : '<div class="hw-row"><div class="hw-info"><div class="hw-meta">All your homework is done. Nice work.</div></div></div>') +
+    (done.length ? `<div class="hw-sub">Completed</div>` + done.map(r => hwRowHtml(r.a, r.p)).join('') : '');
   document.getElementById('hwCard').style.display = '';
 }
 

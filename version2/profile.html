@@ -12,6 +12,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/course-map.js"></script>
+<script src="/version2/assets/js/bkt-store.js"></script>
+<script src="/version2/assets/js/homework.js"></script>
 <script src="/version2/assets/js/account-menu.js" defer></script>
 <style>
 body { background:var(--cream); }
@@ -65,6 +67,17 @@ body { background:var(--cream); }
 .jump-btn:hover { border-color:var(--brand);color:var(--brand); }
 .jump-btn.test { background:#127a3e;border-color:#127a3e;color:#fff; }
 .jump-btn.test:hover { background:#0f6835;color:#fff; }
+.todo-row { display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 22px;border-bottom:1px solid var(--rule-faint);text-decoration:none;color:inherit; }
+.todo-row:last-child { border-bottom:none; }
+.todo-row:hover { background:var(--cream); }
+.todo-info { flex:1;min-width:180px; }
+.todo-name { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:16px;color:var(--navy); }
+.todo-meta { font-size:12px;color:var(--muted);margin-top:2px; }
+.todo-meta .soon { color:#d97706;font-weight:700; }
+.todo-meta .over { color:#dc2626;font-weight:700; }
+.todo-track { width:120px;height:7px;background:var(--rule);border-radius:4px;overflow:hidden; }
+.todo-track > span { display:block;height:100%;background:var(--brand); }
+.todo-go { font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:6px;background:var(--brand);color:#fff;white-space:nowrap; }
 .anon-pitch .anon-title { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:20px;color:var(--navy);margin-bottom:6px; }
 .anon-pitch p { font-size:13.5px;color:var(--muted);line-height:1.6;margin-bottom:14px; }
 .anon-actions { display:flex;gap:10px;flex-wrap:wrap; }
@@ -107,6 +120,12 @@ body { background:var(--cream); }
         <a href="/auth/login.html" class="code-btn">Sign in</a>
       </div>
     </div>
+  </div>
+
+  <!-- TO COMPLETE: homework the student hasn't finished yet -->
+  <div class="prof-card" id="cardTodo" style="display:none;">
+    <div class="prof-card-head"><span class="prof-card-title" id="todoTitle">To complete</span><a href="/version2/tracking/todo.html" style="font-size:12px;font-weight:600;color:var(--brand);text-decoration:none;">All set work &rarr;</a></div>
+    <div id="todoList"></div>
   </div>
 
   <!-- JUMP BACK IN -->
@@ -299,6 +318,7 @@ async function loadProfile() {
       renderCoursePicker(tracked.courses);
       renderJumpList(tracked.courses);
     }
+    loadToComplete();
     await loadTeachers(user.id);
   } else {
     // Teachers: no personal tracking or sharing code; their classes instead.
@@ -453,6 +473,29 @@ async function loadClasses(teacherId) {
       </div>
       <span style="color:var(--brand);font-weight:700;font-size:13px;">Open &rarr;</span>
     </a>`).join('');
+}
+
+// Homework the student hasn't hit the target for yet. Each row opens the
+// tester or quiz straight on what the teacher set (homework.js).
+async function loadToComplete() {
+  const HW = window.ClassicaliaHomework;
+  if (!HW) return;
+  const todo = (await HW.loadMine()).filter(r => !r.p.done);
+  if (!todo.length) return;
+  document.getElementById('todoTitle').textContent = 'To complete · ' + todo.length;
+  document.getElementById('todoList').innerHTML = todo.map(({ a, p }) => {
+    const d = HW.dueInfo(a);
+    const target = a.target_pct + '% ' + (a.target_kind === 'secure' ? 'secure' : 'attempted');
+    return `<a class="todo-row" href="${HW.practiseHref(a)}">
+        <div class="todo-info">
+          <div class="todo-name">${escapeHtml(HW.scopeLabel(a))}</div>
+          <div class="todo-meta"><span class="${d.cls}">${escapeHtml(d.text)}</span> · target ${target} · ${p.met}/${p.total}${a.note ? ' · ' + escapeHtml(a.note) : ''}</div>
+        </div>
+        <div class="todo-track"><span style="width:${Math.min(100, p.pct)}%"></span></div>
+        <span class="todo-go">Start &rarr;</span>
+      </a>`;
+  }).join('');
+  document.getElementById('cardTodo').style.display = '';
 }
 
 async function loadTeachers(studentId) {

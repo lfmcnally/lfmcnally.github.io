@@ -8,6 +8,8 @@
 <link rel="stylesheet" href="/version2/assets/css/classicalia.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/bkt-store.js"></script>
+<script src="/version2/assets/js/homework.js"></script>
 <script src="/version2/assets/js/account-menu.js" defer></script>
 <style>
 .gate { max-width:520px; margin:60px auto; background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:28px; text-align:center; font-size:15px; line-height:1.6; }
@@ -18,6 +20,10 @@
 .todo-ic { width:38px; height:38px; flex:none; border-radius:9px; display:flex; align-items:center; justify-content:center; }
 .todo-ic.test { background:#eef4ff; color:var(--brand); }
 .todo-ic.bank { background:#fef6ec; color:#d97706; }
+.todo-ic.hw { background:#ecfdf5; color:#047857; }
+.todo-bar { display:block; height:5px; background:var(--rule); border-radius:3px; overflow:hidden; margin-top:7px; max-width:260px; }
+.todo-bar > span { display:block; height:100%; background:var(--brand); border-radius:3px; }
+.todo-card.done { opacity:.75; }
 .todo-ic svg { width:19px; height:19px; }
 .todo-main { flex:1; min-width:0; }
 .todo-title { font-family:'Lora',serif; font-style:italic; font-weight:700; font-size:17px; color:var(--navy); }
@@ -56,6 +62,7 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&
 
 const IC = {
   test: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h9l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M8 13h7M8 17h5"/></svg>',
+  hw:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>',
   bank: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l2-3h6l2 3h6a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/></svg>'
 };
 
@@ -82,6 +89,20 @@ function card(kind, title, dueAt, href) {
     '<span class="todo-go">Open &rarr;</span></a>';
 }
 
+// A homework card: scope, target, due date and a live progress bar.
+function hwCard(r) {
+  const HW = window.ClassicaliaHomework, a = r.a, p = r.p, d = HW.dueInfo(a);
+  const target = a.target_pct + '% ' + (a.target_kind === 'secure' ? 'secure' : 'attempted');
+  const meta = p.done ? 'Done ✓ · ' + p.met + '/' + p.total
+                      : d.text + ' · target ' + target + ' · ' + p.met + '/' + p.total + (a.note ? ' · ' + a.note : '');
+  return '<a class="todo-card' + (p.done ? ' done' : '') + '" href="' + HW.practiseHref(a) + '">' +
+    '<span class="todo-ic hw">' + IC.hw + '</span>' +
+    '<span class="todo-main"><span class="todo-title">' + esc(HW.scopeLabel(a)) + '</span>' +
+    '<span class="todo-meta' + (!p.done && d.cls ? ' soon' : '') + '">' + esc(meta) + '</span>' +
+    '<span class="todo-bar"><span style="width:' + Math.min(100, p.pct) + '%;' + (p.done ? 'background:#059669' : '') + '"></span></span></span>' +
+    '<span class="todo-go">' + (p.done ? 'Practise again' : 'Start') + ' &rarr;</span></a>';
+}
+
 function section(title, cards) {
   return '<div class="todo-sec"><div class="section-h">' + title + '</div>' + cards.join('') + '</div>';
 }
@@ -97,10 +118,11 @@ function section(title, cards) {
   const me = au.user.id;
 
   // Open weekly tests (set by teachers) + bank assessments assigned to my classes.
-  const [wtRes, clsRes, asgRes] = await Promise.all([
+  const [wtRes, clsRes, asgRes, hw] = await Promise.all([
     sb.from('weekly_tests').select('*').eq('status', 'open').order('due_at', { ascending: true, nullsFirst: false }),
     sb.from('v2_classes').select('id, teacher_id'),
-    sb.from('bank_class_assignments').select('*').eq('status', 'open')
+    sb.from('bank_class_assignments').select('*').eq('status', 'open'),
+    window.ClassicaliaHomework ? window.ClassicaliaHomework.loadMine() : []
   ]);
 
   const tests = wtRes.data || [];
@@ -114,22 +136,26 @@ function section(title, cards) {
     (bass || []).forEach(b => { titles[b.id] = b.title; });
   }
 
-  render(tests, asg, titles);
+  render(tests, asg, titles, hw);
 })();
 
-function render(tests, asg, titles) {
-  if (tests.length + asg.length === 0) {
+function render(tests, asg, titles, hw) {
+  const hwTodo = hw.filter(r => !r.p.done), hwDone = hw.filter(r => r.p.done);
+  if (tests.length + asg.length + hwTodo.length === 0 && !hwDone.length) {
     $('content').innerHTML = '<div class="todo-empty"><div class="big">You’re all caught up</div>' +
-      'Nothing assigned right now. When your teacher sets a weekly test or an assessment, it’ll show up here.</div>';
+      'Nothing assigned right now. When your teacher sets homework, a weekly test or an assessment, it’ll show up here.</div>';
     return;
   }
   let html = '';
+  if (hwTodo.length) html += section('Homework to complete', hwTodo.map(hwCard));
+  else if (hwDone.length) html += '<div class="todo-sec"><div class="section-h">Homework to complete</div><div class="todo-meta">Nothing outstanding. All your homework is done.</div></div>';
   if (tests.length) {
     html += section('Weekly tests', tests.map(t => card('test', t.title || 'Weekly test', t.due_at, '/version2/tracking/weekly-test-take.html')));
   }
   if (asg.length) {
     html += section('Assigned assessments', asg.map(a => card('bank', titles[a.assessment_id] || 'Assessment', a.due_at, '/version2/tracking/bank.html?view=assigned')));
   }
+  if (hwDone.length) html += section('Completed homework', hwDone.map(hwCard));
   $('content').innerHTML = html;
 }
 </script>
