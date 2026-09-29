@@ -1,6 +1,6 @@
 /* ============================================================
    Classicalia — Classroom (presentation) mode
-   Shared across the GCSE set-text section pages.
+   Shared across the set-text section pages.
 
    Pair with classroom.js. To enable on a page that has the
    #latinCol / #englishCol parallel columns and a `vocabData` map:
@@ -83,9 +83,14 @@
   text-transform: uppercase; color: var(--muted);
 }
 
-/* scroll area + parallel text */
-.present-scroll { flex: 1; overflow: auto; padding: 30px 44px 72px; }
-.present-grid { max-width: 1500px; margin: 0 auto; }
+/* scroll area + parallel text. The stage scrolls as one piece, so the pen
+   canvases inside it stay pinned to the words they annotate. */
+.present-scroll { flex: 1; overflow: auto; }
+.present-stage {
+  position: relative; min-height: 100%; box-sizing: border-box;
+  padding: 30px 44px 72px;
+}
+.present-grid { position: relative; z-index: 1; max-width: 1500px; margin: 0 auto; }
 
 .present-colhead {
   display: grid;
@@ -135,7 +140,8 @@
 .present-grid.no-english .present-rows::after { display: none; }
 
 /* ── Prose mode: continuous parallel paragraphs (no line numbers) ── */
-.present-grid-flow .present-colhead-flow { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+.present-grid-flow .present-colhead-flow,
+.present-grid-chunks .present-colhead-flow { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
 .present-colhead-flow .ch-latin { grid-column: 1; }
 .present-colhead-flow .ch-eng   { grid-column: 2; padding-left: 44px; }
 
@@ -156,6 +162,39 @@
 .present-grid-flow.no-english .present-english-col,
 .present-grid-flow.no-english .present-colhead-flow .ch-eng { display: none; }
 .present-grid-flow.no-english .present-latin-col { padding-right: 0; }
+
+/* ── A Level reader: sense units side by side ── */
+.present-grid-chunks .present-colhead-flow { margin-bottom: 4px; }
+.present-chunk {
+  display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  border-bottom: 1px solid var(--rule-faint);
+}
+.present-chunk:last-child { border-bottom: none; }
+.present-chunk-latin {
+  padding: 0.55em 44px 0.6em 0; border-right: 1px solid var(--rule-faint);
+  overflow-wrap: break-word;
+}
+.present-chunk-english {
+  padding: 0.7em 0 0.75em 44px;
+  font-size: 1em; line-height: var(--present-lh, 1.6); color: var(--ink);
+  overflow-wrap: break-word;
+}
+.present-cline { display: flex; align-items: baseline; gap: 14px; }
+.present-cnum {
+  flex: none; min-width: 1.9em; text-align: right;
+  font-family: 'Lora', serif; font-style: italic; font-weight: 600;
+  font-size: 0.72em; color: var(--brand); opacity: 0.6;
+}
+.present-ctext {
+  font-family: 'Lora', serif; font-style: italic;
+  font-size: 1.42em; line-height: var(--present-lh, 1.6); color: var(--navy);
+}
+.present-sup { text-decoration: underline dotted #d9a900; text-underline-offset: 4px; }
+.present-grid-chunks.no-english .present-chunk,
+.present-grid-chunks.no-english .present-colhead-flow { grid-template-columns: minmax(0,1fr); }
+.present-grid-chunks.no-english .present-colhead-flow .ch-eng { display: none; }
+.present-grid-chunks.no-english .present-chunk-english { display: none; }
+.present-grid-chunks.no-english .present-chunk-latin { border-right: none; padding-right: 0; }
 
 /* hoverable English words + cross-column pairing highlight */
 .ew { border-radius: 3px; padding: 0 1px; transition: background 0.1s, color 0.1s; }
@@ -213,3 +252,78 @@
 }
 .present-tip-gloss { font-size: 13px; color: #cdddf5; line-height: 1.4; }
 .present-tip-parse { font-size: 11.5px; color: #8fa8cc; line-height: 1.45; margin-top: 6px; }
+
+
+/* ============================================================
+   Pen layer: annotate the classroom text on the board.
+   Highlighter strokes sit under the text, pen strokes over it.
+   ============================================================ */
+.present-ink { position: absolute; top: 0; left: 0; pointer-events: none; }
+.present-ink-under { z-index: 0; }
+.present-ink-over  { z-index: 2; }
+.present-overlay.inking .present-ink-over { pointer-events: auto; touch-action: none; cursor: crosshair; }
+.present-overlay.inking[data-ink-tool="eraser"] .present-ink-over { cursor: none; }
+
+.present-ctrl-pen { display: inline-flex; align-items: center; gap: 6px; }
+.present-ctrl-pen svg { width: 13px; height: 13px; }
+
+.ink-bar {
+  position: fixed; z-index: 330; left: 0; right: 0; bottom: 18px;
+  margin: 0 auto; width: max-content; max-width: calc(100vw - 24px);
+  display: none; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
+  padding: 8px 10px; border-radius: 14px;
+  background: #fff; border: 1px solid var(--rule);
+  box-shadow: 0 12px 36px rgba(14,30,63,0.22);
+  font-family: 'DM Sans', sans-serif;
+}
+.present-overlay.inking .ink-bar { display: flex; }
+.ink-group { display: flex; align-items: center; gap: 4px; }
+.ink-sep { width: 1px; height: 28px; background: var(--rule); margin: 0 4px; }
+
+.ink-btn {
+  width: 42px; height: 42px; border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid transparent; background: transparent; color: var(--muted);
+  cursor: pointer; transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.ink-btn svg { width: 20px; height: 20px; }
+.ink-btn:hover { background: #f4f8ff; color: var(--brand); }
+.ink-btn.active { background: var(--brand); color: #fff; }
+.ink-btn:disabled { opacity: 0.35; cursor: default; background: transparent; color: var(--muted); }
+
+.ink-size span {
+  display: block; width: var(--d); height: var(--d); border-radius: 50%;
+  background: var(--c, var(--muted));
+}
+.ink-size.active { background: #eef3ff; box-shadow: inset 0 0 0 2px var(--brand); }
+
+.ink-swatch {
+  position: relative; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--sw); border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--rule); cursor: pointer; padding: 0;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.ink-swatch:hover { transform: scale(1.1); }
+.ink-swatch.active { box-shadow: 0 0 0 2px var(--navy); transform: scale(1.1); }
+.ink-swatches.disabled .ink-swatch { opacity: 0.4; }
+.ink-custom {
+  display: inline-block; overflow: hidden;
+  background: conic-gradient(#e0352b, #f28c28, #ffd400, #1f9d55, #1A6FFF, #8e44ad, #e0352b);
+}
+.ink-custom.active { background: var(--sw); }
+.ink-custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+
+.ink-done {
+  height: 42px; padding: 0 18px; border-radius: 9px;
+  border: 1px solid var(--rule); background: #fff; color: var(--ink);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.03em;
+  cursor: pointer;
+}
+.ink-done:hover { border-color: var(--brand); color: var(--brand); background: #f4f8ff; }
+
+.ink-cursor {
+  position: fixed; left: 0; top: 0; z-index: 325; pointer-events: none;
+  border-radius: 50%; border: 2px solid var(--navy); background: rgba(255,255,255,0.4);
+  display: none;
+}
+.ink-cursor.on { display: block; }
