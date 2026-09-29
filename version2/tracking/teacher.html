@@ -964,6 +964,7 @@ let classes = [];
 let archivedClasses = [];
 let manageColsAvailable = false;
 let myTeacherId = null;   // only classes I own can be managed (RLS)
+let coTaughtIds = new Set();  // class ids I co-teach rather than own
 let currentClassIdx = 0;
 const tt = document.getElementById('wordTooltip');
 
@@ -1060,11 +1061,23 @@ async function reloadClasses() {
     if (pa !== pb) return pa - pb;
     return String(a.created_at).localeCompare(String(b.created_at));
   });
-  // Only classes I own are manageable — RLS also surfaces classes I'm a
-  // member of, but rename/reorder/archive/Do-Now would fail their WITH CHECK.
-  const owned = allRows.filter(r => !myTeacherId || r.teacher_id === myTeacherId);
+  // Classes I co-teach (migration 081). RLS already returns them from
+  // v2_classes, but only the rows listed here are mine to teach — anything
+  // else RLS surfaced (e.g. a class I'm a member of) is not.
+  const { data: coRows, error: coErr } = await window.supabase
+    .from('v2_class_teachers').select('class_id').eq('teacher_id', myTeacherId);
+  if (coErr) console.warn('Could not load co-taught classes:', coErr.message);
+  coTaughtIds = new Set((coRows || []).map(r => r.class_id));
+
+  // Classes I own, plus the ones I co-teach. Ownership still decides what the
+  // manage modal offers: rename/reorder/archive/delete stay with the owner.
+  const owned = allRows.filter(r =>
+    (!myTeacherId || r.teacher_id === myTeacherId) || coTaughtIds.has(r.id));
   const activeRows   = owned.filter(r => !r.archived);
-  const archivedRows = owned.filter(r => !!r.archived);
+  // Archiving and restoring belong to the owner, so a shared class that its
+  // owner has archived just drops off my dashboard rather than showing me
+  // Restore/Delete buttons that RLS would refuse.
+  const archivedRows = owned.filter(r => !!r.archived && !coTaughtIds.has(r.id));
 
   // Archived classes only need a name + headcount for the manage modal.
   // Counts run in parallel rather than one-after-another.
@@ -2543,6 +2556,15 @@ function renderManageList() {
       const archiveBtn = manageColsAvailable
         ? `<button class="mc-act" type="button" data-archive="${c.id}" title="Hide from the dashboard but keep the data">Archive</button>`
         : '';
+      // A class someone else owns and shares with me: I teach it, but renaming,
+      // archiving and deleting it are theirs.
+      const coTaught = coTaughtIds.has(c.id);
+      const actions = coTaught
+        ? `<span class="mc-count">Shared with you</span>`
+        : `<button class="mc-act" type="button" data-coteach="${c.id}" title="Share this class with another teacher">Co-teachers</button>` +
+          `<button class="mc-act" type="button" data-rename="${c.id}">Rename</button>` +
+          archiveBtn +
+          `<button class="mc-act mc-act-danger" type="button" data-delete="${c.id}">Delete</button>`;
       html.push(
         `<div class="mc-row" data-id="${c.id}">` +
           `<div class="mc-row-main">` +
@@ -2551,11 +2573,7 @@ function renderManageList() {
             `<span class="mc-pill">${escapeHtml(prettyType(c.type))}</span>` +
             `<span class="mc-count">${n} student${n === 1 ? '' : 's'}</span>` +
           `</div>` +
-          `<div class="mc-row-actions">` +
-            `<button class="mc-act" type="button" data-rename="${c.id}">Rename</button>` +
-            archiveBtn +
-            `<button class="mc-act mc-act-danger" type="button" data-delete="${c.id}">Delete</button>` +
-          `</div>` +
+          `<div class="mc-row-actions">` + actions + `</div>` +
         `</div>`);
     });
   }
@@ -2623,6 +2641,122 @@ async function saveRename(id, value) {
   }
   await reloadClasses();
   renderManageList();
+}
+
+// ── CO-TEACHERS ─────────────────────────────────────────────
+// Sharing a class with a colleague: they get the class on their own
+// dashboard, its tracking data, and Do Nows / assignments / weekly tests.
+// Renaming, archiving, deleting and the co-teacher list itself stay with
+// the owner (enforced by RLS, migration 081).
+
+async function startCoTeach(id) {
+  const row = document.querySelector('.mc-row[data-id="' + id + '"]');
+  const cls = classes.find(c => c.id === id);
+  if (!row || !cls) return;
+  row.innerHTML =
+    `<div style="width:100%;">` +
+      `<div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;">` +
+        `Co-teachers of <strong style="color:var(--ink);">${escapeHtml(cls.name)}</strong>` +
+      `</div>` +
+      `<div data-colist style="font-size:12.5px;color:var(--muted);margin-bottom:8px;">Loading…</div>` +
+      `<div class="mc-row-edit">` +
+        `<input class="mc-input" data-coemail type="email" placeholder="Their Classicalia email…" autocomplete="off">` +
+        `<button class="mc-act mc-act-primary" type="button" data-coadd="${id}">Add</button>` +
+        `<button class="mc-act" type="button" data-cancel>Done</button>` +
+      `</div>` +
+      `<div class="mc-error" style="display:none;"></div>` +
+    `</div>`;
+  row.querySelector('[data-cancel]').addEventListener('click', renderManageList);
+  row.querySelector('[data-coadd]').addEventListener('click', () => addCoTeacher(id));
+  const input = row.querySelector('[data-coemail]');
+  input.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') addCoTeacher(id);
+    if (ev.key === 'Escape') renderManageList();
+  });
+  await renderCoTeachers(id);
+  input.focus();
+}
+
+function coTeachError(id, msg) {
+  const row = document.querySelector('.mc-row[data-id="' + id + '"]');
+  const el = row && row.querySelector('.mc-error');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.display = msg ? 'block' : 'none';
+}
+
+async function renderCoTeachers(id) {
+  const row = document.querySelector('.mc-row[data-id="' + id + '"]');
+  const listEl = row && row.querySelector('[data-colist]');
+  if (!listEl) return;
+  const { data, error } = await window.supabase
+    .from('v2_class_teachers')
+    .select('id, teacher_id, users:teacher_id (full_name, email)')
+    .eq('class_id', id);
+  if (error) {
+    listEl.innerHTML = '<span style="color:#dc2626;">Could not load co-teachers: ' +
+      escapeHtml(error.message) + '</span>';
+    return;
+  }
+  const rows = (data || []).filter(r => r.teacher_id !== myTeacherId);
+  if (!rows.length) {
+    listEl.innerHTML = 'Not shared with anyone yet.';
+    return;
+  }
+  listEl.innerHTML = rows.map(r => {
+    const u = r.users || {};
+    const name = u.full_name || u.email || 'Unknown teacher';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:5px 0;">` +
+      `<span style="color:var(--ink);">${escapeHtml(name)}` +
+        (u.email && u.full_name ? ` <span style="color:var(--muted);">${escapeHtml(u.email)}</span>` : '') +
+      `</span>` +
+      `<button class="mc-act mc-act-danger" type="button" data-coremove="${r.id}" data-class="${id}">Remove</button>` +
+    `</div>`;
+  }).join('');
+  listEl.querySelectorAll('[data-coremove]').forEach(btn => {
+    btn.addEventListener('click', () => removeCoTeacher(btn.getAttribute('data-class'), btn.getAttribute('data-coremove')));
+  });
+}
+
+async function addCoTeacher(id) {
+  const row = document.querySelector('.mc-row[data-id="' + id + '"]');
+  const input = row && row.querySelector('[data-coemail]');
+  const btn = row && row.querySelector('[data-coadd]');
+  if (!input) return;
+  const email = (input.value || '').trim().toLowerCase();
+  coTeachError(id, '');
+  if (!email) { coTeachError(id, 'Enter their email address.'); return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+  const restore = () => { if (btn) { btn.disabled = false; btn.textContent = 'Add'; } };
+
+  const { data: teacher, error: lookupErr } = await window.supabase
+    .from('users').select('id, full_name, email, role').eq('email', email).maybeSingle();
+  if (lookupErr) { coTeachError(id, 'Could not look that email up: ' + lookupErr.message); restore(); return; }
+  if (!teacher)  { coTeachError(id, 'No Classicalia account uses that email.'); restore(); return; }
+  if (teacher.role !== 'teacher') { coTeachError(id, 'That account is not a teacher account.'); restore(); return; }
+  if (teacher.id === myTeacherId) { coTeachError(id, 'You already own this class.'); restore(); return; }
+
+  const { error: insErr } = await window.supabase
+    .from('v2_class_teachers').insert({ class_id: id, teacher_id: teacher.id });
+  if (insErr) {
+    // 23505 is the (class_id, teacher_id) uniqueness constraint.
+    coTeachError(id, insErr.code === '23505'
+      ? 'They already co-teach this class.'
+      : 'Could not add them: ' + insErr.message);
+    restore();
+    return;
+  }
+  input.value = '';
+  restore();
+  await renderCoTeachers(id);
+}
+
+async function removeCoTeacher(classId, entryId) {
+  coTeachError(classId, '');
+  const { error } = await window.supabase.from('v2_class_teachers').delete().eq('id', entryId);
+  if (error) { coTeachError(classId, 'Could not remove them: ' + error.message); return; }
+  await renderCoTeachers(classId);
 }
 
 function confirmDelete(id) {
@@ -2698,6 +2832,8 @@ document.getElementById('mcList').addEventListener('click', (e) => {
   if (arch) { setArchived(arch.getAttribute('data-archive'), true); return; }
   const unarch = e.target.closest('[data-unarchive]');
   if (unarch) { setArchived(unarch.getAttribute('data-unarchive'), false); return; }
+  const co = e.target.closest('[data-coteach]');
+  if (co) { startCoTeach(co.getAttribute('data-coteach')); return; }
   const ren = e.target.closest('[data-rename]');
   if (ren) { startRename(ren.getAttribute('data-rename')); return; }
   const del = e.target.closest('[data-delete]');
