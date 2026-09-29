@@ -67,7 +67,6 @@
           '<span class="present-lines" id="presentSub"></span>' +
         '</div>' +
         '<div class="present-bar-right">' +
-          '<button class="present-ctrl present-ctrl-pen" id="presentPenBtn" type="button" title="Annotate (P)">' + ICON.pen + 'Pen</button>' +
           '<button class="present-ctrl" id="presentEngBtn" type="button">Hide English</button>' +
           '<div class="present-adjust"><span class="present-adjust-label">Size</span>' +
             '<div class="present-fontsize">' +
@@ -163,8 +162,9 @@
       grid.innerHTML = html;
 
       grid.querySelectorAll('.pw').forEach(pw => {
-        pw.addEventListener('mouseenter', () => showTip(pw));
-        pw.addEventListener('mouseleave', hideTip);
+        pw.addEventListener('mouseenter', hoverIn(() => showTip(pw)));
+        pw.addEventListener('mouseleave', hoverOut(hideTip));
+        pw.addEventListener('click', () => showTip(pw));
       });
     }
 
@@ -200,12 +200,13 @@
         '<div class="present-hint">Hover any Latin word for its dictionary form and meaning — its English lights up too.</div>';
 
       grid.querySelectorAll('.pw').forEach(pw => {
-        pw.addEventListener('mouseenter', () => { showTip(pw); mark('.ew', pw.dataset.order, true); });
-        pw.addEventListener('mouseleave', () => { hideTip(); mark('.ew', pw.dataset.order, false); });
+        pw.addEventListener('mouseenter', hoverIn(() => { showTip(pw); mark('.ew', pw.dataset.order, true); }));
+        pw.addEventListener('click', () => showTip(pw));
+        pw.addEventListener('mouseleave', hoverOut(() => { hideTip(); mark('.ew', pw.dataset.order, false); }));
       });
       grid.querySelectorAll('.ew').forEach(ew => {
-        ew.addEventListener('mouseenter', () => mark('.pw', ew.dataset.order, true));
-        ew.addEventListener('mouseleave', () => mark('.pw', ew.dataset.order, false));
+        ew.addEventListener('mouseenter', hoverIn(() => mark('.pw', ew.dataset.order, true)));
+        ew.addEventListener('mouseleave', hoverOut(() => mark('.pw', ew.dataset.order, false)));
       });
     }
 
@@ -250,12 +251,13 @@
         });
       };
       grid.querySelectorAll('.pw').forEach(pw => {
-        pw.addEventListener('mouseenter', () => { showTip(pw); markKeys([pw.dataset.key], true); });
-        pw.addEventListener('mouseleave', () => { hideTip(); markKeys([pw.dataset.key], false); });
+        pw.addEventListener('mouseenter', hoverIn(() => { showTip(pw); markKeys([pw.dataset.key], true); }));
+        pw.addEventListener('click', () => showTip(pw));
+        pw.addEventListener('mouseleave', hoverOut(() => { hideTip(); markKeys([pw.dataset.key], false); }));
       });
       ews.forEach(ew => {
-        ew.addEventListener('mouseenter', () => markKeys(ew.dataset.keys.split(','), true));
-        ew.addEventListener('mouseleave', () => markKeys(ew.dataset.keys.split(','), false));
+        ew.addEventListener('mouseenter', hoverIn(() => markKeys(ew.dataset.keys.split(','), true)));
+        ew.addEventListener('mouseleave', hoverOut(() => markKeys(ew.dataset.keys.split(','), false)));
       });
     }
     // An id is a Latin word in the same chunk (5) or, where the English runs
@@ -310,6 +312,17 @@
     }
     function hideTip() { tip.classList.remove('visible'); }
 
+    // Touch screens and whiteboards: a tap fires mouseenter then mouseleave
+    // straight away, so on touch the vocab stays up until the next tap.
+    let touchMode = false;
+    function clearMarks() { hideTip(); grid.querySelectorAll('.xref').forEach(el => el.classList.remove('xref')); }
+    function hoverIn(fn) { return () => { if (touchMode) clearMarks(); fn(); }; }
+    function hoverOut(fn) { return () => { if (!touchMode) fn(); }; }
+    overlay.addEventListener('pointerdown', e => {
+      touchMode = e.pointerType !== 'mouse';
+      if (touchMode && !e.target.closest('.pw, .ew')) clearMarks();
+    }, true);
+
     const ink = setupInk(overlay, hideTip);
 
     function openPresent() {
@@ -321,7 +334,7 @@
       ink.resize();
     }
     function closePresent() {
-      ink.setActive(false);
+      ink.stopDrawing();
       overlay.classList.remove('open');
       overlay.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
@@ -347,12 +360,12 @@
 
     // Keys while presenting (capture phase so they pre-empt the page's own
     // shortcuts, e.g. Esc = hide-all and the arrow-key stepping).
-    // Esc puts the pen down first, then exits presentation.
+    // Esc goes back to the vocab tool first, then exits presentation.
     document.addEventListener('keydown', e => {
       if (!overlay.classList.contains('open')) return;
       if (e.key === 'Escape' || e.code === 'Escape') {
         e.stopPropagation();
-        if (ink.active) ink.setActive(false); else closePresent();
+        if (ink.active) ink.stopDrawing(); else closePresent();
         return;
       }
       if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
@@ -365,6 +378,7 @@
 
   // ── Icons for the pen toolbar ──
   const ICON = {
+    vocab: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3l7 17 2.5-7.5L21 10z"></path></svg>',
     pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>',
     hl: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11-6 6v3h9l3-3"></path><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"></path></svg>',
     eraser: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"></path><path d="M22 21H7"></path><path d="m5 11 9 9"></path></svg>',
@@ -396,7 +410,6 @@
     const stage = overlay.querySelector('.present-stage');
     const under = overlay.querySelector('.present-ink-under');
     const over  = overlay.querySelector('.present-ink-over');
-    const penBtn = overlay.querySelector('#presentPenBtn');
     const uctx = under.getContext('2d');
     const octx = over.getContext('2d');
 
@@ -405,6 +418,10 @@
     bar.setAttribute('role', 'toolbar');
     bar.setAttribute('aria-label', 'Annotation tools');
     bar.innerHTML =
+      '<div class="ink-group">' +
+        '<button class="ink-btn ink-vocab" type="button" data-tool="vocab" title="Vocab: tap a word for its meaning (V)" aria-label="Vocab">' + ICON.vocab + '<span>Vocab</span></button>' +
+      '</div>' +
+      '<div class="ink-sep"></div>' +
       '<div class="ink-group">' +
         '<button class="ink-btn" type="button" data-tool="pen" title="Pen (P)" aria-label="Pen">' + ICON.pen + '</button>' +
         '<button class="ink-btn" type="button" data-tool="hl" title="Highlighter (H)" aria-label="Highlighter">' + ICON.hl + '</button>' +
@@ -430,8 +447,16 @@
         '<button class="ink-btn" type="button" data-act="clear" title="Clear all annotations" aria-label="Clear all">' + ICON.clear + '</button>' +
       '</div>' +
       '<div class="ink-sep"></div>' +
-      '<button class="ink-done" type="button" data-act="done" title="Put the pen down (Esc)">Done</button>';
+      '<button class="ink-done" type="button" data-act="done" title="Hide the pen tools">Hide</button>';
     overlay.appendChild(bar);
+
+    // Launcher: sits at the bottom of the screen, within reach on a whiteboard.
+    const launcher = document.createElement('button');
+    launcher.className = 'ink-launch';
+    launcher.type = 'button';
+    launcher.title = 'Annotate (P)';
+    launcher.innerHTML = ICON.pen + '<span>Pen</span>';
+    overlay.appendChild(launcher);
 
     const cursor = document.createElement('div');
     cursor.className = 'ink-cursor';
@@ -444,7 +469,7 @@
     try {
       const saved = JSON.parse(localStorage.getItem('classroom-ink') || 'null');
       if (saved && saved.colour && saved.size) {
-        state.tool = SIZES[saved.tool] ? saved.tool : 'pen';
+        state.tool = SIZES[saved.tool] || saved.tool === 'vocab' ? saved.tool : 'pen';
         Object.assign(state.colour, saved.colour);
         Object.assign(state.size, saved.size);
       }
@@ -455,7 +480,9 @@
     let undoStack = [], redoStack = [];
     let current = null;        // stroke being drawn
     let erasing = null;        // strokes before this erase gesture (for undo)
-    let active = false;
+    let open = false;          // toolbar showing
+    let active = false;        // open with a drawing tool: the canvas takes input
+    let lastDraw = SIZES[state.tool] ? state.tool : 'pen';
     let dpr = 1, frame = 0;
 
     function snapshot() { undoStack.push(strokes.slice()); if (undoStack.length > 200) undoStack.shift(); redoStack = []; }
@@ -595,11 +622,13 @@
 
     // ── Toolbar ──
     function syncBar() {
+      active = open && state.tool !== 'vocab';
+      if (SIZES[state.tool]) lastDraw = state.tool;
+      overlay.classList.toggle('ink-open', open);
       overlay.classList.toggle('inking', active);
       overlay.dataset.inkTool = state.tool;
-      penBtn.classList.toggle('active', active);
       bar.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === state.tool));
-      const colour = state.tool === 'eraser' ? null : state.colour[state.tool];
+      const colour = SIZES[state.tool] && state.tool !== 'eraser' ? state.colour[state.tool] : null;
       let matched = false;
       bar.querySelectorAll('.ink-swatch[data-colour]').forEach(b => {
         const on = !!colour && b.dataset.colour.toLowerCase() === colour.toLowerCase();
@@ -609,8 +638,9 @@
       const custom = bar.querySelector('.ink-custom');
       custom.classList.toggle('active', !!colour && !matched);
       if (colour) { custom.style.setProperty('--sw', colour); customInput.value = colour; }
-      bar.querySelector('.ink-swatches').classList.toggle('disabled', state.tool === 'eraser');
+      bar.querySelector('.ink-swatches').classList.toggle('disabled', !colour);
       bar.querySelectorAll('.ink-size').forEach(b => {
+        b.disabled = state.tool === 'vocab';
         b.classList.toggle('active', +b.dataset.size === state.size[state.tool]);
         b.style.setProperty('--c', colour || '#5e6a85');
       });
@@ -619,17 +649,22 @@
       bar.querySelector('[data-act="clear"]').disabled = !strokes.length;
       if (state.tool !== 'eraser' || !active) cursor.classList.remove('on');
     }
-    function setTool(t) { state.tool = t; save(); syncBar(); }
+    function setTool(t) {
+      if (t === 'vocab') { finish(); cursor.classList.remove('on'); }
+      else onStart();
+      state.tool = t; open = true; save(); syncBar();
+    }
     function setColour(c) {
-      // Picking a colour while the eraser is out goes back to the pen.
-      if (state.tool === 'eraser') state.tool = 'pen';
+      // Picking a colour with the eraser or vocab tool out goes back to the pen.
+      if (state.tool === 'eraser' || state.tool === 'vocab') state.tool = 'pen';
       state.colour[state.tool] = c; save(); syncBar();
     }
-    function setActive(on) {
-      active = on;
-      if (on) onStart();
-      if (!on) { finish(); cursor.classList.remove('on'); }
-      syncBar();
+    // Put the pen down but keep the toolbar up (vocab tool).
+    function stopDrawing() { if (active) setTool('vocab'); }
+    function setOpen(on) {
+      if (on) { open = true; setTool(SIZES[state.tool] ? state.tool : lastDraw); return; }
+      finish(); cursor.classList.remove('on');
+      open = false; syncBar();
     }
 
     bar.addEventListener('click', e => {
@@ -641,10 +676,10 @@
       else if (b.dataset.act === 'undo') undo();
       else if (b.dataset.act === 'redo') redo();
       else if (b.dataset.act === 'clear') clearAll();
-      else if (b.dataset.act === 'done') setActive(false);
+      else if (b.dataset.act === 'done') setOpen(false);
     });
     customInput.addEventListener('input', () => setColour(customInput.value));
-    penBtn.addEventListener('click', () => setActive(!active));
+    launcher.addEventListener('click', () => setOpen(true));
 
     // Keyboard shortcuts while the classroom view is open. Returns true if handled.
     function handleKey(e) {
@@ -653,9 +688,10 @@
       if (mod && k === 'z') { if (e.shiftKey) redo(); else undo(); return true; }
       if (mod && k === 'y') { redo(); return true; }
       if (mod || e.altKey) return false;
-      if (k === 'p') { if (active && state.tool === 'pen') setActive(false); else { state.tool = 'pen'; setActive(true); } return true; }
-      if (k === 'h') { state.tool = 'hl'; setActive(true); return true; }
-      if (k === 'e') { state.tool = 'eraser'; setActive(true); return true; }
+      if (k === 'p') { setTool(active && state.tool === 'pen' ? 'vocab' : 'pen'); return true; }
+      if (k === 'h') { setTool('hl'); return true; }
+      if (k === 'e') { setTool('eraser'); return true; }
+      if (k === 'v' && open) { setTool('vocab'); return true; }
       if (active && /^[1-7]$/.test(k)) { setColour(COLOURS[+k - 1].c); return true; }
       return false;
     }
@@ -663,7 +699,7 @@
     syncBar();
     return {
       get active() { return active; },
-      setActive: setActive,
+      stopDrawing: stopDrawing,
       resize: resize,
       handleKey: handleKey
     };
