@@ -19,6 +19,7 @@
 //   courseFor(list)       tester/quiz details for a vocab_list
 //   practiseHref(a)       deep link that opens the homework straight away
 //   scopeLabel(a)         "GCSE Latin · Chapters 3–4 · 12 words"
+//   titleOf(a)            the teacher's title if they gave one, else scopeLabel(a)
 //   dueInfo(a)            { text, cls } for a due-date pill
 (function () {
   const COURSES = {
@@ -107,6 +108,8 @@
     }
     return s;
   }
+
+  function titleOf(a) { return (a.title && String(a.title).trim()) || scopeLabel(a); }
 
   function dueInfo(a) {
     if (!a.due_date) return { text: 'No due date', cls: '' };
@@ -385,7 +388,7 @@
   function bannerHtml(a) {
     const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const d = dueInfo(a);
-    let html = '<strong>Homework</strong> &middot; ' + esc(scopeLabel(a)) +
+    let html = '<strong>' + esc(a.title && String(a.title).trim() ? a.title : 'Homework') + '</strong> &middot; ' + esc(scopeLabel(a)) +
       ' &middot; ' + esc(targetText(a)) + (a.due_date ? ' &middot; ' + esc(d.text) : '') +
       (a.note ? ' &middot; ' + esc(a.note) : '') +
       ' <span class="hw-save" style="font-size:12px;opacity:.75;"></span>';
@@ -434,7 +437,7 @@
   window.addEventListener('pagehide', flush);
 
   window.ClassicaliaHomework = {
-    COURSES, courseFor, practiseHref, scopeLabel, dueInfo, restrict, bannerHtml, targetText,
+    COURSES, courseFor, practiseHref, scopeLabel, titleOf, dueInfo, restrict, bannerHtml, targetText,
     ensureData, scopeItems, progress, loadMine, prepLevels, prepPct, typedNeeded,
     load, begin, questionShown, answer, flush, isPrep, pickPrep, mustType, level,
     get active() { return assignment; }

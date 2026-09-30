@@ -497,6 +497,8 @@ body { background:#f4f6fa; }
       <div style="font-size:12px;color:#8fa8cc;margin-top:4px;" id="asgClassName">Set your class a target.</div>
     </div>
     <div style="padding:24px 28px;">
+      <label style="display:block;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Title <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted);">(optional, e.g. Today's Do Now)</span></label>
+      <input id="asgTitle" type="text" maxlength="80" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;margin-bottom:16px;" autocomplete="off">
       <div id="asgScopeRange">
         <label style="display:block;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">Sets <span id="asgRangeHint" style="font-weight:500;text-transform:none;letter-spacing:0;"></span></label>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
@@ -1422,6 +1424,9 @@ let assignmentsByClass = {};   // class_id → rows (cached per load)
 let hwAttemptsByAsg = new Map(); // assignment id → homework_attempts rows
 let hwAttemptsAvailable = false; // migration 082 applied?
 
+// The teacher's title if they gave one, else the automatic scope label.
+function asgTitleOf(a) { return (a.title && String(a.title).trim()) || asgScopeLabel(a); }
+
 // What the homework asks for, in words.
 function asgTargetText(a) {
   if (a.target_kind === 'prep') {
@@ -1571,8 +1576,8 @@ async function renderAssignments(cls) {
     return `
       <div class="hw-trow" data-asg="${a.id}" style="display:flex;align-items:center;gap:16px;padding:13px 22px;border-bottom:1px solid var(--rule-faint);flex-wrap:wrap;">
         <div style="flex:1;min-width:200px;">
-          <div style="font-family:'Lora',serif;font-style:italic;font-weight:600;font-size:15px;color:var(--navy);">${escapeHtml(asgScopeLabel(a))}</div>
-          <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${escapeHtml(asgTargetText(a).replace(/^./, c => c.toUpperCase()))}${asgDueLabel(a)}${a.note ? ' · ' + escapeHtml(a.note) : ''}</div>
+          <div style="font-family:'Lora',serif;font-style:italic;font-weight:600;font-size:15px;color:var(--navy);">${escapeHtml(asgTitleOf(a))}</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:2px;">${a.title ? escapeHtml(asgScopeLabel(a)) + ' · ' : ''}${escapeHtml(asgTargetText(a).replace(/^./, c => c.toUpperCase()))}${asgDueLabel(a)}${a.note ? ' · ' + escapeHtml(a.note) : ''}</div>
         </div>
         <div style="min-width:120px;">
           <div style="font-size:13px;font-weight:700;color:${done === total && total > 0 ? '#047857' : 'var(--navy)'};text-align:right;">${done}/${total} complete</div>
@@ -1643,6 +1648,7 @@ function openNewAssignment() {
   fillAsgTyped(true);
   syncAsgTarget();
   document.getElementById('asgNote').value = '';
+  document.getElementById('asgTitle').value = '';
   document.getElementById('asgDue').value = '';
   openModal('modalAssign');
 }
@@ -1671,6 +1677,8 @@ async function submitAssignment() {
     created_by:  myTeacherId
   };
   if (!row.vocab_list) return fail('This class type has no vocabulary list to assign yet.');
+  const title = document.getElementById('asgTitle').value.trim();
+  if (title) row.title = title;
   if (kind === 'prep') {
     row.reps = parseInt(document.getElementById('asgReps').value, 10) || 5;
     if (activeModel.itemNoun === 'word') row.typed_reps = parseInt(document.getElementById('asgTyped').value, 10) || 0;
@@ -1703,6 +1711,9 @@ async function submitAssignment() {
   if (error) {
     if (/relation .*v2_assignments.* does not exist/i.test(error.message || '')) {
       return fail('Homework isn\'t available yet — database migration 053 hasn\'t been applied.');
+    }
+    if (/'title'|column .*title/i.test(error.message || '')) {
+      return fail('Titles need database migration 085. Leave the title blank for now, or apply the migration.');
     }
     if (/typed_reps/i.test(error.message || '')) {
       return fail('Choosing how many are typed needs database migration 084. Apply it, then set the homework again.');
@@ -1813,6 +1824,16 @@ function updateAsgPickCount(total) {
 // will take: about 8 seconds an answer, plus a third again for wrong answers
 // knocking items back.
 function syncAsgTarget() {
+  // The title box shows the automatic name it falls back to when left blank.
+  const draft = asgDraftScope();
+  if (draft) {
+    const d = Object.assign({}, draft);
+    if (asgPickMode === 'some') {
+      const inScope = new Set(asgScopeItems(draft, true));
+      d.item_keys = Array.from(asgPicked).filter(k => inScope.has(k));
+    }
+    document.getElementById('asgTitle').placeholder = asgScopeLabel(d);
+  }
   const prep = document.getElementById('asgTargetKind').value === 'prep';
   document.getElementById('asgPrepOpts').style.display = prep ? '' : 'none';
   document.getElementById('asgPctOpts').style.display = prep ? 'none' : 'flex';
@@ -1873,12 +1894,12 @@ function fmtWhen(iso) {
 }
 
 async function openHwDetail(cls, a) {
-  document.getElementById('hwdTitle').textContent = asgScopeLabel(a);
+  document.getElementById('hwdTitle').textContent = asgTitleOf(a);
   const set = new Date(a.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   const tmp = document.createElement('div');
   tmp.innerHTML = asgDueLabel(a);
   document.getElementById('hwdMeta').textContent =
-    `${cls.name} · ${asgTargetText(a)} · set ${set}${tmp.textContent}${a.note ? ' · ' + a.note : ''}`;
+    `${cls.name}${a.title ? ' · ' + asgScopeLabel(a) : ''} · ${asgTargetText(a)} · set ${set}${tmp.textContent}${a.note ? ' · ' + a.note : ''}`;
   document.getElementById('hwdSummary').innerHTML = '';
   document.getElementById('hwdTable').innerHTML = '<tr><td class="hwd-muted">Loading…</td></tr>';
   openModal('modalHwDetail');
