@@ -292,7 +292,14 @@ body { background:var(--cream); }
 .hwd-att-head:hover { background:#f8fafc; }
 .hwd-att-when { font-weight:700;color:var(--navy);min-width:170px; }
 .hwd-att-body { border-top:1px solid var(--rule-faint);padding:6px 14px 10px; }
-.hwd-ans { display:grid;grid-template-columns:22px minmax(0,1.3fr) minmax(0,1.3fr) 60px;gap:10px;padding:6px 0;border-bottom:1px solid var(--rule-faint);font-size:12.5px;align-items:baseline; }
+.hwd-ans { display:grid;grid-template-columns:22px minmax(0,1.3fr) 118px minmax(0,1.2fr) 56px;gap:10px;padding:7px 0;border-bottom:1px solid var(--rule-faint);font-size:12.5px;align-items:baseline; }
+.hwd-mode { font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap;justify-self:start; }
+.hwd-mode.mc { background:#eef2f7;color:#475569; }
+.hwd-mode.type { background:#e0ecff;color:#1d4ed8; }
+.hwd-mode.self { background:#f3e8ff;color:#7e22ce; }
+.hwd-typed { font-weight:700;color:var(--navy); }
+.hwd-ans-sum { font-size:12px;color:var(--muted);padding:4px 0 8px; }
+@media (max-width:700px) { .hwd-ans { grid-template-columns:18px minmax(0,1fr) minmax(0,1fr); } .hwd-ans > :nth-child(3), .hwd-ans > :nth-child(5) { display:none; } }
 .hwd-ans:last-child { border-bottom:none; }
 .hwd-ok { color:#047857;font-weight:700; }
 .hwd-no { color:#dc2626;font-weight:700; }
@@ -2028,14 +2035,36 @@ async function toggleAttemptAnswers(attId) {
     .limit(1000);
   if (error) { body.innerHTML = '<div class="hwd-muted">Could not load answers.</div>'; return; }
   if (!data || !data.length) { body.innerHTML = '<div class="hwd-muted" style="padding:6px 0;">No answers saved for this attempt.</div>'; return; }
-  const modeTxt = { mc: 'multiple choice', type: 'typed', self: 'self-marked', 'self-nearly': 'self-marked nearly', 'self-wrong': 'self-marked' };
-  body.innerHTML = `<div class="hwd-ans hwd-muted" style="font-weight:700;"><span></span><span>${activeModel.itemNoun === 'question' ? 'Question' : 'Word'}</span><span>Their answer</span><span>Time</span></div>` +
-    data.map(r => `<div class="hwd-ans">
+  // How each answer was given: a labelled pill, and the answer itself. Typed
+  // answers are shown in quotes exactly as the student typed them; multiple
+  // choice shows the option they picked.
+  const MODE = {
+    mc:            { cls: 'mc',   txt: 'Multiple choice' },
+    type:          { cls: 'type', txt: 'Typed' },
+    self:          { cls: 'self', txt: 'Typed, marked right' },
+    'self-nearly': { cls: 'self', txt: 'Typed, marked nearly' },
+    'self-wrong':  { cls: 'self', txt: 'Typed, marked wrong' }
+  };
+  const typedCount = data.filter(r => r.mode && r.mode !== 'mc').length;
+  const typedRight = data.filter(r => r.mode === 'type' && r.correct).length;
+  const answerCell = r => {
+    if (!r.response || !String(r.response).trim()) return '<span class="hwd-muted">(left blank)</span>';
+    const txt = escapeHtml(clip(r.response, 140));
+    return r.mode && r.mode !== 'mc' ? `<span class="hwd-typed">“${txt}”</span>` : txt;
+  };
+  body.innerHTML =
+    `<div class="hwd-ans-sum">${data.length} answers · <b>${typedCount}</b> typed${typedCount && activeModel.itemNoun === 'word' ? ` (${typedRight} right)` : ''} · <b>${data.length - typedCount}</b> multiple choice</div>` +
+    `<div class="hwd-ans hwd-muted" style="font-weight:700;"><span></span><span>${activeModel.itemNoun === 'question' ? 'Question' : 'Word'}</span><span>How</span><span>Their answer</span><span>Time</span></div>` +
+    data.map(r => {
+      const m = MODE[r.mode] || { cls: 'mc', txt: r.mode || '—' };
+      return `<div class="hwd-ans">
       <span class="${r.correct ? 'hwd-ok' : 'hwd-no'}">${r.correct ? '✓' : '✗'}</span>
       <span><span class="asg-pick-main">${escapeHtml(clip(activeModel.mainLabel(r.item_key), 90))}</span>${activeModel.itemNoun === 'word' ? ` <span class="hwd-muted">${escapeHtml(clip(activeModel.subLabel(r.item_key), 40))}</span>` : ''}</span>
-      <span>${r.response ? escapeHtml(clip(r.response, 120)) : '<span class="hwd-muted">(blank)</span>'} <span class="hwd-muted">· ${escapeHtml(modeTxt[r.mode] || r.mode || '')}</span></span>
+      <span class="hwd-mode ${m.cls}">${escapeHtml(m.txt)}</span>
+      <span>${answerCell(r)}</span>
       <span class="hwd-muted">${r.ms != null ? (r.ms / 1000 < 100 ? (r.ms / 1000).toFixed(1) + 's' : fmtDuration(r.ms / 1000)) : ''}</span>
-    </div>`).join('');
+    </div>`;
+    }).join('');
 }
 
 // ── Progress groups (chapters for vocab, topics for Class. Civ.) ────────────
