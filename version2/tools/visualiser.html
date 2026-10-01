@@ -26,9 +26,12 @@
   /* camera stage */
   .viz-stage { position: relative; flex: 1; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; }
   .viz-stage:fullscreen { width: 100vw; height: 100vh; }
-  #viz-video { max-width: 100%; max-height: 100%; transform-origin: center center; will-change: transform; display: block; }
-  .viz-stage.zoomed #viz-video { cursor: grab; }
-  .viz-stage.zoomed.panning #viz-video { cursor: grabbing; }
+  .viz-frame { position: relative; flex-shrink: 0; transform-origin: center center; will-change: transform; }
+  #viz-video { width: 100%; height: 100%; display: block; }
+  #viz-ink { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .viz-stage.zoomed .viz-frame { cursor: grab; }
+  .viz-stage.zoomed.panning .viz-frame { cursor: grabbing; }
+  .viz-stage.drawing .viz-frame { cursor: crosshair; }
 
   /* permission / error overlay */
   .viz-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; z-index: 5; background: radial-gradient(ellipse at center, #0e1e3f 0%, #07101f 100%); }
@@ -41,7 +44,7 @@
   .viz-card-btn:hover { background: #3b82ff; }
 
   /* control bar */
-  .viz-controls { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 6;
+  .viz-controls { position: absolute; left: 0; right: 0; margin: 0 auto; width: fit-content; bottom: 22px; z-index: 6;
     display: flex; align-items: center; gap: 6px; padding: 8px; border-radius: 14px;
     background: rgba(10,18,32,.72); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.12);
     box-shadow: 0 10px 40px rgba(0,0,0,.5); transition: opacity .25s; font-family: 'DM Sans', sans-serif; max-width: calc(100% - 24px); flex-wrap: wrap; justify-content: center; }
@@ -55,6 +58,13 @@
   .viz-select { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #e8eefc;
     background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 9px; padding: 9px 10px; cursor: pointer; max-width: 180px; }
   .viz-select option { color: #0e1e3f; }
+  .viz-swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); cursor: pointer; padding: 0; }
+  .viz-swatch.on { border-color: #fff; box-shadow: 0 0 0 2px var(--brand); }
+  .viz-drawbar { display: none; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; flex-basis: 100%; padding-top: 6px; border-top: 1px solid rgba(255,255,255,.14); }
+  .viz-stage.drawing .viz-drawbar { display: flex; }
+  .viz-toast { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); z-index: 7; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #fff;
+    background: rgba(10,18,32,.85); border: 1px solid rgba(255,255,255,.15); border-radius: 999px; padding: 8px 16px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .viz-toast.show { opacity: 1; }
   .viz-zoom-label { font-size: 12px; font-weight: 700; color: #9fb4d6; min-width: 38px; text-align: center; }
   @media (max-width: 560px) {
     .viz-btn span.tx { display: none; }
@@ -75,13 +85,17 @@
 </div>
 
 <div class="viz-stage" id="stage">
-  <video id="viz-video" playsinline autoplay muted></video>
+  <div class="viz-frame" id="frame">
+    <video id="viz-video" playsinline autoplay muted></video>
+    <canvas id="viz-ink"></canvas>
+  </div>
+  <div class="viz-toast" id="toast"></div>
 
   <div class="viz-overlay" id="overlay">
     <div class="viz-card">
       <div class="viz-card-icon" id="ovIcon">&#128247;</div>
       <div class="viz-card-title" id="ovTitle">Class visualiser</div>
-      <div class="viz-card-text" id="ovText">Use your webcam or a USB document camera to project anything to the class — freeze a frame, go fullscreen, zoom in, mirror or rotate.</div>
+      <div class="viz-card-text" id="ovText">Use your webcam or a USB document camera to project anything to the class. Freeze a frame, zoom in, draw over it and save a snapshot.</div>
       <button class="viz-card-btn" id="ovBtn">Start camera</button>
     </div>
   </div>
@@ -96,9 +110,32 @@
     <div class="viz-sep"></div>
     <button class="viz-btn" id="btnMirror" title="Mirror (M)"><span class="ic">&#8646;</span><span class="tx">Mirror</span></button>
     <button class="viz-btn" id="btnRotate" title="Rotate (R)"><span class="ic">&#8635;</span><span class="tx">Rotate</span></button>
-    <button class="viz-btn" id="btnReset" title="Reset view"><span class="tx">Reset</span></button>
+    <button class="viz-btn" id="btnReset" title="Reset view (0)"><span class="tx">Reset</span></button>
     <div class="viz-sep"></div>
+    <button class="viz-btn" id="btnDraw" title="Draw on the image (D)"><span class="ic">&#9998;</span><span class="tx">Draw</span></button>
+    <button class="viz-btn" id="btnSnap" title="Save a snapshot with your drawing (S)"><span class="ic">&#128190;</span><span class="tx">Save</span></button>
+    <div class="viz-sep" id="camSep"></div>
     <select class="viz-select" id="camSelect" title="Choose camera"></select>
+
+    <div class="viz-drawbar">
+      <button class="viz-swatch on" data-colour="#e11d48" style="background:#e11d48" title="Red"></button>
+      <button class="viz-swatch" data-colour="#1a6fff" style="background:#1a6fff" title="Blue"></button>
+      <button class="viz-swatch" data-colour="#16a34a" style="background:#16a34a" title="Green"></button>
+      <button class="viz-swatch" data-colour="#111827" style="background:#111827" title="Black"></button>
+      <button class="viz-swatch" data-colour="#ffffff" style="background:#ffffff" title="White"></button>
+      <div class="viz-sep"></div>
+      <button class="viz-btn on" data-tool="pen" title="Pen"><span class="tx">Pen</span></button>
+      <button class="viz-btn" data-tool="highlighter" title="Highlighter (yellow)"><span class="tx">Highlighter</span></button>
+      <button class="viz-btn" data-tool="eraser" title="Eraser"><span class="tx">Eraser</span></button>
+      <select class="viz-select" id="sizeSelect" title="Pen size">
+        <option value="3">Thin</option>
+        <option value="6" selected>Medium</option>
+        <option value="12">Thick</option>
+      </select>
+      <div class="viz-sep"></div>
+      <button class="viz-btn" id="btnUndo" title="Undo (Ctrl+Z)"><span class="ic">&#8630;</span><span class="tx">Undo</span></button>
+      <button class="viz-btn" id="btnClear" title="Clear all drawing"><span class="tx">Clear</span></button>
+    </div>
   </div>
 </div>
 
@@ -114,6 +151,10 @@
   const ovText = document.getElementById('ovText');
   const camSelect = document.getElementById('camSelect');
   const zoomLabel = document.getElementById('zoomLabel');
+  const frame = document.getElementById('frame');
+  const ink = document.getElementById('viz-ink');
+  const ictx = ink.getContext('2d');
+  const toast = document.getElementById('toast');
 
   let stream = null;
   let state = { mirror: false, rot: 0, zoom: 1, panX: 0, panY: 0, frozen: false };
@@ -121,8 +162,9 @@
 
   // ── transform ────────────────────────────────────────────────────────
   function applyTransform() {
-    const t = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom}) rotate(${state.rot}deg) scaleX(${state.mirror ? -1 : 1})`;
-    video.style.transform = t;
+    frame.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom}) rotate(${state.rot}deg)`;
+    // mirror the picture only, so drawings stay the right way round
+    video.style.transform = state.mirror ? 'scaleX(-1)' : '';
     stage.classList.toggle('zoomed', state.zoom > 1.001);
     zoomLabel.textContent = Math.round(state.zoom * 100) + '%';
   }
@@ -130,6 +172,100 @@
     state.zoom = 1; state.panX = 0; state.panY = 0; state.rot = 0; state.mirror = false;
     document.getElementById('btnMirror').classList.remove('on');
     applyTransform();
+  }
+
+  // ── frame sizing ─────────────────────────────────────────────────────
+  // Fit the video's aspect ratio into the stage; the ink canvas sits on top at the video's own resolution.
+  function fitFrame() {
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) return;
+    const sw = stage.clientWidth, sh = stage.clientHeight;
+    const scale = Math.min(sw / vw, sh / vh);
+    frame.style.width = Math.round(vw * scale) + 'px';
+    frame.style.height = Math.round(vh * scale) + 'px';
+    if (ink.width !== vw || ink.height !== vh) { ink.width = vw; ink.height = vh; redraw(); }
+  }
+  video.addEventListener('loadedmetadata', fitFrame);
+  window.addEventListener('resize', fitFrame);
+  document.addEventListener('fullscreenchange', () => setTimeout(fitFrame, 50));
+
+  // ── drawing ──────────────────────────────────────────────────────────
+  // Strokes are stored in 0–1 coordinates so they survive a change of camera or resolution.
+  const strokes = [];
+  let current = null;
+  let pen = { tool: 'pen', colour: '#e11d48', size: 6 };
+
+  function drawStroke(st) {
+    const w = ink.width, h = ink.height;
+    const lw = st.size * (w / 1280) * (st.tool === 'highlighter' ? 4 : st.tool === 'eraser' ? 5 : 1);
+    ictx.save();
+    ictx.lineCap = 'round'; ictx.lineJoin = 'round'; ictx.lineWidth = lw;
+    ictx.globalCompositeOperation = st.tool === 'eraser' ? 'destination-out' : 'source-over';
+    ictx.globalAlpha = st.tool === 'highlighter' ? 0.35 : 1;
+    ictx.strokeStyle = st.tool === 'highlighter' ? '#facc15' : st.colour;
+    ictx.fillStyle = ictx.strokeStyle;
+    const pts = st.points;
+    if (pts.length === 1) {
+      ictx.beginPath(); ictx.arc(pts[0][0] * w, pts[0][1] * h, lw / 2, 0, Math.PI * 2); ictx.fill();
+    } else {
+      ictx.beginPath(); ictx.moveTo(pts[0][0] * w, pts[0][1] * h);
+      for (let i = 1; i < pts.length; i++) ictx.lineTo(pts[i][0] * w, pts[i][1] * h);
+      ictx.stroke();
+    }
+    ictx.restore();
+  }
+  function redraw() {
+    ictx.clearRect(0, 0, ink.width, ink.height);
+    strokes.forEach(drawStroke);
+    if (current) drawStroke(current);
+  }
+  // Map a screen point back through pan, zoom and rotation to a 0–1 point on the frame.
+  function toFrame(clientX, clientY) {
+    const r = stage.getBoundingClientRect();
+    let dx = (clientX - r.left - r.width / 2 - state.panX) / state.zoom;
+    let dy = (clientY - r.top - r.height / 2 - state.panY) / state.zoom;
+    const a = -state.rot * Math.PI / 180;
+    const x = dx * Math.cos(a) - dy * Math.sin(a);
+    const y = dx * Math.sin(a) + dy * Math.cos(a);
+    return [x / frame.offsetWidth + 0.5, y / frame.offsetHeight + 0.5];
+  }
+  function setDrawing(on) {
+    stage.classList.toggle('drawing', on);
+    document.getElementById('btnDraw').classList.toggle('on', on);
+  }
+  function undo() { strokes.pop(); redraw(); }
+  function clearInk() { strokes.length = 0; current = null; redraw(); }
+
+  function showToast(msg) {
+    toast.textContent = msg; toast.classList.add('show');
+    clearTimeout(showToast.t); showToast.t = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+
+  // ── snapshot ─────────────────────────────────────────────────────────
+  function snapshot() {
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) return;
+    const side = state.rot % 180 !== 0;
+    const out = document.createElement('canvas');
+    out.width = side ? vh : vw; out.height = side ? vw : vh;
+    const c = out.getContext('2d');
+    c.translate(out.width / 2, out.height / 2);
+    c.rotate(state.rot * Math.PI / 180);
+    c.save();
+    if (state.mirror) c.scale(-1, 1);
+    c.drawImage(video, -vw / 2, -vh / 2, vw, vh);
+    c.restore();
+    c.drawImage(ink, -vw / 2, -vh / 2, vw, vh);
+    const d = new Date(), p = n => String(n).padStart(2, '0');
+    const name = `visualiser-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.png`;
+    out.toBlob(blob => {
+      if (!blob) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      showToast('Snapshot saved');
+    }, 'image/png');
   }
 
   // ── camera ───────────────────────────────────────────────────────────
@@ -163,7 +299,8 @@
         camSelect.appendChild(o);
       });
       camSelect.style.display = cams.length > 1 ? '' : 'none';
-    } catch (_) { camSelect.style.display = 'none'; }
+      document.getElementById('camSep').style.display = camSelect.style.display;
+    } catch (_) { camSelect.style.display = 'none'; document.getElementById('camSep').style.display = 'none'; }
   }
 
   async function begin() {
@@ -173,6 +310,7 @@
       await startStream(null);
       overlay.classList.add('hidden');
       controls.style.display = 'flex';
+      fitFrame();
       applyTransform();
     } catch (err) {
       ovBtn.disabled = false;
@@ -226,6 +364,20 @@
   document.getElementById('btnRotate').addEventListener('click', () => {
     state.rot = (state.rot + 90) % 360; applyTransform();
   });
+  document.getElementById('btnDraw').addEventListener('click', () => setDrawing(!stage.classList.contains('drawing')));
+  document.getElementById('btnSnap').addEventListener('click', snapshot);
+  document.getElementById('btnUndo').addEventListener('click', undo);
+  document.getElementById('btnClear').addEventListener('click', clearInk);
+  document.getElementById('sizeSelect').addEventListener('change', (e) => { pen.size = +e.target.value; });
+  document.querySelectorAll('.viz-swatch').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.viz-swatch').forEach(x => x.classList.toggle('on', x === b));
+    pen.colour = b.dataset.colour;
+    if (pen.tool !== 'pen') document.querySelector('[data-tool="pen"]').click();
+  }));
+  document.querySelectorAll('[data-tool]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-tool]').forEach(x => x.classList.toggle('on', x === b));
+    pen.tool = b.dataset.tool;
+  }));
   ovBtn.addEventListener('click', begin);
   camSelect.addEventListener('change', () => startStream(camSelect.value).catch(() => {}));
 
@@ -243,30 +395,46 @@
   // drag to pan when zoomed
   let dragging = false, lastX = 0, lastY = 0;
   stage.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.viz-controls')) return;
+    if (stage.classList.contains('drawing')) {
+      current = { tool: pen.tool, colour: pen.colour, size: pen.size, points: [toFrame(e.clientX, e.clientY)] };
+      stage.setPointerCapture(e.pointerId);
+      redraw();
+      return;
+    }
     if (state.zoom <= 1.001) return;
     dragging = true; lastX = e.clientX; lastY = e.clientY;
     stage.classList.add('panning'); stage.setPointerCapture(e.pointerId);
   });
   stage.addEventListener('pointermove', (e) => {
+    if (current) { current.points.push(toFrame(e.clientX, e.clientY)); redraw(); return; }
     if (!dragging) return;
     state.panX += e.clientX - lastX; state.panY += e.clientY - lastY;
     lastX = e.clientX; lastY = e.clientY; applyTransform();
   });
-  stage.addEventListener('pointerup', (e) => {
+  function endPointer(e) {
+    if (current) { strokes.push(current); current = null; redraw(); }
     dragging = false; stage.classList.remove('panning');
     try { stage.releasePointerCapture(e.pointerId); } catch (_) {}
-  });
+  }
+  stage.addEventListener('pointerup', endPointer);
+  stage.addEventListener('pointercancel', endPointer);
 
   // keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     if (!overlay.classList.contains('hidden')) return;
     if (e.target.tagName === 'SELECT') return;
     const k = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); undo(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (e.code === 'Space') { e.preventDefault(); toggleFreeze(); }
     else if (k === 'f') toggleFull();
     else if (k === 'm') document.getElementById('btnMirror').click();
     else if (k === 'r') document.getElementById('btnRotate').click();
     else if (k === '0') resetView();
+    else if (k === 'd') document.getElementById('btnDraw').click();
+    else if (k === 's') snapshot();
+    else if (k === 'escape' && stage.classList.contains('drawing')) setDrawing(false);
     else if (k === '+' || k === '=') zoomBy(ZOOM_STEP);
     else if (k === '-') zoomBy(1 / ZOOM_STEP);
   });
