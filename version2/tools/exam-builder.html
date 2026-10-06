@@ -532,6 +532,13 @@
             </select>
           </div>
           <div class="ex-field">
+            <label for="exEndPlace">&ldquo;End of paper&rdquo; line</label>
+            <select id="exEndPlace">
+              <option value="questions" selected>After the last question</option>
+              <option value="extra">After the extra writing pages</option>
+            </select>
+          </div>
+          <div class="ex-field">
             <label for="exGridStyle">Mark grid</label>
             <select id="exGridStyle">
               <option value="auto" selected>By section, if there are any</option>
@@ -678,7 +685,7 @@
   var settingIds = ['exTitle', 'exSubtitle', 'exSchool', 'exTime', 'exDate', 'exInstr',
                     'exCover', 'exPaperRef', 'exMaterials', 'exCoverNote', 'exMarkGrid', 'exRunHead', 'exPageFoot',
                     'exName', 'exTotalBox', 'exSectionTotals', 'exEnd', 'exFooter',
-                    'exLineStyle', 'exLineGap', 'exFont', 'exMarkFormat', 'exNumbering', 'exDefaultLines', 'exExtraPages', 'exGridStyle',
+                    'exLineStyle', 'exLineGap', 'exFont', 'exMarkFormat', 'exNumbering', 'exDefaultLines', 'exExtraPages', 'exEndPlace', 'exGridStyle',
                     'exCrest', 'exCrestSize', 'exCrestData'];
 
   var KIND_LABELS = { q: 'Question', part: 'Part (a)', sub: 'Sub-part (i)', section: 'Section', stimulus: 'Source' };
@@ -1943,11 +1950,16 @@
     }
     html += body;
 
-    if (checked('exEnd')) {
-      html += '<div class="p-end">END OF PAPER' + (total ? ' &nbsp;·&nbsp; TOTAL: ' + total + ' MARKS' : '') + '</div>';
-    }
+    // The end line can wait until after the extra writing pages, so the
+    // questions need not end on a page that says little else.
+    var endLine = checked('exEnd')
+      ? '<div class="p-end">END OF PAPER' + (total ? ' &nbsp;·&nbsp; TOTAL: ' + total + ' MARKS' : '') + '</div>'
+      : '';
+    var endAfterExtra = endLine && val('exEndPlace') === 'extra' && (parseInt(val('exExtraPages'), 10) || 0) > 0;
 
-    html += extraPages();
+    if (!endAfterExtra) { html += endLine; }
+    html += extraPages(endAfterExtra ? END_LINE_ROOM : 0);
+    if (endAfterExtra) { html += endLine; }
     if (checked('exFooter')) {
       html += '<div class="p-foot"><img src="/version2/assets/images/classicalia-wordmark-navy.png" alt="Classicalia"></div>';
     }
@@ -2162,7 +2174,10 @@
 
   // Spare pages for an answer that outgrew the space left for it. Each one is
   // a page of its own, ruled the same way as the rest of the paper.
-  function extraPages() {
+  var END_LINE_ROOM = 64;   // the end line, its rule and the space above it
+
+  // reserve is room kept clear at the foot of the last page, for the end line.
+  function extraPages(reserve) {
     var wanted = parseInt(val('exExtraPages'), 10) || 0;
     if (!wanted) return '';
 
@@ -2172,12 +2187,15 @@
     var html = '';
 
     for (var n = 0; n < wanted; n++) {
+      var height = box - (n === wanted - 1 ? (reserve || 0) : 0);
+      var count = n === wanted - 1 && reserve
+        ? Math.max(1, Math.floor((height - EXTRA_HEAD_HEIGHT) / gap)) : lines;
       html += '<div class="p-break">Page break</div>' +
-              '<div class="p-extra" style="height:' + Math.floor(box) + 'px">' +
+              '<div class="p-extra" style="height:' + Math.floor(height) + 'px">' +
               '<p class="p-extra-head">Additional writing space' +
               (wanted > 1 ? ' (' + (n + 1) + ' of ' + wanted + ')' : '') + '</p>' +
               '<p class="p-extra-note">Write the number of the question you are answering beside your answer.</p>' +
-              ruledBlock(lines) +
+              ruledBlock(count) +
               '</div>';
     }
     return html;
