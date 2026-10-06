@@ -29,7 +29,7 @@
     width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
     background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 9px 11px; }
   .ex-field textarea { resize: vertical; min-height: 66px; line-height: 1.5; }
-  .ex-field input:focus, .ex-field select:focus, .ex-field textarea:focus, .ex-q-input:focus, .ex-q-note:focus, .ex-q-marks:focus, .ex-q-lines:focus {
+  .ex-field input:focus, .ex-field select:focus, .ex-field textarea:focus, .ex-q-input:focus, .ex-q-note:focus, .ex-q-title:focus, .ex-q-marks:focus, .ex-q-lines:focus {
     outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,111,255,.12); }
 
   .ex-check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink); cursor: pointer; }
@@ -69,6 +69,8 @@
   .ex-q-tools { flex: none; display: flex; gap: 4px; padding-top: 3px; }
   #exCrestThumb { height: 30px; width: auto; max-width: 150px; border: 1px solid var(--rule); border-radius: 5px; background: var(--paper); padding: 2px 5px; }
   .ex-q-note { font-size: 13px; background: var(--cream); }
+  .ex-q-title { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 6px 11px; }
   .ex-q-toggle { padding: 5px 10px; font-size: 12px; }
   .ex-q-toggle.is-on { border-color: var(--brand); color: var(--brand); }
   .ex-slots { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -196,6 +198,7 @@
   .p-stimulus { border: 1px solid #000; background: #f7f7f7; padding: 11px 13px; margin: 0 0 14px; font-size: 10.5pt; white-space: pre-wrap;
     break-inside: avoid; page-break-inside: avoid; }
   .p-stimulus .p-lead { white-space: pre-wrap; margin: 0 0 10px; }
+  .p-stim-title { white-space: normal; font-weight: 700; margin: 0 0 8px; }
   .p-figures { display: flex; align-items: stretch; justify-content: center; gap: 14px; }
   /* A column each, so two pictures of different heights still line their
      captions up along the bottom. */
@@ -932,6 +935,21 @@
           addItem(item.kind === 'section' || item.kind === 'stimulus' ? 'q' : item.kind, i + 1);
         }
       });
+      // A source can carry a title of its own, printed at the head of its box,
+      // e.g. the author, work and lines a passage is taken from.
+      if (item.kind === 'stimulus') {
+        var titleInput = document.createElement('input');
+        titleInput.type = 'text';
+        titleInput.className = 'ex-q-title';
+        titleInput.value = item.title || '';
+        titleInput.placeholder = 'Title (optional), e.g. Nepos, Life of Hannibal, lines 1\u201313';
+        titleInput.addEventListener('input', function () {
+          item.title = titleInput.value;
+          update();
+        });
+        wireFormatting(titleInput);
+        main.appendChild(titleInput);
+      }
       main.appendChild(input);
 
       var opts = document.createElement('div');
@@ -1483,6 +1501,7 @@
       note: '',
       answer: '',
       vocab: '',
+      title: '',
       lineNumbers: '0',
       pageBreak: false,
       figures: [],
@@ -1563,7 +1582,7 @@
 
   function filled() {
     return items.filter(function (item) {
-      return item.text.trim() !== '' || (item.kind === 'stimulus' && figuresOf(item).length > 0);
+      return item.text.trim() !== '' || (item.kind === 'stimulus' && (figuresOf(item).length > 0 || (item.title || '').trim() !== ''));
     });
   }
 
@@ -1863,7 +1882,7 @@
 
     items.forEach(function (item, i) {
       // A source can be a picture with nothing written under it.
-      if (item.text.trim() === '' && item.kind !== 'section' && !(item.kind === 'stimulus' && figuresOf(item).length)) return;
+      if (item.text.trim() === '' && item.kind !== 'section' && !(item.kind === 'stimulus' && (figuresOf(item).length || (item.title || '').trim()))) return;
 
       if (item.kind === 'section') {
         if (openSection > -1 && showSectionTotals && totals[openSection]) {
@@ -1892,7 +1911,9 @@
                  '</div>';
         }).join('');
 
+        var stimTitle = (item.title || '').trim();
         body += '<div class="p-stimulus' + breakClass(item) + '">' +
+                (stimTitle ? '<p class="p-stim-title">' + formatText(stimTitle) + '</p>' : '') +
                 passageHtml(item) +
                 (figuresHtml ? '<div class="p-figures">' + figuresHtml + '</div>' : '') +
                 vocabHtml(item) +
