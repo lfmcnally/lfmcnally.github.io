@@ -15,6 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/bkt-store.js"></script>
+<script src="/version2/assets/js/review-priority.js"></script>
 <script src="/version2/assets/js/homework.js"></script>
 <style>
 
@@ -1627,7 +1628,8 @@ async function startSessionWithPool(pool, mode, strategy, lockMode) {
       distinctCorrectDays: prev ? (prev.distinct_correct_days | 0) : 0,
       lastCorrectDate:     prev ? prev.last_correct_date : null,
       nextReviewAt:        prev ? prev.next_review_at : null,
-      reviewIntervalDays:  prev ? prev.review_interval_days : null
+      reviewIntervalDays:  prev ? prev.review_interval_days : null,
+      lastSeenAt:          prev ? prev.last_seen_at : null
     };
   });
 
@@ -1956,6 +1958,8 @@ function bktUpdate(word, correct, typed) {
     word.nextReviewAt         = addDaysIso(MASTERY.resetReviewInDays);
   }
 
+  word.lastSeenAt = new Date().toISOString();
+
   // ── Persist (debounced inside the store) ──
   if (activeStore) {
     activeStore.update(word.latin, {
@@ -1984,6 +1988,14 @@ function addDaysIso(days) {
 // ═══════════════════════════════════════════════════════
 // Weighted random over a list — lower pKnow = higher weight (focus on weak
 // words). Returns null for an empty list.
+// Weak-spots ranking: low confidence and long-unseen words both rise
+// (assets/js/review-priority.js).
+function pickForReview(list) {
+  return window.ClassicaliaReview
+    ? window.ClassicaliaReview.pick(list, w => w.pKnow, w => w.lastSeenAt)
+    : pickWeightedByLowPKnow(list);
+}
+
 function pickWeightedByLowPKnow(list) {
   if (!list.length) return null;
   const weights = list.map(w => Math.max(0.02, 1 - w.pKnow));  // small floor
@@ -2055,9 +2067,7 @@ function pickNextWord() {
   const due = activeWords.filter(w =>
     w.nextReviewAt && Date.parse(w.nextReviewAt) <= now &&
     (w.distinctCorrectDays | 0) >= MASTERY.daysRequired);
-  if (due.length > 0) {
-    return due[Math.floor(Math.random() * due.length)];
-  }
+  if (due.length > 0) return pickForReview(due);
 
   // 2. Smart strategy: grow a "frontier" set by set. Introduce never-seen
   //    words in set order, but only while fewer than SMART_ACTIVE_CAP words
@@ -2068,6 +2078,11 @@ function pickNextWord() {
     const fresh = activeWords.filter(w => w.trials === 0).sort((a, b) =>
       (a.chapter - b.chapter) ||
       a.latin.replace(/^-/, '').toLowerCase().localeCompare(b.latin.replace(/^-/, '').toLowerCase()));
+    // Every word met but not yet Secure is up for drilling, ranked by low
+    // confidence and by how long since it was last seen, so a nearly-there
+    // word left untouched for weeks comes back as well as the weak ones.
+    const review = activeWords.filter(w => w.trials > 0 &&
+      !(w.pKnow >= BKT.mastery && (w.distinctCorrectDays | 0) >= MASTERY.daysRequired));
 
     const canIntroduce = fresh.length > 0 && active.length < SMART_ACTIVE_CAP;
     // Introduce a new word when there's nothing in progress to drill, or as a
@@ -2075,13 +2090,10 @@ function pickNextWord() {
     if (canIntroduce && (active.length === 0 || Math.random() < SMART_INTRODUCE_CHANCE)) {
       return fresh[0];
     }
-    if (active.length) return pickWeightedByLowPKnow(active);
+    if (review.length) return pickForReview(review);
     if (fresh.length)  return fresh[0];
-    // Everything in range is strong — fall through to mop up anything left
-    // below full mastery, else revisit at random.
-    const unmasteredSmart = activeWords.filter(w => w.pKnow < BKT.mastery);
-    return pickWeightedByLowPKnow(unmasteredSmart) ||
-           activeWords[Math.floor(Math.random() * activeWords.length)];
+    // Everything in range is Secure: revisit, longest-unseen first.
+    return pickForReview(activeWords);
   }
 
   // 3. Standard strategy (queues, manual ranges, Do Now): prioritise words

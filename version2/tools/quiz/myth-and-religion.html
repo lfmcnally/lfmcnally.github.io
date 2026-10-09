@@ -17,6 +17,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
 <script src="/version2/assets/js/bkt-store.js"></script>
+<script src="/version2/assets/js/review-priority.js"></script>
 <script src="/version2/assets/js/homework.js"></script>
 <style>
 .quiz-wrap { max-width: 760px; margin: 0 auto; padding: 32px 24px 80px; }
@@ -391,7 +392,8 @@ async function openStoreForTopic() {
       trials:              s ? (s.trials|0) : 0,
       correct:             s ? (s.correct|0) : 0,
       distinctCorrectDays: s ? (s.distinct_correct_days|0) : 0,
-      lastCorrectDate:     s ? (s.last_correct_date||null) : null
+      lastCorrectDate:     s ? (s.last_correct_date||null) : null,
+      lastSeenAt:          s ? (s.last_seen_at||null) : null
     });
   }
 }
@@ -438,6 +440,7 @@ function bktUpdate(s, credit) {
   if (c >= 1) s.correct++;
   const today = todayISO();
   if (c >= 1 && s.lastCorrectDate !== today) { s.distinctCorrectDays = (s.distinctCorrectDays|0)+1; s.lastCorrectDate = today; }
+  s.lastSeenAt = new Date().toISOString();
   if (store) {
     store.update(s.id, {
       p_know: s.pKnow, trials: s.trials, correct: s.correct,
@@ -447,6 +450,14 @@ function bktUpdate(s, credit) {
 }
 
 // ── selection ──
+// Weak-spots ranking: low confidence and long-unseen questions both rise
+// (assets/js/review-priority.js).
+function pickForReview(list) {
+  return window.ClassicaliaReview
+    ? window.ClassicaliaReview.pick(list, s => s.pKnow, s => s.lastSeenAt)
+    : weightedPick(list);
+}
+
 // Pick from `list` weighted toward lowest pKnow (a small floor lets secure
 // items still recur occasionally).
 function weightedPick(list) {
@@ -483,18 +494,23 @@ function pickNext() {
     return weightedPick(front.length ? front : unmastered);
   }
 
-  // 'review' — consolidate everything answered-but-weak first; introduce
-  // never-seen questions (in subtopic order) only once fewer than the cap are
-  // still being learned, so new material arrives as old material secures.
+  // 'review' — drill everything answered-but-weak, ranked by low confidence
+  // and by how long since it was last seen. Secure questions have no review
+  // schedule of their own, so one left unseen for REVISIT_DAYS rejoins the
+  // pool too. Never-seen questions come in (in subtopic order) only once
+  // fewer than the cap are still being learned, so new material arrives as
+  // old material secures.
   if (strategy === 'review') {
     const active = pool.filter(s => (s.trials | 0) > 0 && s.pKnow < SMART.strongP && !isSecure(s));
+    const R = window.ClassicaliaReview;
+    const review = pool.filter(s => (s.trials | 0) > 0 &&
+      (!isSecure(s) || (R && R.daysSince(s.lastSeenAt) >= R.REVISIT_DAYS)));
     const fresh = pool.filter(s => (s.trials | 0) === 0).sort((a, b) => idxOf(a) - idxOf(b));
     const canIntroduce = fresh.length > 0 && active.length < SMART.activeCap;
     if (canIntroduce && (active.length === 0 || Math.random() < SMART.introChance)) return fresh[0];
-    if (active.length) return weightedPick(active);
+    if (review.length) return pickForReview(review);
     if (fresh.length) return fresh[0];
-    const unmastered = pool.filter(s => !isSecure(s));
-    return unmastered.length ? weightedPick(unmastered) : pool[Math.floor(Math.random() * pool.length)];
+    return pickForReview(pool);
   }
 
   // 'standard' — drill the chosen pool, weighted toward what's hardest.
