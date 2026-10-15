@@ -22,8 +22,8 @@ Switched on by these two lines in the `<head>` of `version2/index.html`:
 ## The saved standard homepage
 
 `classic/index.html` is a copy of the homepage exactly as it was before the
-Halloween skin went on (October 2026), kept for reference. It is also tagged
-in git as `homepage-classic-2026-10`. The live `index.html` still holds the
+Halloween skin went on (October 2026), kept for reference. In git, the last
+commit before the skin is `93d9cab` (`git show 93d9cab:version2/index.html`). The live `index.html` still holds the
 same design, so normally you just remove the skin lines; use the copy only if
 the live page has drifted and you want to compare.
 
