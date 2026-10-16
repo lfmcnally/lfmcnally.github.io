@@ -448,9 +448,7 @@ body { background:#f4f6fa; }
 </div>
 <!-- APP SHELL -->
 <div class="app">
-  <aside class="sidebar" data-tracking-nav data-role="student" data-active="progress" data-seed="588"
-         data-context-id="courseTabs" data-context-class="course-tabs" data-context-label="My courses"
-         data-context-link="/version2/profile.html#courses" data-context-link-label="Manage"></aside>
+  <aside class="sidebar" data-tracking-nav data-role="student" data-active="progress" data-seed="588"></aside>
   <script src="/version2/assets/js/tracking-nav.js"></script>
   <main class="main">
     <header class="topbar">
@@ -461,6 +459,16 @@ body { background:#f4f6fa; }
       </div>
     </header>
 <div class="dash-body">
+  <!-- Course header + Today / Practise / Revise / Progress strip. This page is
+       the Progress tab of the course hub (tracking/course.html). The sidebar
+       lists the student's courses; #courseTabs stays as the hidden source of
+       truth for which course this page is showing. -->
+  <div class="course-head" id="courseHead" hidden>
+    <div class="course-head-eyebrow" id="courseHeadSpec"></div>
+    <div class="course-head-title" id="courseHeadName"></div>
+  </div>
+  <nav id="courseSections"></nav>
+  <div class="course-tabs" id="courseTabs" hidden></div>
   <!-- Live game banner — appears when the student's teacher has launched a
        Do Now game (Gold Rush). Hidden otherwise. -->
   <a id="gameBanner" href="/version2/tools/game/gold-rush.html"
@@ -1133,6 +1141,18 @@ function showCourseBody(type) {
   document.querySelectorAll('#courseTabs .course-tab').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.courseType === type);
   });
+  // Course header and section tabs (this page is the course's Progress tab).
+  const head = document.getElementById('courseHead');
+  if (head) {
+    const hub = map.hubFor ? map.hubFor(type) : null;
+    head.hidden = false;
+    document.getElementById('courseHeadSpec').textContent = (hub && hub.spec) || '';
+    document.getElementById('courseHeadName').textContent = map.labelFor(type);
+  }
+  if (window.TrackingNav && window.TrackingNav.courseTabs) {
+    window.TrackingNav.courseTabs(document.getElementById('courseSections'), type, 'progress');
+    window.TrackingNav.setActiveCourse(type);
+  }
   const tt = document.getElementById('topbarTitle');
   if (tt && map.labelFor) tt.innerHTML = '<b></b>';
   if (tt) tt.querySelector('b').textContent = (map.labelFor && map.labelFor(type)) || 'Your progress';
@@ -1150,7 +1170,7 @@ function renderCourseTabs(allowedTypes, activeType) {
   strip.innerHTML = allowedTypes.map(type =>
     `<button type="button" class="course-tab" data-course-type="${type}">${map.labelFor(type)}</button>`
   ).join('');
-  strip.hidden = allowedTypes.length === 0;   // sidebar always lists the student's course(s)
+  strip.hidden = true;   // the sidebar lists the courses; this strip only tracks the active one
   strip.querySelectorAll('.course-tab').forEach(btn => {
     btn.addEventListener('click', () => showCourseBody(btn.dataset.courseType));
   });

@@ -70,9 +70,187 @@
     COURSE_TYPES.filter(c => c.vocabList).map(c => [c.type, c.vocabList])
   );
 
+  // ── Course hub ──
+  // What each course's hub (tracking/course.html) shows besides progress:
+  //   spec:     exam board line under the course name
+  //   subject:  the public subject page for this course
+  //   kind:     'vocab' (word lists by chapter/set) or 'quiz' (Civ question bank)
+  //   noun:     what a vocab course's groups are called (Chapter / Set)
+  //   doNow:    { url, lists } — the Do Now link and the vocab_list(s) whose
+  //             get_my_do_now result says whether one is set right now
+  //   practise: the tools offered on the Practise tab
+  //   revise:   course index pages whose lesson lists make up the Revise tab.
+  //             Each page is read live, so new lessons show up by themselves.
+  const S = '/version2/subjects/', G = '/version2/tools/grammar/';
+  const LATIN_GRAMMAR = [
+    { title: 'Grammar gym', desc: 'Mixed grammar practice, chapter by chapter.', href: G + 'latin-grammar-gym.html' },
+    { title: 'Noun endings', desc: 'Fill in the noun tables until they’re automatic.', href: G + 'noun-endings.html' },
+    { title: 'Verb endings', desc: 'Every tense, person and voice.', href: G + 'verb-endings.html' }
+  ];
+  const PRACTICE_TEST = { title: 'Practice test', desc: 'Build a short test for yourself from any list and have it marked.', href: '/version2/tools/practice-test.html' };
+  const quizPractise = (base) => [
+    { title: 'Work through in order', desc: 'Go through a topic from the start, adding new questions as you go.', href: base + '?mode=learn' },
+    { title: 'Pick a topic', desc: 'Choose the topics and lessons you want to be quizzed on.', href: base }
+  ];
+  const HUB = {
+    'latin-gcse': {
+      spec: 'OCR GCSE · J282', subject: S + 'latin/#gcse', kind: 'vocab', noun: 'Chapter',
+      doNow: { url: V + 'latinvocabtester.html?mode=donow', lists: ['latin-gcse', 'latin-suburani'] },
+      practise: [
+        { title: 'Choose your own words', desc: 'Pick chapters, direction and question type yourself.', href: V + 'latinvocabtester.html?list=gcse' },
+        ...LATIN_GRAMMAR,
+        { title: 'Latin Quest', desc: 'Explore a Roman town and answer the townsfolk’s vocab questions.', href: '/version2/tools/game/latin-quest/' },
+        PRACTICE_TEST
+      ],
+      revise: [
+        { index: S + 'latin/literature/gcse/cupid-and-psyche/', title: 'Cupid & Psyche', sub: 'Prose Literature B · Apuleius, Metamorphoses' },
+        { index: S + 'latin/literature/gcse/aeneid-2/', title: 'The Wooden Horse & Laocoön', sub: 'Verse Literature B · Virgil, Aeneid II' },
+        { index: S + 'latin/literature/gcse/baucis-et-philemon/', title: 'Baucis et Philemon & otium', sub: 'Verse Literature A · Ovid' }
+      ]
+    },
+    'latin-prep': {
+      spec: 'KS3 · Suburani', subject: S + 'latin/', kind: 'vocab', noun: 'Chapter',
+      doNow: { url: V + 'latinvocabtester.html?mode=donow', lists: ['latin-suburani', 'latin-gcse'] },
+      practise: [
+        { title: 'Choose your own words', desc: 'Pick chapters, direction and question type yourself.', href: V + 'latinvocabtester.html?list=suburani' },
+        ...LATIN_GRAMMAR,
+        PRACTICE_TEST
+      ],
+      revise: []
+    },
+    'latin-alevel': {
+      spec: 'OCR A-Level · H443', subject: S + 'latin/#alevel', kind: 'vocab', noun: 'Set',
+      practise: [
+        { title: 'Choose your own words', desc: 'Pick sets, direction and question type yourself.', href: V + 'latinvocabtester.html?list=alevel' },
+        ...LATIN_GRAMMAR,
+        PRACTICE_TEST
+      ],
+      revise: [
+        { index: S + 'latin/literature/alevel/nepos-hannibal/', title: 'Nepos, Life of Hannibal', sub: 'Prose Literature · Group 1' },
+        { index: S + 'latin/literature/alevel/aeneid-4/', title: 'Virgil, Aeneid 4', sub: 'Verse Literature · Group 3' }
+      ]
+    },
+    'greek-gcse': {
+      spec: 'OCR GCSE · J292', subject: S + 'greek/#gcse', kind: 'vocab', noun: 'Chapter',
+      practise: [
+        { title: 'Choose your own words', desc: 'Pick chapters, direction and question type yourself.', href: V + 'greekvocabtester.html' },
+        PRACTICE_TEST
+      ],
+      revise: []
+    },
+    'greek-alevel': {
+      spec: 'OCR A-Level · H444', subject: S + 'greek/#alevel', kind: 'vocab', noun: 'Set',
+      practise: [
+        { title: 'Choose your own words', desc: 'Pick sets, direction and question type yourself.', href: V + 'greekvocabtester.html?list=alevel' },
+        PRACTICE_TEST
+      ],
+      revise: []
+    },
+    'civ-gcse': {
+      spec: 'OCR GCSE · J199/11', subject: S + 'classical-civilisation/myth-and-religion/', kind: 'quiz',
+      doNow: { url: Q + 'myth-and-religion.html?mode=donow', lists: ['civ-myth-religion'] },
+      practise: quizPractise(Q + 'myth-and-religion.html'),
+      revise: [{ index: S + 'classical-civilisation/myth-and-religion/', title: 'Myth and Religion' }]
+    },
+    'civ-homeric': {
+      spec: 'OCR GCSE · J199/21', subject: S + 'classical-civilisation/the-homeric-world/', kind: 'quiz',
+      doNow: { url: Q + 'the-homeric-world.html?mode=donow', lists: ['civ-homeric-world'] },
+      practise: quizPractise(Q + 'the-homeric-world.html'),
+      revise: [{ index: S + 'classical-civilisation/the-homeric-world/', title: 'The Homeric World' }]
+    },
+    'civ-alevel': {
+      spec: 'OCR A-Level · H408', subject: S + 'classical-civilisation/#alevel', kind: 'quiz',
+      doNow: { url: S + 'classical-civilisation/the-odyssey/tester.html?mode=donow', lists: ['civ-odyssey'] },
+      practise: [
+        { title: 'Work through in order', desc: 'Go through a book from the start, adding new questions as you go.', href: S + 'classical-civilisation/the-odyssey/tester.html?mode=learn' },
+        { title: 'Explain it', desc: 'Longer “explain” questions to practise developing a point.', href: S + 'classical-civilisation/the-odyssey/tester.html?mode=explain' },
+        { title: 'Pick a topic', desc: 'Choose the books and topics you want to be quizzed on.', href: S + 'classical-civilisation/the-odyssey/tester.html' }
+      ],
+      revise: [
+        { index: S + 'classical-civilisation/the-odyssey/', title: 'The Odyssey' },
+        { index: S + 'classical-civilisation/greek-art/', title: 'Greek Art' },
+        { index: S + 'classical-civilisation/greek-religion/', title: 'Greek Religion' },
+        { index: S + 'classical-civilisation/politics-of-the-late-republic/', title: 'Politics of the Late Republic' }
+      ]
+    }
+  };
+  function hubFor(type) { return HUB[type] || null; }
+  function hubUrl(type, tab) {
+    if (tab === 'progress') return '/version2/tracking/dashboard.html?course=' + encodeURIComponent(type);
+    return '/version2/tracking/course.html?course=' + encodeURIComponent(type) + (tab && tab !== 'today' ? '#' + tab : '');
+  }
+
+  // The courses a signed-in student studies: what they ticked on their
+  // profile (users.tracked_courses) plus the type of every class they're in.
+  // Same rule the progress page has always used. Signed out → [].
+  async function resolveMyCourses(userId) {
+    if (!userId || !window.supabase) return [];
+    const types = new Set();
+    try {
+      const { data, error } = await window.supabase.from('users').select('tracked_courses').eq('id', userId).maybeSingle();
+      if (!error) ((data && data.tracked_courses) || []).forEach(t => types.add(t));
+    } catch (_e) { /* column missing: classes only */ }
+    try {
+      const { data: rows } = await window.supabase.from('v2_class_members').select('v2_classes(type)').eq('student_id', userId);
+      (rows || []).forEach(r => { if (r.v2_classes && r.v2_classes.type) types.add(r.v2_classes.type); });
+    } catch (_e) { /* not in a class */ }
+    return Array.from(types).filter(t => byType.has(t));
+  }
+  // First course that has a progress page, else the first course.
+  function defaultCourse(types) {
+    return (types || []).find(t => isShipped(t)) || (types || [])[0] || null;
+  }
+
+  // Copy the student's saved ranges (users.course_ranges) into this browser so
+  // weakSpotsUrlFor() uses them, and fall back to "chapter 1 up to where the
+  // class has reached" for vocab courses with nothing saved. Returns
+  // { [type]: { from, to } | null } for the given types.
+  async function loadRanges(userId, types) {
+    const out = {};
+    if (!userId || !window.supabase) return out;
+    let ranges = {}, reached = {};
+    try {
+      const { data } = await window.supabase.from('users').select('course_ranges').eq('id', userId).maybeSingle();
+      ranges = (data && data.course_ranges) || {};
+    } catch (_e) { /* column missing */ }
+    try {
+      const { data: mem } = await window.supabase.from('v2_class_members').select('v2_classes(type, grammar_chapter)').eq('student_id', userId);
+      (mem || []).forEach(m => { const c = m.v2_classes; if (c && c.type && c.grammar_chapter > (reached[c.type] || 0)) reached[c.type] = c.grammar_chapter; });
+    } catch (_e) { /* no classes */ }
+    for (const type of types || []) {
+      const hub = HUB[type];
+      const key = (hub && hub.kind === 'vocab' ? 'classicalia.scope.' : 'classicalia.topicRange.') + type;
+      let r = ranges[type] || null;
+      if (r) { try { localStorage.setItem(key, JSON.stringify(r)); } catch (_e) { /* not stored */ } }
+      if (!r) { try { r = JSON.parse(localStorage.getItem(key) || 'null'); } catch (_e) { r = null; } }
+      if (!r && hub && hub.kind === 'vocab' && reached[type] > 0) {
+        r = { from: 1, to: reached[type] };
+        try { localStorage.setItem(key, JSON.stringify(r)); } catch (_e) { /* not stored */ }
+      }
+      out[type] = r;
+    }
+    return out;
+  }
+  // "Chapters 1–6", "Set 3", "Your chosen topics" or "The whole course".
+  function rangeLabel(type, r) {
+    const hub = HUB[type];
+    if (!r) return 'The whole course';
+    if (hub && hub.kind === 'vocab' && Number.isFinite(r.from) && Number.isFinite(r.to)) {
+      return r.from === r.to ? hub.noun + ' ' + r.from : hub.noun + 's ' + r.from + '–' + r.to;
+    }
+    return 'Your chosen topics';
+  }
+
+  // The revision page a student last opened in each course index, written by
+  // revision-nav.js. Keyed by the index page's path.
+  function lastLessons() {
+    try { return JSON.parse(localStorage.getItem('classicalia.lastLesson') || '{}') || {}; } catch (_e) { return {}; }
+  }
+
   window.ClassicaliaCourseMap = {
     COURSE_TYPES,
     SUBJECT_VOCAB_LIST,
-    get, isShipped, vocabListFor, labelFor, bodyIdFor, weakSpotsUrlFor, shipped, comingSoon
+    get, isShipped, vocabListFor, labelFor, bodyIdFor, weakSpotsUrlFor, shipped, comingSoon,
+    hubFor, hubUrl, resolveMyCourses, defaultCourse, loadRanges, rangeLabel, lastLessons
   };
 })();
