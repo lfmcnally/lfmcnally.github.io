@@ -437,8 +437,9 @@ body { background:#f4f6fa; }
       </div>
     </header>
 <div class="dash-body">
-  <!-- The student dashboard shows one course at a time: a header, then the
-       Overview / Revise / Practise sections (course-dashboard.js). The sidebar
+  <!-- The student dashboard shows one course at a time, all on one page: a
+       header, Today (Do Now, set work, weekly goal), the next step and the
+       progress views, then Revise and Practise (course-dashboard.js). The sidebar
        lists the student's courses; #courseTabs stays as the hidden source of
        truth for which course this page is showing. -->
   <div class="cd-head hidden" id="cdHead">
@@ -448,12 +449,16 @@ body { background:#f4f6fa; }
     </div>
     <a class="cd-subject hidden" id="cdSubject" href="#">Course resources on the subject page &rarr;</a>
   </div>
-  <div class="cd-tabs hidden" id="cdTabs" role="tablist" aria-label="Course sections"></div>
+  <nav class="cd-jump hidden" id="cdJump" aria-label="On this page">
+    <a href="#cd-today-anchor">Today</a><a href="#cd-progress">Progress</a><a href="#cd-revise" data-cd-jump="revise">Revise</a><a href="#cd-practise" data-cd-jump="practise">Practise</a>
+  </nav>
   <div class="course-tabs" id="courseTabs" hidden></div>
 
   <div id="cd-overview">
-  <!-- Today: the live Do Now and this course's set work. -->
-  <div class="cd-today hidden" id="cdToday"></div>
+  <!-- Today: the live Do Now, this course's set work and the weekly goal,
+       one row of cards. Weekly goal: questions answered this week vs a
+       personal and/or class target; hidden until the user is signed in and
+       the column exists. -->
   <!-- Live game banner — appears when the student's teacher has launched a
        Do Now game (Gold Rush). Hidden otherwise. -->
   <a id="gameBanner" href="/version2/tools/game/gold-rush.html"
@@ -466,7 +471,30 @@ body { background:#f4f6fa; }
     </span>
     <span style="font-family:'DM Sans',sans-serif;font-size:14px;font-weight:800;padding:11px 20px;border-radius:9px;background:linear-gradient(180deg,#ffd566,#f5b220);color:#3a2700;white-space:nowrap;">Play →</span>
   </a>
+  <span id="cd-today-anchor" class="cd-anchor"></span>
+  <div class="cd-today" id="cdToday">
+    <div class="cd-card hidden" id="cdDoNow"></div>
+    <div class="cd-card hidden" id="cdWork"></div>
+    <div class="goal-card" id="goalCard" style="display:none;">
+      <div class="goal-head">
+        <div>
+          <div class="goal-eyebrow" id="goalEyebrow">This week</div>
+          <div class="goal-figure"><span id="goalAnswered">0</span> <span class="goal-figure-sub">questions answered</span></div>
+        </div>
+        <button class="goal-set-btn" id="goalSetBtn" type="button">Set a goal</button>
+      </div>
+      <div class="goal-bars" id="goalBars"></div>
+      <div class="goal-edit" id="goalEdit" style="display:none;">
+        <span class="goal-edit-label">My weekly goal:</span>
+        <input type="number" id="goalInput" class="goal-input" min="1" max="100000" step="10" placeholder="200">
+        <button class="goal-edit-save" id="goalSave" type="button">Save</button>
+        <button class="goal-edit-clear" id="goalClear" type="button">Clear</button>
+        <span class="goal-presets" id="goalPresets"></span>
+      </div>
+    </div>
+  </div>
 
+  <span id="cd-progress" class="cd-anchor"></span>
   <div id="course-vocab">
   <div class="anon-banner" id="anonBanner" style="display:none;">
     <div class="anon-pitch">
@@ -549,26 +577,6 @@ body { background:#f4f6fa; }
 
   <div id="course-odyssey" class="hidden"></div>
 
-  <!-- Weekly goal — questions answered this week vs a personal and/or class
-       target. Hidden until we know the user is signed in and the column
-       exists. -->
-  <div class="goal-card" id="goalCard" style="display:none;">
-    <div class="goal-head">
-      <div>
-        <div class="goal-eyebrow" id="goalEyebrow">This week</div>
-        <div class="goal-figure"><span id="goalAnswered">0</span> <span class="goal-figure-sub">questions answered</span></div>
-      </div>
-      <button class="goal-set-btn" id="goalSetBtn" type="button">Set a goal</button>
-    </div>
-    <div class="goal-bars" id="goalBars"></div>
-    <div class="goal-edit" id="goalEdit" style="display:none;">
-      <span class="goal-edit-label">My weekly goal:</span>
-      <input type="number" id="goalInput" class="goal-input" min="1" max="100000" step="10" placeholder="200">
-      <button class="goal-edit-save" id="goalSave" type="button">Save</button>
-      <button class="goal-edit-clear" id="goalClear" type="button">Clear</button>
-      <span class="goal-presets" id="goalPresets"></span>
-    </div>
-  </div>
   <div id="course-not-yet" class="hidden">
     <div class="empty-state-dashboard">
       <h2 id="notYetTitle">Coming soon</h2>
@@ -579,8 +587,8 @@ body { background:#f4f6fa; }
 
   </div><!-- /cd-overview -->
 
-  <div id="cd-revise" class="hidden"></div>
-  <div id="cd-practise" class="hidden"></div>
+  <section class="cd-section hidden" id="cd-revise" aria-labelledby="cdReviseTitle"></section>
+  <section class="cd-section hidden" id="cd-practise" aria-labelledby="cdPractiseTitle"></section>
 
   <div id="course-empty" class="hidden">
     <div class="empty-state-dashboard">
@@ -1594,6 +1602,11 @@ function civCourseView(cfg) {
   // Register with the global lazy-render hook so the tab strip can invoke us
   // the first time the user activates this course's tab.
   (window.ClassicaliaLazyRender = window.ClassicaliaLazyRender || {})[cfg.type] = ensureRendered;
+  // If the course was already chosen before this script ran (the student's
+  // courses can load before the page finishes), draw it now: the tab strip's
+  // call to the hook above came too early to reach us.
+  // (Deferred so the rest of this function has set itself up first.)
+  Promise.resolve().then(() => { if (!viewEl.classList.contains('hidden')) ensureRendered(); });
 
   function esc(x) { return String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   const isSecure = s => s.p >= 0.95 && s.days >= 3;

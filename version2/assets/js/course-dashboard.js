@@ -1,14 +1,14 @@
 // Classicalia — student dashboard sections (tracking/dashboard.html).
 //
-// The dashboard shows one course at a time. This script draws everything
-// around the progress views that dashboard.html already renders:
-//   • the course header and the Overview / Revise / Practise switch
-//   • Today: the live Do Now and the course's set work, above the progress
+// The dashboard shows one course at a time, all on one page. This script
+// draws everything around the progress views that dashboard.html already
+// renders:
+//   • the course header and the "on this page" links
+//   • Today: the live Do Now and the course's set work (beside the weekly goal)
 //   • Revise: the course's lessons, read live from its index pages
-//   • Practise: weak spots first, then the course's other tools
-// The sections switch in place (no page loads); #revise and #practise in the
-// address open those sections directly. Clicking another course in the
-// sidebar switches course in place too.
+//   • Practise: the course's other tools
+// #revise and #practise in the address scroll to those sections. Clicking
+// another course in the sidebar switches course in place.
 //
 // dashboard.html calls ClassicaliaCourseDash.setCourse(type) whenever the
 // course it shows changes. Needs course-map.js, homework.js and Supabase.
@@ -16,7 +16,6 @@
   'use strict';
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const SECTIONS = ['overview', 'revise', 'practise'];
 
   let course = null, hub = null, userId = undefined;
   const todayCache = {};     // course type → { doNow, homework }
@@ -28,9 +27,11 @@
   const map = () => window.ClassicaliaCourseMap;
   const sb = () => window.supabase;
 
-  function section() {
+  // Old links used #revise / #practise; the sections are now on the page.
+  function scrollToHash() {
     const h = location.hash.replace('#', '');
-    return SECTIONS.includes(h) ? h : 'overview';
+    const el = h === 'revise' || h === 'practise' ? $('cd-' + h) : null;
+    if (el && !el.classList.contains('hidden')) el.scrollIntoView({ block: 'start' });
   }
 
   async function me() {
@@ -48,23 +49,10 @@
     hub = map().hubFor(type) || { practise: [], revise: [] };
     if (changed) reviseQuery = '';
     renderHead();
-    showSection(section());
+    renderPractise();
+    renderRevise();
     if (window.TrackingNav && window.TrackingNav.setActiveCourse) window.TrackingNav.setActiveCourse(type);
     loadToday();
-  }
-
-  function showSection(name) {
-    ['overview', 'revise', 'practise'].forEach(s => {
-      const panel = $('cd-' + s);
-      if (panel) panel.classList.toggle('hidden', s !== name);
-    });
-    document.querySelectorAll('#cdTabs .cd-tab').forEach(b => {
-      const on = b.dataset.section === name;
-      b.classList.toggle('active', on);
-      b.setAttribute('aria-selected', on ? 'true' : 'false');
-    });
-    if (name === 'revise') renderRevise();
-    if (name === 'practise') renderPractise();
   }
 
   function renderHead() {
@@ -75,29 +63,21 @@
     $('cdTitle').textContent = map().labelFor(course);
     const subj = $('cdSubject');
     if (hub.subject) { subj.href = hub.subject; subj.classList.remove('hidden'); } else subj.classList.add('hidden');
-    const tabs = $('cdTabs');
-    tabs.classList.remove('hidden');
-    if (!tabs.dataset.built) {
-      tabs.dataset.built = '1';
-      tabs.innerHTML = [['overview', 'Overview'], ['revise', 'Revise'], ['practise', 'Practise']].map(([k, label]) =>
-        `<button type="button" role="tab" class="cd-tab" data-section="${k}">${label}</button>`).join('');
-      tabs.addEventListener('click', e => {
-        const b = e.target.closest('.cd-tab');
-        if (!b) return;
-        const name = b.dataset.section;
-        history.replaceState(null, '', location.pathname + location.search + (name === 'overview' ? '' : '#' + name));
-        showSection(name);
-      });
-    }
+    $('cdJump').classList.remove('hidden');
+  }
+
+  // Hide "on this page" links to sections this course doesn't have.
+  function syncJump() {
+    document.querySelectorAll('#cdJump [data-cd-jump]').forEach(a => {
+      a.classList.toggle('hidden', $('cd-' + a.dataset.cdJump).classList.contains('hidden'));
+    });
   }
 
   // ── Today: Do Now + set work ──
   async function loadToday() {
-    const box = $('cdToday');
-    if (!box) return;
+    if (!$('cdToday')) return;
     const uid = await me();
-    if (!uid) { box.classList.add('hidden'); return; }
-    box.classList.remove('hidden');
+    if (!uid) { $('cdDoNow').classList.add('hidden'); $('cdWork').classList.add('hidden'); return; }
     const type = course;
     if (!todayCache[type]) {
       renderToday(null);
@@ -134,26 +114,27 @@
   }
 
   function renderToday(data) {
-    const box = $('cdToday');
-    let doNow = '';
+    const doBox = $('cdDoNow'), workBox = $('cdWork');
+    doBox.classList.toggle('hidden', !hub.doNow);
+    doBox.classList.toggle('live', !!(data && data.doNow));
     if (hub.doNow) {
-      if (!data) doNow = '<div class="cd-card"><div class="cd-kicker">Today’s Do Now</div><p>Checking…</p></div>';
+      if (!data) doBox.innerHTML = '<div class="cd-kicker">Today’s Do Now</div><h2>Checking…</h2>';
       else if (data.doNow) {
         const d = data.doNow;
-        doNow = `<div class="cd-card live"><div class="cd-kicker">Today’s Do Now</div>
+        doBox.innerHTML = `<div class="cd-kicker">Today’s Do Now</div>
           <h2>Ready to start</h2>
           <p>Set by your teacher${d.class_name ? ' for ' + esc(d.class_name) : ''}${d.topic_id ? ' · ' + esc(d.topic_id) : ''}.</p>
-          <div class="cd-actions"><a class="cd-btn" href="${esc(hub.doNow.url)}">Start Do Now &rarr;</a></div></div>`;
+          <div class="cd-actions"><a class="cd-btn" href="${esc(hub.doNow.url)}">Start Do Now &rarr;</a></div>`;
       } else {
-        doNow = `<div class="cd-card"><div class="cd-kicker">Today’s Do Now</div>
+        doBox.innerHTML = `<div class="cd-kicker">Today’s Do Now</div>
           <h2>Nothing set yet</h2>
           <p>When your teacher starts one in class, it appears here.</p>
-          <div class="cd-actions"><button type="button" class="cd-btn ghost" data-cd-recheck>Check again</button></div></div>`;
+          <div class="cd-actions"><button type="button" class="cd-btn ghost" data-cd-recheck>Check again</button></div>`;
       }
     }
     let work;
-    if (!data) work = '<div class="cd-empty">Loading…</div>';
-    else if (!data.homework.length) work = '<div class="cd-empty">Nothing set for this course right now.</div>';
+    if (!data) work = '<p>Loading…</p>';
+    else if (!data.homework.length) work = '<h2>All done</h2><p>Nothing set for this course right now.</p>';
     else {
       const HW = window.ClassicaliaHomework;
       const rows = data.homework.slice().sort((x, y) => (x.p.done === y.p.done ? 0 : x.p.done ? 1 : -1));
@@ -163,30 +144,34 @@
           <span class="cd-work-main"><span class="cd-work-title">${esc(HW.titleOf(a))}</span>
             <span class="cd-work-meta">${esc(HW.targetText(a))} · ${esc(p.label)}</span>
             <span class="cd-bar"><span style="width:${Math.min(100, p.pct)}%;${p.done ? 'background:#059669' : ''}"></span></span></span>
-          <span class="cd-pill ${p.done ? 'done' : (d.cls ? 'soon' : '')}">${p.done ? 'Done' : esc(d.text)}</span>
-          <span class="cd-go">${p.done ? 'Again' : 'Start'} &rarr;</span></a>`;
+          <span class="cd-pill ${p.done ? 'done' : (d.cls ? 'soon' : '')}">${p.done ? 'Done' : esc(d.text)}</span></a>`;
       }).join('') + '</div>';
     }
-    const other = otherWork ? `<div class="cd-note">Plus ${otherWork} weekly test${otherWork === 1 ? '' : 's'} or assessment${otherWork === 1 ? '' : 's'}. <a href="/version2/tracking/todo.html">See all set work</a></div>` : '';
-    box.classList.toggle('solo', !doNow);
-    box.innerHTML = doNow + `<div class="cd-card"><div class="cd-kicker">Set work <a href="/version2/tracking/todo.html">All set work</a></div>${work}${other}</div>`;
+    const other = otherWork ? `<div class="cd-note">Plus ${otherWork} weekly test${otherWork === 1 ? '' : 's'} or assessment${otherWork === 1 ? '' : 's'}. <a href="/version2/tracking/todo.html">See all</a></div>` : '';
+    workBox.classList.remove('hidden');
+    workBox.innerHTML = `<div class="cd-kicker">Set work <a href="/version2/tracking/todo.html">All set work</a></div>${work}${other}`;
   }
 
   // ── Practise ──
+  // Columns that the tools fill exactly, so the last row has no gap:
+  // 2 → 2, 3 → 3, 4 → 4 (2 × 2 on tablets), 6 → 3, 8 → 4.
+  function toolColumns(n) {
+    if (n <= 4) return n;
+    if (n % 3 === 0) return 3;
+    if (n % 4 === 0) return 4;
+    return 3;
+  }
+
   function renderPractise() {
     const box = $('cd-practise');
     if (!box) return;
-    const quiz = hub.kind === 'quiz';
-    const url = map().weakSpotsUrlFor(course);
-    const range = (() => { try { return map().rangeLabel(course, JSON.parse(localStorage.getItem((quiz ? 'classicalia.topicRange.' : 'classicalia.scope.') + course) || 'null')); } catch (_e) { return ''; } })();
-    const tools = (hub.practise || []).map(t => `
-      <a class="cd-card cd-tool" href="${esc(t.href)}"><h3>${esc(t.title)}</h3><p>${esc(t.desc)}</p>
-        <div class="cd-actions"><span class="cd-go">Open &rarr;</span></div></a>`).join('');
-    box.innerHTML = `
-      ${url ? `<div class="cd-feature"><div><h2>Test my weak spots</h2>
-        <p>${quiz ? 'Drills the questions you keep getting wrong, mixed with ones that aren’t secure yet.' : 'Words due for review first, then your weakest ones.'} Testing: ${esc(range)}. Change this in Overview.</p></div>
-        <a class="cd-btn" href="${esc(url)}">Start &rarr;</a></div>` : ''}
-      ${tools ? `<div class="cd-section-title">More ways to practise</div><div class="cd-grid">${tools}</div>` : ''}`;
+    const tools = hub.practise || [];
+    box.classList.toggle('hidden', !tools.length);
+    box.innerHTML = tools.length ? `<h2 class="cd-section-title" id="cdPractiseTitle">More ways to practise</h2>
+      <div class="cd-grid" style="--cd-cols:${toolColumns(tools.length)}">${tools.map(t => `
+        <a class="cd-card cd-tool" href="${esc(t.href)}"><h3>${esc(t.title)}</h3><p>${esc(t.desc)}</p>
+          <span class="cd-go">Open &rarr;</span></a>`).join('')}</div>` : '';
+    syncJump();
   }
 
   // ── Revise ──
@@ -201,7 +186,7 @@
       } catch (_e) { return null; }
     }));
     reviseCache[type] = sources.filter(Boolean);
-    if (type === course && section() === 'revise') renderRevise();
+    if (type === course) { renderRevise(); scrollToHash(); }
   }
 
   function parseIndex(doc, src) {
@@ -257,14 +242,13 @@
   function renderRevise() {
     const box = $('cd-revise');
     if (!box) return;
-    if (!hub.revise || !hub.revise.length) {
-      box.innerHTML = `<div class="cd-card"><p>There aren’t revision notes for ${esc(map().labelFor(course))} on Classicalia yet.</p>
-        ${hub.subject ? `<div class="cd-actions"><a class="cd-btn ghost" href="${esc(hub.subject)}">See the subject page</a></div>` : ''}</div>`;
-      return;
-    }
+    const head = '<h2 class="cd-section-title" id="cdReviseTitle">Revise</h2>';
+    box.classList.toggle('hidden', !(hub.revise && hub.revise.length));
+    syncJump();
+    if (!hub.revise || !hub.revise.length) { box.innerHTML = ''; return; }
     const sources = reviseCache[course];
     if (!sources) {
-      box.innerHTML = '<p class="cd-empty">Loading lessons…</p>';
+      box.innerHTML = head + '<p class="cd-empty">Loading lessons…</p>';
       loadRevise(course);
       return;
     }
@@ -301,7 +285,7 @@
         : html;
     }).join('');
 
-    box.innerHTML = `
+    box.innerHTML = `${head}
       ${carry && !q ? `<a class="cd-carry" href="${esc(carry.href)}"><span class="cd-work-main"><span class="cd-work-title">Carry on: ${esc((carry.n ? carry.n + ' ' : '') + carry.title)}</span>
         <span class="cd-work-meta">${esc(carry.group || '')}${carry.at ? ' · opened ' + esc(ago(carry.at)) : ''}</span></span><span class="cd-go">Open &rarr;</span></a>` : ''}
       <label for="cdSearch" style="position:absolute;left:-9999px">Search lessons</label>
@@ -311,6 +295,43 @@
     input.addEventListener('input', () => { reviseQuery = input.value; renderRevise(); });
     if (hadFocus) { input.focus(); try { input.setSelectionRange(pos, pos); } catch (_e) { /* type=search */ } }
   }
+
+  // ── level columns ──
+  // On wide screens the confidence map sits beside a side column. Cap the
+  // map at the side column's height (it scrolls inside its card) so the two
+  // end level instead of leaving an empty patch under the shorter one.
+  function balance() {
+    document.querySelectorAll('#cd-overview .track-grid').forEach(grid => {
+      const body = grid.querySelector('.wordmap-body');
+      const side = grid.querySelector('.track-side');
+      if (!body || !side) return;
+      body.style.maxHeight = '';
+      if (window.innerWidth <= 1100 || !grid.offsetParent) return;
+      const card = body.closest('.wordmap-card');
+      const chrome = card.offsetHeight - body.offsetHeight;
+      // The side column is stretched to the row, so measure its cards.
+      const cards = Array.from(side.children).filter(c => c.offsetParent);
+      if (!cards.length) return;
+      const natural = cards[cards.length - 1].getBoundingClientRect().bottom - cards[0].getBoundingClientRect().top;
+      const room = natural - chrome;
+      if (body.scrollHeight > room && room > 160) body.style.maxHeight = room + 'px';
+    });
+  }
+  let balanceQueued = false;
+  function queueBalance() {
+    if (balanceQueued) return;
+    balanceQueued = true;
+    requestAnimationFrame(() => { balanceQueued = false; balance(); });
+  }
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(queueBalance);
+    const watch = () => document.querySelectorAll('#cd-overview .track-side, #cd-overview .wordmap').forEach(el => {
+      if (!el.dataset.cdWatched) { el.dataset.cdWatched = '1'; ro.observe(el); }
+    });
+    new MutationObserver(() => { watch(); queueBalance(); }).observe(document.documentElement, { childList: true, subtree: true });
+    watch();
+  }
+  window.addEventListener('resize', queueBalance);
 
   // ── events ──
   document.addEventListener('click', e => {
@@ -335,7 +356,7 @@
       window.scrollTo(0, 0);
     }
   });
-  window.addEventListener('hashchange', () => { if (course) showSection(section()); });
+  window.addEventListener('hashchange', scrollToHash);
   window.addEventListener('popstate', () => {
     const t = new URLSearchParams(location.search).get('course');
     if (t && t !== course && typeof window.showCourseBody === 'function') window.showCourseBody(t);
