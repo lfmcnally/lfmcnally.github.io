@@ -70,16 +70,17 @@
     COURSE_TYPES.filter(c => c.vocabList).map(c => [c.type, c.vocabList])
   );
 
-  // ── Course hub ──
-  // What each course's hub (tracking/course.html) shows besides progress:
+  // ── Course dashboard ──
+  // What each course's dashboard (tracking/dashboard.html, drawn by
+  // course-dashboard.js) shows besides progress:
   //   spec:     exam board line under the course name
   //   subject:  the public subject page for this course
   //   kind:     'vocab' (word lists by chapter/set) or 'quiz' (Civ question bank)
   //   noun:     what a vocab course's groups are called (Chapter / Set)
   //   doNow:    { url, lists } — the Do Now link and the vocab_list(s) whose
   //             get_my_do_now result says whether one is set right now
-  //   practise: the tools offered on the Practise tab
-  //   revise:   course index pages whose lesson lists make up the Revise tab.
+  //   practise: the tools offered in the Practise section
+  //   revise:   course index pages whose lesson lists make up the Revise section.
   //             Each page is read live, so new lessons show up by themselves.
   const S = '/version2/subjects/', G = '/version2/tools/grammar/';
   const LATIN_GRAMMAR = [
@@ -175,9 +176,11 @@
     }
   };
   function hubFor(type) { return HUB[type] || null; }
+  // The student dashboard for a course; tab 'revise' or 'practise' opens
+  // that section, anything else the Overview.
   function hubUrl(type, tab) {
-    if (tab === 'progress') return '/version2/tracking/dashboard.html?course=' + encodeURIComponent(type);
-    return '/version2/tracking/course.html?course=' + encodeURIComponent(type) + (tab && tab !== 'today' ? '#' + tab : '');
+    return '/version2/tracking/dashboard.html?course=' + encodeURIComponent(type) +
+      (tab === 'revise' || tab === 'practise' ? '#' + tab : '');
   }
 
   // The courses a signed-in student studies: what they ticked on their

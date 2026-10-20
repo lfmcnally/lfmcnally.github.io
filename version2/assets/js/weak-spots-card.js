@@ -4,7 +4,7 @@
 // pages, search). Opened plainly, the tester asks them to pick a list and
 // chapters, which isn't the session their teacher wants them doing. This
 // adds a card at the top of the setup screen for signed-in students that
-// starts exactly the session the course hub's "Test my weak spots" starts,
+// starts exactly the session the dashboard's "Test my weak spots" starts,
 // with the chapters they've chosen. The full setup stays underneath.
 // Needs course-map.js and the Supabase client.
 (function () {
@@ -40,7 +40,7 @@
           <div class="ws-kicker">${esc(map.labelFor(t))}</div>
           <div class="ws-title">Test my weak spots</div>
           <div class="ws-desc">${esc(map.rangeLabel(t, ranges[t]))} · words due for review first, then your weakest.
-            <a href="${esc(map.hubUrl(t, 'progress'))}">Change</a></div>
+            <a href="${esc(map.hubUrl(t))}">Change</a></div>
         </div>
         <a class="ws-btn" href="${esc(map.weakSpotsUrlFor(t))}">Start &rarr;</a>
       </div>`).join('') +
