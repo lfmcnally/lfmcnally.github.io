@@ -61,7 +61,7 @@
       ? `<a href="${FRIENDS_URL}" class="account-menu-item">Friends</a>`
       : '';
     const progressItem = role === 'student'
-      ? `<a href="/version2/tracking/dashboard.html" class="account-menu-item">My progress</a>`
+      ? `<a href="/version2/tracking/course.html" class="account-menu-item">My courses</a>`
       : '';
     // Site admins get a link to the admin panel.
     const adminItem = isAdmin
@@ -81,7 +81,7 @@
           </div>
           <div class="account-menu-list">
             ${progressItem}
-            ${role === 'student' ? `<a href="${COURSES_URL}" class="account-menu-item">My courses</a>` : ''}
+            ${role === 'student' ? `<a href="${COURSES_URL}" class="account-menu-item">Choose courses</a>` : ''}
             <a href="${PROFILE_URL}" class="account-menu-item">My profile</a>
             ${friendsItem}
             ${teacherItem}

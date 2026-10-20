@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My course — Classicalia</title>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/course-map.js"></script>
+<script src="/version2/assets/js/bkt-store.js"></script>
+<script src="/version2/assets/js/homework.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<style>
+/* Course hub: everything for one course in one place. Today (what to do
+   now), Practise (every way to practise), Revise (the course's lessons,
+   grouped by topic) and Progress (dashboard.html, linked from the tab strip). */
+.gate { max-width:520px; margin:60px auto; background:var(--paper); border:1px solid var(--rule); border-radius:10px; padding:28px; text-align:center; font-size:15px; line-height:1.6; }
+.hub { max-width:960px; }
+.hub-loading { color:var(--muted); font-size:14px; padding:8px 0; }
+.hub-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; }
+.hub-grid.three { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+.hub-card { background:var(--paper); border:1px solid var(--rule); border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:8px; min-width:0; }
+.hub-card.feature { background:#eef4ff; border-color:#d6e4ff; }
+.hub-card.span { grid-column:1 / -1; }
+.hub-kicker { font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--brand); }
+.hub-card h2 { font-family:'Lora',serif; font-style:italic; font-weight:700; font-size:21px; line-height:1.25; color:var(--navy); margin:0; }
+.hub-card h3 { font-size:15px; font-weight:700; color:var(--navy); margin:0; }
+.hub-card p { margin:0; color:var(--muted); font-size:14px; line-height:1.55; }
+.hub-card .hub-actions { margin-top:auto; padding-top:8px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+.hub-btn { display:inline-flex; align-items:center; gap:6px; background:var(--brand); color:#fff; border:none; border-radius:8px; padding:10px 18px; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:700; text-decoration:none; cursor:pointer; }
+.hub-btn:hover { background:#155fe0; }
+.hub-btn.ghost { background:var(--paper); color:var(--ink); border:1px solid var(--rule); font-weight:600; }
+.hub-btn.ghost:hover { border-color:var(--brand); color:var(--brand); }
+.hub-btn.sm { padding:7px 13px; font-size:13px; }
+.hub-link { color:var(--brand); font-weight:600; font-size:13.5px; text-decoration:none; }
+.hub-link:hover { text-decoration:underline; }
+.hub-range { font-size:13.5px; color:var(--ink); }
+.hub-range b { font-weight:700; }
+.hub-sec { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:32px 0 12px; }
+.hub-sec h2 { font-family:'Lora',serif; font-style:italic; font-weight:700; font-size:21px; color:var(--navy); margin:0; }
+.hub-list { border:1px solid var(--rule); border-radius:12px; overflow:hidden; background:var(--paper); }
+.hub-row { display:flex; align-items:center; gap:14px; padding:14px 18px; border-top:1px solid var(--rule); text-decoration:none; color:inherit; }
+.hub-row:first-child { border-top:none; }
+a.hub-row:hover { background:#f6f8fd; }
+.hub-row-main { flex:1; min-width:0; }
+.hub-row-title { display:block; font-weight:700; color:var(--navy); font-size:15px; }
+.hub-row-meta { display:block; font-size:13px; color:var(--muted); margin-top:1px; }
+p.hub-row-meta { display:block; }
+.hub-row-go { color:var(--brand); font-weight:700; font-size:13px; white-space:nowrap; }
+.hub-pill { font-size:12px; font-weight:700; padding:2px 9px; border-radius:999px; background:#f1f3f8; color:var(--muted); white-space:nowrap; }
+.hub-pill.soon { background:#fff1e0; color:#9a4a00; }
+.hub-pill.done { background:#e6f6ec; color:#137a3b; }
+.hub-empty { padding:16px 18px; color:var(--muted); font-size:14px; }
+.hub-bar { display:block; height:5px; background:var(--rule); border-radius:3px; overflow:hidden; margin-top:7px; max-width:240px; }
+.hub-bar > span { display:block; height:100%; background:var(--brand); border-radius:3px; }
+
+.rv-search { width:100%; border:1px solid var(--rule); border-radius:10px; padding:12px 14px; font-family:'DM Sans',sans-serif; font-size:15px; background:var(--paper); color:var(--ink); margin-bottom:18px; }
+.rv-search:focus { outline:2px solid var(--brand); outline-offset:1px; border-color:transparent; }
+.rv-source { font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:26px 0 10px; display:flex; gap:10px; align-items:baseline; justify-content:space-between; }
+.rv-source:first-of-type { margin-top:0; }
+.rv-source a { letter-spacing:0; text-transform:none; font-size:13px; }
+.rv-topic { border:1px solid var(--rule); border-radius:12px; margin-bottom:10px; background:var(--paper); overflow:hidden; }
+.rv-head { width:100%; display:flex; align-items:center; gap:14px; padding:14px 18px; background:none; border:none; text-align:left; cursor:pointer; font-family:'DM Sans',sans-serif; color:var(--ink); }
+.rv-head:hover { background:#f6f8fd; }
+.rv-num { font-family:'Lora',serif; font-style:italic; font-weight:700; font-size:20px; color:var(--brand); min-width:28px; font-variant-numeric:tabular-nums; }
+.rv-title { flex:1; min-width:0; font-weight:700; font-size:15px; color:var(--navy); }
+.rv-title small { display:block; font-weight:500; font-size:13px; color:var(--muted); }
+.rv-chev { color:var(--muted); transition:transform .15s; font-size:18px; line-height:1; }
+.rv-topic.open .rv-chev { transform:rotate(90deg); }
+.rv-lessons { border-top:1px solid var(--rule); }
+.rv-lesson { display:flex; gap:14px; align-items:baseline; padding:11px 18px 11px 60px; border-top:1px solid var(--rule-faint); text-decoration:none; color:inherit; }
+.rv-lesson:first-child { border-top:none; }
+.rv-lesson:hover { background:#f6f8fd; }
+.rv-n { font-size:13px; color:var(--muted); min-width:34px; font-variant-numeric:tabular-nums; }
+.rv-t { flex:1; min-width:0; }
+.rv-t b { font-weight:600; color:var(--ink); }
+.rv-t span { display:block; font-size:13px; color:var(--muted); }
+.rv-chip { font-size:11.5px; font-weight:700; border-radius:999px; padding:2px 8px; background:#e8f0ff; color:var(--brand); white-space:nowrap; }
+@media (max-width:860px) { .hub-grid.three { grid-template-columns:1fr 1fr; } }
+@media (max-width:640px) {
+  .hub-grid, .hub-grid.three { grid-template-columns:1fr; }
+  .rv-lesson { padding-left:18px; }
+  .hub-row { flex-wrap:wrap; }
+}
+@media (prefers-reduced-motion: reduce) { .rv-chev { transition:none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" data-tracking-nav data-role="student" data-active="course" data-seed="512"></aside>
+  <script src="/version2/assets/js/tracking-nav.js"></script>
+  <main class="main">
+    <header class="topbar">
+      <div class="crumbs" id="topbarTitle"><b>My course</b></div>
+      <div class="top-actions"><div data-account-menu></div></div>
+    </header>
+    <div class="dash-body">
+      <div id="gate" class="gate hidden"></div>
+      <div class="hub" id="hub">
+        <div class="course-head">
+          <div class="course-head-eyebrow" id="courseSpec"></div>
+          <div class="course-head-title" id="courseName">Loading your course…</div>
+        </div>
+        <!-- Live game banner: shown while the student's teacher is running a
+             Do Now game (Gold Rush), same as on the progress page. -->
+        <a id="gameBanner" href="/version2/tools/game/gold-rush.html" class="hidden"
+           style="display:flex;align-items:center;gap:14px;text-decoration:none;margin-bottom:20px;padding:16px 20px;border-radius:12px;
+                  background:linear-gradient(100deg,#13234a,#2a1c4a);border:1px solid #f5c14b;box-shadow:0 6px 20px rgba(0,0,0,.18);">
+          <span style="font-size:28px;" aria-hidden="true">🎮</span>
+          <span style="flex:1;min-width:0;">
+            <span style="display:block;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#f5c14b;">Live game</span>
+            <span style="display:block;font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:19px;color:#fff;" id="gameBannerText">A game is running. Tap to play!</span>
+          </span>
+          <span style="font-size:14px;font-weight:800;padding:11px 20px;border-radius:9px;background:linear-gradient(180deg,#ffd566,#f5b220);color:#3a2700;white-space:nowrap;">Play →</span>
+        </a>
+        <nav id="courseTabs"></nav>
+        <div id="hubBody"><div class="hub-loading">Loading…</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+<script src="/version2/assets/js/starfield.js"></script>
+<script>
+'use strict';
+const sb = window.supabase;
+const map = window.ClassicaliaCourseMap;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const TABS = ['today', 'practise', 'revise'];
+
+let course = null, hub = null, userId = null;
+let today = null;          // { doNow, range, homework, otherWork } once loaded
+const revise = { groups: null, open: new Set(), query: '' };
+
+function currentTab() {
+  const t = location.hash.replace('#', '');
+  return TABS.includes(t) ? t : 'today';
+}
+
+(async function init() {
+  const { data: au } = await sb.auth.getUser();
+  if (!au || !au.user) {
+    $('hub').classList.add('hidden');
+    $('gate').classList.remove('hidden');
+    $('gate').innerHTML = 'Please <a href="/auth/login.html">sign in</a> to see your courses, or <a href="/version2/">browse the free resources</a>.';
+    return;
+  }
+  userId = au.user.id;
+  const mine = await map.resolveMyCourses(userId);
+  const requested = new URLSearchParams(location.search).get('course');
+  course = (requested && map.get(requested)) ? requested : map.defaultCourse(mine);
+  // Nothing chosen yet: the progress page has the "Which courses?" picker.
+  if (!course) { location.replace('/version2/tracking/dashboard.html'); return; }
+  hub = map.hubFor(course) || { spec: '', practise: [], revise: [] };
+
+  document.title = map.labelFor(course) + ' — Classicalia';
+  $('courseSpec').textContent = hub.spec || '';
+  $('courseName').textContent = map.labelFor(course);
+  $('topbarTitle').innerHTML = '<b></b>';
+  $('topbarTitle').querySelector('b').textContent = map.labelFor(course);
+  if (window.TrackingNav) window.TrackingNav.setActiveCourse(course);
+  if (!requested) history.replaceState(null, '', map.hubUrl(course, currentTab()));
+
+  render();
+  window.addEventListener('hashchange', render);
+  loadToday();
+  checkLiveGame();
+})();
+
+function render() {
+  const tab = currentTab();
+  if (window.TrackingNav) window.TrackingNav.courseTabs($('courseTabs'), course, tab);
+  if (tab === 'today') renderToday();
+  else if (tab === 'practise') renderPractise();
+  else renderRevise();
+}
+
+async function checkLiveGame() {
+  let res = null;
+  try { const { data } = await sb.rpc('get_my_do_now_game'); res = data; } catch (_e) { return; }
+  if (!res || !res.ok) return;
+  $('gameBannerText').textContent = (res.class_name ? res.class_name + ': ' : '') + 'a game is running. Tap to play!';
+  $('gameBanner').classList.remove('hidden');
+}
+
+/* ─────────── Today ─────────── */
+async function loadToday() {
+  const vocabList = map.vocabListFor(course);
+  const HW = window.ClassicaliaHomework;
+  const [doNow, ranges, homework, otherWork] = await Promise.all([
+    hub.doNow ? loadDoNow(hub.doNow.lists) : Promise.resolve(null),
+    map.loadRanges(userId, [course]),
+    HW ? HW.loadMine().then(rows => rows.filter(r => r.a.vocab_list === vocabList)).catch(() => []) : Promise.resolve([]),
+    countOtherWork()
+  ]);
+  today = { doNow, range: ranges[course] || null, homework, otherWork };
+  if (currentTab() === 'today') renderToday();
+}
+
+// The live Do Now for this course, if a teacher has set one.
+async function loadDoNow(lists) {
+  const found = await Promise.all(lists.map(async list => {
+    try { const { data } = await sb.rpc('get_my_do_now', { p_vocab_list: list }); return data && data.ok ? data : null; }
+    catch (_e) { return null; }
+  }));
+  const live = found.filter(Boolean).sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+  return live[0] || false;
+}
+
+// Weekly tests and assessments aren't tied to a course; count them so Today
+// can point to the full Set work page.
+async function countOtherWork() {
+  try {
+    const [wt, cls, asg] = await Promise.all([
+      sb.from('weekly_tests').select('id').eq('status', 'open'),
+      sb.from('v2_classes').select('id, teacher_id'),
+      sb.from('bank_class_assignments').select('class_id').eq('status', 'open')
+    ]);
+    const myClasses = new Set((cls.data || []).filter(c => c.teacher_id !== userId).map(c => c.id));
+    return (wt.data || []).length + (asg.data || []).filter(a => myClasses.has(a.class_id)).length;
+  } catch (_e) { return 0; }
+}
+
+function weakSpotsCard(extraClass) {
+  const quiz = hub.kind === 'quiz';
+  const url = map.weakSpotsUrlFor(course);
+  const range = today ? map.rangeLabel(course, today.range) : '';
+  return `<div class="hub-card ${extraClass || ''}">
+    <span class="hub-kicker">${quiz ? 'Quiz' : 'Vocab'}</span>
+    <h2>Test my weak spots</h2>
+    <p>${quiz ? 'Drills the questions you keep getting wrong, mixed with ones that aren’t secure yet.'
+              : 'Picks the words due for review first, then your weakest ones. You don’t have to choose anything.'}</p>
+    ${range ? `<div class="hub-range">Testing: <b>${esc(range)}</b> · <a class="hub-link" href="${map.hubUrl(course, 'progress')}">Change</a></div>` : ''}
+    <div class="hub-actions">${url ? `<a class="hub-btn" href="${esc(url)}">Start &rarr;</a>` : '<span class="hub-row-meta">Coming soon for this course.</span>'}</div>
+  </div>`;
+}
+
+function doNowCard() {
+  if (!hub.doNow) return '';
+  let body;
+  if (!today) body = '<p>Checking for today’s Do Now…</p>';
+  else if (today.doNow) {
+    const d = today.doNow;
+    body = `<p>Set by your teacher${d.class_name ? ' for ' + esc(d.class_name) : ''}${d.topic_id ? ' · ' + esc(d.topic_id) : ''}.</p>
+      <div class="hub-actions"><a class="hub-btn" href="${esc(hub.doNow.url)}">Start Do Now &rarr;</a></div>`;
+  } else {
+    body = `<p>No Do Now is set right now. When your teacher starts one in class, it appears here.</p>
+      <div class="hub-actions"><a class="hub-btn ghost sm" href="${esc(map.hubUrl(course))}" onclick="location.reload();return false;">Check again</a></div>`;
+  }
+  return `<div class="hub-card${today && today.doNow ? ' feature' : ''}"><span class="hub-kicker">Today’s Do Now</span><h2>${!today ? 'Checking…' : today.doNow ? 'Ready to start' : 'Nothing set yet'}</h2>${body}</div>`;
+}
+
+function homeworkRows() {
+  const HW = window.ClassicaliaHomework;
+  if (!today) return '<div class="hub-list"><div class="hub-empty">Loading set work…</div></div>';
+  const rows = today.homework.slice().sort((x, y) => (x.p.done === y.p.done ? 0 : x.p.done ? 1 : -1));
+  if (!rows.length) return '<div class="hub-list"><div class="hub-empty">Nothing set for this course right now.</div></div>';
+  return '<div class="hub-list">' + rows.map(({ a, p }) => {
+    const d = HW.dueInfo(a);
+    return `<a class="hub-row" href="${esc(HW.practiseHref(a))}">
+      <span class="hub-row-main"><span class="hub-row-title">${esc(HW.titleOf(a))}</span>
+        <span class="hub-row-meta">${esc(HW.targetText(a))} · ${esc(p.label)}</span>
+        <span class="hub-bar"><span style="width:${Math.min(100, p.pct)}%;${p.done ? 'background:#059669' : ''}"></span></span></span>
+      <span class="hub-pill ${p.done ? 'done' : (d.cls ? 'soon' : '')}">${p.done ? 'Done' : esc(d.text)}</span>
+      <span class="hub-row-go">${p.done ? 'Practise again' : 'Start'} &rarr;</span></a>`;
+  }).join('') + '</div>';
+}
+
+function carryOnHtml() {
+  if (!hub.revise || !hub.revise.length) return '';
+  const last = map.lastLessons();
+  const mine = hub.revise.map(r => last[new URL(r.index, location.origin).pathname]).filter(Boolean)
+    .sort((a, b) => (b.at || 0) - (a.at || 0))[0];
+  const row = mine
+    ? `<a class="hub-row" href="${esc(mine.href)}"><span class="hub-row-main"><span class="hub-row-title">${esc((mine.n ? mine.n + ' ' : '') + mine.title)}</span>
+        <span class="hub-row-meta">${esc(mine.group || '')}${mine.at ? ' · opened ' + esc(ago(mine.at)) : ''}</span></span><span class="hub-row-go">Open &rarr;</span></a>`
+    : `<a class="hub-row" href="#revise"><span class="hub-row-main"><span class="hub-row-title">Find a lesson to revise</span>
+        <span class="hub-row-meta">Every lesson for this course, grouped by topic</span></span><span class="hub-row-go">Revise &rarr;</span></a>`;
+  return `<div class="hub-sec"><h2>${mine ? 'Carry on revising' : 'Revise'}</h2><a class="hub-link" href="#revise">All lessons</a></div><div class="hub-list">${row}</div>`;
+}
+
+function ago(t) {
+  const days = Math.floor((Date.now() - t) / 86400000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return days + ' days ago';
+  return new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+
+function renderToday() {
+  const other = today && today.otherWork
+    ? `<p class="hub-row-meta" style="margin-top:10px">You also have ${today.otherWork} weekly test${today.otherWork === 1 ? '' : 's'} or assessment${today.otherWork === 1 ? '' : 's'} to do. <a class="hub-link" href="/version2/tracking/todo.html">See all set work</a></p>` : '';
+  $('hubBody').innerHTML = `
+    <div class="hub-grid">${doNowCard()}${weakSpotsCard(hub.doNow ? '' : 'span')}</div>
+    <div class="hub-sec"><h2>Set work</h2><a class="hub-link" href="/version2/tracking/todo.html">All set work</a></div>
+    ${homeworkRows()}${other}
+    ${carryOnHtml()}`;
+}
+
+/* ─────────── Practise ─────────── */
+function renderPractise() {
+  const tools = (hub.practise || []).map(t => `
+    <a class="hub-card" href="${esc(t.href)}" style="text-decoration:none"><h3>${esc(t.title)}</h3><p>${esc(t.desc)}</p>
+      <div class="hub-actions"><span class="hub-row-go">Open &rarr;</span></div></a>`).join('');
+  $('hubBody').innerHTML = `
+    <div class="hub-grid">${weakSpotsCard('feature')}${hub.doNow ? doNowCard() : ''}</div>
+    ${tools ? `<div class="hub-sec"><h2>More ways to practise</h2></div><div class="hub-grid three">${tools}</div>` : ''}`;
+}
+
+/* ─────────── Revise ─────────── */
+// Each course index page already lists its lessons (grouped into topics where
+// the page has them). Read those lists so the hub always matches the pages.
+async function loadRevise() {
+  const sources = await Promise.all((hub.revise || []).map(async src => {
+    try {
+      const res = await fetch(src.index, { credentials: 'same-origin' });
+      if (!res.ok) return null;
+      const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+      return { src, groups: parseIndex(doc, src) };
+    } catch (_e) { return null; }
+  }));
+  revise.groups = sources.filter(Boolean);
+  if (currentTab() === 'revise') renderRevise();
+}
+
+function parseIndex(doc, src) {
+  const base = new URL(src.index, location.origin);
+  const lessonFrom = (a) => {
+    const href = a.getAttribute('href') || '';
+    if (!href || href.startsWith('#')) return null;
+    const url = new URL(href, base);
+    if (url.origin !== location.origin || !url.pathname.startsWith(base.pathname) || /tester\.html$/.test(url.pathname)) return null;
+    const badge = a.querySelector('.type-badge');
+    const n = badge && /^\d/.test(badge.textContent.trim()) ? badge.textContent.trim() : '';
+    const titleEl = (a.querySelector('.row-title') || a).cloneNode(true);
+    titleEl.querySelectorAll('.row-books, .mini-badge').forEach(x => x.remove());
+    const title = titleEl.textContent.replace(/\s+/g, ' ').trim();
+    const desc = (a.querySelector('.row-desc') || { textContent: '' }).textContent.replace(/\s+/g, ' ').trim();
+    return { href: url.pathname + url.search, n, title, desc };
+  };
+  const items = doc.querySelectorAll('.accordion-item');
+  const groups = [];
+  if (items.length) {
+    items.forEach((item, i) => {
+      const lessons = Array.from(item.querySelectorAll('a.resource-row--link')).map(lessonFrom).filter(Boolean);
+      if (!lessons.length) return;
+      const num = (item.querySelector('.acc-n') || {}).textContent;
+      const title = (item.querySelector('.acc-title') || item.querySelector('.accordion-trigger') || {}).textContent || ('Topic ' + (i + 1));
+      groups.push({ id: src.index + '#' + i, num: (num || '').trim(), title: title.replace(/\s+/g, ' ').trim(), lessons });
+    });
+  } else {
+    const lessons = Array.from(doc.querySelectorAll('a.resource-row--link')).map(lessonFrom).filter(Boolean);
+    if (lessons.length) groups.push({ id: src.index, num: '', title: src.title, sub: src.sub || '', lessons });
+  }
+  return nameGenericLessons(groups);
+}
+
+// Some course pages give every topic's page the same name ("Revision Page");
+// name those after their topic instead so they can be told apart.
+function nameGenericLessons(groups) {
+  const count = {};
+  groups.forEach(g => g.lessons.forEach(l => { count[l.title] = (count[l.title] || 0) + 1; }));
+  groups.forEach(g => g.lessons.forEach(l => {
+    if (count[l.title] > 1 && !l.n && g.title && g.title !== l.title) {
+      l.title = /revision/i.test(l.title) ? g.title : g.title + ' · ' + l.title;
+      if (!l.n) l.n = g.num;
+    }
+  }));
+  return groups;
+}
+
+function renderRevise() {
+  if (!hub.revise || !hub.revise.length) {
+    $('hubBody').innerHTML = `<div class="hub-list"><div class="hub-empty">There aren’t revision notes for ${esc(map.labelFor(course))} on Classicalia yet.
+      ${hub.subject ? `<a class="hub-link" href="${esc(hub.subject)}">See what’s on the subject page</a>` : ''}</div></div>`;
+    return;
+  }
+  if (!revise.groups) {
+    $('hubBody').innerHTML = '<div class="hub-loading">Loading lessons…</div>';
+    loadRevise();
+    return;
+  }
+  const hadFocus = document.activeElement && document.activeElement.id === 'rvSearch';
+  const pos = hadFocus ? document.activeElement.selectionStart : null;
+  const q = revise.query.trim().toLowerCase();
+  const last = map.lastLessons();
+  const lastHrefs = new Set(Object.values(last).map(l => l.href));
+  const total = revise.groups.reduce((n, s) => n + s.groups.reduce((m, g) => m + g.lessons.length, 0), 0);
+  const multi = revise.groups.length > 1;
+
+  const body = revise.groups.map(({ src, groups }) => {
+    const shown = groups.map(g => ({ g, lessons: q ? g.lessons.filter(l => (l.n + ' ' + l.title + ' ' + l.desc + ' ' + g.title).toLowerCase().includes(q)) : g.lessons }))
+      .filter(x => x.lessons.length);
+    if (!shown.length) return '';
+    // A single short list needs no clicking open.
+    const autoOpen = !multi && groups.length === 1;
+    const html = shown.map(({ g, lessons }) => {
+      const open = q || autoOpen || revise.open.has(g.id);
+      return `<div class="rv-topic${open ? ' open' : ''}">
+        <button class="rv-head" type="button" data-group="${esc(g.id)}" aria-expanded="${open ? 'true' : 'false'}">
+          ${g.num ? `<span class="rv-num">${esc(g.num)}</span>` : ''}
+          <span class="rv-title">${esc(g.title)}<small>${g.sub ? esc(g.sub) + ' · ' : ''}${g.lessons.length} ${g.lessons.length === 1 ? 'page' : 'pages'}</small></span>
+          <span class="rv-chev" aria-hidden="true">&rsaquo;</span>
+        </button>
+        ${open ? `<div class="rv-lessons">${lessons.map(l => `
+          <a class="rv-lesson" href="${esc(l.href)}"><span class="rv-n">${esc(l.n)}</span>
+            <span class="rv-t"><b>${esc(l.title)}</b>${l.desc ? `<span>${esc(l.desc)}</span>` : ''}</span>
+            ${lastHrefs.has(l.href) ? '<span class="rv-chip">Last opened</span>' : ''}</a>`).join('')}</div>` : ''}
+      </div>`;
+    }).join('');
+    return multi && groups.length > 1
+      ? `<div class="rv-source"><span>${esc(src.title)}</span><a class="hub-link" href="${esc(src.index)}">Course page</a></div>${html}`
+      : html;
+  }).join('');
+
+  $('hubBody').innerHTML = `
+    <label for="rvSearch" class="hub-row-meta" style="position:absolute;left:-9999px">Search lessons</label>
+    <input class="rv-search" id="rvSearch" type="search" autocomplete="off" placeholder="Search ${total} pages, e.g. a name, a book or a line number" value="${esc(revise.query)}">
+    ${body || `<div class="hub-list"><div class="hub-empty">Nothing matches “${esc(revise.query)}”. Try a name, a book or a line number.</div></div>`}`;
+  const input = $('rvSearch');
+  input.addEventListener('input', () => { revise.query = input.value; renderRevise(); });
+  if (hadFocus) { input.focus(); try { input.setSelectionRange(pos, pos); } catch (_e) { /* type=search */ } }
+}
+
+document.addEventListener('click', e => {
+  const head = e.target.closest('.rv-head');
+  if (!head) return;
+  const id = head.dataset.group;
+  revise.open.has(id) ? revise.open.delete(id) : revise.open.add(id);
+  renderRevise();
+});
+</script>
+</body>
+</html>

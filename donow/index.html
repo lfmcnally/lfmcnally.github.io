@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Do Now — Classicalia</title>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<meta name="robots" content="noindex">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/course-map.js"></script>
+<style>
+  body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:var(--cream); padding:16px; }
+  .box { background:var(--paper); border:1px solid var(--rule); border-radius:12px; padding:28px; max-width:440px; width:100%; text-align:center; }
+  .box h1 { font-family:'Lora',serif; font-style:italic; font-weight:700; font-size:24px; color:var(--navy); margin:0 0 8px; }
+  .box p { color:var(--muted); font-size:14.5px; margin:0 0 16px; }
+  .pick { display:flex; flex-direction:column; gap:10px; }
+  .pick a { display:block; background:var(--brand); color:#fff; border-radius:8px; padding:12px 16px; font-weight:700; text-decoration:none; }
+  .pick a.ghost { background:var(--paper); color:var(--ink); border:1px solid var(--rule); font-weight:600; }
+</style>
+</head>
+<body>
+<!-- classicalia.co.uk/donow — a short address for the board. Opens the Do Now
+     the student's teacher has set right now, whichever course it's for. -->
+<div class="box" id="box"><h1>Today’s Do Now</h1><p>Finding your class’s Do Now…</p></div>
+<script>
+(async function () {
+  const map = window.ClassicaliaCourseMap, sb = window.supabase;
+  const box = document.getElementById('box');
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const show = (p, links) => { box.innerHTML = '<h1>Today’s Do Now</h1><p>' + p + '</p><div class="pick">' + links + '</div>'; };
+  try {
+    const { data } = await sb.auth.getUser();
+    const user = data && data.user;
+    if (!user) return show('Sign in so we can find the Do Now your teacher has set.', '<a href="/auth/login.html?next=/donow/">Sign in</a>');
+    const courses = (await map.resolveMyCourses(user.id)).filter(t => (map.hubFor(t) || {}).doNow);
+    const live = [];
+    await Promise.all(courses.map(async t => {
+      const hub = map.hubFor(t);
+      for (const list of hub.doNow.lists) {
+        try {
+          const { data: d } = await sb.rpc('get_my_do_now', { p_vocab_list: list });
+          if (d && d.ok) { live.push({ t, url: hub.doNow.url, at: String(d.updated_at || '') }); return; }
+        } catch (_e) { /* try the next list */ }
+      }
+    }));
+    live.sort((a, b) => b.at.localeCompare(a.at));
+    if (live.length) return location.replace(live[0].url);
+    const home = courses.map(t => `<a class="ghost" href="${esc(map.hubUrl(t))}">${esc(map.labelFor(t))}</a>`).join('');
+    show('Your teacher hasn’t started a Do Now yet. Try again in a moment, or open your course.',
+      '<a href="/donow/">Check again</a>' + (home || '<a class="ghost" href="/version2/tracking/course.html">My courses</a>'));
+  } catch (_e) {
+    show('Something went wrong finding your Do Now.', '<a href="/donow/">Try again</a>');
+  }
+})();
+</script>
+</body>
+</html>

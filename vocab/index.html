@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocab — Classicalia</title>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<meta name="robots" content="noindex">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/course-map.js"></script>
+<style>
+  body { display:flex; align-items:center; justify-content:center; min-height:100vh; background:var(--cream); padding:16px; }
+  .go { text-align:center; color:var(--muted); font-size:15px; }
+</style>
+</head>
+<body>
+<!-- classicalia.co.uk/vocab — a short address for the board. Signed-in
+     students go straight into "Test my weak spots" for their vocab course
+     with the chapters they've chosen; everyone else gets the vocab tester. -->
+<p class="go" id="msg">Opening your vocab test… <a href="/version2/tools/vocab/latinvocabtester.html">Continue</a></p>
+<script>
+(async function () {
+  const fallback = '/version2/tools/vocab/latinvocabtester.html';
+  const map = window.ClassicaliaCourseMap, sb = window.supabase;
+  try {
+    const { data } = await sb.auth.getUser();
+    const user = data && data.user;
+    if (!user) return location.replace(fallback);
+    const vocab = (await map.resolveMyCourses(user.id)).filter(t => (map.hubFor(t) || {}).kind === 'vocab');
+    if (!vocab.length) return location.replace(fallback);
+    await map.loadRanges(user.id, [vocab[0]]);
+    location.replace(map.weakSpotsUrlFor(vocab[0]) || fallback);
+  } catch (_e) { location.replace(fallback); }
+})();
+</script>
+</body>
+</html>

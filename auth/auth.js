@@ -110,6 +110,14 @@ async function requireAuth(redirectUrl) {
 // REDIRECT LOGGED-IN USERS AWAY FROM LOGIN PAGE
 // ============================================
 // Use this on login/register pages to redirect already-logged-in users
+// Where a student goes after signing in: back to the page that sent them
+// (?next=/some/path on this site), otherwise their course hub.
+function studentHomeUrl() {
+    const next = new URLSearchParams(window.location.search).get('next') || '';
+    if (/^\/(?!\/)/.test(next)) return next;
+    return '/version2/tracking/course.html';
+}
+
 async function redirectIfLoggedIn() {
     const user = await getCurrentUser();
     if (user) {
@@ -118,7 +126,7 @@ async function redirectIfLoggedIn() {
             window.location.href = '/version2/tracking/teacher.html';
             return true;
         } else if (profile && profile.role === 'student') {
-            window.location.href = '/version2/tracking/dashboard.html';
+            window.location.href = studentHomeUrl();
             return true;
         }
         // If no profile or unknown role, stay on the page

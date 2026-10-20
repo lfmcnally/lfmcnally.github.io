@@ -31,6 +31,7 @@
     donow:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
     tools:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/></svg>',
     friends:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="9" r="2.4"/><circle cx="16" cy="9" r="2.4"/><path d="M3.5 19a4.5 4.5 0 0 1 9 0M11.5 19a4.5 4.5 0 0 1 9 0"/></svg>',
+    course:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/></svg>',
     admin:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/></svg>'
   };
 
@@ -38,10 +39,11 @@
   const ADMIN = { key: 'admin', label: 'Admin', href: '/version2/admin/', icon: I.admin };
 
   const NAV = {
-    // Students get the essentials: their progress, work set by a teacher
-    // (weekly tests and assigned assessments are listed on To-do) and friends.
+    // Students get their courses (listed above these, see courseListHtml),
+    // work set by a teacher (weekly tests and assigned assessments are listed
+    // on To-do) and friends. Each course opens its hub, where progress is one
+    // of the tabs.
     student: [
-      { key: 'progress', label: 'My progress',     href: '/version2/tracking/dashboard.html',        icon: I.progress },
       { key: 'todo',     label: 'Set work',        href: '/version2/tracking/todo.html',             icon: I.todo },
       { key: 'friends',  label: 'Friends',         href: '/version2/friends.html',                   icon: I.friends }
     ],
@@ -63,6 +65,56 @@
     ).join('');
   }
 
+  // ── My courses (students) ──
+  // The sidebar lists each course the student studies; each opens that
+  // course's hub. The list is filled once the signed-in user is known.
+  const COURSE_MAP_SRC = '/version2/assets/js/course-map.js';
+  function withCourseMap() {
+    if (window.ClassicaliaCourseMap) return Promise.resolve(window.ClassicaliaCourseMap);
+    return new Promise(resolve => {
+      let tag = document.querySelector('script[src="' + COURSE_MAP_SRC + '"]');
+      if (!tag) { tag = document.createElement('script'); tag.src = COURSE_MAP_SRC; document.head.appendChild(tag); }
+      tag.addEventListener('load', () => resolve(window.ClassicaliaCourseMap || null));
+      tag.addEventListener('error', () => resolve(null));
+    });
+  }
+  let activeCourse = null;
+  function courseListHtml(types, map) {
+    if (!types.length) {
+      return '<div class="tnav-label">My courses</div>' +
+        `<a class="tnav-item" href="/version2/tracking/dashboard.html">${I.course}<span>Choose your courses</span></a>`;
+    }
+    return '<div class="tnav-label">My courses</div>' + types.map(t =>
+      `<a class="tnav-item tnav-course${t === activeCourse ? ' active' : ''}" data-course="${t}" href="${map.hubUrl(t)}">${I.course}<span>${map.labelFor(t)}</span></a>`
+    ).join('');
+  }
+  async function fillCourses(aside, userId) {
+    const slot = aside.querySelector('[data-tnav-courses]');
+    if (!slot || !userId) return;
+    const map = await withCourseMap();
+    if (!map || !map.resolveMyCourses) return;
+    const types = await map.resolveMyCourses(userId);
+    if (!activeCourse && aside.dataset.courseActive === 'default') activeCourse = map.defaultCourse(types);
+    slot.innerHTML = courseListHtml(types, map);
+  }
+  // Pages call this once they know which course they're showing.
+  function setActiveCourse(type) {
+    activeCourse = type;
+    document.querySelectorAll('[data-tnav-courses] .tnav-course').forEach(a => a.classList.toggle('active', a.dataset.course === type));
+  }
+
+  // The Today / Practise / Revise / Progress strip at the top of a course.
+  function courseTabs(el, type, active) {
+    const map = window.ClassicaliaCourseMap;
+    if (!el || !map || !type) return;
+    const tabs = [['today', 'Today'], ['practise', 'Practise'], ['revise', 'Revise'], ['progress', 'Progress']];
+    el.className = 'ctabs';
+    el.setAttribute('aria-label', 'Course sections');
+    el.innerHTML = tabs.map(([k, label]) =>
+      `<a class="ctab${k === active ? ' active' : ''}" data-tab="${k}" href="${map.hubUrl(type, k)}"${k === active ? ' aria-current="page"' : ''}>${label}</a>`
+    ).join('');
+  }
+
   function build(aside) {
     if (aside.dataset.tnavBuilt) return;
     aside.dataset.tnavBuilt = '1';
@@ -76,6 +128,10 @@
     const ctxSrch  = aside.dataset.contextSearch;
     const ctxLink  = aside.dataset.contextLink;
     const ctxLinkLabel = aside.dataset.contextLinkLabel || 'Manage';
+    if (active === 'course' || active === 'progress') {
+      activeCourse = new URLSearchParams(location.search).get('course') || null;
+      if (!activeCourse) aside.dataset.courseActive = 'default';
+    }
 
     let context = '';
     if (ctxId) {
@@ -96,6 +152,7 @@
       <canvas class="side-sky"></canvas>
       <a class="side-logo" href="/version2/">Classicalia</a>
       ${createHtml}
+      ${role === 'teacher' ? '' : '<div class="tnav tnav-courses" data-tnav-courses></div>'}
       <div class="tnav" data-tnav-primary>${primaryHtml(role === 'auto' ? 'student' : role, active)}</div>
       ${context}
       <div class="side-foot"><div data-account-menu></div></div>`;
@@ -128,12 +185,13 @@
 
   async function applyFlags(aside, declaredRole, active) {
     let role = declaredRole === 'auto' ? 'student' : declaredRole;
-    let isAdmin = false;
+    let isAdmin = false, userId = null;
     try {
       const sb = window.supabase;
       if (sb) {
         const { data: { user } } = await sb.auth.getUser();
         if (user) {
+          userId = user.id;
           const { data } = await sb.from('users').select('role, is_admin').eq('id', user.id).maybeSingle();
           if (data) {
             if (declaredRole === 'auto') role = data.role === 'teacher' ? 'teacher' : 'student';
@@ -142,6 +200,11 @@
         }
       }
     } catch (e) { /* leave the base nav as rendered */ }
+    const courses = aside.querySelector('[data-tnav-courses]');
+    if (courses) {
+      if (role === 'teacher') courses.remove();
+      else fillCourses(aside, userId);
+    }
     if (declaredRole === 'auto' || isAdmin) {
       const slot = aside.querySelector('[data-tnav-primary]');
       if (slot) slot.innerHTML = primaryHtml(role, active, isAdmin);
@@ -169,5 +232,5 @@
   init();
   document.addEventListener('DOMContentLoaded', init);
 
-  window.TrackingNav = { init };
+  window.TrackingNav = { init, setActiveCourse, courseTabs };
 })();
