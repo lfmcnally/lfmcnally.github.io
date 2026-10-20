@@ -111,11 +111,11 @@ async function requireAuth(redirectUrl) {
 // ============================================
 // Use this on login/register pages to redirect already-logged-in users
 // Where a student goes after signing in: back to the page that sent them
-// (?next=/some/path on this site), otherwise their course hub.
+// (?next=/some/path on this site), otherwise their dashboard.
 function studentHomeUrl() {
     const next = new URLSearchParams(window.location.search).get('next') || '';
     if (/^\/(?!\/)/.test(next)) return next;
-    return '/version2/tracking/course.html';
+    return '/version2/tracking/dashboard.html';
 }
 
 async function redirectIfLoggedIn() {

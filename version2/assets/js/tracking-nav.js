@@ -41,8 +41,7 @@
   const NAV = {
     // Students get their courses (listed above these, see courseListHtml),
     // work set by a teacher (weekly tests and assigned assessments are listed
-    // on To-do) and friends. Each course opens its hub, where progress is one
-    // of the tabs.
+    // on To-do) and friends. Each course opens its dashboard.
     student: [
       { key: 'todo',     label: 'Set work',        href: '/version2/tracking/todo.html',             icon: I.todo },
       { key: 'friends',  label: 'Friends',         href: '/version2/friends.html',                   icon: I.friends }
@@ -67,7 +66,7 @@
 
   // ── My courses (students) ──
   // The sidebar lists each course the student studies; each opens that
-  // course's hub. The list is filled once the signed-in user is known.
+  // course's dashboard. The list is filled once the signed-in user is known.
   const COURSE_MAP_SRC = '/version2/assets/js/course-map.js';
   function withCourseMap() {
     if (window.ClassicaliaCourseMap) return Promise.resolve(window.ClassicaliaCourseMap);
@@ -103,17 +102,6 @@
     document.querySelectorAll('[data-tnav-courses] .tnav-course').forEach(a => a.classList.toggle('active', a.dataset.course === type));
   }
 
-  // The Today / Practise / Revise / Progress strip at the top of a course.
-  function courseTabs(el, type, active) {
-    const map = window.ClassicaliaCourseMap;
-    if (!el || !map || !type) return;
-    const tabs = [['today', 'Today'], ['practise', 'Practise'], ['revise', 'Revise'], ['progress', 'Progress']];
-    el.className = 'ctabs';
-    el.setAttribute('aria-label', 'Course sections');
-    el.innerHTML = tabs.map(([k, label]) =>
-      `<a class="ctab${k === active ? ' active' : ''}" data-tab="${k}" href="${map.hubUrl(type, k)}"${k === active ? ' aria-current="page"' : ''}>${label}</a>`
-    ).join('');
-  }
 
   function build(aside) {
     if (aside.dataset.tnavBuilt) return;
@@ -232,5 +220,5 @@
   init();
   document.addEventListener('DOMContentLoaded', init);
 
-  window.TrackingNav = { init, setActiveCourse, courseTabs };
+  window.TrackingNav = { init, setActiveCourse };
 })();
