@@ -27,6 +27,7 @@
     { label: 'Greek', href: '/version2/subjects/greek/' },
     { label: 'Classical Civilisation', href: '/version2/subjects/classical-civilisation/' },
     { label: 'Tools', href: '/version2/tools/' },
+    { label: 'About', href: '/version2/about.html' },
     { label: 'Contact', href: 'mailto:lawrence@classicalia.co.uk' },
     { label: 'Support Classicalia', href: 'https://buymeacoffee.com/lfmcnally', cls: 'cx-support', ext: true }
   ];
