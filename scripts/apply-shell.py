@@ -51,7 +51,8 @@ def transform(src, path):
     # footer: replace the hand-copied one, or add one before </body> if the page had none
     out, n = re.subn(r'<footer class="footer">.*?</footer>', '<div data-shell="footer"></div>', out, flags=re.S)
     if n == 0 and 'data-shell="footer"' not in out and '</body>' in out:
-        out = out.replace('</body>', '<div data-shell="footer"></div>\n</body>', 1)
+        i = out.rfind('</body>')   # the last one: a script may hold the text of another page
+        out = out[:i] + '<div data-shell="footer"></div>\n' + out[i:]
     # head includes
     if CSS not in out:
         if '</head>' in out:
