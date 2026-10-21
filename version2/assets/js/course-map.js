@@ -244,8 +244,8 @@
     return 'Your chosen topics';
   }
 
-  // The revision page a student last opened in each course index, written by
-  // revision-nav.js. Keyed by the index page's path.
+  // The lesson a student last opened in each course, written by
+  // lesson-page.js. Keyed by the course page's path.
   function lastLessons() {
     try { return JSON.parse(localStorage.getItem('classicalia.lastLesson') || '{}') || {}; } catch (_e) { return {}; }
   }
