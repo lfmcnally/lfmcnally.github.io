@@ -108,16 +108,21 @@
   // a click on a word the clicker handles pins it; anywhere else in a unit reveals the English
   root.querySelectorAll('.st-unit').forEach(function (u) {
     u.addEventListener('click', function (e) {
-      if (e.target.closest('.e, .w[data-id]') && root.querySelector('.st-en-block .e')) link(e.target);
+      var linkable = e.target.closest('.e, .w[data-id]') && root.querySelector('.st-en-block .e');
       var w = clicker ? e.target.closest(selectorFor(clicker)) : null;
-      if (w) { if (pinned === w) unpin(); else pin(w); return; }
-      if (e.target.closest('.e')) return;
+      if (w) {
+        // a second click on the word lets it go, highlight and all
+        if (pinned === w) { unpin(); unlink(); }
+        else { pin(w); if (linkable) link(e.target); }
+        return;
+      }
+      if (linkable) { if (e.target.closest('[data-id]').classList.contains('lit')) unlink(); else link(e.target); return; }
       root.querySelectorAll('.st-unit.cur').forEach(function (x) { x.classList.remove('cur'); });
       u.classList.add('cur');
       u.classList.toggle('on');
     });
   });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { unpin(); closePresent(); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { unpin(); unlink(); closePresent(); } });
 
   // ── what the side column shows ──
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -128,7 +133,6 @@
   var GROUPS = [['Case', ['nominative', 'vocative', 'accusative', 'genitive', 'dative', 'ablative', 'locative']], ['Number', ['singular', 'plural']], ['Gender', ['masculine', 'feminine', 'neuter']],
     ['Person', ['1st person', '2nd person', '3rd person']], ['Tense', ['present', 'imperfect', 'future perfect', 'future', 'perfect', 'pluperfect']], ['Voice', ['active', 'passive', 'deponent']],
     ['Mood', ['indicative', 'subjunctive', 'imperative', 'infinitive']], ['Degree', ['comparative', 'superlative']]];
-  var ROLE = { subj: 'Subject', obj: 'Object', verb: 'Verb', abl: 'Ablative', gen: 'Genitive', dat: 'Dative', adv: 'Adverb', conj: 'Conjunction', prep: 'Preposition', voc: 'Vocative', gdv: 'Gerundive' };
   // the parsing string → part of speech, one value per grammatical category, and the comment that is left
   function parse(p) {
     p = String(p || '').replace(/<[^>]+>/g, '');
@@ -142,18 +146,25 @@
     if (!rows.length && !pos) rest = p.trim();
     return { pos: pos, rows: rows, rest: cap(rest) };
   }
+  var ARTICLE = { adjective: 'an', adverb: 'an', interjection: 'an', infinitive: 'an' };
   function vocabHtml(w) {
     var d = w.dataset, pr = parse(d.p), form = (w.textContent || '').replace(/[.,;:!?]+$/, '');
-    var role = null; w.classList.forEach(function (c) { var m = c.match(/^g-(\w+)$/); if (m && ROLE[m[1]]) role = m[1]; });
-    var h = '<div class="hw">' + esc(d.v) + '</div>' + (d.m ? '<div class="mean">' + esc(d.m) + '</div>' : '');
-    if (role) h += '<span class="role chip g-' + role + '">' + ROLE[role] + '</span>';
-    h += '<dl class="tbl"><dt>Form</dt><dd>' + esc(form) + '</dd>';
-    if (pr.pos) h += '<dt>Part</dt><dd>' + esc(cap(pr.pos)) + '</dd>';
-    pr.rows.forEach(function (r) { h += '<dt>' + r[0] + '</dt><dd>' + esc(cap(r[1])) + '</dd>'; });
-    if (pr.rest) { var m = pr.rest.match(/^agree(?:s|ing) with (.+?)[.)]?$/i); h += m ? '<dt>Agrees with</dt><dd>' + rich(m[1]) + '</dd>' : '<dt>Note</dt><dd class="lo">' + rich(pr.rest) + '</dd>'; }
-    h += '</dl>';
+    var has = {}; pr.rows.forEach(function (r) { has[r[0]] = r[1]; });
+    if (!pr.pos && (has.Person || has.Tense || has.Mood)) pr.pos = 'verb';
+    var h = '<div class="entry"><div class="hw">' + esc(d.v) + '</div>' + (pr.pos ? '<div class="pos">' + esc(pr.pos) + '</div>' : '') + (d.m ? '<div class="mean">' + esc(d.m) + '</div>' : '');
+    // one sentence on the form in this line, in the order a parsing is said aloud
+    var order = pr.pos === 'verb' ? ['Person', 'Number', 'Tense', 'Voice', 'Mood'] : pr.pos === 'participle' ? ['Tense', 'Voice', 'Case', 'Number', 'Gender'] : ['Case', 'Number', 'Gender', 'Degree'];
+    var bits = order.filter(function (k) { return has[k]; }).map(function (k) { return has[k]; });
+    pr.rows.forEach(function (r) { if (order.indexOf(r[0]) < 0) bits.push(r[1]); });
+    var agree = null, rest = pr.rest;
+    if (rest) { var m = rest.match(/agree(?:s|ing) with (.+?)[.)]?$/i); if (m) { agree = m[1]; rest = rest.replace(m[0], '').replace(/^[\s,;:—–-]+|[\s,;:—–-]+$/g, ''); } }
+    var sent = '';
+    if (bits.length) sent = '<span class="form">' + esc(form) + '</span> is ' + esc(bits.join(' ')) + (agree ? ', agreeing with <em>' + rich(agree) + '</em>' : '') + '.';
+    else if (pr.pos) sent = '<span class="form">' + esc(form) + '</span> is ' + (ARTICLE[pr.pos] || 'a') + ' ' + esc(pr.pos) + (agree ? ', agreeing with <em>' + rich(agree) + '</em>' : '') + '.';
+    if (rest) sent += (sent ? ' ' : '') + rich(/[.!?]$/.test(rest) ? rest : rest + '.');
+    if (sent) h += '<div class="here"><b>In this line</b>' + sent + '</div>';
     if (d.x) h += '<div class="xtra">' + rich(d.x) + '</div>';
-    return h;
+    return h + '</div>';
   }
   function styleHtml(w) {
     var ids = (w.dataset.note || '').split(',').filter(function (id) { return notes[id]; });
@@ -167,10 +178,11 @@
   }
 
   // ── Latin ↔ English links ──
+  function unlink() { root.querySelectorAll('.lit').forEach(function (x) { x.classList.remove('lit'); }); }
   function link(target) {
     var el = target.closest('[data-id]');
     var unit = target.closest('.st-unit');
-    root.querySelectorAll('.lit').forEach(function (x) { x.classList.remove('lit'); });
+    unlink();
     if (!el || !unit) return;
     var ids = el.dataset.id.split(',');
     unit.querySelectorAll('[data-id]').forEach(function (x) {
