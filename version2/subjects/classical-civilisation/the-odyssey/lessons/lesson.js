@@ -1,69 +1,13 @@
-/* Odyssey lesson pages: section panels, prev/next, progress, ticks, scholar scales, flashcards. */
+/* Odyssey lesson pages: "Can you…?" ticks, scholar scales, passage marks and the flashcards.
+   The sections are all on the page now, so there is no panel switching here. */
 (function () {
-  var panels = Array.prototype.slice.call(document.querySelectorAll('.rev-panel'));
   var key = 'odyssey-lesson:' + location.pathname;
   var store = {
     get: function (k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
     set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   };
   var state = store.get(key) || { seen: {}, ticks: {}, scales: {} };
-
-  function titleOf(p) { var t = p.querySelector('.rev-title'); return t ? t.textContent : ''; }
-
-  function show(id, noScroll) {
-    var idx = 0;
-    panels.forEach(function (p, i) {
-      var on = p.id === id;
-      p.classList.toggle('active', on);
-      if (on) idx = i;
-    });
-    document.querySelectorAll('.rev-nav a[data-panel]').forEach(function (a) {
-      a.classList.toggle('active', a.dataset.panel === id);
-    });
-    state.seen[id] = true;
-    store.set(key, state);
-    progress();
-    if (!noScroll) {
-      var main = document.querySelector('.rev-body');
-      window.scrollTo({ top: main ? main.offsetTop - 50 : 0, behavior: 'smooth' });
-    }
-    if (history.replaceState) history.replaceState(null, '', '#' + id);
-    return idx;
-  }
-
-  function progress() {
-    var n = panels.filter(function (p) { return state.seen[p.id]; }).length;
-    var bar = document.querySelector('.ls-progress-bar');
-    var label = document.querySelector('.ls-progress-label');
-    if (bar) bar.style.width = (100 * n / panels.length) + '%';
-    if (label) label.textContent = n + ' of ' + panels.length + ' sections read';
-  }
-
-  // Pager at the foot of every panel
-  panels.forEach(function (p, i) {
-    var pager = document.createElement('div');
-    pager.className = 'pager';
-    if (i > 0) {
-      var prev = document.createElement('button');
-      prev.innerHTML = '<span>&larr; Previous</span><strong></strong>';
-      prev.querySelector('strong').textContent = titleOf(panels[i - 1]);
-      prev.onclick = function () { show(panels[i - 1].id); };
-      pager.appendChild(prev);
-    }
-    if (i < panels.length - 1) {
-      var next = document.createElement('button');
-      next.className = 'next';
-      next.innerHTML = '<span>Next &rarr;</span><strong></strong>';
-      next.querySelector('strong').textContent = titleOf(panels[i + 1]);
-      next.onclick = function () { show(panels[i + 1].id); };
-      pager.appendChild(next);
-    }
-    p.appendChild(pager);
-  });
-
-  document.querySelectorAll('.rev-nav a[data-panel]').forEach(function (a) {
-    a.addEventListener('click', function () { show(a.dataset.panel); });
-  });
+  state.ticks = state.ticks || {}; state.scales = state.scales || {};
 
   // "Can you…?" ticks, remembered per page
   document.querySelectorAll('.canyou input[type=checkbox]').forEach(function (cb, i) {
@@ -112,7 +56,4 @@
     document.getElementById('fc-next').onclick = function () { if (i < deck.length - 1) { i++; render(); } };
     render();
   }
-
-  var start = location.hash.slice(1);
-  show(panels.some(function (p) { return p.id === start; }) ? start : panels[0].id, true);
 })();

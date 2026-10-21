@@ -30,7 +30,8 @@
   // block may contain inline formatting (highlighted keywords, bold, links) —
   // but NOT block-level children — and must not live in an excluded zone.
   const CONTENT_ROOTS = [
-    ".rev-main", ".header-inner",                         // revision pages
+    ".rev-main", ".header-inner",                         // older revision pages
+    ".doc", ".phead", ".rail",                            // lesson pages
     ".hero-inner", ".curtain-inner", ".tiles-inner", ".types-inner", // v2 index
   ].join(",");
   const EDITABLE_SELECTOR = [
@@ -38,6 +39,7 @@
     "blockquote", "figcaption", "td", "th", "dd", "dt", "caption",
     // revision pages
     ".rev-title", ".rev-label", ".rev-lead", ".rev-note",
+    ".ptitle .sub", ".sect-sub", ".part",
     ".header-title", ".header-deck", ".header-eyebrow",
     ".entry-def", ".analysis", ".explain-q", ".explain-label",
     ".term", ".term-gloss",
@@ -57,7 +59,7 @@
     "BR", "WBR", "CODE", "MARK", "ABBR", "SMALL",
   ]);
   // Never edit inside these (nav, flashcards, generated widgets, etc.).
-  const EXCLUDE_ZONE = ".rev-sidebar, nav, footer, .fc-wrap, .fc, script, style, [contenteditable]";
+  const EXCLUDE_ZONE = ".rev-sidebar, .docnav, .toc-panel, .cx-shell-header, nav, footer, .fc-wrap, .fc, script, style, [contenteditable]";
 
   let sb = null;
   let editing = false;

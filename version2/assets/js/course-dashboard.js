@@ -191,35 +191,61 @@
 
   function parseIndex(doc, src) {
     const base = new URL(src.index, location.origin);
-    const lessonFrom = (a) => {
-      const href = a.getAttribute('href') || '';
+    const clean = (el) => (el ? el.textContent : '').replace(/\s+/g, ' ').trim();
+    const sameCourse = (href) => {
       if (!href || href.startsWith('#')) return null;
       const url = new URL(href, base);
-      if (url.origin !== location.origin || !url.pathname.startsWith(base.pathname) || /tester\.html$/.test(url.pathname)) return null;
+      if (url.origin !== location.origin || !url.pathname.startsWith(base.pathname) || /tester\.html$/.test(url.pathname) || /\.pdf$/i.test(url.pathname)) return null;
+      return url;
+    };
+    // Course pages: one panel per topic, lessons as rows (links when written).
+    const lessonFromRow = (row) => {
+      const a = row.matches('a[href]') ? row : row.querySelector('.rt a[href]');
+      if (!a) return null;
+      const url = sameCourse(a.getAttribute('href'));
+      if (!url) return null;
+      const code = row.querySelector('.code');
+      const n = code && /^\d/.test(clean(code)) ? clean(code) : '';
+      const titleEl = (row.querySelector('.rt') || row).cloneNode(true);
+      titleEl.querySelectorAll('.code').forEach(x => x.remove());
+      return { href: url.pathname + url.search, n, title: clean(titleEl), desc: clean(row.querySelector('.rm')) };
+    };
+    const groups = [];
+    const panels = doc.querySelectorAll('.cols > .stack .panel');
+    if (panels.length) {
+      panels.forEach((panel, i) => {
+        const lessons = Array.from(panel.querySelectorAll('.rows .row')).map(lessonFromRow).filter(Boolean);
+        if (!lessons.length) return;
+        const head = clean(panel.querySelector('.ph .t')) || src.title;
+        const m = /^([\d.]+)\s*·\s*(.*)$/.exec(head);
+        const isTopic = /^topic-/.test(panel.id);
+        groups.push({ id: src.index + '#' + i, num: m ? m[1] : '', title: m ? m[2] : (isTopic ? head : src.title), sub: isTopic ? '' : (head && head !== src.title ? head : (src.sub || '')), lessons });
+      });
+      return groups;
+    }
+    // Older hub pages: accordion topics and resource rows.
+    const lessonFrom = (a) => {
+      const url = sameCourse(a.getAttribute('href') || '');
+      if (!url) return null;
       const badge = a.querySelector('.type-badge');
       const n = badge && /^\d/.test(badge.textContent.trim()) ? badge.textContent.trim() : '';
       const titleEl = (a.querySelector('.row-title') || a).cloneNode(true);
       titleEl.querySelectorAll('.row-books, .mini-badge').forEach(x => x.remove());
-      const title = titleEl.textContent.replace(/\s+/g, ' ').trim();
-      const desc = (a.querySelector('.row-desc') || { textContent: '' }).textContent.replace(/\s+/g, ' ').trim();
-      return { href: url.pathname + url.search, n, title, desc };
+      return { href: url.pathname + url.search, n, title: clean(titleEl), desc: clean(a.querySelector('.row-desc')) };
     };
-    const groups = [];
     const items = doc.querySelectorAll('.accordion-item');
     if (items.length) {
       items.forEach((item, i) => {
         const lessons = Array.from(item.querySelectorAll('a.resource-row--link')).map(lessonFrom).filter(Boolean);
         if (!lessons.length) return;
-        const num = (item.querySelector('.acc-n') || {}).textContent || '';
-        const title = ((item.querySelector('.acc-title') || item.querySelector('.accordion-trigger') || {}).textContent || ('Topic ' + (i + 1))).replace(/\s+/g, ' ').trim();
-        groups.push({ id: src.index + '#' + i, num: num.trim(), title, lessons });
+        const num = clean(item.querySelector('.acc-n'));
+        const title = clean(item.querySelector('.acc-title') || item.querySelector('.accordion-trigger')) || ('Topic ' + (i + 1));
+        groups.push({ id: src.index + '#' + i, num, title, lessons });
       });
     } else {
       const lessons = Array.from(doc.querySelectorAll('a.resource-row--link')).map(lessonFrom).filter(Boolean);
       if (lessons.length) groups.push({ id: src.index, num: '', title: src.title, sub: src.sub || '', lessons });
     }
-    // Pages that give every topic's page the same name ("Revision Page") are
-    // named after their topic instead.
     const count = {};
     groups.forEach(g => g.lessons.forEach(l => { count[l.title] = (count[l.title] || 0) + 1; }));
     groups.forEach(g => g.lessons.forEach(l => {
