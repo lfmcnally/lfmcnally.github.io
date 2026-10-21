@@ -1,0 +1,128 @@
+/* ============================================================
+   Classicalia — the set-text reader. One reader for every text:
+   Latin on the left, English on the right revealed by sentence,
+   vocabulary on hover, style notes underlined by category, and
+   grammar colours as an option. Loads after ui.css.
+   ============================================================ */
+
+.st { --st-order:#34d399; --st-structure:#22d3ee; --st-sound:#a78bfa; --st-diction:#fbbf24; --st-imagery:#fb923c; --st-grammar:#60a5fa; --st-note:#c2c8d6; }
+
+/* toolbar */
+.st-bar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:12px 18px; border-bottom:1px solid var(--rule-soft); }
+.st-bar .sep { width:1px; height:18px; background:var(--rule); margin:0 4px; }
+.st-bar .hint { margin-left:auto; font-size:13px; color:var(--muted); }
+.st .btn { font-size:12.5px; padding:6px 12px; border-radius:7px; }
+.st .btn.on { background:var(--brand-soft); border-color:var(--brand-soft); color:#1457cc; }
+.st .seg { display:inline-flex; border:1px solid var(--rule); border-radius:7px; overflow:hidden; }
+.st .seg .btn { border:0; border-radius:0; }
+.st .seg .btn + .btn { border-left:1px solid var(--rule); }
+.st-keys { display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:8px 18px 10px; border-bottom:1px solid var(--rule-soft); }
+.st-keys[hidden], .st-gkeys[hidden] { display:none; }
+.st-keys .k { font-size:12.5px; color:var(--muted); margin-right:4px; }
+.st-keys .chip { cursor:pointer; border:0; font-family:var(--sans); }
+.st-keys .chip.off { opacity:.4; }
+.chip.c-order { background:#d1fae5; color:#065f46; } .chip.c-structure { background:#cffafe; color:#155e75; } .chip.c-sound { background:#ede9fe; color:#6d28d9; }
+.chip.c-diction { background:#fef3c7; color:#92400e; } .chip.c-imagery { background:#ffedd5; color:#9a3412; } .chip.c-grammar { background:#dbeafe; color:#1e40af; } .chip.c-note { background:#eceef4; color:#47506b; }
+.st-gkeys { display:flex; gap:6px; flex-wrap:wrap; padding:8px 18px 10px; border-bottom:1px solid var(--rule-soft); }
+.chip.g-subj { background:#fde8e8; color:#8a2d1f; } .chip.g-obj { background:#e5f0dd; color:#2a5010; } .chip.g-verb { background:#ddeeff; color:#1a4a80; } .chip.g-abl { background:#fdf3cf; color:#7a5300; }
+.chip.g-gen { background:#fff1c2; color:#6b4a00; } .chip.g-dat { background:#f3e8ff; color:#4a2a80; } .chip.g-adv { background:#ece8f8; color:#3a2a70; } .chip.g-conj { background:#eceef4; color:#47506b; }
+.chip.g-prep, .chip.g-voc { background:#fde8f4; color:#7a1a55; } .chip.g-gdv { background:#e0f2f1; color:#0f5c55; }
+
+/* columns */
+.st-cols { display:grid; grid-template-columns:1fr 1fr; }
+.st-colh { font-size:12.5px; font-weight:700; color:var(--muted); padding:12px 22px 10px; border-bottom:1px solid var(--rule-soft); }
+.st-colh + .st-colh { border-left:1px solid var(--rule-soft); }
+.st-unit { display:grid; grid-template-columns:1fr 1fr; border-top:1px solid var(--rule-soft); cursor:pointer; }
+.st-unit:first-child { border-top:0; }
+.st-unit:hover { background:#fafbfd; }
+.st-unit.cur { background:var(--brand-soft); }
+.st-lat, .st-eng { padding:10px 22px 12px; min-width:0; }
+.st-eng { border-left:1px solid var(--rule-soft); }
+.st[data-mode="prose"] .st-unit { border-top:1px solid var(--rule-soft); }
+.st-row { display:grid; grid-template-columns:28px 1fr; gap:10px; padding:3px 0; align-items:baseline; }
+.st-row em { font-style:normal; color:#b3bac9; font-size:12px; text-align:right; font-variant-numeric:tabular-nums; }
+.st-la { font-family:var(--serif); font-size:18px; line-height:1.6; color:var(--ink); }
+.st-la .w { border-radius:3px; padding:0 1px; border-bottom:2px solid transparent; }
+.st-en, .st-en-block { font-size:15px; line-height:1.6; color:var(--body); }
+.st-en-block { padding:3px 0; }
+.st-unit:not(.on) .st-en, .st-unit:not(.on) .st-en-block { color:transparent; text-shadow:0 0 9px rgba(28,37,64,.38); user-select:none; }
+.st-unit:not(.on) .st-en-block .sup { text-decoration:none; }
+@media (min-width:1500px) { .st-la { font-size:20px; } .st-en, .st-en-block { font-size:16.5px; } }
+
+/* vocabulary on hover */
+.st.vocab-on .st-la .w[data-v] { cursor:help; }
+.st.vocab-on .st-la .w[data-v]:hover { background:var(--brand-soft); }
+.st-tip { position:fixed; z-index:300; max-width:340px; background:var(--navy); color:#fff; border-radius:10px; padding:10px 13px 11px; box-shadow:0 12px 32px rgba(14,30,63,.3); pointer-events:none; opacity:0; transform:translateY(4px); transition:opacity .12s,transform .12s; font-size:13.5px; line-height:1.45; }
+.st-tip.on { opacity:1; transform:none; }
+.st-tip b { font-family:var(--serif); font-size:15.5px; font-weight:600; display:block; margin-bottom:2px; }
+.st-tip i { display:block; color:#8fb6ff; font-style:normal; font-size:12px; font-weight:600; margin-top:4px; }
+.st-tip .x { display:block; color:#dbe4f5; font-size:12.5px; margin-top:4px; }
+
+/* style notes */
+.st.style-on .st-la .w.c-order { border-bottom-color:var(--st-order); } .st.style-on .st-la .w.c-structure { border-bottom-color:var(--st-structure); }
+.st.style-on .st-la .w.c-sound { border-bottom-color:var(--st-sound); } .st.style-on .st-la .w.c-diction { border-bottom-color:var(--st-diction); }
+.st.style-on .st-la .w.c-imagery { border-bottom-color:var(--st-imagery); } .st.style-on .st-la .w.c-grammar { border-bottom-color:var(--st-grammar); }
+.st .st-la .w.c-note { border-bottom:1px dotted var(--st-note); }
+.st.style-on .st-la .w[data-note] { cursor:pointer; }
+.st.style-on .st-la .w[data-note]:hover { background:#fff1c2; }
+.st.style-on .st-la .w.dim { border-bottom-color:transparent; }
+.st-pop { position:absolute; z-index:200; width:340px; max-width:calc(100vw - 32px); background:#fff; border:1px solid var(--rule); border-radius:12px; box-shadow:0 18px 40px rgba(14,30,63,.18); padding:14px 16px; display:none; }
+.st-pop.on { display:block; }
+.st-pop .q { font-family:var(--serif); font-size:16px; font-weight:600; color:var(--ink); }
+.st-pop .t { font-size:13px; color:var(--muted); font-style:italic; }
+.st-pop .chip { margin-left:8px; vertical-align:2px; font-size:11.5px; padding:2px 8px; }
+.st-pop p { font-size:14px; color:var(--body); margin:8px 0 0; line-height:1.5; }
+.st-pop .exam { margin-top:10px; padding:10px 12px; background:var(--brand-soft); border-radius:8px; font-size:13.5px; color:var(--ink); }
+.st-pop .exam strong { color:#1457cc; }
+.st-pop small { display:block; color:var(--muted); font-size:12px; margin-top:8px; }
+.st-pop .more { border-top:1px solid var(--rule-soft); margin-top:10px; padding-top:10px; }
+
+/* grammar colours */
+.st.gram-on .st-la .w.g-subj { background:#fde8e8; } .st.gram-on .st-la .w.g-obj { background:#e5f0dd; } .st.gram-on .st-la .w.g-verb { background:#ddeeff; }
+.st.gram-on .st-la .w.g-abl { background:#fdf3cf; } .st.gram-on .st-la .w.g-gen { background:#fff1c2; } .st.gram-on .st-la .w.g-dat { background:#f3e8ff; }
+.st.gram-on .st-la .w.g-adv { background:#ece8f8; } .st.gram-on .st-la .w.g-conj { background:#eceef4; } .st.gram-on .st-la .w.g-prep, .st.gram-on .st-la .w.g-voc { background:#fde8f4; } .st.gram-on .st-la .w.g-gdv { background:#e0f2f1; }
+
+/* Latin to English links (texts whose translation is marked word by word) */
+.st-en-block .e { border-radius:3px; cursor:pointer; }
+.st-en-block .e.lit, .st-la .w.lit { background:var(--brand) !important; color:#fff; border-bottom-color:transparent; }
+.st-en-block .sup { text-decoration:underline dotted #d9a900; text-underline-offset:4px; cursor:help; }
+
+/* notes panel */
+.st-notes { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:0 28px; }
+.st-note { display:grid; grid-template-columns:26px 1fr; gap:8px; padding:10px 0; border-top:1px solid var(--rule-soft); font-size:14px; line-height:1.5; }
+.st-note em { font-style:normal; color:#b3bac9; font-size:12px; text-align:right; padding-top:2px; font-variant-numeric:tabular-nums; }
+.st-note b { font-family:var(--serif); font-weight:600; color:var(--ink); font-size:15px; }
+.st-note .chip { margin-left:8px; vertical-align:2px; font-size:11.5px; padding:2px 8px; }
+.st-note .t { color:var(--muted); font-size:13px; font-style:italic; }
+.st-note .x { color:var(--body); font-size:13.5px; margin-top:3px; }
+.st-note.hid { display:none; }
+.st-vocab { columns:3; column-gap:28px; }
+.st-vocab > div { break-inside:avoid; font-size:14.5px; color:var(--body); padding:6px 0; border-top:1px solid var(--rule-soft); line-height:1.5; }
+.st-vocab > div:first-child { border-top:0; }
+.st-vocab b { font-family:var(--serif); font-weight:600; color:var(--ink); }
+.st-vocab i { color:var(--muted); font-size:13px; }
+
+/* classroom view */
+.st-present { position:fixed; inset:0; z-index:400; background:#fff; display:none; flex-direction:column; }
+.st-present.on { display:flex; }
+.st-present .pbar { display:flex; align-items:center; gap:8px; padding:12px 24px; border-bottom:1px solid var(--rule); flex-wrap:wrap; }
+.st-present .pbar .t { font-family:var(--serif); font-weight:600; font-size:18px; color:var(--ink); margin-right:auto; }
+.st-present .pbody { flex:1; overflow:auto; padding:24px 40px 60px; }
+.st-present .st-unit { grid-template-columns:1fr 1fr; }
+.st-present .st-la { font-size:var(--p-size, 28px); line-height:var(--p-lh, 1.6); }
+.st-present .st-en, .st-present .st-en-block { font-size:calc(var(--p-size, 28px) * .78); line-height:var(--p-lh, 1.6); }
+.st-present .st-row { grid-template-columns:40px 1fr; }
+.st-present.hide-en .st-eng { visibility:hidden; }
+
+@media (max-width: 860px) {
+  .st-cols { display:none; }
+  .st-unit { grid-template-columns:minmax(0,1fr); }
+  .st-eng { border-left:0; padding-top:0; }
+  .st-lat { padding-bottom:4px; }
+  .st-bar .hint { display:none; }
+  .st-notes { grid-template-columns:1fr; }
+  .st-vocab { columns:1; }
+  .st-present .st-unit { grid-template-columns:1fr; }
+}
+@media (min-width: 861px) and (max-width: 1180px) { .st-notes { grid-template-columns:1fr 1fr; } .st-vocab { columns:2; } }
+@media print { .st-bar, .st-keys, .st-gkeys, .st-tip, .st-pop { display:none !important; } .st-unit .st-en, .st-unit .st-en-block { color:var(--body) !important; text-shadow:none !important; } }
