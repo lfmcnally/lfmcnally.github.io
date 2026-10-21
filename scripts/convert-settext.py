@@ -92,10 +92,13 @@ def g_from_parse(parse):
     if 'preposition' in p: return 'prep'
     return ''
 
+import importlib.util as _ilu
+_sh = _ilu.spec_from_file_location('split_headwords', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'split-headwords.py'))
+split_headwords = _ilu.module_from_spec(_sh); _sh.loader.exec_module(split_headwords)
+
 def split_vocab(v):
-    """'regina, -ae (f.) queen' → ('regina, -ae (f.)', 'queen')"""
-    m = re.match(r'^(.*?\))\s*(.*)$', v or '')
-    return (m.group(1), m.group(2)) if m else (v or '', '')
+    """'regina, -ae (f.) queen' → ('regina, -ae (f.)', 'queen'); see scripts/split-headwords.py"""
+    return split_headwords.split_head(v or '')
 
 def head_parts(deck):
     for sep in (' &mdash; ', ' — ', ': '):

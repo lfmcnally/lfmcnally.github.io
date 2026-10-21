@@ -90,14 +90,14 @@ def build_section(t, d, s, prev, nxt):
     default_en = 'all' if t['level'] == 'A-level' else 'reveal'
 
     bar = ['<span class="seg"><button class="btn" data-en="reveal">Click to reveal</button><button class="btn" data-en="all">All English</button><button class="btn" data-en="none">No English</button></span>']
-    if has_vocab: bar.append('<span class="sep"></span><button class="btn on" data-vocab>Vocabulary</button>')
-    if style_notes: bar.append('<button class="btn on" data-style>Style notes</button>')
+    # the clickers: what a click on a word opens in the side column
+    clickers = []
+    if has_vocab: clickers.append('<button class="btn" data-clicker="vocab">Vocabulary</button>')
+    if style_notes: clickers.append('<button class="btn" data-clicker="style">Style notes</button>')
+    if clickers: bar.append('<span class="sep"></span><span class="seg">%s</span>' % ''.join(clickers))
     if has_gram: bar.append('<button class="btn" data-gram>Grammar colours</button>')
     bar.append('<span class="sep"></span><button class="btn" data-present>Classroom</button>')
-    hints = ['click a sentence for its English']
-    if has_vocab: hints.append('hover a word for its vocabulary')
-    if style_notes: hints.append('click an underline for its note')
-    bar.append('<span class="hint">%s</span>' % ' · '.join(hints))
+    bar.append('<span class="hint" data-hint>click a sentence for its English</span>')
     keys = ''
     if style_notes:
         keys = '<div class="st-keys"><span class="k">Show</span><button class="chip on" data-all>All</button>%s</div>' % ''.join('<button class="chip c-%s" data-cat="%s">%s</button>' % (c, c, label) for c, label in cats_present)
@@ -105,12 +105,17 @@ def build_section(t, d, s, prev, nxt):
     if has_gram:
         gkeys = '<div class="st-gkeys" hidden>%s</div>' % ''.join('<span class="chip g-%s">%s</span>' % (g, label) for g, label in grams_present)
     units = ''.join(unit_html(u, note_cat) for u in d['units'])
-    reader = '''<div class="panel st%s%s" id="st" data-mode="%s" data-default-en="%s" data-title="%s">
+    reader = '''<div class="panel st" id="st" data-mode="%s" data-default-en="%s" data-title="%s" data-clickers="%s">
   <div class="st-bar">%s</div>
   %s%s
-  <div class="st-cols"><div class="st-colh">Latin</div><div class="st-colh">English</div></div>
-  <div class="st-units">%s</div>
-</div>''' % (' vocab-on' if has_vocab else '', ' style-on' if style_notes else '', d['mode'], default_en, esc(t['title'] + ' · ' + d['title']), ''.join(bar), keys, gkeys, units)
+  <div class="st-body">
+    <div class="st-main">
+      <div class="st-cols"><div class="st-colh">Latin</div><div class="st-colh">English</div></div>
+      <div class="st-units">%s</div>
+    </div>
+    <aside class="st-side" hidden><div class="st-sidein"><div class="st-sideh"><span data-side-title>Word</span><button class="btn" data-unpin hidden>Unpin</button></div><div class="st-sidebody" data-side-body></div></div></aside>
+  </div>
+</div>''' % (d['mode'], default_en, esc(t['title'] + ' · ' + d['title']), ' '.join(c for c, ok in (('vocab', has_vocab), ('style', bool(style_notes))) if ok), ''.join(bar), keys, gkeys, units)
 
     # notes below the text, in the order they appear
     order = {}
