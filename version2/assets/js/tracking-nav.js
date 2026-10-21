@@ -7,7 +7,6 @@
 //   <aside class="sidebar" data-tracking-nav
 //          data-role="teacher|student|auto"   // who the nav is for
 //          data-active="classes"               // current page key (highlights)
-//          data-seed="384"                      // starfield seed (optional)
 //          data-context-id="classTabs"          // id for the page's list (opt)
 //          data-context-class="class-tabs"      // wrapper class (opt)
 //          data-context-label="Classes"         // section heading (opt)
@@ -15,10 +14,9 @@
 //          data-context-search="classFilter">   // id for a search input (opt)
 //   </aside>
 //
-// The component renders the logo, role-aware primary nav, the optional
-// contextual list container (which the page's own JS still fills by id), and
-// the account menu. Starfield + account menu are initialised here so order of
-// the other <script> tags doesn't matter.
+// The component renders the role-aware primary nav, the optional contextual
+// list container (which the page's own JS still fills by id), and the account
+// menu slot. The site header above it comes from shell.js.
 
 (function () {
   const I = {
@@ -137,8 +135,6 @@
     const createHtml = '';
 
     aside.innerHTML = `
-      <canvas class="side-sky"></canvas>
-      <a class="side-logo" href="/version2/">Classicalia</a>
       ${createHtml}
       ${role === 'teacher' ? '' : '<div class="tnav tnav-courses" data-tnav-courses></div>'}
       <div class="tnav" data-tnav-primary>${primaryHtml(role === 'auto' ? 'student' : role, active)}</div>
@@ -152,18 +148,6 @@
       cToggle.addEventListener('click', e => { e.stopPropagation(); cPop.hidden = !cPop.hidden; });
       document.addEventListener('click', e => { const w = aside.querySelector('.side-create'); if (w && !w.contains(e.target)) cPop.hidden = true; });
     }
-
-    // Starfield: init the canvas ourselves so we don't depend on script order
-    // (and so auto-init doesn't double-run it — note: no data-starfield here).
-    const canvas = aside.querySelector('.side-sky');
-    function sky() {
-      if (!window.Starfield || !canvas) return;
-      const inst = window.Starfield.create(canvas, { seed: seed, nodeRegion: 0.8 });
-      let t;
-      window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => inst && inst.resize && inst.resize(), 150); });
-    }
-    if (window.Starfield) sky();
-    else window.addEventListener('DOMContentLoaded', sky);
 
     // Resolve the signed-in user's role (for "auto" pages like the bank) and
     // admin status, then re-render the primary nav — adding the Admin link for
