@@ -66,7 +66,8 @@ def main():
     dry = '--dry-run' in sys.argv
     files = glob.glob(os.path.join(ROOT, 'version2/tools/**/*.html'), recursive=True) + \
             glob.glob(os.path.join(ROOT, 'version2/tracking/*.html')) + glob.glob(os.path.join(ROOT, 'version2/admin/*.html')) + \
-            glob.glob(os.path.join(ROOT, 'auth/*.html')) + [os.path.join(ROOT, p) for p in ('version2/profile.html', 'version2/friends.html')]
+            glob.glob(os.path.join(ROOT, 'auth/*.html')) + [os.path.join(ROOT, p) for p in ('version2/profile.html', 'version2/friends.html',
+                                              'version2/subjects/classical-civilisation/the-odyssey/tester.html')]
     changed = 0
     for f in sorted(set(files)):
         rel = f.replace(ROOT + '/', '')
