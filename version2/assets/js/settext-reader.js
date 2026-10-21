@@ -2,8 +2,9 @@
 //
 // The page is rendered by scripts/build-settext.py from data/section-N.json;
 // this script adds the behaviour: reveal the English a sentence at a time,
-// vocabulary and parsing on hover, style notes with their keys and popovers,
-// grammar colours, Latin–English links, and the classroom view.
+// a side column showing the word under the pointer (its vocabulary and
+// parsing, or its style note, by the clicker that is on), style keys as a
+// filter, grammar colours, Latin–English links, and the classroom view.
 (function () {
   'use strict';
   var root = document.getElementById('st');
@@ -28,17 +29,8 @@
     b.addEventListener('click', function () { enMode = b.dataset.en; store.set('classicalia.settext.en', enMode); applyEn(); });
   });
   applyEn();
-  root.querySelectorAll('.st-unit').forEach(function (u) {
-    u.addEventListener('click', function (e) {
-      if (e.target.closest('.w[data-note]') && root.classList.contains('style-on')) return;
-      if (e.target.closest('.e, .w[data-id]') && root.querySelector('.st-en-block .e')) { link(e.target); return; }
-      root.querySelectorAll('.st-unit.cur').forEach(function (x) { x.classList.remove('cur'); });
-      u.classList.add('cur');
-      u.classList.toggle('on');
-    });
-  });
 
-  // ── toggles ──
+  // ── grammar colours ──
   function toggle(name, cls, key) {
     var b = root.querySelector('[data-' + name + ']');
     if (!b) return;
@@ -53,11 +45,8 @@
       b.classList.toggle('on', on);
       store.set('classicalia.settext.' + name, on ? '1' : '0');
       if (keys) keys.hidden = !on;
-      if (!on) hidePop();
     });
   }
-  toggle('vocab', 'vocab-on');
-  toggle('style', 'style-on', '.st-keys');
   toggle('gram', 'gram-on', '.st-gkeys');
 
   // ── style keys: a filter, one category or all ──
@@ -76,57 +65,106 @@
     applyKeys();
   }
 
-  // ── vocabulary tooltip ──
-  var tip = document.createElement('div'); tip.className = 'st-tip'; document.body.appendChild(tip);
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function showTip(e, w) {
-    tip.innerHTML = '<b>' + esc(w.dataset.v) + '</b>' + esc(w.dataset.m || '') + (w.dataset.p ? '<i>' + esc(w.dataset.p) + '</i>' : '') + (w.dataset.x ? '<span class="x">' + esc(w.dataset.x) + '</span>' : '');
-    tip.classList.add('on'); moveTip(e);
+  // ── the clickers: what a click on a word opens in the side column ──
+  var clickers = (root.dataset.clickers || '').split(' ').filter(Boolean);
+  var side = root.querySelector('.st-side'), sideTitle = root.querySelector('[data-side-title]'), sideBody = root.querySelector('[data-side-body]'), unpinBtn = root.querySelector('[data-unpin]'), hint = root.querySelector('[data-hint]');
+  var clicker = store.get('classicalia.settext.clicker');
+  if (clickers.indexOf(clicker) < 0) clicker = clickers[0] || '';
+  var pinned = null, shown = null;
+  var HINTS = { vocab: 'click a sentence for its English · click a word to keep it in the side column', style: 'click a sentence for its English · click an underlined word for its note', '': 'click a sentence for its English' };
+  var EMPTY = { vocab: 'Hover a word in the Latin to see its vocabulary and parsing. Click a word to keep it here.', style: 'Hover an underlined word for its style note. Click to keep it here. The keys above filter by category.' };
+  function selectorFor(mode) { return mode === 'vocab' ? '.st-la .w[data-v]' : mode === 'style' ? '.st-la .w[data-note]' : null; }
+  function setClicker(mode) {
+    clicker = clickers.indexOf(mode) >= 0 ? mode : '';
+    store.set('classicalia.settext.clicker', clicker);
+    root.classList.toggle('vocab-on', clicker === 'vocab');
+    root.classList.toggle('style-on', clicker === 'style');
+    root.classList.toggle('side-on', !!clicker);
+    root.querySelectorAll('[data-clicker]').forEach(function (b) { b.classList.toggle('on', b.dataset.clicker === clicker); });
+    if (keys) keys.hidden = clicker !== 'style';
+    if (side) side.hidden = !clicker;
+    if (sideTitle) sideTitle.textContent = clicker === 'style' ? 'Style note' : 'Word';
+    if (hint) hint.textContent = HINTS[clicker];
+    unpin(); shown = null;
+    if (sideBody) sideBody.innerHTML = '<div class="empty">' + esc(EMPTY[clicker] || '') + '</div>';
   }
-  function moveTip(e) {
-    var x = Math.min(e.clientX + 14, window.innerWidth - 356), y = e.clientY + 18;
-    if (y + tip.offsetHeight > window.innerHeight - 10) y = e.clientY - tip.offsetHeight - 12;
-    tip.style.left = Math.max(8, x) + 'px'; tip.style.top = y + 'px';
-  }
-  function hideTip() { tip.classList.remove('on'); }
-  root.addEventListener('mousemove', function (e) {
-    var w = e.target.closest('.st-la .w[data-v]');
-    if (!w || !root.classList.contains('vocab-on')) { hideTip(); return; }
-    showTip(e, w);
+  root.querySelectorAll('[data-clicker]').forEach(function (b) {
+    b.addEventListener('click', function () { setClicker(b.dataset.clicker === clicker ? '' : b.dataset.clicker); });
   });
-  root.addEventListener('mouseleave', hideTip);
-  // tap on a phone: a tap on a word shows its card, a second tap reveals the line
-  var lastTap = null;
-  root.addEventListener('touchstart', function (e) {
-    var w = e.target.closest('.st-la .w[data-v]');
-    if (!w || !root.classList.contains('vocab-on')) { hideTip(); lastTap = null; return; }
-    if (lastTap === w) { hideTip(); lastTap = null; return; }
-    lastTap = w; e.preventDefault(); e.stopPropagation();
-    var t = e.touches[0]; showTip({ clientX: t.clientX, clientY: t.clientY }, w);
-  }, { passive: false });
+  function unpin() { if (pinned) pinned.classList.remove('pin'); pinned = null; if (unpinBtn) unpinBtn.hidden = true; }
+  function pin(w) { unpin(); pinned = w; w.classList.add('pin'); if (unpinBtn) unpinBtn.hidden = false; show(w); }
+  if (unpinBtn) unpinBtn.addEventListener('click', unpin);
+  function show(w) {
+    if (!sideBody || !w) return;
+    shown = w;
+    sideBody.innerHTML = clicker === 'style' ? styleHtml(w) : vocabHtml(w);
+  }
+  var canHover = window.matchMedia && window.matchMedia('(hover: hover)').matches;
+  root.addEventListener('mouseover', function (e) {
+    if (!canHover || pinned || !clicker) return;
+    var w = e.target.closest(selectorFor(clicker));
+    if (w && w !== shown) show(w);
+  });
+  // a click on a word the clicker handles pins it; anywhere else in a unit reveals the English
+  root.querySelectorAll('.st-unit').forEach(function (u) {
+    u.addEventListener('click', function (e) {
+      if (e.target.closest('.e, .w[data-id]') && root.querySelector('.st-en-block .e')) link(e.target);
+      var w = clicker ? e.target.closest(selectorFor(clicker)) : null;
+      if (w) { if (pinned === w) unpin(); else pin(w); return; }
+      if (e.target.closest('.e')) return;
+      root.querySelectorAll('.st-unit.cur').forEach(function (x) { x.classList.remove('cur'); });
+      u.classList.add('cur');
+      u.classList.toggle('on');
+    });
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { unpin(); closePresent(); } });
 
-  // ── style note popover ──
-  var pop = document.createElement('div'); pop.className = 'st-pop'; document.body.appendChild(pop);
-  function hidePop() { pop.classList.remove('on'); }
-  function noteHtml(n, first) {
-    return '<div' + (first ? '' : ' class="more"') + '><span class="q">' + esc(n.quote) + '</span><span class="chip c-' + n.cat + '">' + esc(n.label) + '</span>' +
-      (n.trans ? '<div class="t">' + esc(n.trans) + '</div>' : '') + (n.body ? '<p>' + n.body + '</p>' : '') + (n.exam ? '<div class="exam">' + n.exam + '</div>' : '') +
-      '<small>' + (n.line ? 'line ' + esc(n.line) + ' · ' : '') + esc(CATS[n.cat] || n.cat) + '</small></div>';
+  // ── what the side column shows ──
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  // keep italics from the data, drop any other markup
+  function rich(s) { return esc(s).replace(/&lt;(\/?)(?:em|i)&gt;/g, '<$1em>'); }
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+  var POS = ['noun', 'verb', 'adjective', 'participle', 'conjunction', 'adverb', 'preposition', 'pronoun', 'gerundive', 'gerund', 'interjection', 'numeral', 'infinitive'];
+  var GROUPS = [['Case', ['nominative', 'vocative', 'accusative', 'genitive', 'dative', 'ablative', 'locative']], ['Number', ['singular', 'plural']], ['Gender', ['masculine', 'feminine', 'neuter']],
+    ['Person', ['1st person', '2nd person', '3rd person']], ['Tense', ['present', 'imperfect', 'future perfect', 'future', 'perfect', 'pluperfect']], ['Voice', ['active', 'passive', 'deponent']],
+    ['Mood', ['indicative', 'subjunctive', 'imperative', 'infinitive']], ['Degree', ['comparative', 'superlative']]];
+  var ROLE = { subj: 'Subject', obj: 'Object', verb: 'Verb', abl: 'Ablative', gen: 'Genitive', dat: 'Dative', adv: 'Adverb', conj: 'Conjunction', prep: 'Preposition', voc: 'Vocative', gdv: 'Gerundive' };
+  // the parsing string → part of speech, one value per grammatical category, and the comment that is left
+  function parse(p) {
+    p = String(p || '').replace(/<[^>]+>/g, '');
+    var pos = null, parts = p.split(' · ');
+    if (parts.length > 1 && POS.indexOf(parts[0].trim().toLowerCase()) >= 0) { pos = parts[0].trim().toLowerCase(); p = parts.slice(1).join(' · '); }
+    else { for (var i = 0; i < POS.length; i++) { if (new RegExp('\\b' + POS[i] + '\\b', 'i').test(p)) { pos = POS[i]; break; } } }
+    var rows = [], rest = p;
+    GROUPS.forEach(function (g) { for (var i = 0; i < g[1].length; i++) { var re = new RegExp('\\b' + g[1][i] + '\\b', 'i'); if (re.test(rest)) { rows.push([g[0], g[1][i]]); rest = rest.replace(re, ''); break; } } });
+    if (pos) rest = rest.replace(new RegExp('\\b' + pos + '\\b', 'i'), '');
+    rest = rest.replace(/\s+/g, ' ').replace(/\(\s*\)/g, '').replace(/^[\s,;:—–-]+|[\s,;:—–-]+$/g, '').replace(/^\((.*)\)$/, '$1').replace(/\s+,/g, ',').replace(/^[\s,;:—–-]+/, '').trim();
+    if (!rows.length && !pos) rest = p.trim();
+    return { pos: pos, rows: rows, rest: cap(rest) };
   }
-  root.addEventListener('click', function (e) {
-    var w = e.target.closest('.st-la .w[data-note]');
-    if (!w || !root.classList.contains('style-on')) return;
-    e.stopPropagation();
-    var ids = w.dataset.note.split(',').filter(function (id) { return notes[id]; });
-    if (!ids.length) return;
-    pop.innerHTML = ids.map(function (id, i) { return noteHtml(notes[id], i === 0); }).join('');
-    var r = w.getBoundingClientRect();
-    pop.style.left = Math.max(8, Math.min(r.left + window.scrollX, window.scrollX + window.innerWidth - 356)) + 'px';
-    pop.style.top = (r.bottom + window.scrollY + 8) + 'px';
-    pop.classList.add('on');
-  });
-  document.addEventListener('click', function (e) { if (!e.target.closest('.st-pop')) hidePop(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { hidePop(); hideTip(); closePresent(); } });
+  function vocabHtml(w) {
+    var d = w.dataset, pr = parse(d.p), form = (w.textContent || '').replace(/[.,;:!?]+$/, '');
+    var role = null; w.classList.forEach(function (c) { var m = c.match(/^g-(\w+)$/); if (m && ROLE[m[1]]) role = m[1]; });
+    var h = '<div class="hw">' + esc(d.v) + '</div>' + (d.m ? '<div class="mean">' + esc(d.m) + '</div>' : '');
+    if (role) h += '<span class="role chip g-' + role + '">' + ROLE[role] + '</span>';
+    h += '<dl class="tbl"><dt>Form</dt><dd>' + esc(form) + '</dd>';
+    if (pr.pos) h += '<dt>Part</dt><dd>' + esc(cap(pr.pos)) + '</dd>';
+    pr.rows.forEach(function (r) { h += '<dt>' + r[0] + '</dt><dd>' + esc(cap(r[1])) + '</dd>'; });
+    if (pr.rest) { var m = pr.rest.match(/^agree(?:s|ing) with (.+?)[.)]?$/i); h += m ? '<dt>Agrees with</dt><dd>' + rich(m[1]) + '</dd>' : '<dt>Note</dt><dd class="lo">' + rich(pr.rest) + '</dd>'; }
+    h += '</dl>';
+    if (d.x) h += '<div class="xtra">' + rich(d.x) + '</div>';
+    return h;
+  }
+  function styleHtml(w) {
+    var ids = (w.dataset.note || '').split(',').filter(function (id) { return notes[id]; });
+    if (!ids.length) return '<div class="empty">No note on this word.</div>';
+    return ids.map(function (id) {
+      var n = notes[id];
+      return '<div class="note"><span class="q">' + esc(n.quote) + '</span><span class="chip c-' + n.cat + '">' + esc(CATS[n.cat] || n.cat) + '</span>' +
+        (n.trans ? '<div class="t">' + esc(n.trans) + '</div>' : '') + (n.label ? '<div class="l">' + esc(n.label) + '</div>' : '') + (n.body ? '<div class="nb">' + n.body + '</div>' : '') +
+        (n.exam ? '<div class="exam">' + n.exam + '</div>' : '') + (n.line ? '<small>line ' + esc(n.line) + '</small>' : '') + '</div>';
+    }).join('');
+  }
 
   // ── Latin ↔ English links ──
   function link(target) {
@@ -165,6 +203,8 @@
   function closePresent() { if (present) { present.classList.remove('on'); document.body.style.overflow = ''; } }
   var pb = root.querySelector('[data-present]');
   if (pb) pb.addEventListener('click', openPresent);
+
+  setClicker(clicker);
 
   // keyboard: arrows step through the units
   document.addEventListener('keydown', function (e) {

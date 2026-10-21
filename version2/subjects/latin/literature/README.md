@@ -24,9 +24,9 @@ section was added).
           "en": "They all fell silent…",        // the row's English, when English is line by line
           "words": [
             { "w": "cōnticuere͜",                 // the word as printed
-              "v": "conticesco, -ere, -ticui",   // dictionary form   (hover card)
-              "m": "fall silent",                // meaning           (hover card)
-              "p": "3rd person plural, perfect", // parsing           (hover card)
+              "v": "conticesco, -ere, -ticui",   // dictionary form   (side column)
+              "m": "fall silent",                // meaning           (side column)
+              "p": "3rd person plural, perfect", // parsing           (side column)
               "g": "verb",                       // job in the sentence, for the grammar colours
               "o": 3,                            // reading order, optional
               "id": 5,                           // links this word to [text|5] in en_marked, optional
