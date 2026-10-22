@@ -57,6 +57,7 @@
     keys.querySelectorAll('[data-cat]').forEach(function (k) { k.classList.toggle('off', !!activeCat && k.dataset.cat !== activeCat); });
     var all = keys.querySelector('[data-all]'); if (all) all.classList.toggle('on', !activeCat);
     root.querySelectorAll('.st-la .w[data-note]').forEach(function (w) { w.classList.toggle('dim', !!activeCat && !w.classList.contains('c-' + activeCat)); });
+    root.querySelectorAll('.st-u').forEach(function (b) { b.classList.toggle('hid', !!activeCat && !b.classList.contains('c-' + activeCat)); });
     document.querySelectorAll('.st-note[data-cat]').forEach(function (n) { n.classList.toggle('hid', !!activeCat && n.dataset.cat !== activeCat); });
   }
   if (keys) {
@@ -87,6 +88,7 @@
     if (hint) hint.textContent = HINTS[clicker];
     unpin(); shown = null;
     if (sideBody) sideBody.innerHTML = '<div class="empty">' + esc(EMPTY[clicker] || '') + '</div>';
+    layoutBars();
   }
   root.querySelectorAll('[data-clicker]').forEach(function (b) {
     b.addEventListener('click', function () { setClicker(b.dataset.clicker === clicker ? '' : b.dataset.clicker); });
@@ -102,8 +104,15 @@
   var canHover = window.matchMedia && window.matchMedia('(hover: hover)').matches;
   root.addEventListener('mouseover', function (e) {
     if (!canHover || pinned || !clicker) return;
-    var w = e.target.closest(selectorFor(clicker));
+    var w = e.target.closest(selectorFor(clicker)) || (clicker === 'style' ? e.target.closest('.st-u') : null);
     if (w && w !== shown) show(w);
+  });
+  // a bar under a phrase: hover shows its note, click keeps it
+  root.addEventListener('click', function (e) {
+    var b = e.target.closest('.st-u');
+    if (!b) return;
+    e.stopPropagation();
+    if (pinned === b) unpin(); else pin(b);
   });
   // a click on a word the clicker handles pins it; anywhere else in a unit reveals the English
   root.querySelectorAll('.st-unit').forEach(function (u) {
@@ -168,6 +177,7 @@
   }
   function styleHtml(w) {
     var ids = (w.dataset.note || '').split(',').filter(function (id) { return notes[id]; });
+    if (w.classList.contains('st-u')) ids = ids.slice(0, 1);
     if (!ids.length) return '<div class="empty">No note on this word.</div>';
     return ids.map(function (id) {
       var n = notes[id];
@@ -176,6 +186,53 @@
         (n.exam ? '<div class="exam">' + n.exam + '</div>' : '') + (n.line ? '<small>line ' + esc(n.line) + '</small>' : '') + '</div>';
     }).join('');
   }
+
+  // ── the bars: one continuous underline per note, under the whole phrase ──
+  // Laid out from the words' positions, so a phrase of several words gets one bar
+  // across the spaces, a phrase that wraps gets a bar on each line, and two notes
+  // on the same words stack in lanes.
+  function layoutBars() {
+    root.querySelectorAll('.st-u').forEach(function (b) { b.remove(); });
+    if (clicker !== 'style') return;
+    root.querySelectorAll('.st-lat').forEach(function (lat) {
+      var latRect = lat.getBoundingClientRect(), segs = [];
+      lat.querySelectorAll('.st-row').forEach(function (row) {
+        var words = Array.prototype.slice.call(row.querySelectorAll('.w')), runs = {};
+        words.forEach(function (w, i) {
+          (w.dataset.note || '').split(',').forEach(function (id) {
+            if (!notes[id]) return;
+            var r = runs[id] = runs[id] || [], last = r[r.length - 1];
+            if (last && last.end === i - 1) { last.words.push(w); last.end = i; } else r.push({ words: [w], end: i });
+          });
+        });
+        Object.keys(runs).forEach(function (id) {
+          runs[id].forEach(function (run) {
+            var cur = null;
+            run.words.forEach(function (w) {
+              var r = w.getBoundingClientRect();
+              if (cur && Math.abs(cur.bottom - r.bottom) < 4) cur.right = Math.max(cur.right, r.right);
+              else { cur = { id: id, cat: notes[id].cat, left: r.left, right: r.right, bottom: r.bottom }; segs.push(cur); }
+            });
+          });
+        });
+      });
+      // lanes: on each line, a bar takes the first lane free at its left edge; the longer of two bars starting together goes lower
+      var lines = {};
+      segs.forEach(function (sg) { var k = Math.round(sg.bottom / 6); (lines[k] = lines[k] || []).push(sg); });
+      Object.keys(lines).forEach(function (k) {
+        var list = lines[k].sort(function (a, b) { return a.left - b.left || (b.right - b.left) - (a.right - a.left); }), lanes = [];
+        list.forEach(function (sg) { var lv = 0; while (lanes[lv] != null && lanes[lv] > sg.left + 1) lv++; lanes[lv] = sg.right; sg.lane = lv; });
+      });
+      segs.forEach(function (sg) {
+        var b = document.createElement('i'); b.className = 'st-u c-' + sg.cat + (activeCat && sg.cat !== activeCat ? ' hid' : ''); b.dataset.note = sg.id;
+        b.style.left = (sg.left - latRect.left + 1.5) + 'px'; b.style.width = Math.max(6, sg.right - sg.left - 3) + 'px';   // a hair in from each end, so two bars on neighbouring words read as two b.style.top = (sg.bottom - latRect.top - 2 + sg.lane * 4) + 'px';
+        lat.appendChild(b);
+      });
+    });
+  }
+  var barTimer = null;
+  window.addEventListener('resize', function () { clearTimeout(barTimer); barTimer = setTimeout(layoutBars, 120); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutBars);
 
   // ── Latin ↔ English links ──
   function unlink() { root.querySelectorAll('.lit').forEach(function (x) { x.classList.remove('lit'); }); }
@@ -208,6 +265,7 @@
     }
     var units = present.querySelector('.st-units');
     units.innerHTML = root.querySelector('.st-units').innerHTML;
+    units.querySelectorAll('.st-u').forEach(function (b) { b.remove(); });
     units.querySelectorAll('.st-unit').forEach(function (u) { u.classList.remove('cur'); u.classList.toggle('on', enMode === 'all'); u.addEventListener('click', function () { u.classList.toggle('on'); }); });
     present.classList.add('on');
     document.body.style.overflow = 'hidden';
