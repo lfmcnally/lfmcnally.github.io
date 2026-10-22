@@ -225,7 +225,9 @@
       });
       segs.forEach(function (sg) {
         var b = document.createElement('i'); b.className = 'st-u c-' + sg.cat + (activeCat && sg.cat !== activeCat ? ' hid' : ''); b.dataset.note = sg.id;
-        b.style.left = (sg.left - latRect.left + 1.5) + 'px'; b.style.width = Math.max(6, sg.right - sg.left - 3) + 'px';   // a hair in from each end, so two bars on neighbouring words read as two b.style.top = (sg.bottom - latRect.top - 2 + sg.lane * 4) + 'px';
+        // a hair in from each end, so two bars on neighbouring words read as two
+        b.style.left = (sg.left - latRect.left + 1.5) + 'px'; b.style.width = Math.max(6, sg.right - sg.left - 3) + 'px';
+        b.style.top = (sg.bottom - latRect.top - 2 + sg.lane * 4) + 'px';
         lat.appendChild(b);
       });
     });
