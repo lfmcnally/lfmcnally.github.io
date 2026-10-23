@@ -167,7 +167,7 @@
     var bits = order.filter(function (k) { return has[k]; }).map(function (k) { return has[k]; });
     pr.rows.forEach(function (r) { if (order.indexOf(r[0]) < 0) bits.push(r[1]); });
     var agree = null, rest = pr.rest;
-    if (rest) { var m = rest.match(/agree(?:s|ing) with (.+?)[.)]?$/i); if (m) { agree = m[1]; rest = rest.replace(m[0], '').replace(/^[\s,;:—–-]+|[\s,;:—–-]+$/g, ''); } }
+    if (rest) { var m = rest.match(/agree(?:s|ing) with (.+?)\.?$/i); if (m) { agree = m[1]; if ((agree.match(/\)/g) || []).length > (agree.match(/\(/g) || []).length) agree = agree.replace(/\)$/, ''); rest = rest.replace(m[0], '').replace(/^[\s,;:—–-]+|[\s,;:—–-]+$/g, ''); } }
     var sent = '';
     if (bits.length) sent = '<span class="form">' + esc(form) + '</span> is ' + esc(bits.join(' ')) + (agree ? ', agreeing with <em>' + rich(agree) + '</em>' : '') + '.';
     else if (pr.pos) sent = '<span class="form">' + esc(form) + '</span> is ' + (ARTICLE[pr.pos] || 'a') + ' ' + esc(pr.pos) + (agree ? ', agreeing with <em>' + rich(agree) + '</em>' : '') + '.';
