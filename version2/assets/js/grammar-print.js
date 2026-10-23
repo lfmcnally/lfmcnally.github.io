@@ -126,7 +126,10 @@
     }
     function lay(blocks) {
       var c = newPage();
-      function over() { return c.scrollHeight > c.clientHeight + 1; }
+      function over() {   // the last block's foot against the page, with a little spare, as the printed sheet is 296mm
+        var k = c.lastElementChild;
+        return k && k.getBoundingClientRect().bottom - c.getBoundingClientRect().top > c.clientHeight - 6;
+      }
       blocks.forEach(function (html) {
         var el = document.createElement('div');
         el.innerHTML = html; c.appendChild(el);
@@ -155,6 +158,10 @@
     document.documentElement.classList.remove('ws-on');
   }
 
+  // the faces the sheets use, loaded before any page is measured, or the text grows after layout
+  var fonts = document.fonts && document.fonts.load ? Promise.all(['400 12px "DM Sans"', '600 12px "DM Sans"', '700 12px "DM Sans"', '400 14px Lora', 'italic 400 14px Lora', '600 16px Lora']
+    .map(function (f) { return document.fonts.load(f); })).catch(function () {}) : Promise.resolve();
+
   // ── the menu ──
   var wrap = document.querySelector('[data-ws-menu]');
   if (wrap) {
@@ -165,8 +172,7 @@
       var b = e.target.closest('[data-ws]');
       if (!b) return;
       open(false);
-      var go = function () { build(b.dataset.ws); window.print(); };
-      if (document.fonts && document.fonts.ready) document.fonts.ready.then(go); else go();
+      fonts.then(function () { build(b.dataset.ws); window.print(); });
     });
     document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) open(false); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !menu.hidden) { open(false); btn.focus(); } });
