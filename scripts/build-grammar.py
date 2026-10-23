@@ -28,7 +28,8 @@ def load_course():
         for r in t['items']:
             r.setdefault('kind', 'lesson')
             r['href'] = c['href'] + r['slug'] + '/'
-            r['written'] = os.path.exists(os.path.join(data_dir, r['slug'] + '.json'))
+            r['has_data'] = os.path.exists(os.path.join(data_dir, r['slug'] + '.json'))
+            r['written'] = True                     # every lesson has a page; the unwritten ones are placeholders
             r.setdefault('desc', ''); r.setdefault('note', ''); r.setdefault('books', '')
         t.setdefault('lead', ''); t.setdefault('section', '')
     return c
@@ -94,7 +95,7 @@ def build_lesson(course, topic, row, d):
     acts = ['<button class="btn line" type="button" data-print onclick="window.print()">Print</button>',
             '<a class="btn green" href="%s">Grammar gym &rarr;</a>' % course['gym']]
 
-    flat = [r for (t, r) in bc.flat_items(course) if r['written']]
+    flat = [r for (t, r) in bc.flat_items(course)]
     idx = next((i for i, r in enumerate(flat) if r['href'] == row['href']), -1)
     prev = flat[idx - 1] if idx > 0 else None
     nxt = flat[idx + 1] if 0 <= idx < len(flat) - 1 else None
@@ -141,12 +142,70 @@ def build_lesson(course, topic, row, d):
     title = '%s — %s — Classicalia' % (bc.plain(d['title']), course['title'])
     return bc.page(title, d['desc'], row['href'], 'latin', body, head_extra, scripts, ' data-course="%s"' % course['href'])
 
+def build_placeholder(course, topic, row):
+    chapter = topic['n'] if topic['n'].isdigit() and int(topic['n']) <= 10 else None
+    flat = [r for (t, r) in bc.flat_items(course)]
+    idx = next((i for i, r in enumerate(flat) if r['href'] == row['href']), -1)
+    prev = flat[idx - 1] if idx > 0 else None
+    nxt = flat[idx + 1] if 0 <= idx < len(flat) - 1 else None
+    def card(r, cls, lab):
+        if not r: return '<span></span>'
+        return '<a class="%s" href="%s"><small>%s</small><b>%s %s</b></a>' % (cls, r['href'], lab, r['n'], r['title'])
+    pager = '<div class="pager">%s%s</div>' % (card(prev, 'prev', '&larr; Previous'), card(nxt, 'next', 'Next &rarr;'))
+    meanwhile = ['<a class="btn green sm" href="%s">Grammar gym &rarr;</a>' % course['gym']]
+    if chapter: meanwhile.append('<a class="btn line sm" href="/version2/tools/vocab/latinvocabtester.html">Chapter %s vocabulary &rarr;</a>' % chapter)
+    crumb_items = bc.course_crumbs(course) + [(course['title'], course['href'])]
+    body = '''<div class="layout">
+%s
+<main class="maincol" id="main">
+  <div class="inner phead">
+    %s
+    <div class="ptitle">
+      <div><h1>%s</h1><div class="sub">%s</div></div>
+      <div class="acts"><a class="btn green" href="%s">Grammar gym &rarr;</a></div>
+    </div>
+  </div>
+  <div class="inner page">
+    <div class="cols-r">
+      <div class="stack">
+        <article class="panel doc gram">
+          <div class="meta">%s</div>
+<section id="soon"><h2>This lesson is on its way</h2>
+<p class="lead">%s</p>
+<p>It will follow the same shape as the lessons already written: what the point is, how to spot it, how to translate it, what not to confuse it with, and sentences to try that are marked as you type.</p>
+<div class="note">Meanwhile, the grammar gym has practice on every point in this course%s.</div>
+<p style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">%s</p>
+</section>
+        </article>
+        %s
+      </div>
+      <aside class="rail">
+<div class="exam"><div class="k">Practise it</div><p style="font-size:14.5px;color:var(--ink);margin:0 0 10px">The grammar gym has sentences on every point in this course, and remembers what you get wrong.</p><a class="btn green sm" href="%s">Open the grammar gym &rarr;</a></div>
+      </aside>
+    </div>
+  </div>
+</main>
+</div>''' % (bc.docnav(course, row['href']), bc.crumbs(crumb_items), row['title'], row['desc'], course['gym'],
+             bc.chip('Lesson ' + row['n']) + bc.chip(topic['title']) + bc.chip('Coming soon', 'soon'), row['desc'],
+             (', and the vocabulary tester has the words of chapter %s' % chapter) if chapter else '', ''.join(meanwhile), pager, course['gym'])
+    head_extra = '<link rel="stylesheet" href="/version2/assets/css/grammar.css">\n<meta name="robots" content="noindex">'
+    scripts = '<script src="/version2/assets/js/lesson-page.js" defer></script>\n'
+    title = '%s — %s — Classicalia' % (bc.plain(row['title']), course['title'])
+    return bc.page(title, bc.plain(row['desc']), row['href'], 'latin', body, head_extra, scripts, ' data-course="%s"' % course['href'])
+
 def build_course_page(course):
-    written = [r for (t, r) in bc.flat_items(course) if r['written']]
-    topics_with = [t for t in course['topics'] if any(r['written'] for r in t['items'])]
-    topics_soon = [t for t in course['topics'] if not any(r['written'] for r in t['items'])]
-    panels = [bc.topic_panel(t) for t in topics_with]
-    if topics_soon: panels.append(bc.soon_panel(topics_soon))
+    written = [r for (t, r) in bc.flat_items(course) if r['has_data']]
+    def row(r):
+        n = '<span class="code">%s</span>' % r['n']
+        c = bc.kind_chip(r) if r['has_data'] else bc.chip('Coming soon', 'soon')
+        return '<a class="row%s" href="%s"><span class="rt">%s%s</span><span class="rm">%s</span><span class="right">%s</span></a>' % ('' if r['has_data'] else ' off', r['href'], n, r['title'], r['desc'], c)
+    panels, section = [], None
+    for t in course['topics']:
+        if t['section'] != section:
+            section = t['section']; panels.append('<div class="lvl-head" style="margin-top:8px"><h2 style="font-size:20px;margin:0">%s</h2></div>' % section)
+        done = sum(1 for r in t['items'] if r['has_data'])
+        count = '%d of %d written' % (done, len(t['items'])) if done < len(t['items']) else '%d lessons' % len(t['items'])
+        panels.append('<div class="panel" id="topic-%s"><div class="ph"><span class="t">%s · %s</span><span class="n">%s</span></div><div class="pb"><div class="rows">%s</div></div></div>' % (t['n'], t['n'], t['title'], count, ''.join(row(r) for r in t['items'])))
     start = ('<a class="btn green" href="%s">Start with %s &rarr;</a>' % (written[0]['href'], written[0]['title'])) if written else ''
     about = '<div class="panel"><div class="ph"><span class="t">About this course</span></div><div class="pb"><ul class="kvl"><li><b>Board</b><span>%s</span></li><li><b>Level</b><span>GCSE Latin</span></li><li><b>Lessons</b><span>%d written of %d planned</span></li><li><b>Practice</b><span><a href="%s">Grammar gym</a> and the <a href="/version2/tools/vocab/latinvocabtester.html">vocabulary tester</a></span></li></ul></div></div>' % (
         course['code'], len(written), sum(len(t['items']) for t in course['topics']), course['gym'])
@@ -169,13 +228,16 @@ def build_course_page(course):
 def main():
     course = load_course()
     n = 0
+    ph = 0
     for t in course['topics']:
         for r in t['items']:
-            if not r['written']: continue
-            d = json.load(open(os.path.join(ROOT, COURSE_DIR, 'data', r['slug'] + '.json'), encoding='utf-8'))
-            bc.write(r['href'].lstrip('/') + 'index.html', build_lesson(course, t, r, d)); n += 1
+            if r['has_data']:
+                d = json.load(open(os.path.join(ROOT, COURSE_DIR, 'data', r['slug'] + '.json'), encoding='utf-8'))
+                bc.write(r['href'].lstrip('/') + 'index.html', build_lesson(course, t, r, d)); n += 1
+            else:
+                bc.write(r['href'].lstrip('/') + 'index.html', build_placeholder(course, t, r)); ph += 1
     bc.write(course['href'].lstrip('/') + 'index.html', build_course_page(course))
-    print('grammar lessons: %d page(s), plus the course page' % n)
+    print('grammar lessons: %d written, %d placeholder(s), plus the course page' % (n, ph))
 
 if __name__ == '__main__':
     main()
