@@ -4,7 +4,8 @@
 // this script adds the behaviour: reveal the English a sentence at a time,
 // a side column showing the word under the pointer (its vocabulary and
 // parsing, or its style note, by the clicker that is on), style keys as a
-// filter, grammar colours, Latin–English links, and the classroom view.
+// filter, grammar colours, links between the text and the English, and the
+// classroom view. Latin and Greek texts alike.
 (function () {
   'use strict';
   var root = document.getElementById('st');
@@ -73,7 +74,7 @@
   if (clickers.indexOf(clicker) < 0) clicker = clickers[0] || '';
   var pinned = null, shown = null;
   var HINTS = { vocab: 'click a sentence for its English · click a word to keep it in the side column', style: 'click a sentence for its English · click an underlined word for its note', '': 'click a sentence for its English' };
-  var EMPTY = { vocab: 'Hover a word in the Latin to see its vocabulary and parsing. Click a word to keep it here.', style: 'Hover an underlined word for its style note. Click to keep it here. The keys above filter by category.' };
+  var EMPTY = { vocab: 'Hover a word in the ' + (root.dataset.lang || 'Latin') + ' to see its vocabulary and parsing. Click a word to keep it here.', style: 'Hover an underlined word for its style note. Click to keep it here. The keys above filter by category.' };
   function selectorFor(mode) { return mode === 'vocab' ? '.st-la .w[data-v]' : mode === 'style' ? '.st-la .w[data-note]' : null; }
   function setClicker(mode) {
     clicker = clickers.indexOf(mode) >= 0 ? mode : '';
@@ -138,10 +139,10 @@
   // keep italics from the data, drop any other markup
   function rich(s) { return esc(s).replace(/&lt;(\/?)(?:em|i)&gt;/g, '<$1em>'); }
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
-  var POS = ['noun', 'verb', 'adjective', 'participle', 'conjunction', 'adverb', 'preposition', 'pronoun', 'gerundive', 'gerund', 'interjection', 'numeral', 'infinitive'];
+  var POS = ['noun', 'verb', 'adjective', 'participle', 'conjunction', 'adverb', 'preposition', 'pronoun', 'gerundive', 'gerund', 'interjection', 'numeral', 'infinitive', 'article', 'particle'];
   var GROUPS = [['Case', ['nominative', 'vocative', 'accusative', 'genitive', 'dative', 'ablative', 'locative']], ['Number', ['singular', 'plural']], ['Gender', ['masculine', 'feminine', 'neuter']],
-    ['Person', ['1st person', '2nd person', '3rd person']], ['Tense', ['present', 'imperfect', 'future perfect', 'future', 'perfect', 'pluperfect']], ['Voice', ['active', 'passive', 'deponent']],
-    ['Mood', ['indicative', 'subjunctive', 'imperative', 'infinitive']], ['Degree', ['comparative', 'superlative']]];
+    ['Person', ['1st person', '2nd person', '3rd person']], ['Tense', ['present', 'imperfect', 'future perfect', 'future', 'aorist', 'perfect', 'pluperfect']], ['Voice', ['active', 'middle', 'passive', 'deponent']],
+    ['Mood', ['indicative', 'subjunctive', 'optative', 'imperative', 'infinitive']], ['Degree', ['comparative', 'superlative']]];
   // the parsing string → part of speech, one value per grammatical category, and the comment that is left
   function parse(p) {
     p = String(p || '').replace(/<[^>]+>/g, '');
@@ -155,7 +156,7 @@
     if (!rows.length && !pos) rest = p.trim();
     return { pos: pos, rows: rows, rest: cap(rest) };
   }
-  var ARTICLE = { adjective: 'an', adverb: 'an', interjection: 'an', infinitive: 'an' };
+  var ARTICLE = { adjective: 'an', adverb: 'an', interjection: 'an', infinitive: 'an', article: 'an' };
   function vocabHtml(w) {
     var d = w.dataset, pr = parse(d.p), form = (w.textContent || '').replace(/[.,;:!?]+$/, '');
     var has = {}; pr.rows.forEach(function (r) { has[r[0]] = r[1]; });

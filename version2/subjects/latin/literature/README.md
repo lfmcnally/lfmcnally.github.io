@@ -39,6 +39,25 @@ section was added).
 }
 ```
 
+Two optional fields add panels below the text:
+
+```json
+  "questions": ["What impression do we get of Arion in these lines?"],
+  "context": [{ "h": "Arion and the dolphin", "body": "<p>…</p>" }]
+```
+
+`questions` is listed under **Questions**; each `context` item is a
+background panel with its own heading. On the text's entry in
+`courses.json`, an optional `intro` list (same shape as `context`) puts
+background panels on the contents page, below the sections.
+
+**Greek texts** (`"subject": "greek"` in `courses.json`, e.g. Tales from
+Herodotus under `/version2/subjects/greek/literature/gcse/herodotus/`) use
+the same reader and the same section files. The pages say Greek rather
+than Latin, link the Greek vocabulary tester, and load Noto Serif for the
+Greek letters. Parsing strings can use `aorist`, `middle`, `optative`,
+`article` and `particle`.
+
 A **unit** is what one click reveals: a sentence (or a sense unit of a long
 sentence) in verse, a row in prose.
 

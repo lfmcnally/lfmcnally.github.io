@@ -615,7 +615,7 @@ def build_courses():
 # ───────────────────────── subject pages ─────────────────────────
 DECKS = {
     'latin': 'OCR GCSE and A-level Latin: the vocabulary tester with every defined word, grammar practice, and the set texts read line by line with notes.',
-    'greek': 'OCR GCSE and A-level Classical Greek. The vocabulary tester is live; set texts and language notes are on the way.',
+    'greek': 'OCR GCSE and A-level Classical Greek: the vocabulary tester, and the GCSE Herodotus set text read line by line with notes. More set texts and language notes are on the way.',
     'civ': 'OCR GCSE and A-level Classical Civilisation: revision notes, sources and flashcards for each component, with quizzes that remember what you find hard.',
 }
 TOOLS = {
@@ -784,18 +784,24 @@ def build_tools():
     print('tools: 1 page')
 
 # ───────────────────────── set texts ─────────────────────────
+SETTEXT_LANG = {'latin': ('Latin', '/version2/tools/vocab/latinvocabtester.html'), 'greek': ('Greek', '/version2/tools/vocab/greekvocabtester.html')}
+
 def build_settext(t):
     sub = SUBJECTS[t['subject']]
+    lang, tester = SETTEXT_LANG[t['subject']]
     left = []
     for g in t['groups']:
         rows = ''.join('<a class="row" href="%s"><span class="rt">%s</span><span class="rm">%s</span><span class="right">%s</span></a>' % (s['href'], s['title'], s['desc'], chip('Read', 'blue')) for s in g['sections'])
         head = ' · '.join(x for x in (g.get('lines', ''), g.get('label', '')) if x) or 'Sections'
         left.append('<div class="panel"><div class="ph"><span class="t">%s</span><span class="n">%d sections</span></div><div class="pb"><div class="rows">%s</div></div></div>' % (head, len(g['sections']), rows))
-    kvl = ['<li><b>Board</b><span>%s</span></li>' % t['code'], '<li><b>Level</b><span>%s Latin</span></li>' % lvl_label(t['level']), '<li><b>Sections</b><span>%d</span></li>' % t['counts']['sections']]
+    # background to the text, below the sections, where there is some
+    for c in t.get('intro', []):
+        left.append('<div class="panel"><div class="ph"><span class="t">%s</span></div><div class="pb st-context">%s</div></div>' % (c['h'], c['body']))
+    kvl = ['<li><b>Board</b><span>%s</span></li>' % t['code'], '<li><b>Level</b><span>%s %s</span></li>' % (lvl_label(t['level']), lang), '<li><b>Sections</b><span>%d</span></li>' % t['counts']['sections']]
     if t.get('archive'): kvl.append('<li><b>Cycle</b><span>%s</span></li>' % t['archive'])
     about = ''.join('<p>%s</p>' % p for p in t['about'])
     rail = ['<div class="panel"><div class="ph"><span class="t">About this text</span></div><div class="pb"><ul class="kvl" style="margin-bottom:10px">%s</ul>%s</div></div>' % (''.join(kvl), about)]
-    rail.append('<div class="panel"><div class="ph"><span class="t">Also for this paper</span></div><div class="pb"><div class="rows"><a class="row" href="/version2/tools/vocab/latinvocabtester.html"><span class="rt">Vocabulary tester</span><span class="rm">the defined vocabulary for %s Latin</span></a><a class="row" href="%s"><span class="rt">Other set texts</span><span class="rm">the rest of the %s Latin literature options</span></a></div></div></div>' % (lvl_label(t['level']), sub['href'] + LEVEL_ANCHOR.get(t['level'], ''), lvl_label(t['level'])))
+    rail.append('<div class="panel"><div class="ph"><span class="t">Also for this paper</span></div><div class="pb"><div class="rows"><a class="row" href="%s"><span class="rt">Vocabulary tester</span><span class="rm">the defined vocabulary for %s %s</span></a><a class="row" href="%s"><span class="rt">Other set texts</span><span class="rm">the rest of the %s %s literature options</span></a></div></div></div>' % (tester, lvl_label(t['level']), lang, sub['href'] + LEVEL_ANCHOR.get(t['level'], ''), lvl_label(t['level']), lang))
     rail.append(TRACK)
     first = t['groups'][0]['sections'][0]['href'] if t['groups'] and t['groups'][0]['sections'] else None
     acts = ('<a class="btn green" href="%s">Start reading &rarr;</a>' % first) if first else ''
@@ -817,18 +823,20 @@ def build_settext(t):
       </aside>
     </div>
   </div>
-</main>''' % (crumbs([(sub['label'], sub['href']), (lvl_label(t['level']) + ' Latin', sub['href'] + LEVEL_ANCHOR.get(t['level'], ''))]), t['title'], t['deck'], acts, '\n'.join(left), '\n'.join(rail))
-    return page('%s — %s Latin — Classicalia' % (plain(t['title']), lvl_label(t['level'])), plain(t['deck']), t['href'], sub['active'], body)
+</main>''' % (crumbs([(sub['label'], sub['href']), (lvl_label(t['level']) + ' ' + lang, sub['href'] + LEVEL_ANCHOR.get(t['level'], ''))]), t['title'], t['deck'], acts, '\n'.join(left), '\n'.join(rail))
+    head = '<link rel="stylesheet" href="/version2/assets/css/settext-reader.css">\n' if t.get('intro') else ''
+    if lang == 'Greek':
+        head = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&subset=greek-ext&display=swap">\n' + head
+    return page('%s — %s %s — Classicalia' % (plain(t['title']), lvl_label(t['level']), lang), plain(t['deck']), t['href'], sub['active'], body, head, '', ' class="grc"' if lang == 'Greek' else '')
 
 def retouch_reader(rel):
-    """Lighter head on a set-text reading page: no starfield, the reader stylesheet."""
+    """Lighter head on a set-text reading page: no starfield. (The pages themselves
+    are written by build-settext.py, which links their stylesheet.)"""
     p = os.path.join(ROOT, rel)
+    if not os.path.exists(p): return False   # not built yet: build-settext.py writes it
     src = open(p, encoding='utf-8').read()
     out = re.sub(r'\n?[ \t]*<canvas class="header-sky"[^>]*></canvas>', '', src)
     out = re.sub(r'\n?[ \t]*<script src="/version2/assets/js/starfield.js"></script>', '', out)
-    link = '<link rel="stylesheet" href="/version2/assets/css/reader.css">'
-    if link not in out:
-        out = out.replace('<link rel="stylesheet" href="/version2/assets/css/shell.css">', link + '\n<link rel="stylesheet" href="/version2/assets/css/shell.css">', 1)
     if out != src:
         open(p, 'w', encoding='utf-8').write(out)
         return True

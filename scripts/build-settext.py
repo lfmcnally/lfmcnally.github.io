@@ -14,6 +14,10 @@ spec = importlib.util.spec_from_file_location('bc', os.path.join(ROOT, 'scripts/
 bc = importlib.util.module_from_spec(spec); spec.loader.exec_module(bc)
 page, crumbs, chip, plain, text, strip_tags, write = bc.page, bc.crumbs, bc.chip, bc.plain, bc.text, bc.strip_tags, bc.write
 SUBJECTS, LEVEL_ANCHOR, lvl_label = bc.SUBJECTS, bc.LEVEL_ANCHOR, bc.lvl_label
+# the language of each subject's texts, and its vocabulary tester
+LANG = {'latin': ('Latin', '/version2/tools/vocab/latinvocabtester.html'), 'greek': ('Greek', '/version2/tools/vocab/greekvocabtester.html')}
+# Lora has no Greek letters: Greek falls through to Noto Serif
+GREEK_FONT = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,600;1,400&subset=greek-ext&display=swap">\n'
 
 CATS = [('order', 'Word order'), ('structure', 'Repetition and structure'), ('sound', 'Sound and metre'), ('diction', 'Word choice'), ('imagery', 'Imagery and tone'), ('grammar', 'Grammar')]
 GRAM = [('subj', 'Subject'), ('obj', 'Object'), ('verb', 'Verb'), ('gen', 'Genitive'), ('dat', 'Dative'), ('abl', 'Ablative'), ('prep', 'Preposition'), ('conj', 'Conjunction'), ('adv', 'Adverb'), ('voc', 'Vocative'), ('gdv', 'Gerundive')]
@@ -30,9 +34,10 @@ def short_title(title):
 
 def docnav(t, current):
     sub = SUBJECTS[t['subject']]
+    lang, tester = LANG[t['subject']]
     out = ['<nav class="docnav" aria-label="Sections">',
            '<a class="course" href="%s">%s</a>' % (t['href'], t['title']),
-           '<div class="lvl">%s Latin · %s</div>' % (lvl_label(t['level']), t['code']),
+           '<div class="lvl">%s %s · %s</div>' % (lvl_label(t['level']), lang, t['code']),
            '<button class="btn line sm docnav-toggle" type="button" data-docnav-toggle aria-expanded="false">Sections</button>', '<div class="tree">']
     for g in t['groups']:
         head = ' · '.join(x for x in (g.get('lines', ''), g.get('label', '')) if x) or 'Sections'
@@ -41,7 +46,7 @@ def docnav(t, current):
             on = ' class="on" aria-current="page"' if s['href'] == current else ''
             out.append('<a href="%s"%s><span class="n">%d</span><span style="flex:1">%s</span></a>' % (s['href'], on, section_n(s['href']), short_title(s['title'])))
     out.append('</div>')
-    out.append('<div class="foot"><a href="%s">Contents</a><a href="/version2/tools/vocab/latinvocabtester.html">Vocabulary tester</a><a href="%s">%s Latin</a></div></nav>' % (t['href'], sub['href'] + LEVEL_ANCHOR.get(t['level'], ''), lvl_label(t['level'])))
+    out.append('<div class="foot"><a href="%s">Contents</a><a href="%s">Vocabulary tester</a><a href="%s">%s %s</a></div></nav>' % (t['href'], tester, sub['href'] + LEVEL_ANCHOR.get(t['level'], ''), lvl_label(t['level']), lang))
     return '\n'.join(out)
 
 def word_html(w, note_cat):
@@ -79,6 +84,7 @@ def unit_html(u, note_cat):
 
 def build_section(t, d, s, prev, nxt):
     sub = SUBJECTS[t['subject']]
+    lang, tester = LANG[t['subject']]
     note_cat = {n['id']: n['cat'] for n in d.get('notes', [])}
     words = [w for u in d['units'] for r in u['rows'] for w in r['words']]
     has_vocab = any(w.get('v') for w in words)
@@ -105,17 +111,17 @@ def build_section(t, d, s, prev, nxt):
     if has_gram:
         gkeys = '<div class="st-gkeys" hidden>%s</div>' % ''.join('<span class="chip g-%s">%s</span>' % (g, label) for g, label in grams_present)
     units = ''.join(unit_html(u, note_cat) for u in d['units'])
-    reader = '''<div class="panel st" id="st" data-mode="%s" data-default-en="%s" data-title="%s" data-clickers="%s">
+    reader = '''<div class="panel st" id="st" data-mode="%s" data-lang="%s" data-default-en="%s" data-title="%s" data-clickers="%s">
   <div class="st-bar">%s</div>
   %s%s
   <div class="st-body">
     <div class="st-main">
-      <div class="st-cols"><div class="st-colh">Latin</div><div class="st-colh">English</div></div>
+      <div class="st-cols"><div class="st-colh">%s</div><div class="st-colh">English</div></div>
       <div class="st-units">%s</div>
     </div>
     <aside class="st-side" hidden><div class="st-sidein"><div class="st-sideh"><span data-side-title>Word</span><button class="btn" data-unpin hidden>Unpin</button></div><div class="st-sidebody" data-side-body></div></div></aside>
   </div>
-</div>''' % (d['mode'], default_en, esc(t['title'] + ' · ' + d['title']), ' '.join(c for c, ok in (('vocab', has_vocab), ('style', bool(style_notes))) if ok), ''.join(bar), keys, gkeys, units)
+</div>''' % (d['mode'], lang, default_en, esc(t['title'] + ' · ' + d['title']), ' '.join(c for c, ok in (('vocab', has_vocab), ('style', bool(style_notes))) if ok), ''.join(bar), keys, gkeys, lang, units)
 
     # notes below the text, in the order they appear
     order = {}
@@ -133,12 +139,16 @@ def build_section(t, d, s, prev, nxt):
     if plain_notes:
         pn = sorted(plain_notes, key=lambda n: order.get(n['id'], 10 ** 6))
         panels.append('<div class="panel"><div class="ph"><span class="t">Notes on the text <small>%d</small></span></div><div class="pb st-notes">%s</div></div>' % (len(pn), ''.join(note_row(n) for n in pn)))
+    if d.get('questions'):
+        panels.append('<div class="panel"><div class="ph"><span class="t">Questions <small>to think about · %d</small></span></div><div class="pb st-qs"><ol>%s</ol></div></div>' % (len(d['questions']), ''.join('<li>%s</li>' % q for q in d['questions'])))
+    for c in d.get('context', []):
+        panels.append('<div class="panel"><div class="ph"><span class="t">%s <small>background</small></span></div><div class="pb st-context">%s</div></div>' % (c['h'], c['body']))
     if has_vocab:
         seen, items = set(), []
         for w in words:
             if not w.get('v') or w['v'] in seen: continue
             seen.add(w['v']); items.append('<div><b>%s</b> %s</div>' % (esc(w['v']), esc(w.get('m', ''))))
-        panels.append('<div class="panel"><div class="ph"><span class="t">Vocabulary <small>in this section · %d words</small></span><span class="n"><a href="/version2/tools/vocab/latinvocabtester.html" style="color:var(--brand);font-weight:600">Vocabulary tester</a></span></div><div class="pb st-vocab">%s</div></div>' % (len(items), ''.join(items)))
+        panels.append('<div class="panel"><div class="ph"><span class="t">Vocabulary <small>in this section · %d words</small></span><span class="n"><a href="%s" style="color:var(--brand);font-weight:600">Vocabulary tester</a></span></div><div class="pb st-vocab">%s</div></div>' % (len(items), tester, ''.join(items)))
 
     acts = []
     if prev: acts.append('<a class="btn line" href="%s">&larr; Previous</a>' % prev['href'])
@@ -148,7 +158,7 @@ def build_section(t, d, s, prev, nxt):
         if not x: return '<span></span>'
         return '<a class="%s" href="%s"><small>%s</small><b>%s</b></a>' % (cls, x['href'], lab, short_title(x['title']))
     pager = '<div class="pager">%s%s</div>' % (card(prev, 'prev', '&larr; Previous'), card(nxt, 'next', 'Next &rarr;'))
-    subline = ' · '.join(x for x in (esc(d.get('subtitle', '')), t['title'], '%s Latin' % lvl_label(t['level']), t['code']) if x)
+    subline = ' · '.join(x for x in (esc(d.get('subtitle', '')), t['title'], '%s %s' % (lvl_label(t['level']), lang), t['code']) if x)
 
     main = '''<div class="layout">
 %s
@@ -168,13 +178,14 @@ def build_section(t, d, s, prev, nxt):
     </div>
   </div>
 </main>
-</div>''' % (docnav(t, s['href']), crumbs([(sub['label'], sub['href']), (lvl_label(t['level']) + ' Latin', sub['href'] + LEVEL_ANCHOR.get(t['level'], '')), (t['title'], t['href'])]),
+</div>''' % (docnav(t, s['href']), crumbs([(sub['label'], sub['href']), (lvl_label(t['level']) + ' ' + lang, sub['href'] + LEVEL_ANCHOR.get(t['level'], '')), (t['title'], t['href'])]),
              esc(d['title']), subline, ''.join(acts), reader, '\n'.join(panels), pager)
     data_json = json.dumps({'notes': d.get('notes', []), 'mode': d['mode']}, ensure_ascii=False).replace('</', '<\\/')
     scripts = '<script type="application/json" id="st-data">%s</script>\n<script src="/version2/assets/js/settext-reader.js" defer></script>\n<script src="/version2/assets/js/lesson-page.js" defer></script>\n' % data_json
-    title = '%s · %s — %s Latin — Classicalia' % (plain(d['title']), plain(t['title']), lvl_label(t['level']))
-    desc = '%s. %s, %s Latin set text, read line by line with the translation, vocabulary and style notes.' % (plain(d.get('subtitle') or d['title']), plain(t['title']), lvl_label(t['level']))
-    return page(title, desc, s['href'], sub['active'], main, '<link rel="stylesheet" href="/version2/assets/css/settext-reader.css">\n', scripts, ' data-course="%s"' % t['href'])
+    title = '%s · %s — %s %s — Classicalia' % (plain(d['title']), plain(t['title']), lvl_label(t['level']), lang)
+    desc = '%s. %s, %s %s set text, read line by line with the translation, vocabulary and style notes.' % (plain(d.get('subtitle') or d['title']), plain(t['title']), lvl_label(t['level']), lang)
+    head = (GREEK_FONT if lang == 'Greek' else '') + '<link rel="stylesheet" href="/version2/assets/css/settext-reader.css">\n'
+    return page(title, desc, s['href'], sub['active'], main, head, scripts, ' data-course="%s"%s' % (t['href'], ' class="grc"' if lang == 'Greek' else ''))
 
 def main():
     n = 0
