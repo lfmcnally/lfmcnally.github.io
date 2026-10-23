@@ -240,12 +240,13 @@
   // ── Latin ↔ English links ──
   function unlink() { root.querySelectorAll('.lit').forEach(function (x) { x.classList.remove('lit'); }); }
   function link(target) {
+    // ids are unit.word, so a link can reach into the next or previous unit
     var el = target.closest('[data-id]');
-    var unit = target.closest('.st-unit');
+    var scope = target.closest('.st-units, .st-present') || root;
     unlink();
-    if (!el || !unit) return;
+    if (!el) return;
     var ids = el.dataset.id.split(',');
-    unit.querySelectorAll('[data-id]').forEach(function (x) {
+    scope.querySelectorAll('[data-id]').forEach(function (x) {
       var mine = x.dataset.id.split(',');
       if (mine.some(function (i) { return ids.indexOf(i) >= 0; })) x.classList.add('lit');
     });
