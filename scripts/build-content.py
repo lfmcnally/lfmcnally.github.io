@@ -622,7 +622,6 @@ TOOLS = {
     'latin': [
         ('Vocabulary tester', 'every defined word for GCSE, A-level and KS3, tested until it sticks', '/version2/tools/vocab/latinvocabtester.html', 'Start'),
         ("Today's Do Now", 'the chapter your teacher set for this lesson', '/version2/tools/vocab/latinvocabtester.html?mode=donow', ''),
-        ('Latin grammar gym', 'parse and translate, with feedback on every answer', '/version2/tools/grammar/latin-grammar-gym.html', ''),
         ('Noun endings', 'five declensions, all cases', '/version2/tools/grammar/noun-endings.html', ''),
         ('Verb endings', 'every tense, person and voice', '/version2/tools/grammar/verb-endings.html', ''),
         ('Practice test', 'build a test from any list and have it marked', '/version2/tools/practice-test.html', ''),
@@ -740,7 +739,6 @@ TOOL_GROUPS = [
     ('Practise', 'testers that remember what you find hard', [
         ('Latin vocabulary tester', 'every defined word for KS3, GCSE and A-level', '/version2/tools/vocab/latinvocabtester.html'),
         ('Greek vocabulary tester', 'the GCSE and A-level defined vocabulary', '/version2/tools/vocab/greekvocabtester.html'),
-        ('Latin grammar gym', 'parse and translate with feedback on every answer', '/version2/tools/grammar/latin-grammar-gym.html'),
         ('Noun endings', 'five declensions, all cases', '/version2/tools/grammar/noun-endings.html'),
         ('Verb endings', 'every tense, person and voice', '/version2/tools/grammar/verb-endings.html'),
         ('Practice test', 'build a test from any list, answer it on screen and have it marked', '/version2/tools/practice-test.html'),

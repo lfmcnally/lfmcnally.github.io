@@ -4,7 +4,7 @@
 // this adds the behaviour: worked examples reveal their English, and the
 // exercises at the foot mark a typed answer against the sentence's mark
 // scheme, phrase by phrase, with a verdict and a comment on each part.
-// Nothing is saved: the grammar gym is where progress is tracked.
+// Nothing is saved.
 (function () {
   'use strict';
   var doc = document.querySelector('.doc.gram');
