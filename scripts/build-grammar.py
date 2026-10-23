@@ -14,6 +14,7 @@ is the same as the Classical Civilisation revision pages'. Behaviour comes from
 import os, re, sys, json, html, importlib.util
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+VT = '/version2/tools/vocab/latinvocabtester.html'   # the practice link on every page
 spec = importlib.util.spec_from_file_location('bc', os.path.join(ROOT, 'scripts/build-content.py'))
 bc = importlib.util.module_from_spec(spec); spec.loader.exec_module(bc)
 
@@ -93,7 +94,7 @@ def build_lesson(course, topic, row, d):
 
     chips = [bc.chip('Lesson ' + row['n']), bc.chip(topic['title'])]
     acts = ['<button class="btn line" type="button" data-print onclick="window.print()">Print</button>',
-            '<a class="btn green" href="%s">Grammar gym &rarr;</a>' % course['gym']]
+            '<a class="btn green" href="#try">Try it &rarr;</a>']
 
     flat = [r for (t, r) in bc.flat_items(course)]
     idx = next((i for i, r in enumerate(flat) if r['href'] == row['href']), -1)
@@ -108,7 +109,7 @@ def build_lesson(course, topic, row, d):
     if d.get('key'):
         rail.append('<div class="panel"><div class="ph"><span class="t">At a glance</span></div><div class="pb"><ul class="kvl">%s</ul></div></div>' % ''.join('<li><b>%s</b><span>%s</span></li>' % (k, v) for k, v in d['key']))
     rail.append('<div class="panel toc-panel"><div class="ph"><span class="t">On this page</span></div><div class="pb"><ul class="toc" data-toc>%s</ul></div></div>' % ''.join(toc))
-    rail.append('<div class="exam"><div class="k">Practise it</div><p style="font-size:14.5px;color:var(--ink);margin:0 0 10px">The grammar gym has sentences on every point in this course, and remembers what you get wrong.</p><a class="btn green sm" href="%s">Open the grammar gym &rarr;</a></div>' % course['gym'])
+    rail.append('<div class="exam"><div class="k">Vocabulary</div><p style="font-size:14.5px;color:var(--ink);margin:0 0 10px">The words of every chapter are in the vocabulary tester, tested until they stick.</p><a class="btn green sm" href="%s">Vocabulary tester &rarr;</a></div>' % VT)
 
     crumb_items = bc.course_crumbs(course) + [(course['title'], course['href'])]
     body = '''<div class="layout">
@@ -152,8 +153,7 @@ def build_placeholder(course, topic, row):
         if not r: return '<span></span>'
         return '<a class="%s" href="%s"><small>%s</small><b>%s %s</b></a>' % (cls, r['href'], lab, r['n'], r['title'])
     pager = '<div class="pager">%s%s</div>' % (card(prev, 'prev', '&larr; Previous'), card(nxt, 'next', 'Next &rarr;'))
-    meanwhile = ['<a class="btn green sm" href="%s">Grammar gym &rarr;</a>' % course['gym']]
-    if chapter: meanwhile.append('<a class="btn line sm" href="/version2/tools/vocab/latinvocabtester.html">Chapter %s vocabulary &rarr;</a>' % chapter)
+    meanwhile = ['<a class="btn green sm" href="%s">%s &rarr;</a>' % (VT, ('Chapter %s vocabulary' % chapter) if chapter else 'Vocabulary tester')]
     crumb_items = bc.course_crumbs(course) + [(course['title'], course['href'])]
     body = '''<div class="layout">
 %s
@@ -162,7 +162,7 @@ def build_placeholder(course, topic, row):
     %s
     <div class="ptitle">
       <div><h1>%s</h1><div class="sub">%s</div></div>
-      <div class="acts"><a class="btn green" href="%s">Grammar gym &rarr;</a></div>
+      <div class="acts"></div>
     </div>
   </div>
   <div class="inner page">
@@ -173,21 +173,21 @@ def build_placeholder(course, topic, row):
 <section id="soon"><h2>This lesson is on its way</h2>
 <p class="lead">%s</p>
 <p>It will follow the same shape as the lessons already written: what the point is, how to spot it, how to translate it, what not to confuse it with, and sentences to try that are marked as you type.</p>
-<div class="note">Meanwhile, the grammar gym has practice on every point in this course%s.</div>
+<div class="note">Meanwhile, the vocabulary tester has %s.</div>
 <p style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">%s</p>
 </section>
         </article>
         %s
       </div>
       <aside class="rail">
-<div class="exam"><div class="k">Practise it</div><p style="font-size:14.5px;color:var(--ink);margin:0 0 10px">The grammar gym has sentences on every point in this course, and remembers what you get wrong.</p><a class="btn green sm" href="%s">Open the grammar gym &rarr;</a></div>
+<div class="exam"><div class="k">Vocabulary</div><p style="font-size:14.5px;color:var(--ink);margin:0 0 10px">The words of every chapter are in the vocabulary tester, tested until they stick.</p><a class="btn green sm" href="%s">Vocabulary tester &rarr;</a></div>
       </aside>
     </div>
   </div>
 </main>
-</div>''' % (bc.docnav(course, row['href']), bc.crumbs(crumb_items), row['title'], row['desc'], course['gym'],
+</div>''' % (bc.docnav(course, row['href']), bc.crumbs(crumb_items), row['title'], row['desc'],
              bc.chip('Lesson ' + row['n']) + bc.chip(topic['title']) + bc.chip('Coming soon', 'soon'), row['desc'],
-             (', and the vocabulary tester has the words of chapter %s' % chapter) if chapter else '', ''.join(meanwhile), pager, course['gym'])
+             ('the words of chapter %s' % chapter) if chapter else 'every chapter\'s words', ''.join(meanwhile), pager, VT)
     head_extra = '<link rel="stylesheet" href="/version2/assets/css/grammar.css">\n<meta name="robots" content="noindex">'
     scripts = '<script src="/version2/assets/js/lesson-page.js" defer></script>\n'
     title = '%s — %s — Classicalia' % (bc.plain(row['title']), course['title'])
@@ -207,8 +207,8 @@ def build_course_page(course):
         count = '%d of %d written' % (done, len(t['items'])) if done < len(t['items']) else '%d lessons' % len(t['items'])
         panels.append('<div class="panel" id="topic-%s"><div class="ph"><span class="t">%s · %s</span><span class="n">%s</span></div><div class="pb"><div class="rows">%s</div></div></div>' % (t['n'], t['n'], t['title'], count, ''.join(row(r) for r in t['items'])))
     start = ('<a class="btn green" href="%s">Start with %s &rarr;</a>' % (written[0]['href'], written[0]['title'])) if written else ''
-    about = '<div class="panel"><div class="ph"><span class="t">About this course</span></div><div class="pb"><ul class="kvl"><li><b>Board</b><span>%s</span></li><li><b>Level</b><span>GCSE Latin</span></li><li><b>Lessons</b><span>%d written of %d planned</span></li><li><b>Practice</b><span><a href="%s">Grammar gym</a> and the <a href="/version2/tools/vocab/latinvocabtester.html">vocabulary tester</a></span></li></ul></div></div>' % (
-        course['code'], len(written), sum(len(t['items']) for t in course['topics']), course['gym'])
+    about = '<div class="panel"><div class="ph"><span class="t">About this course</span></div><div class="pb"><ul class="kvl"><li><b>Board</b><span>%s</span></li><li><b>Level</b><span>GCSE Latin</span></li><li><b>Lessons</b><span>%d written of %d planned</span></li><li><b>Vocabulary</b><span><a href="%s">Vocabulary tester</a>, chapter by chapter</span></li></ul></div></div>' % (
+        course['code'], len(written), sum(len(t['items']) for t in course['topics']), VT)
     crumb_items = bc.course_crumbs(course)
     body = '''<div class="inner phead">
   %s

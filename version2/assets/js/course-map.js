@@ -84,7 +84,6 @@
   //             Each page is read live, so new lessons show up by themselves.
   const S = '/version2/subjects/', G = '/version2/tools/grammar/';
   const LATIN_GRAMMAR = [
-    { title: 'Grammar gym', desc: 'Mixed grammar practice, chapter by chapter.', href: G + 'latin-grammar-gym.html' },
     { title: 'Noun endings', desc: 'Fill in the noun tables until they’re automatic.', href: G + 'noun-endings.html' },
     { title: 'Verb endings', desc: 'Every tense, person and voice.', href: G + 'verb-endings.html' }
   ];
