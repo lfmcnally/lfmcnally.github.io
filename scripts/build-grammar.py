@@ -7,7 +7,7 @@
   -> version2/subjects/latin/language/gcse/<slug>/index.html  each written lesson
 
 A lesson is a list of sections, each a list of blocks: lead, p, facts, table,
-example, note, compare, exercise. The page frame (shell, docnav, rail, pager)
+example, note, compare, exercise (typed answers marked against a scheme). The page frame (shell, docnav, rail, pager)
 is the same as the Classical Civilisation revision pages'. Behaviour comes from
 /version2/assets/js/grammar-lesson.js, styles from /version2/assets/css/grammar.css.
 """
@@ -55,13 +55,19 @@ def compare(c):
     return ''.join(out) + '</div>'
 
 def exercise(x):
+    """A typed exercise: each item carries its mark scheme as data for grammar-lesson.js."""
     items = []
     for i, it in enumerate(x['items']):
-        opts = ''.join('<button class="gq-opt" type="button" data-k="%d"><b>%s</b><span>%s</span></button>' % (k, 'abc'[k], o) for k, o in enumerate(it['opts']))
-        items.append('<div class="gq-item" data-a="%d"><div class="gq-la"><em>%d</em>%s</div><div class="gq-opts">%s</div><div class="gq-why" hidden>%s</div></div>' % (it['a'], i + 1, it['la'], opts, it['why']))
-    return ('<div class="gq" id="gq-%s" data-total="%d"><div class="gq-head"><h3>%s</h3><span class="gq-score" data-score>0 of %d</span></div>'
-            '<p class="gq-intro">%s</p>%s<div class="gq-foot" hidden><span data-summary></span><button class="btn line sm" type="button" data-again>Try again</button></div></div>') % (
-        x['id'], len(x['items']), x['title'], len(x['items']), x['intro'], ''.join(items))
+        data = json.dumps({k: it[k] for k in it if k != 'la'}, ensure_ascii=False)
+        items.append('<div class="gq-item"><div class="gq-la"><em>%d</em>%s</div>'
+                     '<form class="gq-form" autocomplete="off"><input class="gq-in" type="text" name="a%d" placeholder="%s" aria-label="Your answer" spellcheck="false">'
+                     '<button class="btn navy sm" type="submit">Mark it</button></form>'
+                     '<div class="gq-res" hidden></div><script type="application/json" class="gq-data">%s</script></div>' % (
+                         i + 1, it['la'], i + 1, 'Type your translation' if x['task'] == 'translate' else 'Type the form', data.replace('</', '<\\/')))
+    total = sum(sum(c['marks'] for c in it['scheme']) for it in x['items']) if x['task'] == 'translate' else len(x['items'])
+    return ('<div class="gq" id="gq-%s" data-task="%s" data-total="%d"><div class="gq-head"><h3>%s</h3><span class="gq-score" data-score>0 of %d marks</span></div>'
+            '<p class="gq-intro">%s</p>%s<div class="gq-foot" hidden><span data-summary></span><button class="btn line sm" type="button" data-again>Clear and try again</button></div></div>') % (
+        x['id'], x['task'], total, x['title'], total, x['intro'], ''.join(items))
 
 def block(b):
     if 'lead' in b: return '<p class="lead">%s</p>' % b['lead']

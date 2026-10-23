@@ -2,7 +2,8 @@
 //
 // The page is rendered by scripts/build-grammar.py from data/<slug>.json;
 // this adds the behaviour: worked examples reveal their English, and the
-// exercises at the foot mark each answer, explain it, and keep a score.
+// exercises at the foot mark a typed answer against the sentence's mark
+// scheme, phrase by phrase, with a verdict and a comment on each part.
 // Nothing is saved: the grammar gym is where progress is tracked.
 (function () {
   'use strict';
@@ -17,7 +18,6 @@
     en.hidden = !en.hidden;
     b.textContent = en.hidden ? 'Show the English' : 'Hide the English';
   });
-  // the key under the first example, once
   var first = doc.querySelector('.gx');
   if (first) {
     var key = document.createElement('div'); key.className = 'gx-key';
@@ -25,44 +25,87 @@
     first.parentNode.insertBefore(key, first.nextSibling);
   }
 
-  // ── exercises ──
+  // ── marking ──
+  function norm(s) {
+    return String(s || '').toLowerCase()
+      .replace(/[āăá]/g, 'a').replace(/[ēĕé]/g, 'e').replace(/[īĭí]/g, 'i').replace(/[ōŏó]/g, 'o').replace(/[ūŭú]/g, 'u')
+      .replace(/[’‘]/g, "'").replace(/[^a-z' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  function test(re, s) { return new RegExp('\\b(?:' + re + ')', 'i').test(s); }   // a pattern may end mid-word, so 'stay' also takes 'staying'
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // a translation: every phrase of the scheme is full, half or missing
+  function markTranslation(it, answer) {
+    var a = norm(answer), got = 0, total = 0, rows = [];
+    it.scheme.forEach(function (c) {
+      total += c.marks;
+      var r = { what: c.what, say: c.say, marks: c.marks, got: 0, note: '' };
+      if ((c.need || []).some(function (re) { return test(re, a); })) { r.got = c.marks; }
+      else {
+        var t = (c.trap || []).filter(function (x) { return test(x.re, a); })[0];
+        var p = !t && (c.part || []).filter(function (x) { return test(x.re, a); })[0];
+        if (t) { r.note = t.say; }
+        else if (p) { r.got = c.marks > 1 ? Math.ceil(c.marks / 2) : 0.5; r.note = p.say; }   // half marks for the sense without the grammar
+      }
+      got += r.got; rows.push(r);
+    });
+    return { got: got, total: total, rows: rows, model: it.model };
+  }
+  // a verb form: right, a known near miss with its reason, or wrong
+  function markForm(it, answer) {
+    var a = norm(answer).replace(/ /g, '');
+    if (a === norm(it.answer)) return { got: 1, total: 1, right: true, note: it.why };
+    var alt = Object.keys(it.alts || {}).filter(function (k) { return norm(k) === a; })[0];
+    return { got: 0, total: 1, right: false, note: alt ? it.alts[alt] : 'Not quite: the form wanted is <em>' + esc(it.answer) + '</em>. ' + it.why, answer: it.answer };
+  }
+  function verdict(frac) {
+    return frac >= 1 ? ['full', 'Fully accurate'] : frac >= 0.75 ? ['near', 'Nearly there'] : frac >= 0.4 ? ['part', 'Partly right'] : ['again', 'Have another go'];
+  }
+  function fmt(n) { return (Math.round(n * 2) / 2).toString(); }
+
   doc.querySelectorAll('.gq').forEach(function (q) {
-    var total = +q.dataset.total, score = q.querySelector('[data-score]'), foot = q.querySelector('.gq-foot'), summary = q.querySelector('[data-summary]');
+    var task = q.dataset.task, total = +q.dataset.total;
+    var score = q.querySelector('[data-score]'), foot = q.querySelector('.gq-foot'), summary = q.querySelector('[data-summary]');
+    var items = Array.prototype.slice.call(q.querySelectorAll('.gq-item'));
     function state() {
-      var items = q.querySelectorAll('.gq-item'), done = 0, right = 0;
-      items.forEach(function (it) { if (it.classList.contains('done')) { done++; if (it.classList.contains('ok')) right++; } });
-      score.textContent = right + ' of ' + total;
-      if (done === total) {
+      var done = 0, got = 0;
+      items.forEach(function (it) { if (it.dataset.got != null) { done++; got += +it.dataset.got; } });
+      score.textContent = fmt(got) + ' of ' + total + ' marks';
+      if (done === items.length) {
         foot.hidden = false;
-        summary.textContent = right === total ? 'All ' + total + ' right. You have this one.' : right >= total - 1 ? right + ' of ' + total + '. One more look at the one you missed and you have it.' : right + ' of ' + total + '. Read the reasons, then try again.';
+        var v = verdict(got / total);
+        summary.innerHTML = '<b>' + v[1] + '</b> overall: ' + fmt(got) + ' of ' + total + '. ' + (v[0] === 'full' ? 'You have this one.' : v[0] === 'near' ? 'Read the comments on the parts you missed and it is yours.' : 'Read the comments, then clear and try again.');
       }
     }
-    q.addEventListener('click', function (e) {
-      var opt = e.target.closest('.gq-opt');
-      if (opt) {
-        var it = opt.closest('.gq-item');
-        if (it.classList.contains('done')) return;
-        var k = +opt.dataset.k, a = +it.dataset.a;
-        it.classList.add('done');
-        if (k === a) { opt.classList.add('right'); it.classList.add('ok'); }
-        else { opt.classList.add('wrong'); it.querySelector('.gq-opt[data-k="' + a + '"]').classList.add('right'); }
-        it.querySelector('.gq-why').hidden = false;
+    items.forEach(function (it) {
+      var data = JSON.parse(it.querySelector('.gq-data').textContent), form = it.querySelector('.gq-form'), input = it.querySelector('.gq-in'), res = it.querySelector('.gq-res');
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var answer = input.value.trim(); if (!answer) { input.focus(); return; }
+        var h = '';
+        if (task === 'translate') {
+          var m = markTranslation(data, answer), v = verdict(m.got / m.total);
+          h += '<div class="gq-verdict v-' + v[0] + '"><b>' + v[1] + '</b><span>' + fmt(m.got) + ' of ' + m.total + ' marks</span></div>';
+          h += '<ul class="gq-scheme">' + m.rows.map(function (r) {
+            var cls = r.got >= r.marks ? 'ok' : r.got > 0 ? 'half' : 'no';
+            return '<li class="' + cls + '"><i>' + (cls === 'ok' ? '✓' : cls === 'half' ? '½' : '✗') + '</i><span class="la">' + esc(r.what) + '</span><span class="en">' + esc(r.say) + '</span><span class="m">' + fmt(r.got) + '/' + r.marks + '</span>' + (r.note ? '<div class="why">' + r.note + '</div>' : '') + '</li>';
+          }).join('') + '</ul>';
+          h += '<div class="gq-model"><b>A model answer:</b> ' + esc(m.model) + '</div>';
+          it.dataset.got = m.got;
+        } else {
+          var f = markForm(data, answer), fv = f.right ? ['full', 'Right'] : ['again', 'Not yet'];
+          h += '<div class="gq-verdict v-' + fv[0] + '"><b>' + fv[1] + '</b><span>' + f.got + ' of 1</span></div><div class="why">' + f.note + '</div>';
+          it.dataset.got = f.got;
+        }
+        res.innerHTML = h; res.hidden = false; it.classList.add('done');
         state();
-        return;
-      }
-      if (e.target.closest('[data-again]')) {
-        q.querySelectorAll('.gq-item').forEach(function (it) { it.classList.remove('done', 'ok'); it.querySelectorAll('.gq-opt').forEach(function (o) { o.classList.remove('right', 'wrong'); }); it.querySelector('.gq-why').hidden = true; });
-        foot.hidden = true; state();
-        q.scrollIntoView({ block: 'start', behavior: 'smooth' });
-      }
+      });
     });
-    // keys a, b, c answer the first unanswered item while the exercise has focus
-    q.tabIndex = 0;
-    q.addEventListener('keydown', function (e) {
-      var k = 'abc'.indexOf(e.key.toLowerCase());
-      if (k < 0) return;
-      var it = q.querySelector('.gq-item:not(.done)'); if (!it) return;
-      var opt = it.querySelector('.gq-opt[data-k="' + k + '"]'); if (opt) { opt.click(); e.preventDefault(); }
+    q.querySelector('[data-again]').addEventListener('click', function () {
+      items.forEach(function (it) { delete it.dataset.got; it.classList.remove('done'); it.querySelector('.gq-in').value = ''; var r = it.querySelector('.gq-res'); r.hidden = true; r.innerHTML = ''; });
+      foot.hidden = true; state();
+      q.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      var inp = q.querySelector('.gq-in'); if (inp) inp.focus();
     });
   });
 })();
