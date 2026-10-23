@@ -49,7 +49,7 @@ def docnav(t, current):
     out.append('<div class="foot"><a href="%s">Contents</a><a href="%s">Vocabulary tester</a><a href="%s">%s %s</a></div></nav>' % (t['href'], tester, sub['href'] + LEVEL_ANCHOR.get(t['level'], ''), lvl_label(t['level']), lang))
     return '\n'.join(out)
 
-def word_html(w, note_cat):
+def word_html(w, note_cat, uid):
     cls = ['w']
     attrs = []
     if w.get('notes'):
@@ -63,19 +63,21 @@ def word_html(w, note_cat):
         if w.get('m'): attrs.append('data-m="%s"' % esc(w['m']))
         if w.get('p'): attrs.append('data-p="%s"' % esc(w['p']))
         if w.get('x'): attrs.append('data-x="%s"' % esc(w['x']))
-    if w.get('id') is not None: attrs.append('data-id="%s"' % esc(w['id']))
+    # the word's address is unit.word, so that the English of a neighbouring unit can link to it
+    if w.get('id') is not None: attrs.append('data-id="%s.%s"' % (esc(uid), esc(w['id'])))
     return '<span class="%s" %s>%s</span>' % (' '.join(cls), ' '.join(attrs), esc(w['w']))
 
-def marked_html(s):
+def marked_html(s, uid):
+    # [text|5] links to word 5 of this unit, [text|3.2] to word 2 of unit 3
     s = esc(s)
-    s = re.sub(r'\[([^|\]]*)\|([\d,]+)\]', r'<span class="e" data-id="\2">\1</span>', s)
+    s = re.sub(r'\[([^|\]]*)\|([\d.,]+)\]', lambda m: '<span class="e" data-id="%s">%s</span>' % (','.join(i if '.' in i else '%s.%s' % (uid, i) for i in m.group(2).split(',')), m.group(1)), s)
     s = re.sub(r'\{([^|}]*)\|([^}]*)\}', r'<span class="sup" title="\2">\1</span>', s)
     return s
 
 def unit_html(u, note_cat):
-    lat = ''.join('<div class="st-row"><em>%s</em><span class="st-la">%s</span></div>' % (esc(r.get('n', '')), ' '.join(word_html(w, note_cat) for w in r['words'])) for r in u['rows'])
+    lat = ''.join('<div class="st-row"><em>%s</em><span class="st-la">%s</span></div>' % (esc(r.get('n', '')), ' '.join(word_html(w, note_cat, u['id']) for w in r['words'])) for r in u['rows'])
     if u.get('en_marked'):
-        eng = '<div class="st-en-block">%s</div>' % marked_html(u['en_marked'])
+        eng = '<div class="st-en-block">%s</div>' % marked_html(u['en_marked'], u['id'])
     elif any(r.get('en') for r in u['rows']):
         eng = ''.join('<div class="st-row"><em>%s</em><span class="st-en">%s</span></div>' % (esc(r.get('n', '')), esc(r.get('en', ''))) for r in u['rows'])
     else:
