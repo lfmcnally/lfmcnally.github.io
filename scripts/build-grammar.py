@@ -71,7 +71,11 @@ def exercise(x):
             '<p class="gq-intro">%s</p>%s<div class="gq-foot" hidden><span data-summary></span><button class="btn line sm" type="button" data-again>Clear and try again</button></div></div>') % (
         x['id'], x['task'], total, x['title'], total, x['intro'], ''.join(items))
 
+KEY = {'html': ''}   # the colour key for the marked examples, set per lesson and shown once
+
 def block(b):
+    if 'example' in b and KEY['html']:
+        out = example(b['example']) + KEY['html']; KEY['html'] = ''; return out
     if 'lead' in b: return '<p class="lead">%s</p>' % b['lead']
     if 'p' in b: return '<p>%s</p>' % b['p']
     if 'facts' in b: return facts(b['facts'])
@@ -85,10 +89,12 @@ def block(b):
 # ── pages ──
 def build_lesson(course, topic, row, d):
     sections, toc = [], []
+    m = d.get('marks') or {}
+    KEY['html'] = ('<div class="gx-key"><span><i style="background:#34d399"></i>%s</span><span><i style="background:#60a5fa"></i>%s</span></div>' % (m['c'], m['v'])) if m else ''
     for s in d['sections']:
         body = '\n'.join(block(b) for b in s['blocks'])
         if s.get('exam'):
-            body = '<div class="explain-block"><div class="explain-label">Exam focus</div>%s</div>' % body
+            body = '<div class="explain-block"><div class="explain-label">%s</div>%s</div>' % (s.get('label', 'Exam focus'), body)
         sections.append('<section id="%s"><h2>%s</h2>\n%s\n</section>' % (s['id'], s['h2'], body))
         toc.append('<li><a href="#%s">%s</a></li>' % (s['id'], bc.strip_tags(s['h2'])))
 

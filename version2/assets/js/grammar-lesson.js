@@ -18,12 +18,6 @@
     en.hidden = !en.hidden;
     b.textContent = en.hidden ? 'Show the English' : 'Hide the English';
   });
-  var first = doc.querySelector('.gx');
-  if (first) {
-    var key = document.createElement('div'); key.className = 'gx-key';
-    key.innerHTML = '<span><i style="background:#34d399"></i>opens the clause</span><span><i style="background:#60a5fa"></i>the subjunctive that closes it</span>';
-    first.parentNode.insertBefore(key, first.nextSibling);
-  }
 
   // ── marking ──
   function norm(s) {
@@ -53,10 +47,10 @@
   }
   // a verb form: right, a known near miss with its reason, or wrong
   function markForm(it, answer) {
-    var a = norm(answer).replace(/ /g, '');
-    if (a === norm(it.answer)) return { got: 1, total: 1, right: true, note: it.why };
+    var a = norm(answer).replace(/ /g, ''), answers = [].concat(it.answer);   // one form, or several that are all right
+    if (answers.some(function (x) { return a === norm(x).replace(/ /g, ''); })) return { got: 1, total: 1, right: true, note: it.why };
     var alt = Object.keys(it.alts || {}).filter(function (k) { return norm(k) === a; })[0];
-    return { got: 0, total: 1, right: false, note: alt ? it.alts[alt] : 'Not quite: the form wanted is <em>' + esc(it.answer) + '</em>. ' + it.why, answer: it.answer };
+    return { got: 0, total: 1, right: false, note: alt ? it.alts[alt] : 'Not quite: the form wanted is <em>' + esc(answers[0]) + '</em>. ' + it.why, answer: answers[0] };
   }
   function verdict(frac) {
     return frac >= 1 ? ['full', 'Fully accurate'] : frac >= 0.75 ? ['near', 'Nearly there'] : frac >= 0.4 ? ['part', 'Partly right'] : ['again', 'Have another go'];
