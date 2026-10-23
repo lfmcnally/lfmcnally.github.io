@@ -71,6 +71,13 @@ def exercise(x):
             '<p class="gq-intro">%s</p>%s<div class="gq-foot" hidden><span data-summary></span><button class="btn line sm" type="button" data-again>Clear and try again</button></div></div>') % (
         x['id'], x['task'], total, x['title'], total, x['intro'], ''.join(items))
 
+# Print opens a choice of worksheet; grammar-print.js builds it from the lesson data
+PRINT_MENU = ('<div class="pmenu" data-ws-menu><button class="btn line" type="button" data-print aria-haspopup="true" aria-expanded="false">Print &#9662;</button>'
+              '<div class="pmenu-list" hidden>'
+              '<button type="button" data-ws="A"><b>Revision sheet</b><span>The notes in full, then the exercises with writing lines</span></button>'
+              '<button type="button" data-ws="B"><b>Exercise sheet</b><span>A short reminder box, then the exercises with marks</span></button>'
+              '</div></div>')
+
 KEY = {'html': ''}   # the colour key for the marked examples, set per lesson and shown once
 
 def block(b):
@@ -99,8 +106,7 @@ def build_lesson(course, topic, row, d):
         toc.append('<li><a href="#%s">%s</a></li>' % (s['id'], bc.strip_tags(s['h2'])))
 
     chips = [bc.chip('Lesson ' + row['n']), bc.chip(topic['title'])]
-    acts = ['<button class="btn line" type="button" data-print onclick="window.print()">Print</button>',
-            '<a class="btn green" href="#try">Try it &rarr;</a>']
+    acts = [PRINT_MENU, '<a class="btn green" href="#try">Try it &rarr;</a>']
 
     flat = [r for (t, r) in bc.flat_items(course)]
     idx = next((i for i, r in enumerate(flat) if r['href'] == row['href']), -1)
@@ -144,8 +150,11 @@ def build_lesson(course, topic, row, d):
   </div>
 </main>
 </div>''' % (bc.docnav(course, row['href']), bc.crumbs(crumb_items), d['title'], d['deck'], ''.join(acts), ''.join(chips), '\n'.join(sections), pager, '\n'.join(rail))
-    head_extra = '<link rel="stylesheet" href="/version2/assets/css/grammar.css">'
-    scripts = '<script src="/version2/assets/js/grammar-lesson.js" defer></script>\n<script src="/version2/assets/js/lesson-page.js" defer></script>\n'
+    head_extra = '<link rel="stylesheet" href="/version2/assets/css/grammar.css">\n<link rel="stylesheet" href="/version2/assets/css/worksheet.css">'
+    # the lesson again as data, for the printed worksheets
+    ws = dict(d, kicker='%s %s · Lesson %s' % (course['level'], course['title'], row['n']))
+    scripts = ('<script type="application/json" id="ws-data">%s</script>\n' % json.dumps(ws, ensure_ascii=False).replace('</', '<\\/') +
+               '<script src="/version2/assets/js/grammar-lesson.js" defer></script>\n<script src="/version2/assets/js/grammar-print.js" defer></script>\n<script src="/version2/assets/js/lesson-page.js" defer></script>\n')
     title = '%s — %s — Classicalia' % (bc.plain(d['title']), course['title'])
     return bc.page(title, d['desc'], row['href'], 'latin', body, head_extra, scripts, ' data-course="%s"' % course['href'])
 
