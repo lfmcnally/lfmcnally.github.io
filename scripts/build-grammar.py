@@ -39,7 +39,27 @@ def load_course():
 def facts(items):
     return '<ul class="facts">%s</ul>' % ''.join('<li>%s</li>' % x for x in items)
 
+NUMBER = re.compile(r'^(.*?)\s*\b(singular|plural)$')
+
+def number_groups(rows):
+    """Rows labelled "nominative singular", "1st plural" and so on, as [(number, [(label, cells)])]; None for any other table."""
+    ms = [NUMBER.match(bc.strip_tags(r[0])) for r in rows]
+    if not rows or not all(ms): return None
+    groups = []
+    for r, m in zip(rows, ms):
+        if not groups or groups[-1][0] != m.group(2): groups.append((m.group(2), []))
+        groups[-1][1].append((m.group(1), r[1:]))
+    return groups
+
 def table(t):
+    groups = number_groups(t['rows'])
+    if groups:   # a case or person table: the number once, in its own column, one body each
+        head = '<tr><th></th>%s</tr>' % ''.join('<th>%s</th>' % h for h in t['head'])
+        bodies = ''.join('<tbody>%s</tbody>' % ''.join(
+            '<tr>%s<td class="case">%s</td>%s</tr>' % ('<th class="num" scope="rowgroup" rowspan="%d">%s</th>' % (len(rows), n) if i == 0 else '',
+                                                    label, ''.join('<td>%s</td>' % c for c in cells))
+            for i, (label, cells) in enumerate(rows)) for n, rows in groups)
+        return '<div class="tbl-wrap"><table class="by-number"><thead>%s</thead>%s</table></div>' % (head, bodies)
     head = '<tr>%s</tr>' % ''.join('<th>%s</th>' % h for h in t['head'])
     rows = ''.join('<tr>%s</tr>' % ''.join('<td>%s</td>' % c for c in r) for r in t['rows'])
     return '<div class="tbl-wrap"><table><thead>%s</thead><tbody>%s</tbody></table></div>' % (head, rows)

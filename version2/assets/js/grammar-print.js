@@ -30,9 +30,24 @@
   // ── pieces ──
   function who() { return '<div class="who"><span>Name</span><span>Class</span><span>Date</span></div>'; }
   function lines(n) { return '<div class="lines" style="--n:' + n + '"></div>'; }
+  function cells(r) { return r.map(function (c) { return '<td>' + c + '</td>'; }).join(''); }
   function table(t) {
-    return '<table><thead><tr>' + t.head.map(function (h) { return '<th>' + h + '</th>'; }).join('') + '</tr></thead><tbody>' +
-      t.rows.map(function (r) { return '<tr>' + r.map(function (c) { return '<td>' + c + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>';
+    var head = t.head.map(function (h) { return '<th>' + h + '</th>'; }).join('');
+    // rows labelled "nominative singular" and so on: the number once, in its own column, as on the lesson page
+    var ms = t.rows.map(function (r) { return r[0].replace(/<[^>]+>/g, '').match(/^(.*?)\s*\b(singular|plural)$/); });
+    if (t.rows.length && ms.every(Boolean)) {
+      var groups = [];
+      t.rows.forEach(function (r, i) {
+        if (!groups.length || groups[groups.length - 1].n !== ms[i][2]) groups.push({ n: ms[i][2], rows: [] });
+        groups[groups.length - 1].rows.push([ms[i][1]].concat(r.slice(1)));
+      });
+      return '<table class="by-number"><thead><tr><th></th>' + head + '</tr></thead>' + groups.map(function (g) {
+        return '<tbody>' + g.rows.map(function (r, i) {
+          return '<tr>' + (i ? '' : '<th class="num" rowspan="' + g.rows.length + '">' + g.n + '</th>') + '<td class="case">' + r[0] + '</td>' + cells(r.slice(1)) + '</tr>';
+        }).join('') + '</tbody>';
+      }).join('') + '</table>';
+    }
+    return '<table><thead><tr>' + head + '</tr></thead><tbody>' + t.rows.map(function (r) { return '<tr>' + cells(r) + '</tr>'; }).join('') + '</tbody></table>';
   }
   function list(items) { return '<ul>' + items.map(function (f) { return '<li>' + f + '</li>'; }).join('') + '</ul>'; }
   function glance(cls) { return '<dl class="' + cls + '">' + (L.key || []).map(function (k) { return '<dt>' + k[0] + '</dt><dd>' + k[1] + '</dd>'; }).join('') + '</dl>'; }
@@ -134,8 +149,8 @@
         var el = document.createElement('div');
         el.innerHTML = html; c.appendChild(el);
         while (over() && c.children.length > 1) {
-          // a long table that ends the block splits between pages, its header repeated; anything else moves over whole
-          var t = el.lastElementChild, rows = t && t.tagName === 'TABLE' ? t.tBodies[0].rows : [], rest = null;
+          // a long table that ends the block splits between pages, its header repeated; anything else, a table grouped by number included, moves over whole
+          var t = el.lastElementChild, rows = t && t.tagName === 'TABLE' && t.tBodies.length === 1 ? t.tBodies[0].rows : [], rest = null;
           if (rows.length > 5) {
             rest = t.cloneNode(true); var rb = rest.tBodies[0]; rb.innerHTML = '';
             while (over() && rows.length > 3) rb.insertBefore(rows[rows.length - 1], rb.firstChild);
