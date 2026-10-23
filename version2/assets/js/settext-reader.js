@@ -158,7 +158,7 @@
   }
   var ARTICLE = { adjective: 'an', adverb: 'an', interjection: 'an', infinitive: 'an', article: 'an' };
   function vocabHtml(w) {
-    var d = w.dataset, pr = parse(d.p), form = (w.textContent || '').replace(/^[\s'"‘“(]+|[\s.,;:!?'"’”)]+$/g, '');
+    var d = w.dataset, pr = parse(d.p), form = (w.textContent || '').replace(/^[\s'"‘“(]+|[\s.,;:!?'"’”)\u035c—–-]+$/g, '');
     var has = {}; pr.rows.forEach(function (r) { has[r[0]] = r[1]; });
     if (!pr.pos && (has.Person || has.Tense || has.Mood)) pr.pos = 'verb';
     var h = '<div class="entry"><div class="hw">' + esc(d.v) + '</div>' + (pr.pos ? '<div class="pos">' + esc(pr.pos) + '</div>' : '') + (d.m ? '<div class="mean">' + esc(d.m) + '</div>' : '');
