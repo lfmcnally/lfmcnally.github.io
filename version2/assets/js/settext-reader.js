@@ -118,7 +118,7 @@
   // a click on a word the clicker handles pins it; anywhere else in a unit reveals the English
   root.querySelectorAll('.st-unit').forEach(function (u) {
     u.addEventListener('click', function (e) {
-      var linkable = e.target.closest('.e, .w[data-id]') && root.querySelector('.st-en-block .e');
+      var linkable = e.target.closest('.e, .w[data-id]') && root.querySelector('.st-eng .e');
       var w = clicker ? e.target.closest(selectorFor(clicker)) : null;
       if (w) {
         // a second click on the word lets it go, highlight and all
@@ -251,6 +251,31 @@
       if (mine.some(function (i) { return ids.indexOf(i) >= 0; })) x.classList.add('lit');
     });
   }
+
+  // hovering a word, in the text or in the English, lights up its partner;
+  // only where the English is showing, so a hidden translation stays hidden
+  function partners(el) {
+    var ids = el.dataset.id.split(',');
+    var scope = el.closest('.st-units, .st-present') || root;
+    return Array.prototype.filter.call(scope.querySelectorAll('[data-id]'), function (x) {
+      return x.dataset.id.split(',').some(function (i) { return ids.indexOf(i) >= 0; });
+    });
+  }
+  var hovered = [];
+  function unhover() { hovered.forEach(function (x) { x.classList.remove('hov'); }); hovered = []; }
+  document.addEventListener('mouseover', function (e) {
+    if (!canHover) return;
+    var el = e.target.closest && e.target.closest('.st-la .w[data-id], .st-eng .e');
+    if (!el) { if (hovered.length) unhover(); return; }
+    if (hovered.indexOf(el) >= 0) return;
+    unhover();
+    var unit = el.closest('.st-unit');
+    var present = el.closest('.st-present');
+    if (!present && unit && !unit.classList.contains('on')) return;
+    if (present && present.classList.contains('hide-en')) return;
+    hovered = partners(el);
+    hovered.forEach(function (x) { x.classList.add('hov'); });
+  });
 
   // ── classroom view ──
   var present = null;
