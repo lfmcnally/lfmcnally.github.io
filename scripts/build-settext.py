@@ -79,7 +79,8 @@ def unit_html(u, note_cat):
     if u.get('en_marked'):
         eng = '<div class="st-en-block">%s</div>' % marked_html(u['en_marked'], u['id'])
     elif any(r.get('en') for r in u['rows']):
-        eng = ''.join('<div class="st-row"><em>%s</em><span class="st-en">%s</span></div>' % (esc(r.get('n', '')), esc(r.get('en', ''))) for r in u['rows'])
+        # line by line; a row's en_marked links its English to the words, as a unit's does
+        eng = ''.join('<div class="st-row"><em>%s</em><span class="st-en">%s</span></div>' % (esc(r.get('n', '')), marked_html(r['en_marked'], u['id']) if r.get('en_marked') else esc(r.get('en', ''))) for r in u['rows'])
     else:
         eng = '<div class="st-en-block">%s</div>' % esc(u.get('en', ''))
     return '<div class="st-unit" data-unit="%s"><div class="st-lat">%s</div><div class="st-eng">%s</div></div>' % (u['id'], lat, eng)
