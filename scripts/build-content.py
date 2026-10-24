@@ -12,6 +12,10 @@
 
 Run extract-manifest.py first. Re-running is safe: lesson pages that have
 already been converted are read from git at the pre-conversion commit.
+To change a lesson's content, edit (or add) its source under
+scripts/lesson-src/, at the same path as the page (for example
+scripts/lesson-src/version2/subjects/classical-civilisation/the-homeric-world/2-2-hunting-elite/revision.html),
+in the old revision-page markup, and rebuild with --only lessons.
 
 Usage:  python3 scripts/build-content.py [--rev <git rev>] [--only lessons|courses|subjects|settexts|stubs|tools]
 """
@@ -36,7 +40,13 @@ LEVEL_ANCHOR = {'GCSE': '#gcse', 'A-level': '#alevel'}
 
 # ───────────────────────── helpers ─────────────────────────
 def read_src(rel):
-    """A lesson page as it was before conversion (git), else from disk."""
+    """A lesson page as it was before conversion: its source in
+    scripts/lesson-src/ if it has one (where lessons are edited now),
+    else from git at the pre-conversion commit, else from disk."""
+    own = os.path.join(ROOT, 'scripts', 'lesson-src', rel)
+    if os.path.exists(own):
+        with open(own, encoding='utf-8') as f:
+            return f.read()
     try:
         return subprocess.check_output(['git', 'show', '%s:%s' % (REV, rel)], cwd=ROOT, stderr=subprocess.DEVNULL).decode('utf-8')
     except subprocess.CalledProcessError:
