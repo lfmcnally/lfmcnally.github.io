@@ -25,6 +25,8 @@
 <link rel="stylesheet" href="/version2/assets/css/shell.css">
 <!-- Password reset links can land here; hand them to the reset page before anything else runs. -->
 <script src="/auth/recovery-guard.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="/version2/assets/js/supabase-client.js" defer></script>
 <script src="/version2/assets/js/shell.js" defer></script>
 <style>
 /* Classicalia homepage. Product-led: large upright headlines, white space, one deep colour, and the product itself
@@ -287,9 +289,10 @@ footer .copy { margin-left: auto; font-size: 13.5px; color: var(--muted); }
   <div class="proof">
     <div class="inner">
       <div><b>50+</b>schools</div>
-      <div><b>400+</b>students and teachers</div>
+      <div><b>1,000+</b>students and teachers</div>
       <div><b>3</b>subjects, KS3 to A-level</div>
       <div><b>0</b>adverts</div>
+      <div id="statVisits" hidden><b>&mdash;</b>visits</div>
     </div>
   </div>
 
@@ -471,6 +474,16 @@ footer .copy { margin-left: auto; font-size: 13.5px; color: var(--muted); }
     const href = teacher ? '/version2/tracking/teacher.html' : '/version2/tracking/dashboard.html';
     const label = teacher ? 'Go to my classes' : 'Go to my courses';
     for (const id of ['heroCta', 'closeCta']) { const el = document.getElementById(id); if (el) { el.href = href; el.textContent = label; } }
+  });
+
+  // Live visit tally: each load bumps it and shows the new total. Stays hidden if Supabase is unavailable.
+  document.addEventListener('DOMContentLoaded', async () => {
+    const el = document.getElementById('statVisits');
+    if (!el || !window.supabase || !window.supabase.rpc) return;
+    try {
+      const { data, error } = await window.supabase.rpc('increment_site_stat', { stat_key: 'visits' });
+      if (!error && data != null) { el.querySelector('b').textContent = Number(data).toLocaleString('en-GB'); el.hidden = false; }
+    } catch (_e) { /* leave it hidden */ }
   });
 
   // Sample confidence map, deterministic: the first chapters mostly secure, later ones thinning out.
