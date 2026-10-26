@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slides and visualiser — Classicalia</title>
+<meta name="description" content="Show your slides and a live visualiser or whiteboard side by side, full screen, and write on either.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<style>
+  html, body { height: 100%; }
+  body { background: #07101f; display: flex; flex-direction: column; min-height: 100vh; font-family: 'DM Sans', sans-serif; }
+
+  /* compact top bar, as on the visualiser */
+  .pr-top { background: var(--navy); flex-shrink: 0; }
+  .pr-top-inner { padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .pr-brand { display: flex; align-items: center; gap: 12px; }
+  .pr-logo { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 18px; color: #fff; text-decoration: none; }
+  .pr-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #6ba0ff; }
+  .pr-back { font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,.75); text-decoration: none; border: 1px solid rgba(255,255,255,.25); padding: 6px 13px; border-radius: 999px; }
+  .pr-back:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+  /* the app: the two panes, and the dock along the bottom */
+  .pr-app { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; background: #000; }
+  .pr-app:fullscreen { width: 100vw; height: 100vh; }
+  .pr-work { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+  .pr-pane { position: absolute; overflow: hidden; background: #000; }
+  .pr-pane.is-hidden { display: none; }
+  .pr-pane.is-float { z-index: 4; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,.6); outline: 2px solid rgba(255,255,255,.25); }
+  .pr-pane-stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+
+  /* the bar dividing the panes: drag it to change their sizes */
+  .pr-divider { position: absolute; z-index: 3; background: #1b2740; touch-action: none; }
+  .pr-divider::after { content: ''; position: absolute; border-radius: 3px; background: rgba(255,255,255,.35); }
+  .pr-divider.v { cursor: col-resize; }
+  .pr-divider.v::after { width: 4px; height: 44px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+  .pr-divider.h { cursor: row-resize; }
+  .pr-divider.h::after { height: 4px; width: 44px; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+  .pr-divider:hover, .pr-divider.dragging { background: var(--brand); }
+  .pr-divider.is-hidden { display: none; }
+
+  /* a floating pane's handles: a bar to move it, a corner to size it */
+  .pr-move { display: none; position: absolute; top: 0; left: 0; right: 0; height: 26px; z-index: 6; cursor: move; touch-action: none;
+    background: linear-gradient(rgba(10,18,32,.75), rgba(10,18,32,0)); }
+  .pr-move::before { content: ''; position: absolute; left: 50%; top: 9px; width: 40px; height: 4px; margin-left: -20px; border-radius: 2px; background: rgba(255,255,255,.55); }
+  .pr-size { display: none; position: absolute; right: 0; bottom: 0; width: 22px; height: 22px; z-index: 6; cursor: nwse-resize; touch-action: none;
+    background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,.6) 50%); border-bottom-right-radius: 10px; }
+  .pr-pane.is-float .pr-move, .pr-pane.is-float .pr-size { display: block; }
+
+  /* slides */
+  .pr-slide { position: relative; flex: none; background: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,.06); }
+  .pr-slide > canvas.pr-page, .pr-slide > img { display: block; width: 100%; height: 100%; }
+  .pr-slide > iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+  .pr-pptx { position: absolute; left: 0; top: 0; transform-origin: top left; }
+  .pr-pptx .pptx-preview-wrapper { background: transparent !important; height: auto !important; overflow: visible !important; }
+  .pr-pptx .pptx-preview-slide-wrapper { margin: 0 !important; }
+  .pr-ink { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; pointer-events: none; }
+  .pen-on .pr-ink { pointer-events: auto; cursor: crosshair; }
+
+  /* the visualiser */
+  .pr-frame { position: relative; flex-shrink: 0; transform-origin: center center; will-change: transform; }
+  .pr-frame video { width: 100%; height: 100%; display: block; }
+  .pr-cam.zoomed .pr-frame { cursor: grab; }
+  .pr-cam.panning .pr-frame { cursor: grabbing; }
+  .pr-board { position: absolute; inset: 0; background-color: #fff; }
+  .pr-board[data-paper="lined"] { background-image: linear-gradient(transparent 39px, #b9cdf0 39px, #b9cdf0 40px); background-size: 100% 40px; }
+  .pr-board[data-paper="squared"] { background-image: linear-gradient(#d6e2f6 1px, transparent 1px), linear-gradient(90deg, #d6e2f6 1px, transparent 1px); background-size: 32px 32px; }
+  .pr-board[data-paper="dark"] { background-color: #12301f; }
+
+  /* a pane's own controls, along its foot */
+  .pr-bar { position: absolute; left: 0; right: 0; margin: 0 auto; width: fit-content; bottom: 12px; z-index: 5;
+    display: flex; align-items: center; gap: 5px; padding: 6px; border-radius: 12px; max-width: calc(100% - 16px); flex-wrap: wrap; justify-content: center;
+    background: rgba(10,18,32,.72); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.12); box-shadow: 0 8px 30px rgba(0,0,0,.45);
+    transition: opacity .25s; }
+  .pr-bar[hidden] { display: none; }
+  .is-idle .pr-bar, .is-idle .pr-dock { opacity: 0; pointer-events: none; }
+  /* With a mouse, a side's controls show while the pointer is over it; on a
+     touch screen they stay, since there is nothing to hover with. */
+  @media (hover: hover) {
+    .pr-pane:not(:hover) .pr-bar { opacity: 0; pointer-events: none; }
+  }
+
+  .pr-btn { display: inline-flex; align-items: center; gap: 6px; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; color: #e8eefc;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 7px 10px; cursor: pointer; white-space: nowrap; transition: background .12s; }
+  .pr-btn:hover { background: rgba(255,255,255,.18); }
+  .pr-btn.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .pr-btn:disabled { opacity: .35; cursor: default; }
+  .pr-btn:disabled:hover { background: rgba(255,255,255,.08); }
+  .pr-btn .ic { font-size: 14px; line-height: 1; }
+  .pr-sep { width: 1px; align-self: stretch; background: rgba(255,255,255,.14); margin: 2px 3px; }
+  .pr-count { font-size: 12.5px; font-weight: 700; color: #cfdaf0; min-width: 54px; text-align: center; }
+  .pr-select { font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; color: #e8eefc;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 7px 8px; cursor: pointer; max-width: 190px; }
+  .pr-select option, .pr-select optgroup { color: #0e1e3f; }
+  .pr-zoom { font-size: 11.5px; font-weight: 700; color: #9fb4d6; min-width: 36px; text-align: center; }
+
+  /* the dock: layouts and the pen */
+  .pr-dock { flex: none; display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; padding: 8px 10px;
+    background: #0a1220; border-top: 1px solid rgba(255,255,255,.1); transition: opacity .25s; }
+  .pr-app:fullscreen .pr-dock { position: absolute; left: 0; right: 0; bottom: 12px; margin: 0 auto; width: fit-content; max-width: calc(100% - 24px);
+    border-radius: 14px; border: 1px solid rgba(255,255,255,.12); background: rgba(10,18,32,.8); backdrop-filter: blur(10px); z-index: 8; }
+  .pr-app:fullscreen .pr-bar { bottom: 72px; }
+  .pr-layout { width: 34px; height: 30px; padding: 0; justify-content: center; }
+  .pr-layout svg { width: 20px; height: 16px; display: block; }
+  .pr-swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); cursor: pointer; padding: 0; }
+  .pr-swatch.on { border-color: #fff; box-shadow: 0 0 0 2px var(--brand); }
+  .pr-pen-tools { display: none; align-items: center; gap: 6px; }
+  .pen-on .pr-pen-tools { display: flex; }
+
+  /* a pane waiting for something to show */
+  .pr-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center; z-index: 2;
+    background: radial-gradient(ellipse at center, #0e1e3f 0%, #07101f 100%); overflow: auto; }
+  .pr-empty.is-hidden { display: none; }
+  .pr-card { max-width: 440px; }
+  .pr-card-icon { font-size: 34px; margin-bottom: 10px; }
+  .pr-card-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 22px; color: #fff; margin-bottom: 8px; }
+  .pr-card-text { font-size: 13.5px; color: #8fa8cc; line-height: 1.6; margin-bottom: 16px; }
+  .pr-card-text strong { color: #c9d7ee; }
+  .pr-card-btns { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .pr-card-btn { font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; padding: 10px 18px; border-radius: 8px; border: 1px solid transparent; background: var(--brand); color: #fff; cursor: pointer; }
+  .pr-card-btn:hover { background: #3b82ff; }
+  .pr-card-btn.line { background: transparent; border-color: rgba(255,255,255,.3); color: #e8eefc; }
+  .pr-card-btn.line:hover { background: rgba(255,255,255,.1); }
+  .pr-card-note { font-size: 12px; color: #6f86ab; line-height: 1.55; margin-top: 14px; }
+  .pr-link { display: none; margin-top: 12px; gap: 6px; }
+  .pr-link.open { display: flex; }
+  .pr-link input { flex: 1; min-width: 0; font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 9px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.06); color: #fff; }
+  .pr-busy { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; z-index: 3; background: rgba(7,16,31,.8); color: #cfdaf0; font-size: 14px; font-weight: 600; }
+  .pr-busy.on { display: flex; }
+
+  .pr-toast { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); z-index: 9; font-size: 13px; font-weight: 600; color: #fff;
+    background: rgba(10,18,32,.88); border: 1px solid rgba(255,255,255,.15); border-radius: 999px; padding: 8px 16px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90%; text-align: center; }
+  .pr-toast.show { opacity: 1; }
+
+  .pr-help { display: none; position: absolute; inset: 0; z-index: 10; align-items: center; justify-content: center; background: rgba(4,9,18,.7); padding: 20px; }
+  .pr-help.open { display: flex; }
+  .pr-help-card { background: #0e1e3f; border: 1px solid rgba(255,255,255,.15); border-radius: 14px; padding: 22px 26px; max-width: 520px; color: #cfdaf0; font-size: 13.5px; line-height: 1.6; }
+  .pr-help-card h2 { font-family: 'Lora', serif; font-style: italic; color: #fff; font-size: 20px; margin: 0 0 10px; }
+  .pr-help-card table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; }
+  .pr-help-card td { padding: 3px 0; vertical-align: top; }
+  .pr-help-card td:first-child { width: 150px; color: #fff; font-weight: 700; }
+
+  @media (max-width: 640px) {
+    .pr-btn .tx { display: none; }
+    .pr-eyebrow { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="pr-top">
+  <div class="pr-top-inner">
+    <div class="pr-brand">
+      <a href="/version2/" class="pr-logo">Classicalia</a>
+      <span class="pr-eyebrow">Slides and visualiser</span>
+    </div>
+    <a href="/version2/tools/" class="pr-back">&larr; All tools</a>
+  </div>
+</div>
+
+<div class="pr-app" id="app">
+  <div class="pr-work" id="work">
+
+    <!-- the slides -->
+    <section class="pr-pane" id="paneSlides" aria-label="Slides">
+      <div class="pr-pane-stage" id="slideStage">
+        <div class="pr-slide" id="slideBox" hidden>
+          <canvas class="pr-ink" id="slideInk"></canvas>
+        </div>
+      </div>
+      <div class="pr-empty" id="slidesEmpty">
+        <div class="pr-card">
+          <div class="pr-card-icon">&#128202;</div>
+          <div class="pr-card-title">Open your presentation</div>
+          <div class="pr-card-text">Choose a <strong>PDF</strong> saved from PowerPoint for an exact copy of your slides, or open the <strong>.pptx</strong> itself for a quick version. Pictures of slides work too. Nothing is uploaded: the file stays on this computer.</div>
+          <div class="pr-card-btns">
+            <button class="pr-card-btn" id="openBtn" type="button">Open a file</button>
+            <button class="pr-card-btn line" id="linkBtn" type="button">Use a link</button>
+            <button class="pr-card-btn line" id="reopenBtn" type="button" hidden></button>
+          </div>
+          <div class="pr-link" id="linkRow">
+            <input type="text" id="linkInput" placeholder="Paste a Google Slides or PowerPoint Online link or embed code">
+            <button class="pr-card-btn" id="linkGo" type="button">Show</button>
+          </div>
+          <div class="pr-card-note">To make a PDF in PowerPoint: <em>File &rarr; Save As &rarr; PDF</em> (or <em>Export &rarr; PDF</em> on a Mac). A link from PowerPoint Online (<em>File &rarr; Share &rarr; Embed</em>) or Google Slides keeps your animations, and you move through it with its own arrows.</div>
+        </div>
+      </div>
+      <div class="pr-busy" id="slidesBusy">Opening&hellip;</div>
+      <div class="pr-move" data-move="paneSlides" title="Drag to move"></div>
+      <div class="pr-size" data-size="paneSlides" title="Drag to resize"></div>
+      <div class="pr-bar" id="slidesBar" hidden>
+        <button class="pr-btn" id="prevBtn" type="button" title="Previous slide (&larr;)"><span class="ic">&#8249;</span><span class="tx">Back</span></button>
+        <span class="pr-count" id="slideCount">&ndash;</span>
+        <button class="pr-btn" id="nextBtn" type="button" title="Next slide (&rarr; or Space)"><span class="tx">Next</span><span class="ic">&#8250;</span></button>
+        <div class="pr-sep"></div>
+        <button class="pr-btn" id="clearSlideInk" type="button" title="Rub out the writing on this slide"><span class="tx">Clear writing</span></button>
+        <button class="pr-btn" id="changeDeck" type="button" title="Open a different presentation"><span class="ic">&#128193;</span><span class="tx">Open</span></button>
+      </div>
+      <input type="file" id="deckFile" accept=".pdf,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/*" multiple hidden>
+    </section>
+
+    <div class="pr-divider" id="divider" title="Drag to resize; double-click to share the space equally"></div>
+
+    <!-- the visualiser, or a whiteboard -->
+    <section class="pr-pane" id="paneCam" aria-label="Visualiser">
+      <div class="pr-pane-stage pr-cam" id="camStage">
+        <div class="pr-frame" id="frame">
+          <video id="video" playsinline autoplay muted></video>
+          <canvas class="pr-ink" id="camInk"></canvas>
+        </div>
+        <div class="pr-board" id="board" data-paper="plain" hidden>
+          <canvas class="pr-ink" id="boardInk"></canvas>
+        </div>
+      </div>
+      <div class="pr-empty" id="camEmpty">
+        <div class="pr-card">
+          <div class="pr-card-icon" id="camIcon">&#128247;</div>
+          <div class="pr-card-title" id="camTitle">Visualiser</div>
+          <div class="pr-card-text" id="camText">Use your webcam or a document camera to show the class what you write, or use this side as a whiteboard.</div>
+          <div class="pr-card-btns">
+            <button class="pr-card-btn" id="camStart" type="button">Start camera</button>
+            <button class="pr-card-btn line" id="boardStart" type="button">Whiteboard instead</button>
+          </div>
+        </div>
+      </div>
+      <div class="pr-move" data-move="paneCam" title="Drag to move"></div>
+      <div class="pr-size" data-size="paneCam" title="Drag to resize"></div>
+      <div class="pr-bar" id="camBar" hidden>
+        <select class="pr-select" id="sourceSelect" title="What this side shows"></select>
+        <span class="pr-cam-only" style="display: contents;">
+          <button class="pr-btn" id="freezeBtn" type="button" title="Freeze the picture (P)"><span class="ic">&#10073;&#10073;</span><span class="tx">Freeze</span></button>
+          <button class="pr-btn" id="zoomOut" type="button" title="Zoom out"><span class="ic">&#8722;</span></button>
+          <span class="pr-zoom" id="zoomLabel">100%</span>
+          <button class="pr-btn" id="zoomIn" type="button" title="Zoom in"><span class="ic">&#43;</span></button>
+          <button class="pr-btn" id="mirrorBtn" type="button" title="Mirror"><span class="ic">&#8646;</span></button>
+          <button class="pr-btn" id="rotateBtn" type="button" title="Rotate"><span class="ic">&#8635;</span></button>
+        </span>
+        <div class="pr-sep"></div>
+        <button class="pr-btn" id="clearCamInk" type="button" title="Rub out the writing on this side"><span class="tx">Clear writing</span></button>
+        <button class="pr-btn" id="snapBtn" type="button" title="Save a picture of this side"><span class="ic">&#128190;</span><span class="tx">Save</span></button>
+      </div>
+    </section>
+
+    <div class="pr-toast" id="toast"></div>
+  </div>
+
+  <div class="pr-dock" id="dock">
+    <button class="pr-btn pr-layout" data-layout="side" type="button" title="Side by side (1)" aria-label="Side by side">
+      <svg viewBox="0 0 20 16"><rect x="1" y="1" width="10" height="14" rx="1.5" fill="currentColor" opacity=".9"/><rect x="12.5" y="1" width="6.5" height="14" rx="1.5" fill="currentColor" opacity=".45"/></svg>
+    </button>
+    <button class="pr-btn pr-layout" data-layout="stack" type="button" title="One above the other (2)" aria-label="One above the other">
+      <svg viewBox="0 0 20 16"><rect x="1" y="1" width="18" height="8" rx="1.5" fill="currentColor" opacity=".9"/><rect x="1" y="10.5" width="18" height="4.5" rx="1.5" fill="currentColor" opacity=".45"/></svg>
+    </button>
+    <button class="pr-btn pr-layout" data-layout="pip" type="button" title="Small window on top (3)" aria-label="Small window on top">
+      <svg viewBox="0 0 20 16"><rect x="1" y="1" width="18" height="14" rx="1.5" fill="currentColor" opacity=".9"/><rect x="11" y="8.5" width="7" height="5.5" rx="1" fill="#0a1220"/><rect x="12" y="9.5" width="5" height="3.5" rx=".5" fill="currentColor" opacity=".5"/></svg>
+    </button>
+    <button class="pr-btn pr-layout" data-layout="one" type="button" title="One side only (4)" aria-label="One side only">
+      <svg viewBox="0 0 20 16"><rect x="1" y="1" width="18" height="14" rx="1.5" fill="currentColor" opacity=".9"/></svg>
+    </button>
+    <button class="pr-btn" id="swapBtn" type="button" title="Swap the two sides (X)"><span class="ic">&#8644;</span><span class="tx">Swap</span></button>
+    <div class="pr-sep"></div>
+    <button class="pr-btn" id="penBtn" type="button" title="Write on the slides or the visualiser (D)"><span class="ic">&#9998;</span><span class="tx">Pen</span></button>
+    <div class="pr-pen-tools">
+      <button class="pr-swatch on" data-colour="#e11d48" style="background:#e11d48" title="Red" type="button"></button>
+      <button class="pr-swatch" data-colour="#1a6fff" style="background:#1a6fff" title="Blue" type="button"></button>
+      <button class="pr-swatch" data-colour="#16a34a" style="background:#16a34a" title="Green" type="button"></button>
+      <button class="pr-swatch" data-colour="#111827" style="background:#111827" title="Black" type="button"></button>
+      <button class="pr-swatch" data-colour="#ffffff" style="background:#ffffff" title="White" type="button"></button>
+      <button class="pr-btn on" data-tool="pen" type="button" title="Pen"><span class="tx">Pen</span></button>
+      <button class="pr-btn" data-tool="highlighter" type="button" title="Highlighter"><span class="tx">Highlighter</span></button>
+      <button class="pr-btn" data-tool="eraser" type="button" title="Eraser"><span class="tx">Eraser</span></button>
+      <select class="pr-select" id="sizeSelect" title="Pen size">
+        <option value="3">Thin</option>
+        <option value="6" selected>Medium</option>
+        <option value="12">Thick</option>
+      </select>
+      <button class="pr-btn" id="undoBtn" type="button" title="Undo (Ctrl+Z)"><span class="ic">&#8630;</span></button>
+    </div>
+    <div class="pr-sep"></div>
+    <button class="pr-btn" id="fullBtn" type="button" title="Full screen (F)"><span class="ic">&#9974;</span><span class="tx">Full screen</span></button>
+    <button class="pr-btn" id="helpBtn" type="button" title="Keys and tips (?)"><span class="tx">?</span></button>
+  </div>
+
+  <div class="pr-help" id="help">
+    <div class="pr-help-card">
+      <h2>Keys and tips</h2>
+      <table>
+        <tr><td>&rarr;, Space, Page Down</td><td>Next slide (a presentation clicker works too)</td></tr>
+        <tr><td>&larr;, Page Up</td><td>Previous slide</td></tr>
+        <tr><td>1 &ndash; 4</td><td>Side by side, one above the other, small window, one side only</td></tr>
+        <tr><td>X</td><td>Swap the two sides</td></tr>
+        <tr><td>D</td><td>Pen on and off; Esc puts it away</td></tr>
+        <tr><td>P</td><td>Freeze the visualiser</td></tr>
+        <tr><td>F</td><td>Full screen</td></tr>
+        <tr><td>Ctrl + Z</td><td>Undo the last line you drew</td></tr>
+      </table>
+      <p>Drag the bar between the two sides to change their sizes. In the small-window layout, drag the window by its top edge and resize it from its corner. Writing on a slide stays with that slide as you move back and forth.</p>
+      <p style="margin-top: 8px;">Your layout is remembered, and so is the last presentation you opened on this computer.</p>
+      <div style="text-align: right; margin-top: 14px;"><button class="pr-card-btn" id="helpClose" type="button">Close</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var PPTX_LIB = 'https://cdn.jsdelivr.net/npm/pptx-preview@1.0.7/dist/pptx-preview.umd.js';
+  var PDF_LIB = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs';
+  var PDF_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs';
+  var LAYOUT_KEY = 'classicalia.present.layout';
+  var PPTX_WIDTH = 1280;              // the width a PowerPoint slide is drawn at, before it is scaled to fit
+
+  var $ = function (id) { return document.getElementById(id); };
+  var app = $('app'), work = $('work');
+  var panes = { slides: $('paneSlides'), cam: $('paneCam') };
+  var divider = $('divider');
+  var dpr = function () { return window.devicePixelRatio || 1; };
+
+  function readStore(key, fallback) {
+    try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
+  }
+  function writeStore(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private browsing */ }
+  }
+
+  function toast(msg) {
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(function () { t.classList.remove('show'); }, 2200);
+  }
+
+  /* ── layout ──
+     Two panes in one of four arrangements. "first" is the slides unless the
+     sides have been swapped; in the small-window layout the first fills the
+     space and the second floats over it. */
+
+  var layout = Object.assign({ mode: 'side', split: 0.62, swap: false, pip: { x: 0.68, y: 0.6, w: 0.3, h: 0.36 } },
+    readStore(LAYOUT_KEY, {}));
+  var DIVIDER = 8;
+
+  function saveLayout() { writeStore(LAYOUT_KEY, layout); }
+
+  function place(el, x, y, w, h) {
+    el.style.left = Math.round(x) + 'px';
+    el.style.top = Math.round(y) + 'px';
+    el.style.width = Math.max(0, Math.round(w)) + 'px';
+    el.style.height = Math.max(0, Math.round(h)) + 'px';
+  }
+
+  function applyLayout() {
+    var W = work.clientWidth, H = work.clientHeight;
+    var first = layout.swap ? panes.cam : panes.slides;
+    var second = layout.swap ? panes.slides : panes.cam;
+    [first, second].forEach(function (p) { p.classList.remove('is-hidden', 'is-float'); });
+    divider.classList.add('is-hidden');
+    divider.classList.remove('v', 'h');
+
+    if (layout.mode === 'side' || layout.mode === 'stack') {
+      var across = layout.mode === 'side';
+      var total = (across ? W : H) - DIVIDER;
+      var a = Math.round(total * Math.min(0.9, Math.max(0.1, layout.split)));
+      if (across) {
+        place(first, 0, 0, a, H);
+        place(divider, a, 0, DIVIDER, H);
+        place(second, a + DIVIDER, 0, total - a, H);
+      } else {
+        place(first, 0, 0, W, a);
+        place(divider, 0, a, W, DIVIDER);
+        place(second, 0, a + DIVIDER, W, total - a);
+      }
+      divider.classList.remove('is-hidden');
+      divider.classList.add(across ? 'v' : 'h');
+    } else if (layout.mode === 'pip') {
+      place(first, 0, 0, W, H);
+      var p = layout.pip;
+      var w = Math.max(160, p.w * W), h = Math.max(110, p.h * H);
+      w = Math.min(w, W); h = Math.min(h, H);
+      var x = Math.min(Math.max(0, p.x * W), W - w), y = Math.min(Math.max(0, p.y * H), H - h);
+      second.classList.add('is-float');
+      place(second, x, y, w, h);
+    } else {
+      place(first, 0, 0, W, H);
+      second.classList.add('is-hidden');
+    }
+
+    document.querySelectorAll('[data-layout]').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-layout') === layout.mode);
+    });
+    fitSlide();
+    fitCam();
+  }
+
+  document.querySelectorAll('[data-layout]').forEach(function (b) {
+    b.addEventListener('click', function () { setMode(b.getAttribute('data-layout')); });
+  });
+
+  function setMode(mode) {
+    layout.mode = mode;
+    saveLayout();
+    applyLayout();
+  }
+
+  function swap() {
+    layout.swap = !layout.swap;
+    saveLayout();
+    applyLayout();
+  }
+  $('swapBtn').addEventListener('click', swap);
+
+  // Dragging the divider.
+  divider.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    divider.setPointerCapture(e.pointerId);
+    divider.classList.add('dragging');
+    var r = work.getBoundingClientRect();
+    var across = layout.mode === 'side';
+    function move(ev) {
+      var pos = across ? ev.clientX - r.left : ev.clientY - r.top;
+      var total = (across ? r.width : r.height) - DIVIDER;
+      layout.split = Math.min(0.9, Math.max(0.1, (pos - DIVIDER / 2) / total));
+      applyLayout();
+    }
+    function up() {
+      divider.classList.remove('dragging');
+      divider.removeEventListener('pointermove', move);
+      divider.removeEventListener('pointerup', up);
+      divider.removeEventListener('pointercancel', up);
+      saveLayout();
+    }
+    divider.addEventListener('pointermove', move);
+    divider.addEventListener('pointerup', up);
+    divider.addEventListener('pointercancel', up);
+  });
+  divider.addEventListener('dblclick', function () { layout.split = 0.5; saveLayout(); applyLayout(); });
+
+  // Moving and sizing the floating window.
+  function dragFloat(handle, resize) {
+    handle.addEventListener('pointerdown', function (e) {
+      var pane = $(handle.getAttribute(resize ? 'data-size' : 'data-move'));
+      if (!pane.classList.contains('is-float')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      handle.setPointerCapture(e.pointerId);
+      var r = work.getBoundingClientRect();
+      var start = { x: e.clientX, y: e.clientY, p: Object.assign({}, layout.pip) };
+      function move(ev) {
+        var dx = (ev.clientX - start.x) / r.width, dy = (ev.clientY - start.y) / r.height;
+        if (resize) {
+          layout.pip.w = Math.min(0.95, Math.max(0.12, start.p.w + dx));
+          layout.pip.h = Math.min(0.95, Math.max(0.12, start.p.h + dy));
+        } else {
+          layout.pip.x = Math.min(1 - layout.pip.w, Math.max(0, start.p.x + dx));
+          layout.pip.y = Math.min(1 - layout.pip.h, Math.max(0, start.p.y + dy));
+        }
+        applyLayout();
+      }
+      function up() {
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', up);
+        handle.removeEventListener('pointercancel', up);
+        saveLayout();
+      }
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', up);
+      handle.addEventListener('pointercancel', up);
+    });
+  }
+  document.querySelectorAll('[data-move]').forEach(function (h) { dragFloat(h, false); });
+  document.querySelectorAll('[data-size]').forEach(function (h) { dragFloat(h, true); });
+
+  /* ── ink ──
+     One layer of writing per surface. On a slide or the camera picture the
+     points are kept as fractions of its width and height, so they stay put
+     when the pane changes size; on the whiteboard they are kept in pixels
+     from its top left, so a bigger pane simply shows more board. */
+
+  var pen = { on: false, tool: 'pen', colour: '#e11d48', size: 6 };
+  var lastInk = null;
+
+  function Ink(canvas, unit) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.unit = unit;
+    this.strokes = [];
+    this.current = null;
+  }
+
+  Ink.prototype.resize = function (w, h) {
+    if (this.canvas.width !== w || this.canvas.height !== h) {
+      this.canvas.width = Math.max(1, w);
+      this.canvas.height = Math.max(1, h);
+    }
+    this.redraw();
+  };
+
+  Ink.prototype.stroke = function (st) {
+    var c = this.ctx, w = this.canvas.width, h = this.canvas.height;
+    var base = this.unit ? st.size * (w / 1280) : st.size * dpr();
+    var lw = base * (st.tool === 'highlighter' ? 4 : st.tool === 'eraser' ? 5 : 1);
+    var pt = this.unit
+      ? function (p) { return [p[0] * w, p[1] * h]; }
+      : function (p) { return [p[0] * dpr(), p[1] * dpr()]; };
+    c.save();
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    c.lineWidth = lw;
+    c.globalCompositeOperation = st.tool === 'eraser' ? 'destination-out' : 'source-over';
+    c.globalAlpha = st.tool === 'highlighter' ? 0.35 : 1;
+    c.strokeStyle = c.fillStyle = st.tool === 'highlighter' ? '#facc15' : st.colour;
+    var pts = st.points.map(pt);
+    c.beginPath();
+    if (pts.length === 1) {
+      c.arc(pts[0][0], pts[0][1], lw / 2, 0, Math.PI * 2);
+      c.fill();
+    } else {
+      c.moveTo(pts[0][0], pts[0][1]);
+      for (var i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]);
+      c.stroke();
+    }
+    c.restore();
+  };
+
+  Ink.prototype.redraw = function () {
+    var self = this;
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.strokes.forEach(function (s) { self.stroke(s); });
+    if (this.current) this.stroke(this.current);
+  };
+
+  Ink.prototype.clear = function () { this.strokes.length = 0; this.current = null; this.redraw(); };
+
+  // Drawing on a surface: toPoint turns a pointer into the surface's own coordinates.
+  function wireInk(ink, toPoint) {
+    var canvas = ink.canvas;
+    canvas.addEventListener('pointerdown', function (e) {
+      if (!pen.on) return;
+      e.preventDefault();
+      canvas.setPointerCapture(e.pointerId);
+      ink.current = { tool: pen.tool, colour: pen.colour, size: pen.size, points: [toPoint(e)] };
+      ink.redraw();
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      if (!ink.current) return;
+      var events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+      events.forEach(function (ev) { ink.current.points.push(toPoint(ev)); });
+      ink.redraw();
+    });
+    function end() {
+      if (!ink.current) return;
+      ink.strokes.push(ink.current);
+      ink.current = null;
+      lastInk = ink;
+      ink.redraw();
+    }
+    canvas.addEventListener('pointerup', end);
+    canvas.addEventListener('pointercancel', end);
+  }
+
+  function setPen(on) {
+    pen.on = on;
+    app.classList.toggle('pen-on', on);
+    $('penBtn').classList.toggle('on', on);
+  }
+  $('penBtn').addEventListener('click', function () { setPen(!pen.on); });
+  document.querySelectorAll('.pr-swatch').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.pr-swatch').forEach(function (x) { x.classList.toggle('on', x === b); });
+      pen.colour = b.getAttribute('data-colour');
+      if (pen.tool !== 'pen') document.querySelector('[data-tool="pen"]').click();
+    });
+  });
+  document.querySelectorAll('[data-tool]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('[data-tool]').forEach(function (x) { x.classList.toggle('on', x === b); });
+      pen.tool = b.getAttribute('data-tool');
+    });
+  });
+  $('sizeSelect').addEventListener('change', function (e) { pen.size = +e.target.value; });
+  function undo() {
+    if (lastInk && lastInk.strokes.length) { lastInk.strokes.pop(); lastInk.redraw(); }
+  }
+  $('undoBtn').addEventListener('click', undo);
+
+  /* ── slides ── */
+
+  var deck = null;          // { kind: 'pdf'|'pptx'|'images'|'link', count, index, name, ... }
+  var slideBox = $('slideBox');
+  var slideStage = $('slideStage');
+  var slideInk = new Ink($('slideInk'), true);
+  var inkBySlide = {};
+
+  wireInk(slideInk, function (e) {
+    var r = slideBox.getBoundingClientRect();
+    return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height];
+  });
+
+  function slideAspect() { return deck && deck.aspect ? deck.aspect : 16 / 9; }
+
+  // The slide sits as large as it can in its pane, keeping its shape.
+  function fitSlide() {
+    if (!deck) return;
+    var W = slideStage.clientWidth, H = slideStage.clientHeight;
+    if (!W || !H) return;
+    var a = slideAspect();
+    var w = Math.min(W, H * a), h = w / a;
+    slideBox.style.width = Math.round(w) + 'px';
+    slideBox.style.height = Math.round(h) + 'px';
+    slideInk.resize(Math.round(w * dpr()), Math.round(h * dpr()));
+    if (deck.kind === 'pptx' && deck.holder) {
+      var s = w / PPTX_WIDTH;
+      deck.holder.style.transform = 'scale(' + s + ')';
+    }
+    if (deck.kind === 'pdf') schedulePdf();
+  }
+
+  function clearSlideContent() {
+    [].slice.call(slideBox.children).forEach(function (c) {
+      if (c.id !== 'slideInk') slideBox.removeChild(c);
+    });
+  }
+
+  function showCount() {
+    var label = $('slideCount');
+    if (!deck) { label.textContent = '–'; return; }
+    if (deck.kind === 'link') { label.textContent = 'Linked'; }
+    else label.textContent = (deck.index + 1) + ' / ' + deck.count;
+    var stepping = deck.kind !== 'link';
+    $('prevBtn').disabled = !stepping || deck.index <= 0;
+    $('nextBtn').disabled = !stepping || deck.index >= deck.count - 1;
+  }
+
+  function go(index) {
+    if (!deck || deck.kind === 'link') return;
+    index = Math.max(0, Math.min(deck.count - 1, index));
+    inkBySlide[deck.index] = slideInk.strokes;
+    deck.index = index;
+    slideInk.strokes = inkBySlide[index] || [];
+    slideInk.current = null;
+    renderSlide();
+    showCount();
+    try { localStorage.setItem('classicalia.present.slide', String(index)); } catch (e) { /* ignore */ }
+  }
+
+  function renderSlide() {
+    if (!deck) return;
+    if (deck.kind === 'pptx') {
+      deck.slides.forEach(function (s, i) { s.style.display = i === deck.index ? '' : 'none'; });
+    } else if (deck.kind === 'images') {
+      deck.img.src = deck.urls[deck.index];
+    } else if (deck.kind === 'pdf') {
+      renderPdf();
+    }
+    slideInk.redraw();
+  }
+
+  $('prevBtn').addEventListener('click', function () { go(deck ? deck.index - 1 : 0); });
+  $('nextBtn').addEventListener('click', function () { go(deck ? deck.index + 1 : 0); });
+  $('clearSlideInk').addEventListener('click', function () { slideInk.clear(); });
+
+  function busy(on, text) {
+    $('slidesBusy').textContent = text || 'Opening…';
+    $('slidesBusy').classList.toggle('on', on);
+  }
+
+  function setDeck(d, startAt) {
+    if (deck && deck.urls) deck.urls.forEach(function (u) { URL.revokeObjectURL(u); });
+    if (deck && deck.pdf) deck.pdf.destroy();
+    deck = d;
+    inkBySlide = {};
+    slideInk.strokes = [];
+    slideBox.hidden = false;
+    $('slidesBar').hidden = false;
+    $('slidesEmpty').classList.add('is-hidden');
+    deck.index = Math.max(0, Math.min((deck.count || 1) - 1, startAt || 0));
+    fitSlide();
+    renderSlide();
+    showCount();
+    document.title = (deck.name ? deck.name + ' — ' : '') + 'Slides and visualiser — Classicalia';
+  }
+
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = function () { reject(new Error('Could not load ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  // PowerPoint: every slide is drawn once, at a fixed width, and shown one at
+  // a time, scaled to the pane.
+  function openPptx(buffer, name, startAt) {
+    var ready = window.pptxPreview ? Promise.resolve() : loadScript(PPTX_LIB);
+    return ready.then(function () {
+      clearSlideContent();
+      var holder = document.createElement('div');
+      holder.className = 'pr-pptx';
+      holder.style.width = PPTX_WIDTH + 'px';
+      slideBox.insertBefore(holder, slideBox.firstChild);
+      var viewer = window.pptxPreview.init(holder, { width: PPTX_WIDTH, mode: 'list' });
+      return viewer.preview(buffer).then(function () {
+        var pptx = viewer.pptx || {};
+        var slides = [].slice.call(holder.querySelectorAll('.pptx-preview-slide-wrapper'));
+        if (!slides.length) throw new Error('No slides');
+        setDeck({ kind: 'pptx', count: slides.length, slides: slides, holder: holder, name: name,
+                  aspect: pptx.width && pptx.height ? pptx.width / pptx.height : 16 / 9 }, startAt);
+        toast('Opened as a quick version. For an exact copy, save it from PowerPoint as a PDF.');
+      });
+    });
+  }
+
+  // PDF: pages are drawn on demand, at the size the pane needs.
+  var pdfLib = null;
+  function loadPdfLib() {
+    if (pdfLib) return Promise.resolve(pdfLib);
+    return import(PDF_LIB).then(function (lib) {
+      try {
+        // A worker from another site is only allowed through a little
+        // script of our own that loads it.
+        var shim = URL.createObjectURL(new Blob(['import "' + PDF_WORKER + '";'], { type: 'text/javascript' }));
+        lib.GlobalWorkerOptions.workerPort = new Worker(shim, { type: 'module' });
+      } catch (e) {
+        lib.GlobalWorkerOptions.workerSrc = PDF_WORKER;
+      }
+      pdfLib = lib;
+      return lib;
+    });
+  }
+
+  function openPdf(buffer, name, startAt) {
+    return loadPdfLib().then(function (lib) {
+      return lib.getDocument({ data: new Uint8Array(buffer) }).promise;
+    }).then(function (pdf) {
+      return pdf.getPage(1).then(function (page) {
+        var vp = page.getViewport({ scale: 1 });
+        clearSlideContent();
+        var canvas = document.createElement('canvas');
+        canvas.className = 'pr-page';
+        slideBox.insertBefore(canvas, slideBox.firstChild);
+        setDeck({ kind: 'pdf', pdf: pdf, count: pdf.numPages, canvas: canvas, name: name, aspect: vp.width / vp.height }, startAt);
+      });
+    });
+  }
+
+  var pdfTask = null, pdfTimer = null, pdfDrawn = '';
+  function schedulePdf() {
+    clearTimeout(pdfTimer);
+    pdfTimer = setTimeout(renderPdf, 60);
+  }
+
+  function renderPdf() {
+    if (!deck || deck.kind !== 'pdf') return;
+    var d = deck;
+    var w = slideBox.clientWidth;
+    if (!w) return;
+    var key = d.index + ':' + w + ':' + dpr();
+    if (key === pdfDrawn) return;
+    if (pdfTask) { try { pdfTask.cancel(); } catch (e) { /* already done */ } }
+    d.pdf.getPage(d.index + 1).then(function (page) {
+      if (deck !== d) return;
+      var base = page.getViewport({ scale: 1 });
+      var vp = page.getViewport({ scale: w * dpr() / base.width });
+      var off = document.createElement('canvas');
+      off.width = Math.round(vp.width);
+      off.height = Math.round(vp.height);
+      pdfTask = page.render({ canvasContext: off.getContext('2d'), viewport: vp });
+      return pdfTask.promise.then(function () {
+        if (deck !== d) return;
+        // Drawn off screen first, so the old slide stays up until the new one is ready.
+        d.canvas.width = off.width;
+        d.canvas.height = off.height;
+        d.canvas.getContext('2d').drawImage(off, 0, 0);
+        pdfDrawn = key;
+      });
+    }).catch(function (err) {
+      if (!err || err.name !== 'RenderingCancelledException') console.warn(err);
+    });
+  }
+
+  function openImages(files) {
+    files.sort(function (a, b) { return a.name.localeCompare(b.name, undefined, { numeric: true }); });
+    var urls = files.map(function (f) { return URL.createObjectURL(f); });
+    return new Promise(function (resolve, reject) {
+      var probe = new Image();
+      probe.onload = function () {
+        clearSlideContent();
+        var img = document.createElement('img');
+        img.alt = '';
+        slideBox.insertBefore(img, slideBox.firstChild);
+        setDeck({ kind: 'images', count: urls.length, urls: urls, img: img, name: files[0].name,
+                  aspect: probe.naturalWidth / probe.naturalHeight || 16 / 9 });
+        resolve();
+      };
+      probe.onerror = reject;
+      probe.src = urls[0];
+    });
+  }
+
+  // A link from PowerPoint Online or Google Slides, shown in a frame.
+  function linkSrc(text) {
+    text = (text || '').trim();
+    var m = /src\s*=\s*["']([^"']+)["']/i.exec(text);
+    var url = m ? m[1] : text;
+    url = url.replace(/&amp;/g, '&');
+    if (!/^https:\/\//i.test(url)) return null;
+    var g = /^https:\/\/docs\.google\.com\/presentation\/d\/(e\/)?([\w-]+)/.exec(url);
+    if (g) {
+      return g[1] ? 'https://docs.google.com/presentation/d/e/' + g[2] + '/embed?start=false&loop=false'
+                  : 'https://docs.google.com/presentation/d/' + g[2] + '/embed?start=false&loop=false&rm=minimal';
+    }
+    return url;
+  }
+
+  function openLink(text) {
+    var src = linkSrc(text);
+    if (!src) { toast('That does not look like a link. It should start with https://'); return; }
+    clearSlideContent();
+    var frame = document.createElement('iframe');
+    frame.src = src;
+    frame.allow = 'fullscreen';
+    frame.setAttribute('allowfullscreen', '');
+    slideBox.insertBefore(frame, slideBox.firstChild);
+    setDeck({ kind: 'link', count: 1, name: '', aspect: 16 / 9, src: src });
+    writeStore('classicalia.present.link', text);
+  }
+
+  function openFiles(fileList) {
+    var files = [].slice.call(fileList || []);
+    if (!files.length) return;
+    var first = files[0];
+    var isPdf = /\.pdf$/i.test(first.name) || first.type === 'application/pdf';
+    var isPptx = /\.pptx$/i.test(first.name);
+    var images = files.filter(function (f) { return /^image\//.test(f.type); });
+    if (/\.ppt$/i.test(first.name)) { toast('That is an old .ppt file. Save it as .pptx or as a PDF in PowerPoint first.'); return; }
+    if (!isPdf && !isPptx && !images.length) { toast('Choose a PDF, a .pptx file or pictures of your slides.'); return; }
+    busy(true);
+    var job;
+    if (isPdf || isPptx) {
+      job = first.arrayBuffer().then(function (buf) {
+        return (isPdf ? openPdf(buf, first.name) : openPptx(buf, first.name)).then(function () {
+          remember(first);
+        });
+      });
+    } else {
+      job = openImages(images);
+    }
+    job.catch(function (err) {
+      console.warn(err);
+      toast(navigator.onLine === false
+        ? 'You seem to be offline, and opening slides needs the internet the first time.'
+        : 'That file could not be opened. If it is a PowerPoint, try saving it as a PDF.');
+    }).then(function () { busy(false); });
+  }
+
+  $('openBtn').addEventListener('click', function () { $('deckFile').click(); });
+  $('changeDeck').addEventListener('click', function () { $('deckFile').click(); });
+  $('deckFile').addEventListener('change', function (e) { openFiles(e.target.files); e.target.value = ''; });
+  $('linkBtn').addEventListener('click', function () {
+    $('linkRow').classList.toggle('open');
+    if ($('linkRow').classList.contains('open')) {
+      $('linkInput').value = readStore('classicalia.present.link', '') || '';
+      $('linkInput').focus();
+    }
+  });
+  $('linkGo').addEventListener('click', function () { openLink($('linkInput').value); });
+  $('linkInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') openLink($('linkInput').value); });
+
+  // A file dropped anywhere on the slides.
+  panes.slides.addEventListener('dragover', function (e) { e.preventDefault(); });
+  panes.slides.addEventListener('drop', function (e) {
+    e.preventDefault();
+    if (e.dataTransfer && e.dataTransfer.files.length) openFiles(e.dataTransfer.files);
+  });
+
+  /* The last presentation opened is kept in this browser, so a reload in
+     the middle of a lesson does not lose it. */
+  function db() {
+    return new Promise(function (resolve, reject) {
+      var req = indexedDB.open('classicalia-present', 1);
+      req.onupgradeneeded = function () { req.result.createObjectStore('decks'); };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
+    });
+  }
+
+  function remember(file) {
+    if (!window.indexedDB || file.size > 80 * 1024 * 1024) return;
+    db().then(function (d) {
+      var tx = d.transaction('decks', 'readwrite');
+      tx.objectStore('decks').put({ name: file.name, type: file.type, blob: file }, 'last');
+    }).catch(function () { /* storage refused */ });
+  }
+
+  function recall() {
+    if (!window.indexedDB) return Promise.resolve(null);
+    return db().then(function (d) {
+      return new Promise(function (resolve) {
+        var req = d.transaction('decks').objectStore('decks').get('last');
+        req.onsuccess = function () { resolve(req.result || null); };
+        req.onerror = function () { resolve(null); };
+      });
+    }).catch(function () { return null; });
+  }
+
+  recall().then(function (saved) {
+    if (!saved || !saved.blob) return;
+    var btn = $('reopenBtn');
+    btn.hidden = false;
+    btn.textContent = 'Reopen ' + (saved.name.length > 28 ? saved.name.slice(0, 26) + '…' : saved.name);
+    btn.addEventListener('click', function () {
+      var at = parseInt(localStorage.getItem('classicalia.present.slide') || '0', 10) || 0;
+      busy(true);
+      saved.blob.arrayBuffer().then(function (buf) {
+        return /\.pdf$/i.test(saved.name) ? openPdf(buf, saved.name, at) : openPptx(buf, saved.name, at);
+      }).catch(function () {
+        toast('That presentation could not be opened again. Open the file instead.');
+      }).then(function () { busy(false); });
+    });
+  });
+
+  /* ── the visualiser ── */
+
+  var video = $('video');
+  var frame = $('frame');
+  var camStage = $('camStage');
+  var board = $('board');
+  var camInk = new Ink($('camInk'), true);
+  var boardInk = new Ink($('boardInk'), false);
+  var stream = null;
+  var source = null;            // 'camera' or 'board'
+  var view = { mirror: false, rot: 0, zoom: 1, panX: 0, panY: 0, frozen: false };
+
+  function applyView() {
+    frame.style.transform = 'translate(' + view.panX + 'px,' + view.panY + 'px) scale(' + view.zoom + ') rotate(' + view.rot + 'deg)';
+    video.style.transform = view.mirror ? 'scaleX(-1)' : '';
+    camStage.classList.toggle('zoomed', view.zoom > 1.001);
+    $('zoomLabel').textContent = Math.round(view.zoom * 100) + '%';
+    $('mirrorBtn').classList.toggle('on', view.mirror);
+  }
+
+  function fitCam() {
+    if (source === 'board') {
+      var r = board.getBoundingClientRect();
+      boardInk.resize(Math.round(r.width * dpr()), Math.round(r.height * dpr()));
+      return;
+    }
+    var vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) return;
+    var sw = camStage.clientWidth, sh = camStage.clientHeight;
+    // A quarter turn swaps the picture's width and height.
+    var side = view.rot % 180 !== 0;
+    var scale = Math.min(sw / (side ? vh : vw), sh / (side ? vw : vh));
+    frame.style.width = Math.round(vw * scale) + 'px';
+    frame.style.height = Math.round(vh * scale) + 'px';
+    camInk.resize(vw, vh);
+  }
+  video.addEventListener('loadedmetadata', fitCam);
+
+  // A point on the screen, back through the pan, zoom and turn, to the picture.
+  wireInk(camInk, function (e) {
+    var r = camStage.getBoundingClientRect();
+    var dx = (e.clientX - r.left - r.width / 2 - view.panX) / view.zoom;
+    var dy = (e.clientY - r.top - r.height / 2 - view.panY) / view.zoom;
+    var a = -view.rot * Math.PI / 180;
+    var x = dx * Math.cos(a) - dy * Math.sin(a);
+    var y = dx * Math.sin(a) + dy * Math.cos(a);
+    return [x / frame.offsetWidth + 0.5, y / frame.offsetHeight + 0.5];
+  });
+
+  wireInk(boardInk, function (e) {
+    var r = board.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top];
+  });
+
+  var PAPERS = [['plain', 'Whiteboard'], ['lined', 'Lined paper'], ['squared', 'Squared paper'], ['dark', 'Chalkboard']];
+
+  function fillSources(cams, activeId) {
+    var sel = $('sourceSelect');
+    sel.innerHTML = '';
+    var g1 = document.createElement('optgroup');
+    g1.label = 'Camera';
+    cams.forEach(function (c, i) {
+      var o = document.createElement('option');
+      o.value = 'cam:' + c.deviceId;
+      o.textContent = c.label || ('Camera ' + (i + 1));
+      g1.appendChild(o);
+    });
+    if (!cams.length) {
+      var o0 = document.createElement('option');
+      o0.value = 'cam:';
+      o0.textContent = 'Camera';
+      g1.appendChild(o0);
+    }
+    var g2 = document.createElement('optgroup');
+    g2.label = 'Board';
+    PAPERS.forEach(function (p) {
+      var o = document.createElement('option');
+      o.value = 'board:' + p[0];
+      o.textContent = p[1];
+      g2.appendChild(o);
+    });
+    sel.appendChild(g1);
+    sel.appendChild(g2);
+    sel.value = source === 'board' ? 'board:' + board.getAttribute('data-paper') : 'cam:' + (activeId || (cams[0] && cams[0].deviceId) || '');
+  }
+
+  function listCameras() {
+    var activeId = stream && stream.getVideoTracks()[0] && stream.getVideoTracks()[0].getSettings().deviceId;
+    return (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices
+      ? navigator.mediaDevices.enumerateDevices() : Promise.resolve([]))
+      .then(function (all) { fillSources(all.filter(function (d) { return d.kind === 'videoinput'; }), activeId); })
+      .catch(function () { fillSources([], null); });
+  }
+
+  function stopStream() {
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+  }
+
+  function startCamera(deviceId) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      camProblem('This browser cannot use a camera here.');
+      return Promise.resolve();
+    }
+    $('camStart').disabled = true;
+    $('camStart').textContent = 'Starting…';
+    stopStream();
+    var constraints = { audio: false, video: deviceId ? { deviceId: { exact: deviceId } } : { width: { ideal: 1920 }, height: { ideal: 1080 } } };
+    return navigator.mediaDevices.getUserMedia(constraints).then(function (s) {
+      stream = s;
+      video.srcObject = s;
+      if (view.frozen) toggleFreeze();
+      return video.play();
+    }).then(function () {
+      showSource('camera');
+      return listCameras();
+    }).catch(function (err) {
+      camProblem(err && err.name === 'NotAllowedError'
+        ? 'Camera permission was blocked. Allow camera access for this site in your browser, then try again.'
+        : 'Could not start the camera. Check it is not in use by another app, then try again.');
+    });
+  }
+
+  function camProblem(text) {
+    $('camIcon').innerHTML = '&#9888;&#65039;';
+    $('camTitle').textContent = 'Camera unavailable';
+    $('camText').textContent = text;
+    $('camStart').disabled = false;
+    $('camStart').textContent = 'Try again';
+    $('camEmpty').classList.remove('is-hidden');
+  }
+
+  function showSource(kind, paper) {
+    source = kind;
+    $('camEmpty').classList.add('is-hidden');
+    $('camBar').hidden = false;
+    frame.hidden = kind !== 'camera';
+    board.hidden = kind !== 'board';
+    if (kind === 'board') {
+      stopStream();
+      board.setAttribute('data-paper', paper || board.getAttribute('data-paper') || 'plain');
+    }
+    document.querySelector('.pr-cam-only').style.display = kind === 'camera' ? 'contents' : 'none';
+    writeStore('classicalia.present.source', kind === 'board' ? 'board:' + board.getAttribute('data-paper') : 'camera');
+    fitCam();
+    applyView();
+  }
+
+  $('camStart').addEventListener('click', function () { startCamera(null); });
+  $('boardStart').addEventListener('click', function () { showSource('board', 'plain'); listCameras(); });
+  $('sourceSelect').addEventListener('change', function (e) {
+    var v = e.target.value;
+    if (v.indexOf('board:') === 0) showSource('board', v.slice(6));
+    else startCamera(v.slice(4) || null);
+  });
+
+  function toggleFreeze() {
+    if (source !== 'camera') return;
+    view.frozen = !view.frozen;
+    if (view.frozen) video.pause(); else video.play();
+    var b = $('freezeBtn');
+    b.classList.toggle('on', view.frozen);
+    b.querySelector('.tx').textContent = view.frozen ? 'Live' : 'Freeze';
+    b.querySelector('.ic').innerHTML = view.frozen ? '&#9654;' : '&#10073;&#10073;';
+  }
+
+  function zoomBy(factor, cx, cy) {
+    var prev = view.zoom;
+    view.zoom = Math.min(8, Math.max(1, view.zoom * factor));
+    if (view.zoom <= 1.001) { view.panX = 0; view.panY = 0; }
+    else if (cx != null) {
+      var r = camStage.getBoundingClientRect();
+      var k = view.zoom / prev;
+      var ox = cx - r.left - r.width / 2, oy = cy - r.top - r.height / 2;
+      view.panX = ox - (ox - view.panX) * k;
+      view.panY = oy - (oy - view.panY) * k;
+    }
+    applyView();
+  }
+
+  $('freezeBtn').addEventListener('click', toggleFreeze);
+  $('zoomIn').addEventListener('click', function () { zoomBy(1.2); });
+  $('zoomOut').addEventListener('click', function () { zoomBy(1 / 1.2); });
+  $('mirrorBtn').addEventListener('click', function () { view.mirror = !view.mirror; applyView(); });
+  $('rotateBtn').addEventListener('click', function () { view.rot = (view.rot + 90) % 360; fitCam(); applyView(); });
+  $('clearCamInk').addEventListener('click', function () { (source === 'board' ? boardInk : camInk).clear(); });
+
+  camStage.addEventListener('wheel', function (e) {
+    if (source !== 'camera') return;
+    e.preventDefault();
+    zoomBy(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX, e.clientY);
+  }, { passive: false });
+
+  // Dragging the picture about when zoomed in and the pen is away.
+  var panning = null;
+  camStage.addEventListener('pointerdown', function (e) {
+    if (pen.on || source !== 'camera' || view.zoom <= 1.001) return;
+    panning = { x: e.clientX, y: e.clientY };
+    camStage.classList.add('panning');
+    camStage.setPointerCapture(e.pointerId);
+  });
+  camStage.addEventListener('pointermove', function (e) {
+    if (!panning) return;
+    view.panX += e.clientX - panning.x;
+    view.panY += e.clientY - panning.y;
+    panning = { x: e.clientX, y: e.clientY };
+    applyView();
+  });
+  function endPan() { panning = null; camStage.classList.remove('panning'); }
+  camStage.addEventListener('pointerup', endPan);
+  camStage.addEventListener('pointercancel', endPan);
+
+  function snapshot() {
+    var out = document.createElement('canvas'), c = out.getContext('2d');
+    if (source === 'board') {
+      var bc = boardInk.canvas;
+      out.width = bc.width; out.height = bc.height;
+      var paper = board.getAttribute('data-paper');
+      c.fillStyle = paper === 'dark' ? '#12301f' : '#fff';
+      c.fillRect(0, 0, out.width, out.height);
+      c.drawImage(bc, 0, 0);
+    } else {
+      var vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw || !vh) return;
+      var side = view.rot % 180 !== 0;
+      out.width = side ? vh : vw; out.height = side ? vw : vh;
+      c.translate(out.width / 2, out.height / 2);
+      c.rotate(view.rot * Math.PI / 180);
+      c.save();
+      if (view.mirror) c.scale(-1, 1);
+      c.drawImage(video, -vw / 2, -vh / 2, vw, vh);
+      c.restore();
+      c.drawImage(camInk.canvas, -vw / 2, -vh / 2, vw, vh);
+    }
+    var d = new Date(), p = function (n) { return String(n).padStart(2, '0'); };
+    var name = (source === 'board' ? 'board-' : 'visualiser-') + d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) +
+               '-' + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds()) + '.png';
+    out.toBlob(function (blob) {
+      if (!blob) return;
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+      toast('Picture saved');
+    }, 'image/png');
+  }
+  $('snapBtn').addEventListener('click', snapshot);
+
+  /* ── full screen, keys and the quiet controls ── */
+
+  function toggleFull() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (app.requestFullscreen) app.requestFullscreen();
+  }
+  $('fullBtn').addEventListener('click', toggleFull);
+  document.addEventListener('fullscreenchange', function () {
+    $('fullBtn').classList.toggle('on', !!document.fullscreenElement);
+    setTimeout(applyLayout, 60);
+  });
+
+  $('helpBtn').addEventListener('click', function () { $('help').classList.add('open'); });
+  $('helpClose').addEventListener('click', function () { $('help').classList.remove('open'); });
+  $('help').addEventListener('click', function (e) { if (e.target === $('help')) $('help').classList.remove('open'); });
+
+  document.addEventListener('keydown', function (e) {
+    var tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+    var k = e.key;
+    if ((e.ctrlKey || e.metaKey) && k.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (k === 'ArrowRight' || k === 'ArrowDown' || k === 'PageDown' || k === ' ' || k === 'Enter') {
+      if (tag === 'button' && (k === ' ' || k === 'Enter')) return;
+      e.preventDefault(); go(deck ? deck.index + 1 : 0);
+    } else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp' || k === 'Backspace') {
+      e.preventDefault(); go(deck ? deck.index - 1 : 0);
+    } else if (k === 'Home') { go(0); }
+    else if (k === 'End') { go(deck ? deck.count - 1 : 0); }
+    else if (k === '1') setMode('side');
+    else if (k === '2') setMode('stack');
+    else if (k === '3') setMode('pip');
+    else if (k === '4') setMode('one');
+    else if (k === 'x' || k === 'X') swap();
+    else if (k === 'd' || k === 'D') setPen(!pen.on);
+    else if (k === 'p' || k === 'P') toggleFreeze();
+    else if (k === 'f' || k === 'F') toggleFull();
+    else if (k === '?') $('help').classList.toggle('open');
+    else if (k === 'Escape') { if ($('help').classList.contains('open')) $('help').classList.remove('open'); else setPen(false); }
+    poke();
+  });
+
+  // In full screen the controls fade when nobody is touching anything.
+  var idleTimer;
+  function poke() {
+    app.classList.remove('is-idle');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(function () {
+      if (document.fullscreenElement && !pen.on) app.classList.add('is-idle');
+    }, 3000);
+  }
+  app.addEventListener('pointermove', poke);
+  app.addEventListener('pointerdown', poke);
+
+  window.addEventListener('resize', applyLayout);
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () { fitSlide(); fitCam(); }).observe(work);
+  }
+  window.addEventListener('beforeunload', stopStream);
+
+  /* ── start up ── */
+
+  applyLayout();
+  applyView();
+  var lastSource = readStore('classicalia.present.source', null);
+  if (lastSource && lastSource.indexOf('board:') === 0) { showSource('board', lastSource.slice(6)); listCameras(); }
+})();
+</script>
+</body>
+</html>
