@@ -254,6 +254,7 @@
     </div>
     <div style="margin-top: 16px;" class="cw-print-hide">
       <button class="cw-btn primary big" id="cwPrint" type="button">Print worksheet</button>
+      <button class="cw-btn big" id="cwWord" type="button" style="margin-top: 8px;">Download as Word</button>
       <p class="cw-note">Printing opens your browser's print dialogue. Choose A4 landscape and, if the sheet looks cramped, turn off "headers and footers" there.</p>
     </div>
   </aside>
@@ -689,6 +690,31 @@
     window.print();
   });
 
+  /* ── a Word copy ──
+     Read from the preview itself, so the sheet in Word is the sheet on screen. */
+  document.getElementById('cwWord').addEventListener('click', function () {
+    var button = this;
+    if (!window.ClassicaliaWord) { window.alert('The Word download could not be loaded. Try reloading the page.'); return; }
+    if (!filled().length) { window.alert('Add at least one word first.'); return; }
+    buildSheet();
+    var text = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Making the file\u2026';
+    var title = val('cwTitle').trim() || 'Look Cover Write Check';
+    window.ClassicaliaWord.fromSheet(sheetEl, {
+      landscape: true, margins: [567, 680, 567, 680], font: val('cwFont'), title: title,
+      creator: 'Classicalia look, cover, write, check'
+    }).then(function (blob) {
+      window.ClassicaliaWord.download(blob, window.ClassicaliaWord.fileName(title));
+    }, function () {
+      window.alert('Something went wrong making the Word file.');
+    }).then(function () {
+      button.disabled = false;
+      button.textContent = text;
+      scalePreview();
+    });
+  });
+
   window.addEventListener('resize', scalePreview);
   window.addEventListener('beforeprint', function () {
     sheetEl.style.transform = 'none';
@@ -713,6 +739,7 @@
   update();
 })();
 </script>
+<script src="/version2/assets/js/word-docx.js"></script>
 <div data-shell="footer"></div>
 </body>
 </html>
