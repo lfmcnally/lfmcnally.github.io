@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lesson plan builder — Classicalia</title>
+<meta name="description" content="Fill in your objectives, timings and activities, and print a tidy lesson plan or download it as a Word document. Works for any subject.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<style>
+  .lp-body { max-width: 1560px; margin: 0 auto; padding: 36px 40px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 640px; gap: 32px; align-items: start; }
+
+  .lp-panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; margin-bottom: 20px; }
+  .lp-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--rule-faint); }
+  .lp-panel-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 18px; color: var(--navy); }
+  .lp-panel-body { padding: 20px; }
+
+  .lp-grid { display: grid; gap: 14px; }
+  .lp-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .lp-grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .lp-field label, .lp-cell-label { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .lp-field input[type="text"], .lp-field input[type="date"], .lp-field input[type="time"], .lp-field input[type="number"], .lp-field select, .lp-field textarea, .lp-row textarea {
+    width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 9px 11px; }
+  .lp-field textarea, .lp-row textarea { resize: vertical; min-height: 66px; line-height: 1.5; }
+  .lp-row textarea { font-size: 13.5px; padding: 8px 10px; min-height: 52px; }
+  .lp-field input:focus, .lp-field select:focus, .lp-field textarea:focus, .lp-row textarea:focus, .lp-row input:focus {
+    outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,111,255,.12); }
+
+  .lp-check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+  .lp-check input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+  .lp-checks { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule-faint); }
+  .lp-checks-label { width: 100%; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: -6px; }
+
+  .lp-btn { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: var(--navy); background: var(--paper);
+    border: 1px solid var(--rule); border-radius: 7px; padding: 8px 14px; cursor: pointer; transition: background .12s, border-color .12s; }
+  .lp-btn:hover { background: var(--cream); border-color: #b8d0ff; }
+  .lp-btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .lp-btn.primary:hover { background: #3b82ff; }
+  .lp-btn.big { font-size: 15px; padding: 13px 22px; width: 100%; }
+  .lp-btn.small { padding: 5px 10px; font-size: 12px; }
+  .lp-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .lp-btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* the stages of the lesson */
+  .lp-row { padding: 12px 0; border-bottom: 1px solid var(--rule-faint); }
+  .lp-row:first-child { padding-top: 0; }
+  .lp-row:last-child { border-bottom: none; }
+  .lp-row.is-dragging { opacity: .45; }
+  .lp-row.is-over { box-shadow: inset 0 2px 0 var(--brand); }
+  .lp-row-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .lp-row-num { flex: none; width: 22px; font-size: 12.5px; font-weight: 700; color: var(--muted); text-align: right; }
+  .lp-row-mins, .lp-row-phase, .lp-custom-title { font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 6px; padding: 6px 9px; }
+  .lp-row-mins { width: 64px; }
+  .lp-row-phase { flex: 1; min-width: 0; font-weight: 600; }
+  .lp-custom-title { flex: 1; min-width: 0; font-weight: 600; }
+  .lp-row-unit { font-size: 12px; color: var(--muted); }
+  .lp-row-clock { flex: none; font-size: 12px; font-weight: 600; color: var(--muted); min-width: 84px; text-align: right; }
+  .lp-row-cells { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding-left: 30px; }
+  .lp-row-cells.one { grid-template-columns: 1fr; }
+  .lp-row-cells .lp-cell-label { font-size: 9.5px; margin-bottom: 4px; }
+  .lp-row-tools { flex: none; display: flex; gap: 2px; }
+  .lp-row-grip { cursor: grab; user-select: none; }
+  .lp-row-grip:active { cursor: grabbing; }
+  .lp-icon-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1;
+    color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 6px; cursor: pointer; }
+  .lp-icon-btn:hover { background: var(--cream); border-color: var(--rule); color: var(--navy); }
+  .lp-icon-btn.danger:hover { color: #c02626; border-color: #f0c8c8; background: #fdf3f3; }
+  .lp-icon-btn:disabled { opacity: .3; cursor: default; }
+  .lp-icon-btn:disabled:hover { background: transparent; border-color: transparent; color: var(--muted); }
+
+  .lp-fmt { display: flex; gap: 4px; }
+  .lp-fmt button { width: 30px; height: 30px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--navy);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; cursor: pointer; }
+  .lp-fmt button:hover { background: var(--cream); border-color: #b8d0ff; }
+  .lp-fmt .b { font-weight: 700; }
+  .lp-fmt .i { font-style: italic; font-family: Georgia, serif; }
+  .lp-fmt .u { text-decoration: underline; }
+
+  .lp-empty { font-size: 13.5px; color: var(--muted); font-style: italic; padding: 6px 0 12px; }
+  .lp-total { font-size: 13px; color: var(--muted); }
+  .lp-total strong { color: var(--navy); }
+  .lp-total.is-over strong { color: #b45309; }
+  #lpCrestThumb { height: 30px; width: auto; max-width: 150px; border: 1px solid var(--rule); border-radius: 5px; background: var(--paper); padding: 2px 5px; }
+  .lp-crest-note { font-size: 11.5px; color: var(--muted); font-style: italic; }
+
+  .lp-set { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rule-faint); }
+  .lp-set:last-child { border-bottom: none; }
+  .lp-set-name { font-size: 13.5px; font-weight: 600; color: var(--navy); }
+  .lp-set-meta { font-size: 11.5px; color: var(--muted); }
+
+  .lp-note { font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 12px; }
+
+  /* preview — the plan at A4, scaled to fit */
+  .lp-side { position: sticky; top: 24px; }
+  .lp-preview-wrap { background: var(--cream); border: 1px solid var(--rule); border-radius: 12px; padding: 18px; overflow: hidden; }
+  .lp-preview-label { font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .lp-preview-stage { width: 100%; overflow-x: hidden; overflow-y: auto; max-height: calc(100vh - 260px); }
+  .lp-fit { position: relative; overflow: hidden; }
+
+  /* ── the plan itself — shared by preview and print ── */
+  .lp-sheet { --shade: #e8e8e8; width: 21cm; min-height: 29.7cm; padding: 1.5cm; background: #fff; color: #000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 10.5pt; line-height: 1.4;
+    transform-origin: top left; box-shadow: 0 6px 24px rgba(14,30,63,.12); }
+  .lp-sheet.is-landscape { width: 29.7cm; min-height: 21cm; }
+  /* Printed typeface — web-safe faces every school computer already has. */
+  .lp-sheet[data-font="arial"]     { font-family: Arial, Helvetica, sans-serif; }
+  .lp-sheet[data-font="verdana"]   { font-family: Verdana, Geneva, sans-serif; }
+  .lp-sheet[data-font="trebuchet"] { font-family: 'Trebuchet MS', Tahoma, sans-serif; }
+  .lp-sheet[data-font="times"]     { font-family: 'Times New Roman', Times, serif; }
+  .lp-sheet[data-font="georgia"]   { font-family: Georgia, 'Times New Roman', serif; }
+  .lp-sheet[data-font="palatino"]  { font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif; }
+  .lp-sheet[data-font="courier"]   { font-family: 'Courier New', Courier, monospace; }
+  .lp-sheet[data-font="comic"]     { font-family: 'Comic Sans MS', 'Comic Sans', cursive; }
+
+  .s-crest { text-align: center; margin: 0 0 10px; }
+  .s-crest img { width: auto; max-width: 70%; }
+  .s-school { font-size: 9.5pt; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 4px; }
+  .s-title { font-size: 18pt; font-weight: 700; line-height: 1.2; margin: 0 0 12px; }
+
+  .s-box { width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0 0 10px; }
+  .s-box th, .s-box td { border: 1px solid #000; padding: 5px 7px; vertical-align: top; text-align: left; overflow-wrap: break-word; }
+  .s-box th { background: var(--shade); font-weight: 700; font-size: 10pt; }
+  .s-box td.s-label { background: var(--shade); font-weight: 700; font-size: 9.5pt; }
+  .s-box p { margin: 0 0 3px; }
+  .s-box p:last-child { margin-bottom: 0; }
+  .s-box p.s-gap { height: .6em; margin: 0; }
+  .s-box ul { margin: 0 0 3px; padding-left: 15px; }
+  .s-box ul:last-child { margin-bottom: 0; }
+  .s-box li { margin: 0 0 2px; }
+  .s-seq th { font-size: 9.5pt; }
+  .s-seq td { font-size: 10pt; }
+  .s-seq td.s-time { font-size: 9.5pt; }
+  .s-time b { display: block; }
+  .s-seq tr { break-inside: avoid; page-break-inside: avoid; }
+  .s-box thead { display: table-header-group; }
+  .s-edit { outline: none; border-radius: 3px; cursor: text; }
+  .s-edit:hover { background: #eef4ff; box-shadow: 0 0 0 1px #cfe0ff; }
+  .s-edit:focus { background: #eef4ff; box-shadow: 0 0 0 2px var(--brand); }
+
+  .s-foot { margin-top: 14px; text-align: center; }
+  .s-foot img { height: 20px; width: auto; display: inline-block; filter: grayscale(1) brightness(0); opacity: .65; }
+
+  @media (max-width: 1440px) {
+    .lp-body { max-width: 1180px; grid-template-columns: minmax(0, 1fr) 460px; }
+  }
+  @media (max-width: 1080px) {
+    .lp-body { grid-template-columns: minmax(0, 1fr); }
+    .lp-side { position: static; }
+    .lp-preview-stage { max-width: 640px; max-height: none; }
+  }
+  @media (max-width: 620px) {
+    .lp-body { padding: 28px 20px 70px; }
+    .lp-grid-3, .lp-grid-2, .lp-row-cells { grid-template-columns: 1fr; }
+    .lp-row-cells { padding-left: 0; }
+    .lp-row-head { flex-wrap: wrap; }
+  }
+
+  /* PRINT — only the plan, at full size. The page's size and orientation
+     are set by a rule the script writes, since they follow the settings. */
+  @media print {
+    body { background: #fff; }
+    .header, .support-band, .footer, .lp-main, .lp-preview-label, .lp-print-hide { display: none !important; }
+    .lp-body { display: block; padding: 0; max-width: none; }
+    .lp-side { position: static; }
+    .lp-preview-wrap { border: none; background: #fff; padding: 0; border-radius: 0; overflow: visible; }
+    .lp-preview-stage { overflow: visible !important; max-height: none !important; max-width: none !important; }
+    .lp-fit { height: auto !important; overflow: visible; }
+    .lp-sheet { transform: none !important; width: auto !important; min-height: 0 !important; box-shadow: none; padding: 0; }
+    /* A section stays whole, so its heading never ends a page; only the
+       lesson sequence is long enough to need to run on. */
+    .s-box:not(.s-seq) { break-inside: avoid; page-break-inside: avoid; }
+    .s-box tr { break-inside: avoid; page-break-inside: avoid; }
+    .s-box th, .s-box td.s-label { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .s-edit { background: none !important; box-shadow: none !important; }
+    .s-crest img, .s-foot img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+<style id="lpPageRule">@media print { @page { size: A4 portrait; margin: 1.5cm; } }</style>
+<link rel="stylesheet" href="/version2/assets/css/shell.css">
+<link rel="stylesheet" href="/version2/assets/css/app.css">
+<script src="/version2/assets/js/shell.js" defer></script>
+</head>
+<body>
+<div data-shell="header" data-active="tools"></div>
+
+<div class="header lp-print-hide">
+  <div class="header-inner">
+    <div class="header-eyebrow">For the classroom</div>
+    <h1 class="header-title">Lesson plan builder</h1>
+    <p class="header-deck">Fill in your objectives, the stages of the lesson and how long each one takes, and print a tidy lesson plan or download it as a Word document. Timings add up as you go, and saved plans stay in this browser. It works for any subject.</p>
+  </div>
+</div>
+
+<div class="lp-body">
+
+  <main class="lp-main">
+
+    <section class="lp-panel">
+      <div class="lp-panel-head">
+        <h2 class="lp-panel-title">Lesson details</h2>
+        <button class="lp-btn" id="lpNew" type="button">Start a new plan</button>
+      </div>
+      <div class="lp-panel-body">
+        <div class="lp-grid lp-grid-2">
+          <div class="lp-field">
+            <label for="lpTitle">Lesson title</label>
+            <input type="text" id="lpTitle" placeholder="e.g. The perfect tense">
+          </div>
+          <div class="lp-field">
+            <label for="lpSubject">Subject</label>
+            <input type="text" id="lpSubject" placeholder="e.g. Latin">
+          </div>
+        </div>
+
+        <div class="lp-grid lp-grid-3" style="margin-top: 14px;">
+          <div class="lp-field">
+            <label for="lpClass">Class</label>
+            <input type="text" id="lpClass" placeholder="e.g. 9X2">
+          </div>
+          <div class="lp-field">
+            <label for="lpTeacher">Teacher</label>
+            <input type="text" id="lpTeacher" placeholder="e.g. Mr Smith">
+          </div>
+          <div class="lp-field">
+            <label for="lpDate">Date</label>
+            <input type="date" id="lpDate">
+          </div>
+          <div class="lp-field">
+            <label for="lpStart">Start time</label>
+            <input type="time" id="lpStart">
+          </div>
+          <div class="lp-field">
+            <label for="lpLength">Lesson length (minutes)</label>
+            <input type="number" id="lpLength" min="0" max="300" step="5" value="60">
+          </div>
+          <div class="lp-field">
+            <label for="lpRoom">Room</label>
+            <input type="text" id="lpRoom" placeholder="e.g. C12">
+          </div>
+          <div class="lp-field">
+            <label for="lpUnit">Unit or scheme of work</label>
+            <input type="text" id="lpUnit" placeholder="e.g. Chapter 4">
+          </div>
+          <div class="lp-field">
+            <label for="lpLessonNo">Lesson in the sequence</label>
+            <input type="text" id="lpLessonNo" placeholder="e.g. 3 of 8">
+          </div>
+          <div class="lp-field">
+            <label for="lpSchool">School or department</label>
+            <input type="text" id="lpSchool" placeholder="e.g. Department of Classics">
+          </div>
+        </div>
+
+        <div class="lp-checks" style="gap: 12px; align-items: center;">
+          <label class="lp-check"><input type="checkbox" id="lpCrest"> School crest at the top</label>
+          <button class="lp-btn small" id="lpCrestPick" type="button">Choose an image&hellip;</button>
+          <select id="lpCrestSize" class="lp-row-mins" style="width: auto;">
+            <option value="small" selected>Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+          </select>
+          <img id="lpCrestThumb" alt="" hidden>
+          <button class="lp-btn small" id="lpCrestClear" type="button" hidden>Remove</button>
+          <span class="lp-crest-note" id="lpCrestNote"></span>
+          <input type="file" id="lpCrestFile" accept="image/*" hidden>
+          <input type="hidden" id="lpCrestData">
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-panel">
+      <div class="lp-panel-head">
+        <h2 class="lp-panel-title">What they will learn</h2>
+        <div class="lp-fmt" data-fmt>
+          <button class="b" type="button" data-mark="**" title="Bold (Ctrl+B)" aria-label="Bold">B</button>
+          <button class="i" type="button" data-mark="*" title="Italic (Ctrl+I)" aria-label="Italic">I</button>
+          <button class="u" type="button" data-mark="__" title="Underline (Ctrl+U)" aria-label="Underline">U</button>
+        </div>
+      </div>
+      <div class="lp-panel-body">
+        <div class="lp-grid lp-grid-2">
+          <div class="lp-field">
+            <label for="lpObjectives">Learning objectives (one per line)</label>
+            <textarea id="lpObjectives" rows="3" placeholder="To recognise the perfect tense&#10;To translate sentences using the perfect tense"></textarea>
+          </div>
+          <div class="lp-field">
+            <label for="lpSuccess">Success criteria (one per line)</label>
+            <textarea id="lpSuccess" rows="3" placeholder="I can spot the perfect stem and ending&#10;I can translate a perfect verb accurately"></textarea>
+          </div>
+        </div>
+        <div class="lp-field" style="margin-top: 14px;">
+          <label for="lpPrior">Prior learning and context</label>
+          <textarea id="lpPrior" rows="2" placeholder="Where this lesson sits in the sequence, and what the class already knows"></textarea>
+        </div>
+        <div class="lp-grid lp-grid-2" style="margin-top: 14px;">
+          <div class="lp-field">
+            <label for="lpVocab">Key vocabulary (one per line)</label>
+            <textarea id="lpVocab" rows="3" placeholder="perfect tense &ndash; a completed action in the past&#10;stem"></textarea>
+          </div>
+          <div class="lp-field">
+            <label for="lpResources">Resources (one per line)</label>
+            <textarea id="lpResources" rows="3" placeholder="Do Now sheet&#10;Textbook p. 42&#10;Mini whiteboards"></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-panel">
+      <div class="lp-panel-head">
+        <h2 class="lp-panel-title">Lesson sequence</h2>
+        <div class="lp-btn-row" style="align-items: center;">
+          <div class="lp-fmt" data-fmt>
+            <button class="b" type="button" data-mark="**" title="Bold (Ctrl+B)" aria-label="Bold">B</button>
+            <button class="i" type="button" data-mark="*" title="Italic (Ctrl+I)" aria-label="Italic">I</button>
+            <button class="u" type="button" data-mark="__" title="Underline (Ctrl+U)" aria-label="Underline">U</button>
+          </div>
+          <button class="lp-btn" id="lpClearRows" type="button">Clear all</button>
+        </div>
+      </div>
+      <div class="lp-panel-body">
+        <div id="lpRows"></div>
+        <div class="lp-empty" id="lpRowsEmpty" hidden>No stages yet &mdash; add one below, or start from a typical lesson structure.</div>
+        <div class="lp-btn-row" style="margin-top: 14px; align-items: center;">
+          <button class="lp-btn primary" id="lpAddRow" type="button">+ Stage</button>
+          <button class="lp-btn" id="lpTemplate" type="button">+ A typical lesson structure</button>
+          <span class="lp-total" id="lpTotal" style="margin-left: auto;"></span>
+        </div>
+        <datalist id="lpPhases">
+          <option value="Do Now"><option value="Starter"><option value="Retrieval practice"><option value="Recap">
+          <option value="Hook"><option value="New material"><option value="Modelling"><option value="Guided practice">
+          <option value="Independent practice"><option value="Reading"><option value="Translation"><option value="Discussion">
+          <option value="Feedback"><option value="Assessment"><option value="Plenary"><option value="Exit ticket"><option value="Homework set">
+        </datalist>
+        <p class="lp-note">Start a line with <code>-</code> to make it a bullet point. Select a word and press <strong>B</strong>, <em>I</em> or <span style="text-decoration:underline">U</span> to format it, or type <code>**bold**</code>, <code>*italics*</code> and <code>__underline__</code> yourself. Choose which columns appear under <em>Layout</em>.</p>
+      </div>
+    </section>
+
+    <section class="lp-panel">
+      <div class="lp-panel-head">
+        <h2 class="lp-panel-title">Adaptive teaching and notes</h2>
+        <div class="lp-fmt" data-fmt>
+          <button class="b" type="button" data-mark="**" title="Bold (Ctrl+B)" aria-label="Bold">B</button>
+          <button class="i" type="button" data-mark="*" title="Italic (Ctrl+I)" aria-label="Italic">I</button>
+          <button class="u" type="button" data-mark="__" title="Underline (Ctrl+U)" aria-label="Underline">U</button>
+        </div>
+      </div>
+      <div class="lp-panel-body">
+        <div class="lp-grid lp-grid-2">
+          <div class="lp-field">
+            <label for="lpSupport">Support</label>
+            <textarea id="lpSupport" rows="2" placeholder="Scaffolds, worked examples, sentence starters"></textarea>
+          </div>
+          <div class="lp-field">
+            <label for="lpStretch">Stretch and challenge</label>
+            <textarea id="lpStretch" rows="2" placeholder="Extension tasks and harder questions"></textarea>
+          </div>
+          <div class="lp-field">
+            <label for="lpStudents">Students to note</label>
+            <textarea id="lpStudents" rows="2" placeholder="SEND, EAL, PP and others. Initials are safer than full names if the plan leaves school."></textarea>
+          </div>
+          <div class="lp-field">
+            <label for="lpAdults">Other adults in the room</label>
+            <textarea id="lpAdults" rows="2" placeholder="What the teaching assistant will do, and with whom"></textarea>
+          </div>
+          <div class="lp-field">
+            <label for="lpMisconceptions">Likely misconceptions</label>
+            <textarea id="lpMisconceptions" rows="2" placeholder="Where students usually go wrong, and how you will tackle it"></textarea>
+          </div>
+          <div class="lp-field">
+            <label for="lpAssessment">Assessment</label>
+            <textarea id="lpAssessment" rows="2" placeholder="How you will know they have learnt it"></textarea>
+          </div>
+        </div>
+        <div class="lp-field" style="margin-top: 14px;">
+          <label for="lpHomework">Homework</label>
+          <textarea id="lpHomework" rows="2" placeholder="e.g. Learn the perfect endings for a test next lesson"></textarea>
+        </div>
+
+        <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--rule-faint);">
+          <div class="lp-cell-label">Your own sections</div>
+          <div id="lpCustom"></div>
+          <button class="lp-btn" id="lpAddCustom" type="button" style="margin-top: 6px;">+ Add a section</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-panel">
+      <div class="lp-panel-head">
+        <h2 class="lp-panel-title">Layout</h2>
+      </div>
+      <div class="lp-panel-body">
+        <div class="lp-grid lp-grid-3">
+          <div class="lp-field">
+            <label for="lpOrientation">Page</label>
+            <select id="lpOrientation">
+              <option value="portrait" selected>A4 portrait</option>
+              <option value="landscape">A4 landscape</option>
+            </select>
+          </div>
+          <div class="lp-field">
+            <label for="lpFont">Typeface</label>
+            <select id="lpFont">
+              <option value="system" selected>Default &mdash; sans serif</option>
+              <option value="arial" style="font-family: Arial, Helvetica, sans-serif;">Arial</option>
+              <option value="verdana" style="font-family: Verdana, Geneva, sans-serif;">Verdana</option>
+              <option value="trebuchet" style="font-family: 'Trebuchet MS', Tahoma, sans-serif;">Trebuchet MS</option>
+              <option value="times" style="font-family: 'Times New Roman', Times, serif;">Times New Roman</option>
+              <option value="georgia" style="font-family: Georgia, serif;">Georgia</option>
+              <option value="palatino" style="font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;">Palatino</option>
+              <option value="courier" style="font-family: 'Courier New', Courier, monospace;">Courier New</option>
+              <option value="comic" style="font-family: 'Comic Sans MS', 'Comic Sans', cursive;">Comic Sans MS</option>
+            </select>
+          </div>
+          <div class="lp-field">
+            <label for="lpShade">Heading shading</label>
+            <select id="lpShade">
+              <option value="grey" selected>Grey</option>
+              <option value="blue">Pale blue</option>
+              <option value="green">Pale green</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="lp-checks">
+          <div class="lp-checks-label">Columns in the lesson sequence</div>
+          <label class="lp-check"><input type="checkbox" id="lpColTeacher" checked> Teacher</label>
+          <label class="lp-check"><input type="checkbox" id="lpColStudents" checked> Students</label>
+          <label class="lp-check"><input type="checkbox" id="lpColResources"> Resources</label>
+          <label class="lp-check"><input type="checkbox" id="lpColCheck" checked> Checking understanding</label>
+        </div>
+
+        <div class="lp-checks">
+          <label class="lp-check"><input type="checkbox" id="lpClock" checked> Clock times beside each stage</label>
+          <label class="lp-check"><input type="checkbox" id="lpEval"> &ldquo;What went well&rdquo; boxes to fill in afterwards</label>
+          <label class="lp-check"><input type="checkbox" id="lpBlank"> Show empty sections as space to write in</label>
+          <label class="lp-check"><input type="checkbox" id="lpFooter"> Classicalia footer</label>
+        </div>
+        <p class="lp-note">Anything left empty is left off the plan. Tick &ldquo;space to write in&rdquo; to keep every section, which makes a blank template to print and fill in by hand. Click any heading in the preview to rename it.</p>
+      </div>
+    </section>
+
+    <section class="lp-panel">
+      <div class="lp-panel-head">
+        <h2 class="lp-panel-title">Saved plans</h2>
+        <div class="lp-btn-row">
+          <button class="lp-btn" id="lpSave" type="button">Save this plan</button>
+          <button class="lp-btn" id="lpDownload" type="button">Save to a file</button>
+          <button class="lp-btn" id="lpOpen" type="button">Open a file</button>
+        </div>
+        <input type="file" id="lpOpenFile" accept=".json,application/json" hidden>
+      </div>
+      <div class="lp-panel-body">
+        <div id="lpSets"></div>
+        <p class="lp-note">Saved plans are stored in this browser only, so they stay on this computer and are lost if you clear your browsing data. Save to a file to keep a copy elsewhere or share it with a colleague.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="lp-side">
+    <div class="lp-preview-wrap">
+      <div class="lp-preview-label">Preview &mdash; A4 <span id="lpPages"></span> <span style="font-weight:600; letter-spacing:0; text-transform:none;">&middot; click a heading to rename it</span></div>
+      <div class="lp-preview-stage" id="lpStage">
+        <div class="lp-fit" id="lpFit">
+          <div class="lp-sheet" id="lpSheet"></div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top: 16px;" class="lp-print-hide">
+      <button class="lp-btn primary big" id="lpPrint" type="button">Print lesson plan</button>
+      <button class="lp-btn big" id="lpWord" type="button" style="margin-top: 8px;">Download as Word</button>
+      <p class="lp-note">Printing opens your browser's print dialogue. If the plan looks cramped, turn off &ldquo;headers and footers&rdquo; there. The Word file can be edited further and carries page numbers.</p>
+    </div>
+  </aside>
+
+</div>
+
+<footer class="footer lp-print-hide">
+  <div class="footer-inner">
+    <a href="/version2/" class="footer-logo"><img src="/version2/assets/images/classicalia-wordmark-navy.png" alt="Classicalia"></a>
+    <div class="footer-links">
+      <a href="/version2/tools/" class="footer-link">Tools</a>
+      <a href="/version2/subjects/latin/" class="footer-link">Latin</a>
+      <a href="/version2/subjects/greek/" class="footer-link">Greek</a>
+      <a href="/version2/subjects/classical-civilisation/" class="footer-link">Classical Civilisation</a>
+      <a href="https://buymeacoffee.com/lfmcnally" class="footer-link footer-link-support" target="_blank" rel="noopener">Support us &#9829;</a>
+    </div>
+    <div class="footer-copy">classicalia.co.uk · Free for all</div>
+  </div>
+</footer>
+
+<script src="/version2/tools/lesson-plan-word.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var STORE_KEY = 'classicalia.lessonPlan.plans';
+  var DRAFT_KEY = 'classicalia.lessonPlan.draft';
+  // The crest is the school's, so it is shared with the exam paper builder.
+  var CREST_KEY = 'classicalia.examBuilder.crest';
+  var FILE_KIND = 'classicalia.lesson-plan';
+
+  /* The plan is three things: the form fields (settings), the stages of the
+     lesson (rows), and any sections the teacher adds (custom). Headings
+     renamed in the preview are kept in labels, by key. */
+  var rows = [];
+  var custom = [];
+  var labels = {};
+
+  var rowsEl = document.getElementById('lpRows');
+  var customEl = document.getElementById('lpCustom');
+  var sheetEl = document.getElementById('lpSheet');
+  var stageEl = document.getElementById('lpStage');
+  var fitEl = document.getElementById('lpFit');
+
+  var DETAIL_IDS = ['lpTitle', 'lpSubject', 'lpClass', 'lpTeacher', 'lpDate', 'lpStart', 'lpLength', 'lpRoom', 'lpUnit', 'lpLessonNo', 'lpSchool'];
+  var TEXT_IDS = ['lpObjectives', 'lpSuccess', 'lpPrior', 'lpVocab', 'lpResources',
+                  'lpSupport', 'lpStretch', 'lpStudents', 'lpAdults', 'lpMisconceptions', 'lpAssessment', 'lpHomework'];
+  var LAYOUT_IDS = ['lpOrientation', 'lpFont', 'lpShade', 'lpColTeacher', 'lpColStudents', 'lpColResources', 'lpColCheck',
+                    'lpClock', 'lpEval', 'lpBlank', 'lpFooter', 'lpCrest', 'lpCrestSize', 'lpCrestData'];
+  var settingIds = DETAIL_IDS.concat(TEXT_IDS, LAYOUT_IDS);
+
+  /* Each section of the plan: its field, its heading, and whether every line
+     is a bullet point (list) or it is free text where a leading dash makes one. */
+  var SECTIONS = {
+    objectives:     { id: 'lpObjectives',     label: 'Learning objectives', list: true },
+    success:        { id: 'lpSuccess',        label: 'Success criteria', list: true },
+    prior:          { id: 'lpPrior',          label: 'Prior learning and context' },
+    vocab:          { id: 'lpVocab',          label: 'Key vocabulary', list: true },
+    resources:      { id: 'lpResources',      label: 'Resources', list: true },
+    support:        { id: 'lpSupport',        label: 'Support' },
+    stretch:        { id: 'lpStretch',        label: 'Stretch and challenge' },
+    students:       { id: 'lpStudents',       label: 'Students to note' },
+    adults:         { id: 'lpAdults',         label: 'Other adults in the room' },
+    misconceptions: { id: 'lpMisconceptions', label: 'Likely misconceptions' },
+    assessment:     { id: 'lpAssessment',     label: 'Assessment' },
+    homework:       { id: 'lpHomework',       label: 'Homework' }
+  };
+
+  // The order of the plan, with sections that sit side by side grouped.
+  var LAYOUT = [['objectives', 'success'], ['prior'], ['vocab', 'resources'], 'sequence',
+                ['support', 'stretch'], ['students', 'adults'], ['misconceptions', 'assessment'], ['homework'],
+                'custom', 'evaluation'];
+
+  // The columns of the lesson sequence. Time and stage are always there.
+  var COLUMNS = [
+    { key: 'time',      label: 'Time',  weight: 1.4 },
+    { key: 'phase',     label: 'Stage', weight: 2.8 },
+    { key: 'teacher',   label: 'Teacher', weight: 5, opt: 'lpColTeacher', hint: 'What you will do and say' },
+    { key: 'students',  label: 'Students', weight: 5, opt: 'lpColStudents', hint: 'What the students will do' },
+    { key: 'resources', label: 'Resources', weight: 2.8, opt: 'lpColResources', hint: 'Sheets, slides, page numbers' },
+    { key: 'check',     label: 'Checking understanding', weight: 3.8, opt: 'lpColCheck', hint: 'Questions, whiteboards, cold calling' }
+  ];
+
+  var SHADES = { grey: 'E8E8E8', blue: 'DCE8F7', green: 'DFF0E2', none: null };
+  var CREST_HEIGHTS = { small: 1.2, medium: 1.8, large: 2.6 };
+  var BLANK_HEIGHT = 2.2;     // cm of writing space for an empty section in a blank template
+  var EVAL_HEIGHT = 3;        // cm for each of the boxes filled in after the lesson
+  var CM_PX = 96 / 2.54;
+
+  var TEMPLATE = [
+    { mins: '5',  phase: 'Do Now', teacher: 'Retrieval questions on last lesson on the board as students arrive', students: 'Answer in silence, in full sentences', check: 'Circulate; take answers' },
+    { mins: '5',  phase: 'Review', teacher: 'Go through the Do Now answers', students: 'Self-correct in green pen', check: 'Hands up for each one right' },
+    { mins: '15', phase: 'New material', teacher: 'Explain and model the new idea, step by step', students: 'Listen and take notes', check: 'Targeted questions' },
+    { mins: '10', phase: 'Guided practice', teacher: 'Work through examples together', students: 'Try each example on mini whiteboards', check: 'Show me boards' },
+    { mins: '20', phase: 'Independent practice', teacher: 'Circulate and support', students: 'Work through the task alone', check: 'Look at books; live marking' },
+    { mins: '5',  phase: 'Exit ticket', teacher: 'Hand out the exit ticket', students: 'Answer two questions on today’s lesson', check: 'Collect and sort before next lesson' }
+  ];
+
+  function val(id) { return document.getElementById(id).value; }
+  function checked(id) { return document.getElementById(id).checked; }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* ── inline formatting ──
+     Text stays a plain string; a few marks inside it carry the formatting,
+     as in the exam paper builder. */
+
+  function formatText(str) {
+    var html = escapeHtml(str);
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    html = html.replace(/__([^_]+)__/g, '<u>$1</u>');
+    return html;
+  }
+
+  // Wrapping is a toggle: marks already around the selection come off again.
+  function toggleMark(input, mark) {
+    var value = input.value;
+    var start = input.selectionStart;
+    var end = input.selectionEnd;
+    var before = value.slice(0, start);
+    var selected = value.slice(start, end);
+    var after = value.slice(end);
+    var width = mark.length;
+    var caret;
+
+    if (selected.length > width * 2 &&
+        selected.slice(0, width) === mark && selected.slice(-width) === mark) {
+      selected = selected.slice(width, -width);
+      caret = [start, start + selected.length];
+    } else if (before.slice(-width) === mark && after.slice(0, width) === mark) {
+      before = before.slice(0, -width);
+      after = after.slice(width);
+      caret = [before.length, before.length + selected.length];
+    } else {
+      caret = selected
+        ? [start + width, start + width + selected.length]
+        : [start + width, start + width];
+      selected = mark + selected + mark;
+    }
+
+    input.value = before + selected + after;
+    input.setSelectionRange(caret[0], caret[1]);
+    input.focus();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  var MARK_KEYS = { b: '**', i: '*', u: '__' };
+  var activeInput = null;
+
+  function wireFormatting(input) {
+    input.addEventListener('focus', function () { activeInput = input; });
+    input.addEventListener('keydown', function (e) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      var mark = MARK_KEYS[e.key.toLowerCase()];
+      if (!mark) return;
+      e.preventDefault();
+      toggleMark(input, mark);
+    });
+  }
+
+  [].forEach.call(document.querySelectorAll('[data-fmt]'), function (bar) {
+    bar.addEventListener('mousedown', function (e) {
+      // Keep the focus (and so the selection) in the text box.
+      if (e.target.getAttribute('data-mark')) { e.preventDefault(); }
+    });
+    bar.addEventListener('click', function (e) {
+      var mark = e.target.getAttribute && e.target.getAttribute('data-mark');
+      if (!mark) return;
+      if (!activeInput || !document.body.contains(activeInput)) {
+        window.alert('Click into a box first, then select the words to format.');
+        return;
+      }
+      toggleMark(activeInput, mark);
+    });
+  });
+
+  /* ── storage ── */
+
+  function readStore(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch (e) { return fallback; }
+  }
+
+  function writeStore(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* ── times ── */
+
+  function minsOf(row) {
+    var n = parseInt(row.mins, 10);
+    return isNaN(n) || n < 0 ? 0 : n;
+  }
+
+  function plannedMinutes() {
+    return rows.reduce(function (sum, row) { return sum + minsOf(row); }, 0);
+  }
+
+  function startMinutes() {
+    var m = /^(\d{1,2}):(\d{2})/.exec(val('lpStart'));
+    return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : null;
+  }
+
+  function clock(total) {
+    total = ((total % 1440) + 1440) % 1440;
+    var h = Math.floor(total / 60), m = total % 60;
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
+
+  // The clock time each stage starts, or null with no start time set.
+  function rowStarts() {
+    var at = startMinutes();
+    return rows.map(function (row) {
+      if (at === null) return null;
+      var here = at;
+      at += minsOf(row);
+      return here;
+    });
+  }
+
+  function lessonLength() {
+    var n = parseInt(val('lpLength'), 10);
+    return isNaN(n) || n <= 0 ? 0 : n;
+  }
+
+  function longDate(iso) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    if (!m) return '';
+    var d = new Date(+m[1], +m[2] - 1, +m[3]);
+    return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  /* ── the plan as a model ──
+     One description of the plan, drawn by the preview and written out by
+     the Word file, so the two cannot drift apart. */
+
+  function label(key, fallback) {
+    return labels[key] || fallback;
+  }
+
+  // A box's text as lines: { bullet, html } or { gap } for a blank line.
+  function contentLines(text, list) {
+    var lines = String(text || '').replace(/\s+$/, '').split(/\r?\n/);
+    var out = [];
+    lines.forEach(function (line) {
+      var trimmed = line.trim();
+      if (!trimmed) {
+        if (!list && out.length) out.push({ gap: true });
+        return;
+      }
+      var bullet = /^([-•–]|\*(?=\s))\s*/.exec(trimmed);
+      if (bullet) trimmed = trimmed.slice(bullet[0].length);
+      out.push({ bullet: list || !!bullet, html: formatText(trimmed) });
+    });
+    return out;
+  }
+
+  function sectionColumn(key) {
+    var s = SECTIONS[key];
+    var text = val(s.id);
+    return { key: key, label: label(key, s.label), lines: contentLines(text, s.list), empty: !text.trim() };
+  }
+
+  function detailPairs() {
+    var blank = checked('lpBlank');
+    var time = '';
+    var start = startMinutes(), len = lessonLength();
+    if (start !== null) time = clock(start) + (len ? '–' + clock(start + len) : '');
+    if (len) time += (time ? ' (' + len + ' minutes)' : len + ' minutes');
+    var pairs = [
+      ['subject', 'Subject', val('lpSubject')],
+      ['class', 'Class', val('lpClass')],
+      ['teacher', 'Teacher', val('lpTeacher')],
+      ['date', 'Date', longDate(val('lpDate'))],
+      ['time', 'Time', time],
+      ['room', 'Room', val('lpRoom')],
+      ['unit', 'Unit', val('lpUnit')],
+      ['lessonNo', 'Lesson', val('lpLessonNo')]
+    ];
+    return pairs.filter(function (p) { return blank || p[2].trim(); }).map(function (p) {
+      return { key: 'detail.' + p[0], label: label('detail.' + p[0], p[1]), html: escapeHtml(p[2].trim()) };
+    });
+  }
+
+  function activeColumns() {
+    return COLUMNS.filter(function (c) { return !c.opt || checked(c.opt); }).map(function (c) {
+      var fallback = c.label;
+      // With no students column, the teacher's column describes the whole stage.
+      if (c.key === 'teacher' && !checked('lpColStudents')) fallback = 'What happens';
+      return { key: c.key, label: label('col.' + c.key, fallback), weight: c.weight };
+    });
+  }
+
+  function sequenceBlock() {
+    var cols = activeColumns();
+    var showClock = checked('lpClock');
+    var starts = rowStarts();
+    var filled = rows.filter(function (row) {
+      return cols.some(function (c) { return c.key !== 'time' && (row[c.key] || '').trim(); }) || minsOf(row);
+    });
+    if (!filled.length && !checked('lpBlank')) return null;
+    var body = rows.map(function (row, i) {
+      if (filled.indexOf(row) < 0) return null;
+      return cols.map(function (c) {
+        if (c.key === 'time') {
+          var lines = [];
+          if (showClock && starts[i] !== null) lines.push({ html: '<b>' + clock(starts[i]) + '</b>', time: true });
+          if (minsOf(row)) lines.push({ html: minsOf(row) + ' min' });
+          return lines;
+        }
+        if (c.key === 'phase') return row.phase && row.phase.trim() ? [{ html: '<strong>' + formatText(row.phase.trim()) + '</strong>' }] : [];
+        return contentLines(row[c.key], false);
+      });
+    }).filter(Boolean);
+    // A blank template has a handful of empty rows to write in.
+    var blankRows = body.length ? 0 : 6;
+    return { type: 'sequence', label: label('sequence', 'Lesson sequence'), columns: cols, rows: body, blankRows: blankRows };
+  }
+
+  function planModel() {
+    var blank = checked('lpBlank');
+    var blocks = [];
+
+    LAYOUT.forEach(function (group) {
+      if (group === 'sequence') {
+        var seq = sequenceBlock();
+        if (seq) blocks.push(seq);
+        return;
+      }
+      if (group === 'custom') {
+        custom.forEach(function (c, i) {
+          if (!c.title.trim() && !c.text.trim()) return;
+          if (!c.text.trim() && !blank) return;
+          blocks.push({ type: 'box', columns: [{
+            key: null, custom: i, label: c.title.trim() || 'Notes', lines: contentLines(c.text, false), empty: !c.text.trim()
+          }] });
+        });
+        return;
+      }
+      if (group === 'evaluation') {
+        if (!checked('lpEval')) return;
+        blocks.push({ type: 'box', title: { key: 'evaluation', label: label('evaluation', 'After the lesson') }, columns: [
+          { key: 'www', label: label('www', 'What went well'), lines: [], empty: true, height: EVAL_HEIGHT },
+          { key: 'ebi', label: label('ebi', 'Even better if…'), lines: [], empty: true, height: EVAL_HEIGHT }
+        ] });
+        return;
+      }
+      var cols = group.map(sectionColumn).filter(function (c) { return blank || !c.empty; });
+      if (cols.length) blocks.push({ type: 'box', columns: cols });
+    });
+
+    blocks.forEach(function (b) {
+      if (b.type !== 'box') return;
+      b.columns.forEach(function (c) {
+        if (c.empty && !c.height) c.height = BLANK_HEIGHT;
+      });
+    });
+
+    var crest = null;
+    if (checked('lpCrest') && val('lpCrestData')) {
+      crest = { src: val('lpCrestData'), height: CREST_HEIGHTS[val('lpCrestSize')] || CREST_HEIGHTS.small };
+    }
+
+    var title = val('lpTitle').trim();
+    return {
+      landscape: val('lpOrientation') === 'landscape',
+      font: val('lpFont'),
+      shade: SHADES.hasOwnProperty(val('lpShade')) ? SHADES[val('lpShade')] : SHADES.grey,
+      crest: crest,
+      school: val('lpSchool').trim(),
+      title: title || (blank ? 'Lesson plan' : ''),
+      details: detailPairs(),
+      blocks: blocks,
+      footer: checked('lpFooter'),
+      footLine: [title, val('lpClass').trim(), val('lpDate') ? new Date(val('lpDate') + 'T12:00').toLocaleDateString('en-GB') : '']
+        .filter(Boolean).join(' · ')
+    };
+  }
+
+  /* ── drawing the plan ── */
+
+  function editable(key, text) {
+    if (!key) return escapeHtml(text);
+    return '<span class="s-edit" contenteditable="true" spellcheck="false" data-label="' + escapeHtml(key) + '">' + escapeHtml(text) + '</span>';
+  }
+
+  function linesHtml(lines) {
+    var html = '', inList = false;
+    lines.forEach(function (line) {
+      if (line.bullet && !inList) { html += '<ul>'; inList = true; }
+      if (!line.bullet && inList) { html += '</ul>'; inList = false; }
+      if (line.gap) { html += '<p class="s-gap"></p>'; return; }
+      html += line.bullet ? '<li>' + line.html + '</li>' : '<p>' + line.html + '</p>';
+    });
+    if (inList) html += '</ul>';
+    return html;
+  }
+
+  function detailsHtml(details, landscape) {
+    if (!details.length) return '';
+    var per = landscape ? 3 : 2;
+    var labelW = landscape ? 10 : 15;
+    var valueW = (100 - labelW * per) / per;
+    var cols = '';
+    for (var i = 0; i < per; i++) cols += '<col style="width:' + labelW + '%"><col style="width:' + valueW + '%">';
+    var html = '<table class="s-box s-details"><colgroup>' + cols + '</colgroup><tbody>';
+    for (var r = 0; r < details.length; r += per) {
+      html += '<tr>';
+      for (var c = 0; c < per; c++) {
+        var d = details[r + c];
+        html += d ? '<td class="s-label">' + editable(d.key, d.label) + '</td><td>' + d.html + '</td>'
+                  : '<td class="s-label"></td><td></td>';
+      }
+      html += '</tr>';
+    }
+    return html + '</tbody></table>';
+  }
+
+  function boxHtml(block) {
+    var n = block.columns.length;
+    var html = '<table class="s-box">';
+    if (block.title) {
+      html += '<thead><tr><th colspan="' + n + '">' + editable(block.title.key, block.title.label) + '</th></tr></thead>';
+    }
+    html += '<tbody><tr>' + block.columns.map(function (c) {
+      return '<th>' + (c.custom != null ? escapeHtml(c.label) : editable(c.key, c.label)) + '</th>';
+    }).join('') + '</tr><tr>' + block.columns.map(function (c) {
+      var style = c.height ? ' style="height:' + c.height + 'cm"' : '';
+      return '<td' + style + '>' + linesHtml(c.lines) + '</td>';
+    }).join('') + '</tr></tbody></table>';
+    return html;
+  }
+
+  function sequenceHtml(block) {
+    var total = block.columns.reduce(function (s, c) { return s + c.weight; }, 0);
+    var html = '<table class="s-box s-seq"><colgroup>' + block.columns.map(function (c) {
+      return '<col style="width:' + (c.weight / total * 100).toFixed(2) + '%">';
+    }).join('') + '</colgroup><thead><tr><th colspan="' + block.columns.length + '">' +
+      editable('sequence', block.label) + '</th></tr><tr>' + block.columns.map(function (c) {
+      return '<th>' + editable('col.' + c.key, c.label) + '</th>';
+    }).join('') + '</tr></thead><tbody>';
+    block.rows.forEach(function (cells) {
+      html += '<tr>' + cells.map(function (lines, i) {
+        return '<td' + (block.columns[i].key === 'time' ? ' class="s-time"' : '') + '>' + linesHtml(lines) + '</td>';
+      }).join('') + '</tr>';
+    });
+    for (var b = 0; b < block.blankRows; b++) {
+      html += '<tr>' + block.columns.map(function () { return '<td style="height:1.6cm"></td>'; }).join('') + '</tr>';
+    }
+    return html + '</tbody></table>';
+  }
+
+  function render() {
+    var model = planModel();
+    var html = '';
+    if (model.crest) {
+      html += '<div class="s-crest"><img src="' + escapeHtml(model.crest.src) + '" alt="" style="height:' + model.crest.height + 'cm"></div>';
+    }
+    if (model.school) html += '<p class="s-school">' + escapeHtml(model.school) + '</p>';
+    if (model.title) html += '<h2 class="s-title">' + escapeHtml(model.title) + '</h2>';
+    html += detailsHtml(model.details, model.landscape);
+    model.blocks.forEach(function (block) {
+      html += block.type === 'sequence' ? sequenceHtml(block) : boxHtml(block);
+    });
+    if (model.footer) {
+      html += '<div class="s-foot"><img src="/version2/assets/images/classicalia-wordmark-navy.png" alt="Classicalia"></div>';
+    }
+    if (!html) {
+      html = '<p style="color:#888; font-style:italic;">Your plan will appear here as you fill it in.</p>';
+    }
+    sheetEl.innerHTML = html;
+    sheetEl.className = 'lp-sheet' + (model.landscape ? ' is-landscape' : '');
+    sheetEl.setAttribute('data-font', model.font);
+    sheetEl.style.setProperty('--shade', model.shade ? '#' + model.shade : '#fff');
+    document.getElementById('lpPageRule').textContent =
+      '@media print { @page { size: A4 ' + (model.landscape ? 'landscape' : 'portrait') + '; margin: 1.5cm; } }';
+    [].forEach.call(sheetEl.querySelectorAll('img'), function (img) {
+      if (!img.complete) img.addEventListener('load', scalePreview);
+    });
+  }
+
+  function scalePreview() {
+    // The sheet is a real A4 page; shrink it to fit the preview column. The
+    // transform leaves the layout alone, so the box around it is told the
+    // scaled height by hand.
+    var available = stageEl.clientWidth;
+    if (!available) return;
+    var natural = sheetEl.offsetWidth || 1;
+    var scale = Math.min(1, available / natural);
+    sheetEl.style.transform = 'scale(' + scale + ')';
+    fitEl.style.height = (sheetEl.offsetHeight * scale) + 'px';
+    showPageCount();
+  }
+
+  // The printed pages, roughly: the sheet's height less its margins, over
+  // the height a page can hold.
+  function showPageCount() {
+    var labelEl = document.getElementById('lpPages');
+    var landscape = val('lpOrientation') === 'landscape';
+    var room = ((landscape ? 21 : 29.7) - 3) * CM_PX;
+    var used = sheetEl.scrollHeight - 3 * CM_PX;
+    var pages = Math.max(1, Math.ceil(used / room - 0.02));
+    labelEl.textContent = (landscape ? 'landscape ' : '') + '· about ' + pages + (pages === 1 ? ' page' : ' pages');
+  }
+
+  function showTotal() {
+    var el = document.getElementById('lpTotal');
+    var planned = plannedMinutes();
+    var len = lessonLength();
+    if (!rows.length) { el.innerHTML = ''; el.className = 'lp-total'; return; }
+    el.innerHTML = len
+      ? '<strong>' + planned + ' of ' + len + ' minutes</strong> planned' +
+        (planned > len ? ' &middot; ' + (planned - len) + ' over' : planned < len ? ' &middot; ' + (len - planned) + ' to spare' : '')
+      : '<strong>' + planned + ' minutes</strong> planned';
+    el.className = 'lp-total' + (len && planned > len ? ' is-over' : '');
+  }
+
+  /* ── the stages of the lesson ── */
+
+  function blankRow() {
+    return { mins: '', phase: '', teacher: '', students: '', resources: '', check: '' };
+  }
+
+  function autoGrow(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.max(52, el.scrollHeight + 2) + 'px';
+  }
+
+  function iconBtn(glyph, title, disabled, onClick, danger) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'lp-icon-btn' + (danger ? ' danger' : '');
+    b.textContent = glyph;
+    b.title = title;
+    b.setAttribute('aria-label', title);
+    if (disabled) { b.disabled = true; }
+    else { b.addEventListener('click', onClick); }
+    return b;
+  }
+
+  function showClocks() {
+    var starts = rowStarts();
+    [].forEach.call(rowsEl.querySelectorAll('.lp-row-clock'), function (el, i) {
+      var s = starts[i];
+      el.textContent = s === null || s === undefined ? '' : clock(s) + '–' + clock(s + minsOf(rows[i]));
+    });
+  }
+
+  var dragFrom = null;
+
+  function renderRows(focusIndex) {
+    rowsEl.innerHTML = '';
+    document.getElementById('lpRowsEmpty').hidden = rows.length > 0;
+    var cols = COLUMNS.filter(function (c) { return c.opt && checked(c.opt); });
+
+    rows.forEach(function (row, i) {
+      var el = document.createElement('div');
+      el.className = 'lp-row';
+
+      var head = document.createElement('div');
+      head.className = 'lp-row-head';
+      var num = document.createElement('span');
+      num.className = 'lp-row-num';
+      num.textContent = i + 1;
+
+      var mins = document.createElement('input');
+      mins.type = 'number';
+      mins.min = '0';
+      mins.max = '300';
+      mins.className = 'lp-row-mins';
+      mins.value = row.mins;
+      mins.placeholder = 'min';
+      mins.setAttribute('aria-label', 'Minutes for stage ' + (i + 1));
+      mins.addEventListener('input', function () {
+        row.mins = mins.value;
+        showClocks();
+        update();
+      });
+      var unit = document.createElement('span');
+      unit.className = 'lp-row-unit';
+      unit.textContent = 'min';
+
+      var phase = document.createElement('input');
+      phase.type = 'text';
+      phase.className = 'lp-row-phase';
+      phase.value = row.phase;
+      phase.placeholder = 'Stage, e.g. Do Now';
+      phase.setAttribute('list', 'lpPhases');
+      phase.setAttribute('aria-label', 'Stage ' + (i + 1));
+      phase.addEventListener('input', function () { row.phase = phase.value; update(); });
+      wireFormatting(phase);
+
+      var clockEl = document.createElement('span');
+      clockEl.className = 'lp-row-clock';
+
+      var tools = document.createElement('div');
+      tools.className = 'lp-row-tools';
+      var grip = iconBtn('⠿', 'Drag to reorder', false, function () {});
+      grip.classList.add('lp-row-grip');
+      grip.addEventListener('pointerdown', function () { el.draggable = true; });
+      grip.addEventListener('pointerup', function () { el.draggable = false; });
+      tools.appendChild(grip);
+      tools.appendChild(iconBtn('↑', 'Move up', i === 0, function () { move(i, -1); }));
+      tools.appendChild(iconBtn('↓', 'Move down', i === rows.length - 1, function () { move(i, 1); }));
+      tools.appendChild(iconBtn('⧉', 'Duplicate', false, function () {
+        rows.splice(i + 1, 0, JSON.parse(JSON.stringify(row)));
+        renderRows(i + 1);
+        update();
+      }));
+      tools.appendChild(iconBtn('✕', 'Remove', false, function () {
+        rows.splice(i, 1);
+        renderRows();
+        update();
+      }, true));
+
+      head.appendChild(num);
+      head.appendChild(mins);
+      head.appendChild(unit);
+      head.appendChild(phase);
+      head.appendChild(clockEl);
+      head.appendChild(tools);
+      el.appendChild(head);
+
+      if (cols.length) {
+        var cells = document.createElement('div');
+        cells.className = 'lp-row-cells' + (cols.length === 1 ? ' one' : '');
+        cols.forEach(function (c) {
+          var wrap = document.createElement('div');
+          var lab = document.createElement('span');
+          lab.className = 'lp-cell-label';
+          lab.textContent = label('col.' + c.key, c.key === 'teacher' && !checked('lpColStudents') ? 'What happens' : c.label);
+          var box = document.createElement('textarea');
+          box.rows = 2;
+          box.value = row[c.key] || '';
+          box.placeholder = c.hint;
+          box.setAttribute('aria-label', lab.textContent + ', stage ' + (i + 1));
+          box.addEventListener('input', function () {
+            row[c.key] = box.value;
+            autoGrow(box);
+            update();
+          });
+          wireFormatting(box);
+          wrap.appendChild(lab);
+          wrap.appendChild(box);
+          cells.appendChild(wrap);
+          window.setTimeout(function () { autoGrow(box); }, 0);
+        });
+        el.appendChild(cells);
+      }
+
+      el.addEventListener('dragstart', function (e) {
+        dragFrom = i;
+        el.classList.add('is-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', String(i)); } catch (err) { /* old browsers */ }
+      });
+      el.addEventListener('dragend', function () {
+        el.draggable = false;
+        el.classList.remove('is-dragging');
+        clearDropMarks();
+      });
+      el.addEventListener('dragover', function (e) {
+        if (dragFrom === null) return;
+        e.preventDefault();
+        clearDropMarks();
+        el.classList.add('is-over');
+      });
+      el.addEventListener('drop', function (e) {
+        if (dragFrom === null) return;
+        e.preventDefault();
+        var from = dragFrom;
+        dragFrom = null;
+        clearDropMarks();
+        if (from === i) return;
+        var moved = rows.splice(from, 1)[0];
+        rows.splice(i, 0, moved);
+        renderRows();
+        update();
+      });
+
+      rowsEl.appendChild(el);
+      if (focusIndex === i) { window.setTimeout(function () { phase.focus(); }, 0); }
+    });
+    showClocks();
+  }
+
+  function clearDropMarks() {
+    [].forEach.call(rowsEl.querySelectorAll('.is-over'), function (el) { el.classList.remove('is-over'); });
+  }
+
+  function move(i, delta) {
+    var j = i + delta;
+    if (j < 0 || j >= rows.length) return;
+    var tmp = rows[i];
+    rows[i] = rows[j];
+    rows[j] = tmp;
+    renderRows();
+    update();
+  }
+
+  /* ── sections the teacher adds ── */
+
+  function renderCustom() {
+    customEl.innerHTML = '';
+    custom.forEach(function (c, i) {
+      var el = document.createElement('div');
+      el.className = 'lp-row';
+      var head = document.createElement('div');
+      head.className = 'lp-row-head';
+      var title = document.createElement('input');
+      title.type = 'text';
+      title.className = 'lp-custom-title';
+      title.value = c.title;
+      title.placeholder = 'Heading, e.g. Literacy focus';
+      title.setAttribute('aria-label', 'Section heading');
+      title.addEventListener('input', function () { c.title = title.value; update(); });
+
+      var tools = document.createElement('div');
+      tools.className = 'lp-row-tools';
+      tools.appendChild(iconBtn('↑', 'Move up', i === 0, function () {
+        custom.splice(i - 1, 0, custom.splice(i, 1)[0]); renderCustom(); update();
+      }));
+      tools.appendChild(iconBtn('↓', 'Move down', i === custom.length - 1, function () {
+        custom.splice(i + 1, 0, custom.splice(i, 1)[0]); renderCustom(); update();
+      }));
+      tools.appendChild(iconBtn('✕', 'Remove', false, function () {
+        custom.splice(i, 1); renderCustom(); update();
+      }, true));
+      head.appendChild(title);
+      head.appendChild(tools);
+
+      var box = document.createElement('textarea');
+      box.rows = 2;
+      box.value = c.text;
+      box.placeholder = 'What goes in this section';
+      box.setAttribute('aria-label', 'Section text');
+      box.addEventListener('input', function () { c.text = box.value; autoGrow(box); update(); });
+      wireFormatting(box);
+      el.appendChild(head);
+      el.appendChild(box);
+      customEl.appendChild(el);
+      window.setTimeout(function () { autoGrow(box); }, 0);
+    });
+  }
+
+  /* ── renaming a heading in the preview ── */
+
+  var editingInPreview = false;
+
+  sheetEl.addEventListener('focusin', function (e) {
+    if (e.target.getAttribute && e.target.getAttribute('data-label')) editingInPreview = true;
+  });
+
+  sheetEl.addEventListener('input', function (e) {
+    var key = e.target.getAttribute && e.target.getAttribute('data-label');
+    if (!key) return;
+    var text = e.target.textContent.replace(/\s+/g, ' ').trim();
+    if (text) labels[key] = text; else delete labels[key];
+    scalePreview();
+    saveDraft();
+  });
+
+  sheetEl.addEventListener('focusout', function (e) {
+    if (!(e.target.getAttribute && e.target.getAttribute('data-label'))) return;
+    editingInPreview = false;
+    // The editor's own labels follow a renamed column.
+    if (e.target.getAttribute('data-label').indexOf('col.') === 0) renderRows();
+    update();
+  });
+
+  sheetEl.addEventListener('keydown', function (e) {
+    if (!(e.target.getAttribute && e.target.getAttribute('data-label'))) return;
+    if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); e.target.blur(); }
+  });
+
+  /* ── keeping it all in step ── */
+
+  function collectSettings() {
+    var settings = {};
+    settingIds.forEach(function (id) {
+      var el = document.getElementById(id);
+      settings[id] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    return settings;
+  }
+
+  function applySettings(settings) {
+    if (!settings) return;
+    settingIds.forEach(function (id) {
+      if (!(id in settings)) return;
+      var el = document.getElementById(id);
+      if (el.type === 'checkbox') { el.checked = !!settings[id]; return; }
+      el.value = settings[id];
+    });
+  }
+
+  function snapshot() {
+    return { settings: collectSettings(), rows: rows, custom: custom, labels: labels };
+  }
+
+  function restore(data) {
+    applySettings(data.settings);
+    rows = Array.isArray(data.rows) ? data.rows.map(function (r) {
+      var row = blankRow();
+      Object.keys(row).forEach(function (k) { if (r[k] != null) row[k] = String(r[k]); });
+      return row;
+    }) : [];
+    custom = Array.isArray(data.custom) ? data.custom.map(function (c) {
+      return { title: String(c.title || ''), text: String(c.text || '') };
+    }) : [];
+    labels = data.labels && typeof data.labels === 'object' ? data.labels : {};
+    if (!val('lpCrestData')) {
+      var savedCrest = readStore(CREST_KEY, '');
+      if (savedCrest) document.getElementById('lpCrestData').value = savedCrest;
+    }
+    TEXT_IDS.forEach(function (id) { autoGrowField(document.getElementById(id)); });
+    showCrest();
+    renderRows();
+    renderCustom();
+    update();
+  }
+
+  function saveDraft() {
+    writeStore(DRAFT_KEY, snapshot());
+  }
+
+  function update() {
+    showTotal();
+    if (!editingInPreview) render();
+    scalePreview();
+    saveDraft();
+  }
+
+  function hasContent() {
+    return val('lpTitle').trim() || TEXT_IDS.some(function (id) { return val(id).trim(); }) ||
+      rows.some(function (r) { return r.phase.trim() || r.teacher.trim() || r.students.trim(); });
+  }
+
+  function autoGrowField(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.max(66, el.scrollHeight + 2) + 'px';
+  }
+
+  /* ── wiring ── */
+
+  settingIds.forEach(function (id) {
+    var el = document.getElementById(id);
+    el.addEventListener('input', update);
+    el.addEventListener('change', function () {
+      if (/^lpCol|lpStart|lpClock/.test(id)) renderRows();
+      update();
+    });
+  });
+
+  TEXT_IDS.forEach(function (id) {
+    var el = document.getElementById(id);
+    wireFormatting(el);
+    el.addEventListener('input', function () { autoGrowField(el); });
+  });
+
+  document.getElementById('lpStart').addEventListener('input', showClocks);
+
+  document.getElementById('lpAddRow').addEventListener('click', function () {
+    rows.push(blankRow());
+    renderRows(rows.length - 1);
+    update();
+  });
+
+  document.getElementById('lpTemplate').addEventListener('click', function () {
+    var len = lessonLength();
+    var added = TEMPLATE.map(function (r) {
+      var row = blankRow();
+      Object.keys(r).forEach(function (k) { row[k] = r[k]; });
+      return row;
+    });
+    // Fit the practice time to the lesson, so the timings add up.
+    if (len) {
+      var total = added.reduce(function (s, r) { return s + minsOf(r); }, 0) + plannedMinutes();
+      var practice = added[4];
+      var fitted = minsOf(practice) + (len - total);
+      if (fitted >= 5) practice.mins = String(fitted);
+    }
+    rows = rows.filter(function (r) { return r.phase.trim() || r.teacher.trim() || r.students.trim() || minsOf(r); }).concat(added);
+    renderRows();
+    update();
+  });
+
+  document.getElementById('lpClearRows').addEventListener('click', function () {
+    if (rows.length && !window.confirm('Remove every stage of the lesson?')) return;
+    rows = [];
+    renderRows();
+    update();
+  });
+
+  document.getElementById('lpAddCustom').addEventListener('click', function () {
+    custom.push({ title: '', text: '' });
+    renderCustom();
+    update();
+    var inputs = customEl.querySelectorAll('.lp-custom-title');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+
+  // A new plan keeps who and where you teach, and how you like it laid out.
+  document.getElementById('lpNew').addEventListener('click', function () {
+    if (hasContent() && !window.confirm('Clear this plan and start a new one? Save it first if you want to keep it.')) return;
+    ['lpTitle', 'lpDate', 'lpUnit', 'lpLessonNo'].concat(TEXT_IDS).forEach(function (id) {
+      document.getElementById(id).value = '';
+    });
+    rows = [blankRow(), blankRow(), blankRow()];
+    custom = custom.map(function (c) { return { title: c.title, text: '' }; });
+    TEXT_IDS.forEach(function (id) { autoGrowField(document.getElementById(id)); });
+    renderRows();
+    renderCustom();
+    update();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  /* ── the school's crest ── */
+
+  var MAX_IMAGE_EDGE = 1000;
+  var IMAGE_QUALITY = 0.85;
+
+  function readImage(file, done) {
+    if (!file || !/^image\//.test(file.type)) {
+      window.alert('That is not a picture. Choose a JPEG, PNG, GIF or WebP.');
+      return;
+    }
+    var reader = new FileReader();
+    reader.onerror = function () { window.alert('That picture could not be read.'); };
+    reader.onload = function () { shrink(String(reader.result), file.type, done); };
+    reader.readAsDataURL(file);
+  }
+
+  // Scaled down and re-encoded, so the browser's storage can hold it.
+  function shrink(dataUrl, type, done) {
+    var img = new Image();
+    img.onerror = function () { window.alert('That picture could not be read.'); };
+    img.onload = function () {
+      var scale = Math.min(1, MAX_IMAGE_EDGE / Math.max(img.width, img.height));
+      if (scale === 1 && dataUrl.length < 400000) { done(dataUrl); return; }
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      var ctx = canvas.getContext('2d');
+      var keepsAlpha = /png|webp|gif/i.test(type);
+      if (!keepsAlpha) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      try {
+        done(keepsAlpha ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', IMAGE_QUALITY));
+      } catch (e) {
+        done(dataUrl);
+      }
+    };
+    img.src = dataUrl;
+  }
+
+  function showCrest() {
+    var data = val('lpCrestData');
+    var thumb = document.getElementById('lpCrestThumb');
+    thumb.hidden = !data;
+    if (data) { thumb.src = data; }
+    document.getElementById('lpCrestClear').hidden = !data;
+    document.getElementById('lpCrestNote').textContent = data
+      ? 'Kept in this browser, and shared with the exam paper builder.'
+      : 'Your school’s crest or wordmark, kept in this browser.';
+  }
+
+  document.getElementById('lpCrestPick').addEventListener('click', function () {
+    document.getElementById('lpCrestFile').click();
+  });
+
+  document.getElementById('lpCrestFile').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    readImage(file, function (dataUrl) {
+      document.getElementById('lpCrestData').value = dataUrl;
+      document.getElementById('lpCrest').checked = true;
+      writeStore(CREST_KEY, dataUrl);
+      showCrest();
+      update();
+    });
+  });
+
+  document.getElementById('lpCrestClear').addEventListener('click', function () {
+    if (!window.confirm('Remove the crest?')) return;
+    document.getElementById('lpCrestData').value = '';
+    document.getElementById('lpCrest').checked = false;
+    writeStore(CREST_KEY, '');
+    showCrest();
+    update();
+  });
+
+  /* ── saved plans ── */
+
+  function planName() {
+    return [val('lpTitle').trim(), val('lpClass').trim()].filter(Boolean).join(' – ') || 'Lesson plan';
+  }
+
+  function renderSets() {
+    var sets = readStore(STORE_KEY, []);
+    var wrap = document.getElementById('lpSets');
+    wrap.innerHTML = '';
+
+    if (!sets.length) {
+      wrap.innerHTML = '<div class="lp-empty">Nothing saved yet. Build a plan, then press &ldquo;Save this plan&rdquo;.</div>';
+      return;
+    }
+
+    sets.forEach(function (set, i) {
+      var row = document.createElement('div');
+      row.className = 'lp-set';
+      var count = (set.rows || []).length;
+      var info = document.createElement('div');
+      info.innerHTML = '<div class="lp-set-name">' + escapeHtml(set.name) + '</div>' +
+        '<div class="lp-set-meta">' + count + ' stage' + (count === 1 ? '' : 's') +
+        ' · saved ' + escapeHtml(set.saved || '') + '</div>';
+
+      var tools = document.createElement('div');
+      tools.className = 'lp-btn-row';
+
+      var load = document.createElement('button');
+      load.type = 'button';
+      load.className = 'lp-btn';
+      load.textContent = 'Load';
+      load.addEventListener('click', function () {
+        if (hasContent() && !window.confirm('Load "' + set.name + '"? The plan you have open now will be replaced.')) return;
+        restore(JSON.parse(JSON.stringify(set)));
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      var file = document.createElement('button');
+      file.type = 'button';
+      file.className = 'lp-btn';
+      file.textContent = 'To a file';
+      file.addEventListener('click', function () { downloadPlan(set.name, set); });
+
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'lp-btn';
+      del.textContent = 'Delete';
+      del.addEventListener('click', function () {
+        if (!window.confirm('Delete "' + set.name + '"?')) return;
+        var all = readStore(STORE_KEY, []);
+        all.splice(i, 1);
+        writeStore(STORE_KEY, all);
+        renderSets();
+      });
+
+      tools.appendChild(load);
+      tools.appendChild(file);
+      tools.appendChild(del);
+      row.appendChild(info);
+      row.appendChild(tools);
+      wrap.appendChild(row);
+    });
+  }
+
+  document.getElementById('lpSave').addEventListener('click', function () {
+    if (!hasContent()) { window.alert('Fill in some of the plan before saving it.'); return; }
+    var name = window.prompt('Name this plan:', planName());
+    if (!name) return;
+    var sets = readStore(STORE_KEY, []);
+    var entry = snapshot();
+    entry.name = name.trim();
+    entry.saved = new Date().toLocaleDateString('en-GB');
+    var existing = sets.findIndex(function (s) { return s.name === entry.name; });
+    if (existing > -1) {
+      if (!window.confirm('A plan called "' + entry.name + '" already exists. Replace it?')) return;
+      sets[existing] = entry;
+    } else {
+      sets.unshift(entry);
+    }
+    if (!writeStore(STORE_KEY, sets)) {
+      window.alert('There was not enough room in this browser to save that plan. ' +
+        'Deleting a saved plan you no longer need, or saving this one to a file, should help.');
+      return;
+    }
+    renderSets();
+  });
+
+  /* ── a plan as a file ── */
+
+  function safeName(name) {
+    return (name || 'Lesson plan').replace(/[\\/:*?"<>|]+/g, ' ').trim();
+  }
+
+  function downloadBlob(blob, name) {
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function downloadPlan(name, data) {
+    var file = { kind: FILE_KIND, version: 1, name: name, saved: new Date().toISOString(),
+                 settings: data.settings, rows: data.rows, custom: data.custom, labels: data.labels };
+    downloadBlob(new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' }),
+      safeName(name) + '.classicalia.json');
+  }
+
+  document.getElementById('lpDownload').addEventListener('click', function () {
+    if (!hasContent()) { window.alert('Fill in some of the plan before saving it to a file.'); return; }
+    downloadPlan(planName(), snapshot());
+  });
+
+  document.getElementById('lpOpen').addEventListener('click', function () {
+    document.getElementById('lpOpenFile').click();
+  });
+
+  document.getElementById('lpOpenFile').addEventListener('change', function (e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var data;
+      try { data = JSON.parse(String(reader.result)); } catch (err) { data = null; }
+      if (!data || data.kind !== FILE_KIND) {
+        window.alert('That does not look like a Classicalia lesson plan file.');
+        return;
+      }
+      restore(data);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    reader.readAsText(file);
+  });
+
+  /* ── printing and Word ── */
+
+  function blurPreview() {
+    if (sheetEl.contains(document.activeElement)) document.activeElement.blur();
+    editingInPreview = false;
+  }
+
+  document.getElementById('lpPrint').addEventListener('click', function () {
+    blurPreview();
+    render();
+    window.print();
+  });
+
+  window.addEventListener('beforeprint', function () { blurPreview(); render(); });
+  window.addEventListener('afterprint', scalePreview);
+  window.addEventListener('resize', scalePreview);
+
+  document.getElementById('lpWord').addEventListener('click', function () {
+    var button = this;
+    if (!window.LessonPlanWord) { window.alert('The Word download could not be loaded. Try reloading the page.'); return; }
+    blurPreview();
+    var text = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Making the file…';
+    window.LessonPlanWord.build(planModel()).then(function (blob) {
+      downloadBlob(blob, safeName(planName()) + '.docx');
+    }, function () {
+      window.alert('Something went wrong making the Word file.');
+    }).then(function () {
+      button.disabled = false;
+      button.textContent = text;
+    });
+  });
+
+  /* ── start up ── */
+
+  var draft = readStore(DRAFT_KEY, null);
+  if (draft && draft.settings) {
+    restore(draft);
+  } else {
+    rows = [blankRow(), blankRow(), blankRow()];
+    restore({ settings: {}, rows: rows, custom: [], labels: {} });
+  }
+  renderSets();
+})();
+</script>
+<div data-shell="footer"></div>
+</body>
+</html>
