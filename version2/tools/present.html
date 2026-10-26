@@ -42,12 +42,30 @@
   .pr-divider:hover, .pr-divider.dragging { background: var(--brand); }
   .pr-divider.is-hidden { display: none; }
 
-  /* a floating pane's handles: a bar to move it, a corner to size it */
+  /* a floating pane's handles: a bar to move it, and every edge and corner to size it */
   .pr-move { display: none; position: absolute; top: 0; left: 0; right: 0; height: 26px; z-index: 6; cursor: move; touch-action: none;
     background: linear-gradient(rgba(10,18,32,.75), rgba(10,18,32,0)); }
   .pr-move::before { content: ''; position: absolute; left: 50%; top: 9px; width: 40px; height: 4px; margin-left: -20px; border-radius: 2px; background: rgba(255,255,255,.55); }
-  .pr-size { display: none; position: absolute; right: 0; bottom: 0; width: 22px; height: 22px; z-index: 6; cursor: nwse-resize; touch-action: none;
-    background: linear-gradient(135deg, transparent 50%, rgba(255,255,255,.6) 50%); border-bottom-right-radius: 10px; }
+  .pr-size { display: none; position: absolute; z-index: 7; touch-action: none; }
+  .pr-size[data-edge="n"] { top: 0; left: 26px; right: 26px; height: 8px; cursor: ns-resize; }
+  .pr-size[data-edge="s"] { bottom: 0; left: 26px; right: 26px; height: 12px; cursor: ns-resize; }
+  .pr-size[data-edge="e"] { right: 0; top: 26px; bottom: 26px; width: 12px; cursor: ew-resize; }
+  .pr-size[data-edge="w"] { left: 0; top: 26px; bottom: 26px; width: 12px; cursor: ew-resize; }
+  .pr-size[data-edge="nw"], .pr-size[data-edge="ne"], .pr-size[data-edge="sw"], .pr-size[data-edge="se"] { width: 26px; height: 26px; }
+  .pr-size[data-edge="nw"] { top: 0; left: 0; cursor: nwse-resize; }
+  .pr-size[data-edge="ne"] { top: 0; right: 0; cursor: nesw-resize; }
+  .pr-size[data-edge="sw"] { bottom: 0; left: 0; cursor: nesw-resize; }
+  .pr-size[data-edge="se"] { bottom: 0; right: 0; cursor: nwse-resize; }
+  /* Corner marks, so the window plainly has corners to pull. */
+  .pr-size[data-edge="nw"]::after, .pr-size[data-edge="ne"]::after, .pr-size[data-edge="sw"]::after, .pr-size[data-edge="se"]::after {
+    content: ''; position: absolute; width: 12px; height: 12px; border: 0 solid rgba(255,255,255,.75); }
+  .pr-size[data-edge="nw"]::after { top: 4px; left: 4px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 6px; }
+  .pr-size[data-edge="ne"]::after { top: 4px; right: 4px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 6px; }
+  .pr-size[data-edge="sw"]::after { bottom: 4px; left: 4px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 6px; }
+  .pr-size[data-edge="se"]::after { bottom: 4px; right: 4px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 6px; }
+  .pr-size:hover::after, .pr-size.dragging::after { border-color: var(--brand); }
+  .pr-size[data-edge="n"]:hover, .pr-size[data-edge="s"]:hover, .pr-size[data-edge="e"]:hover, .pr-size[data-edge="w"]:hover,
+  .pr-size.dragging[data-edge="n"], .pr-size.dragging[data-edge="s"], .pr-size.dragging[data-edge="e"], .pr-size.dragging[data-edge="w"] { background: rgba(26,111,255,.45); }
   .pr-pane.is-float .pr-move, .pr-pane.is-float .pr-size { display: block; }
 
   /* slides */
@@ -190,7 +208,6 @@
       </div>
       <div class="pr-busy" id="slidesBusy">Opening&hellip;</div>
       <div class="pr-move" data-move="paneSlides" title="Drag to move"></div>
-      <div class="pr-size" data-size="paneSlides" title="Drag to resize"></div>
       <div class="pr-bar" id="slidesBar" hidden>
         <button class="pr-btn" id="prevBtn" type="button" title="Previous slide (&larr;)"><span class="ic">&#8249;</span><span class="tx">Back</span></button>
         <span class="pr-count" id="slideCount">&ndash;</span>
@@ -227,7 +244,6 @@
         </div>
       </div>
       <div class="pr-move" data-move="paneCam" title="Drag to move"></div>
-      <div class="pr-size" data-size="paneCam" title="Drag to resize"></div>
       <div class="pr-bar" id="camBar" hidden>
         <select class="pr-select" id="sourceSelect" title="What this side shows"></select>
         <span class="pr-cam-only" style="display: contents;">
@@ -297,7 +313,7 @@
         <tr><td>F</td><td>Full screen</td></tr>
         <tr><td>Ctrl + Z</td><td>Undo the last line you drew</td></tr>
       </table>
-      <p>Drag the bar between the two sides to change their sizes. In the small-window layout, drag the window by its top edge and resize it from its corner. Writing on a slide stays with that slide as you move back and forth.</p>
+      <p>Drag the bar between the two sides to change their sizes. In the small-window layout, drag the window by its top edge, and pull any edge or corner to make it bigger or smaller. Writing on a slide stays with that slide as you move back and forth.</p>
       <p style="margin-top: 8px;">Your layout is remembered, and so is the last presentation you opened on this computer.</p>
       <div style="text-align: right; margin-top: 14px;"><button class="pr-card-btn" id="helpClose" type="button">Close</button></div>
     </div>
@@ -439,7 +455,24 @@
   });
   divider.addEventListener('dblclick', function () { layout.split = 0.5; saveLayout(); applyLayout(); });
 
-  // Moving and sizing the floating window.
+  // Moving and sizing the floating window. Each pane has a handle on every
+  // edge and corner; pulling one moves that side and leaves the opposite
+  // side where it is.
+  var EDGES = ['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'];
+  var MIN_FLOAT = 0.12;
+  ['paneSlides', 'paneCam'].forEach(function (id) {
+    EDGES.forEach(function (edge) {
+      var h = document.createElement('div');
+      h.className = 'pr-size';
+      h.setAttribute('data-size', id);
+      h.setAttribute('data-edge', edge);
+      h.title = 'Drag to resize';
+      $(id).appendChild(h);
+    });
+  });
+
+  function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+
   function dragFloat(handle, resize) {
     handle.addEventListener('pointerdown', function (e) {
       var pane = $(handle.getAttribute(resize ? 'data-size' : 'data-move'));
@@ -447,20 +480,34 @@
       e.preventDefault();
       e.stopPropagation();
       handle.setPointerCapture(e.pointerId);
+      handle.classList.add('dragging');
+      var edge = handle.getAttribute('data-edge') || '';
       var r = work.getBoundingClientRect();
-      var start = { x: e.clientX, y: e.clientY, p: Object.assign({}, layout.pip) };
+      // Start from where the window really is, which may differ from the
+      // stored fractions once the minimum size or the screen's edge has had a say.
+      var pr = pane.getBoundingClientRect();
+      var s = { x: (pr.left - r.left) / r.width, y: (pr.top - r.top) / r.height, w: pr.width / r.width, h: pr.height / r.height };
+      var start = { x: e.clientX, y: e.clientY, p: s };
       function move(ev) {
         var dx = (ev.clientX - start.x) / r.width, dy = (ev.clientY - start.y) / r.height;
+        var p = start.p;
         if (resize) {
-          layout.pip.w = Math.min(0.95, Math.max(0.12, start.p.w + dx));
-          layout.pip.h = Math.min(0.95, Math.max(0.12, start.p.h + dy));
+          var next = { x: p.x, y: p.y, w: p.w, h: p.h };
+          if (edge.indexOf('e') > -1) next.w = clamp(p.w + dx, MIN_FLOAT, 1 - p.x);
+          if (edge.indexOf('s') > -1) next.h = clamp(p.h + dy, MIN_FLOAT, 1 - p.y);
+          if (edge.indexOf('w') > -1) { next.w = clamp(p.w - dx, MIN_FLOAT, p.x + p.w); next.x = p.x + p.w - next.w; }
+          if (edge.indexOf('n') > -1) { next.h = clamp(p.h - dy, MIN_FLOAT, p.y + p.h); next.y = p.y + p.h - next.h; }
+          layout.pip = next;
         } else {
+          layout.pip.w = p.w;
+          layout.pip.h = p.h;
           layout.pip.x = Math.min(1 - layout.pip.w, Math.max(0, start.p.x + dx));
           layout.pip.y = Math.min(1 - layout.pip.h, Math.max(0, start.p.y + dy));
         }
         applyLayout();
       }
       function up() {
+        handle.classList.remove('dragging');
         handle.removeEventListener('pointermove', move);
         handle.removeEventListener('pointerup', up);
         handle.removeEventListener('pointercancel', up);
