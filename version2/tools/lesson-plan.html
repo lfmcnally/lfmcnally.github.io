@@ -66,6 +66,9 @@
   .lp-row-cells { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding-left: 30px; }
   .lp-row-cells.one { grid-template-columns: 1fr; }
   .lp-row-cells .lp-cell-label { font-size: 9.5px; margin-bottom: 4px; }
+  .lp-seq-opts { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; padding-bottom: 16px; margin-bottom: 14px; border-bottom: 1px solid var(--rule-faint); }
+  .lp-seq-opts .lp-field { flex: 0 1 300px; min-width: 220px; }
+  .lp-seq-opts .lp-check { padding-bottom: 10px; }
   .lp-row-tools { flex: none; display: flex; gap: 2px; }
   .lp-row-grip { cursor: grab; user-select: none; }
   .lp-row-grip:active { cursor: grabbing; }
@@ -326,6 +329,17 @@
         </div>
       </div>
       <div class="lp-panel-body">
+        <div class="lp-seq-opts">
+          <div class="lp-field">
+            <label for="lpActivity">Each stage has</label>
+            <select id="lpActivity">
+              <option value="split" selected>A Teacher box and a Students box</option>
+              <option value="one">One box: what happens</option>
+            </select>
+          </div>
+          <label class="lp-check"><input type="checkbox" id="lpColResources"> Resources column</label>
+          <label class="lp-check"><input type="checkbox" id="lpColCheck" checked> Checking understanding column</label>
+        </div>
         <div id="lpRows"></div>
         <div class="lp-empty" id="lpRowsEmpty" hidden>No stages yet &mdash; add one below, or start from a typical lesson structure.</div>
         <div class="lp-btn-row" style="margin-top: 14px; align-items: center;">
@@ -339,7 +353,7 @@
           <option value="Independent practice"><option value="Reading"><option value="Translation"><option value="Discussion">
           <option value="Feedback"><option value="Assessment"><option value="Plenary"><option value="Exit ticket"><option value="Homework set">
         </datalist>
-        <p class="lp-note">Start a line with <code>-</code> to make it a bullet point. Select a word and press <strong>B</strong>, <em>I</em> or <span style="text-decoration:underline">U</span> to format it, or type <code>**bold**</code>, <code>*italics*</code> and <code>__underline__</code> yourself. Choose which columns appear under <em>Layout</em>.</p>
+        <p class="lp-note">Start a line with <code>-</code> to make it a bullet point. Select a word and press <strong>B</strong>, <em>I</em> or <span style="text-decoration:underline">U</span> to format it, or type <code>**bold**</code>, <code>*italics*</code> and <code>__underline__</code> yourself. Changing to one box moves anything already in the Students boxes into it.</p>
       </div>
     </section>
 
@@ -431,14 +445,6 @@
         </div>
 
         <div class="lp-checks">
-          <div class="lp-checks-label">Columns in the lesson sequence</div>
-          <label class="lp-check"><input type="checkbox" id="lpColTeacher" checked> Teacher</label>
-          <label class="lp-check"><input type="checkbox" id="lpColStudents" checked> Students</label>
-          <label class="lp-check"><input type="checkbox" id="lpColResources"> Resources</label>
-          <label class="lp-check"><input type="checkbox" id="lpColCheck" checked> Checking understanding</label>
-        </div>
-
-        <div class="lp-checks">
           <label class="lp-check"><input type="checkbox" id="lpClock" checked> Clock times beside each stage</label>
           <label class="lp-check"><input type="checkbox" id="lpEval"> &ldquo;What went well&rdquo; boxes to fill in afterwards</label>
           <label class="lp-check"><input type="checkbox" id="lpBlank"> Show empty sections as space to write in</label>
@@ -526,7 +532,7 @@
   var DETAIL_IDS = ['lpTitle', 'lpSubject', 'lpClass', 'lpTeacher', 'lpDate', 'lpStart', 'lpLength', 'lpRoom', 'lpUnit', 'lpLessonNo', 'lpSchool'];
   var TEXT_IDS = ['lpObjectives', 'lpSuccess', 'lpPrior', 'lpVocab', 'lpResources',
                   'lpSupport', 'lpStretch', 'lpStudents', 'lpAdults', 'lpMisconceptions', 'lpAssessment', 'lpHomework'];
-  var LAYOUT_IDS = ['lpOrientation', 'lpFont', 'lpShade', 'lpColTeacher', 'lpColStudents', 'lpColResources', 'lpColCheck',
+  var LAYOUT_IDS = ['lpOrientation', 'lpFont', 'lpShade', 'lpActivity', 'lpColResources', 'lpColCheck',
                     'lpClock', 'lpEval', 'lpBlank', 'lpFooter', 'lpCrest', 'lpCrestSize', 'lpCrestData'];
   var settingIds = DETAIL_IDS.concat(TEXT_IDS, LAYOUT_IDS);
 
@@ -552,12 +558,16 @@
                 ['support', 'stretch'], ['students', 'adults'], ['misconceptions', 'assessment'], ['homework'],
                 'custom', 'evaluation'];
 
-  // The columns of the lesson sequence. Time and stage are always there.
+  /* The columns of the lesson sequence. Time and stage are always there.
+     A stage either splits what the teacher and the students do into two
+     columns, or has one "what happens" column, which keeps its text in the
+     teacher's field. */
   var COLUMNS = [
     { key: 'time',      label: 'Time',  weight: 1.4 },
     { key: 'phase',     label: 'Stage', weight: 2.8 },
-    { key: 'teacher',   label: 'Teacher', weight: 5, opt: 'lpColTeacher', hint: 'What you will do and say' },
-    { key: 'students',  label: 'Students', weight: 5, opt: 'lpColStudents', hint: 'What the students will do' },
+    { key: 'teacher',   label: 'Teacher', weight: 5, hint: 'What you will do and say',
+      one: { label: 'What happens', weight: 10, hint: 'What happens in this stage' } },
+    { key: 'students',  label: 'Students', weight: 5, split: true, hint: 'What the students will do' },
     { key: 'resources', label: 'Resources', weight: 2.8, opt: 'lpColResources', hint: 'Sheets, slides, page numbers' },
     { key: 'check',     label: 'Checking understanding', weight: 3.8, opt: 'lpColCheck', hint: 'Questions, whiteboards, cold calling' }
   ];
@@ -775,12 +785,31 @@
     });
   }
 
+  function splitStages() { return val('lpActivity') !== 'one'; }
+
+  function columnOn(c) {
+    if (c.split) return splitStages();
+    return !c.opt || checked(c.opt);
+  }
+
+  // A column as it stands: in one-box mode the teacher's column takes the
+  // students' width too, and has a heading of its own to rename.
+  function columnView(c) {
+    var v = !splitStages() && c.one ? c.one : c;
+    var labelKey = 'col.' + c.key + (v === c ? '' : '.one');
+    return { key: c.key, labelKey: labelKey, label: label(labelKey, v.label), weight: v.weight, hint: v.hint || c.hint };
+  }
+
   function activeColumns() {
-    return COLUMNS.filter(function (c) { return !c.opt || checked(c.opt); }).map(function (c) {
-      var fallback = c.label;
-      // With no students column, the teacher's column describes the whole stage.
-      if (c.key === 'teacher' && !checked('lpColStudents')) fallback = 'What happens';
-      return { key: c.key, label: label('col.' + c.key, fallback), weight: c.weight };
+    return COLUMNS.filter(columnOn).map(columnView);
+  }
+
+  // Into one box: anything in the Students box joins the teacher's text.
+  function mergeStudents(list) {
+    list.forEach(function (row) {
+      if (!row.students || !row.students.trim()) return;
+      row.teacher = [row.teacher.replace(/\s+$/, ''), row.students.trim()].filter(Boolean).join('\n');
+      row.students = '';
     });
   }
 
@@ -930,7 +959,7 @@
       return '<col style="width:' + (c.weight / total * 100).toFixed(2) + '%">';
     }).join('') + '</colgroup><thead><tr><th colspan="' + block.columns.length + '">' +
       editable('sequence', block.label) + '</th></tr><tr>' + block.columns.map(function (c) {
-      return '<th>' + editable('col.' + c.key, c.label) + '</th>';
+      return '<th>' + editable(c.labelKey, c.label) + '</th>';
     }).join('') + '</tr></thead><tbody>';
     block.rows.forEach(function (cells) {
       html += '<tr>' + cells.map(function (lines, i) {
@@ -1044,7 +1073,7 @@
   function renderRows(focusIndex) {
     rowsEl.innerHTML = '';
     document.getElementById('lpRowsEmpty').hidden = rows.length > 0;
-    var cols = COLUMNS.filter(function (c) { return c.opt && checked(c.opt); });
+    var cols = activeColumns().filter(function (c) { return c.key !== 'time' && c.key !== 'phase'; });
 
     rows.forEach(function (row, i) {
       var el = document.createElement('div');
@@ -1121,7 +1150,7 @@
           var wrap = document.createElement('div');
           var lab = document.createElement('span');
           lab.className = 'lp-cell-label';
-          lab.textContent = label('col.' + c.key, c.key === 'teacher' && !checked('lpColStudents') ? 'What happens' : c.label);
+          lab.textContent = c.label;
           var box = document.createElement('textarea');
           box.rows = 2;
           box.value = row[c.key] || '';
@@ -1285,6 +1314,10 @@
       if (el.type === 'checkbox') { el.checked = !!settings[id]; return; }
       el.value = settings[id];
     });
+    // Plans saved before the choice existed turned the Students column off instead.
+    if (!('lpActivity' in settings) && settings.lpColStudents === false) {
+      document.getElementById('lpActivity').value = 'one';
+    }
   }
 
   function snapshot() {
@@ -1340,7 +1373,8 @@
     var el = document.getElementById(id);
     el.addEventListener('input', update);
     el.addEventListener('change', function () {
-      if (/^lpCol|lpStart|lpClock/.test(id)) renderRows();
+      if (id === 'lpActivity' && !splitStages()) mergeStudents(rows);
+      if (/^lpCol|lpActivity|lpStart|lpClock/.test(id)) renderRows();
       update();
     });
   });
@@ -1373,6 +1407,7 @@
       var fitted = minsOf(practice) + (len - total);
       if (fitted >= 5) practice.mins = String(fitted);
     }
+    if (!splitStages()) mergeStudents(added);
     rows = rows.filter(function (r) { return r.phase.trim() || r.teacher.trim() || r.students.trim() || minsOf(r); }).concat(added);
     renderRows();
     update();
