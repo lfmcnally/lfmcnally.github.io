@@ -99,10 +99,6 @@ def locate(lemma, normed, lo, hi):
 def build(d):
     rel = os.path.relpath(d, ROOT)
     bank = json.load(open(os.path.join(d, 'data/exam-bank.json'), encoding='utf-8'))
-    for extra in sorted(glob.glob(os.path.join(d, 'data/exam-bank-*.json'))):   # TEMP: parts being written
-        part = json.load(open(extra, encoding='utf-8'))
-        bank['questions'] = bank['questions'] + part.get('questions', [])
-        bank['essays'] = bank['essays'] + part.get('essays', [])
     words, units, sections, notes = load_text(d)
     normed = [norm(w) for w, _ in words]
     secs = {s['n']: s for s in sections}
