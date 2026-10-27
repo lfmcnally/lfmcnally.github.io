@@ -215,7 +215,7 @@ def write_page(bank):
   <div class="inner phead">
     %(crumbs)s
     <div class="ptitle">
-      <div><h1>Exam practice</h1><div class="sub">Practice papers on %(author)s, <em>%(title)s</em>, laid out like %(board)s %(code)s %(name)s, Section A: the same kinds of question, the same marks and the same mark scheme. Every paper is different. Choose the chapters and the length, then print it or answer it on paper and check the mark scheme.</div></div>
+      <div><h1>Exam practice</h1><div class="sub">Practice papers on %(author)s, <em>%(title)s</em>, laid out like %(board)s %(code)s %(name)s, Section A, and modelled on the 2022 to 2026 papers, mark schemes and examiners’ reports: the same kinds of question, the same marks and the same mark scheme. Every paper is different. Choose the chapters and the length, then print it or answer it on paper and check the mark scheme.</div></div>
       <div class="acts"><a class="btn line" href="%(href)s">Read the text</a></div>
     </div>
   </div>
@@ -227,7 +227,7 @@ def write_page(bank):
       </div></div>
       <div class="xp-field"><span>Paper</span><div class="xp-kinds">%(kinds)s</div></div>
       <div class="xp-row">
-        <label class="xp-field" data-exam-layout-wrap><span>Passages</span><select data-exam-layout><option value="any">Either (OCR uses both)</option><option value="two">Two passages, as in 2022</option><option value="one">One long passage, as in 2023</option></select></label>
+        <label class="xp-field" data-exam-layout-wrap><span>Passages</span><select data-exam-layout><option value="any">Either (mostly two, as OCR sets it)</option><option value="two">Two passages, as in 2022 and 2024 to 2026</option><option value="one">One long passage, as in 2023</option></select></label>
         <label class="xp-check"><input type="checkbox" data-exam-lines> Answer lines on the paper</label>
       </div>
       <div class="xp-acts">

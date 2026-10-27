@@ -30,9 +30,11 @@
   // OCR allows two hours for 75 marks
   function minutesFor(marks) { return Math.max(10, Math.round(marks * 120 / 75 / 5) * 5); }
 
-  var LINE_CHARS = 90;          // characters to a printed line of Latin
+  var LINE_CHARS = 78;          // characters to a printed line of Latin, as on OCR's papers
   var SHORT_MARKS = 7;          // the short questions beside the 5-mark translation
+  var PASSAGE_MIN = 95;         // OCR's passages run to 11-13 lines
   var PASSAGE_MAX = 140;        // words in a passage that carries short questions only
+  var ESSAY_MAX = 150;          // words in a passage for the 15-mark question
   var LONG_MAX = 240;           // words in a single passage that carries everything
 
   var SENT_END = /[.?!][’'”")\]]*$/;
@@ -77,6 +79,33 @@
     e = i;
     return { start: s, end: e };
   }
+  // Add whole sentences before or after a passage until it is as long as
+  // OCR's (about eleven lines), keeping clear of the other passage.
+  function grow(span, lo, hi, min, max, avoid) {
+    var s = span.start, e = span.end;
+    function back(i) {   // the start of the sentence that ends at word i
+      var k = i;
+      while (k > lo && !SENT_END.test(W[k - 1]) && i - k < 45) k--;
+      if (k > lo && !SENT_END.test(W[k - 1])) { k = i; while (k > lo && !CLAUSE_END.test(W[k - 1])) k--; }
+      return k;
+    }
+    function fwd(i) {    // the end of the sentence that starts at word i
+      var k = i;
+      while (k < hi && !SENT_END.test(W[k]) && k - i < 45) k++;
+      if (k < hi && !SENT_END.test(W[k])) { k = i; while (k < hi && !CLAUSE_END.test(W[k])) k++; }
+      return k;
+    }
+    while (e - s + 1 < min) {
+      var opts = [];
+      if (s > lo) { var b = back(s - 1); opts.push({ start: b, end: e }); }
+      if (e < hi) { var f = fwd(e + 1); opts.push({ start: s, end: f }); }
+      opts = opts.filter(function (o) { return len(o) <= max && !(avoid && overlaps(o, avoid)); });
+      if (!opts.length) break;
+      opts.sort(function (x, y) { return len(x) - len(y); });
+      s = opts[0].start; e = opts[0].end;
+    }
+    return { start: s, end: e };
+  }
   function hull(items) {
     var s = Infinity, e = -Infinity;
     items.forEach(function (it) { s = Math.min(s, it.start); e = Math.max(e, it.end); });
@@ -107,6 +136,7 @@
         if (found || budget-- < 0) return;
         if (sum === SHORT_MARKS && chosen.length >= 2) {
           var span = widen(hull(chosen.concat([T], opts.anchor ? [opts.anchor] : [])), lo, hi);
+          if (!opts.anchor) span = grow(span, lo, hi, PASSAGE_MIN, PASSAGE_MAX, opts.avoid);
           if (len(span) > (opts.anchor ? LONG_MAX : PASSAGE_MAX)) return;
           if (opts.avoid && overlaps(span, opts.avoid)) return;
           found = { chunk: T, qs: chosen.slice(), span: span };
@@ -191,7 +221,8 @@
     if (st.kind === 'essay') {
       E = pickEssay(rand, lo, hi, core);
       if (!E) return null;
-      return { kind: 'essay', questions: [{ intro: 'Read the following passage and answer the question.', passages: [{ span: { start: E.start, end: E.end }, items: [{ kind: 'essay', item: E }] }] }] };
+      var EP = grow(E, lo, hi, PASSAGE_MIN, ESSAY_MAX, null);
+      return { kind: 'essay', questions: [{ intro: 'Read the following passage and answer the question.', passages: [{ span: EP, items: [{ kind: 'essay', item: E, whole: true, span: EP }] }] }] };
     }
     if (st.kind === 'short') {
       S = shortSet(rand, lo, hi, core, {});
@@ -199,7 +230,7 @@
       return { kind: 'short', questions: [{ intro: 'Read the following passage and answer the questions.', passages: [shortPassage(S)] }] };
     }
     // full: the layout asked for, or either
-    var layouts = st.layout === 'one' ? ['one'] : st.layout === 'two' ? ['two'] : (rand() < 0.5 ? ['two', 'one'] : ['one', 'two']);
+    var layouts = st.layout === 'one' ? ['one'] : st.layout === 'two' ? ['two'] : (rand() < 0.8 ? ['two', 'one'] : ['one', 'two']);   // two passages in four years of five
     for (var l = 0; l < layouts.length; l++) {
       E = pickEssay(rand, lo, hi, core);
       if (!E) return null;
@@ -207,9 +238,10 @@
       // questions may come from the text either side
       var near = { start: lo, end: hi };
       if (layouts[l] === 'two') {
-        S = shortSet(rand, lo, hi, near, { avoid: E });
+        var EP2 = grow(E, lo, hi, PASSAGE_MIN, ESSAY_MAX, null);
+        S = shortSet(rand, lo, hi, near, { avoid: EP2 });
         if (!S) continue;
-        var ps = [shortPassage(S), { span: { start: E.start, end: E.end }, items: [{ kind: 'essay', item: E, whole: true }] }];
+        var ps = [shortPassage(S), { span: EP2, items: [{ kind: 'essay', item: E, whole: true, span: EP2 }] }];
         ps.sort(function (a, b) { return a.span.start - b.span.start; });
         return { kind: 'full', layout: 'two', questions: [{ intro: 'Read the following passages and answer the questions.', passages: ps }] };
       }
@@ -309,7 +341,7 @@
   }
 
   function questionHtml(it, lay, P, rand) {
-    var x = it.item, whole = x.start === P.span.start && x.end === P.span.end;
+    var x = it.item, whole = it.whole || (x.start === P.span.start && x.end === P.span.end);
     if (it.kind === 'trans') {
       return { marks: 5, html: 'Translate <i>' + esc(autoLemma(x)) + '</i> (' + lineRef(lay, x) + ').' };
     }
@@ -339,7 +371,8 @@
       guide = 'Assess against the 5-mark translation grid (below). Repeated or consequential errors should not be penalised.';
     } else if (it.kind === 'essay') {
       marks = 15;
-      var feats = D.notes.filter(function (n) { return n.start >= x.start && n.end <= x.end; }).sort(byPosition);
+      var sp = it.span || x;   // the whole printed passage, where it runs beyond the 15-mark entry
+      var feats = D.notes.filter(function (n) { return n.start >= sp.start && n.end <= sp.end; }).sort(byPosition);
       ans = '<p class="xp-ms-sub">Relevant points from the content of the passage</p><ul>' + x.points.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul>' +
             '<p class="xp-ms-sub">Stylistic features of the language in the passage</p><ul>' + feats.map(function (n) {
               return '<li><i lang="la">' + esc(n.quote) + '</i>: <b>' + esc(n.label) + '.</b> ' + esc(n.body) + '</li>';
@@ -361,20 +394,31 @@
     [1, 'Little recognisable relation to the meaning of the Latin'],
     [0, 'No response, or no response worthy of credit']
   ];
+  // OCR's grid for the 15-mark extended response (H443/03 mark schemes, 2022-2026)
   var LEVELS15 = [
-    ['5', '13–15', 'A thorough, perceptive answer to the question. Covers the whole passage, both what happens and how it is written. Well-chosen Latin is quoted accurately and its meaning made clear, and the effect of each feature is explained convincingly.'],
-    ['4', '10–12', 'A good answer with a range of relevant points on content and language. Latin is quoted and understood, and most effects are explained, though some are general or some of the passage is missed.'],
-    ['3', '7–9', 'A reasonable answer. Some relevant points and some Latin quoted, but the analysis is uneven, may lean on content or on naming devices, and explanations are sometimes general.'],
-    ['2', '4–6', 'A limited answer. A few points, mostly on content or paraphrase; little Latin, or Latin quoted without its effect explained.'],
-    ['1', '1–3', 'A very limited answer with little relevant knowledge or analysis.']
+    ['5', '13\u201315', ['very good engagement with the question', 'expresses a range of perceptive points, with very good development, leading to convincing conclusions, based on a range of well selected, accurate and precise examples from the passage.'], 'The response is logically structured, with a well-developed, sustained and coherent line of reasoning.'],
+    ['4', '10\u201312', ['good engagement with the question', 'expresses a range of relevant points, with good development, leading to sound conclusions, based on well selected examples from the passage.'], 'The response is logically structured, with a well-developed and clear line of reasoning.'],
+    ['3', '7\u20139', ['some engagement with the question', 'expresses reasonable points, with some development, leading to tenable conclusions, based on a selection of some examples from the passage.'], 'The response presents a line of reasoning which is mostly relevant and has some structure.'],
+    ['2', '4\u20136', ['limited engagement with the question', 'expresses limited points, with little development, leading to a weak conclusion, which is occasionally supported by examples from the passage'], 'The response presents a line of reasoning but may lack structure.'],
+    ['1', '1\u20133', ['very limited engagement with the question', 'expresses points which are of little relevance and supported with little evidence from the passage'], 'The information is communicated in an unstructured way.']
+  ];
+  // What the examiners' reports (2024-2026) and the exemplar commentaries say, question by question
+  var ADVICE = [
+    ['Short questions', ['Answer in English. These questions need no Latin quotation and no literary analysis; quoting Latin only costs time.', 'Explain what the Latin means, rather than giving a bare literal translation: examiners look for understanding.', 'Keep separate points separate. Where a question has two parts, make both clear.', 'Watch the small words that change the sense: double negatives, tenses, and words that look like English but mean something else.']],
+    ['The 5-mark translation', ['Translate every word. Leaving a word out is generally a major error; only a connective that does not change the sense counts as slight.', 'Keep the tenses right: a wrong past tense is slight, any other wrong tense is major.', 'A natural rendering is fine if it conveys the meaning of every word; an over-literal one that loses the sense is not.']],
+    ['The 15-mark question', ['Answer the question set: tie every point to its key word (dramatic, vivid, ridicule, a strong defence and so on).', 'Quote whole Latin phrases and translate them accurately. Isolated single words, or words picked because they look like English, are unlikely to be credited.', 'Name the feature, then develop its effect: say why it makes the passage dramatic or vivid, not just that it is emphatic.', 'Cover the whole passage, with one point per quotation, rather than several points on the same phrase.', 'Use both content and language. Retelling the story is not analysis, and a list of devices without their effect is not either.']]
   ];
   function msAppendix() {
     return '<div class="xp-ms-app"><h3>The 5-mark translation grid</h3><table class="xp-ms-grid"><tr><th>Marks</th><th>Description</th></tr>' +
       GRID5.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td></tr>'; }).join('') + '</table>' +
-      '<p class="xp-ms-note">Award the mark for the proportion of the sense conveyed. A slight error (a wrong past tense, a near-miss on a word, a minor connective left out) still allows 5; a major error (a wrong construction or case, a word that changes the sense, an omission) does not.</p>' +
-      '<h3>The 15-mark question</h3><table class="xp-ms-grid"><tr><th>Level</th><th>Marks</th><th>Description</th></tr>' +
-      LEVELS15.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td></tr>'; }).join('') + '</table>' +
-      '<p class="xp-ms-note">Start at the top level and work down to the level that best fits the answer, then place it within the level. This summary is written for practice; the exam is marked against OCR’s published levels-of-response grid.</p></div>';
+      '<p class="xp-ms-note">The principle is the proportion of sense achieved. Where there is only one error, a slight error (a wrong past tense, a vocabulary near-miss, an unimportant connective left out) still allows 5; a major error (another wrong tense, a wrong construction or case, a word that changes the sense, an omitted word) gives 4.</p>' +
+      '<h3>The 15-mark grid for the extended response question</h3>' +
+      '<p class="xp-ms-note">This question focuses on candidates\u2019 ability to select relevant examples of content and language from the passage and to structure an answer around these examples to express relevant points. Therefore candidates will be assessed on the quality of the points made and the range and quality of the examples they have selected from the passage. Examiners must use a best fit approach to the marking grid.</p>' +
+      '<table class="xp-ms-grid"><tr><th>Level</th><th>Marks</th><th>Characteristics of performance (AO3: critically analyse, evaluate and respond to literature)</th></tr>' +
+      LEVELS15.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td><ul>' + r[2].map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul><i>' + r[3] + '</i></td></tr>'; }).join('') + '</table>' +
+      '<p class="xp-ms-note">0 = no response or no response worthy of credit. Grid from OCR\u2019s H443/03 mark schemes.</p>' +
+      '<h3>What the examiners say</h3>' + ADVICE.map(function (a) { return '<p class="xp-ms-sub">' + a[0] + '</p><ul class="xp-ms-advice">' + a[1].map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>'; }).join('') +
+      '<p class="xp-ms-note">Drawn from OCR\u2019s examiners\u2019 reports on H443/03 (2024\u20132026) and the commentaries on candidate answers.</p></div>';
   }
 
   /* ── the page ── */
@@ -406,6 +450,7 @@
     var sec = state.kind === 'trans' ? '' : '<div class="xp-section"><h3>Section A</h3><p>Answer all the questions.</p></div>';
     els.out.innerHTML = '<article class="xp-sheet">' + sheetHead(p, state) + sec + r.paper + '<p class="xp-end">END OF QUESTION PAPER</p></article>';
     els.ms.innerHTML = '<article class="xp-sheet xp-ms-sheet"><div class="xp-head"><p class="xp-kicker">Mark scheme &middot; ' + code(state) + '</p><h2 class="xp-title">' + D.paper.name + ': mark scheme</h2><p class="xp-sub">' + D.paper.author + ', <i>' + D.paper.title + '</i> &middot; ' + rangeLabel() + '</p></div>' +
+      '<p class="xp-ms-note xp-ms-lead">Short questions are answered in English and need no Latin; the Latin in brackets shows where each point comes from.</p>' +
       '<table class="xp-ms"><thead><tr><th>Question</th><th>Answer</th><th>Marks</th><th>Guidance</th></tr></thead><tbody>' + r.ms + '</tbody></table>' + msAppendix() + '</article>';
     els.code.textContent = code(state);
   }
