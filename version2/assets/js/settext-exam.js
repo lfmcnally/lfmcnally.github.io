@@ -21,6 +21,9 @@
   var root = document.querySelector('[data-exam]');
   if (!root) return;
 
+  // Section A of each paper: short questions worth shortMarks beside a 5-mark
+  // translation, and a 15-mark question. The marks are set from the text's
+  // paper once its data has loaded (27 on the prose paper, 28 on the verse).
   var KINDS = {
     full:  { label: 'Full Section A', marks: 27 },
     short: { label: 'Short questions', marks: 12 },
@@ -30,12 +33,15 @@
   // OCR allows two hours for 75 marks
   function minutesFor(marks) { return Math.max(10, Math.round(marks * 120 / 75 / 5) * 5); }
 
-  var LINE_CHARS = 78;          // characters to a printed line of Latin, as on OCR's papers
+  var LINE_CHARS = 78;          // characters to a printed line of prose, as on OCR's papers
+  // The defaults are the prose paper's; a text's paper may set its own.
   var SHORT_MARKS = 7;          // the short questions beside the 5-mark translation
-  var PASSAGE_MIN = 95;         // OCR's passages run to 11-13 lines
+  var PASSAGE_MIN = 95;         // OCR's prose passages run to 11-13 lines
   var PASSAGE_MAX = 140;        // words in a passage that carries short questions only
   var ESSAY_MAX = 150;          // words in a passage for the 15-mark question
   var LONG_MAX = 240;           // words in a single passage that carries everything
+  var TWO_SHARE = 0.8;          // how often a full paper is set on two passages
+  var VERSE = false;            // verse is printed line by line, as the poet wrote it
 
   var SENT_END = /[.?!][’'”")\]]*$/;
   var CLAUSE_END = /[.?!;:][’'”")\]]*$/;
@@ -69,7 +75,15 @@
 
   // Widen a span to whole sentences, or to whole clauses where the sentence
   // runs too far, without leaving the chapters chosen.
+  // Verse texts are prescribed in stretches (Aeneid 4.1-128 and 529-629); no
+  // passage runs from one stretch into the next.
+  function stretch(i, lo, hi) {
+    (D.breaks || []).forEach(function (b) { if (b <= i) lo = Math.max(lo, b); else hi = Math.min(hi, b - 1); });
+    return { lo: lo, hi: hi };
+  }
+  function crosses(span) { return (D.breaks || []).some(function (b) { return span.start < b && span.end >= b; }); }
   function widen(span, lo, hi) {
+    var r = stretch(span.start, lo, hi); lo = r.lo; hi = r.hi;
     var s = span.start, e = span.end, i;
     for (i = s; i > lo && !SENT_END.test(W[i - 1]) && s - i < 30; i--);
     if (i > lo && !SENT_END.test(W[i - 1])) for (i = s; i > lo && !CLAUSE_END.test(W[i - 1]); i--);
@@ -82,6 +96,7 @@
   // Add whole sentences before or after a passage until it is as long as
   // OCR's (about eleven lines), keeping clear of the other passage.
   function grow(span, lo, hi, min, max, avoid) {
+    var r = stretch(span.start, lo, hi); lo = r.lo; hi = r.hi;
     var s = span.start, e = span.end;
     function back(i) {   // the start of the sentence that ends at word i
       var k = i;
@@ -135,6 +150,7 @@
       (function dfs(from, chosen, sum) {
         if (found || budget-- < 0) return;
         if (sum === SHORT_MARKS && chosen.length >= 2) {
+          if (crosses(hull(chosen.concat([T], opts.anchor ? [opts.anchor] : [])))) return;
           var span = widen(hull(chosen.concat([T], opts.anchor ? [opts.anchor] : [])), lo, hi);
           if (!opts.anchor) span = grow(span, lo, hi, PASSAGE_MIN, PASSAGE_MAX, opts.avoid);
           if (len(span) > (opts.anchor ? LONG_MAX : PASSAGE_MAX)) return;
@@ -191,10 +207,14 @@
     if (b > n - 1) { a = Math.max(0, a - (b - (n - 1))); b = n - 1; }
     var wide = { start: D.sections[a].start, end: D.sections[b].end };
     var ranges = [core, wide];
+    // the layout of a full paper is settled once, from the seed, and the other
+    // is used only if no paper can be made in it
+    var layouts = st.layout !== 'any' ? [st.layout] : rng(st.seed + ':layout')() < TWO_SHARE ? ['two', 'one'] : ['one', 'two'];
+    for (var l = 0; l < layouts.length; l++)
     for (var r = 0; r < ranges.length; r++) {
       for (var attempt = 0; attempt < 40; attempt++) {
         var rand = rng(st.seed + ':' + st.kind + ':' + st.layout + ':' + st.from + '-' + st.to + ':' + r + ':' + attempt);
-        var p = tryAssemble(st, rand, ranges[r].start, ranges[r].end, core);
+        var p = tryAssemble(st, rand, ranges[r].start, ranges[r].end, core, layouts[l]);
         if (p) {
           p.widened = p.questions.some(function (Q) { return Q.passages.some(function (P) { return !within(P.span, core); }); });
           return p;
@@ -204,7 +224,7 @@
     return null;
   }
 
-  function tryAssemble(st, rand, lo, hi, core) {
+  function tryAssemble(st, rand, lo, hi, core, layout) {
     var items, E, S;
     if (st.kind === 'trans') {
       var cs = shuffle(D.chunks.filter(function (c) { return c.start >= lo && c.end <= hi; }), rand), picked = [];
@@ -230,7 +250,7 @@
       return { kind: 'short', questions: [{ intro: 'Read the following passage and answer the questions.', passages: [shortPassage(S)] }] };
     }
     // full: the layout asked for, or either
-    var layouts = st.layout === 'one' ? ['one'] : st.layout === 'two' ? ['two'] : (rand() < 0.8 ? ['two', 'one'] : ['one', 'two']);   // two passages in four years of five
+    var layouts = [layout];
     for (var l = 0; l < layouts.length; l++) {
       E = pickEssay(rand, lo, hi, core);
       if (!E) return null;
@@ -265,18 +285,24 @@
   }
 
   /* ── laying out the Latin ── */
-  // Lines of a fixed length, so a question can point at its line numbers.
+  // Prose in lines of a fixed length, verse in the poet's own lines, so that
+  // a question can point at its line numbers.
   function layout(span) {
     var lines = [], line = [], n = 0, lineOf = {};
     for (var i = span.start; i <= span.end; i++) {
       var w = W[i];
-      if (line.length && n + 1 + w.length > LINE_CHARS) { lines.push(line); line = []; n = 0; }
+      var full = VERSE ? i > span.start && D.wline[i] !== D.wline[i - 1] : n + 1 + w.length > LINE_CHARS;
+      if (line.length && full) { lines.push(line); line = []; n = 0; }
       n += (line.length ? 1 : 0) + w.length;
       line.push(i);
       lineOf[i] = lines.length + 1;
     }
     if (line.length) lines.push(line);
-    return { lines: lines, lineOf: lineOf };
+    // a passage that starts part-way through a verse line is set in under the
+    // rest of that line, as OCR prints a half-line
+    var indent = 0;
+    if (VERSE) for (var k = span.start - 1; k >= 0 && D.wline[k] === D.wline[span.start]; k--) indent += W[k].length + 1;
+    return { lines: lines, lineOf: lineOf, indent: indent };
   }
   function lineRef(lay, s) {
     var a = lay.lineOf[s.start], b = lay.lineOf[s.end];
@@ -294,6 +320,7 @@
     return l.split(/\s*(?:…|\.\.\.)\s*/).map(function (part) { return part.split(/\s+/).map(bare).filter(Boolean).join(' '); }).join(' … ');
   }
   function cite(span) {
+    if (VERSE) return D.paper.author + ', ' + D.paper.work + '.' + D.wline[span.start] + '\u2013' + D.wline[span.end];
     var a = sectionOf(span.start).chapter, b = sectionOf(span.end).chapter;
     return D.paper.author + ', ' + D.paper.work + ' ' + (a === b ? a : a + '–' + b);
   }
@@ -335,7 +362,8 @@
   function passageHtml(lay, span) {
     var rows = lay.lines.map(function (ln, i) {
       var n = i + 1;
-      return '<div class="xp-line"><span class="xp-ln">' + (n % 5 === 0 ? n : '') + '</span>' + ln.map(function (k) { return esc(W[k]); }).join(' ') + '</div>';
+      var pad = i === 0 && lay.indent ? ' style="padding-left:' + lay.indent + 'ch"' : '';
+      return '<div class="xp-line"' + pad + '><span class="xp-ln">' + (n % 5 === 0 ? n : '') + '</span>' + ln.map(function (k) { return esc(W[k]); }).join(' ') + '</div>';
     });
     return '<div class="xp-passage" lang="la">' + rows.join('') + '</div><p class="xp-cite">' + esc(cite(span)) + '</p>';
   }
@@ -416,33 +444,34 @@
       '<p class="xp-ms-note">This question focuses on candidates\u2019 ability to select relevant examples of content and language from the passage and to structure an answer around these examples to express relevant points. Therefore candidates will be assessed on the quality of the points made and the range and quality of the examples they have selected from the passage. Examiners must use a best fit approach to the marking grid.</p>' +
       '<table class="xp-ms-grid"><tr><th>Level</th><th>Marks</th><th>Characteristics of performance (AO3: critically analyse, evaluate and respond to literature)</th></tr>' +
       LEVELS15.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td><ul>' + r[2].map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul><i>' + r[3] + '</i></td></tr>'; }).join('') + '</table>' +
-      '<p class="xp-ms-note">0 = no response or no response worthy of credit. Grid from OCR\u2019s H443/03 mark schemes.</p>' +
+      '<p class="xp-ms-note">0 = no response or no response worthy of credit. Grid from OCR\u2019s A Level Latin literature mark schemes.</p>' +
       '<h3>What the examiners say</h3>' + ADVICE.map(function (a) { return '<p class="xp-ms-sub">' + a[0] + '</p><ul class="xp-ms-advice">' + a[1].map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>'; }).join('') +
-      '<p class="xp-ms-note">Drawn from OCR\u2019s examiners\u2019 reports on H443/03 (2024\u20132026) and the commentaries on candidate answers.</p></div>';
+      '<p class="xp-ms-note">' + (D.paper.adviceNote || 'Drawn from OCR\u2019s examiners\u2019 reports on H443/03 (2024\u20132026) and the commentaries on candidate answers.') + '</p></div>';
   }
 
   /* ── the page ── */
   function sheetHead(p, st) {
     var k = KINDS[st.kind], marks = k.marks, P = D.paper;
-    var chs = st.from === st.to ? 'Chapter ' + D.sections[st.from - 1].title.replace(/^Chapter\s*/, '') : D.sections[st.from - 1].title + ' to ' + D.sections[st.to - 1].title.replace(/^Chapter\s*/, '');
+    var chs = rangeLabel();
     var what = st.kind === 'full' ? 'Section A' : st.kind === 'trans' ? 'Translation practice' : st.kind === 'essay' ? '15-mark question' : 'Short questions';
     return '<div class="xp-head">' +
       '<p class="xp-kicker">Practice paper in the style of ' + P.board + ' ' + P.level + ' ' + P.code + '</p>' +
       '<h2 class="xp-title">' + P.name + '</h2>' +
       '<p class="xp-sub">' + what + ': ' + P.author + ', <i>' + P.title + '</i> &middot; ' + esc(chs) + '</p>' +
-      (p.widened ? '<p class="xp-note">The chapters chosen are short, so some of the Latin comes from the chapters either side.</p>' : '') +
+      (p.widened ? '<p class="xp-note">The ' + parts() + ' chosen are short, so some of the Latin comes from the ' + parts() + ' either side.</p>' : '') +
       '<div class="xp-facts"><span><b>Time allowed:</b> ' + minutesFor(marks) + ' minutes</span><span><b>Total marks:</b> ' + marks + '</span><span><b>Paper:</b> ' + code(st) + '</span></div>' +
       '</div>' +
       '<div class="xp-instr"><p class="xp-instr-h">Instructions</p><ul><li>Answer all the questions.</li><li>' + (st.lines ? 'Write your answers in the spaces provided.' : 'Write your answers on lined paper. The question numbers must be clearly shown.') + '</li><li>Do not use a dictionary.</li></ul>' +
       '<p class="xp-instr-h">Information</p><ul><li>The total mark for this paper is ' + marks + '.</li><li>The marks for each question are shown in brackets [ ].</li>' +
       (st.kind === 'full' || st.kind === 'essay' ? '<li>Quality of extended response will be assessed in questions marked with an asterisk (*).</li>' : '') + '</ul></div>';
   }
+  function parts() { return D.paper.parts || 'chapters'; }
   function code(st) { return D.paper.work.slice(0, 3).toUpperCase() + '-' + st.seed; }
 
   function draw() {
     var p = assemble(state);
     if (!p) {
-      els.out.innerHTML = '<div class="xp-empty"><p>There is not enough text in ' + rangeLabel() + ' for this kind of paper. Choose more chapters, or a shorter paper.</p></div>';
+      els.out.innerHTML = '<div class="xp-empty"><p>There is not enough text in ' + rangeLabel() + ' for this kind of paper. Choose more ' + parts() + ', or a shorter paper.</p></div>';
       els.ms.innerHTML = ''; paper = null; return;
     }
     paper = p;
@@ -456,7 +485,14 @@
   }
 
   function rangeLabel() {
-    return state.from === state.to ? D.sections[state.from - 1].title : D.sections[state.from - 1].title + ' to ' + D.sections[state.to - 1].title;
+    var a = D.sections[state.from - 1], b = D.sections[state.to - 1];
+    if (state.from === state.to) return a.title;
+    if (VERSE) {   // "Lines 1–128 and 529–546" where the chosen sections span the gap
+      var first = D.wline[a.start], last = D.wline[b.end];
+      var gap = (D.breaks || []).filter(function (k) { return k > a.start && k <= b.end; })[0];
+      return gap === undefined ? 'Lines ' + first + '\u2013' + last : 'Lines ' + first + '\u2013' + D.wline[gap - 1] + ' and ' + D.wline[gap] + '\u2013' + last;
+    }
+    return a.title + ' to ' + b.title.replace(/^Chapter\s*/, '');
   }
 
   /* ── settings, kept in the address ── */
@@ -492,6 +528,15 @@
 
   function init(data) {
     D = data; W = D.words;
+    var P = D.paper, L = P.lengths || {};
+    VERSE = D.mode === 'verse';
+    if (P.shortMarks) SHORT_MARKS = P.shortMarks;
+    if (L.passage) { PASSAGE_MIN = L.passage[0]; PASSAGE_MAX = L.passage[1]; }
+    if (L.essayPassage) ESSAY_MAX = L.essayPassage;
+    if (L.long) LONG_MAX = L.long;
+    if (P.twoPassageShare != null) TWO_SHARE = P.twoPassageShare;
+    KINDS.short.marks = SHORT_MARKS + 5;
+    KINDS.full.marks = SHORT_MARKS + 5 + 15;
     els.out = root.querySelector('[data-exam-paper]');
     els.ms = root.querySelector('[data-exam-ms]');
     els.code = root.querySelector('[data-exam-code]');
