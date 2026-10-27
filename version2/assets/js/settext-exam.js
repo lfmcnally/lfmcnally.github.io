@@ -399,12 +399,8 @@
       guide = 'Assess against the 5-mark translation grid (below). Repeated or consequential errors should not be penalised.';
     } else if (it.kind === 'essay') {
       marks = 15;
-      var sp = it.span || x;   // the whole printed passage, where it runs beyond the 15-mark entry
-      var feats = D.notes.filter(function (n) { return n.start >= sp.start && n.end <= sp.end; }).sort(byPosition);
       ans = '<p class="xp-ms-sub">Relevant points from the content of the passage</p><ul>' + x.points.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul>' +
-            '<p class="xp-ms-sub">Stylistic features of the language in the passage</p><ul>' + feats.map(function (n) {
-              return '<li><i lang="la">' + esc(n.quote) + '</i>: <b>' + esc(n.label) + '.</b> ' + esc(n.body) + '</li>';
-            }).join('') + '</ul>';
+            '<p class="xp-ms-sub">Stylistic features of the language in the passage</p><ul>' + x.features.map(function (f) { return '<li>' + f + '</li>'; }).join('') + '</ul>';
       guide = 'Assess against the 15-mark levels (below). Answers must cover both content and language; no set number of points is required, and other valid points are credited.';
     } else {
       marks = x.marks;
