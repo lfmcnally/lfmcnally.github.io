@@ -105,10 +105,6 @@ def locate(lemma, normed, lo, hi):
 def build(d):
     rel = os.path.relpath(d, ROOT)
     bank = json.load(open(os.path.join(d, 'data/exam-bank.json'), encoding='utf-8'))
-    for extra in sorted(glob.glob(os.path.join(d, 'data/exam-features-*.json'))):   # TEMP: features being written
-        feats = json.load(open(extra, encoding='utf-8'))
-        for e in bank['essays']:
-            if e['id'] in feats: e['features'] = feats[e['id']]
     words, units, sections, notes, wline, mode = load_text(d)
     normed = [norm(w) for w, _ in words]
     secs = {s['n']: s for s in sections}
@@ -214,7 +210,6 @@ def build(d):
         'wunit': [u for _, u in words],
         'wline': wline if mode == 'verse' else [],
         'units': units,
-        'notes': out_notes,
         'questions': questions,
         'essays': essays,
         'chunks': chunks,
