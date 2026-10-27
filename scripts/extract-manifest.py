@@ -286,8 +286,8 @@ SETTEXTS = [
     (LIT + 'gcse/cupid-and-psyche/index.html', {'id': 'lat-cupid', 'subject': 'latin', 'level': 'GCSE', 'code': 'OCR J282/03', 'reader': 'settext'}),
     (LIT + 'gcse/aeneid-2/index.html', {'id': 'lat-aeneid2', 'subject': 'latin', 'level': 'GCSE', 'code': 'OCR J282/05', 'reader': 'settext'}),
     (LIT + 'gcse/baucis-et-philemon/index.html', {'id': 'lat-baucis', 'subject': 'latin', 'level': 'GCSE', 'code': 'OCR J282/04', 'reader': 'settext', 'archive': 'Cycle 4 · examined 2025 and 2026'}),
-    (LIT + 'alevel/nepos-hannibal/index.html', {'id': 'lat-nepos', 'subject': 'latin', 'level': 'A-level', 'code': 'OCR H443/02', 'reader': 'parallel'}),
-    (LIT + 'alevel/aeneid-4/index.html', {'id': 'lat-aeneid4', 'subject': 'latin', 'level': 'A-level', 'code': 'OCR H443/03', 'reader': 'parallel'}),
+    (LIT + 'alevel/nepos-hannibal/index.html', {'id': 'lat-nepos', 'subject': 'latin', 'level': 'A-level', 'code': 'OCR H443/03', 'reader': 'parallel'}),
+    (LIT + 'alevel/aeneid-4/index.html', {'id': 'lat-aeneid4', 'subject': 'latin', 'level': 'A-level', 'code': 'OCR H443/04', 'reader': 'parallel'}),
 ]
 
 def main():

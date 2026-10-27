@@ -46,7 +46,8 @@ def docnav(t, current):
             on = ' class="on" aria-current="page"' if s['href'] == current else ''
             out.append('<a href="%s"%s><span class="n">%d</span><span style="flex:1">%s</span></a>' % (s['href'], on, section_n(s['href']), short_title(s['title'])))
     out.append('</div>')
-    out.append('<div class="foot"><a href="%s">Contents</a><a href="%s">Vocabulary tester</a><a href="%s">%s %s</a></div></nav>' % (t['href'], tester, sub['href'] + LEVEL_ANCHOR.get(t['level'], ''), lvl_label(t['level']), lang))
+    exam = '<a href="%s">Exam practice</a>' % (t['href'] + t['exam']) if t.get('exam') else ''
+    out.append('<div class="foot"><a href="%s">Contents</a>%s<a href="%s">Vocabulary tester</a><a href="%s">%s %s</a></div></nav>' % (t['href'], exam, tester, sub['href'] + LEVEL_ANCHOR.get(t['level'], ''), lvl_label(t['level']), lang))
     return '\n'.join(out)
 
 def word_html(w, note_cat, uid):

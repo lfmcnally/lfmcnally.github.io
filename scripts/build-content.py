@@ -811,10 +811,12 @@ def build_settext(t):
     if t.get('archive'): kvl.append('<li><b>Cycle</b><span>%s</span></li>' % t['archive'])
     about = ''.join('<p>%s</p>' % p for p in t['about'])
     rail = ['<div class="panel"><div class="ph"><span class="t">About this text</span></div><div class="pb"><ul class="kvl" style="margin-bottom:10px">%s</ul>%s</div></div>' % (''.join(kvl), about)]
-    rail.append('<div class="panel"><div class="ph"><span class="t">Also for this paper</span></div><div class="pb"><div class="rows"><a class="row" href="%s"><span class="rt">Vocabulary tester</span><span class="rm">the defined vocabulary for %s %s</span></a><a class="row" href="%s"><span class="rt">Other set texts</span><span class="rm">the rest of the %s %s literature options</span></a></div></div></div>' % (tester, lvl_label(t['level']), lang, sub['href'] + LEVEL_ANCHOR.get(t['level'], ''), lvl_label(t['level']), lang))
+    exam = ('<a class="row" href="%s"><span class="rt">Exam practice</span><span class="rm">practice papers laid out like the exam, with mark schemes</span></a>' % (t['href'] + t['exam'])) if t.get('exam') else ''
+    rail.append('<div class="panel"><div class="ph"><span class="t">Also for this paper</span></div><div class="pb"><div class="rows">%s<a class="row" href="%s"><span class="rt">Vocabulary tester</span><span class="rm">the defined vocabulary for %s %s</span></a><a class="row" href="%s"><span class="rt">Other set texts</span><span class="rm">the rest of the %s %s literature options</span></a></div></div></div>' % (exam, tester, lvl_label(t['level']), lang, sub['href'] + LEVEL_ANCHOR.get(t['level'], ''), lvl_label(t['level']), lang))
     rail.append(TRACK)
     first = t['groups'][0]['sections'][0]['href'] if t['groups'] and t['groups'][0]['sections'] else None
     acts = ('<a class="btn green" href="%s">Start reading &rarr;</a>' % first) if first else ''
+    if t.get('exam'): acts = '<a class="btn line" href="%s">Exam practice</a>' % (t['href'] + t['exam']) + acts
     body = '''<main id="main">
   <div class="inner phead">
     %s
