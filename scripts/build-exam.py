@@ -105,6 +105,10 @@ def locate(lemma, normed, lo, hi):
 def build(d):
     rel = os.path.relpath(d, ROOT)
     bank = json.load(open(os.path.join(d, 'data/exam-bank.json'), encoding='utf-8'))
+    for extra in sorted(glob.glob(os.path.join(d, 'data/exam-features-*.json'))):   # TEMP: features being written
+        feats = json.load(open(extra, encoding='utf-8'))
+        for e in bank['essays']:
+            if e['id'] in feats: e['features'] = feats[e['id']]
     words, units, sections, notes, wline, mode = load_text(d)
     normed = [norm(w) for w, _ in words]
     secs = {s['n']: s for s in sections}
@@ -173,10 +177,17 @@ def build(d):
         if not essay_min <= n <= essay_max: errors.append('essay %s: %d words (want %d–%d)' % (e['id'], n, essay_min, essay_max))
         if crosses(*span): errors.append('essay %s: runs across a gap in the prescribed text' % e['id'])
         if len(e.get('points', [])) < 4: errors.append('essay %s: needs at least four content points' % e['id'])
+        # the stylistic features for the mark scheme, written for this question as
+        # OCR's are: "<i>Latin</i>: the feature and its effect", each quoting the passage
+        feats = e.get('features', [])
+        if len(feats) < 6: errors.append('essay %s: %d stylistic features (want at least 6)' % (e['id'], len(feats)))
+        for ft in feats:
+            m = re.match(r'\s*<i>(.*?)</i>\s*:', ft)
+            if not m: errors.append('essay %s: feature "%s" does not open with its Latin' % (e['id'], strip_tags(ft)[:50])); continue
+            if not locate(strip_tags(m.group(1)), normed, span[0], span[1]):
+                errors.append('essay %s: "%s" is not in the passage (%s)' % (e['id'], strip_tags(m.group(1)), e['lemma']))
         ee = {k: v for k, v in e.items() if k not in ('sec',)}
         ee['start'], ee['end'] = span
-        ee['features'] = sum(1 for nt in out_notes if span[0] <= nt['start'] and nt['end'] <= span[1])
-        if ee['features'] < 4: errors.append('essay %s: only %d style notes fall inside it' % (e['id'], ee['features']))
         essays.append(ee)
 
     # 5-mark translations: whole units, starting after the end of a clause and
