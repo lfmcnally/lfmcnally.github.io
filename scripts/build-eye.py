@@ -87,7 +87,10 @@ def write_page():
     <div data-eye-view="problems" hidden></div>
     <div data-eye-view="benchmarks" hidden></div>
     <div data-eye-view="print" hidden></div>
-    <p class="ee-credit">The scripts, answers, marks and commentaries are OCR’s, from its exemplar candidate work, candidate style answers and examiners’ reports for A Level Latin H443/03 and H443/04, reproduced for teaching with acknowledgement to OCR. The typed versions of the handwritten scripts and the tags are Classicalia’s.</p>
+    <div class="ee-credit">
+      <p><b>Sources.</b> The scripts, answers, marks, commentaries and examiners’ comments are OCR’s, from: Exemplar candidate work, A Level Latin H443/03 Prose Literature (Tacitus), Summer 2022 series; A Level Latin Candidate Style Answers, H443/03 &amp; 04 (2018); and the examiners’ reports on H443/03 for the Summer 2024, 2025 and 2026 series. Each answer names its source. The typed versions of the handwritten scripts, the tags, and the stronger points marked as Classicalia’s are ours.</p>
+      <p>OCR’s small print: “You can copy and distribute this resource freely if you keep the OCR logo and this small print intact and you acknowledge OCR as the originator of the resource.” OCR is part of Cambridge University Press &amp; Assessment. Visit <a href="https://www.ocr.org.uk/">ocr.org.uk</a> for the original documents.</p>
+    </div>
   </div>
 </main>''' % dict(href=HREF, crumbs=bc.crumbs([(sub['label'], sub['href']), ('A-level Latin', sub['href'] + bc.LEVEL_ANCHOR['A-level'])]))
     html_ = bc.page('Examiner’s eye: the 15-mark question — A-level Latin — Classicalia',

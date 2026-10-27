@@ -59,7 +59,7 @@
   function tagCount(e, tag) { return e.segments.filter(function (s) { return !s.br && (s.tags || []).indexOf(tag) >= 0; }).length; }
   function answerWords(e) { return e.segments.reduce(function (n, s) { return n + (s.br ? 0 : words(s.t)); }, 0); }
   function kindLabel(e) { return e.kind === 'script' ? 'Exam script' : e.kind === 'typed' ? 'OCR model answer' : 'Report extract'; }
-  function title(e) { var q = Q[e.question]; return q.author + ', ' + q.work; }
+  function title(e) { var q = Q[e.question]; return q.author + ', ' + q.work + (e.label ? ' \u00b7 ' + e.label : ''); }
   function revealed(e) { return !!store('seen:' + e.id); }
 
   /* ── the passage and the answer ── */
@@ -307,7 +307,7 @@
     function val(e, c) { return c === 'words' ? answerWords(e) : tagCount(e, c); }
     var max = {}; cols.forEach(function (c) { max[c[0]] = Math.max.apply(null, full.map(function (e) { return val(e, c[0]); })) || 1; });
     var rows = full.map(function (e) {
-      var shown = revealed(e) || state.benchAll;
+      var shown = true;
       return '<tr><th><button type="button" class="ee-link" data-goto="' + esc(e.id) + '">' + esc(title(e)) + '</button><small>' + esc(kindLabel(e)) + '</small></th>' +
         '<td class="ee-bm">' + (shown ? e.mark + '/15 <small>L' + levelOf(e.mark).n + '</small>' : '<span class="ee-mk-hid">?</span>') + '</td>' +
         cols.map(function (c) { var v = val(e, c[0]); return '<td><span class="ee-bar" style="--w:' + Math.round(100 * v / max[c[0]]) + '%"></span><b>' + v + '</b></td>'; }).join('') + '</tr>';
@@ -322,12 +322,10 @@
       }).join('') + '</tr>';
     }).join('');
     views.benchmarks.innerHTML = '<div class="panel"><div class="pb"><h2>What the answers at each level contain</h2>' +
-      '<p class="ee-note">Counted from the typed versions of the full answers. The marks stay hidden for answers you have not marked yet; <button type="button" class="ee-link" data-allmarks>show all the marks</button>.</p>' +
+      '<p class="ee-note">Counted from the typed versions of the full answers. This table shows every mark, so mark the answers first if you want to try them blind.</p>' +
       '<div class="ee-tablewrap"><table class="ee-bench"><thead><tr><th>Answer</th><th>Mark</th>' + cols.map(function (c) { return '<th>' + c[1] + '</th>'; }).join('') + '</tr></thead><tbody>' + rows + bands + '</tbody></table></div>' +
       '<h3>Time</h3><p>The paper allows two hours for 75 marks, which leaves about 25 minutes for a 15-mark answer once the passage is read. The top answers here run to about ' + topWords(full) + ' words: plan for six to eight developed points across the whole passage, each with its Latin, a translation, the feature and its effect.</p></div></div>';
     views.benchmarks.querySelectorAll('[data-goto]').forEach(function (b) { b.addEventListener('click', function () { setTab('answers'); openExemplar(b.getAttribute('data-goto')); }); });
-    var all = views.benchmarks.querySelector('[data-allmarks]');
-    if (all) all.addEventListener('click', function () { state.benchAll = true; renderBenchmarks(); });
   }
   function topWords(full) {
     var top = full.filter(function (e) { return e.mark >= 13; });
@@ -383,8 +381,25 @@
     setTab(views[h[0]] ? h[0] : 'answers');
   }
 
+  // Answers to the same question are lettered A, B, C in a fixed order that
+  // has nothing to do with their marks, so the list gives nothing away.
+  function hash(s) { var h = 7; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 1000003; return h; }
+  function letter(data) {
+    var groups = {};
+    data.exemplars.forEach(function (e) { if (e.kind !== 'extract') (groups[e.question] = groups[e.question] || []).push(e); });
+    Object.keys(groups).forEach(function (k) {
+      var g = groups[k].sort(function (a, b) { return hash(a.id + 'eye') - hash(b.id + 'eye'); });
+      if (g.length > 1) g.forEach(function (e, i) { e.label = 'Answer ' + String.fromCharCode(65 + i); e.order = i; });
+    });
+    var kinds = { script: 0, typed: 1, extract: 2 };
+    data.exemplars.sort(function (a, b) {
+      return kinds[a.kind] - kinds[b.kind] || (a.question < b.question ? -1 : a.question > b.question ? 1 : 0) || (a.order || 0) - (b.order || 0);
+    });
+  }
+
   function init(data) {
     D = data;
+    letter(D);
     D.questions.forEach(function (q) { Q[q.id] = q; });
     root.querySelectorAll('[data-eye-view]').forEach(function (v) { views[v.getAttribute('data-eye-view')] = v; });
     root.querySelectorAll('[data-eye-tab]').forEach(function (a) {
