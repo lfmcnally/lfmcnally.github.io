@@ -27,10 +27,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 spec = importlib.util.spec_from_file_location('bc', os.path.join(ROOT, 'scripts/build-content.py'))
 bc = importlib.util.module_from_spec(spec); spec.loader.exec_module(bc)
 
-# the length of a 5-mark translation, in Latin words (OCR's run from 37 to 52)
-CHUNK_MIN, CHUNK_MAX = 32, 52
+# Lengths in Latin words, for the prose paper; a verse text's paper sets its
+# own in "lengths" (OCR's verse translations run to about five lines).
+# a 5-mark translation (OCR's prose ones run from 37 to 52)
+CHUNK = (32, 52)
 # the passage for a 15-mark question
-ESSAY_MIN, ESSAY_MAX = 70, 150
+ESSAY = (70, 150)
 
 CLAUSE_END = re.compile(r'[.?!;:][’\')\]]*$')
 SENT_END = re.compile(r'[.?!][’\')\]]*$')
@@ -57,22 +59,26 @@ class Fail(Exception): pass
 
 def load_text(d):
     files = sorted(glob.glob(os.path.join(d, 'data/section-*.json')), key=lambda f: int(re.search(r'(\d+)\.json$', f).group(1)))
-    words, units, sections, notes = [], [], [], []
+    words, units, sections, notes, wline, mode = [], [], [], [], [], 'prose'
     for f in files:
         s = json.load(open(f, encoding='utf-8'))
+        mode = s.get('mode', mode)
         sec = {'n': s['section'], 'title': s['title'], 'subtitle': s.get('subtitle', ''), 'chapter': chapter_of(s['title']), 'start': len(words)}
         for u in s['units']:
-            ws = [w['w'] for r in u['rows'] for w in r['words']]
-            # a dash written onto the end of a word ("dictu-") is punctuation
-            ws = [re.sub(r'(?<=\w)-$', '', w) for w in ws]
             ui = len(units)
-            units.append({'sec': s['section'], 'id': u['id'], 'en': plain_en(u.get('en', '')), 'start': len(words), 'end': len(words) + len(ws) - 1})
-            for w in ws: words.append([w, ui])
+            start = len(words)
+            for r in u['rows']:
+                for w in r['words']:
+                    # a dash written onto the end of a word ("dictu-") is punctuation
+                    words.append([re.sub(r'(?<=\w)-$', '', w['w']), ui])
+                    # the verse line a word stands in (a line can be split across two sections)
+                    wline.append(int(r['n']) if str(r.get('n', '')).isdigit() else 0)
+            units.append({'sec': s['section'], 'id': u['id'], 'en': plain_en(u.get('en', '')), 'start': start, 'end': len(words) - 1})
         sec['end'] = len(words) - 1
         for nt in s.get('notes', []):
             notes.append({'sec': s['section'], 'quote': nt.get('quote', ''), 'label': nt.get('label', ''), 'body': strip_tags(nt.get('body', '')), 'trans': nt.get('trans', '')})
         sections.append(sec)
-    return words, units, sections, notes
+    return words, units, sections, notes, wline, mode
 
 def find_run(normed, frag, lo, hi):
     """First index in [lo, hi] where the words of frag begin, or -1."""
@@ -99,10 +105,20 @@ def locate(lemma, normed, lo, hi):
 def build(d):
     rel = os.path.relpath(d, ROOT)
     bank = json.load(open(os.path.join(d, 'data/exam-bank.json'), encoding='utf-8'))
-    words, units, sections, notes = load_text(d)
+    for extra in sorted(glob.glob(os.path.join(d, 'data/exam-bank-*.json'))):   # TEMP: parts being written
+        part = json.load(open(extra, encoding='utf-8'))
+        bank['questions'] = bank['questions'] + part.get('questions', [])
+        bank['essays'] = bank['essays'] + part.get('essays', [])
+    words, units, sections, notes, wline, mode = load_text(d)
     normed = [norm(w) for w, _ in words]
     secs = {s['n']: s for s in sections}
     errors = []
+    L = bank['paper'].get('lengths', {})
+    chunk_min, chunk_max = L.get('chunk', CHUNK)
+    essay_min, essay_max = L.get('essay', ESSAY)
+    # where the prescribed text jumps (Aeneid 4.128 to 529), no passage may run across
+    breaks = [s['start'] for p, s in zip(sections, sections[1:]) if mode == 'verse' and wline[s['start']] > wline[p['end']] + 1]
+    def crosses(a, b): return any(a < k <= b for k in breaks)
 
     def place(item, what):
         sec = secs.get(item.get('sec'))
@@ -158,7 +174,8 @@ def build(d):
         span = place(e, 'essay')
         if not span: continue
         n = span[1] - span[0] + 1
-        if not ESSAY_MIN <= n <= ESSAY_MAX: errors.append('essay %s: %d words (want %d–%d)' % (e['id'], n, ESSAY_MIN, ESSAY_MAX))
+        if not essay_min <= n <= essay_max: errors.append('essay %s: %d words (want %d–%d)' % (e['id'], n, essay_min, essay_max))
+        if crosses(*span): errors.append('essay %s: runs across a gap in the prescribed text' % e['id'])
         if len(e.get('points', [])) < 4: errors.append('essay %s: needs at least four content points' % e['id'])
         ee = {k: v for k, v in e.items() if k not in ('sec',)}
         ee['start'], ee['end'] = span
@@ -173,19 +190,22 @@ def build(d):
     for a in starts:
         for b in range(a, len(units)):
             n = units[b]['end'] - units[a]['start'] + 1
-            if n > CHUNK_MAX: break
+            if n > chunk_max or crosses(units[a]['start'], units[b]['end']): break
+            # verse: no more than six lines, as OCR's run to five
+            if mode == 'verse' and len(set(wline[units[a]['start']:units[b]['end'] + 1])) > 6: break
             last = words[units[b]['end']][0]
-            if n >= CHUNK_MIN and CLAUSE_END.search(last):
+            if n >= chunk_min and CLAUSE_END.search(last):
                 chunks.append({'start': units[a]['start'], 'end': units[b]['end'], 'sentence': bool(SENT_END.search(last))})
 
     if errors:
         raise Fail('%s/data/exam-bank.json:\n  ' % rel + '\n  '.join(errors))
 
     out = {
-        'text': bank['text'], 'paper': bank['paper'],
+        'text': bank['text'], 'paper': bank['paper'], 'mode': mode, 'breaks': breaks,
         'sections': sections,
         'words': [w for w, _ in words],
         'wunit': [u for _, u in words],
+        'wline': wline if mode == 'verse' else [],
         'units': units,
         'notes': out_notes,
         'questions': questions,
@@ -199,13 +219,17 @@ def build(d):
     print('%s: %d questions (%d marks), %d 15-mark passages, %d translations, %d of %d style notes placed' % (
         rel, len(questions), marks, len(essays), len(chunks), len(out_notes), len(notes)))
 
-KINDS = [('full', 'Full Section A', '27 marks &middot; 45 minutes'),
-         ('short', 'Short questions', '12 marks &middot; 20 minutes'),
-         ('essay', '15-mark question', '15 marks &middot; 25 minutes'),
-         ('trans', 'Translation', '3 &times; 5 marks &middot; 25 minutes')]
+def minutes(marks):   # OCR allows two hours for 75 marks
+    return max(10, round(marks * 120 / 75 / 5) * 5)
 
 def write_page(bank):
     P = bank['paper']
+    short = P.get('shortMarks', 7) + 5
+    KINDS = [('full', 'Full Section A', '%d marks &middot; %d minutes' % (short + 15, minutes(short + 15))),
+             ('short', 'Short questions', '%d marks &middot; %d minutes' % (short, minutes(short))),
+             ('essay', '15-mark question', '15 marks &middot; 25 minutes'),
+             ('trans', 'Translation', '3 &times; 5 marks &middot; 25 minutes')]
+    layouts = P.get('layoutLabels', ['Either (mostly two, as OCR sets it)', 'Two passages, as in 2022 and 2024 to 2026', 'One long passage, as in 2023'])
     t = next(x for x in bc.DATA['settexts'] if x['href'] == P['href'])
     sub = bc.SUBJECTS[t['subject']]
     lang = bc.SETTEXT_LANG[t['subject']][0]
@@ -215,7 +239,7 @@ def write_page(bank):
   <div class="inner phead">
     %(crumbs)s
     <div class="ptitle">
-      <div><h1>Exam practice</h1><div class="sub">Practice papers on %(author)s, <em>%(title)s</em>, laid out like %(board)s %(code)s %(name)s, Section A, and modelled on the 2022 to 2026 papers, mark schemes and examiners’ reports: the same kinds of question, the same marks and the same mark scheme. Every paper is different. Choose the chapters and the length, then print it or answer it on paper and check the mark scheme.</div></div>
+      <div><h1>Exam practice</h1><div class="sub">Practice papers on %(author)s, <em>%(title)s</em>, laid out like %(board)s %(code)s %(name)s, Section A, and modelled on %(basis)s: the same kinds of question, the same marks and the same mark scheme. Every paper is different. Choose the %(parts)s and the length, then print it or answer it on paper and check the mark scheme.</div></div>
       <div class="acts"><a class="btn line" href="%(href)s">Read the text</a></div>
     </div>
   </div>
@@ -227,7 +251,7 @@ def write_page(bank):
       </div></div>
       <div class="xp-field"><span>Paper</span><div class="xp-kinds">%(kinds)s</div></div>
       <div class="xp-row">
-        <label class="xp-field" data-exam-layout-wrap><span>Passages</span><select data-exam-layout><option value="any">Either (mostly two, as OCR sets it)</option><option value="two">Two passages, as in 2022 and 2024 to 2026</option><option value="one">One long passage, as in 2023</option></select></label>
+        <label class="xp-field" data-exam-layout-wrap><span>Passages</span><select data-exam-layout><option value="any">%(lay0)s</option><option value="two">%(lay1)s</option><option value="one">%(lay2)s</option></select></label>
         <label class="xp-check"><input type="checkbox" data-exam-lines> Answer lines on the paper</label>
       </div>
       <div class="xp-acts">
@@ -244,7 +268,8 @@ def write_page(bank):
       <div class="xp-out xp-ms-out" data-exam-ms hidden></div>
     </div>
   </div>
-</main>''' % dict(href=P['href'], author=P['author'], title=P['title'], board=P['board'], code=P['code'], name=P['name'], kinds=kinds,
+</main>''' % dict(href=P['href'], author=P['author'], title=P['title'], board=P['board'], code=P['code'], name=P['name'], kinds=kinds, parts=P.get('parts', 'chapters'),
+                    basis=P.get('basis', 'the 2022 to 2026 papers, mark schemes and examiners’ reports'), lay0=layouts[0], lay1=layouts[1], lay2=layouts[2],
                     crumbs=bc.crumbs([(sub['label'], sub['href']), (bc.lvl_label(t['level']) + ' ' + lang, sub['href'] + bc.LEVEL_ANCHOR.get(t['level'], '')), (t['title'], t['href'])]))
     html_ = bc.page('Exam practice: %s — %s %s — Classicalia' % (bc.plain(t['title']), bc.lvl_label(t['level']), lang),
                     'Practice papers on %s, %s, in the layout of %s %s %s: short questions, a 5-mark translation and a 15-mark question, each with a mark scheme.' % (P['author'], bc.plain(P['title']), P['board'], P['code'], P['name']),
