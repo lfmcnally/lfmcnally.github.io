@@ -207,10 +207,14 @@
     if (b > n - 1) { a = Math.max(0, a - (b - (n - 1))); b = n - 1; }
     var wide = { start: D.sections[a].start, end: D.sections[b].end };
     var ranges = [core, wide];
+    // the layout of a full paper is settled once, from the seed, and the other
+    // is used only if no paper can be made in it
+    var layouts = st.layout !== 'any' ? [st.layout] : rng(st.seed + ':layout')() < TWO_SHARE ? ['two', 'one'] : ['one', 'two'];
+    for (var l = 0; l < layouts.length; l++)
     for (var r = 0; r < ranges.length; r++) {
       for (var attempt = 0; attempt < 40; attempt++) {
         var rand = rng(st.seed + ':' + st.kind + ':' + st.layout + ':' + st.from + '-' + st.to + ':' + r + ':' + attempt);
-        var p = tryAssemble(st, rand, ranges[r].start, ranges[r].end, core);
+        var p = tryAssemble(st, rand, ranges[r].start, ranges[r].end, core, layouts[l]);
         if (p) {
           p.widened = p.questions.some(function (Q) { return Q.passages.some(function (P) { return !within(P.span, core); }); });
           return p;
@@ -220,7 +224,7 @@
     return null;
   }
 
-  function tryAssemble(st, rand, lo, hi, core) {
+  function tryAssemble(st, rand, lo, hi, core, layout) {
     var items, E, S;
     if (st.kind === 'trans') {
       var cs = shuffle(D.chunks.filter(function (c) { return c.start >= lo && c.end <= hi; }), rand), picked = [];
@@ -246,7 +250,7 @@
       return { kind: 'short', questions: [{ intro: 'Read the following passage and answer the questions.', passages: [shortPassage(S)] }] };
     }
     // full: the layout asked for, or either
-    var layouts = st.layout === 'one' ? ['one'] : st.layout === 'two' ? ['two'] : (rand() < TWO_SHARE ? ['two', 'one'] : ['one', 'two']);
+    var layouts = [layout];
     for (var l = 0; l < layouts.length; l++) {
       E = pickEssay(rand, lo, hi, core);
       if (!E) return null;
@@ -294,7 +298,11 @@
       lineOf[i] = lines.length + 1;
     }
     if (line.length) lines.push(line);
-    return { lines: lines, lineOf: lineOf };
+    // a passage that starts part-way through a verse line is set in under the
+    // rest of that line, as OCR prints a half-line
+    var indent = 0;
+    if (VERSE) for (var k = span.start - 1; k >= 0 && D.wline[k] === D.wline[span.start]; k--) indent += W[k].length + 1;
+    return { lines: lines, lineOf: lineOf, indent: indent };
   }
   function lineRef(lay, s) {
     var a = lay.lineOf[s.start], b = lay.lineOf[s.end];
@@ -354,7 +362,8 @@
   function passageHtml(lay, span) {
     var rows = lay.lines.map(function (ln, i) {
       var n = i + 1;
-      return '<div class="xp-line"><span class="xp-ln">' + (n % 5 === 0 ? n : '') + '</span>' + ln.map(function (k) { return esc(W[k]); }).join(' ') + '</div>';
+      var pad = i === 0 && lay.indent ? ' style="padding-left:' + lay.indent + 'ch"' : '';
+      return '<div class="xp-line"' + pad + '><span class="xp-ln">' + (n % 5 === 0 ? n : '') + '</span>' + ln.map(function (k) { return esc(W[k]); }).join(' ') + '</div>';
     });
     return '<div class="xp-passage" lang="la">' + rows.join('') + '</div><p class="xp-cite">' + esc(cite(span)) + '</p>';
   }
