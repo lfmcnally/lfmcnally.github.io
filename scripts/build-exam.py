@@ -99,6 +99,11 @@ def locate(lemma, normed, lo, hi):
 def build(d):
     rel = os.path.relpath(d, ROOT)
     bank = json.load(open(os.path.join(d, 'data/exam-bank.json'), encoding='utf-8'))
+    for extra in sorted(glob.glob(os.path.join(d, 'data/exam-bank-*.json'))):   # TEMP: sections being rewritten
+        part = json.load(open(extra, encoding='utf-8'))
+        redo = set(part['sections'])
+        bank['questions'] = [q for q in bank['questions'] if q['sec'] not in redo] + part.get('questions', [])
+        bank['essays'] = [e for e in bank['essays'] if e['sec'] not in redo] + part.get('essays', [])
     words, units, sections, notes = load_text(d)
     normed = [norm(w) for w, _ in words]
     secs = {s['n']: s for s in sections}
@@ -135,6 +140,18 @@ def build(d):
         marks, pts = q['marks'], q.get('points', [])
         if not q.get('q'): errors.append('question %s: no question' % q['id'])
         if len(pts) < marks: errors.append('question %s: %d marks but only %d points' % (q['id'], marks, len(pts)))
+        if q.get('type') == 'context':
+            # as OCR's "(a) fili (line 2): name this person. [1]": a mark or two of knowledge
+            if marks > 2: errors.append('question %s: a context question is worth 1 or 2 marks' % q['id'])
+        else:
+            # everything else is answered from the Latin of its own lines, and each
+            # point of the mark scheme quotes the words it comes from
+            for pt in pts:
+                quotes = re.findall(r'<i>(.*?)</i>', pt)
+                if not quotes: errors.append('question %s: point "%s" quotes no Latin' % (q['id'], strip_tags(pt)[:50]))
+                for qt in quotes:
+                    hit = locate(strip_tags(qt), normed, span[0], span[1])
+                    if not hit: errors.append('question %s: "%s" is not in its lines (%s)' % (q['id'], strip_tags(qt), q['lemma']))
         qq = {k: v for k, v in q.items() if k not in ('sec',)}
         qq['start'], qq['end'] = span
         questions.append(qq)

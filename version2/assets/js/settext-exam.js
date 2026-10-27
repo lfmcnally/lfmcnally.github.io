@@ -116,6 +116,8 @@
         for (var i = from; i < pool.length && !found; i++) {
           var q = pool[i];
           if (sum + q.marks > SHORT_MARKS) continue;
+          // at most one question of background knowledge, as on OCR's papers
+          if (q.type === 'context' && chosen.some(function (o) { return o.type === 'context'; })) continue;
           var ok = chosen.every(function (o) {
             if (!overlaps(o, q)) return true;
             return (isShort(q) && !isShort(o) && within(q, o)) || (isShort(o) && !isShort(q) && within(o, q));
@@ -315,7 +317,7 @@
       var stem = whole ? cap(x.q) : '<i>' + esc(autoLemma(x)) + '</i> (' + lineRef(lay, x) + '): ' + x.q;
       return { marks: 15, html: stem + '<br>You should refer both to the content and to the language of the passage.' };
     }
-    var form = x.form || (rand() < 0.5 ? 'lead' : 'in');
+    var form = x.type === 'context' ? 'lead' : x.form || (rand() < 0.5 ? 'lead' : 'in');
     var lem = '<i>' + esc(showLemma(x.lemma)) + '</i>', ref = lineRef(lay, x);
     return { marks: x.marks, html: form === 'in' ? 'In ' + ref + ' (' + lem + '), ' + x.q : lem + ' (' + ref + '): ' + x.q };
   }
