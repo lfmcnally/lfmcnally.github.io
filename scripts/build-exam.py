@@ -135,6 +135,18 @@ def build(d):
         marks, pts = q['marks'], q.get('points', [])
         if not q.get('q'): errors.append('question %s: no question' % q['id'])
         if len(pts) < marks: errors.append('question %s: %d marks but only %d points' % (q['id'], marks, len(pts)))
+        if q.get('type') == 'context':
+            # as OCR's "(a) fili (line 2): name this person. [1]": a mark or two of knowledge
+            if marks > 2: errors.append('question %s: a context question is worth 1 or 2 marks' % q['id'])
+        else:
+            # everything else is answered from the Latin of its own lines, and each
+            # point of the mark scheme quotes the words it comes from
+            for pt in pts:
+                quotes = re.findall(r'<i>(.*?)</i>', pt)
+                if not quotes: errors.append('question %s: point "%s" quotes no Latin' % (q['id'], strip_tags(pt)[:50]))
+                for qt in quotes:
+                    hit = locate(strip_tags(qt), normed, span[0], span[1])
+                    if not hit: errors.append('question %s: "%s" is not in its lines (%s)' % (q['id'], strip_tags(qt), q['lemma']))
         qq = {k: v for k, v in q.items() if k not in ('sec',)}
         qq['start'], qq['end'] = span
         questions.append(qq)
@@ -203,7 +215,7 @@ def write_page(bank):
   <div class="inner phead">
     %(crumbs)s
     <div class="ptitle">
-      <div><h1>Exam practice</h1><div class="sub">Practice papers on %(author)s, <em>%(title)s</em>, laid out like %(board)s %(code)s %(name)s, Section A: the same kinds of question, the same marks and the same mark scheme. Every paper is different. Choose the chapters and the length, then print it or answer it on paper and check the mark scheme.</div></div>
+      <div><h1>Exam practice</h1><div class="sub">Practice papers on %(author)s, <em>%(title)s</em>, laid out like %(board)s %(code)s %(name)s, Section A, and modelled on the 2022 to 2026 papers, mark schemes and examiners’ reports: the same kinds of question, the same marks and the same mark scheme. Every paper is different. Choose the chapters and the length, then print it or answer it on paper and check the mark scheme.</div></div>
       <div class="acts"><a class="btn line" href="%(href)s">Read the text</a></div>
     </div>
   </div>
@@ -215,7 +227,7 @@ def write_page(bank):
       </div></div>
       <div class="xp-field"><span>Paper</span><div class="xp-kinds">%(kinds)s</div></div>
       <div class="xp-row">
-        <label class="xp-field" data-exam-layout-wrap><span>Passages</span><select data-exam-layout><option value="any">Either (OCR uses both)</option><option value="two">Two passages, as in 2022</option><option value="one">One long passage, as in 2023</option></select></label>
+        <label class="xp-field" data-exam-layout-wrap><span>Passages</span><select data-exam-layout><option value="any">Either (mostly two, as OCR sets it)</option><option value="two">Two passages, as in 2022 and 2024 to 2026</option><option value="one">One long passage, as in 2023</option></select></label>
         <label class="xp-check"><input type="checkbox" data-exam-lines> Answer lines on the paper</label>
       </div>
       <div class="xp-acts">
