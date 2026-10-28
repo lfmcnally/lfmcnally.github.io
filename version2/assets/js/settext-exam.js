@@ -441,7 +441,7 @@
       '<table class="xp-ms-grid"><tr><th>Level</th><th>Marks</th><th>Characteristics of performance (AO3: critically analyse, evaluate and respond to literature)</th></tr>' +
       LEVELS15.map(function (r) { return '<tr><td>' + r[0] + '</td><td>' + r[1] + '</td><td><ul>' + r[2].map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul><i>' + r[3] + '</i></td></tr>'; }).join('') + '</table>' +
       '<p class="xp-ms-note">0 = no response or no response worthy of credit. Grid from OCR\u2019s A Level Latin literature mark schemes.</p>' +
-      '<h3>What the examiners say</h3>' + (D.paper.eyeHref ? '<p class="xp-ms-note xp-print-hide">To see what these levels look like in real answers, with the examiners\u2019 marks and comments, try <a href="' + D.paper.eyeHref + '">Examiner\u2019s eye</a>.</p>' : '') + ADVICE.map(function (a) { return '<p class="xp-ms-sub">' + a[0] + '</p><ul class="xp-ms-advice">' + a[1].map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>'; }).join('') +
+      '<h3>What the examiners say</h3>' + (D.paper.eyeHref ? '<p class="xp-ms-note xp-print-hide">To see what these levels look like in answers to questions on this text, try <a href="' + D.paper.eyeHref + '">Examiner\u2019s eye</a>.</p>' : '') + ADVICE.map(function (a) { return '<p class="xp-ms-sub">' + a[0] + '</p><ul class="xp-ms-advice">' + a[1].map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>'; }).join('') +
       '<p class="xp-ms-note">' + (D.paper.adviceNote || 'Drawn from OCR\u2019s examiners\u2019 reports on H443/03 (2024\u20132026) and the commentaries on candidate answers.') + '</p></div>';
   }
 

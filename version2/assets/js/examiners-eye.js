@@ -1,8 +1,8 @@
-/* Examiner's eye: real answers to OCR's 15-mark literature question.
-   Built from data/exemplars.json (checked by scripts/build-eye.py): the
-   exam questions, the answers (scans and typed versions) tagged with the
-   moves examiners reward and the problems they mark down, OCR's marks and
-   commentaries, "level up" drills and the examiners' comments.
+/* Examiner's eye: practice answers to OCR's 15-mark literature question on
+   one set text. Built from <text>/data/eye.json (scripts/build-eye.py): the
+   questions and passages, the answers at every level tagged with the moves
+   examiners reward and the problems they mark down, their marks and
+   commentaries, "level up" drills and OCR's examiners' comments.
 
    Four views share those tags:
      answers     mark an answer yourself, X-ray it, read the verdict
@@ -58,8 +58,10 @@
   function words(s) { return (s.match(/[A-Za-zÀ-ɏ’'-]+/g) || []).length; }
   function tagCount(e, tag) { return e.segments.filter(function (s) { return !s.br && (s.tags || []).indexOf(tag) >= 0; }).length; }
   function answerWords(e) { return e.segments.reduce(function (n, s) { return n + (s.br ? 0 : words(s.t)); }, 0); }
-  function kindLabel(e) { return e.kind === 'script' ? 'Exam script' : e.kind === 'typed' ? 'OCR model answer' : 'Report extract'; }
-  function title(e) { var q = Q[e.question]; return q.author + ', ' + q.work + (e.label ? ' \u00b7 ' + e.label : ''); }
+  function kindLabel(e) { return { script: 'Exam script', typed: 'Model answer', extract: 'Extract' }[e.kind] || 'Practice answer'; }
+  function title(e) { var q = Q[e.question]; return (q.where || q.author + ', ' + q.work) + (e.label ? ' \u00b7 ' + e.label : ''); }
+  function scanned(e) { return !!(e.images && e.images.length); }
+  function ask(q) { var s = q.question.replace(/^In this passage, /, ''); return s.charAt(0).toUpperCase() + s.slice(1); }
   function revealed(e) { return !!store('seen:' + e.id); }
 
   /* ── the passage and the answer ── */
@@ -71,7 +73,7 @@
     }).join('') + '</div><p class="ee-cite">' + esc(q.author + ', ' + q.work) + '</p>';
   }
   function questionHtml(q, open) {
-    return '<div class="ee-q"><p class="ee-q-meta">' + esc(q.paper) + ' &middot; Question ' + esc(q.number) + '</p>' +
+    return '<div class="ee-q"><p class="ee-q-meta">' + esc(q.paper) + (q.number ? ' &middot; Question ' + esc(q.number) : '') + '</p>' +
       '<p class="ee-q-text">' + esc(q.question) + (q.instruction ? ' <span>' + esc(q.instruction) + '</span>' : '') + ' <b>[15]</b></p>' +
       '<details class="ee-pass"' + (open ? ' open' : '') + '><summary>The passage</summary>' + passageHtml(q) + '</details></div>';
   }
@@ -95,16 +97,17 @@
     var list = D.exemplars.filter(function (e) {
       return state.filter === 'all' || (state.filter === 'full' ? e.kind !== 'extract' : e.kind === 'extract');
     });
+    var kinds = D.exemplars.some(function (e) { return e.kind === 'extract'; }) && D.exemplars.some(function (e) { return e.kind !== 'extract'; });
     var items = list.map(function (e) {
       var mark = e.mark == null ? '' : revealed(e) ? '<span class="ee-mk">' + e.mark + '/15</span>' : '<span class="ee-mk ee-mk-hid">?/15</span>';
       return '<button type="button" class="ee-item' + (state.ex === e.id ? ' on' : '') + '" data-ex="' + esc(e.id) + '">' +
         '<span class="ee-it-t">' + esc(title(e)) + '</span>' +
-        '<span class="ee-it-m">' + esc(kindLabel(e)) + ' &middot; ' + esc(Q[e.question].paper.replace(/^OCR A Level Latin /, '')) + '</span>' + mark + '</button>';
+        '<span class="ee-it-m">' + esc(ask(Q[e.question])) + '</span>' + mark + '</button>';
     }).join('');
     views.answers.innerHTML = '<div class="ee-cols"><aside class="ee-list">' +
-      '<div class="ee-filter" role="group" aria-label="Show">' + [['all', 'All'], ['full', 'Full answers'], ['extract', 'Extracts']].map(function (f) {
+      (kinds ? '<div class="ee-filter" role="group" aria-label="Show">' + [['all', 'All'], ['full', 'Full answers'], ['extract', 'Extracts']].map(function (f) {
         return '<button type="button" data-filter="' + f[0] + '" aria-pressed="' + (state.filter === f[0]) + '">' + f[1] + '</button>';
-      }).join('') + '</div>' + items + '</aside><section class="ee-main" data-ex-main></section></div>';
+      }).join('') + '</div>' : '') + items + '</aside><section class="ee-main" data-ex-main></section></div>';
     views.answers.querySelectorAll('[data-ex]').forEach(function (b) { b.addEventListener('click', function () { openExemplar(b.getAttribute('data-ex')); }); });
     views.answers.querySelectorAll('[data-filter]').forEach(function (b) { b.addEventListener('click', function () { state.filter = b.getAttribute('data-filter'); renderAnswers(); }); });
     renderExemplar();
@@ -124,12 +127,12 @@
     var main = views.answers.querySelector('[data-ex-main]');
     var e = D.exemplars.filter(function (x) { return x.id === state.ex; })[0];
     if (!e) {
-      main.innerHTML = '<div class="ee-intro"><h2>How to use this</h2><p>Choose an answer on the left. For a full answer, read the question and the passage, then the answer, and decide which level of OCR’s grid it reaches before you see the examiner’s mark. Then X-ray it to see what earned the marks: switch on each move the examiners reward, and each problem they mark down.</p>' +
-        '<p>The extracts are single points the examiners picked out in their reports, good and bad, with what they said about them.</p>' + legendHtml() + '</div>';
+      main.innerHTML = '<div class="ee-intro"><h2>How to use this</h2><p>Choose an answer on the left. Read the question and the passage, then the answer, and decide which level of OCR’s grid it reaches before you see its mark. Then X-ray it to see what earned the marks: switch on each move the examiners reward, and each problem they mark down.</p>' +
+        '<p>Each question has answers at different levels, so compare them: the same passage, and what separates a Level 5 answer from a Level 2 one.</p>' + legendHtml() + '</div>';
       return;
     }
     var q = Q[e.question], hasMark = e.mark != null;
-    var modes = (hasMark ? [['mark', 'Mark it']] : []).concat([['xray', 'X-ray'], ['verdict', 'The examiner’s verdict']]);
+    var modes = (hasMark ? [['mark', 'Mark it']] : []).concat([['xray', 'X-ray'], ['verdict', 'The verdict']]);
     var head = '<div class="ee-head"><p class="ee-kicker">' + esc(kindLabel(e)) + '</p><h2>' + esc(title(e)) + '</h2></div>' + questionHtml(q, false) +
       '<div class="ee-modes" role="tablist">' + modes.map(function (m) {
         return '<button type="button" role="tab" data-mode="' + m[0] + '" aria-selected="' + (state.mode === m[0]) + '">' + m[1] + '</button>';
@@ -142,7 +145,7 @@
   }
 
   function answerHtml(e, typedFirst) {
-    if (e.kind === 'typed') return transcriptHtml(e);
+    if (!scanned(e)) return transcriptHtml(e);
     return '<div class="ee-ans' + (typedFirst ? ' show-typed' : '') + '"><div class="ee-ans-sw" role="group" aria-label="Show the answer as">' +
       '<button type="button" data-show="scan" aria-pressed="' + !typedFirst + '">Handwritten</button><button type="button" data-show="typed" aria-pressed="' + !!typedFirst + '">Typed out</button></div>' +
       '<div class="ee-ans-scan">' + scansHtml(e) + '</div><div class="ee-ans-typed">' + transcriptHtml(e) + '</div></div>';
@@ -159,7 +162,7 @@
     });
   }
 
-  /* Mark it: place the answer on OCR's grid, then see the examiner's mark. */
+  /* Mark it: place the answer on OCR's grid, then see its mark. */
   function markHtml(e) {
     var mine = store('mark:' + e.id) || {};
     return answerHtml(e, false) +
@@ -167,7 +170,7 @@
       '<div class="ee-grid">' + LEVELS.map(function (L) {
         return '<button type="button" class="ee-lv" data-lv="' + L.n + '" aria-pressed="' + (mine.level === L.n) + '"><b>Level ' + L.n + '</b><span>' + L.lo + '–' + L.hi + '</span><em>' + L.text + '</em></button>';
       }).join('') + '</div><div class="ee-marks" data-marks></div>' +
-      '<button type="button" class="btn green" data-reveal' + (mine.mark ? '' : ' disabled') + '>See the examiner’s mark</button></div>';
+      '<button type="button" class="btn green" data-reveal' + (mine.mark ? '' : ' disabled') + '>See the mark</button></div>';
   }
   function wireMark(main, e) {
     wireAnswer(main);
@@ -205,8 +208,8 @@
       '<div><span class="ee-lg-h">What loses marks</span>' + PROBLEMS.map(function (t) { return chip(t); }).join('') + '</div></div>';
   }
   function xrayHtml(e) {
-    return legendHtml(e) + '<div class="ee-xray">' + (e.kind === 'typed' ? transcriptHtml(e) : '<div class="ee-xray-cols"><div class="ee-xray-typed">' + transcriptHtml(e) + '</div><div class="ee-xray-scan">' + scansHtml(e) + '</div></div>') + '</div>' +
-      '<p class="ee-note">Hover over or tap a button to see what it means. The tags are Classicalia’s, guided by the examiner’s commentary on this answer.</p>';
+    return legendHtml(e) + '<div class="ee-xray">' + (!scanned(e) ? transcriptHtml(e) : '<div class="ee-xray-cols"><div class="ee-xray-typed">' + transcriptHtml(e) + '</div><div class="ee-xray-scan">' + scansHtml(e) + '</div></div>') + '</div>' +
+      '<p class="ee-note">Hover over or tap a button to see what it means. Switch a layer off to see the answer without it.</p>';
   }
   function applyLayers(box) {
     var x = box.querySelector('.ee-xray');
@@ -225,7 +228,7 @@
     applyLayers(main);
   }
 
-  /* The verdict: OCR's mark and commentary, with what the X-ray counted. */
+  /* The verdict: the mark and commentary, with what the X-ray counted. */
   function verdictHtml(e) {
     var mine = store('mark:' + e.id), L = e.mark != null ? levelOf(e.mark) : null, out = '';
     if (e.mark != null) {
@@ -234,13 +237,13 @@
       if (mine && mine.mark) {
         var diff = mine.mark - e.mark;
         out += '<div class="ee-vmine">You gave it <b>' + mine.mark + '</b> (Level ' + mine.level + '). ' +
-          (diff === 0 ? 'Exactly the examiner’s mark.' : Math.abs(diff) <= 1 ? 'Within a mark of the examiner.' : 'The examiner gave ' + Math.abs(diff) + ' marks ' + (diff > 0 ? 'fewer' : 'more') + '. Read the commentary to see why.') + '</div>';
+          (diff === 0 ? 'Exactly the mark it was given.' : Math.abs(diff) <= 1 ? 'Within a mark.' : 'It was given ' + Math.abs(diff) + ' marks ' + (diff > 0 ? 'fewer' : 'more') + '. Read the commentary to see why.') + '</div>';
       }
       out += '<p class="ee-vlevel"><b>Level ' + L.n + ' (' + L.lo + '–' + L.hi + '):</b> ' + L.text + '.</p></div>';
     } else if (e.level) {
       out += '<div class="ee-verdict"><div class="ee-vmark"><b>L' + e.level + '</b><span>as the examiners describe it</span></div></div>';
     }
-    out += '<h3>What the examiner said</h3><blockquote class="ee-comm">' + esc(e.commentary) + '</blockquote>';
+    out += '<h3>' + (e.kind === 'practice' ? 'Why it gets this mark' : 'What the examiner said') + '</h3><blockquote class="ee-comm">' + esc(e.commentary) + '</blockquote>';
     var counts = MOVES.map(function (t) { return '<li><b>' + tagCount(e, t.id) + '</b> ' + esc(t.label.toLowerCase()) + '</li>'; }).join('') +
       PROBLEMS.filter(function (t) { return tagCount(e, t.id); }).map(function (t) { return '<li class="bad"><b>' + tagCount(e, t.id) + '</b> ' + esc(t.label.toLowerCase()) + '</li>'; }).join('');
     out += '<h3>In this answer</h3><ul class="ee-counts">' + counts + (e.kind !== 'extract' ? '<li><b>' + answerWords(e) + '</b> words</li>' : '') + '</ul>' +
@@ -274,7 +277,7 @@
     var P = all.filter(function (p) { return p.id === pick; })[0];
     var comms = D.comments.filter(function (c) { return c.problem === pick; });
     var html = '<h2>' + esc(P.label) + '</h2>';
-    html += comms.length ? '<h3>What the examiners say</h3>' + comms.map(function (c) { return '<blockquote class="ee-comm">' + esc(c.text) + '<cite>' + esc(c.source) + '</cite></blockquote>'; }).join('') : '';
+    html += comms.length ? '<h3>What OCR’s examiners say</h3>' + comms.map(function (c) { return '<blockquote class="ee-comm">' + esc(c.text) + '<cite>' + esc(c.source) + '</cite></blockquote>'; }).join('') : '';
     var sn = PROBLEMS.some(function (p) { return p.id === pick; }) ? snippets(pick) : [];
     if (sn.length) html += '<h3>Where it happens in the answers</h3><ul class="ee-snips">' + sn.map(function (s) {
       return '<li><p>' + s.html + '</p><button type="button" class="ee-link" data-goto="' + esc(s.e.id) + '">' + esc(title(s.e)) + ' &middot; ' + esc(kindLabel(s.e)) + (s.e.mark != null && revealed(s.e) ? ' &middot; ' + s.e.mark + '/15' : '') + '</button></li>';
@@ -322,7 +325,7 @@
       }).join('') + '</tr>';
     }).join('');
     views.benchmarks.innerHTML = '<div class="panel"><div class="pb"><h2>What the answers at each level contain</h2>' +
-      '<p class="ee-note">Counted from the typed versions of the full answers. This table shows every mark, so mark the answers first if you want to try them blind.</p>' +
+      '<p class="ee-note">Counted from the full answers. This table shows every mark, so mark the answers first if you want to try them blind.</p>' +
       '<div class="ee-tablewrap"><table class="ee-bench"><thead><tr><th>Answer</th><th>Mark</th>' + cols.map(function (c) { return '<th>' + c[1] + '</th>'; }).join('') + '</tr></thead><tbody>' + rows + bands + '</tbody></table></div>' +
       '<h3>Time</h3><p>The paper allows two hours for 75 marks, which leaves about 25 minutes for a 15-mark answer once the passage is read. The top answers here run to about ' + topWords(full) + ' words: plan for six to eight developed points across the whole passage, each with its Latin, a translation, the feature and its effect.</p></div></div>';
     views.benchmarks.querySelectorAll('[data-goto]').forEach(function (b) { b.addEventListener('click', function () { setTab('answers'); openExemplar(b.getAttribute('data-goto')); }); });
@@ -341,18 +344,18 @@
       '<div class="ee-pick">' + full.map(function (e, i) {
         return '<label><input type="checkbox" value="' + esc(e.id) + '"' + (i < 3 ? ' checked' : '') + '> ' + esc(title(e)) + ' <small>' + esc(kindLabel(e)) + '</small></label>';
       }).join('') + '</div>' +
-      '<label class="ee-opt"><input type="checkbox" data-typed> Print the handwritten scripts typed out</label>' +
+      (full.some(scanned) ? '<label class="ee-opt"><input type="checkbox" data-typed> Print the handwritten scripts typed out</label>' : '') +
       '<p><button type="button" class="btn green" data-print>Print</button></p></div></div><div class="ee-printout" data-printout></div>';
     views.print.querySelector('[data-print]').addEventListener('click', function () {
       var ids = [].slice.call(views.print.querySelectorAll('.ee-pick input:checked')).map(function (x) { return x.value; });
-      var typed = views.print.querySelector('[data-typed]').checked;
+      var typed = !!(views.print.querySelector('[data-typed]') || {}).checked;
       var chosen = full.filter(function (e) { return ids.indexOf(e.id) >= 0; });
       if (!chosen.length) return;
       var sheets = chosen.map(function (e, i) {
         var q = Q[e.question];
         return '<article class="ee-sheet"><p class="ee-sh-k">Answer ' + String.fromCharCode(65 + i) + '</p>' +
-          '<p class="ee-q-meta">' + esc(q.paper) + ' &middot; Question ' + esc(q.number) + '</p><p class="ee-q-text">' + esc(q.question) + ' <span>' + esc(q.instruction || '') + '</span> <b>[15]</b></p>' +
-          passageHtml(q) + '<div class="ee-sh-ans">' + (e.kind === 'typed' || typed ? transcriptHtml(e) : scansHtml(e)) + '</div>' +
+          '<p class="ee-q-meta">' + esc(q.paper) + (q.number ? ' &middot; Question ' + esc(q.number) : '') + '</p><p class="ee-q-text">' + esc(q.question) + ' <span>' + esc(q.instruction || '') + '</span> <b>[15]</b></p>' +
+          passageHtml(q) + '<div class="ee-sh-ans">' + (!scanned(e) || typed ? transcriptHtml(e) : scansHtml(e)) + '</div>' +
           '<p class="ee-sh-mark">Level ______ &nbsp;&nbsp; Mark ______ / 15</p></article>';
       }).join('');
       var key = '<article class="ee-sheet ee-key"><h2>Teacher’s key</h2>' + chosen.map(function (e, i) {
@@ -391,9 +394,10 @@
       var g = groups[k].sort(function (a, b) { return hash(a.id + 'eye') - hash(b.id + 'eye'); });
       if (g.length > 1) g.forEach(function (e, i) { e.label = 'Answer ' + String.fromCharCode(65 + i); e.order = i; });
     });
-    var kinds = { script: 0, typed: 1, extract: 2 };
+    var kinds = { script: 0, practice: 0, typed: 1, extract: 2 }, qn = {};
+    data.questions.forEach(function (q, i) { qn[q.id] = i; });
     data.exemplars.sort(function (a, b) {
-      return kinds[a.kind] - kinds[b.kind] || (a.question < b.question ? -1 : a.question > b.question ? 1 : 0) || (a.order || 0) - (b.order || 0);
+      return kinds[a.kind] - kinds[b.kind] || qn[a.question] - qn[b.question] || (a.order || 0) - (b.order || 0);
     });
   }
 
