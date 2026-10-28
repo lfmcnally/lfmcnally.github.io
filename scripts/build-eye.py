@@ -15,10 +15,13 @@ Reads  <text>/data/eye-bank.json      the answers and drills
        version2/assets/data/eye-comments.json   OCR's examiners' comments
 Writes <text>/data/eye.json and <text>/examiners-eye.html
 
-An answer is a list of paragraphs, marked up with {tags|text}:
+An answer is a list of paragraphs, marked up with {tags|text} or {tags|text|note}:
   {quote|si verum est, quod nemo dubitat} {translate|‘if it is true, as no one doubts’}
+  {isolated|imperatores|A single word …}
 Tags: quote translate device effect link (what earns marks) and
 isolated narrative undeveloped offquestion mistranslation (what loses them).
+The note is shown when the reader hovers over or taps the tagged text; every
+problem needs one, saying why it loses marks in this answer.
 Every quotation must be in the passage, so no answer quotes Latin the
 student was not given. The build stops on anything it cannot check.
 
@@ -43,14 +46,15 @@ def norm(s):
     return ' '.join(re.findall(r'[a-z]+', s))
 
 def segments(paras):
-    """'{quote device|…} plain …' paragraphs -> [{'t', 'tags'}, {'br': True}, …]"""
+    """'{quote device|…|note} plain …' paragraphs -> [{'t', 'tags', 'n'}, {'br': True}, …]"""
     out = []
     for n, p in enumerate(paras):
         if n: out.append({'br': True})
         pos = 0
-        for m in re.finditer(r'\{([a-z ]+)\|([^{}]*)\}', p):
+        for m in re.finditer(r'\{([a-z ]+)\|([^{}|]*)(?:\|([^{}|]*))?\}', p):
             if m.start() > pos: out.append({'t': p[pos:m.start()], 'tags': []})
             out.append({'t': m.group(2), 'tags': m.group(1).split()})
+            if m.group(3): out[-1]['n'] = m.group(3).strip()
             pos = m.end()
         if pos < len(p): out.append({'t': p[pos:], 'tags': []})
     return out
@@ -117,6 +121,8 @@ def build(tid, href):
             if '{' in s['t'] or '}' in s['t']: errors.append('answer %s: stray brace in %r' % (i, s['t'][:50]))
             for t in s['tags']:
                 if t not in MOVES + PROBLEMS: errors.append('answer %s: unknown tag %r' % (i, t))
+            if set(s['tags']) & set(PROBLEMS) and not s.get('n'):
+                errors.append('answer %s: no note on why %r loses marks' % (i, s['t'][:50]))
             if 'quote' in s['tags'] and not in_passage(a['question'], s['t']):
                 errors.append('answer %s: quotation not in the passage: %r' % (i, s['t']))
         answers.append({'id': i, 'question': a['question'], 'kind': 'practice', 'source': SOURCE,
