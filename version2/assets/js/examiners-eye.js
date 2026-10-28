@@ -82,7 +82,7 @@
     e.segments.forEach(function (s) {
       if (s.br) { out += '</p><p>'; return; }
       var tags = s.tags || [];
-      out += tags.length ? '<span class="ee-s ' + tags.map(function (t) { return 't-' + t; }).join(' ') + '">' + esc(s.t) + '</span>' : esc(s.t);
+      out += tags.length ? '<span class="ee-s ' + tags.map(function (t) { return 't-' + t; }).join(' ') + '"' + (s.n ? ' data-note="' + esc(s.n) + '"' : '') + '>' + esc(s.t) + '</span>' : esc(s.t);
     });
     return '<div class="ee-typed">' + out + '</p></div>';
   }
@@ -209,12 +209,55 @@
   }
   function xrayHtml(e) {
     return legendHtml(e) + '<div class="ee-xray">' + (!scanned(e) ? transcriptHtml(e) : '<div class="ee-xray-cols"><div class="ee-xray-typed">' + transcriptHtml(e) + '</div><div class="ee-xray-scan">' + scansHtml(e) + '</div></div>') + '</div>' +
-      '<p class="ee-note">Hover over or tap a button to see what it means. Switch a layer off to see the answer without it.</p>';
+      '<p class="ee-note">Hover over or tap a highlighted phrase to see what it does, and for anything underlined in red, why it loses marks here. Switch a layer off with its button to see the answer without it.</p>';
   }
   function applyLayers(box) {
     var x = box.querySelector('.ee-xray');
     if (!x) return;
     MOVES.concat(PROBLEMS).forEach(function (t) { x.classList.toggle('show-' + t.id, state.layers[t.id] !== false); });
+    x.querySelectorAll('.ee-s').forEach(function (sp) { sp.tabIndex = shown(sp).length ? 0 : -1; });
+  }
+
+  /* Hover over, focus or tap a tagged phrase in the X-ray to see what it is
+     and, for a problem, why it loses marks in this answer. */
+  var tip;
+  function shown(sp) {
+    return MOVES.concat(PROBLEMS).filter(function (t) { return sp.classList.contains('t-' + t.id) && state.layers[t.id] !== false; });
+  }
+  function showTip(sp, x, y) {
+    var tags = shown(sp);
+    if (!tags.length) return hideTip();
+    if (!tip) { tip = document.createElement('div'); tip.className = 'ee-tip'; tip.setAttribute('role', 'tooltip'); document.body.appendChild(tip); }
+    var note = sp.getAttribute('data-note'), bad = tags.some(function (t) { return PROBLEMS.indexOf(t) >= 0; });
+    tip.innerHTML = '<p class="ee-tip-tags">' + tags.map(function (t) { return '<span class="c-' + t.id + '"><i></i>' + esc(t.label) + '</span>'; }).join('') + '</p>' +
+      (note ? '<p>' + esc(note) + '</p>' : tags.length === 1 ? '<p class="ee-tip-hint">' + esc(tags[0].hint.charAt(0).toUpperCase() + tags[0].hint.slice(1)) + '.</p>' : '');
+    tip.classList.toggle('bad', bad);
+    tip.hidden = false;
+    // under the line of the phrase nearest the pointer, kept on screen
+    var rects = [].slice.call(sp.getClientRects()), r = rects[0];
+    if (y != null) rects.forEach(function (q) { if (y >= q.top - 2 && y <= q.bottom + 2 && (x == null || (x >= q.left - 2 && x <= q.right + 2))) r = q; });
+    var w = tip.offsetWidth, h = tip.offsetHeight, left = Math.max(8, Math.min((x != null ? x : r.left) - w / 2, innerWidth - w - 8));
+    var top = r.bottom + 8 + h > innerHeight ? r.top - h - 8 : r.bottom + 8;
+    tip.style.left = left + 'px'; tip.style.top = Math.max(8, top) + 'px';
+    sp.setAttribute('aria-describedby', 'ee-tip'); tip.id = 'ee-tip';
+  }
+  function hideTip() { if (tip) tip.hidden = true; }
+  function wireTips(box) {
+    var x = box.querySelector('.ee-xray');
+    if (!x) return;
+    var pinned = null;
+    x.addEventListener('mouseover', function (ev) { var sp = ev.target.closest('.ee-s'); if (sp && !pinned) showTip(sp, ev.clientX, ev.clientY); });
+    x.addEventListener('mouseout', function (ev) { var sp = ev.target.closest('.ee-s'); if (sp && !pinned && !sp.contains(ev.relatedTarget)) hideTip(); });
+    x.addEventListener('focusin', function (ev) { if (ev.target.classList.contains('ee-s')) showTip(ev.target); });
+    x.addEventListener('focusout', function () { if (!pinned) hideTip(); });
+    x.addEventListener('click', function (ev) {
+      var sp = ev.target.closest('.ee-s');
+      if (!sp || !shown(sp).length) { pinned = null; return hideTip(); }
+      pinned = pinned === sp ? null : sp;
+      if (pinned) showTip(sp, ev.clientX, ev.clientY); else hideTip();
+    });
+    x.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { pinned = null; hideTip(); } });
+    window.addEventListener('scroll', function () { if (!pinned) hideTip(); }, { passive: true });
   }
   function wireXray(main) {
     main.querySelectorAll('[data-layer]').forEach(function (b) {
@@ -223,9 +266,11 @@
         state.layers[id] = state.layers[id] === false;
         b.setAttribute('aria-pressed', String(state.layers[id] !== false));
         applyLayers(main);
+        hideTip();
       });
     });
     applyLayers(main);
+    wireTips(main);
   }
 
   /* The verdict: the mark and commentary, with what the X-ray counted. */
@@ -261,7 +306,7 @@
         var before = '', after = '';
         for (var k = i - 1; k >= 0 && before.length < 90; k--) { if (e.segments[k].br) break; before = e.segments[k].t + before; }
         for (k = i + 1; k < e.segments.length && after.length < 90; k++) { if (e.segments[k].br) break; after += e.segments[k].t; }
-        out.push({ e: e, html: (before.length > 90 ? '…' : '') + esc(before.slice(-90)) + '<mark>' + esc(s.t) + '</mark>' + esc(after.slice(0, 90)) + (after.length > 90 ? '…' : '') });
+        out.push({ e: e, n: s.n, html: (before.length > 90 ? '…' : '') + esc(before.slice(-90)) + '<mark>' + esc(s.t) + '</mark>' + esc(after.slice(0, 90)) + (after.length > 90 ? '…' : '') });
       });
     });
     return out;
@@ -280,7 +325,7 @@
     html += comms.length ? '<h3>What OCR’s examiners say</h3>' + comms.map(function (c) { return '<blockquote class="ee-comm">' + esc(c.text) + '<cite>' + esc(c.source) + '</cite></blockquote>'; }).join('') : '';
     var sn = PROBLEMS.some(function (p) { return p.id === pick; }) ? snippets(pick) : [];
     if (sn.length) html += '<h3>Where it happens in the answers</h3><ul class="ee-snips">' + sn.map(function (s) {
-      return '<li><p>' + s.html + '</p><button type="button" class="ee-link" data-goto="' + esc(s.e.id) + '">' + esc(title(s.e)) + ' &middot; ' + esc(kindLabel(s.e)) + (s.e.mark != null && revealed(s.e) ? ' &middot; ' + s.e.mark + '/15' : '') + '</button></li>';
+      return '<li><p>' + s.html + '</p>' + (s.n ? '<p class="ee-why"><b>Why it loses marks:</b> ' + esc(s.n) + '</p>' : '') + '<button type="button" class="ee-link" data-goto="' + esc(s.e.id) + '">' + esc(title(s.e)) + ' &middot; ' + esc(kindLabel(s.e)) + (s.e.mark != null && revealed(s.e) ? ' &middot; ' + s.e.mark + '/15' : '') + '</button></li>';
     }).join('') + '</ul>';
     var drills = D.drills.filter(function (r) { return r.problem === pick; });
     if (drills.length) html += '<h3>Level it up</h3><p class="ee-note">Read the weak point, write a stronger one yourself, then compare it with the stronger version.</p>' + drills.map(drillHtml).join('');
@@ -371,6 +416,7 @@
   /* ── tabs ── */
   function setTab(tab) {
     state.tab = tab;
+    hideTip();
     root.querySelectorAll('[data-eye-tab]').forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-eye-tab') === tab); });
     Object.keys(views).forEach(function (k) { views[k].hidden = k !== tab; });
     if (tab === 'answers') renderAnswers();
