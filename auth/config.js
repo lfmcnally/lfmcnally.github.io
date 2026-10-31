@@ -11,24 +11,3 @@ window.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Also expose as 'supabase' for backward compatibility (overwrites the module reference)
 var supabase = window.supabaseClient;
-
-// Activity log (migration 086): one ping per page load for signed-in users,
-// so the admin panel can show who visits, when and how often. The server
-// groups pings into visits and spots fresh sign-ins itself. Fails silently.
-(function (client) {
-  if (!client || window.__classicaliaActivityPing) return;
-  window.__classicaliaActivityPing = true;
-  function ping() {
-    try {
-      client.auth.getSession().then(function (r) {
-        if (!r || !r.data || !r.data.session) return;
-        client.rpc('track_activity', {
-          p_path: location.pathname,
-          p_user_agent: navigator.userAgent
-        }).then(function () {}, function () {});
-      }, function () {});
-    } catch (e) { /* never break the page over analytics */ }
-  }
-  if (document.readyState === 'complete') setTimeout(ping, 0);
-  else window.addEventListener('load', function () { setTimeout(ping, 0); });
-})(window.supabaseClient);

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Pages &amp; controls — Admin — Classicalia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<style>
+body { background:var(--cream); }
+.dash-header { background:var(--navy);position:relative;overflow:hidden;padding:80px 0 0; }
+.dash-header-inner { max-width:1280px;margin:0 auto;padding:0 40px 28px;position:relative;z-index:2; }
+.dash-eyebrow { font-size:10.5px;letter-spacing:0.22em;text-transform:uppercase;color:#6ba0ff;font-weight:700;margin-bottom:8px;opacity:0.85; }
+.dash-title { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:36px;color:white;margin-bottom:4px;letter-spacing:-0.02em; }
+.dash-subtitle { font-size:13px;color:#8fa8cc; }
+.dash-body { max-width:1280px;margin:0 auto;padding:32px 40px 80px; }
+.dash-card { background:var(--paper);border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin-bottom:24px; }
+.dash-card-head { padding:14px 22px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap; }
+.dash-card-title { font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted); }
+.card-pad { padding:18px 22px; }
+.controls { display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
+.filter-chips { display:flex;gap:6px;flex-wrap:wrap; }
+.chip { font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:6px 13px;border-radius:999px;border:1px solid var(--rule);background:white;color:var(--muted);cursor:pointer; }
+.chip.active { background:var(--brand);color:white;border-color:var(--brand); }
+.adm-search, .in { padding:8px 12px;font-size:13.5px;border:1px solid var(--rule);border-radius:6px;font-family:inherit;background:white;color:var(--ink);box-sizing:border-box; }
+.adm-search { min-width:220px; }
+.in { width:100%; }
+textarea.in { min-height:64px;resize:vertical; }
+.btn { font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:6px;border:1px solid var(--rule);background:white;color:var(--ink);cursor:pointer; }
+.btn:hover { background:var(--cream); }
+.btn.pri { background:var(--brand);border-color:var(--brand);color:white; }
+.btn.dan { color:#b91c1c;border-color:#f0c5c5; }
+.btn.sm { font-size:11.5px;padding:5px 10px; }
+.btn:disabled { opacity:0.5;cursor:default; }
+.muted { color:var(--muted);font-size:12px; }
+.note { font-size:12.5px;color:var(--muted);background:var(--cream);border:1px solid var(--rule-faint);border-radius:6px;padding:10px 12px;line-height:1.5;margin-bottom:18px; }
+.note.warn { color:#92400e;background:#fffbeb;border-color:#fde68a; }
+.note:empty { display:none; }
+
+.stats { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px; }
+.stat { background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:16px 18px; }
+.stat .n { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:28px;color:var(--navy);line-height:1; }
+.stat .l { font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-top:5px; }
+.stat .s { font-size:11.5px;color:var(--muted);margin-top:2px; }
+
+.tbl { width:100%;border-collapse:collapse; }
+.tbl th { font-size:9.5px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--rule);background:var(--cream);white-space:nowrap;cursor:pointer;user-select:none; }
+.tbl th.num, .tbl td.num { text-align:right; }
+.tbl th .arr { opacity:0.4;font-size:9px;margin-left:3px; }
+.tbl th.sorted .arr { opacity:1;color:var(--brand); }
+.tbl td { padding:10px 14px;border-bottom:1px solid var(--rule-faint);font-size:13px;vertical-align:middle; }
+.tbl tr:last-child td { border-bottom:none; }
+.tbl tr:hover td { background:#f8faff; }
+.pg-title { font-weight:600;color:var(--navy);text-decoration:none;display:block;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.pg-title:hover { text-decoration:underline; }
+.pg-path { font-size:11px;color:var(--muted);max-width:420px;display:flex;align-items:center;gap:4px;margin-top:2px; }
+.pg-path .p { min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.pg-path .flag { margin-right:0;flex-shrink:0; }
+.trend { font-size:11.5px;font-weight:700;white-space:nowrap; }
+.trend.up { color:#15803d; } .trend.down { color:#b91c1c; } .trend.flat { color:var(--muted); }
+.flag { display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;padding:2px 7px;border-radius:8px;margin-right:4px; }
+.flag.lock { background:#fee2e2;color:#991b1b; }
+.flag.has-note { background:#fef3c7;color:#92400e; }
+.flag.live { background:#dcfce7;color:#166534; }
+.flag.off { background:#f3f4f6;color:#6b7280; }
+.flag.sched { background:#dbeafe;color:#1e40af; }
+.empty { padding:32px 22px;text-align:center;color:var(--muted);font-size:13.5px; }
+.more { padding:10px 18px;border-top:1px solid var(--rule-faint);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap; }
+
+.two { display:grid;grid-template-columns:2fr 3fr;gap:24px;align-items:start; }
+.two > .dash-card { min-width:0; }
+.live-row { display:flex;align-items:center;gap:10px;padding:9px 18px;border-bottom:1px solid var(--rule-faint); }
+.live-row:last-child { border-bottom:none; }
+.av { width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:white;flex-shrink:0;background:var(--navy); }
+.lr-main { flex:1;min-width:0; }
+.lr-name { font-size:13px;font-weight:600;color:var(--navy);text-decoration:none; }
+.lr-sub { font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.lr-sub a { color:var(--brand);text-decoration:none; }
+.lr-when { font-size:11.5px;color:var(--muted);white-space:nowrap; }
+.dot { display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.2);margin-right:6px;vertical-align:1px; }
+
+.ban { padding:12px 18px;border-bottom:1px solid var(--rule-faint); }
+.ban:last-child { border-bottom:none; }
+.ban .m { font-size:13.5px;color:var(--ink); }
+.ban .meta { font-size:11.5px;color:var(--muted);margin:4px 0 8px; }
+.ban .acts { display:flex;gap:6px;flex-wrap:wrap; }
+.form-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:10px; }
+.field label { display:block;font-size:10.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px; }
+.field { margin-bottom:10px; }
+.form-foot { display:flex;gap:10px;align-items:center;flex-wrap:wrap; }
+.msg { font-size:12.5px; } .msg.ok { color:#16a34a; } .msg.err { color:#dc2626; }
+
+.gate { max-width:520px;margin:80px auto;text-align:center;padding:0 24px; }
+.gate-card { background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:40px 32px; }
+.gate-title { font-family:'Lora',serif;font-style:italic;font-weight:700;font-size:24px;color:var(--navy);margin-bottom:8px; }
+.gate-text { font-size:14px;color:var(--muted);line-height:1.6; }
+.gate-text a { color:var(--brand);font-weight:600; }
+
+@media (max-width:980px){ .two { grid-template-columns:1fr; } .form-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:680px){
+  .dash-header-inner, .dash-body { padding-left:16px;padding-right:16px; }
+  .card-pad { padding:16px; }
+  .form-grid { grid-template-columns:1fr; }
+  .hide-sm { display:none; }
+  .adm-search { min-width:0;width:100%; }
+  .pg-title, .pg-path { max-width:180px; }
+}
+</style>
+<link rel="stylesheet" href="/version2/assets/css/shell.css">
+<link rel="stylesheet" href="/version2/assets/css/app.css">
+<script src="/version2/assets/js/shell.js" defer></script>
+<script src="/shared/site-pulse.js" defer></script>
+</head>
+<body>
+<div data-shell="header" data-active=""></div>
+
+<div class="dash-header">
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/version2/" class="nav-logo"><img src="/version2/assets/images/classicalia-wordmark.png" alt="Classicalia"></a>
+      <div class="nav-links">
+        <a href="/version2/admin/" class="nav-link">Accounts</a>
+        <a href="/version2/admin/pages.html" class="nav-link active">Pages &amp; controls</a>
+        <a href="/version2/admin/bank.html" class="nav-link">Resource bank</a>
+        <a href="/version2/admin/plans.html" class="nav-link">Plans &amp; access</a>
+        <a href="/version2/admin/nuggets.html" class="nav-link">Grammar</a>
+        <div data-account-menu></div>
+      </div>
+    </div>
+  </nav>
+  <div class="dash-header-inner">
+    <div class="dash-eyebrow">Admin</div>
+    <div class="dash-title">Pages &amp; controls</div>
+    <div class="dash-subtitle">What people use, who’s on the site now, and the banners and locks you’ve set.</div>
+  </div>
+</div>
+
+<div id="gate" class="gate" style="display:none;">
+  <div class="gate-card">
+    <div class="gate-title" id="gateTitle">Checking access…</div>
+    <div class="gate-text" id="gateText">One moment.</div>
+  </div>
+</div>
+
+<div class="dash-body" id="panel" style="display:none;">
+  <div class="note" id="topNote"></div>
+  <div class="stats" id="stats"></div>
+
+  <div class="two">
+    <!-- Live now -->
+    <div class="dash-card">
+      <div class="dash-card-head">
+        <span class="dash-card-title"><span class="dot"></span>On the site now · last 10 min</span>
+        <span class="muted" id="liveUpdated"></span>
+      </div>
+      <div id="liveList"></div>
+    </div>
+
+    <!-- Banners -->
+    <div class="dash-card">
+      <div class="dash-card-head">
+        <span class="dash-card-title">Banners</span>
+        <button class="btn sm" id="newBannerBtn" type="button">New banner</button>
+      </div>
+      <div class="card-pad" id="bannerForm" style="display:none;border-bottom:1px solid var(--rule);">
+        <div class="field"><label for="fMsg">Message</label><textarea class="in" id="fMsg" maxlength="400" placeholder="e.g. Mock exams week: new practice papers are up."></textarea></div>
+        <div class="form-grid">
+          <div class="field"><label for="fTitle">Bold lead-in (optional)</label><input class="in" id="fTitle" maxlength="80" placeholder="Heads up"></div>
+          <div class="field"><label for="fWhere">Where</label><input class="in" id="fWhere" placeholder="Whole site, or a page path like /version2/tools/"></div>
+          <div class="field"><label for="fWho">Who sees it</label>
+            <select class="in" id="fWho">
+              <option value="all">Everyone</option><option value="signed_in">Signed-in users</option>
+              <option value="anon">Signed-out visitors</option><option value="students">Students</option><option value="teachers">Teachers</option>
+            </select></div>
+          <div class="field"><label for="fType">Style</label>
+            <select class="in" id="fType"><option value="info">Info (blue)</option><option value="warning">Warning (amber)</option><option value="success">Good news (green)</option></select></div>
+          <div class="field"><label for="fStart">Starts (optional)</label><input class="in" id="fStart" type="datetime-local"></div>
+          <div class="field"><label for="fEnd">Ends (optional)</label><input class="in" id="fEnd" type="datetime-local"></div>
+          <div class="field"><label for="fLink">Link (optional)</label><input class="in" id="fLink" placeholder="/version2/… or https://…"></div>
+          <div class="field"><label for="fLinkText">Link text</label><input class="in" id="fLinkText" placeholder="Find out more"></div>
+          <div class="field"><label for="fDismiss">Can be dismissed</label>
+            <select class="in" id="fDismiss"><option value="1">Yes</option><option value="0">No, always shown</option></select></div>
+        </div>
+        <div class="form-foot">
+          <button class="btn pri" id="fSave" type="button">Publish</button>
+          <button class="btn" id="fCancel" type="button">Cancel</button>
+          <span class="msg" id="fMsgOut"></span>
+        </div>
+      </div>
+      <div id="bannerList"></div>
+    </div>
+  </div>
+
+  <!-- Pages -->
+  <div class="dash-card">
+    <div class="dash-card-head">
+      <span class="dash-card-title" id="pagesTitle">Most used pages</span>
+      <div class="controls">
+        <div class="filter-chips" id="periodChips">
+          <button class="chip" data-days="1">Today</button>
+          <button class="chip" data-days="7">7 days</button>
+          <button class="chip active" data-days="30">30 days</button>
+          <button class="chip" data-days="90">90 days</button>
+          <button class="chip" data-days="365">12 months</button>
+        </div>
+        <div class="filter-chips" id="flagChips">
+          <button class="chip active" data-flag="all">All</button>
+          <button class="chip" data-flag="locked">Locked</button>
+          <button class="chip" data-flag="note">With notes</button>
+          <button class="chip" data-flag="quiet">Least used</button>
+        </div>
+        <input type="search" class="adm-search" id="pageSearch" placeholder="Search title or path…" autocomplete="off">
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="tbl" id="pagesTable">
+        <thead><tr>
+          <th data-sort="title">Page <span class="arr">▾</span></th>
+          <th data-sort="views" class="num sorted">Views <span class="arr">▾</span></th>
+          <th data-sort="change" class="num">Change <span class="arr">▾</span></th>
+          <th data-sort="users" class="num">Users <span class="arr">▾</span></th>
+          <th data-sort="anon_views" class="num hide-sm">Signed-out <span class="arr">▾</span></th>
+          <th data-sort="last_seen" class="hide-sm">Last viewed <span class="arr">▾</span></th>
+          <th></th>
+        </tr></thead>
+        <tbody id="pagesBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="pagesEmpty" style="display:none;">No pages match.</div>
+    <div class="more"><span class="muted" id="pagesCount"></span><button class="btn sm" id="showMore" type="button" style="display:none;">Show more</button></div>
+  </div>
+</div>
+
+<div data-shell="footer"></div>
+
+<script>
+// Pages & controls. All data comes from the admin_* RPCs in migration 087,
+// each of which re-checks is_admin() server-side.
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => v == null ? '—' : Number(v).toLocaleString('en-GB');
+const AUD = { all:'Everyone', signed_in:'Signed-in users', anon:'Signed-out visitors', students:'Students', teachers:'Teachers' };
+function rel(ts) {
+  if (!ts) return 'never';
+  const m = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + 'm ago';
+  if (m < 1440) return Math.floor(m / 60) + 'h ago';
+  const d = Math.floor(m / 1440);
+  return d < 60 ? d + 'd ago' : Math.floor(d / 30) + 'mo ago';
+}
+function fmt(ts) {
+  return ts ? new Date(ts).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', timeZone:'Europe/London' }) : '';
+}
+function initials(n) { return String(n || '?').split(/\s+/).filter(Boolean).slice(0,2).map(s => s[0].toUpperCase()).join('') || '?'; }
+function avatar(u) {
+  const c = /^#[0-9A-Fa-f]{6}$/.test(u.avatar_color || '') ? u.avatar_color : '#0E1E3F';
+  return `<span class="av" style="background:${c}">${esc(initials(u.full_name))}</span>`;
+}
+function gate(title, text) {
+  $('panel').style.display = 'none';
+  $('gate').style.display = 'block';
+  $('gateTitle').textContent = title;
+  $('gateText').innerHTML = text;
+}
+const isMissing = e => /does not exist|schema cache|Could not find the function/i.test((e && e.message) || '');
+
+let DATA = null, BANNERS = [], LIVE = [];
+let days = 30, flag = 'all', term = '', sortKey = 'views', sortDir = -1, limit = 100;
+let editingId = null;
+
+async function init() {
+  gate('Checking access…', 'One moment.');
+  const { data: auth } = await window.supabase.auth.getUser();
+  if (!auth || !auth.user) { gate('Sign in required', 'This area is for site administrators. <a href="/auth/login.html">Sign in</a>.'); return; }
+  const { error } = await window.supabase.rpc('admin_overview');
+  if (error) { gate('No access', 'Your account doesn’t have admin access.'); return; }
+  $('gate').style.display = 'none';
+  $('panel').style.display = 'block';
+  wire();
+  await Promise.all([loadPages(), loadBanners(), loadLive()]);
+  setInterval(() => { if (!document.hidden) loadLive(); }, 60000);
+}
+
+// ── Pages ────────────────────────────────────────────────
+async function loadPages() {
+  const want = days;
+  const { data, error } = await window.supabase.rpc('admin_top_pages', { p_days: days });
+  if (want !== days) return;
+  if (error) {
+    $('topNote').className = 'note warn';
+    $('topNote').innerHTML = isMissing(error)
+      ? 'Page tracking isn’t switched on yet. Run migration <strong>087_site_control.sql</strong> in Supabase, then reload.'
+      : 'Could not load pages: ' + esc(error.message);
+    DATA = { pages: [] };
+  } else {
+    DATA = data || { pages: [] };
+    const since = DATA.tracking_since;
+    $('topNote').className = 'note';
+    $('topNote').textContent = since && (Date.now() - new Date(since + 'T00:00:00Z')) / 86400000 < days
+      ? `Page counting started ${new Date(since + 'T12:00:00Z').toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}, so the earliest part of this period is empty. Your own visits as an admin are never counted.`
+      : '';
+  }
+  renderStats();
+  renderPages();
+}
+
+function pct(cur, prev) {
+  if (!prev) return cur ? null : 0;
+  return Math.round(100 * (cur - prev) / prev);
+}
+
+function renderStats() {
+  const pages = (DATA && DATA.pages) || [];
+  const viewed = pages.filter(p => p.views > 0);
+  const label = days === 1 ? 'today' : days === 365 ? 'in 12 months' : `in ${days} days`;
+  const cards = [
+    { n: num(DATA && DATA.total_views), l: 'Page views', s: label },
+    { n: num(DATA && DATA.total_anon), l: 'Signed-out views', s: DATA && DATA.total_views ? Math.round(100 * DATA.total_anon / DATA.total_views) + '% of views' : '' },
+    { n: num(viewed.length), l: 'Pages viewed', s: num(pages.length) + ' known pages' },
+    { n: num(LIVE.length), l: 'Signed in now', s: 'last 10 minutes' },
+    { n: num(pages.filter(p => p.locked).length), l: 'Locked pages', s: '' },
+    { n: num(BANNERS.filter(b => b.status === 'live').length), l: 'Live banners', s: '' },
+  ];
+  $('stats').innerHTML = cards.map(c => `<div class="stat"><div class="n">${esc(c.n)}</div><div class="l">${esc(c.l)}</div>${c.s ? `<div class="s">${esc(c.s)}</div>` : ''}</div>`).join('');
+}
+
+function renderPages() {
+  let rows = ((DATA && DATA.pages) || []).map(p => Object.assign({}, p, { change: pct(p.views, p.prev_views) }));
+  const t = term.trim().toLowerCase();
+  if (t) rows = rows.filter(p => (p.title || '').toLowerCase().includes(t) || p.path.toLowerCase().includes(t));
+  if (flag === 'locked') rows = rows.filter(p => p.locked);
+  if (flag === 'note') rows = rows.filter(p => p.admin_note);
+
+  let key = sortKey, dir = sortDir;
+  if (flag === 'quiet') { key = 'views'; dir = 1; }
+  rows.sort((a, b) => {
+    let av = a[key], bv = b[key];
+    if (key === 'title') { av = (a.title || a.path).toLowerCase(); bv = (b.title || b.path).toLowerCase(); }
+    if (key === 'last_seen') { av = av ? new Date(av).getTime() : 0; bv = bv ? new Date(bv).getTime() : 0; }
+    if (key === 'change') { av = av == null ? 1e9 : av; bv = bv == null ? 1e9 : bv; }
+    if (av < bv) return -dir; if (av > bv) return dir; return 0;
+  });
+
+  document.querySelectorAll('#pagesTable th[data-sort]').forEach(th => {
+    const on = th.dataset.sort === key;
+    th.classList.toggle('sorted', on);
+    th.querySelector('.arr').textContent = on && dir === 1 ? '▴' : '▾';
+  });
+  $('pagesTitle').textContent = flag === 'quiet' ? 'Least used pages' : 'Most used pages';
+
+  const shown = rows.slice(0, limit);
+  $('pagesEmpty').style.display = rows.length ? 'none' : 'block';
+  $('pagesBody').innerHTML = shown.map(p => {
+    const c = p.change;
+    const trend = c == null ? '<span class="trend up">new</span>'
+      : c > 0 ? `<span class="trend up">↑ ${c}%</span>` : c < 0 ? `<span class="trend down">↓ ${Math.abs(c)}%</span>` : '<span class="trend flat">—</span>';
+    return `<tr>
+      <td>
+        <a class="pg-title" href="${esc(p.path)}#admin" target="_blank" rel="noopener" title="Open with admin mode">${esc(p.title || p.path)}</a>
+        <div class="pg-path">${p.locked ? '<span class="flag lock">locked</span>' : ''}${p.admin_note ? `<span class="flag has-note" title="${esc(p.admin_note)}">note</span>` : ''}<span class="p">${esc(p.path)}</span></div>
+      </td>
+      <td class="num"><strong>${num(p.views)}</strong></td>
+      <td class="num">${trend}</td>
+      <td class="num">${num(p.users)}</td>
+      <td class="num hide-sm">${num(p.anon_views)}</td>
+      <td class="muted hide-sm">${esc(rel(p.last_seen))}</td>
+      <td><button class="btn sm ${p.locked ? '' : 'dan'}" data-lock="${esc(p.path)}" data-locked="${p.locked ? 1 : 0}" type="button"${/^\/version2\/admin(\/|$)/.test(p.path) ? ' disabled' : ''}>${p.locked ? 'Unlock' : 'Lock'}</button></td>
+    </tr>`;
+  }).join('');
+  $('pagesCount').textContent = `${Math.min(limit, rows.length)} of ${rows.length} page${rows.length === 1 ? '' : 's'}`;
+  $('showMore').style.display = rows.length > limit ? 'inline-block' : 'none';
+
+  $('pagesBody').querySelectorAll('[data-lock]').forEach(btn => btn.addEventListener('click', async () => {
+    const lock = btn.dataset.locked !== '1';
+    let message = null;
+    if (lock) {
+      message = prompt('Lock this page for everyone except admins.\n\nMessage visitors will see (optional):', 'It’s being updated and will be back soon.');
+      if (message === null) return;
+    }
+    btn.disabled = true;
+    const { error } = await window.supabase.rpc('admin_set_page', { p_path: btn.dataset.lock, p_locked: lock, p_lock_message: message });
+    if (error) { alert(error.message); btn.disabled = false; return; }
+    loadPages();
+  }));
+}
+
+// ── Live ─────────────────────────────────────────────────
+async function loadLive() {
+  const { data, error } = await window.supabase.rpc('admin_live_now', { p_minutes: 10 });
+  if (error) { $('liveList').innerHTML = `<div class="empty">${isMissing(error) ? 'Needs migration 087.' : esc(error.message)}</div>`; return; }
+  LIVE = data || [];
+  $('liveUpdated').textContent = 'updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+  $('liveList').innerHTML = LIVE.length ? LIVE.map(u => `
+    <div class="live-row">
+      ${avatar(u)}
+      <div class="lr-main">
+        <a class="lr-name" href="/version2/admin/?user=${encodeURIComponent(u.user_id)}">${esc(u.full_name || 'Unnamed')}</a>
+        <div class="lr-sub">${esc([u.role, u.school].filter(Boolean).join(' · '))} · <a href="${esc(u.path)}#admin" target="_blank" rel="noopener">${esc(u.title || u.path)}</a></div>
+      </div>
+      <div class="lr-when">${esc(rel(u.last_at))}</div>
+    </div>`).join('') : '<div class="empty">Nobody signed in is on the site right now.</div>';
+  if (DATA) renderStats();
+}
+
+// ── Banners ──────────────────────────────────────────────
+async function loadBanners() {
+  const { data, error } = await window.supabase.rpc('admin_list_announcements');
+  if (error) { $('bannerList').innerHTML = `<div class="empty">${isMissing(error) ? 'Needs migration 087.' : esc(error.message)}</div>`; return; }
+  BANNERS = data || [];
+  const order = { live:0, scheduled:1, off:2, expired:3 };
+  BANNERS.sort((a, b) => (order[a.status] - order[b.status]) || (new Date(b.created_at) - new Date(a.created_at)));
+  const tag = s => `<span class="flag ${s === 'live' ? 'live' : s === 'scheduled' ? 'sched' : 'off'}">${esc(s)}</span>`;
+  $('bannerList').innerHTML = BANNERS.length ? BANNERS.map(b => `
+    <div class="ban">
+      <div class="m">${b.title ? `<strong>${esc(b.title)}</strong> ` : ''}${esc(b.content)}</div>
+      <div class="meta">${tag(b.status)}${esc(b.path ? 'Page: ' + (b.page_title || b.path) : 'Whole site')} · ${esc(AUD[b.audience] || 'Everyone')}${b.starts_at ? ' · from ' + esc(fmt(b.starts_at)) : ''}${b.expires_at ? ' · until ' + esc(fmt(b.expires_at)) : ''}${b.dismissible === false ? ' · not dismissible' : ''}</div>
+      <div class="acts">
+        <button class="btn sm" data-ban-edit="${esc(b.id)}" type="button">Edit</button>
+        <button class="btn sm" data-ban-toggle="${esc(b.id)}" type="button">${b.active ? 'Turn off' : 'Turn on'}</button>
+        <button class="btn sm dan" data-ban-del="${esc(b.id)}" type="button">Delete</button>
+      </div>
+    </div>`).join('') : '<div class="empty">No banners yet. Banners appear at the bottom of the page for the people you choose.</div>';
+
+  $('bannerList').querySelectorAll('[data-ban-edit]').forEach(b => b.addEventListener('click', () => openForm(BANNERS.find(x => x.id === b.dataset.banEdit))));
+  $('bannerList').querySelectorAll('[data-ban-toggle]').forEach(btn => btn.addEventListener('click', async () => {
+    const b = BANNERS.find(x => x.id === btn.dataset.banToggle);
+    btn.disabled = true;
+    const { error } = await window.supabase.rpc('admin_save_announcement', bannerArgs(b, { p_active: !b.active }));
+    if (error) { alert(error.message); btn.disabled = false; return; }
+    loadBanners();
+  }));
+  $('bannerList').querySelectorAll('[data-ban-del]').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('Delete this banner for everyone?')) return;
+    btn.disabled = true;
+    const { error } = await window.supabase.rpc('admin_delete_announcement', { p_id: btn.dataset.banDel });
+    if (error) { alert(error.message); btn.disabled = false; return; }
+    loadBanners();
+  }));
+  if (DATA) renderStats();
+}
+
+function bannerArgs(b, over) {
+  return Object.assign({
+    p_id: b.id, p_content: b.content, p_title: b.title || '', p_type: b.type || 'info', p_path: b.path,
+    p_audience: b.audience || 'all', p_link_url: b.link_url, p_link_text: b.link_text,
+    p_starts_at: b.starts_at, p_expires_at: b.expires_at, p_active: b.active !== false, p_dismissible: b.dismissible !== false
+  }, over || {});
+}
+
+// datetime-local <-> ISO, in the admin's own timezone
+function toLocalInput(ts) {
+  if (!ts) return '';
+  const d = new Date(ts); const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function fromLocalInput(v) { return v ? new Date(v).toISOString() : null; }
+
+function openForm(b) {
+  editingId = b ? b.id : null;
+  $('bannerForm').style.display = 'block';
+  $('fMsg').value = b ? b.content : '';
+  $('fTitle').value = b ? (b.title || '') : '';
+  $('fWhere').value = b && b.path ? b.path : '';
+  $('fWho').value = b ? (b.audience || 'all') : 'all';
+  $('fType').value = b ? (b.type || 'info') : 'info';
+  $('fStart').value = b ? toLocalInput(b.starts_at) : '';
+  $('fEnd').value = b ? toLocalInput(b.expires_at) : '';
+  $('fLink').value = b ? (b.link_url || '') : '';
+  $('fLinkText').value = b ? (b.link_text || '') : '';
+  $('fDismiss').value = b && b.dismissible === false ? '0' : '1';
+  $('fSave').textContent = b ? 'Save changes' : 'Publish';
+  $('fMsgOut').textContent = '';
+  $('fMsg').focus();
+}
+function closeForm() { $('bannerForm').style.display = 'none'; editingId = null; }
+
+async function saveForm() {
+  const content = $('fMsg').value.trim();
+  if (!content) { $('fMsgOut').className = 'msg err'; $('fMsgOut').textContent = 'Write a message first.'; return; }
+  const where = $('fWhere').value.trim();
+  const existing = editingId ? BANNERS.find(x => x.id === editingId) : null;
+  const args = {
+    p_id: editingId, p_content: content, p_title: $('fTitle').value.trim(), p_type: $('fType').value,
+    p_path: where && !/^whole site$/i.test(where) ? where : null,
+    p_audience: $('fWho').value,
+    p_link_url: $('fLink').value.trim() || null, p_link_text: $('fLinkText').value.trim() || null,
+    p_starts_at: fromLocalInput($('fStart').value), p_expires_at: fromLocalInput($('fEnd').value),
+    p_active: existing ? existing.active !== false : true,
+    p_dismissible: $('fDismiss').value === '1'
+  };
+  if (!args.p_path && !editingId && !confirm('Publish this banner on every page of the site?')) return;
+  $('fSave').disabled = true;
+  $('fMsgOut').className = 'msg'; $('fMsgOut').textContent = 'Saving…';
+  const { error } = await window.supabase.rpc('admin_save_announcement', args);
+  $('fSave').disabled = false;
+  if (error) { $('fMsgOut').className = 'msg err'; $('fMsgOut').textContent = error.message; return; }
+  closeForm();
+  loadBanners();
+}
+
+function wire() {
+  $('periodChips').querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    $('periodChips').querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active'); days = +c.dataset.days; limit = 100; loadPages();
+  }));
+  $('flagChips').querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    $('flagChips').querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active'); flag = c.dataset.flag; limit = 100; renderPages();
+  }));
+  let t;
+  $('pageSearch').addEventListener('input', e => { clearTimeout(t); t = setTimeout(() => { term = e.target.value; limit = 100; renderPages(); }, 150); });
+  document.querySelectorAll('#pagesTable th[data-sort]').forEach(th => th.addEventListener('click', () => {
+    const k = th.dataset.sort;
+    if (sortKey === k) sortDir *= -1; else { sortKey = k; sortDir = k === 'title' ? 1 : -1; }
+    if (flag === 'quiet') { flag = 'all'; $('flagChips').querySelectorAll('.chip').forEach(x => x.classList.toggle('active', x.dataset.flag === 'all')); }
+    renderPages();
+  }));
+  $('showMore').addEventListener('click', () => { limit += 200; renderPages(); });
+  $('newBannerBtn').addEventListener('click', () => openForm(null));
+  $('fCancel').addEventListener('click', closeForm);
+  $('fSave').addEventListener('click', saveForm);
+}
+
+init();
+</script>
+</body>
+</html>

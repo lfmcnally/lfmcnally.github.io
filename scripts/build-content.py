@@ -123,6 +123,7 @@ def page(title, desc, path, active, body, head_extra='', scripts='', body_attr='
 <link rel="stylesheet" href="/version2/assets/css/shell.css">
 <link rel="stylesheet" href="/version2/assets/css/ui.css">
 <script src="/version2/assets/js/shell.js" defer></script>
+<script src="/shared/site-pulse.js" defer></script>
 %s</head>
 <body%s>
 <a class="skip" href="#main">Skip to content</a>
@@ -425,7 +426,7 @@ def build_lesson(course, topic, row):
     scripts = '\n'.join(clean_scripts(d['scripts']))
     ext = []
     for s in d['ext_scripts']:
-        if 'starfield' in s or 'revision-nav' in s or 'lesson.js' in s: continue
+        if 'starfield' in s or 'revision-nav' in s or 'lesson.js' in s or 'site-pulse' in s: continue
         ext.append(s)
     if d['lesson_css']: ext.append('./lesson.js')
     ext.append('/version2/assets/js/lesson-page.js')
