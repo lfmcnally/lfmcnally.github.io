@@ -30,6 +30,7 @@
     return W.para(W.textRun(label, f), { keepNext: true }, f);
   }
 
+
   function detailsXml(details, landscape, width, shade) {
     if (!details.length) return '';
     var per = landscape ? 3 : 2;
@@ -59,7 +60,10 @@
     if (block.title) {
       rows.push({ cells: [{ xml: heading(block.title.label), fill: shade, span: n }] });
     }
-    rows.push({ cells: block.columns.map(function (c) { return { xml: heading(c.label), fill: shade }; }) });
+    // A box that is all one section (as for content notes) has no column heading.
+    if (block.columns.some(function (c) { return c.label; })) {
+      rows.push({ cells: block.columns.map(function (c) { return { xml: c.label ? heading(c.label) : '', fill: shade }; }) });
+    }
     var height = 0;
     block.columns.forEach(function (c) { if (c.height) height = Math.max(height, c.height); });
     rows.push({
