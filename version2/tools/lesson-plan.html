@@ -129,11 +129,50 @@
 
   /* full screen: the editor takes the whole window */
   .lp-toolbar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-bottom: -12px; }
-  body.lp-full .header, body.lp-full .support-band, body.lp-full .footer, body.lp-full [data-shell] { display: none !important; }
-  body.lp-full .lp-body { max-width: none; padding: 18px 24px 60px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
-  body.lp-full .lp-preview-stage { max-height: calc(100vh - 210px); }
   body.lp-nopreview .lp-body { grid-template-columns: minmax(0, 1fr) 230px; }
   @media screen { body.lp-nopreview .lp-preview-wrap { display: none; } }
+
+  /* Full screen is a workspace: a bar across the top with the plan's name
+     and what you do with it, then the editor and the page side by side,
+     each scrolling on its own. */
+  .lp-fullbar, .lp-jump { display: none; }
+  @media screen {
+    body.lp-full .header, body.lp-full .support-band, body.lp-full .footer, body.lp-full [data-shell],
+    body.lp-full .lp-toolbar, body.lp-full .lp-side-actions { display: none !important; }
+    body.lp-full { padding-top: 56px; }
+    body.lp-full .lp-fullbar { display: flex; align-items: center; gap: 14px; position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      height: 56px; padding: 0 20px; background: var(--paper); border-bottom: 1px solid var(--rule); }
+    .lp-fullbar-name { flex: none; font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 17px; color: var(--navy); }
+    .lp-fullbar-plan { flex: 1; min-width: 0; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lp-fullbar-plan strong { color: var(--ink); font-weight: 600; }
+    .lp-fullbar .lp-btn-row { flex: none; flex-wrap: nowrap; }
+
+    /* section links along the top of the editor */
+    body.lp-full .lp-jump { display: flex; flex-wrap: wrap; gap: 6px; position: sticky; top: 56px; z-index: 10;
+      margin: 0 0 6px; padding: 14px 0 12px; background: var(--cream); }
+    body.lp-full .lp-main > .lp-panel { scroll-margin-top: 122px; }
+    .lp-jump a { flex: none; font-size: 12.5px; font-weight: 600; color: var(--muted); text-decoration: none; white-space: nowrap;
+      background: var(--paper); border: 1px solid var(--rule); border-radius: 999px; padding: 5px 12px; transition: color .12s, border-color .12s, background .12s; }
+    .lp-jump a:hover { color: var(--navy); border-color: #b8d0ff; }
+    .lp-jump a.is-here { color: var(--brand); border-color: var(--brand); background: rgba(26,111,255,.06); }
+  }
+  @media screen and (min-width: 1081px) {
+    body.lp-full { overflow: hidden; }
+    body.lp-full .lp-body { position: fixed; top: 56px; left: 0; right: 0; bottom: 0; max-width: none; padding: 0; gap: 0;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: stretch; }
+    body.lp-full .lp-main { overflow-y: auto; overscroll-behavior: contain; padding: 0 28px 60px; }
+    body.lp-full .lp-main > .lp-panel { scroll-margin-top: 66px; }
+    body.lp-full .lp-jump { top: 0; }
+    body.lp-full .lp-side { position: static; overflow-y: auto; overscroll-behavior: contain; padding: 22px 32px 48px;
+      background: #e9ecf2; border-left: 1px solid var(--rule); }
+    body.lp-full .lp-preview-wrap { background: none; border: none; border-radius: 0; padding: 0; overflow: visible; }
+    body.lp-full .lp-preview-label { text-align: center; }
+    body.lp-full .lp-preview-stage { max-height: none; overflow: visible; }
+    /* without the page, the editor keeps to a comfortable width in the middle */
+    body.lp-full.lp-nopreview .lp-body { grid-template-columns: minmax(0, 1fr); }
+    body.lp-full.lp-nopreview .lp-side { display: none; }
+    body.lp-full.lp-nopreview .lp-main > * { max-width: 1120px; margin-left: auto; margin-right: auto; }
+  }
 
   /* preview — the plan at A4, scaled to fit */
   .lp-side { position: sticky; top: 24px; }
@@ -238,6 +277,17 @@
   </div>
 </div>
 
+<div class="lp-fullbar lp-print-hide">
+  <span class="lp-fullbar-name">Lesson plan builder</span>
+  <span class="lp-fullbar-plan" id="lpBarPlan"></span>
+  <div class="lp-btn-row">
+    <button class="lp-btn small" type="button" id="lpBarPreview" data-click="lpPreviewToggle">Hide preview</button>
+    <button class="lp-btn small" type="button" data-click="lpWord">Download as Word</button>
+    <button class="lp-btn small primary" type="button" data-click="lpPrint">Print</button>
+    <button class="lp-btn small" type="button" data-click="lpFullToggle" title="Or press Esc">Exit full screen</button>
+  </div>
+</div>
+
 <div class="lp-body">
 
   <div class="lp-toolbar lp-print-hide">
@@ -246,6 +296,8 @@
   </div>
 
   <main class="lp-main">
+
+    <nav class="lp-jump" id="lpJump" aria-label="Sections of the plan"></nav>
 
     <section class="lp-panel">
       <div class="lp-panel-head">
@@ -634,7 +686,7 @@
         </div>
       </div>
     </div>
-    <div style="margin-top: 16px;" class="lp-print-hide">
+    <div style="margin-top: 16px;" class="lp-print-hide lp-side-actions">
       <button class="lp-btn primary big" id="lpPrint" type="button">Print lesson plan</button>
       <button class="lp-btn big" id="lpWord" type="button" style="margin-top: 8px;">Download as Word</button>
       <p class="lp-note">Printing opens your browser's print dialogue. If the plan looks cramped, turn off &ldquo;headers and footers&rdquo; there. The Word file can be edited further and carries page numbers.</p>
@@ -1356,6 +1408,8 @@
     var used = sheetEl.scrollHeight - 3 * CM_PX;
     var pages = Math.max(1, Math.ceil(used / room - 0.02));
     labelEl.textContent = (landscape ? 'landscape ' : '') + '· about ' + pages + (pages === 1 ? ' page' : ' pages');
+    pageCount = pages;
+    showBarPlan();
   }
 
   function showTotal() {
@@ -1682,26 +1736,45 @@
   /* ── full screen ── */
 
   var VIEW_KEY = 'classicalia.lessonPlan.view';
-
-  function setView(full, noPreview) {
-    document.body.classList.toggle('lp-full', full);
-    document.body.classList.toggle('lp-nopreview', noPreview);
-    var fullBtn = document.getElementById('lpFullToggle');
-    fullBtn.textContent = full ? 'Exit full screen' : 'Full screen';
-    fullBtn.setAttribute('aria-pressed', String(full));
-    var prevBtn = document.getElementById('lpPreviewToggle');
-    prevBtn.textContent = noPreview ? 'Show preview' : 'Hide preview';
-    prevBtn.setAttribute('aria-pressed', String(noPreview));
-    writeStore(VIEW_KEY, { noPreview: noPreview });
-    window.setTimeout(scalePreview, 0);
-  }
+  var mainEl = document.querySelector('.lp-main');
+  var jumpEl = document.getElementById('lpJump');
 
   function isFull() { return document.body.classList.contains('lp-full'); }
   function noPreview() { return document.body.classList.contains('lp-nopreview'); }
 
+  function panels() {
+    return [].filter.call(mainEl.querySelectorAll(':scope > .lp-panel'), function (p) { return !p.hidden; });
+  }
+
+  // The section at the top of whatever is scrolling: the window, or the editor in full screen.
+  function sectionInView() {
+    var top = !isFull() ? 70 : window.innerWidth > 1080 ? mainEl.getBoundingClientRect().top + 70 : 56 + 70;
+    var here = null;
+    panels().forEach(function (p) { if (p.getBoundingClientRect().top <= top) here = p; });
+    return here || panels()[0];
+  }
+
+  // keepPlace: the change came from a button, so stay at the same section.
+  function setView(full, hidePreview, keepPlace) {
+    var anchor = keepPlace ? sectionInView() : null;
+    document.body.classList.toggle('lp-full', full);
+    document.body.classList.toggle('lp-nopreview', hidePreview);
+    var fullBtn = document.getElementById('lpFullToggle');
+    fullBtn.textContent = full ? 'Exit full screen' : 'Full screen';
+    fullBtn.setAttribute('aria-pressed', String(full));
+    ['lpPreviewToggle', 'lpBarPreview'].forEach(function (id) {
+      var b = document.getElementById(id);
+      b.textContent = hidePreview ? 'Show preview' : 'Hide preview';
+      b.setAttribute('aria-pressed', String(hidePreview));
+    });
+    writeStore(VIEW_KEY, { noPreview: hidePreview });
+    if (anchor) anchor.scrollIntoView({ block: 'start' });
+    window.setTimeout(function () { scalePreview(); markJump(); }, 0);
+  }
+
   document.getElementById('lpFullToggle').addEventListener('click', function () {
     var full = !isFull();
-    setView(full, noPreview());
+    setView(full, noPreview(), true);
     // The browser's own full screen too, where it is allowed; the layout works without it.
     try {
       if (full && document.documentElement.requestFullscreen && !document.fullscreenElement) {
@@ -1710,17 +1783,82 @@
         document.exitFullscreen().catch(function () {});
       }
     } catch (e) { /* not supported */ }
-    if (full) window.scrollTo({ top: 0 });
   });
 
-  // Leaving the browser's full screen (with Esc) leaves ours too.
+  // Leaving the browser's full screen (with Esc) leaves ours too, and Esc does
+  // it where the browser's full screen was not allowed.
   document.addEventListener('fullscreenchange', function () {
-    if (!document.fullscreenElement && isFull()) setView(false, noPreview());
+    if (!document.fullscreenElement && isFull()) setView(false, noPreview(), true);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !isFull() || document.fullscreenElement) return;
+    if (sheetEl.contains(e.target)) return;
+    setView(false, noPreview(), true);
   });
 
   document.getElementById('lpPreviewToggle').addEventListener('click', function () {
-    setView(isFull(), !noPreview());
+    setView(isFull(), !noPreview(), true);
   });
+
+  // The bar's buttons do what the page's own buttons do.
+  [].forEach.call(document.querySelectorAll('.lp-fullbar [data-click]'), function (b) {
+    b.addEventListener('click', function () { document.getElementById(b.getAttribute('data-click')).click(); });
+  });
+
+  // The plan's name and length, in the bar.
+  var pageCount = 0;
+  function showBarPlan() {
+    var name = val('lpTitle').trim() || 'Untitled plan';
+    var rest = [val('lpClass').trim(), pageCount ? 'about ' + pageCount + (pageCount === 1 ? ' page' : ' pages') : '']
+      .filter(Boolean).join(' · ');
+    document.getElementById('lpBarPlan').innerHTML = '<strong>' + escapeHtml(name) + '</strong>' + (rest ? ' · ' + escapeHtml(rest) : '');
+  }
+
+  // A link to each section along the top of the editor, marking the one you are in.
+  var SHORT_NAMES = {
+    'Lesson details': 'Details', 'What they will learn': 'Learning', 'Lesson sequence': 'Sequence',
+    'Adaptive teaching and notes': 'Adaptive teaching', 'Inclusive, accessible teaching': 'Inclusive teaching',
+    'Learning goals': 'Goals', 'Content notes': 'Content', 'Preparing and priming pupils': 'Priming',
+    'Novice to understanding': 'Tasks', 'Your own sections': 'Own sections', 'Saved plans': 'Saved'
+  };
+
+  function panelName(panel) {
+    var title = panel.querySelector('.lp-panel-title').cloneNode(true);
+    [].forEach.call(title.querySelectorAll('.lp-tip'), function (t) { t.remove(); });
+    var name = title.textContent.trim();
+    return SHORT_NAMES[name] || name;
+  }
+
+  function buildJump() {
+    jumpEl.innerHTML = '';
+    // Every panel gets a fixed name, whichever format is showing.
+    [].forEach.call(mainEl.querySelectorAll(':scope > .lp-panel'), function (panel, i) {
+      if (!panel.id) panel.id = 'lpSection' + i;
+    });
+    panels().forEach(function (panel) {
+      var a = document.createElement('a');
+      a.href = '#' + panel.id;
+      a.textContent = panelName(panel);
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      jumpEl.appendChild(a);
+    });
+    markJump();
+  }
+
+  function markJump() {
+    if (!isFull()) return;
+    var here = sectionInView();
+    [].forEach.call(jumpEl.querySelectorAll('a'), function (a) {
+      var on = here && a.getAttribute('href') === '#' + here.id;
+      a.classList.toggle('is-here', on);
+    });
+  }
+
+  mainEl.addEventListener('scroll', markJump, { passive: true });
+  window.addEventListener('scroll', markJump, { passive: true });
 
   setView(false, !!readStore(VIEW_KEY, {}).noPreview);
 
@@ -1736,6 +1874,7 @@
     });
     document.getElementById('lpSeqTitleText').textContent = style === 'evidence' ? 'Novice to understanding' : 'Lesson sequence';
     document.getElementById('lpAdaptTitle').textContent = style === 'evidence' ? 'Your own sections' : 'Adaptive teaching and notes';
+    buildJump();
   }
 
   function setStyle(style) {
@@ -1798,6 +1937,7 @@
     showTotal();
     if (!editingInPreview) render();
     scalePreview();
+    showBarPlan();
     saveDraft();
   }
 
