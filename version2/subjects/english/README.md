@@ -53,7 +53,7 @@ overwrite any edits made to the JSON since.
 | set | keys |
 |---|---|
 | `pavls` | `purpose`, `audience`, `voice`, `language`, `structure` |
-| `alagiah` | `style`, `context`, `voice`, `reader` |
+| `alagiah` | `style`, `context`, `narrative`, `reader` |
 
 Labels and the one-line hints shown in the side column live in `CATS` at
 the top of `scripts/build-english.py`; colours are in

@@ -34,7 +34,7 @@ CATS = {
     'alagiah': [
         ('style', 'Language and style', 'techniques and their effects'),
         ('context', 'Context', 'background you need to know'),
-        ('voice', 'Narrative voice', 'how Alagiah presents himself'),
+        ('narrative', 'Narrative voice', 'how Alagiah presents himself'),
         ('reader', 'Reader response', 'questions to think about'),
     ],
 }
