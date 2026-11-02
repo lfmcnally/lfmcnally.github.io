@@ -58,7 +58,7 @@
   function breakRun(f) { return '<w:r>' + rPr(f) + '<w:br/></w:r>'; }
 
   /* A paragraph. p carries align, before/after (pt), exact (a fixed line
-     height in pt), keepNext, keepLines, bullet, tabs [{val, pos}] and
+     height in pt), atLeast (a minimum line height in pt), keepNext, keepLines, bullet, tabs [{val, pos}] and
      border (the inside of a w:pBdr). f is the text's formatting. */
   function para(runs, p, f) {
     p = p || {};
@@ -76,7 +76,7 @@
     }
     var line = p.exact != null
       ? ' w:line="' + Math.max(20, Math.round(p.exact * 20)) + '" w:lineRule="exact"'
-      : ' w:line="' + Math.round(size * 1.3 * 20) + '" w:lineRule="atLeast"';
+      : ' w:line="' + Math.round(Math.max(size * 1.3, p.atLeast || 0) * 20) + '" w:lineRule="atLeast"';
     x += '<w:spacing w:before="' + Math.round((p.before || 0) * 20) + '" w:after="' + Math.round((p.after || 0) * 20) + '"' + line + '/>';
     if (p.align) x += '<w:jc w:val="' + p.align + '"/>';
     x += rPr(f);
@@ -580,7 +580,10 @@
       var cells = [].map.call(tr.cells, function (cell) {
         var cs = window.getComputedStyle(cell);
         var lines = cell.querySelector('.ans') && answerLines(cell.querySelector('.ans'));
-        var xml = lines || para(runsFromElement(cell), { align: align(cs) }, styleOf(cell));
+        // A cell set with tall lines (a gap fill, written on) keeps them in Word.
+        var lh = parseFloat(cs.lineHeight), fs = parseFloat(cs.fontSize);
+        var tall = (lh && fs && lh > fs * 1.6) ? px2pt(lh) : null;
+        var xml = lines || para(runsFromElement(cell), { align: align(cs), atLeast: tall }, styleOf(cell));
         return {
           xml: xml,
           span: cell.colSpan > 1 ? cell.colSpan : 1,
