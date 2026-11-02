@@ -1,7 +1,7 @@
 // Classicalia — shared shell.
 //
 // One definition of the site header and footer, rendered into
-//   <div data-shell="header" data-active="latin|greek|civ|tools|teach"></div>
+//   <div data-shell="header" data-active="latin|greek|civ|english|tools|teach"></div>
 //   <div data-shell="footer"></div>
 // on every page. Signed-out visitors get the links plus Sign in / Get
 // started. If a Supabase session is stored in this browser the shell loads
@@ -19,6 +19,7 @@
     { key: 'latin', label: 'Latin', href: '/version2/subjects/latin/' },
     { key: 'greek', label: 'Greek', href: '/version2/subjects/greek/' },
     { key: 'civ',   label: 'Classical Civilisation', href: '/version2/subjects/classical-civilisation/' },
+    { key: 'english', label: 'English', href: '/version2/subjects/english/' },
     { key: 'tools', label: 'Tools', href: '/version2/tools/' },
     { key: 'teach', label: 'For teachers', href: '/version2/#teach' }
   ];
@@ -26,6 +27,7 @@
     { label: 'Latin', href: '/version2/subjects/latin/' },
     { label: 'Greek', href: '/version2/subjects/greek/' },
     { label: 'Classical Civilisation', href: '/version2/subjects/classical-civilisation/' },
+    { label: 'English', href: '/version2/subjects/english/' },
     { label: 'Tools', href: '/version2/tools/' },
     { label: 'About', href: '/version2/about.html' },
     { label: 'Contact', href: 'mailto:lawrence@classicalia.co.uk' },

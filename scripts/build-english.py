@@ -132,7 +132,7 @@ def text_page(t, texts):
     out = [head(f'{t["title"]} · {t["author"]} — GCSE English — Classicalia', desc, url(t),
                 '<link rel="stylesheet" href="/version2/assets/css/english-reader.css">\n')]
     out.append(f'<body data-course="{BASE}">\n<a class="skip" href="#main">Skip to content</a>\n'
-               '<div data-shell="header"></div>\n<div class="layout">\n')
+               '<div data-shell="header" data-active="english"></div>\n<div class="layout">\n')
     out.append(docnav(texts, t))
     acts = f'<a class="btn line" href="{BASE}">All texts</a>'
     if next_t:
@@ -245,7 +245,7 @@ def index_page(texts):
     return head('English — Non-fiction anthology — Classicalia', desc, BASE,
                 '<link rel="stylesheet" href="/version2/assets/css/english-reader.css">\n') + f'''<body>
 <a class="skip" href="#main">Skip to content</a>
-<div data-shell="header"></div>
+<div data-shell="header" data-active="english"></div>
 <main id="main">
   <div class="inner phead">
     <div class="ptitle">
