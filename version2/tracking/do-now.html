@@ -45,6 +45,11 @@
 .dn-subs { display: flex; flex-wrap: wrap; gap: 9px 20px; }
 .dn-subs label { font-size: 13.5px; color: var(--ink); display: flex; align-items: center; gap: 7px; cursor: pointer; }
 .dn-subs input { accent-color: var(--brand); width: 15px; height: 15px; }
+.dn-format { display: flex; flex-wrap: wrap; gap: 9px 20px; align-items: center; }
+.dn-format label { font-size: 13.5px; color: var(--ink); display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.dn-format input { accent-color: var(--brand); width: 15px; height: 15px; }
+.dn-format label.off { opacity: 0.45; cursor: default; }
+.dn-format-note { font-size: 12px; color: var(--muted); margin-top: 8px; }
 .dn-empty { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 28px; text-align: center; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .dn-empty a { color: var(--brand); font-weight: 700; }
 
@@ -284,6 +289,65 @@ function renderClass(idx){
   doNowPoll = setInterval(() => refreshDoNow(cls), 10000);
 }
 
+// ── Format: the usual multiple-choice quiz, or a gap fill (migration 088).
+// A gap fill gives students ten sentences with one word missing to type in;
+// the word bank option lists the missing words above the sheet.
+function formatControlsHtml(){
+  return `
+      <div class="dn-sublabel">Format</div>
+      <div class="dn-format">
+        <label><input type="radio" name="dnFormat" value="quiz" checked> Quiz (multiple choice)</label>
+        <label><input type="radio" name="dnFormat" value="gapfill"> Gap fill</label>
+        <label id="dnWordBankWrap" class="off"><input type="checkbox" id="dnWordBank" disabled> Provide a word bank</label>
+      </div>
+      <div class="dn-format-note" id="dnFormatNote"></div>`;
+}
+function wireFormatControls(kind){
+  const note = document.getElementById('dnFormatNote');
+  const bank = document.getElementById('dnWordBank'), wrap = document.getElementById('dnWordBankWrap');
+  function sync(){
+    const gap = readFormat().format === 'gapfill';
+    bank.disabled = !gap; wrap.classList.toggle('off', !gap);
+    note.textContent = !gap ? 'Students answer multiple-choice questions until you stop the Do Now.'
+      : (kind === 'latin' ? 'Students see ten Latin words and type the English meaning of each.' : 'Students see ten answers from the topic, each with a key word missing, and type it in.')
+        + (bank.checked ? ' The missing words are listed in a word bank above the sheet.' : ' No word bank: they recall each word unaided.')
+        + ' Game mode always uses the quiz.';
+  }
+  document.querySelectorAll('input[name="dnFormat"]').forEach(r => r.addEventListener('change', sync));
+  bank.addEventListener('change', sync);
+  sync();
+  return sync;
+}
+function readFormat(){
+  const r = document.querySelector('input[name="dnFormat"]:checked');
+  const format = r ? r.value : 'quiz';
+  const bank = document.getElementById('dnWordBank');
+  return { format, word_bank: format === 'gapfill' && !!(bank && bank.checked) };
+}
+// Show the format the class's running Do Now was set with. Read on its own
+// so the page still works before migration 088 has added the columns.
+async function loadFormat(cls, sync){
+  let row = null;
+  try { const { data, error } = await sb.from('v2_do_now').select('format, word_bank, active').eq('class_id', cls.id).maybeSingle(); if (!error) row = data; } catch (_e) {}
+  if (!row || !row.active) return;
+  const r = document.querySelector('input[name="dnFormat"][value="' + (row.format === 'gapfill' ? 'gapfill' : 'quiz') + '"]');
+  if (r) r.checked = true;
+  const bank = document.getElementById('dnWordBank');
+  if (bank) bank.checked = !!row.word_bank;
+  sync();
+}
+// Upsert the Do Now with its format. If the format columns aren't there yet
+// (migration 088 not run), a quiz still saves without them; a gap fill says why it can't.
+async function saveDoNow(payload){
+  const fmt = readFormat();
+  let { error } = await sb.from('v2_do_now').upsert(Object.assign({}, payload, fmt), { onConflict: 'class_id' });
+  if (error && /format|word_bank/i.test(error.message || '')) {
+    if (fmt.format === 'gapfill') return { error: { message: 'gap fill needs database migration 088 (088_v2_do_now_gap_fill.sql) to be run first.' } };
+    ({ error } = await sb.from('v2_do_now').upsert(payload, { onConflict: 'class_id' }));
+  }
+  return { error };
+}
+
 function renderCivSetup(cls){
   const area = document.getElementById('classArea');
   area.innerHTML = `
@@ -300,6 +364,7 @@ function renderCivSetup(cls){
       </div>
       <div class="dn-sublabel">Subtopics (leave all ticked for the whole topic)</div>
       <div id="dnSubs" class="dn-subs"></div>
+      ${formatControlsHtml()}
     </div>
     <div class="dn-card"><div id="dnSummary"></div></div>
     <div class="dn-card" id="dnArchiveCard" style="display:none;"><div class="dn-card-head"><span class="dn-card-title">Past Do Nows</span></div><div id="dnArchive"></div></div>`;
@@ -312,6 +377,8 @@ function renderCivSetup(cls){
   if (!available.some(c => c.list === civList)) civList = available[0].list;
   courseSel.value = civList;
 
+  const syncFormat = wireFormatControls('civ');
+  loadFormat(cls, syncFormat);
   const sel = document.getElementById('dnTopic');
   function fillTopics(){
     sel.innerHTML = '';
@@ -363,7 +430,7 @@ function renderCivSetup(cls){
     const allSubs = subs.length === civSubtopicsOf(sel.value).length;
     const payload = { class_id: cls.id, vocab_list: civList, topic_id: sel.value, subtopics: allSubs ? null : subs, active: true, updated_at: new Date().toISOString() };
     status.textContent = 'Saving…'; status.style.color = 'var(--muted)';
-    const { error } = await sb.from('v2_do_now').upsert(payload, { onConflict: 'class_id' });
+    const { error } = await saveDoNow(payload);
     if (error) { status.textContent = 'Could not save: ' + error.message; status.style.color = '#dc2626'; return; }
     status.textContent = 'Active — just now'; status.style.color = '#059669';
     refreshDoNow(cls);
@@ -396,10 +463,13 @@ function renderLatinSetup(cls){
       </div>
       <div class="dn-sublabel">${latinSetupLabel(cls.vocabList)}</div>
       <div id="dnWordCount" class="dn-status"></div>
+      ${formatControlsHtml()}
     </div>
     <div class="dn-card"><div id="dnSummary"></div></div>
     <div class="dn-card" id="dnArchiveCard" style="display:none;"><div class="dn-card-head"><span class="dn-card-title">Past Do Nows</span></div><div id="dnArchive"></div></div>`;
 
+  const syncFormat = wireFormatControls('latin');
+  loadFormat(cls, syncFormat);
   const fromSel = document.getElementById('dnChFrom');
   const toSel   = document.getElementById('dnChTo');
   for (let i = 1; i <= maxCh; i++) {
@@ -444,7 +514,7 @@ function renderLatinSetup(cls){
     const label = lo === hi ? ('Chapter ' + lo) : ('Chapters ' + lo + '–' + hi);
     const payload = { class_id: cls.id, vocab_list: cls.vocabList, topic_id: label, subtopics: allCh ? null : chs, active: true, updated_at: new Date().toISOString() };
     status.textContent = 'Saving…'; status.style.color = 'var(--muted)';
-    const { error } = await sb.from('v2_do_now').upsert(payload, { onConflict: 'class_id' });
+    const { error } = await saveDoNow(payload);
     if (error) { status.textContent = 'Could not save: ' + error.message; status.style.color = '#dc2626'; return; }
     status.textContent = 'Active — just now'; status.style.color = '#059669';
     refreshDoNow(cls);
