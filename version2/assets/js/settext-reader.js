@@ -303,6 +303,24 @@
   var pb = root.querySelector('[data-present]');
   if (pb) pb.addEventListener('click', openPresent);
 
+  // ── handout: the text and translation to print or download, with room to annotate ──
+  // The button goes beside Classroom; the handout itself loads on first use.
+  var hb = root.querySelector('[data-handout]');
+  if (!hb && pb) {
+    hb = document.createElement('button');
+    hb.className = 'btn'; hb.type = 'button'; hb.setAttribute('data-handout', '');
+    hb.textContent = 'Handout';
+    hb.title = 'Print or download the text and translation, with space for notes';
+    pb.insertAdjacentElement('afterend', hb);
+  }
+  if (hb) hb.addEventListener('click', function () {
+    if (window.ClassicaliaHandout) { window.ClassicaliaHandout.open(root); return; }
+    var s = document.createElement('script');
+    s.src = '/version2/assets/js/settext-handout.js';
+    s.onload = function () { if (window.ClassicaliaHandout) window.ClassicaliaHandout.open(root); };
+    document.head.appendChild(s);
+  });
+
   setClicker(clicker);
 
   // keyboard: arrows step through the units
