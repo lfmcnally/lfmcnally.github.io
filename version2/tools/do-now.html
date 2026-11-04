@@ -31,6 +31,10 @@
   .dn-field input:focus, .dn-field select:focus, .dn-q-input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,111,255,.12); }
 
   .dn-body [hidden] { display: none !important; }
+  .dn-import-as { display: flex; align-items: center; gap: 8px; }
+  .dn-import-as label { font-size: 13px; color: var(--muted); }
+  .dn-import-as select { font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink); background: var(--paper);
+    border: 1px solid var(--rule); border-radius: 7px; padding: 8px 10px; }
   .dn-check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink); cursor: pointer; }
   .dn-check input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
   .dn-checks { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule-faint); }
@@ -145,8 +149,13 @@
   /* gap fill: one sentence per row, a blank for each [bracketed] word */
   /* Tall lines, so there is room to write on each blank, even when a
      sentence wraps and the blank falls on its second line. */
-  .sheet table.gf td.q { font-weight: 400; line-height: 2.6; padding: 1px 12px; }
-  .sheet table.gf td.q .qnum { font-weight: 700; }
+  .sheet table.gf td.q, .sheet td.gfq { font-weight: 400; line-height: 2.6; padding: 1px 12px; }
+  .sheet table.gf td.q .qnum, .sheet td.gfq .qnum { font-weight: 700; }
+  /* a gap fill section's word bank, inside a mixed sheet's table */
+  .sheet td.bank { padding: 7px 12px; font-size: 12pt; line-height: 1.7; }
+  .sheet td.bank b { font-size: 10pt; text-transform: uppercase; letter-spacing: .08em; margin-right: 8px; }
+  .dn-sec-kind { flex: none; font-family: 'DM Sans', sans-serif; font-size: 12.5px; color: var(--navy); background: var(--paper);
+    border: 1px solid var(--rule); border-radius: 7px; padding: 6px 8px; height: 34px; cursor: pointer; }
   .sheet .gap { display: inline-block; border-bottom: 1px solid #000; height: 1.2em; line-height: 1.2em; vertical-align: baseline;
     text-align: center; margin: 0 2px; font-weight: 700; }
   .sheet-bank { border: 2px solid #000; padding: 10px 14px; margin-bottom: 16px; }
@@ -374,6 +383,13 @@
             <button class="dn-btn" id="dnSelectAll" type="button">Select all</button>
             <button class="dn-btn" id="dnSelectNone" type="button">Clear selection</button>
           </div>
+          <div class="dn-import-as">
+            <label for="dnImportAs">Add as</label>
+            <select id="dnImportAs">
+              <option value="table">Questions</option>
+              <option value="gapfill">Gap fill</option>
+            </select>
+          </div>
           <div class="dn-random">
             <label for="dnImportSection">Into a section called</label>
             <input type="text" id="dnImportSection" style="width: 170px;" placeholder="Optional">
@@ -410,7 +426,8 @@
           <button class="dn-btn primary" id="dnAdd" type="button">+ Add question</button>
           <button class="dn-btn" id="dnAddSection" type="button">+ Add section</button>
         </div>
-        <p class="dn-note dn-gap-only" hidden><strong>Gap fill:</strong> put square brackets round each missing word, e.g. <code>Poseidon was god of the sea, [earthquakes] and horses.</code> Each bracket prints as a blank, and the word goes into the word bank. Imported questions are gapped for you; change the brackets to gap a different word.</p>
+        <p class="dn-note"><strong>Gap fill:</strong> put square brackets round each missing word, e.g. <code>Poseidon was god of the sea, [earthquakes] and horses.</code> Each bracket prints as a blank, and the word goes into the word bank. Imported questions are gapped for you; change the brackets to gap a different word.</p>
+        <p class="dn-note">Each section can be <strong>Questions</strong> or <strong>Gap fill</strong> (the menu beside its name), so one sheet can mix the two. Anything above the first section takes the sheet type.</p>
         <p class="dn-note">A section heading breaks the sheet into blocks &mdash; five on vocabulary, say, then five on the story. Everything below a heading belongs to it, until the next one.</p>
         <p class="dn-note">Select a word and press <strong>B</strong>, <em>I</em> or <span style="text-decoration:underline">U</span> above &mdash; or type the marks yourself: <code>**bold**</code>, <code>*italics*</code>, <code>__underline__</code>. Pressing the same button again takes the formatting off.</p>
       </div>
@@ -480,7 +497,8 @@
   var settingIds = ['dnType', 'dnBank', 'dnKey', 'dnTitle', 'dnName', 'dnDate', 'dnLeft', 'dnRight', 'dnSpace', 'dnSplit', 'dnLines', 'dnFont', 'dnInstr', 'dnScore', 'dnNumbers', 'dnRestart', 'dnFooter'];
 
   function question(text) { return { type: 'q', text: text || '' }; }
-  function section(title) { return { type: 'section', text: title || '' }; }
+  // A section's kind is 'table' (questions), 'gapfill', or '' to follow the sheet type.
+  function section(title, kind) { return { type: 'section', text: title || '', kind: kind || '' }; }
   function isSection(item) { return item && item.type === 'section'; }
 
   function normalise(list) {
@@ -488,7 +506,7 @@
     (list || []).forEach(function (entry) {
       if (typeof entry === 'string') { out.push(question(entry)); }
       else if (entry && typeof entry.text === 'string') {
-        out.push(entry.type === 'section' ? section(entry.text) : question(entry.text));
+        out.push(entry.type === 'section' ? section(entry.text, entry.kind) : question(entry.text));
       }
     });
     return out;
@@ -516,7 +534,7 @@
   }
 
   function hasMarks(str) {
-    return /\*\*[^*]+\*\*|\*[^*]+\*|__[^_]+__/.test(str) || (isGapFill() && GAP_RE.test(str));
+    return /\*\*[^*]+\*\*|\*[^*]+\*|__[^_]+__/.test(str) || GAP_RE.test(str);
   }
 
   /* ── gap fill ──
@@ -528,6 +546,20 @@
   var GAP_RE_ALL = /\[([^\[\]]+)\]/g;
 
   function isGapFill() { return val('dnType') === 'gapfill'; }
+
+  // The kind of every row in the editor: a section sets it for the rows
+  // below it, until the next section; above the first, the sheet type rules.
+  function kinds() {
+    var current = val('dnType');
+    return items.map(function (item) {
+      if (isSection(item)) { current = item.kind || val('dnType'); }
+      return current;
+    });
+  }
+  function kindAtEnd() { var k = kinds(); return k.length ? k[k.length - 1] : val('dnType'); }
+  function placeholderFor(kind) {
+    return kind === 'gapfill' ? 'Type a sentence with [the missing word] in brackets…' : 'Type a question…';
+  }
 
   function plainText(str) {
     return String(str).replace(/\*\*|\*|__/g, '').trim();
@@ -584,12 +616,18 @@
 
   // Shows the gap-fill-only settings and hides the table-only ones.
   function syncType() {
-    var gap = isGapFill();
-    document.querySelectorAll('.dn-gap-only').forEach(function (el) { el.hidden = !gap; });
-    document.querySelectorAll('.dn-table-only').forEach(function (el) { el.hidden = gap; });
-    document.querySelectorAll('.dn-q:not(.dn-sec) .dn-q-input').forEach(function (el) {
-      el.placeholder = gap ? 'Type a sentence with [the missing word] in brackets…' : 'Type a question…';
+    var ks = kinds();
+    var anyGap = ks.indexOf('gapfill') > -1 || (!items.length && isGapFill());
+    var anyTable = ks.indexOf('table') > -1 || (!items.length && !isGapFill());
+    document.querySelectorAll('.dn-gap-only').forEach(function (el) { el.hidden = !anyGap; });
+    document.querySelectorAll('.dn-table-only').forEach(function (el) { el.hidden = !anyTable; });
+    questionsEl.querySelectorAll('.dn-q').forEach(function (row, i) {
+      var input = row.querySelector('.dn-q-input');
+      if (input && !row.classList.contains('dn-sec')) input.placeholder = placeholderFor(ks[i]);
+      var sel = row.querySelector('.dn-sec-kind');
+      if (sel) sel.options[0].textContent = 'Sheet type (' + (isGapFill() ? 'gap fill' : 'questions') + ')';
     });
+    var gap = val('dnImportAs') === 'gapfill';
     var dir = document.getElementById('dnDirection');
     if (dir) {
       dir.options[0].textContent = gap ? 'The language \u2192 they fill in the meaning' : 'The language \u2192 they write the meaning';
@@ -706,8 +744,7 @@
       input.className = 'dn-q-input';
       input.rows = 1;
       input.value = item.text;
-      input.placeholder = heading ? 'Name this section…'
-        : (isGapFill() ? 'Type a sentence with [the missing word] in brackets…' : 'Type a question…');
+      input.placeholder = heading ? 'Name this section…' : placeholderFor(kinds()[i]);
       input.addEventListener('input', function () {
         item.text = input.value;
         autoGrow(input);
@@ -729,6 +766,20 @@
 
       row.appendChild(num);
       row.appendChild(input);
+      if (heading) {
+        var kindSel = document.createElement('select');
+        kindSel.className = 'dn-sec-kind';
+        kindSel.title = 'What this section is';
+        kindSel.setAttribute('aria-label', 'Section type');
+        [['', 'Sheet type'], ['table', 'Questions'], ['gapfill', 'Gap fill']].forEach(function (o) {
+          var opt = document.createElement('option');
+          opt.value = o[0]; opt.textContent = o[1];
+          kindSel.appendChild(opt);
+        });
+        kindSel.value = item.kind || '';
+        kindSel.addEventListener('change', function () { item.kind = kindSel.value; update(); });
+        row.appendChild(kindSel);
+      }
       row.appendChild(tools);
       questionsEl.appendChild(row);
       autoGrow(input);
@@ -787,9 +838,10 @@
   // What actually reaches the paper: anything still blank is left out.
   function sheetItems() {
     var list = [];
+    var ks = kinds();
     items.forEach(function (item, idx) {
       if (item.text.trim() === '') return;
-      list.push({ type: item.type, text: item.text, idx: idx });
+      list.push({ type: item.type, text: item.text, idx: idx, kind: ks[idx] });
     });
     // A heading with nothing under it would print as a stray bar.
     return list.filter(function (entry, i) {
@@ -820,7 +872,12 @@
     var instr = val('dnInstr').trim();
 
     sheetEl.setAttribute('data-font', val('dnFont'));
-    if (isGapFill()) { buildGapSheet(list, title, name, date, instr); return; }
+    var qs = list.filter(function (entry) { return entry.type !== 'section'; });
+    var allGap = qs.length ? qs.every(function (entry) { return entry.kind === 'gapfill'; }) : isGapFill();
+    if (allGap) { buildGapSheet(list, title, name, date, instr); return; }
+    var width = gapWidth(list.filter(function (entry) { return entry.kind === 'gapfill'; }));
+    var key = checked('dnKey');
+    var marks = 0;
 
     // Answer space: either a plain gap, or a stack of writing lines filling the same height.
     var answerCell;
@@ -836,15 +893,41 @@
 
     var restart = checked('dnRestart');
     var count = 0;
-    var rows = list.map(function (item) {
+    var bankDone = false;
+    // A gap fill block's word bank sits just under its heading (or at the top
+    // of the table, for gap fill rows above the first section).
+    function bankRow(from) {
+      if (!checked('dnBank')) return '';
+      var words = [];
+      for (var j = from; j < list.length && list[j].type !== 'section'; j++) {
+        if (list[j].kind === 'gapfill') words = words.concat(gapsIn(list[j].text));
+      }
+      if (!words.length) return '';
+      words.sort(function (a, b) { return a.localeCompare(b, 'en', { sensitivity: 'base' }); });
+      return '<tr><td class="bank" colspan="2"><b>Word bank</b> ' +
+             words.map(escapeHtml).join('&nbsp;&nbsp;&middot;&nbsp;&nbsp; ') + '</td></tr>';
+    }
+    var rows = list.map(function (item, i) {
       if (item.type === 'section') {
         if (restart) { count = 0; }
+        bankDone = true;
         return '<tr class="sec-row"><td class="sec" colspan="2">' +
                '<span class="sec-text" contenteditable="true" spellcheck="false" data-q="' + item.idx + '">' +
-               formatText(item.text) + '</span></td></tr>';
+               formatText(item.text) + '</span></td></tr>' +
+               (item.kind === 'gapfill' ? bankRow(i + 1) : '');
       }
       count++;
       var num = checked('dnNumbers') ? '<span class="qnum">' + count + '.</span> ' : '';
+      if (item.kind === 'gapfill') {
+        var bank = bankDone ? '' : bankRow(i);
+        bankDone = true;
+        marks += Math.max(1, gapsIn(item.text).length);
+        return bank + '<tr><td class="q gfq" colspan="2">' + num +
+               '<span class="q-text" contenteditable="true" spellcheck="false" data-q="' + item.idx + '">' +
+               formatGapText(item.text, width, key) + '</span></td></tr>';
+      }
+      bankDone = true;
+      marks++;
       return '<tr><td class="q">' + num +
              '<span class="q-text" contenteditable="true" spellcheck="false" data-q="' + item.idx + '">' +
              formatText(item.text) + '</span></td>' +
@@ -856,14 +939,14 @@
              '<td>' + answerCell + '</td></tr>';
     }
 
-    var html = sheetHead(title, name, date, instr);
+    var html = sheetHead(title + (key && list.some(function (e) { return e.kind === 'gapfill'; }) ? ' (answers)' : ''), name, date, instr);
 
     html += '<table><thead><tr>' +
             '<th style="width:' + split + '%">' + escapeHtml(left) + '</th>' +
             '<th style="width:' + (100 - split) + '%">' + escapeHtml(right) + '</th>' +
             '</tr></thead><tbody>' + rows + '</tbody></table>';
 
-    html += sheetTail(list.filter(function (entry) { return entry.type !== 'section'; }).length);
+    html += sheetTail(marks);
 
     sheetEl.innerHTML = html;
   }
@@ -1345,7 +1428,7 @@
   }
 
   function questionFor(item, direction) {
-    if (isGapFill() && item.english) {
+    if (val('dnImportAs') === 'gapfill' && item.english) {
       if (item.chapter === undefined) {   // a quiz question: the answer follows it as a sentence
         var ans = item.english.charAt(0).toUpperCase() + item.english.slice(1);
         return item.term + ' ' + gapAnswer(ans).replace(/([^.!?])$/, '$1.');
@@ -1448,7 +1531,13 @@
     // Drop the blank rows sitting there rather than import after them.
     items = items.filter(function (entry) { return entry.text.trim() !== ''; });
 
-    if (heading) { items.push(section(heading)); }
+    // The items go into a section of the type chosen in "Add as". Without a
+    // name, a new section is only started when the type differs from the
+    // section they would otherwise land in.
+    var as = val('dnImportAs');
+    if (heading) { items.push(section(heading, as)); }
+    else if (items.length && kindAtEnd() !== as) { heading = as === 'gapfill' ? 'Gap fill' : 'Questions'; items.push(section(heading, as)); }
+    else if (!items.length && val('dnType') !== as) { document.getElementById('dnType').value = as; }
     items = items.concat(incoming);
 
     picked = {};
@@ -1460,6 +1549,12 @@
   });
 
   /* ── wiring ── */
+
+  // "Add as" starts out matching the sheet type, and follows it when it changes.
+  document.getElementById('dnType').addEventListener('change', function () {
+    document.getElementById('dnImportAs').value = val('dnType');
+  });
+  document.getElementById('dnImportAs').addEventListener('change', syncType);
 
   settingIds.forEach(function (id) {
     document.getElementById(id).addEventListener('input', update);
@@ -1590,6 +1685,7 @@
     items = [question(''), question(''), question(''), question(''), question('')];
   }
 
+  document.getElementById('dnImportAs').value = val('dnType');
   renderItems();
   renderSets();
   update();
