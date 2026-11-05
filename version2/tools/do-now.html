@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-sync.js"></script>
 <script src="/version2/assets/js/account-menu.js" defer></script>
 <style>
   .dn-body { max-width: 1560px; margin: 0 auto; padding: 36px 40px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 640px; gap: 32px; align-items: start; }
@@ -213,7 +214,7 @@
   <div class="header-inner">
     <div class="header-eyebrow">For the classroom</div>
     <h1 class="header-title">Do Now builder</h1>
-    <p class="header-deck">Type in your questions, set the layout, and print a starter sheet (questions or a gap fill, with an optional word bank) for any subject &mdash; no account needed. Saved sets stay in this browser.</p>
+    <p class="header-deck">Type in your questions, set the layout, and print a starter sheet (questions or a gap fill, with an optional word bank) for any subject &mdash; no account needed. Sign in and your saved sets are kept in your account, ready on any computer.</p>
   </div>
 </div>
 
@@ -440,7 +441,7 @@
       </div>
       <div class="dn-panel-body">
         <div id="dnSets"></div>
-        <p class="dn-note">Saved sets are stored in this browser only, so they stay on this computer and are lost if you clear your browsing data.</p>
+        <p class="dn-note" data-sync-status data-sync-noun="sets" data-sync-draft="sheet">Saved sets are stored in this browser only, so they stay on this computer and are lost if you clear your browsing data.</p>
       </div>
     </section>
 
@@ -709,7 +710,8 @@
   }
 
   function writeStore(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private mode, full quota */ }
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { return; /* private mode, full quota */ }
+    if (window.ClassicaliaSync) window.ClassicaliaSync.changed(key);
   }
 
   /* ── question rows ── */
@@ -1677,18 +1679,38 @@
 
   /* ── start up ── */
 
-  var draft = readStore(DRAFT_KEY, null);
-  if (draft && Array.isArray(draft.questions) && draft.questions.length) {
-    applySettings(draft.settings);
-    items = normalise(draft.questions);
-  } else {
-    items = [question(''), question(''), question(''), question(''), question('')];
+  function loadDraft() {
+    var draft = readStore(DRAFT_KEY, null);
+    if (draft && Array.isArray(draft.questions) && draft.questions.length) {
+      applySettings(draft.settings);
+      items = normalise(draft.questions);
+    } else {
+      items = [question(''), question(''), question(''), question(''), question('')];
+    }
+    document.getElementById('dnImportAs').value = val('dnType');
   }
 
-  document.getElementById('dnImportAs').value = val('dnType');
+  loadDraft();
   renderItems();
   renderSets();
   update();
+
+  // Signed in, saved sets and the sheet in progress are kept in the account.
+  if (window.ClassicaliaSync) {
+    window.ClassicaliaSync.connect('doNow', {
+      keys: [STORE_KEY, DRAFT_KEY],
+      lists: [STORE_KEY],
+      onChange: function (keys) {
+        if (keys.indexOf(STORE_KEY) > -1) renderSets();
+        if (keys.indexOf(DRAFT_KEY) > -1) {
+          editingInPreview = false;
+          loadDraft();
+          renderItems();
+          update();
+        }
+      }
+    });
+  }
 })();
 </script>
 <script src="/version2/assets/js/word-docx.js"></script>

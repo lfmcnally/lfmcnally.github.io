@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-sync.js"></script>
 <script src="/version2/assets/js/account-menu.js" defer></script>
 <style>
   .lp-body { max-width: 1560px; margin: 0 auto; padding: 36px 40px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 640px; gap: 32px; align-items: start; }
@@ -273,7 +274,7 @@
   <div class="header-inner">
     <div class="header-eyebrow">For the classroom</div>
     <h1 class="header-title">Lesson plan builder</h1>
-    <p class="header-deck">Fill in your objectives, the stages of the lesson and how long each one takes, and print a tidy lesson plan or download it as a Word document. Timings add up as you go, and saved plans stay in this browser. Choose the standard layout, or an evidence-informed one with sections for inclusive teaching, learning intentions and formative assessment. It works for any subject.</p>
+    <p class="header-deck">Fill in your objectives, the stages of the lesson and how long each one takes, and print a tidy lesson plan or download it as a Word document. Timings add up as you go, and saved plans are kept in your account when you sign in. Choose the standard layout, or an evidence-informed one with sections for inclusive teaching, learning intentions and formative assessment. It works for any subject.</p>
   </div>
 </div>
 
@@ -671,7 +672,7 @@
       </div>
       <div class="lp-panel-body">
         <div id="lpSets"></div>
-        <p class="lp-note">Saved plans are stored in this browser only, so they stay on this computer and are lost if you clear your browsing data. Save to a file to keep a copy elsewhere or share it with a colleague.</p>
+        <p class="lp-note"><span data-sync-status data-sync-noun="plans" data-sync-draft="plan">Saved plans are stored in this browser only, so they stay on this computer and are lost if you clear your browsing data.</span> Save to a file to keep a copy elsewhere or share it with a colleague.</p>
       </div>
     </section>
 
@@ -960,6 +961,7 @@
   function writeStore(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      if (window.ClassicaliaSync) window.ClassicaliaSync.changed(key);
       return true;
     } catch (e) {
       return false;
@@ -2074,8 +2076,8 @@
     if (data) { thumb.src = data; }
     document.getElementById('lpCrestClear').hidden = !data;
     document.getElementById('lpCrestNote').textContent = data
-      ? 'Kept in this browser, and shared with the exam paper builder.'
-      : 'Your school’s crest or wordmark, kept in this browser.';
+      ? 'Shared with the exam paper builder.'
+      : 'Your school’s crest or wordmark, shared with the exam paper builder.';
   }
 
   document.getElementById('lpCrestPick').addEventListener('click', function () {
@@ -2279,14 +2281,42 @@
 
   /* ── start up ── */
 
-  var draft = readStore(DRAFT_KEY, null);
-  if (draft && draft.settings) {
-    restore(draft);
-  } else {
-    rows = [blankRow(), blankRow(), blankRow()];
-    restore({ settings: {}, rows: rows, custom: [], labels: {} });
+  function loadDraft() {
+    var draft = readStore(DRAFT_KEY, null);
+    if (draft && draft.settings) {
+      restore(draft);
+    } else {
+      rows = [blankRow(), blankRow(), blankRow()];
+      restore({ settings: {}, rows: rows, custom: [], labels: {} });
+    }
   }
+
+  loadDraft();
   renderSets();
+
+  // Signed in, saved plans, the plan in progress and the crest are kept in
+  // the account. The crest has a group of its own, shared with exam papers.
+  if (window.ClassicaliaSync) {
+    window.ClassicaliaSync.connect('lessonPlan', {
+      keys: [STORE_KEY, DRAFT_KEY],
+      lists: [STORE_KEY],
+      onChange: function (keys) {
+        if (keys.indexOf(STORE_KEY) > -1) renderSets();
+        if (keys.indexOf(DRAFT_KEY) > -1) loadDraft();
+      }
+    });
+    window.ClassicaliaSync.connect('crest', {
+      keys: [CREST_KEY],
+      onChange: function () {
+        if (val('lpCrestData')) return;
+        var savedCrest = readStore(CREST_KEY, '');
+        if (!savedCrest) return;
+        document.getElementById('lpCrestData').value = savedCrest;
+        showCrest();
+        update();
+      }
+    });
+  }
 })();
 </script>
 <div data-shell="footer"></div>
