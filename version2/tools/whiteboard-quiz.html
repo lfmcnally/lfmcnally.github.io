@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-sync.js"></script>
 <script src="/version2/assets/js/account-menu.js" defer></script>
 <style>
   .wq-body { max-width: 1280px; margin: 0 auto; padding: 36px 40px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 32px; align-items: start; }
@@ -178,7 +179,7 @@
   <div class="header-inner">
     <div class="header-eyebrow">For the classroom</div>
     <h1 class="header-title">Mini whiteboard quiz</h1>
-    <p class="header-deck">Paste in a list of questions and run them on the board, one at a time, in large text. Everyone writes an answer, holds up their board, and you reveal the answer once you have seen them. No slides to make and nothing to mark. No account needed; saved quizzes stay in this browser.</p>
+    <p class="header-deck">Paste in a list of questions and run them on the board, one at a time, in large text. Everyone writes an answer, holds up their board, and you reveal the answer once you have seen them. No slides to make and nothing to mark. No account needed, and if you sign in your saved quizzes are kept in your account.</p>
   </div>
 </div>
 
@@ -298,7 +299,7 @@ Translate: puella currit - The girl runs"></textarea>
           <label for="wqNames">Class list for the pupil picker (optional)</label>
           <textarea class="wq-names" id="wqNames" placeholder="One name per line. Used to pick someone at random to explain their answer."></textarea>
         </div>
-        <p class="wq-note">The picker goes through everyone before it picks anyone twice. The class list is kept in this browser and saved with each quiz.</p>
+        <p class="wq-note">The picker goes through everyone before it picks anyone twice. The class list is kept with the quiz you are working on and saved with each quiz.</p>
       </div>
     </section>
 
@@ -312,7 +313,7 @@ Translate: puella currit - The girl runs"></textarea>
       </div>
       <div class="wq-panel-body">
         <div id="wqSets"></div>
-        <p class="wq-note">Saved quizzes are stored in this browser only, so they are lost if you clear your browsing data. The link holds the questions and answers themselves (not the class list), so you can send it to a colleague or open it on the classroom computer.</p>
+        <p class="wq-note"><span data-sync-status data-sync-noun="quizzes" data-sync-draft="quiz">Saved quizzes are stored in this browser only, so they are lost if you clear your browsing data.</span> The link holds the questions and answers themselves (not the class list), so you can send it to a colleague or open it on the classroom computer.</p>
       </div>
     </section>
 
@@ -458,7 +459,8 @@ Translate: puella currit - The girl runs"></textarea>
     try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
   }
   function writeStore(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private mode, full quota */ }
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { return; /* private mode, full quota */ }
+    if (window.ClassicaliaSync) window.ClassicaliaSync.changed(key);
   }
 
   var toastTimer;
@@ -1253,14 +1255,30 @@ Translate: puella currit - The girl runs"></textarea>
   $('bTimerBtn').addEventListener('click', toggleTimer);
 
   /* ── start up ── */
-  var draft = readStore(DRAFT_KEY, null);
-  if (draft) {
-    applySettings(draft.settings);
-    if (typeof draft.list === 'string') listEl.value = draft.list;
+  function loadDraft() {
+    var draft = readStore(DRAFT_KEY, null);
+    if (draft) {
+      applySettings(draft.settings);
+      if (typeof draft.list === 'string') listEl.value = draft.list;
+    }
   }
+
+  loadDraft();
   loadFromHash();
   renderSets();
   update();
+
+  // Signed in, saved quizzes and the quiz in progress are kept in the account.
+  if (window.ClassicaliaSync) {
+    window.ClassicaliaSync.connect('wbQuiz', {
+      keys: [STORE_KEY, DRAFT_KEY],
+      lists: [STORE_KEY],
+      onChange: function (keys) {
+        if (keys.indexOf(STORE_KEY) > -1) renderSets();
+        if (keys.indexOf(DRAFT_KEY) > -1) { loadDraft(); update(); }
+      }
+    });
+  }
 })();
 </script>
 <div data-shell="footer"></div>
