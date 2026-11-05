@@ -243,14 +243,14 @@
           </div>
         </div>
 
-        <textarea class="wq-list" id="wqList" spellcheck="true" placeholder="Paste or type your questions, one per line. Put the answer after a | if you want one.
+        <textarea class="wq-list" id="wqList" spellcheck="true" placeholder="Paste or type your questions, one per line. Put a dash between the question and the answer if you want one.
 
-What is the Latin for 'river'? | flumen
-Who killed Hector? | Achilles
-Name the Roman god of war. | Mars
-Translate: puella currit | The girl runs"></textarea>
+What is the Latin for 'river'? - flumen
+Who killed Hector? - Achilles
+Name the Roman god of war. - Mars
+Translate: puella currit - The girl runs"></textarea>
         <div class="wq-count" id="wqCount"></div>
-        <p class="wq-note">One question per line. Put the answer after a <code>|</code>, e.g. <code>Who was king of the gods? | Zeus</code>. You can also paste two columns straight from a spreadsheet or table, or put the answer on the next line starting <code>A:</code>. Numbers at the start of a line (<code>1.</code>, <code>Q2)</code>) are taken off, and lines starting <code>#</code> are skipped. A question without an answer still works: you just check the boards yourself.</p>
+        <p class="wq-note">One question per line. Put the answer after a dash with a space either side, e.g. <code>Who was king of the gods? - Zeus</code>. An <code>=</code> works too. A dash inside a word, like <em>half-brother</em>, is left alone. You can also paste two columns straight from a spreadsheet or table, or put the answer on the next line starting <code>A:</code>. Numbers at the start of a line (<code>1.</code>, <code>Q2)</code>) are taken off, and lines starting <code>#</code> are skipped. A question without an answer still works: you just check the boards yourself.</p>
         <p class="wq-note">For <strong>bold</strong>, <em>italics</em> or <span style="text-decoration:underline">underlining</span> on the board, type <code>**bold**</code>, <code>*italics*</code> or <code>__underline__</code>.</p>
       </div>
     </section>
@@ -472,7 +472,10 @@ Translate: puella currit | The girl runs"></textarea>
 
   /* ── reading the list ──
      One question a line. The answer follows a tab (two columns pasted from a
-     spreadsheet or a Word table) or a |, or sits on the next line after "A:". */
+     spreadsheet or a Word table), a | or a spaced dash or = (" - ", " = "),
+     or sits on the next line after "A:". The dash needs a space either side,
+     so a hyphenated word such as half-brother is never split. */
+  var SPLIT_RE = /\s+[-\u2013\u2014=]\s+/;
   function parse(text) {
     var out = [];
     String(text || '').split(/\r?\n/).forEach(function (raw) {
@@ -490,12 +493,23 @@ Translate: puella currit | The girl runs"></textarea>
       } else if (line.indexOf('|') > -1) {
         var i = line.indexOf('|');
         q = line.slice(0, i); a = line.slice(i + 1);
+      } else {
+        var m = line.match(SPLIT_RE);
+        if (m) { q = line.slice(0, m.index); a = line.slice(m.index + m[0].length); }
       }
       q = q.trim().replace(/^(?:q(?:uestion)?\s*)?\d{1,3}\s*[.):]\s*/i, '').trim();
       a = a.trim();
       if (q) out.push({ q: q, a: a });
     });
     return out;
+  }
+
+  // Writes a question and answer back as one line of the list. Anything in
+  // the question that would read as the dash between them is softened first.
+  function joinLine(q, a) {
+    q = String(q || '').replace(/\|/g, '/').replace(new RegExp(SPLIT_RE.source, 'g'), ', ');
+    a = String(a || '').replace(/\r?\n/g, ' ');
+    return a ? q + ' - ' + a : q;
   }
 
   function settings() {
@@ -546,7 +560,7 @@ Translate: puella currit | The girl runs"></textarea>
     if (e.key !== 'Tab' || e.shiftKey) return;
     e.preventDefault();
     var s = listEl.selectionStart, end = listEl.selectionEnd;
-    listEl.value = listEl.value.slice(0, s) + ' | ' + listEl.value.slice(end);
+    listEl.value = listEl.value.slice(0, s) + ' - ' + listEl.value.slice(end);
     listEl.selectionStart = listEl.selectionEnd = s + 3;
     update();
   });
@@ -653,8 +667,7 @@ Translate: puella currit | The girl runs"></textarea>
     try {
       var data = decodeQuiz(m[1]);
       var lines = (data.q || []).map(function (row) {
-        var q = String(row[0] || '').replace(/\|/g, '/');
-        return row[1] ? q + ' | ' + row[1] : q;
+        return joinLine(row[0], row[1]);
       });
       if (!lines.length) return false;
       listEl.value = lines.join('\n');
@@ -817,9 +830,7 @@ Translate: puella currit | The girl runs"></textarea>
     }).slice(0, n);
     var reverse = SOURCES[key].kind === 'vocab' && $('wqDirection').value === 'english';
     var lines = pool.map(function (it) {
-      var q = (reverse ? it.english : it.term).replace(/\|/g, '/');
-      var a = (reverse ? it.term : it.english).replace(/\r?\n/g, ' ');
-      return a ? q + ' | ' + a : q;
+      return joinLine(reverse ? it.english : it.term, reverse ? it.term : it.english);
     });
     var current = listEl.value.replace(/\s+$/, '');
     listEl.value = (current ? current + '\n' : '') + lines.join('\n');
