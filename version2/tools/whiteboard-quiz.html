@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" type="image/png" href="/images/favicon.png">
+<link rel="stylesheet" href="/version2/assets/css/classicalia.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini whiteboard quiz — Classicalia</title>
+<meta name="description" content="Paste a list of questions and run a mini whiteboard quiz on the board: one question at a time, a timer, boards up, reveal the answer, bank the ones they know and bring back the ones they don't.">
+<link rel="canonical" href="https://classicalia.co.uk/version2/tools/whiteboard-quiz.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-menu.js" defer></script>
+<style>
+  .wq-body { max-width: 1280px; margin: 0 auto; padding: 36px 40px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 32px; align-items: start; }
+  .wq-body [hidden] { display: none !important; }
+
+  .wq-panel { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; margin-bottom: 20px; }
+  .wq-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--rule-faint); flex-wrap: wrap; }
+  .wq-panel-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 18px; color: var(--navy); }
+  .wq-panel-body { padding: 20px; }
+
+  .wq-grid { display: grid; gap: 14px; }
+  .wq-grid-2 { grid-template-columns: repeat(2, 1fr); }
+  .wq-grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .wq-field label { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .wq-field input[type="text"], .wq-field input[type="number"], .wq-field select, .wq-field textarea {
+    width: 100%; font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 7px; padding: 9px 11px; }
+  .wq-field input:focus, .wq-field select:focus, .wq-field textarea:focus, .wq-list:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(26,111,255,.12); }
+
+  .wq-list { width: 100%; min-height: 300px; resize: vertical; font-family: 'DM Sans', sans-serif; font-size: 14.5px; line-height: 1.7; color: var(--ink);
+    background: var(--paper); border: 1px solid var(--rule); border-radius: 9px; padding: 12px 14px; tab-size: 4; }
+  .wq-names { min-height: 120px; resize: vertical; line-height: 1.6; }
+
+  .wq-check { display: flex; align-items: center; gap: 9px; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+  .wq-check input { width: 16px; height: 16px; accent-color: var(--brand); cursor: pointer; }
+  .wq-checks { display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule-faint); }
+
+  .wq-btn { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: var(--navy); background: var(--paper);
+    border: 1px solid var(--rule); border-radius: 7px; padding: 8px 14px; cursor: pointer; transition: background .12s, border-color .12s; }
+  .wq-btn:hover { background: var(--cream); border-color: #b8d0ff; }
+  .wq-btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .wq-btn.primary:hover { background: #3b82ff; }
+  .wq-btn.big { font-size: 16px; padding: 14px 22px; width: 100%; }
+  .wq-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .wq-btn-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+  .wq-note { font-size: 12px; color: var(--muted); line-height: 1.55; margin-top: 12px; }
+  .wq-note code { font-size: 12px; background: var(--cream); border: 1px solid var(--rule-faint); border-radius: 4px; padding: 0 4px; }
+  .wq-count { font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .wq-count strong { color: var(--navy); }
+
+  /* the parsed list, so the teacher can check what will appear */
+  .wq-preview { max-height: 520px; overflow-y: auto; }
+  .wq-pv { display: flex; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--rule-faint); font-size: 13.5px; line-height: 1.45; }
+  .wq-pv:last-child { border-bottom: none; }
+  .wq-pv-n { flex: none; width: 24px; font-weight: 700; color: var(--muted); }
+  .wq-pv-q { color: var(--ink); }
+  .wq-pv-a { display: block; color: #15803d; font-size: 12.5px; margin-top: 2px; }
+  .wq-pv-a.none { color: var(--muted); font-style: italic; }
+  .wq-empty { font-size: 13.5px; color: var(--muted); font-style: italic; }
+
+  /* saved quizzes */
+  .wq-set { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--rule-faint); }
+  .wq-set:last-child { border-bottom: none; }
+  .wq-set-name { font-size: 13.5px; font-weight: 600; color: var(--navy); }
+  .wq-set-meta { font-size: 11.5px; color: var(--muted); }
+
+  .wq-side { position: sticky; top: 24px; }
+  .wq-keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13px; color: var(--ink); align-items: center; }
+  .wq-keys kbd, .wq-help kbd { font-family: 'DM Sans', sans-serif; font-size: 11.5px; font-weight: 700; color: var(--navy); background: var(--cream);
+    border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 5px; padding: 1px 7px; white-space: nowrap; }
+
+  .wq-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: var(--navy); color: #fff; font-size: 14px;
+    padding: 10px 18px; border-radius: 8px; box-shadow: 0 8px 24px rgba(14,30,63,.25); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .wq-toast.show { opacity: 1; }
+
+  @media (max-width: 1080px) {
+    .wq-body { grid-template-columns: minmax(0, 1fr); }
+    .wq-side { position: static; }
+  }
+  @media (max-width: 620px) {
+    .wq-body { padding: 28px 16px 70px; }
+    .wq-grid-2, .wq-grid-3 { grid-template-columns: 1fr; }
+  }
+
+  /* ───────── the board: full screen, for the projector ───────── */
+  .board { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column;
+    --b-bg: #fbfaf6; --b-ink: #0E1E3F; --b-muted: #5e6a85; --b-rule: #d8dde8; --b-card: #ffffff; --b-ans: #15803d; --b-ans-bg: #effaf2; --b-flag: #b45309; --b-got: #15803d;
+    background: var(--b-bg); color: var(--b-ink); font-family: 'DM Sans', sans-serif; }
+  .board.dark { --b-bg: #0b1730; --b-ink: #f3f5fa; --b-muted: #9fb0d0; --b-rule: #23365e; --b-card: #12224a; --b-ans: #6ee7a0; --b-ans-bg: #0f2e2a; --b-flag: #fbbf24; --b-got: #6ee7a0; }
+  .board[hidden], .board [hidden] { display: none !important; }
+
+  .b-top { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 28px; }
+  .b-title { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .b-progress-text { font-size: 16px; font-weight: 700; color: var(--b-muted); white-space: nowrap; }
+  .b-progress { flex: none; height: 6px; background: var(--b-rule); }
+  .b-progress span { display: block; height: 100%; width: 0; background: var(--brand); transition: width .3s; }
+
+  .b-stage { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 2vh 6vw 1vh; position: relative; }
+  .b-q-wrap { flex: 1 1 62%; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .b-q { font-family: 'Lora', serif; font-weight: 600; line-height: 1.25; text-align: center; max-width: 100%; overflow-wrap: break-word; }
+  .b-num { display: block; font-family: 'DM Sans', sans-serif; font-size: .42em; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--b-muted); margin-bottom: .4em; }
+  .b-a-wrap { flex: 0 1 30%; min-height: 0; display: flex; align-items: center; justify-content: center; padding-top: 1vh; }
+  .b-a { width: 100%; min-height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; border-radius: 16px; padding: 1.2vh 3vw; overflow: hidden; }
+  .b-a.hidden { border: 3px dashed var(--b-rule); color: var(--b-muted); font-size: 22px; font-weight: 600; cursor: pointer; }
+  .b-a.shown { background: var(--b-ans-bg); color: var(--b-ans); font-weight: 700; line-height: 1.25; overflow-wrap: break-word; animation: b-pop .25s ease-out; }
+  .b-a.none { color: var(--b-muted); font-style: italic; font-size: 22px; }
+  @keyframes b-pop { from { transform: scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+  .b-pill { position: absolute; top: 1vh; right: 6vw; font-size: 15px; font-weight: 700; color: var(--b-flag); border: 2px solid var(--b-flag); border-radius: 999px; padding: 3px 12px; }
+  .b-pill.got { color: var(--b-got); border-color: var(--b-got); }
+  .b-pill.repeat { left: 6vw; right: auto; color: var(--brand); border-color: var(--brand); }
+
+  .b-timer { flex: none; display: flex; align-items: center; gap: 16px; padding: 0 28px; height: 40px; }
+  .b-timer-bar { flex: 1; height: 12px; background: var(--b-rule); border-radius: 999px; overflow: hidden; }
+  .b-timer-bar span { display: block; height: 100%; background: var(--brand); width: 100%; transition: width .25s linear, background .3s; }
+  .b-timer-bar span.low { background: #dc2626; }
+  .b-timer-num { font-size: 26px; font-weight: 700; min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+
+  .b-bar { flex: none; display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; padding: 14px 20px 18px; border-top: 1px solid var(--b-rule); }
+  .b-btn { font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; color: var(--b-ink); background: var(--b-card); border: 1px solid var(--b-rule);
+    border-radius: 9px; padding: 10px 16px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+  .b-btn:hover { border-color: var(--brand); }
+  .b-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .b-btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .b-btn.got { border-color: var(--b-got); color: var(--b-got); }
+  .b-btn.again { border-color: var(--b-flag); color: var(--b-flag); }
+  .b-btn.got.on { background: var(--b-got); color: var(--b-card); }
+  .b-btn.again.on { background: var(--b-flag); color: var(--b-card); }
+  .b-review h3 { font-size: 15px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--b-muted); margin: 18px 0 2px; }
+  .b-review span.tries { color: var(--b-flag); font-size: 15px; font-weight: 700; margin-left: 8px; }
+  .b-btn small { font-size: 11px; font-weight: 700; opacity: .6; border: 1px solid currentColor; border-radius: 4px; padding: 0 5px; }
+  .b-spacer { flex: 1; min-width: 0; }
+
+  /* intro and end screens */
+  .b-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4vh 6vw; gap: 18px; overflow-y: auto; }
+  .b-screen h2 { font-family: 'Lora', serif; font-style: italic; font-weight: 700; font-size: clamp(36px, 6vw, 84px); line-height: 1.1; }
+  .b-screen p { font-size: clamp(18px, 2vw, 26px); color: var(--b-muted); }
+  .b-screen .b-btn { font-size: 18px; padding: 14px 22px; }
+  .b-review { width: min(900px, 100%); text-align: left; margin-top: 8px; }
+  .b-review div { padding: 10px 0; border-bottom: 1px solid var(--b-rule); font-size: 19px; }
+  .b-review b { color: var(--b-ans); font-weight: 700; margin-left: 8px; }
+
+  /* overlays: boards up, the pupil picker, the shortcut list */
+  .b-over { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 24px; z-index: 5;
+    background: rgba(14,30,63,.86); color: #fff; text-align: center; }
+  .b-over[hidden] { display: none; }
+  .b-count { font-family: 'Lora', serif; font-weight: 700; font-size: min(40vh, 40vw); line-height: 1; animation: b-beat .9s ease-out; }
+  .b-count.go { font-size: min(18vh, 13vw); font-style: italic; }
+  @keyframes b-beat { from { transform: scale(1.25); opacity: .2; } to { transform: none; opacity: 1; } }
+  .b-pick-label { font-size: 20px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #9fb0d0; }
+  .b-pick-name { font-family: 'Lora', serif; font-weight: 700; font-size: min(16vh, 11vw); line-height: 1.1; padding: 0 4vw; }
+  .b-pick-name.landed { animation: b-beat .5s ease-out; color: #ffd166; }
+  .b-pick-hint { font-size: 16px; color: #9fb0d0; }
+  .wq-help { background: #fff; color: var(--navy); border-radius: 14px; padding: 26px 30px; display: grid; grid-template-columns: auto 1fr; gap: 10px 18px;
+    text-align: left; font-size: 16px; align-items: center; max-width: 92vw; }
+  .wq-help h3 { grid-column: 1 / -1; font-family: 'Lora', serif; font-style: italic; font-size: 22px; margin-bottom: 4px; }
+
+  @media (max-width: 700px) {
+    .b-top, .b-timer { padding-left: 14px; padding-right: 14px; }
+    .b-btn { padding: 9px 11px; font-size: 14px; }
+    .b-btn small { display: none; }
+  }
+</style>
+<link rel="stylesheet" href="/version2/assets/css/shell.css">
+<link rel="stylesheet" href="/version2/assets/css/app.css">
+<script src="/version2/assets/js/shell.js" defer></script>
+<script src="/shared/site-pulse.js" defer></script>
+</head>
+<body>
+<div data-shell="header" data-active="tools"></div>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-eyebrow">For the classroom</div>
+    <h1 class="header-title">Mini whiteboard quiz</h1>
+    <p class="header-deck">Paste in a list of questions and run them on the board, one at a time, in large text. Everyone writes an answer, holds up their board, and you reveal the answer once you have seen them. No slides to make and nothing to mark. No account needed; saved quizzes stay in this browser.</p>
+  </div>
+</div>
+
+<div class="wq-body">
+
+  <main class="wq-main">
+
+    <section class="wq-panel">
+      <div class="wq-panel-head">
+        <h2 class="wq-panel-title">Questions</h2>
+        <div class="wq-btn-row">
+          <button class="wq-btn" id="wqImportToggle" type="button" aria-expanded="false">Add from a Classicalia set</button>
+          <button class="wq-btn" id="wqClear" type="button">Clear</button>
+        </div>
+      </div>
+      <div class="wq-panel-body">
+
+        <div id="wqImportBody" hidden style="margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px solid var(--rule-faint);">
+          <div class="wq-grid wq-grid-2">
+            <div class="wq-field">
+              <label for="wqSource">Set</label>
+              <select id="wqSource">
+                <option value="">Choose a set&hellip;</option>
+                <option value="latin-gcse">Latin vocabulary &mdash; OCR GCSE</option>
+                <option value="latin-alevel">Latin vocabulary &mdash; A Level</option>
+                <option value="suburani">Latin vocabulary &mdash; Suburani</option>
+                <option value="greek-gcse">Greek vocabulary &mdash; OCR GCSE</option>
+                <option value="greek-alevel">Greek vocabulary &mdash; A Level</option>
+                <option value="myth">Myth &amp; Religion questions</option>
+                <option value="homeric">The Homeric World questions</option>
+              </select>
+            </div>
+            <div class="wq-field" id="wqDirectionField" hidden>
+              <label for="wqDirection">Show</label>
+              <select id="wqDirection">
+                <option value="term">The word &rarr; they write the meaning</option>
+                <option value="english">The meaning &rarr; they write the word</option>
+              </select>
+            </div>
+          </div>
+          <div class="wq-grid wq-grid-3" id="wqFilters" style="margin-top: 14px;" hidden>
+            <div class="wq-field" id="wqFromField">
+              <label for="wqFrom">From chapter</label>
+              <select id="wqFrom"></select>
+            </div>
+            <div class="wq-field" id="wqToField">
+              <label for="wqTo">To chapter</label>
+              <select id="wqTo"></select>
+            </div>
+            <div class="wq-field" id="wqTopicField" hidden>
+              <label for="wqTopic">Topic</label>
+              <select id="wqTopic"></select>
+            </div>
+            <div class="wq-field">
+              <label for="wqHowMany">How many, at random</label>
+              <input type="number" id="wqHowMany" min="1" value="10">
+            </div>
+          </div>
+          <div class="wq-btn-row" style="margin-top: 14px;">
+            <button class="wq-btn primary" id="wqImportAdd" type="button" disabled>Add to the list</button>
+            <span class="wq-count" id="wqImportStatus" style="margin-top: 0;"></span>
+          </div>
+        </div>
+
+        <textarea class="wq-list" id="wqList" spellcheck="true" placeholder="Paste or type your questions, one per line. Put the answer after a | if you want one.
+
+What is the Latin for 'river'? | flumen
+Who killed Hector? | Achilles
+Name the Roman god of war. | Mars
+Translate: puella currit | The girl runs"></textarea>
+        <div class="wq-count" id="wqCount"></div>
+        <p class="wq-note">One question per line. Put the answer after a <code>|</code>, e.g. <code>Who was king of the gods? | Zeus</code>. You can also paste two columns straight from a spreadsheet or table, or put the answer on the next line starting <code>A:</code>. Numbers at the start of a line (<code>1.</code>, <code>Q2)</code>) are taken off, and lines starting <code>#</code> are skipped. A question without an answer still works: you just check the boards yourself.</p>
+        <p class="wq-note">For <strong>bold</strong>, <em>italics</em> or <span style="text-decoration:underline">underlining</span> on the board, type <code>**bold**</code>, <code>*italics*</code> or <code>__underline__</code>.</p>
+      </div>
+    </section>
+
+    <section class="wq-panel">
+      <div class="wq-panel-head">
+        <h2 class="wq-panel-title">Settings</h2>
+      </div>
+      <div class="wq-panel-body">
+        <div class="wq-grid wq-grid-3">
+          <div class="wq-field">
+            <label for="wqTitle">Title</label>
+            <input type="text" id="wqTitle" value="Mini whiteboard quiz" placeholder="e.g. Chapter 3 vocabulary">
+          </div>
+          <div class="wq-field">
+            <label for="wqTime">Thinking time</label>
+            <select id="wqTime">
+              <option value="0">No timer</option>
+              <option value="10">10 seconds</option>
+              <option value="20">20 seconds</option>
+              <option value="30" selected>30 seconds</option>
+              <option value="45">45 seconds</option>
+              <option value="60">1 minute</option>
+              <option value="90">90 seconds</option>
+              <option value="120">2 minutes</option>
+            </select>
+          </div>
+          <div class="wq-field">
+            <label for="wqSize">Text size</label>
+            <select id="wqSize">
+              <option value="0.75">Smaller</option>
+              <option value="1" selected>Normal</option>
+              <option value="1.3">Larger</option>
+            </select>
+          </div>
+        </div>
+        <div class="wq-checks">
+          <label class="wq-check"><input type="checkbox" id="wqShuffle"> Shuffle the order</label>
+          <label class="wq-check"><input type="checkbox" id="wqAutoTimer" checked> Start the timer with each question</label>
+          <label class="wq-check"><input type="checkbox" id="wqBoardsAfter" checked> &ldquo;Boards up&rdquo; countdown when the timer ends</label>
+          <label class="wq-check"><input type="checkbox" id="wqSound" checked> Sound</label>
+          <label class="wq-check"><input type="checkbox" id="wqDark"> Dark screen</label>
+        </div>
+        <div class="wq-field" style="margin-top: 16px;">
+          <label for="wqNames">Class list for the pupil picker (optional)</label>
+          <textarea class="wq-names" id="wqNames" placeholder="One name per line. Used to pick someone at random to explain their answer."></textarea>
+        </div>
+        <p class="wq-note">The picker goes through everyone before it picks anyone twice. The class list is kept in this browser and saved with each quiz.</p>
+      </div>
+    </section>
+
+    <section class="wq-panel">
+      <div class="wq-panel-head">
+        <h2 class="wq-panel-title">Saved quizzes</h2>
+        <div class="wq-btn-row">
+          <button class="wq-btn" id="wqLink" type="button">Copy a link to this quiz</button>
+          <button class="wq-btn" id="wqSave" type="button">Save this quiz</button>
+        </div>
+      </div>
+      <div class="wq-panel-body">
+        <div id="wqSets"></div>
+        <p class="wq-note">Saved quizzes are stored in this browser only, so they are lost if you clear your browsing data. The link holds the questions and answers themselves (not the class list), so you can send it to a colleague or open it on the classroom computer.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="wq-side">
+    <section class="wq-panel">
+      <div class="wq-panel-head">
+        <h2 class="wq-panel-title">On the board</h2>
+        <span class="wq-count" id="wqSideCount" style="margin-top:0;"></span>
+      </div>
+      <div class="wq-panel-body">
+        <button class="wq-btn primary big" id="wqStart" type="button">Start the quiz</button>
+        <p class="wq-note" style="margin-bottom: 14px;">Opens full screen. Each question appears on its own; the answer stays hidden until you reveal it.</p>
+        <div class="wq-keys">
+          <kbd>Space</kbd><span>reveal the answer, then the next question</span>
+          <kbd>&larr; &rarr;</kbd><span>previous / next question</span>
+          <kbd>T</kbd><span>start or pause the timer</span>
+          <kbd>B</kbd><span>&ldquo;Boards up&rdquo; countdown</span>
+          <kbd>G</kbd><span>got it: bank the question and move on</span>
+          <kbd>A</kbd><span>again: it comes back later in the quiz</span>
+          <kbd>P</kbd><span>pick a pupil</span>
+          <kbd>Esc</kbd><span>back to editing</span>
+        </div>
+      </div>
+    </section>
+    <section class="wq-panel">
+      <div class="wq-panel-head">
+        <h2 class="wq-panel-title">Check the list</h2>
+      </div>
+      <div class="wq-panel-body wq-preview" id="wqPreview"></div>
+    </section>
+  </aside>
+
+</div>
+
+<!-- the board itself -->
+<div class="board" id="board" hidden role="dialog" aria-modal="true" aria-label="Mini whiteboard quiz">
+  <div class="b-top">
+    <div class="b-title" id="bTitle"></div>
+    <div class="b-progress-text" id="bProgressText"></div>
+  </div>
+  <div class="b-progress"><span id="bProgress"></span></div>
+
+  <div class="b-screen" id="bIntro">
+    <h2 id="bIntroTitle"></h2>
+    <p id="bIntroMeta"></p>
+    <p>Mini whiteboards and pens ready.</p>
+    <div class="wq-btn-row" style="justify-content:center;">
+      <button class="b-btn primary" id="bBegin" type="button">Show the first question <small>Space</small></button>
+    </div>
+  </div>
+
+  <div class="b-stage" id="bStage" hidden>
+    <span class="b-pill repeat" id="bRepeat" hidden>Back again</span>
+    <span class="b-pill" id="bMark" hidden></span>
+    <div class="b-q-wrap" id="bQWrap"><div class="b-q" id="bQ"></div></div>
+    <div class="b-a-wrap" id="bAWrap"><div class="b-a" id="bA"></div></div>
+  </div>
+
+  <div class="b-screen" id="bEnd" hidden>
+    <h2 id="bEndTitle">That&rsquo;s the lot</h2>
+    <p id="bEndMeta"></p>
+    <div class="wq-btn-row" style="justify-content:center;">
+      <button class="b-btn primary" id="bRedoMissed" type="button">Go over the ones that needed another go</button>
+      <button class="b-btn" id="bAgain" type="button">Run it again, shuffled</button>
+      <button class="b-btn" id="bDone" type="button">Back to editing</button>
+    </div>
+    <div class="b-review" id="bReview"></div>
+  </div>
+
+  <div class="b-timer" id="bTimer" hidden>
+    <div class="b-timer-bar"><span id="bTimerBar"></span></div>
+    <div class="b-timer-num" id="bTimerNum"></div>
+  </div>
+
+  <div class="b-bar">
+    <button class="b-btn" id="bExit" type="button" title="Back to editing (Esc)">&#10005; Exit</button>
+    <button class="b-btn" id="bHelp" type="button" title="Keyboard shortcuts (?)">?</button>
+    <span class="b-spacer"></span>
+    <button class="b-btn" id="bPrev" type="button">&larr; Back</button>
+    <button class="b-btn" id="bTimerBtn" type="button">Timer <small>T</small></button>
+    <button class="b-btn" id="bBoards" type="button">Boards up <small>B</small></button>
+    <button class="b-btn primary" id="bReveal" type="button">Reveal <small>Space</small></button>
+    <button class="b-btn got" id="bGot" type="button" title="Everyone has it: bank the question">&#10003; Got it <small>G</small></button>
+    <button class="b-btn again" id="bAgain2" type="button" title="Some need it again: it comes back later in this quiz">&#8635; Again <small>A</small></button>
+    <button class="b-btn" id="bPick" type="button">Pick a pupil <small>P</small></button>
+    <button class="b-btn" id="bNext" type="button">Next &rarr;</button>
+    <span class="b-spacer"></span>
+    <button class="b-btn" id="bFull" type="button" title="Full screen">&#x26F6;</button>
+  </div>
+
+  <div class="b-over" id="bCountOver" hidden><div class="b-count" id="bCount"></div></div>
+  <div class="b-over" id="bPickOver" hidden>
+    <div class="b-pick-label">Over to</div>
+    <div class="b-pick-name" id="bPickName"></div>
+    <div class="b-pick-hint" id="bPickHint">P for someone else &middot; Esc or click to close</div>
+  </div>
+  <div class="b-over" id="bHelpOver" hidden>
+    <div class="wq-help">
+      <h3>Keyboard shortcuts</h3>
+      <kbd>Space</kbd><span>reveal the answer; press again for the next question</span>
+      <kbd>&rarr;</kbd><span>next question</span>
+      <kbd>&larr;</kbd><span>previous question</span>
+      <kbd>R</kbd><span>reveal or hide the answer</span>
+      <kbd>T</kbd><span>start, pause or restart the timer</span>
+      <kbd>B</kbd><span>&ldquo;Boards up&rdquo; countdown</span>
+      <kbd>G</kbd><span>got it: bank the question and move on</span>
+      <kbd>A</kbd><span>again: move on, and it comes back later in this quiz</span>
+      <kbd>P</kbd><span>pick a pupil at random</span>
+      <kbd>Esc</kbd><span>close this, or go back to editing</span>
+    </div>
+  </div>
+</div>
+
+<div class="wq-toast" id="wqToast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var STORE_KEY = 'classicalia.wbQuiz.sets';
+  var DRAFT_KEY = 'classicalia.wbQuiz.draft';
+  var settingIds = ['wqTitle', 'wqTime', 'wqSize', 'wqShuffle', 'wqAutoTimer', 'wqBoardsAfter', 'wqSound', 'wqDark', 'wqNames'];
+
+  function $(id) { return document.getElementById(id); }
+  var listEl = $('wqList');
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function formatText(str) {
+    var html = escapeHtml(str);
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    html = html.replace(/__([^_]+)__/g, '<u>$1</u>');
+    return html;
+  }
+
+  function readStore(key, fallback) {
+    try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (e) { return fallback; }
+  }
+  function writeStore(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private mode, full quota */ }
+  }
+
+  var toastTimer;
+  function toast(msg) {
+    var el = $('wqToast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2600);
+  }
+
+  /* ── reading the list ──
+     One question a line. The answer follows a tab (two columns pasted from a
+     spreadsheet or a Word table) or a |, or sits on the next line after "A:". */
+  function parse(text) {
+    var out = [];
+    String(text || '').split(/\r?\n/).forEach(function (raw) {
+      var line = raw.trim();
+      if (!line || line.charAt(0) === '#') return;
+      var ans = line.match(/^(?:a|ans|answer)\s*[:.)]\s*(.*)$/i);
+      if (ans && out.length && !out[out.length - 1].a) {
+        out[out.length - 1].a = ans[1].trim();
+        return;
+      }
+      var q = line, a = '';
+      var cut = raw.indexOf('\t') > -1 ? raw.trim().split(/\t+/) : null;
+      if (cut && cut.length > 1) {
+        q = cut[0]; a = cut.slice(1).join(' / ');
+      } else if (line.indexOf('|') > -1) {
+        var i = line.indexOf('|');
+        q = line.slice(0, i); a = line.slice(i + 1);
+      }
+      q = q.trim().replace(/^(?:q(?:uestion)?\s*)?\d{1,3}\s*[.):]\s*/i, '').trim();
+      a = a.trim();
+      if (q) out.push({ q: q, a: a });
+    });
+    return out;
+  }
+
+  function settings() {
+    var s = {};
+    settingIds.forEach(function (id) {
+      var el = $(id);
+      s[id] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    return s;
+  }
+  function applySettings(s) {
+    if (!s) return;
+    settingIds.forEach(function (id) {
+      if (!(id in s)) return;
+      var el = $(id);
+      if (el.type === 'checkbox') { el.checked = !!s[id]; } else { el.value = s[id]; }
+    });
+  }
+
+  function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+
+  function update() {
+    var qs = parse(listEl.value);
+    var withA = qs.filter(function (x) { return x.a; }).length;
+    $('wqCount').innerHTML = qs.length
+      ? '<strong>' + plural(qs.length, 'question') + '</strong>, ' + withA + ' with an answer'
+      : 'No questions yet.';
+    $('wqSideCount').textContent = qs.length ? plural(qs.length, 'question') : '';
+    $('wqStart').disabled = !qs.length;
+
+    var pv = $('wqPreview');
+    if (!qs.length) {
+      pv.innerHTML = '<div class="wq-empty">Your questions will appear here as they will be read, so you can check the answers have gone in the right place.</div>';
+    } else {
+      pv.innerHTML = qs.map(function (x, i) {
+        return '<div class="wq-pv"><span class="wq-pv-n">' + (i + 1) + '</span><span><span class="wq-pv-q">' + formatText(x.q) + '</span>' +
+          (x.a ? '<span class="wq-pv-a">' + formatText(x.a) + '</span>' : '<span class="wq-pv-a none">no answer</span>') + '</span></div>';
+      }).join('');
+    }
+    writeStore(DRAFT_KEY, { list: listEl.value, settings: settings() });
+  }
+
+  listEl.addEventListener('input', update);
+  settingIds.forEach(function (id) { $(id).addEventListener(($(id).type === 'checkbox' || $(id).tagName === 'SELECT') ? 'change' : 'input', update); });
+
+  // A tab typed in the box separates question and answer, like a pasted table.
+  listEl.addEventListener('keydown', function (e) {
+    if (e.key !== 'Tab' || e.shiftKey) return;
+    e.preventDefault();
+    var s = listEl.selectionStart, end = listEl.selectionEnd;
+    listEl.value = listEl.value.slice(0, s) + ' | ' + listEl.value.slice(end);
+    listEl.selectionStart = listEl.selectionEnd = s + 3;
+    update();
+  });
+
+  $('wqClear').addEventListener('click', function () {
+    if (!listEl.value.trim() || window.confirm('Clear all the questions?')) { listEl.value = ''; update(); listEl.focus(); }
+  });
+
+  /* ── saved quizzes ── */
+  function renderSets() {
+    var sets = readStore(STORE_KEY, []);
+    var wrap = $('wqSets');
+    wrap.innerHTML = '';
+    if (!sets.length) {
+      wrap.innerHTML = '<div class="wq-empty">Nothing saved yet.</div>';
+      return;
+    }
+    sets.forEach(function (set, i) {
+      var row = document.createElement('div');
+      row.className = 'wq-set';
+      var n = parse(set.list).length;
+      row.innerHTML = '<div><div class="wq-set-name"></div><div class="wq-set-meta"></div></div><div class="wq-btn-row"></div>';
+      row.querySelector('.wq-set-name').textContent = set.name;
+      row.querySelector('.wq-set-meta').textContent = plural(n, 'question') + (set.saved ? ' · saved ' + new Date(set.saved).toLocaleDateString('en-GB') : '');
+      var load = document.createElement('button');
+      load.className = 'wq-btn'; load.type = 'button'; load.textContent = 'Load';
+      load.addEventListener('click', function () {
+        if (listEl.value.trim() && listEl.value !== set.list && !window.confirm('Replace the questions in the box with "' + set.name + '"?')) return;
+        listEl.value = set.list;
+        applySettings(set.settings);
+        update();
+        toast('Loaded "' + set.name + '"');
+      });
+      var del = document.createElement('button');
+      del.className = 'wq-btn'; del.type = 'button'; del.textContent = 'Delete';
+      del.addEventListener('click', function () {
+        if (!window.confirm('Delete "' + set.name + '"?')) return;
+        var all = readStore(STORE_KEY, []);
+        all.splice(i, 1);
+        writeStore(STORE_KEY, all);
+        renderSets();
+      });
+      row.querySelector('.wq-btn-row').appendChild(load);
+      row.querySelector('.wq-btn-row').appendChild(del);
+      wrap.appendChild(row);
+    });
+  }
+
+  $('wqSave').addEventListener('click', function () {
+    if (!parse(listEl.value).length) { window.alert('Add at least one question first.'); return; }
+    var name = window.prompt('Name this quiz:', $('wqTitle').value.trim() || 'Mini whiteboard quiz');
+    if (name === null) return;
+    name = name.trim() || 'Mini whiteboard quiz';
+    var sets = readStore(STORE_KEY, []);
+    var entry = { name: name, list: listEl.value, settings: settings(), saved: Date.now() };
+    var existing = -1;
+    sets.forEach(function (s, i) { if (s.name === name) existing = i; });
+    if (existing > -1) {
+      if (!window.confirm('There is already a quiz called "' + name + '". Replace it?')) return;
+      sets[existing] = entry;
+    } else {
+      sets.unshift(entry);
+    }
+    writeStore(STORE_KEY, sets);
+    renderSets();
+    toast('Saved "' + name + '"');
+  });
+
+  /* ── sharing by link ──
+     The quiz travels in the address itself (after the #), so nothing is
+     stored anywhere and the link works for anyone. Greek survives the trip
+     because the text is encoded as UTF-8 before it is turned into base64. */
+  function encodeQuiz(obj) {
+    var bytes = new TextEncoder().encode(JSON.stringify(obj));
+    var bin = '';
+    bytes.forEach(function (b) { bin += String.fromCharCode(b); });
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function decodeQuiz(str) {
+    var b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) b64 += '=';
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+
+  $('wqLink').addEventListener('click', function () {
+    var qs = parse(listEl.value);
+    if (!qs.length) { window.alert('Add at least one question first.'); return; }
+    var data = { t: $('wqTitle').value.trim(), q: qs.map(function (x) { return x.a ? [x.q, x.a] : [x.q]; }) };
+    var url = location.origin + location.pathname + '#quiz=' + encodeQuiz(data);
+    var done = function () { toast('Link copied. Anyone who opens it gets these questions.'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done, function () { window.prompt('Copy this link:', url); });
+    } else {
+      window.prompt('Copy this link:', url);
+    }
+  });
+
+  function loadFromHash() {
+    var m = location.hash.match(/^#quiz=([A-Za-z0-9_-]+)/);
+    if (!m) return false;
+    try {
+      var data = decodeQuiz(m[1]);
+      var lines = (data.q || []).map(function (row) {
+        var q = String(row[0] || '').replace(/\|/g, '/');
+        return row[1] ? q + ' | ' + row[1] : q;
+      });
+      if (!lines.length) return false;
+      listEl.value = lines.join('\n');
+      if (data.t) $('wqTitle').value = data.t;
+      history.replaceState(null, '', location.pathname);
+      toast('Quiz loaded from the link.');
+      return true;
+    } catch (e) {
+      toast('That link could not be read.');
+      return false;
+    }
+  }
+
+  /* ── importing from a Classicalia set ──
+     Each bank is fetched only when it is chosen, by loading the same data
+     file the testers use. */
+  var SOURCES = {
+    'latin-gcse':   { kind: 'vocab', global: 'VOCAB_LATIN_GCSE',   src: ['/version2/tools/vocab/data/latin-gcse.js'] },
+    'latin-alevel': { kind: 'vocab', global: 'VOCAB_LATIN_ALEVEL', src: ['/version2/tools/vocab/data/latin-alevel.js'] },
+    'suburani':     { kind: 'vocab', global: 'VOCAB_SUBURANI',     src: ['/version2/tools/vocab/data/suburani.js'] },
+    'greek-gcse':   { kind: 'vocab', global: 'VOCAB_GREEK_GCSE',   src: ['/version2/tools/vocab/data/greek-gcse.js'] },
+    'greek-alevel': { kind: 'vocab', global: 'VOCAB_GREEK_ALEVEL', src: ['/version2/tools/vocab/data/greek-alevel.js'] },
+    'myth':         { kind: 'quiz',  global: 'CivQuiz',
+                      src: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8'].map(function (n) { return '/version2/tools/quiz/data/myth-' + n + '.js'; }) },
+    'homeric':      { kind: 'quiz',  global: 'HomericQuiz', src: ['/version2/tools/quiz/data/homeric-1.js'] }
+  };
+  var catalogue = [];
+  var loaded = {};
+
+  // The data files declare their banks with a top-level const, which is a
+  // lexical global rather than a property of window, so read it by name.
+  function readGlobal(name) {
+    try { return new Function('return typeof ' + name + ' !== "undefined" ? ' + name + ' : undefined')(); } catch (e) { return undefined; }
+  }
+  function quizTopics(key) {
+    var bank = window[SOURCES[key].global];
+    var topics = (bank && bank.topics) || [];
+    return topics.slice().sort(function (a, b) { return String(a.id).localeCompare(String(b.id), 'en', { numeric: true }); });
+  }
+  function loadScripts(paths, done) {
+    var remaining = paths.length, failed = false;
+    paths.forEach(function (path) {
+      var el = document.createElement('script');
+      el.src = path;
+      el.onload = function () { if (--remaining === 0) done(!failed); };
+      el.onerror = function () { failed = true; if (--remaining === 0) done(false); };
+      document.head.appendChild(el);
+    });
+  }
+  function fillSelect(select, options) {
+    select.innerHTML = '';
+    options.forEach(function (o) {
+      var opt = document.createElement('option');
+      opt.value = o[0]; opt.textContent = o[1];
+      select.appendChild(opt);
+    });
+  }
+
+  function buildCatalogue(key) {
+    var source = SOURCES[key];
+    catalogue = [];
+    if (source.kind === 'vocab') {
+      (readGlobal(source.global) || []).forEach(function (w) {
+        var term = w.latin || w.greek || '';
+        if (!term || !w.english) return;
+        catalogue.push({ term: term, english: w.english, chapter: typeof w.chapter === 'number' ? w.chapter : null });
+      });
+    } else {
+      quizTopics(key).forEach(function (topic) {
+        (topic.questions || []).forEach(function (q) {
+          catalogue.push({ term: q.q, english: (q.answers && q.answers[0]) || '', topic: topic.id });
+        });
+      });
+    }
+  }
+
+  function setupFilters(key) {
+    var isVocab = SOURCES[key].kind === 'vocab';
+    $('wqDirectionField').hidden = !isVocab;
+    $('wqFromField').hidden = !isVocab;
+    $('wqToField').hidden = !isVocab;
+    $('wqTopicField').hidden = isVocab;
+    if (isVocab) {
+      var chapters = [];
+      catalogue.forEach(function (it) { if (it.chapter !== null && chapters.indexOf(it.chapter) === -1) chapters.push(it.chapter); });
+      chapters.sort(function (a, b) { return a - b; });
+      var opts = chapters.map(function (c) { return [String(c), String(c)]; });
+      fillSelect($('wqFrom'), opts);
+      fillSelect($('wqTo'), opts);
+      if (chapters.length) { $('wqFrom').value = String(chapters[0]); $('wqTo').value = String(chapters[chapters.length - 1]); }
+    } else {
+      fillSelect($('wqTopic'), [['', 'All topics']].concat(quizTopics(key).map(function (t) { return [t.id, t.id + ' ' + t.title]; })));
+    }
+    $('wqFilters').hidden = false;
+    refreshImportStatus();
+  }
+
+  function matching() {
+    var key = $('wqSource').value;
+    if (!key || !loaded[key]) return [];
+    if (SOURCES[key].kind === 'vocab') {
+      var from = parseInt($('wqFrom').value, 10), to = parseInt($('wqTo').value, 10);
+      if (from > to) { var s = from; from = to; to = s; }
+      return catalogue.filter(function (it) { return it.chapter !== null && !(it.chapter < from) && !(it.chapter > to); });
+    }
+    var topic = $('wqTopic').value;
+    return catalogue.filter(function (it) { return !topic || it.topic === topic; });
+  }
+
+  function refreshImportStatus() {
+    var n = matching().length;
+    $('wqImportStatus').textContent = $('wqSource').value ? n + ' to choose from' : '';
+    $('wqImportAdd').disabled = !n;
+  }
+
+  $('wqImportToggle').addEventListener('click', function () {
+    var body = $('wqImportBody');
+    body.hidden = !body.hidden;
+    this.setAttribute('aria-expanded', String(!body.hidden));
+  });
+
+  $('wqSource').addEventListener('change', function () {
+    var key = this.value;
+    $('wqFilters').hidden = true;
+    $('wqDirectionField').hidden = true;
+    $('wqImportAdd').disabled = true;
+    if (!key) { $('wqImportStatus').textContent = ''; return; }
+    if (loaded[key]) { buildCatalogue(key); setupFilters(key); return; }
+    $('wqImportStatus').textContent = 'Loading…';
+    loadScripts(SOURCES[key].src, function (ok) {
+      if ($('wqSource').value !== key) return;
+      if (!ok) { $('wqImportStatus').textContent = 'That set could not be loaded. Check your connection and try again.'; return; }
+      loaded[key] = true;
+      buildCatalogue(key);
+      setupFilters(key);
+    });
+  });
+  ['wqFrom', 'wqTo', 'wqTopic'].forEach(function (id) { $(id).addEventListener('change', refreshImportStatus); });
+
+  function shuffled(list) {
+    var a = list.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  $('wqImportAdd').addEventListener('click', function () {
+    var key = $('wqSource').value;
+    var pool = matching();
+    var n = Math.max(1, parseInt($('wqHowMany').value, 10) || 10);
+    // The same word can sit in more than one chapter; ask it once.
+    var seen = {};
+    pool = shuffled(pool).filter(function (it) {
+      var k = it.term + '\u0000' + it.english;
+      if (seen[k]) return false;
+      seen[k] = true;
+      return true;
+    }).slice(0, n);
+    var reverse = SOURCES[key].kind === 'vocab' && $('wqDirection').value === 'english';
+    var lines = pool.map(function (it) {
+      var q = (reverse ? it.english : it.term).replace(/\|/g, '/');
+      var a = (reverse ? it.term : it.english).replace(/\r?\n/g, ' ');
+      return a ? q + ' | ' + a : q;
+    });
+    var current = listEl.value.replace(/\s+$/, '');
+    listEl.value = (current ? current + '\n' : '') + lines.join('\n');
+    update();
+    toast('Added ' + plural(lines.length, 'question') + '.');
+  });
+
+  /* ───────── running the quiz ───────── */
+  var board = $('board');
+  /* run.order holds the questions in the order they will be asked. Marking
+     a question "Again" adds it to the end, so it comes back in this quiz and
+     keeps coming back until it is banked. marks[pos] is what the teacher
+     chose at each place in the order; copies[pos] is where its repeat went. */
+  var run = null;
+  var timer = { total: 0, left: 0, running: false, handle: null, endsAt: 0 };
+  var picker = { names: [], bag: [], spin: null };
+  var countHandle = null;
+
+  /* sound: short tones made on the spot, so there is nothing to download */
+  var audio = null;
+  function beep(freq, ms, vol) {
+    if (!$('wqSound').checked) return;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      var o = audio.createOscillator(), g = audio.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol || 0.15, audio.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + ms / 1000);
+      o.connect(g); g.connect(audio.destination);
+      o.start(); o.stop(audio.currentTime + ms / 1000);
+    } catch (e) { /* no audio available */ }
+  }
+
+  function startRun(qs, title, shuffle) {
+    var order = qs.map(function (_, i) { return i; });
+    if (shuffle) order = shuffled(order);
+    run = { title: title, qs: qs, order: order, pos: -1, revealed: false, marks: [], copies: [] };
+    board.classList.toggle('dark', $('wqDark').checked);
+    $('bTitle').textContent = title;
+    $('bIntroTitle').textContent = title;
+    $('bIntroMeta').textContent = plural(qs.length, 'question') + (shuffle ? ', in a shuffled order' : '');
+    picker.names = $('wqNames').value.split(/\r?\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+    picker.bag = [];
+    showScreen('intro');
+  }
+
+  function openBoard() {
+    board.hidden = false;
+    document.body.style.overflow = 'hidden';
+    var el = document.documentElement;
+    if (el.requestFullscreen && !document.fullscreenElement) { el.requestFullscreen().catch(function () {}); }
+  }
+  function closeBoard() {
+    stopTimer();
+    closeOverlays();
+    board.hidden = true;
+    document.body.style.overflow = '';
+    if (document.fullscreenElement && document.exitFullscreen) { document.exitFullscreen().catch(function () {}); }
+    run = null;
+  }
+
+  $('wqStart').addEventListener('click', function () {
+    var qs = parse(listEl.value);
+    if (!qs.length) return;
+    startRun(qs, $('wqTitle').value.trim() || 'Mini whiteboard quiz', $('wqShuffle').checked);
+    openBoard();
+  });
+
+  function showScreen(which) {
+    $('bIntro').hidden = which !== 'intro';
+    $('bStage').hidden = which !== 'question';
+    $('bEnd').hidden = which !== 'end';
+    var inQ = which === 'question';
+    ['bPrev', 'bTimerBtn', 'bReveal', 'bGot', 'bAgain2'].forEach(function (id) { $(id).disabled = !inQ; });
+    $('bNext').disabled = which === 'end';
+    $('bTimer').hidden = !(inQ && Number($('wqTime').value) > 0);
+    $('bPick').hidden = !picker.names.length;
+    var total = run.order.length;
+    var done = which === 'end' ? total : Math.max(0, run.pos + (which === 'question' ? 1 : 0));
+    $('bProgress').style.width = (total ? (done / total) * 100 : 0) + '%';
+    var tally = counts();
+    var extra = (tally.banked ? ' \u00b7 ' + tally.banked + ' banked' : '') + (tally.coming ? ' \u00b7 ' + tally.coming + ' coming back' : '');
+    $('bProgressText').textContent = (which === 'question' ? (run.pos + 1) + ' of ' + total : (which === 'end' ? 'Finished' : plural(total, 'question'))) + extra;
+    if (which === 'end') renderEnd();
+  }
+
+  function current() { return run.qs[run.order[run.pos]]; }
+
+  function goTo(pos) {
+    stopTimer();
+    closeOverlays();
+    if (pos < 0) pos = 0;
+    if (pos >= run.order.length) { run.pos = run.order.length; showScreen('end'); return; }
+    run.pos = pos;
+    run.revealed = false;
+    showScreen('question');
+    renderQuestion();
+    var secs = Number($('wqTime').value);
+    resetTimer(secs);
+    if (secs > 0 && $('wqAutoTimer').checked) startTimer();
+  }
+
+  function renderQuestion() {
+    var item = current();
+    var qEl = $('bQ');
+    var k = run.order[run.pos];
+    var firstAt = run.order.indexOf(k);
+    var isRepeat = firstAt < run.pos;
+    qEl.innerHTML = '<span class="b-num">' + (isRepeat ? 'Back again' : 'Question ' + (run.pos + 1)) + '</span>' + formatText(item.q);
+    var aEl = $('bA');
+    if (run.revealed) {
+      if (item.a) { aEl.className = 'b-a shown'; aEl.innerHTML = formatText(item.a); }
+      else { aEl.className = 'b-a none'; aEl.textContent = 'No answer given. Check the boards.'; }
+    } else {
+      aEl.className = 'b-a hidden';
+      aEl.textContent = item.a ? 'Answer hidden. Press Space to reveal.' : 'Check the boards.';
+    }
+    var mark = run.marks[run.pos];
+    $('bRepeat').hidden = !isRepeat;
+    var go = run.order.slice(0, run.pos + 1).filter(function (x) { return x === k; }).length;
+    $('bRepeat').textContent = (['', 'First', 'Second', 'Third', 'Fourth', 'Fifth'][go] || go + 'th') + ' go';
+    $('bMark').hidden = !mark;
+    $('bMark').className = 'b-pill' + (mark === 'got' ? ' got' : '');
+    $('bMark').textContent = mark === 'got' ? 'Banked' : 'Coming back';
+    $('bGot').classList.toggle('on', mark === 'got');
+    $('bAgain2').classList.toggle('on', mark === 'again');
+    $('bReveal').innerHTML = (run.revealed ? 'Next' : 'Reveal') + ' <small>Space</small>';
+    fitAll();
+  }
+
+  /* Make the text as large as the space allows: start big and step down
+     until it fits, so a short word fills the screen and a long question
+     still shows in full. */
+  function fit(el, box, max, min) {
+    var size = max;
+    el.style.fontSize = size + 'px';
+    var guard = 0;
+    while (size > min && (el.scrollHeight > box.clientHeight || el.scrollWidth > box.clientWidth) && guard++ < 80) {
+      size = Math.max(min, Math.floor(size * 0.93));
+      el.style.fontSize = size + 'px';
+    }
+  }
+  function fitAll() {
+    if (!run || $('bStage').hidden) return;
+    var scale = Number($('wqSize').value) || 1;
+    var base = Math.min(window.innerWidth, window.innerHeight * 1.6);
+    fit($('bQ'), $('bQWrap'), Math.round(base * 0.075 * scale), 18);
+    var a = $('bA');
+    if (a.classList.contains('shown')) {
+      a.style.fontSize = '';
+      var inner = document.createElement('span');
+      inner.innerHTML = a.innerHTML;
+      a.innerHTML = '';
+      a.appendChild(inner);
+      fit(a, $('bAWrap'), Math.round(base * 0.06 * scale), 16);
+      inner.replaceWith.apply(inner, Array.prototype.slice.call(inner.childNodes));
+    } else {
+      a.style.fontSize = '';
+    }
+  }
+  window.addEventListener('resize', fitAll);
+  document.addEventListener('fullscreenchange', function () { setTimeout(fitAll, 60); });
+
+  function reveal(force) {
+    if (!run || $('bStage').hidden) return;
+    run.revealed = typeof force === 'boolean' ? force : !run.revealed;
+    if (run.revealed) stopTimer();
+    renderQuestion();
+  }
+
+  function advance() {
+    if (!run) return;
+    if (!$('bIntro').hidden) { goTo(0); return; }
+    if (!$('bEnd').hidden) return;
+    if (!run.revealed) { reveal(true); return; }
+    goTo(run.pos + 1);
+  }
+
+  /* ── banking ──
+     "Got it" banks the question; "Again" puts it back at the end of the
+     quiz. Either way the board moves on. Changing your mind on a question
+     before its repeat has come up takes the repeat away again. */
+  function counts() {
+    var last = {};
+    run.marks.forEach(function (m, p) { if (m) last[run.order[p]] = m; });
+    var banked = 0;
+    Object.keys(last).forEach(function (k) { if (last[k] === 'got') banked++; });
+    var coming = 0;
+    run.copies.forEach(function (c) { if (c !== undefined && c > run.pos) coming++; });
+    return { banked: banked, coming: coming };
+  }
+
+  function dropCopy(p) {
+    var c = run.copies[p];
+    if (c === undefined || c <= run.pos) return;
+    // Its own repeat goes too, if it has one.
+    dropCopy(c);
+    run.order.splice(c, 1);
+    run.marks.splice(c, 1);
+    run.copies.splice(c, 1);
+    run.copies = run.copies.map(function (x) { return x === undefined ? x : (x > c ? x - 1 : x); });
+    run.copies[p] = undefined;
+  }
+
+  function mark(kind) {
+    if (!run || $('bStage').hidden) return;
+    var p = run.pos;
+    if (run.marks[p] === kind) {
+      // Pressing the same mark again takes it off.
+      if (kind === 'again') dropCopy(p);
+      run.marks[p] = undefined;
+      renderQuestion();
+      showScreen('question');
+      return;
+    }
+    if (run.marks[p] === 'again') dropCopy(p);
+    run.marks[p] = kind;
+    if (kind === 'again') {
+      run.order.push(run.order[p]);
+      run.copies[p] = run.order.length - 1;
+      beep(330, 160, 0.12);
+    } else {
+      beep(700, 140, 0.12);
+    }
+    goTo(p + 1);
+  }
+
+  function renderEnd() {
+    var tries = {}, last = {}, asked = [];
+    run.order.forEach(function (k, p) {
+      if (asked.indexOf(k) === -1) asked.push(k);
+      if (run.marks[p] === 'again') tries[k] = (tries[k] || 0) + 1;
+      if (run.marks[p]) last[k] = run.marks[p];
+    });
+    var missed = asked.filter(function (k) { return tries[k]; });
+    var firstTime = asked.filter(function (k) { return !tries[k] && last[k] === 'got'; }).length;
+    var parts = [];
+    if (firstTime) parts.push(firstTime + ' banked first time');
+    if (missed.length) parts.push(plural(missed.length, 'question') + ' needed another go');
+    $('bEndMeta').textContent = parts.length ? parts.join(', ') + '.' : 'That was all ' + plural(asked.length, 'question') + '.';
+    $('bEndTitle').textContent = missed.length ? 'That’s the lot' : (firstTime === asked.length ? 'All banked' : 'That’s the lot');
+    $('bRedoMissed').hidden = !missed.length;
+    $('bRedoMissed').textContent = 'Go over the ' + (missed.length === 1 ? 'one that needed another go' : missed.length + ' that needed another go');
+    $('bReview').innerHTML = missed.length ? '<h3>Needed another go</h3>' + missed.map(function (k) {
+      var it = run.qs[k];
+      return '<div>' + formatText(it.q) + (it.a ? '<b>' + formatText(it.a) + '</b>' : '') +
+        '<span class="tries">' + (tries[k] === 1 ? 'asked twice' : 'asked ' + (tries[k] + 1) + ' times') + '</span></div>';
+    }).join('') : '';
+  }
+
+  $('bRedoMissed').addEventListener('click', function () {
+    var seen = {};
+    var qs = [];
+    run.order.forEach(function (k, p) {
+      if (run.marks[p] === 'again' && !seen[k]) { seen[k] = true; qs.push(run.qs[k]); }
+    });
+    if (!qs.length) return;
+    startRun(qs, run.title.replace(/ \(again\)$/, '') + ' (again)', true);
+    goTo(0);
+  });
+  $('bAgain').addEventListener('click', function () { startRun(run.qs, run.title, true); goTo(0); });
+  $('bDone').addEventListener('click', closeBoard);
+  $('bExit').addEventListener('click', closeBoard);
+  $('bBegin').addEventListener('click', function () { goTo(0); });
+  $('bPrev').addEventListener('click', function () { if (run.pos > 0) goTo(run.pos - 1); });
+  $('bNext').addEventListener('click', function () { if (!$('bIntro').hidden) goTo(0); else goTo(run.pos + 1); });
+  $('bReveal').addEventListener('click', advance);
+  $('bA').addEventListener('click', function () { if (!run.revealed) reveal(true); });
+  $('bGot').addEventListener('click', function () { mark('got'); });
+  $('bAgain2').addEventListener('click', function () { mark('again'); });
+  $('bFull').addEventListener('click', function () {
+    if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
+    else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(function () {});
+  });
+
+  /* ── the timer ── */
+  function resetTimer(secs) {
+    timer.total = secs; timer.left = secs; timer.running = false;
+    clearInterval(timer.handle);
+    drawTimer();
+  }
+  function startTimer() {
+    if (timer.total <= 0) return;
+    if (timer.left <= 0) timer.left = timer.total;
+    timer.running = true;
+    timer.endsAt = Date.now() + timer.left * 1000;
+    clearInterval(timer.handle);
+    timer.handle = setInterval(tick, 200);
+    drawTimer();
+  }
+  function stopTimer() {
+    if (timer.running) timer.left = Math.max(0, (timer.endsAt - Date.now()) / 1000);
+    timer.running = false;
+    clearInterval(timer.handle);
+    drawTimer();
+  }
+  function toggleTimer() {
+    if (!run || $('bStage').hidden) return;
+    if (timer.total <= 0) {
+      // No thinking time set: T still gives a quick 30 seconds.
+      timer.total = 30; timer.left = 30;
+      $('bTimer').hidden = false;
+    }
+    if (timer.running) stopTimer(); else startTimer();
+  }
+  function tick() {
+    timer.left = Math.max(0, (timer.endsAt - Date.now()) / 1000);
+    drawTimer();
+    if (timer.left <= 0) {
+      timer.running = false;
+      clearInterval(timer.handle);
+      drawTimer();
+      if ($('wqBoardsAfter').checked) boardsUp(true); else beep(660, 500, 0.2);
+    }
+  }
+  function drawTimer() {
+    var left = Math.ceil(timer.left);
+    var mins = Math.floor(left / 60), secs = left % 60;
+    $('bTimerNum').textContent = timer.total > 0 ? (mins ? mins + ':' + (secs < 10 ? '0' : '') + secs : String(secs)) : '';
+    var bar = $('bTimerBar');
+    bar.style.width = (timer.total > 0 ? (timer.left / timer.total) * 100 : 0) + '%';
+    bar.classList.toggle('low', timer.total > 0 && timer.left <= Math.min(5, timer.total / 4));
+    $('bTimerBtn').innerHTML = (timer.running ? 'Pause' : (timer.left > 0 && timer.left < timer.total ? 'Resume' : 'Timer')) + ' <small>T</small>';
+  }
+
+  /* ── boards up ── */
+  function boardsUp(skipCount) {
+    if (!run) return;
+    closeOverlays();
+    stopTimer();
+    var over = $('bCountOver'), el = $('bCount');
+    over.hidden = false;
+    var steps = skipCount ? ['go'] : [3, 2, 1, 'go'];
+    var i = 0;
+    function step() {
+      var s = steps[i++];
+      if (s === undefined) { over.hidden = true; return; }
+      el.className = 'b-count' + (s === 'go' ? ' go' : '');
+      el.textContent = s === 'go' ? 'Boards up!' : String(s);
+      // restart the animation
+      void el.offsetWidth;
+      if (s === 'go') { beep(880, 600, 0.22); } else { beep(520, 160, 0.15); }
+      countHandle = setTimeout(step, s === 'go' ? 1600 : 900);
+    }
+    step();
+  }
+  $('bBoards').addEventListener('click', function () { boardsUp(false); });
+  $('bCountOver').addEventListener('click', function () { closeOverlays(); });
+
+  /* ── pupil picker ──
+     Everyone is drawn once before anyone comes up again. */
+  function pickPupil() {
+    if (!run || !picker.names.length) return;
+    closeOverlays();
+    if (!picker.bag.length) picker.bag = shuffled(picker.names);
+    var chosen = picker.bag.pop();
+    var over = $('bPickOver'), nameEl = $('bPickName');
+    over.hidden = false;
+    nameEl.classList.remove('landed');
+    var spins = picker.names.length > 1 ? 14 : 0, n = 0;
+    function spin() {
+      if (n++ < spins) {
+        nameEl.textContent = picker.names[Math.floor(Math.random() * picker.names.length)];
+        beep(400 + n * 20, 40, 0.05);
+        picker.spin = setTimeout(spin, 40 + n * 9);
+      } else {
+        nameEl.textContent = chosen;
+        void nameEl.offsetWidth;
+        nameEl.classList.add('landed');
+        beep(784, 300, 0.18);
+      }
+    }
+    spin();
+    $('bPickHint').textContent = (picker.bag.length ? picker.bag.length + ' still to be picked' : 'Everyone has been picked; the next round starts again') +
+      ' · P for someone else · Esc or click to close';
+  }
+  $('bPick').addEventListener('click', pickPupil);
+  $('bPickOver').addEventListener('click', closeOverlays);
+
+  $('bHelp').addEventListener('click', function () { var h = $('bHelpOver'); var was = h.hidden; closeOverlays(); h.hidden = !was; });
+  $('bHelpOver').addEventListener('click', closeOverlays);
+
+  function overlayOpen() { return !$('bCountOver').hidden || !$('bPickOver').hidden || !$('bHelpOver').hidden; }
+  function closeOverlays() {
+    clearTimeout(countHandle);
+    clearTimeout(picker.spin);
+    $('bCountOver').hidden = true;
+    $('bPickOver').hidden = true;
+    $('bHelpOver').hidden = true;
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (board.hidden || !run) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key;
+    if (k === 'Escape') {
+      e.preventDefault();
+      if (overlayOpen()) closeOverlays(); else if (!document.fullscreenElement) closeBoard();
+      return;
+    }
+    if (k === 'p' || k === 'P') { e.preventDefault(); pickPupil(); return; }
+    if (k === '?' || k === 'h' || k === 'H') { e.preventDefault(); $('bHelp').click(); return; }
+    if (overlayOpen()) {
+      if (k === ' ' || k === 'Enter') { e.preventDefault(); closeOverlays(); }
+      return;
+    }
+    switch (k) {
+      case ' ': case 'Enter': e.preventDefault(); advance(); break;
+      case 'ArrowRight': case 'PageDown': e.preventDefault(); $('bNext').click(); break;
+      case 'ArrowLeft': case 'PageUp': e.preventDefault(); if ($('bStage').hidden && run.pos >= run.order.length) goTo(run.order.length - 1); else $('bPrev').click(); break;
+      case 'r': case 'R': e.preventDefault(); reveal(); break;
+      case 't': case 'T': e.preventDefault(); toggleTimer(); break;
+      case 'b': case 'B': e.preventDefault(); boardsUp(false); break;
+      case 'g': case 'G': e.preventDefault(); mark('got'); break;
+      case 'a': case 'A': e.preventDefault(); mark('again'); break;
+    }
+  });
+  // Leaving full screen with Esc is the browser's own; a second Esc then exits the quiz.
+
+  $('bTimerBtn').addEventListener('click', toggleTimer);
+
+  /* ── start up ── */
+  var draft = readStore(DRAFT_KEY, null);
+  if (draft) {
+    applySettings(draft.settings);
+    if (typeof draft.list === 'string') listEl.value = draft.list;
+  }
+  loadFromHash();
+  renderSets();
+  update();
+})();
+</script>
+<div data-shell="footer"></div>
+</body>
+</html>
