@@ -160,9 +160,6 @@
   /* Line spacing (--ls) scales the question text; 1 leaves the sheet as designed. */
   .sheet.ls-set td.q { line-height: calc(1.25 * var(--ls, 1)); }
   .sheet table.gf td.q, .sheet td.q.gfq { font-weight: 400; line-height: calc(2.6 * var(--ls, 1)); padding: 1px 12px; }
-  /* A gap fill row dragged taller in the preview: every row takes that height,
-     with the sentence centred in it. */
-  .sheet.gf-sized table.gf td.q, .sheet.gf-sized td.q.gfq { height: var(--gf-h); box-sizing: border-box; vertical-align: middle; }
   .sheet table.gf td.q .qnum, .sheet td.gfq .qnum { font-weight: 700; }
   /* a gap fill section's word bank, inside a mixed sheet's table */
   .sheet td.bank { padding: 7px 12px; font-size: 12pt; line-height: 1.7; }
@@ -318,12 +315,11 @@
           <div class="dn-field">
             <label for="dnLeading">Line spacing</label>
             <div class="dn-range">
-              <input type="range" id="dnLeading" min="0.8" max="2.5" step="0.05" value="1">
+              <input type="range" id="dnLeading" min="0.8" max="5" step="0.01" value="1">
               <output id="dnLeadingOut" for="dnLeading">Normal</output>
             </div>
           </div>
         </div>
-        <input type="hidden" id="dnGapH" value="">
 
         <div class="dn-field" style="margin-top: 14px;">
           <label for="dnInstr">Instruction line (optional)</label>
@@ -477,7 +473,7 @@
     <div style="margin-top: 16px;" class="dn-print-hide">
       <button class="dn-btn primary big" id="dnPrint" type="button">Print sheet</button>
       <button class="dn-btn big" id="dnWord" type="button" style="margin-top: 8px;">Download as Word</button>
-      <p class="dn-note">To fill the page, drag the bottom edge of any question in the preview: every row of that kind grows or shrinks with it. Double-click the edge to put it back. <button class="dn-link-btn" id="dnResetSizes" type="button" hidden>Reset row heights and line spacing</button></p>
+      <p class="dn-note">To fill the page, drag the bottom edge of any question in the preview. In a gap fill this spaces the lines out (the same as the line spacing slider); in a question table every answer space grows or shrinks with it. Double-click the edge to put it back. <button class="dn-link-btn" id="dnResetSizes" type="button" hidden>Reset row heights and line spacing</button></p>
       <p class="dn-note">Printing opens your browser's print dialogue. Choose A4 and, if the sheet looks cramped, turn off "headers and footers" there.</p>
     </div>
   </aside>
@@ -516,7 +512,7 @@
   var sheetEl = document.getElementById('dnSheet');
   var stageEl = document.getElementById('dnStage');
 
-  var settingIds = ['dnType', 'dnBank', 'dnKey', 'dnTitle', 'dnName', 'dnDate', 'dnLeft', 'dnRight', 'dnSpace', 'dnSplit', 'dnLines', 'dnFont', 'dnLeading', 'dnGapH', 'dnInstr', 'dnScore', 'dnNumbers', 'dnRestart', 'dnFooter'];
+  var settingIds = ['dnType', 'dnBank', 'dnKey', 'dnTitle', 'dnName', 'dnDate', 'dnLeft', 'dnRight', 'dnSpace', 'dnSplit', 'dnLines', 'dnFont', 'dnLeading', 'dnInstr', 'dnScore', 'dnNumbers', 'dnRestart', 'dnFooter'];
 
   function question(text) { return { type: 'q', text: text || '' }; }
   // A section's kind is 'table' (questions), 'gapfill', or '' to follow the sheet type.
@@ -1037,9 +1033,10 @@
   var A4_HEIGHT_PX = 29.7 / 2.54 * 96;   // portrait A4 at 96dpi
 
   /* ── row heights and line spacing ──
-     Line spacing scales the question text. A gap fill row's height is set by
-     dragging its bottom edge in the preview; a question row's by its answer
-     space, which the same drag changes. */
+     Line spacing scales the question text. Dragging a gap fill row's bottom
+     edge in the preview changes the line spacing, so the sentences spread out
+     evenly and keep the same margin to the box; dragging a question row
+     changes its answer space. */
   var SPACE_DEFAULT = '35';
 
   function leading() {
@@ -1051,12 +1048,8 @@
     var ls = leading();
     sheetEl.style.setProperty('--ls', String(ls));
     sheetEl.classList.toggle('ls-set', Math.abs(ls - 1) > 0.001);
-    var gh = parseInt(val('dnGapH'), 10);
-    if (gh > 0) { sheetEl.style.setProperty('--gf-h', gh + 'px'); }
-    else { sheetEl.style.removeProperty('--gf-h'); }
-    sheetEl.classList.toggle('gf-sized', gh > 0);
     document.getElementById('dnLeadingOut').textContent = Math.abs(ls - 1) > 0.001 ? ls.toFixed(2) + '\u00d7' : 'Normal';
-    var resized = gh > 0 || Math.abs(ls - 1) > 0.001 || val('dnSpace') !== SPACE_DEFAULT;
+    var resized = Math.abs(ls - 1) > 0.001 || val('dnSpace') !== SPACE_DEFAULT;
     document.getElementById('dnResetSizes').hidden = !resized;
   }
 
@@ -1103,7 +1096,9 @@
     if (drag) {
       var delta = (e.clientY - drag.startY) / drag.scale;
       if (drag.gap) {
-        document.getElementById('dnGapH').value = String(Math.max(24, Math.min(600, Math.round(drag.start + delta))));
+        // The lines stay the same in number, so the text grows in proportion.
+        var ls = drag.ls * Math.max(0.1, (drag.start + delta) / drag.start);
+        document.getElementById('dnLeading').value = String(Math.max(0.8, Math.min(5, Math.round(ls * 100) / 100)));
       } else {
         setSpace(Math.max(14, Math.min(600, Math.round(drag.start + delta))));
       }
@@ -1126,11 +1121,14 @@
     e.preventDefault();
     if (sheetEl.contains(document.activeElement)) { document.activeElement.blur(); }
     var scale = sheetEl.getBoundingClientRect().width / (sheetEl.offsetWidth || 1);
+    var cs = window.getComputedStyle(hit.cell);
+    var textH = hit.cell.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
     drag = {
+      ls: leading(),
       gap: hit.gap,
       startY: e.clientY,
       scale: scale || 1,
-      start: hit.gap ? hit.cell.offsetHeight : (parseInt(val('dnSpace'), 10) || 35)
+      start: hit.gap ? Math.max(1, textH) : (parseInt(val('dnSpace'), 10) || 35)
     };
     document.body.classList.add('dn-resizing');
     try { sheetEl.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
@@ -1156,13 +1154,12 @@
     var hit = edgeRow(e);
     if (!hit) return;
     e.preventDefault();
-    if (hit.gap) { document.getElementById('dnGapH').value = ''; }
+    if (hit.gap) { document.getElementById('dnLeading').value = '1'; }
     else { setSpace(SPACE_DEFAULT); }
     update();
   });
 
   document.getElementById('dnResetSizes').addEventListener('click', function () {
-    document.getElementById('dnGapH').value = '';
     document.getElementById('dnLeading').value = '1';
     setSpace(SPACE_DEFAULT);
     update();
@@ -1259,7 +1256,7 @@
   }
 
   // Settings older sets never had, so loading one puts them back to normal.
-  var SIZE_DEFAULTS = { dnLeading: '1', dnGapH: '' };
+  var SIZE_DEFAULTS = { dnLeading: '1' };
 
   function applySettings(settings) {
     if (!settings) return;
