@@ -107,6 +107,14 @@
   .dn-preview-wrap { background: var(--cream); border: 1px solid var(--rule); border-radius: 12px; padding: 18px; overflow: hidden; }
   .dn-preview-label { font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
   .dn-preview-stage { width: 100%; overflow: hidden; }
+  /* Dragging a row's bottom edge resizes every row like it. */
+  .sheet.dn-edge, .sheet.dn-edge *, body.dn-resizing, body.dn-resizing * { cursor: row-resize !important; }
+  body.dn-resizing { user-select: none; -webkit-user-select: none; }
+  .dn-range { display: flex; align-items: center; gap: 10px; height: 38px; }
+  .dn-range input { flex: 1; min-width: 0; accent-color: var(--brand); cursor: pointer; }
+  .dn-range output { flex: none; min-width: 52px; font-size: 13px; color: var(--navy); font-variant-numeric: tabular-nums; }
+  .dn-link-btn { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; color: var(--brand); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; }
+  .dn-link-btn[hidden] { display: none; }
 
   /* the sheet itself — shared by preview and print */
   .sheet { width: 21cm; min-height: 29.7cm; padding: 1.5cm; background: #fff; color: #000;
@@ -149,7 +157,12 @@
   /* gap fill: one sentence per row, a blank for each [bracketed] word */
   /* Tall lines, so there is room to write on each blank, even when a
      sentence wraps and the blank falls on its second line. */
-  .sheet table.gf td.q, .sheet td.gfq { font-weight: 400; line-height: 2.6; padding: 1px 12px; }
+  /* Line spacing (--ls) scales the question text; 1 leaves the sheet as designed. */
+  .sheet.ls-set td.q { line-height: calc(1.25 * var(--ls, 1)); }
+  .sheet table.gf td.q, .sheet td.q.gfq { font-weight: 400; line-height: calc(2.6 * var(--ls, 1)); padding: 1px 12px; }
+  /* A gap fill row dragged taller in the preview: every row takes that height,
+     with the sentence centred in it. */
+  .sheet.gf-sized table.gf td.q, .sheet.gf-sized td.q.gfq { height: var(--gf-h); box-sizing: border-box; vertical-align: middle; }
   .sheet table.gf td.q .qnum, .sheet td.gfq .qnum { font-weight: 700; }
   /* a gap fill section's word bank, inside a mixed sheet's table */
   .sheet td.bank { padding: 7px 12px; font-size: 12pt; line-height: 1.7; }
@@ -302,7 +315,15 @@
               <option value="comic" style="font-family: 'Comic Sans MS', 'Comic Sans', cursive;">Comic Sans MS</option>
             </select>
           </div>
+          <div class="dn-field">
+            <label for="dnLeading">Line spacing</label>
+            <div class="dn-range">
+              <input type="range" id="dnLeading" min="0.8" max="2.5" step="0.05" value="1">
+              <output id="dnLeadingOut" for="dnLeading">Normal</output>
+            </div>
+          </div>
         </div>
+        <input type="hidden" id="dnGapH" value="">
 
         <div class="dn-field" style="margin-top: 14px;">
           <label for="dnInstr">Instruction line (optional)</label>
@@ -456,6 +477,7 @@
     <div style="margin-top: 16px;" class="dn-print-hide">
       <button class="dn-btn primary big" id="dnPrint" type="button">Print sheet</button>
       <button class="dn-btn big" id="dnWord" type="button" style="margin-top: 8px;">Download as Word</button>
+      <p class="dn-note">To fill the page, drag the bottom edge of any question in the preview: every row of that kind grows or shrinks with it. Double-click the edge to put it back. <button class="dn-link-btn" id="dnResetSizes" type="button" hidden>Reset row heights and line spacing</button></p>
       <p class="dn-note">Printing opens your browser's print dialogue. Choose A4 and, if the sheet looks cramped, turn off "headers and footers" there.</p>
     </div>
   </aside>
@@ -494,7 +516,7 @@
   var sheetEl = document.getElementById('dnSheet');
   var stageEl = document.getElementById('dnStage');
 
-  var settingIds = ['dnType', 'dnBank', 'dnKey', 'dnTitle', 'dnName', 'dnDate', 'dnLeft', 'dnRight', 'dnSpace', 'dnSplit', 'dnLines', 'dnFont', 'dnInstr', 'dnScore', 'dnNumbers', 'dnRestart', 'dnFooter'];
+  var settingIds = ['dnType', 'dnBank', 'dnKey', 'dnTitle', 'dnName', 'dnDate', 'dnLeft', 'dnRight', 'dnSpace', 'dnSplit', 'dnLines', 'dnFont', 'dnLeading', 'dnGapH', 'dnInstr', 'dnScore', 'dnNumbers', 'dnRestart', 'dnFooter'];
 
   function question(text) { return { type: 'q', text: text || '' }; }
   // A section's kind is 'table' (questions), 'gapfill', or '' to follow the sheet type.
@@ -872,6 +894,7 @@
     var instr = val('dnInstr').trim();
 
     sheetEl.setAttribute('data-font', val('dnFont'));
+    applySizing();
     var qs = list.filter(function (entry) { return entry.type !== 'section'; });
     var allGap = qs.length ? qs.every(function (entry) { return entry.kind === 'gapfill'; }) : isGapFill();
     if (allGap) { buildGapSheet(list, title, name, date, instr); return; }
@@ -1013,6 +1036,138 @@
 
   var A4_HEIGHT_PX = 29.7 / 2.54 * 96;   // portrait A4 at 96dpi
 
+  /* ── row heights and line spacing ──
+     Line spacing scales the question text. A gap fill row's height is set by
+     dragging its bottom edge in the preview; a question row's by its answer
+     space, which the same drag changes. */
+  var SPACE_DEFAULT = '35';
+
+  function leading() {
+    var ls = parseFloat(val('dnLeading'));
+    return isFinite(ls) && ls > 0 ? ls : 1;
+  }
+
+  function applySizing() {
+    var ls = leading();
+    sheetEl.style.setProperty('--ls', String(ls));
+    sheetEl.classList.toggle('ls-set', Math.abs(ls - 1) > 0.001);
+    var gh = parseInt(val('dnGapH'), 10);
+    if (gh > 0) { sheetEl.style.setProperty('--gf-h', gh + 'px'); }
+    else { sheetEl.style.removeProperty('--gf-h'); }
+    sheetEl.classList.toggle('gf-sized', gh > 0);
+    document.getElementById('dnLeadingOut').textContent = Math.abs(ls - 1) > 0.001 ? ls.toFixed(2) + '\u00d7' : 'Normal';
+    var resized = gh > 0 || Math.abs(ls - 1) > 0.001 || val('dnSpace') !== SPACE_DEFAULT;
+    document.getElementById('dnResetSizes').hidden = !resized;
+  }
+
+  // A dragged answer space is rarely one of the listed sizes, so it gets its own option.
+  function setSpace(px) {
+    var sel = document.getElementById('dnSpace');
+    var v = String(px);
+    var custom = sel.querySelector('option[data-custom]');
+    var listed = [].some.call(sel.options, function (o) { return !o.hasAttribute('data-custom') && o.value === v; });
+    if (listed) {
+      if (custom) custom.remove();
+    } else {
+      if (!custom) {
+        custom = document.createElement('option');
+        custom.setAttribute('data-custom', '');
+        sel.appendChild(custom);
+      }
+      custom.value = v;
+      custom.textContent = 'Custom \u2014 ' + v + 'px';
+    }
+    sel.value = v;
+  }
+
+  // The question row whose bottom edge the pointer is on, if any.
+  var EDGE_PX = 5;
+  function edgeRow(e) {
+    var rows = sheetEl.querySelectorAll('tbody tr');
+    for (var i = 0; i < rows.length; i++) {
+      var cell = rows[i].querySelector('td.q');
+      if (!cell) continue;
+      var r = rows[i].getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right) continue;
+      if (Math.abs(e.clientY - r.bottom) <= EDGE_PX) return { row: rows[i], cell: cell, gap: isGapCell(cell) };
+    }
+    return null;
+  }
+  function isGapCell(cell) {
+    return cell.classList.contains('gfq') || !!cell.closest('table.gf');
+  }
+
+  var drag = null;
+
+  sheetEl.addEventListener('pointermove', function (e) {
+    if (drag) {
+      var delta = (e.clientY - drag.startY) / drag.scale;
+      if (drag.gap) {
+        document.getElementById('dnGapH').value = String(Math.max(24, Math.min(600, Math.round(drag.start + delta))));
+      } else {
+        setSpace(Math.max(14, Math.min(600, Math.round(drag.start + delta))));
+      }
+      update();
+      return;
+    }
+    if (e.pointerType === 'mouse' || e.pointerType === 'pen') {
+      sheetEl.classList.toggle('dn-edge', !!edgeRow(e));
+    }
+  });
+
+  sheetEl.addEventListener('pointerleave', function () {
+    if (!drag) sheetEl.classList.remove('dn-edge');
+  });
+
+  sheetEl.addEventListener('pointerdown', function (e) {
+    if (e.button !== 0) return;
+    var hit = edgeRow(e);
+    if (!hit) return;
+    e.preventDefault();
+    if (sheetEl.contains(document.activeElement)) { document.activeElement.blur(); }
+    var scale = sheetEl.getBoundingClientRect().width / (sheetEl.offsetWidth || 1);
+    drag = {
+      gap: hit.gap,
+      startY: e.clientY,
+      scale: scale || 1,
+      start: hit.gap ? hit.cell.offsetHeight : (parseInt(val('dnSpace'), 10) || 35)
+    };
+    document.body.classList.add('dn-resizing');
+    try { sheetEl.setPointerCapture(e.pointerId); } catch (err) { /* older browsers */ }
+  });
+
+  // Starting a drag must not drop the caret into the question under the pointer.
+  sheetEl.addEventListener('mousedown', function (e) {
+    if (drag || edgeRow(e)) e.preventDefault();
+  });
+
+  function endDrag(e) {
+    if (!drag) return;
+    drag = null;
+    document.body.classList.remove('dn-resizing');
+    sheetEl.classList.remove('dn-edge');
+    try { sheetEl.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
+    update();
+  }
+  sheetEl.addEventListener('pointerup', endDrag);
+  sheetEl.addEventListener('pointercancel', endDrag);
+
+  sheetEl.addEventListener('dblclick', function (e) {
+    var hit = edgeRow(e);
+    if (!hit) return;
+    e.preventDefault();
+    if (hit.gap) { document.getElementById('dnGapH').value = ''; }
+    else { setSpace(SPACE_DEFAULT); }
+    update();
+  });
+
+  document.getElementById('dnResetSizes').addEventListener('click', function () {
+    document.getElementById('dnGapH').value = '';
+    document.getElementById('dnLeading').value = '1';
+    setSpace(SPACE_DEFAULT);
+    update();
+  });
+
   function scalePreview() {
     // The sheet is a real A4 page; shrink it to fit the preview column.
     var available = stageEl.clientWidth;
@@ -1103,11 +1258,18 @@
     return questionsEl.querySelectorAll('.dn-q-input');
   }
 
+  // Settings older sets never had, so loading one puts them back to normal.
+  var SIZE_DEFAULTS = { dnLeading: '1', dnGapH: '' };
+
   function applySettings(settings) {
     if (!settings) return;
     settingIds.forEach(function (id) {
-      if (!(id in settings)) return;
       var el = document.getElementById(id);
+      if (!(id in settings)) {
+        if (id in SIZE_DEFAULTS) el.value = SIZE_DEFAULTS[id];
+        return;
+      }
+      if (id === 'dnSpace') { setSpace(settings[id] || SPACE_DEFAULT); return; }
       if (el.type === 'checkbox') { el.checked = !!settings[id]; }
       else { el.value = settings[id]; }
     });
