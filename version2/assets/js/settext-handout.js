@@ -199,9 +199,9 @@
           W.border('insideH', { color: 'D5D9E2' }) + W.border('insideV', { color: 'D5D9E2' });
         x += W.table(rows, widths, { borders: grey, margins: [100, 140, 100, 140] });
         if (o.english && !side) {
-          x += '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+          // straight on under the text, on the same page if it fits
           var h2 = { size: 13, bold: true };
-          x += W.para(W.textRun('Translation', h2), { after: 6 }, h2);
+          x += W.para(W.textRun('Translation', h2), { before: 14, after: 6, keepNext: true }, h2);
           if (m.verse) m.units.forEach(function (u) { x += englishXml(u); });
           else x += W.para(W.textRun(allEnglish(m), ef), { atLeast: ENGLISH_PT * 1.5 }, ef);
         }
@@ -231,7 +231,7 @@
     ov.setAttribute('aria-label', 'Handout');
     ov.innerHTML = '<div class="ho-bar">' +
       '<span class="ho-t1">Handout</span>' +
-      '<span class="ho-grp"><span class="ho-lab">Translation</span><span class="seg"><button class="btn" data-ho="layout" data-v="side">Beside the text</button><button class="btn" data-ho="layout" data-v="after">After the text</button></span>' +
+      '<span class="ho-grp"><span class="ho-lab">Translation</span><span class="seg"><button class="btn" data-ho="layout" data-v="side">Beside the text</button><button class="btn" data-ho="layout" data-v="after">Under the text</button></span>' +
       '<button class="btn" data-ho="english">Include</button></span>' +
       '<label class="ho-grp ho-gap"><span class="ho-lab">Space between lines</span><input type="range" data-gap min="' + GAP.min + '" max="' + GAP.max + '" step="' + GAP.step + '"><output data-gap-out></output></label>' +
       '<button class="btn" data-ho="notes">Notes column</button></span>' +
