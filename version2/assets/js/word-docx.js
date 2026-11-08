@@ -400,11 +400,40 @@
       { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   }
 
+  /* ── fonts carried inside the file ──
+
+     Word reads a font from the file itself when it is listed in the font
+     table with its bytes alongside. The first 32 bytes are scrambled with
+     a key named in the table (ECMA-376 17.8.1); the rest is the font as it
+     is. So a document set in the site's own fonts looks the same on a
+     computer that does not have them. */
+
+  function fontKey() {
+    var h = '';
+    for (var i = 0; i < 32; i++) h += '0123456789ABCDEF'.charAt(Math.floor(Math.random() * 16));
+    return '{' + h.substr(0, 8) + '-' + h.substr(8, 4) + '-' + h.substr(12, 4) + '-' + h.substr(16, 4) + '-' + h.substr(20) + '}';
+  }
+
+  function obfuscate(buffer, key) {
+    var hex = key.replace(/[{}-]/g, ''), k = [];
+    for (var i = 0; i < 16; i++) k.push(parseInt(hex.substr(30 - 2 * i, 2), 16));
+    var out = new Uint8Array(buffer.slice(0));
+    for (var j = 0; j < 32; j++) out[j] ^= k[j % 16];
+    return out;
+  }
+
+  function loadFont(url) {
+    return fetch(url).then(function (r) { if (!r.ok) throw new Error(url); return r.arrayBuffer(); });
+  }
+
   /* ── putting a document together ──
 
      o: {
        landscape, margins: [top, right, bottom, left] in twips, font (a
-       FONTS key), size (default text size, pt), title, creator,
+       FONTS key) or fontName (any font's name), size (default text size,
+       pt), title, creator,
+       fonts: [{ name, family ('roman' or 'swiss'), regular, bold }] to
+         carry inside the file, regular and bold the URLs of .ttf files,
        pictures: [{ key, src }],
        body: function (ctx) → the body XML, where ctx.width is the width of
          the writing on the page in twips and ctx.picture(key, heightCm,
@@ -418,9 +447,30 @@
     var width = pageW - m[1] - m[3];
 
     var pictures = (o.pictures || []).map(function (p) { return { key: p.key, src: p.src }; });
+    // a font that will not load is left out, and Word falls back to one of its own
+    var fonts = [];
+    (o.fonts || []).forEach(function (f) {
+      ['regular', 'bold'].forEach(function (style) { if (f[style]) fonts.push({ name: f.name, family: f.family || 'auto', style: style, url: f[style] }); });
+    });
     return Promise.all(pictures.map(function (p) {
       return loadPicture(p.src).then(function (r) { p.bytes = r.bytes; p.ext = r.ext; p.ratio = r.ratio; }, function () { p.bytes = null; });
-    })).then(function () {
+    }).concat(fonts.map(function (f) {
+      return loadFont(f.url).then(function (b) { f.key = fontKey(); f.bytes = obfuscate(b, f.key); }, function () { f.bytes = null; });
+    }))).then(function () {
+      fonts = fonts.filter(function (f) { return f.bytes; });
+      fonts.forEach(function (f, i) { f.n = i + 1; f.id = 'rIdFont' + f.n; });
+      var families = [];
+      fonts.forEach(function (f) { if (families.indexOf(f.name) < 0) families.push(f.name); });
+      var fontTable = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:fonts ' + NS + '>' +
+        families.map(function (name) {
+          var mine = fonts.filter(function (f) { return f.name === name; });
+          return '<w:font w:name="' + esc(name) + '"><w:charset w:val="00"/><w:family w:val="' + mine[0].family + '"/><w:pitch w:val="variable"/>' +
+            mine.map(function (f) { return '<w:embed' + (f.style === 'bold' ? 'Bold' : 'Regular') + ' r:id="' + f.id + '" w:fontKey="' + f.key + '"/>'; }).join('') + '</w:font>';
+        }).join('') + '</w:fonts>';
+      var fontRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        fonts.map(function (f) { return '<Relationship Id="' + f.id + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/font" Target="fonts/font' + f.n + '.odttf"/>'; }).join('') +
+        '</Relationships>';
       var media = pictures.filter(function (p) { return p.bytes; });
       media.forEach(function (p, i) { p.n = i + 1; p.id = 'rIdImg' + p.n; });
 
@@ -447,6 +497,7 @@
         '<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
         '<Relationship Id="rIdNumbering" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>' +
         '<Relationship Id="rIdSettings" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>' +
+        (fonts.length ? '<Relationship Id="rIdFontTable" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/>' : '') +
         (foot ? '<Relationship Id="rIdFooter" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/>' : '') +
         media.map(function (p) {
           return '<Relationship Id="' + p.id + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image' + p.n + '.' + p.ext + '"/>';
@@ -457,6 +508,8 @@
         '<Default Extension="xml" ContentType="application/xml"/>' +
         '<Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/>' +
         '<Default Extension="gif" ContentType="image/gif"/>' +
+        (fonts.length ? '<Default Extension="odttf" ContentType="application/vnd.openxmlformats-officedocument.obfuscatedFont"/>' +
+          '<Override PartName="/word/fontTable.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml"/>' : '') +
         '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
         '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' +
         '<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>' +
@@ -482,15 +535,20 @@
         { name: '_rels/.rels', data: rootRels },
         { name: 'docProps/core.xml', data: core },
         { name: 'word/document.xml', data: doc },
-        { name: 'word/styles.xml', data: stylesXml(FONTS[o.font] || 'Arial', o.size) },
+        { name: 'word/styles.xml', data: stylesXml(o.fontName || FONTS[o.font] || 'Arial', o.size) },
         { name: 'word/numbering.xml', data: NUMBERING },
-        { name: 'word/settings.xml', data: SETTINGS },
+        // embedTrueTypeFonts keeps the fonts in the file when Word saves it again
+        { name: 'word/settings.xml', data: fonts.length ? SETTINGS.replace('<w:defaultTabStop', '<w:embedTrueTypeFonts/><w:defaultTabStop') : SETTINGS },
         { name: 'word/_rels/document.xml.rels', data: rels }
       ];
       if (foot) {
         files.push({ name: 'word/footer1.xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr ' + NS + '>' + foot + '</w:ftr>' });
       }
       media.forEach(function (p) { files.push({ name: 'word/media/image' + p.n + '.' + p.ext, data: p.bytes }); });
+      if (fonts.length) {
+        files.push({ name: 'word/fontTable.xml', data: fontTable }, { name: 'word/_rels/fontTable.xml.rels', data: fontRels });
+        fonts.forEach(function (f) { files.push({ name: 'word/fonts/font' + f.n + '.odttf', data: f.bytes }); });
+      }
       return zip(files);
     });
   }
