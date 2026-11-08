@@ -797,12 +797,22 @@ def build_tools():
 # ───────────────────────── set texts ─────────────────────────
 SETTEXT_LANG = {'latin': ('Latin', '/version2/tools/vocab/latinvocabtester.html'), 'greek': ('Greek', '/version2/tools/vocab/greekvocabtester.html')}
 
+def settext_has_video(href):
+    """Whether a set-text section's data/section-N.json carries a video walkthrough."""
+    m = re.search(r'section-(\d+)\.html$', href)
+    if not m: return False
+    p = os.path.join(ROOT, os.path.dirname(href.lstrip('/')), 'data', 'section-%s.json' % m.group(1))
+    if not os.path.exists(p): return False
+    return bool(json.load(open(p, encoding='utf-8')).get('video'))
+
 def build_settext(t):
     sub = SUBJECTS[t['subject']]
     lang, tester = SETTEXT_LANG[t['subject']]
     left = []
+    def chips(s):
+        return (chip('Video', 'on') + ' ' if settext_has_video(s['href']) else '') + chip('Read', 'blue')
     for g in t['groups']:
-        rows = ''.join('<a class="row" href="%s"><span class="rt">%s</span><span class="rm">%s</span><span class="right">%s</span></a>' % (s['href'], s['title'], s['desc'], chip('Read', 'blue')) for s in g['sections'])
+        rows = ''.join('<a class="row" href="%s"><span class="rt">%s</span><span class="rm">%s</span><span class="right">%s</span></a>' % (s['href'], s['title'], s['desc'], chips(s)) for s in g['sections'])
         head = ' · '.join(x for x in (g.get('lines', ''), g.get('label', '')) if x) or 'Sections'
         left.append('<div class="panel"><div class="ph"><span class="t">%s</span><span class="n">%d sections</span></div><div class="pb"><div class="rows">%s</div></div></div>' % (head, len(g['sections']), rows))
     # background to the text, below the sections, where there is some
@@ -814,6 +824,8 @@ def build_settext(t):
     rail = ['<div class="panel"><div class="ph"><span class="t">About this text</span></div><div class="pb"><ul class="kvl" style="margin-bottom:10px">%s</ul>%s</div></div>' % (''.join(kvl), about)]
     exam = ('<a class="row" href="%s"><span class="rt">Exam practice</span><span class="rm">practice papers laid out like the exam, with mark schemes</span></a>' % (t['href'] + t['exam'])) if t.get('exam') else ''
     if t.get('eye'): exam += '<a class="row" href="%s"><span class="rt">Examiner’s eye</span><span class="rm">15-mark answers at every level, to mark, X-ray and improve</span></a>' % (t['href'] + t['eye'])
+    if t.get('playlist'):
+        rail.append('<div class="panel"><div class="ph"><span class="t">Video walkthroughs</span></div><div class="pb"><p style="font-size:14px;margin-bottom:12px">Sections marked <b>Video</b> have a walkthrough on the page. Watch them all in order on YouTube.</p><a class="btn line sm" href="%s" target="_blank" rel="noopener">Open the playlist</a></div></div>' % t['playlist'])
     rail.append('<div class="panel"><div class="ph"><span class="t">Also for this paper</span></div><div class="pb"><div class="rows">%s<a class="row" href="%s"><span class="rt">Vocabulary tester</span><span class="rm">the defined vocabulary for %s %s</span></a><a class="row" href="%s"><span class="rt">Other set texts</span><span class="rm">the rest of the %s %s literature options</span></a></div></div></div>' % (exam, tester, lvl_label(t['level']), lang, sub['href'] + LEVEL_ANCHOR.get(t['level'], ''), lvl_label(t['level']), lang))
     rail.append(TRACK)
     first = t['groups'][0]['sections'][0]['href'] if t['groups'] and t['groups'][0]['sections'] else None
