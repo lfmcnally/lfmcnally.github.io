@@ -316,7 +316,8 @@
   if (hb) hb.addEventListener('click', function () {
     if (window.ClassicaliaHandout) { window.ClassicaliaHandout.open(root); return; }
     var s = document.createElement('script');
-    s.src = '/version2/assets/js/settext-handout.js';
+    // fetched fresh each time the page asks for it, so a browser never keeps an old copy
+    s.src = '/version2/assets/js/settext-handout.js?t=' + Date.now();
     s.onload = function () { if (window.ClassicaliaHandout) window.ClassicaliaHandout.open(root); };
     document.head.appendChild(s);
   });
