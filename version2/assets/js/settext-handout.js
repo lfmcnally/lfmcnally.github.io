@@ -3,7 +3,7 @@
 // The Handout button in the reader opens this. It reads the text and the
 // translation from the reader on the page (nothing else: no vocabulary,
 // no notes, no colours) and lays them out on A4 with room to annotate:
-// wide line spacing, and a ruled column for notes. Printed from the
+// line spacing set on a slider, and a column for notes. Printed from the
 // browser (which also saves a PDF), or downloaded as a Word file the
 // teacher can edit, written by /version2/assets/js/word-docx.js.
 (function () {
@@ -11,7 +11,9 @@
 
   var WORD_JS = '/version2/assets/js/word-docx.js';
   var KEY = 'classicalia.settext.handout';
-  var SPACING = { normal: 1.6, wide: 2.3, extra: 3.1 };   // line heights for the text
+  // the text's line height, as a multiple of its size: the slider's range and starting point
+  var GAP = { min: 1.4, max: 6, step: 0.1, start: 2.6 };
+  function gapOf(o) { var g = +o.gap; return g >= GAP.min && g <= GAP.max ? g : GAP.start; }
   var LATIN_PT = 11.5, ENGLISH_PT = 10;
   // the columns' shares of the page: text, English beside it, notes. A hexameter
   // wants a wider column than a line of prose does.
@@ -25,7 +27,7 @@
     get: function () { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } },
     set: function (v) { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} }
   };
-  var DEFAULTS = { layout: 'side', english: true, notes: true, spacing: 'wide', name: true };
+  var DEFAULTS = { layout: 'side', english: true, notes: true, gap: GAP.start, name: true };
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function clean(el) { return el ? (el.textContent || '').replace(/\s+/g, ' ').trim() : ''; }
@@ -79,7 +81,7 @@
     return '<p class="ho-en">' + esc(englishOf(u)) + '</p>';
   }
   function sheetHtml(m, o) {
-    var lh = SPACING[o.spacing] || SPACING.wide;
+    var lh = gapOf(o);
     var english = o.english, side = english && o.layout === 'side';
     var h = '<div class="ho-head"><div><div class="ho-kicker">' + esc([m.text, m.lang].filter(Boolean).join(' · ')) + '</div><h1>' + esc(m.title) + '</h1>' +
       (m.sub ? '<div class="ho-sub">' + esc(m.sub) + '</div>' : '') + '</div>' +
@@ -124,7 +126,7 @@
     });
   }
   function wordBlob(W, m, o) {
-    var lh = SPACING[o.spacing] || SPACING.wide;
+    var lh = gapOf(o);
     var side = o.english && o.layout === 'side';
     // Georgia runs a little wider than Lora, so the text is a half point smaller in Word
     var lf = { size: LATIN_PT - 0.5 }, ef = { size: ENGLISH_PT }, nf = { size: 8, color: '9AA1B2' };
@@ -146,20 +148,6 @@
     function englishXml(u) {
       if (u.en && m.verse) return u.en.map(function (r) { return W.para(W.textRun(r.t, ef), { atLeast: ENGLISH_PT * 1.4 }, ef); }).join('');
       return W.para(W.textRun(englishOf(u), ef), { after: side ? 0 : 8, atLeast: ENGLISH_PT * 1.45 }, ef);
-    }
-    // the notes column: ruled lines, about as many as the row has lines of text
-    function ruled(lines) {
-      // Word joins neighbouring paragraphs with the same border into one box, so the
-      // lines are the box's bottom and the borders between its paragraphs
-      var b = W.border('bottom', { color: 'C9CED8', width: 0.75 }) + W.border('between', { color: 'C9CED8', width: 0.75 });
-      var out = '';
-      for (var i = 0; i < Math.max(1, lines); i++) out += W.para('', { exact: lineAt, border: b }, { size: 6 });
-      return out;
-    }
-    function lineCount(u, colChars) {
-      if (m.verse) return u.lat.length;
-      var chars = u.lat.reduce(function (n, r) { return n + r.t.length + 1; }, 0);
-      return Math.ceil(chars / colChars);
     }
     return W.pack({
       margins: [737, 737, 737, 737],
@@ -192,20 +180,19 @@
         var hf = { size: 8.5, bold: true, color: '6B7386' };
         var rows = [{ header: true, cells: heads.map(function (hd) { return { xml: W.para(W.textRun(hd, hf), {}, hf), fill: 'F1F2F6' }; }) }];
         var first = { v: true };
-        var colChars = Math.round(widths[0] / 567 * 4.2);     // about four letters a centimetre at this size
         flowUnits(m, side).forEach(function (u) {
           if (side && m.verse && u.en && u.en.length === u.lat.length) {
             u.lat.forEach(function (r, i) {
               var f = first.v; first.v = false;
               var cells = [{ xml: latinLine(r, f) }, { xml: W.para(W.textRun(u.en[i].t, ef), { atLeast: lineAt }, ef) }];
-              if (o.notes) cells.push({ xml: ruled(1) });
+              if (o.notes) cells.push({ xml: W.para('') });
               rows.push({ cells: cells });
             });
             return;
           }
           var cells = [{ xml: latinXml(u, first) }];
           if (side) cells.push({ xml: englishXml(u) });
-          if (o.notes) cells.push({ xml: ruled(lineCount(u, colChars)) });
+          if (o.notes) cells.push({ xml: W.para('') });
           rows.push({ cells: cells });
         });
         var grey = W.border('top', { color: 'D5D9E2' }) + W.border('left', { color: 'D5D9E2' }) + W.border('bottom', { color: 'D5D9E2' }) + W.border('right', { color: 'D5D9E2' }) +
@@ -225,8 +212,12 @@
 
   // ── the window: options, a preview, print and Word ──
   var ov = null, model = null, opts = null;
+  function gapLabel(g) { return g < 1.9 ? 'Tight' : g < 2.9 ? 'Wide' : g < 4.1 ? 'Wider' : 'Widest'; }
   function render() {
     ov.querySelector('.ho-stage').innerHTML = sheetHtml(model, opts);
+    var slider = ov.querySelector('[data-gap]');
+    slider.value = gapOf(opts);
+    ov.querySelector('[data-gap-out]').textContent = gapLabel(gapOf(opts));
     ov.querySelectorAll('[data-ho]').forEach(function (b) {
       var k = b.dataset.ho, v = b.dataset.v;
       b.classList.toggle('on', v != null ? opts[k] === v : !!opts[k]);
@@ -242,12 +233,20 @@
       '<span class="ho-t1">Handout</span>' +
       '<span class="ho-grp"><span class="ho-lab">Translation</span><span class="seg"><button class="btn" data-ho="layout" data-v="side">Beside the text</button><button class="btn" data-ho="layout" data-v="after">After the text</button></span>' +
       '<button class="btn" data-ho="english">Include</button></span>' +
-      '<span class="ho-grp"><span class="ho-lab">Space to annotate</span><span class="seg"><button class="btn" data-ho="spacing" data-v="normal">Normal</button><button class="btn" data-ho="spacing" data-v="wide">Wide</button><button class="btn" data-ho="spacing" data-v="extra">Extra wide</button></span>' +
+      '<label class="ho-grp ho-gap"><span class="ho-lab">Space between lines</span><input type="range" data-gap min="' + GAP.min + '" max="' + GAP.max + '" step="' + GAP.step + '"><output data-gap-out></output></label>' +
       '<button class="btn" data-ho="notes">Notes column</button></span>' +
       '<span class="ho-grp"><button class="btn" data-ho="name">Name and date</button></span>' +
       '<span class="ho-acts"><button class="btn navy" data-act="print">Print or save PDF</button><button class="btn line" data-act="word">Word</button><button class="btn line" data-act="close">Close</button></span>' +
       '</div><div class="ho-stage"></div>';
     document.body.appendChild(ov);
+    // dragging the slider only respaces the sheet, so it follows the hand
+    ov.querySelector('[data-gap]').addEventListener('input', function () {
+      opts.gap = +this.value;
+      var sheet = ov.querySelector('.ho-sheet');
+      if (sheet) sheet.style.setProperty('--ho-lh', opts.gap);
+      ov.querySelector('[data-gap-out]').textContent = gapLabel(opts.gap);
+      store.set(opts);
+    });
     ov.addEventListener('click', function (e) {
       var b = e.target.closest('[data-ho]');
       if (b) {
