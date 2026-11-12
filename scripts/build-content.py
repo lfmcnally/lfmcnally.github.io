@@ -29,6 +29,8 @@ for i, a in enumerate(sys.argv):
 ONLY = sys.argv[sys.argv.index('--only') + 1] if '--only' in sys.argv else None
 
 DATA = json.load(open(os.path.join(ROOT, 'version2/assets/data/courses.json'), encoding='utf-8'))
+# YouTube walkthroughs for course topics: {course id: {topic number: video id}}
+VIDEOS = json.load(open(os.path.join(ROOT, 'version2/assets/data/videos.json'), encoding='utf-8'))
 COURSES = {c['id']: c for c in DATA['courses']}
 
 SUBJECTS = {
@@ -106,6 +108,24 @@ def crumbs(items):
 
 def chip(label, cls=''):
     return '<span class="chip%s">%s</span>' % (' ' + cls if cls else '', label)
+
+def video_embed(vid, title):
+    """A YouTube video in a 16:9 frame: the privacy-enhanced player, loaded only
+    when it scrolls into view."""
+    return ('<div class="video-embed"><iframe src="https://www.youtube-nocookie.com/embed/%s?rel=0" title="Video walkthrough: %s" loading="lazy" '
+            'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>') % (esc(vid), esc(title))
+
+def video_link(vid):
+    return '<a href="https://www.youtube.com/watch?v=%s" target="_blank" rel="noopener" style="color:var(--brand);font-weight:600">Watch on YouTube</a>' % esc(vid)
+
+def video_panel(vid, title, small='this section'):
+    """A panel holding one video walkthrough, with a link out to YouTube."""
+    return '<div class="panel"><div class="ph"><span class="t">Video walkthrough <small>%s</small></span><span class="n">%s</span></div><div class="pb">%s</div></div>' % (
+        small, video_link(vid), video_embed(vid, title))
+
+def topic_video(course, topic):
+    """The video id for a course topic, if it has one."""
+    return VIDEOS.get(course['id'], {}).get(topic.get('n') or '')
 
 def page(title, desc, path, active, body, head_extra='', scripts='', body_attr=''):
     return '''<!DOCTYPE html>
@@ -371,6 +391,9 @@ def build_lesson(course, topic, row):
         if fc['id'] != 'flashcards':
             fc_html = fc_html.replace('id="flashcards"', 'id="flashcards" data-also="%s"' % fc['id'])
 
+    vid = topic_video(course, topic)
+    video = video_panel(vid, '%s · %s' % (plain(course['title']), plain(topic['title'])), 'this topic') if vid and row['n'].endswith('.0') else ''
+
     practise = ''
     if course.get('quiz'):
         practise = '''<div class="panel"><div class="ph"><span class="t">Test yourself</span><span class="n">marked as you go</span></div>
@@ -409,6 +432,7 @@ def build_lesson(course, topic, row):
         %s
         %s
         %s
+        %s
       </div>
       <aside class="rail">
 %s
@@ -418,7 +442,7 @@ def build_lesson(course, topic, row):
 </main>
 </div>''' % (docnav(course, row['href']), crumbs(crumb_items), d['title'],
              ('<div class="sub">%s</div>' % d['deck']) if d['deck'] else '', ''.join(acts),
-             ''.join(chips), '\n'.join(sections), fc_html, practise, pager, '\n'.join(rail))
+             ''.join(chips), '\n'.join(sections), video, fc_html, practise, pager, '\n'.join(rail))
 
     head_extra = ''.join(d['styles'])
     if d['lesson_css']:
@@ -488,7 +512,7 @@ def row_html(r, n_prefix=True):
         return '<a class="row" href="%s"%s><span class="rt">%s%s</span><span class="rm">%s</span><span class="right">%s</span></a>' % (r['href'], ext, n, r['title'], rm, kind_chip(r))
     return '<div class="row off"><span class="rt">%s%s</span><span class="rm">%s</span><span class="right">%s</span></div>' % (n, r['title'], rm, chip('Coming soon', 'soon'))
 
-def topic_panel(t):
+def topic_panel(t, vid=None, vtitle=''):
     items = [r for r in t['items']]
     visible, hidden = [], []
     for r in items:
@@ -515,8 +539,12 @@ def topic_panel(t):
     if hidden:
         more = '<details class="more"><summary>%d %s coming soon</summary><div class="rows">%s</div></details>' % (
             len(hidden), 'lesson' if len(hidden) == 1 else 'lessons', ''.join(row_html(r) for r in hidden))
-    return '<div class="panel" id="topic-%s"><div class="ph"><span class="t">%s</span>%s</div><div class="pb"><div class="rows">%s</div>%s</div></div>' % (
-        re.sub(r'[^a-z0-9]+', '-', strip_tags(t['n'] or t['title']).lower()).strip('-'), head, lead, ''.join(out_rows), more)
+    video = ''
+    if vid:
+        video = '<div class="topic-video"><div class="topic-video-h"><span>Video walkthrough</span>%s</div>%s</div>' % (video_link(vid), video_embed(vid, vtitle))
+    rows = ('<div class="rows">%s</div>' % ''.join(out_rows)) if out_rows else ''
+    return '<div class="panel" id="topic-%s"><div class="ph"><span class="t">%s</span>%s</div><div class="pb">%s%s%s</div></div>' % (
+        re.sub(r'[^a-z0-9]+', '-', strip_tags(t['n'] or t['title']).lower()).strip('-'), head, lead, video, rows, more)
 
 def soon_panel(topics):
     rows = []
@@ -553,9 +581,10 @@ def build_course(c):
             if t['section'] and t['section'] != section:
                 flush(); section = t['section']
                 left.append('<div class="lvl-head"><h2 style="font-size:20px">%s</h2></div>' % section)
-            has_live = any('label' not in r and (r['written'] or r['kind'] in ('pdf', 'tester')) for r in t['items'])
+            vid = topic_video(c, t)
+            has_live = vid or any('label' not in r and (r['written'] or r['kind'] in ('pdf', 'tester')) for r in t['items'])
             if has_live:
-                flush(); left.append(topic_panel(t))
+                flush(); left.append(topic_panel(t, vid, '%s · %s' % (plain(c['title']), plain(t['title']))))
             else:
                 pending.append(t)
         flush()

@@ -86,15 +86,6 @@ def unit_html(u, note_cat):
         eng = '<div class="st-en-block">%s</div>' % esc(u.get('en', ''))
     return '<div class="st-unit" data-unit="%s"><div class="st-lat">%s</div><div class="st-eng">%s</div></div>' % (u['id'], lat, eng)
 
-def video_panel(v, title):
-    """A YouTube video in a 16:9 frame: the privacy-enhanced player, loaded only
-    when it scrolls into view. v is {"youtube": "<video id>"} from the section's JSON."""
-    vid = esc(v['youtube'])
-    return ('<div class="panel"><div class="ph"><span class="t">Video walkthrough <small>this section</small></span>'
-            '<span class="n"><a href="https://www.youtube.com/watch?v=%s" target="_blank" rel="noopener" style="color:var(--brand);font-weight:600">Watch on YouTube</a></span></div>'
-            '<div class="pb st-video"><iframe src="https://www.youtube-nocookie.com/embed/%s?rel=0" title="Video walkthrough: %s" loading="lazy" '
-            'allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div></div>') % (vid, vid, esc(title))
-
 def build_section(t, d, s, prev, nxt):
     sub = SUBJECTS[t['subject']]
     lang, tester = LANG[t['subject']]
@@ -147,7 +138,7 @@ def build_section(t, d, s, prev, nxt):
     panels = []
     # a video walkthrough of the section, straight after the text, where there is one
     if d.get('video'):
-        panels.append(video_panel(d['video'], '%s · %s' % (plain(t['title']), plain(d['title']))))
+        panels.append(bc.video_panel(d['video']['youtube'], '%s · %s' % (plain(t['title']), plain(d['title']))))
     if style_notes:
         sn = sorted(style_notes, key=lambda n: order.get(n['id'], 10 ** 6))
         counts = ''.join('<span class="chip c-%s">%s · %d</span>' % (c, label, sum(1 for n in sn if n['cat'] == c)) for c, label in cats_present)
