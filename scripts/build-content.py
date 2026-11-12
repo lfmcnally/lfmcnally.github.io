@@ -10,9 +10,10 @@
   * the contents page of each Latin set text, and a lighter head on the
     set-text reading pages
 
-Run extract-manifest.py first. Re-running is safe: lesson pages that have
-already been converted are read from git at the pre-conversion commit.
-To change a lesson's content, edit (or add) its source under
+Run extract-manifest.py first. Re-running is safe: every written lesson has
+its pre-conversion source under scripts/lesson-src/, so the build does not
+need git history (a shallow clone lacks the pre-conversion commit, and the
+converted page on disk can't be parsed again). To change a lesson's content, edit (or add) its source under
 scripts/lesson-src/, at the same path as the page (for example
 scripts/lesson-src/version2/subjects/classical-civilisation/the-homeric-world/2-2-hunting-elite/revision.html),
 in the old revision-page markup, and rebuild with --only lessons.
