@@ -118,14 +118,19 @@ def video_embed(vid, title):
 def video_link(vid):
     return '<a href="https://www.youtube.com/watch?v=%s" target="_blank" rel="noopener" style="color:var(--brand);font-weight:600">Watch on YouTube</a>' % esc(vid)
 
-def video_panel(vid, title, small='this section'):
+def video_panel(vid, title, small='this section', anchor=''):
     """A panel holding one video walkthrough, with a link out to YouTube."""
-    return '<div class="panel"><div class="ph"><span class="t">Video walkthrough <small>%s</small></span><span class="n">%s</span></div><div class="pb">%s</div></div>' % (
-        small, video_link(vid), video_embed(vid, title))
+    return '<div class="panel"%s><div class="ph"><span class="t">Video walkthrough <small>%s</small></span><span class="n">%s</span></div><div class="pb">%s</div></div>' % (
+        (' id="%s"' % anchor) if anchor else '', small, video_link(vid), video_embed(vid, title))
 
-def topic_video(course, topic):
-    """The video id for a course topic, if it has one."""
-    return VIDEOS.get(course['id'], {}).get(topic.get('n') or '')
+def topic_videos(course, topic):
+    """A course topic's videos as [(video id, label)]. In videos.json a topic
+    holds one video id, or a list of {"youtube": id, "label": "..."} when it
+    has several (Heracles in Greece and Hercules in Rome, say)."""
+    v = VIDEOS.get(course['id'], {}).get(topic.get('n') or '')
+    if not v: return []
+    if isinstance(v, str): return [(v, '')]
+    return [(x['youtube'], x.get('label', '')) for x in v]
 
 def page(title, desc, path, active, body, head_extra='', scripts='', body_attr=''):
     return '''<!DOCTYPE html>
@@ -391,8 +396,12 @@ def build_lesson(course, topic, row):
         if fc['id'] != 'flashcards':
             fc_html = fc_html.replace('id="flashcards"', 'id="flashcards" data-also="%s"' % fc['id'])
 
-    vid = topic_video(course, topic)
-    video = video_panel(vid, '%s · %s' % (plain(course['title']), plain(topic['title'])), 'this topic') if vid and row['n'].endswith('.0') else ''
+    # the topic's videos go at the top of its first lesson (the N.0 overview,
+    # or the topic's one page), above the notes
+    first = next((r for r in topic['items'] if 'label' not in r and r['kind'] in ('lesson', 'guide')), None)
+    video = ''
+    if first is not None and first['href'] == row['href']:
+        video = '\n'.join(video_panel(v, '%s · %s' % (plain(course['title']), plain(lab or topic['title'])), lab or 'this topic', 'video' if i == 0 else '') for i, (v, lab) in enumerate(topic_videos(course, topic)))
 
     practise = ''
     if course.get('quiz'):
@@ -425,11 +434,11 @@ def build_lesson(course, topic, row):
   <div class="inner page">
     <div class="cols-r">
       <div class="stack">
+        %s
         <article class="panel doc">
           <div class="meta">%s</div>
 %s
         </article>
-        %s
         %s
         %s
         %s
@@ -442,7 +451,7 @@ def build_lesson(course, topic, row):
 </main>
 </div>''' % (docnav(course, row['href']), crumbs(crumb_items), d['title'],
              ('<div class="sub">%s</div>' % d['deck']) if d['deck'] else '', ''.join(acts),
-             ''.join(chips), '\n'.join(sections), video, fc_html, practise, pager, '\n'.join(rail))
+             video, ''.join(chips), '\n'.join(sections), fc_html, practise, pager, '\n'.join(rail))
 
     head_extra = ''.join(d['styles'])
     if d['lesson_css']:
@@ -512,7 +521,7 @@ def row_html(r, n_prefix=True):
         return '<a class="row" href="%s"%s><span class="rt">%s%s</span><span class="rm">%s</span><span class="right">%s</span></a>' % (r['href'], ext, n, r['title'], rm, kind_chip(r))
     return '<div class="row off"><span class="rt">%s%s</span><span class="rm">%s</span><span class="right">%s</span></div>' % (n, r['title'], rm, chip('Coming soon', 'soon'))
 
-def topic_panel(t, vid=None, vtitle=''):
+def topic_panel(t, videos=(), vtitle=''):
     items = [r for r in t['items']]
     visible, hidden = [], []
     for r in items:
@@ -539,9 +548,8 @@ def topic_panel(t, vid=None, vtitle=''):
     if hidden:
         more = '<details class="more"><summary>%d %s coming soon</summary><div class="rows">%s</div></details>' % (
             len(hidden), 'lesson' if len(hidden) == 1 else 'lessons', ''.join(row_html(r) for r in hidden))
-    video = ''
-    if vid:
-        video = '<div class="topic-video"><div class="topic-video-h"><span>Video walkthrough</span>%s</div>%s</div>' % (video_link(vid), video_embed(vid, vtitle))
+    video = ''.join('<div class="topic-video"><div class="topic-video-h"><span>Video walkthrough%s</span>%s</div>%s</div>' % (
+        (' · ' + lab) if lab else '', video_link(v), video_embed(v, lab or vtitle)) for v, lab in videos)
     rows = ('<div class="rows">%s</div>' % ''.join(out_rows)) if out_rows else ''
     return '<div class="panel" id="topic-%s"><div class="ph"><span class="t">%s</span>%s</div><div class="pb">%s%s%s</div></div>' % (
         re.sub(r'[^a-z0-9]+', '-', strip_tags(t['n'] or t['title']).lower()).strip('-'), head, lead, video, rows, more)
@@ -566,6 +574,8 @@ def build_course(c):
             lesson = next(r for r in t['items'] if 'label' not in r and r['kind'] in ('lesson', 'guide'))
             pdfs = [r for r in t['items'] if 'label' not in r and r['kind'] == 'pdf']
             right = ''.join('<a class="chip pdf" href="%s" target="_blank" rel="noopener" title="%s">PDF</a>' % (p['href'], plain(p['title'])) for p in pdfs)
+            if lesson['written'] and topic_videos(c, t):
+                right = '<a class="chip on" href="%s#video">Video</a>' % lesson['href'] + right
             n = ('<span class="code">%s</span>' % t['n']) if t['n'] else ''
             if lesson['written']:
                 rows.append('<div class="row"><span class="rt">%s<a href="%s">%s</a></span><span class="rm">%s</span><span class="right">%s<a class="chip blue" href="%s">Notes</a></span></div>' % (n, lesson['href'], t['title'], lesson.get('desc', ''), right, lesson['href']))
@@ -581,10 +591,10 @@ def build_course(c):
             if t['section'] and t['section'] != section:
                 flush(); section = t['section']
                 left.append('<div class="lvl-head"><h2 style="font-size:20px">%s</h2></div>' % section)
-            vid = topic_video(c, t)
-            has_live = vid or any('label' not in r and (r['written'] or r['kind'] in ('pdf', 'tester')) for r in t['items'])
+            vids = topic_videos(c, t)
+            has_live = vids or any('label' not in r and (r['written'] or r['kind'] in ('pdf', 'tester')) for r in t['items'])
             if has_live:
-                flush(); left.append(topic_panel(t, vid, '%s · %s' % (plain(c['title']), plain(t['title']))))
+                flush(); left.append(topic_panel(t, vids, '%s · %s' % (plain(c['title']), plain(t['title']))))
             else:
                 pending.append(t)
         flush()
