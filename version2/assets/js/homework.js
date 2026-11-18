@@ -142,7 +142,7 @@
     'greek-alevel':   { src: [V + 'greek-alevel.js'], field: 'greek', get: () => (typeof VOCAB_GREEK_ALEVEL !== 'undefined' ? VOCAB_GREEK_ALEVEL : null) },
     'civ-myth-religion': { src: ['1.1', '1.2', '1.3', '1.4', '1.5', '1.6', '1.7', '1.8'].map(n => Q + 'myth-' + n + '.js'),
                            topics: () => (window.CivQuiz && window.CivQuiz.topics) || null },
-    'civ-homeric-world': { src: [Q + 'homeric-1.js'], topics: () => (window.HomericQuiz && window.HomericQuiz.topics) || null }
+    'civ-homeric-world': { src: ['1', '2', '3', '4'].map(n => Q + 'homeric-' + n + '.js'), topics: () => (window.HomericQuiz && window.HomericQuiz.topics) || null }
   };
 
   function loadScript(src) {
