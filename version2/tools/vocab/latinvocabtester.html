@@ -861,6 +861,33 @@ body { background: var(--cream); }
           <select id="wordTo" style="flex:1; min-width:140px;"></select>
         </div>
       </div>
+      <button class="opt-row" data-range="alpha" id="rangeAlpha">
+        <div>
+          <div class="opt-row-name">In word order</div>
+          <div class="opt-row-desc">Work down the whole list A&ndash;Z in blocks, ignoring chapters</div>
+        </div>
+        <div class="opt-row-check"></div>
+      </button>
+      <div id="alphaControls" style="display:none;">
+        <div class="chapter-controls">
+          <label for="alphaSize" style="font-weight:600; color: var(--ink);">Blocks of</label>
+          <select id="alphaSize">
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="25">25</option>
+            <option value="30">30</option>
+            <option value="50">50</option>
+          </select>
+          <label for="alphaBlock">words:</label>
+          <select id="alphaBlock" style="flex:1; min-width:200px;"></select>
+        </div>
+        <div class="chapter-controls">
+          <label style="font-weight:600; color: var(--ink);">Or pick exactly:</label>
+          <select id="alphaFrom" aria-label="First word" style="flex:1; min-width:140px;"></select>
+          <label>to</label>
+          <select id="alphaTo" aria-label="Last word" style="flex:1; min-width:140px;"></select>
+        </div>
+      </div>
       <div class="word-count-note" id="wordCountNote">460 words in the full list</div>
     </div>
   </div>
@@ -1235,6 +1262,7 @@ function selectList(listId) {
     b.classList.toggle('selected', b.dataset.list === listId));
   rebuildSetPicker();
   if (selectedRange === 'chapter') populateWordDropdowns();
+  if (selectedRange === 'alpha') setupAlphaControls();
   updateWordCount();
   const deck = document.getElementById('headerDeck');
   if (deck && VOCAB_LISTS[listId].label) deck.textContent = VOCAB_LISTS[listId].label + ' defined vocabulary list.';
@@ -1303,7 +1331,130 @@ function populateWordDropdowns() {
   fromSel.disabled = toSel.disabled = pool.length === 0;
 }
 
+// ── In word order: the whole list A–Z, ignoring chapters, taken in blocks ──
+function getAlphaPool() {
+  const data = VOCAB_LISTS[selectedList].data();
+  return data.filter(w => w.chapter > 0).sort(byHeadword);
+}
+
+function alphaRange() {
+  const pool = getAlphaPool();
+  if (!pool.length) return { pool, start: 0, end: -1 };
+  const a = parseInt(document.getElementById('alphaFrom').value, 10);
+  const b = parseInt(document.getElementById('alphaTo').value, 10);
+  const from = Number.isFinite(a) ? a : 0;
+  const to   = Number.isFinite(b) ? b : pool.length - 1;
+  return { pool, start: Math.min(from, to), end: Math.max(from, to) };
+}
+
+// "words 21–40 (ager – aqua)"
+function describeAlphaRange() {
+  const { pool, start, end } = alphaRange();
+  if (end < start) return 'no words';
+  return `words ${start + 1}–${end + 1} (${pool[start].latin} – ${pool[end].latin})`;
+}
+
+function syncAlphaBlock() {
+  const { start, end } = alphaRange();
+  const blockSel = document.getElementById('alphaBlock');
+  const match = Array.from(blockSel.options).find(o => o.dataset.start === String(start) && o.dataset.end === String(end));
+  blockSel.value = match ? match.value : 'custom';
+}
+
+function buildAlphaBlocks(keepStart) {
+  const pool = getAlphaPool();
+  const size = parseInt(document.getElementById('alphaSize').value, 10) || 20;
+  const blockSel = document.getElementById('alphaBlock');
+  blockSel.innerHTML = '';
+  for (let i = 0, n = 1; i < pool.length; i += size, n++) {
+    const end = Math.min(i + size, pool.length) - 1;
+    const opt = document.createElement('option');
+    opt.value = String(n);
+    opt.dataset.start = String(i);
+    opt.dataset.end = String(end);
+    opt.textContent = `Block ${n}: ${i + 1}–${end + 1} · ${pool[i].latin} → ${pool[end].latin}`;
+    blockSel.appendChild(opt);
+  }
+  const custom = document.createElement('option');
+  custom.value = 'custom';
+  custom.textContent = 'Custom range';
+  custom.hidden = true;
+  blockSel.appendChild(custom);
+  blockSel.disabled = pool.length === 0;
+  // Stay on the block that contains the word the student was up to.
+  const idx = Math.max(0, Math.floor((keepStart || 0) / size));
+  if (blockSel.options[idx] && blockSel.options[idx].value !== 'custom') {
+    blockSel.value = blockSel.options[idx].value;
+    applyAlphaBlock();
+  }
+}
+
+function applyAlphaBlock() {
+  const opt = document.getElementById('alphaBlock').selectedOptions[0];
+  if (!opt || opt.value === 'custom') return;
+  document.getElementById('alphaFrom').value = opt.dataset.start;
+  document.getElementById('alphaTo').value = opt.dataset.end;
+  saveAlphaPrefs();
+}
+
+function populateAlphaDropdowns() {
+  const pool = getAlphaPool();
+  const fromSel = document.getElementById('alphaFrom');
+  const toSel   = document.getElementById('alphaTo');
+  fromSel.innerHTML = '';
+  toSel.innerHTML   = '';
+  pool.forEach((w, i) => {
+    const label = `${i + 1}. ${w.latin}`;
+    fromSel.appendChild(new Option(label, String(i)));
+    toSel.appendChild(new Option(label, String(i)));
+  });
+  fromSel.disabled = toSel.disabled = pool.length === 0;
+}
+
+// Remember block size and position per list, so a student can pick up where
+// they left off next time.
+function alphaPrefsKey() { return `classicalia-alpha-${selectedList}`; }
+function saveAlphaPrefs() {
+  try {
+    localStorage.setItem(alphaPrefsKey(), JSON.stringify({
+      size: document.getElementById('alphaSize').value,
+      from: document.getElementById('alphaFrom').value,
+      to: document.getElementById('alphaTo').value,
+    }));
+  } catch (_e) {}
+}
+function loadAlphaPrefs() {
+  try { return JSON.parse(localStorage.getItem(alphaPrefsKey()) || 'null'); } catch (_e) { return null; }
+}
+
+function setupAlphaControls(range) {
+  populateAlphaDropdowns();
+  const pool = getAlphaPool();
+  const prefs = range ? null : loadAlphaPrefs();
+  if (prefs && prefs.size) document.getElementById('alphaSize').value = prefs.size;
+  if (range) {
+    const last = pool.length - 1;
+    const a = Math.min(Math.max(range[0], 0), last);
+    const b = Math.min(Math.max(range[1], 0), last);
+    buildAlphaBlocks(a);
+    document.getElementById('alphaFrom').value = String(Math.min(a, b));
+    document.getElementById('alphaTo').value = String(Math.max(a, b));
+    syncAlphaBlock();
+  } else if (prefs && prefs.from != null && pool[prefs.from] && pool[prefs.to]) {
+    buildAlphaBlocks(parseInt(prefs.from, 10));
+    document.getElementById('alphaFrom').value = prefs.from;
+    document.getElementById('alphaTo').value = prefs.to;
+    syncAlphaBlock();
+  } else {
+    buildAlphaBlocks(0);
+  }
+}
+
 function getActivePool() {
+  if (selectedRange === 'alpha') {
+    const { pool, start, end } = alphaRange();
+    return pool.slice(start, end + 1);
+  }
   if (selectedRange === 'all') {
     const data = VOCAB_LISTS[selectedList].data();
     return data.filter(w => w.chapter > 0);
@@ -1336,20 +1487,44 @@ document.getElementById('modetype').addEventListener('click', () => {
   document.getElementById('modemc').classList.remove('selected');
 });
 
+function showRange(range) {
+  selectedRange = range;
+  document.getElementById('rangeAll').classList.toggle('selected', range === 'all');
+  document.getElementById('rangeChapter').classList.toggle('selected', range === 'chapter');
+  document.getElementById('rangeAlpha').classList.toggle('selected', range === 'alpha');
+  document.getElementById('chapterControls').style.display = range === 'chapter' ? 'block' : 'none';
+  document.getElementById('alphaControls').style.display = range === 'alpha' ? 'block' : 'none';
+}
+
 document.getElementById('rangeAll').addEventListener('click', () => {
-  selectedRange = 'all';
-  document.getElementById('rangeAll').classList.add('selected');
-  document.getElementById('rangeChapter').classList.remove('selected');
-  document.getElementById('chapterControls').style.display = 'none';
+  showRange('all');
   updateWordCount();
 });
 document.getElementById('rangeChapter').addEventListener('click', () => {
-  selectedRange = 'chapter';
-  document.getElementById('rangeChapter').classList.add('selected');
-  document.getElementById('rangeAll').classList.remove('selected');
-  document.getElementById('chapterControls').style.display = 'block';
+  showRange('chapter');
   populateWordDropdowns();
   updateWordCount();
+});
+document.getElementById('rangeAlpha').addEventListener('click', () => {
+  if (selectedRange !== 'alpha') setupAlphaControls();
+  showRange('alpha');
+  updateWordCount();
+});
+
+document.getElementById('alphaSize').addEventListener('change', () => {
+  buildAlphaBlocks(alphaRange().start);
+  updateWordCount();
+});
+document.getElementById('alphaBlock').addEventListener('change', () => {
+  applyAlphaBlock();
+  updateWordCount();
+});
+['alphaFrom', 'alphaTo'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    syncAlphaBlock();
+    saveAlphaPrefs();
+    updateWordCount();
+  });
 });
 
 document.getElementById('setAllBtn').addEventListener('click', () => {
@@ -1427,7 +1602,9 @@ function renderList() {
   const words    = listEntries();
   const meta     = document.getElementById('listMeta');
 
-  const scope = selectedRange === 'all'
+  const scope = selectedRange === 'alpha'
+    ? `in word order, ${describeAlphaRange()}`
+    : selectedRange === 'all'
     ? `all ${chapterNoun(true)}`
     : (selectedChapters.size
         ? `${chapterNoun(selectedChapters.size !== 1)} ${describeChapters(selectedChapters)}`
@@ -1472,7 +1649,9 @@ function renderList() {
 document.getElementById('printBtn').addEventListener('click', () => {
   const label = VOCAB_LISTS[selectedList].label;
   const words = listEntries();
-  const scope = selectedRange === 'all'
+  const scope = selectedRange === 'alpha'
+    ? titleCase(describeAlphaRange())
+    : selectedRange === 'all'
     ? `All ${chapterNoun(true)}`
     : `${titleCase(chapterNoun(selectedChapters.size !== 1))} ${describeChapters(selectedChapters)}`;
   document.getElementById('printTitle').textContent = label;
@@ -2473,6 +2652,14 @@ let observedUserId = null;
       syncSetChips();
       document.getElementById('rangeChapter').click();
     }
+  }
+
+  // ?words=21-40 opens "In word order" on those positions in the A–Z list
+  // (1-based, inclusive), so a teacher can set "learn words 21–40".
+  const wordsParam = (bootQuery.get('words') || '').match(/^(\d+)\s*[-–]\s*(\d+)$/);
+  if (wordsParam) {
+    setupAlphaControls([parseInt(wordsParam[1], 10) - 1, parseInt(wordsParam[2], 10) - 1]);
+    showRange('alpha');
   }
 
   // ?view=list opens the browse/export view instead of the tester setup.
