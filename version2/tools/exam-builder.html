@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-sync.js"></script>
 <script src="/version2/assets/js/account-menu.js" defer></script>
 <style>
   .ex-body { max-width: 1560px; margin: 0 auto; padding: 36px 40px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 640px; gap: 32px; align-items: start; }
@@ -424,7 +425,7 @@
           </select>
           <img id="exCrestThumb" alt="" hidden>
           <button class="ex-btn" id="exCrestClear" type="button" hidden style="padding: 5px 10px; font-size: 12px;">Remove</button>
-          <span class="ex-q-opt" id="exCrestNote" style="font-style: italic;">Your school&rsquo;s crest or wordmark. It is kept in this browser and used on every paper.</span>
+          <span class="ex-q-opt" id="exCrestNote" style="font-style: italic;">Your school&rsquo;s crest or wordmark. It is used on every paper.</span>
           <input type="file" id="exCrestFile" accept="image/*" hidden>
           <input type="hidden" id="exCrestData">
         </div>
@@ -589,7 +590,7 @@
       </div>
       <div class="ex-panel-body">
         <div id="exSets"></div>
-        <p class="ex-note">Saved papers are stored in this browser only, so they stay on this computer and are lost if you clear your browsing data.</p>
+        <p class="ex-note" data-sync-status data-sync-noun="papers" data-sync-draft="paper">Saved papers are stored in this browser only, so they stay on this computer and are lost if you clear your browsing data.</p>
       </div>
     </section>
 
@@ -772,6 +773,7 @@
   function writeStore(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
+      if (window.ClassicaliaSync) window.ClassicaliaSync.changed(key);
       return true;
     } catch (e) {
       return false;
@@ -2553,8 +2555,8 @@
     if (data) { thumb.src = data; }
     document.getElementById('exCrestClear').hidden = !data;
     note.textContent = data
-      ? 'Kept in this browser and used on every paper.'
-      : 'Choose your school\u2019s crest or wordmark. It is kept in this browser and used on every paper.';
+      ? 'Used on every paper.'
+      : 'Choose your school\u2019s crest or wordmark. It is used on every paper.';
   }
 
   document.getElementById('exCrestPick').addEventListener('click', function () {
@@ -2587,7 +2589,7 @@
   document.getElementById('exCrest').addEventListener('change', update);
 
   /* ── a paper as a file ──
-     Saved papers live in this browser alone, so a paper can also be kept as
+     Saved papers live in this browser (and the account, when signed in), so a paper can also be kept as
      a file: somewhere safe, on another computer, or passed to a colleague. */
 
   var FILE_KIND = 'classicalia.exam-paper';
@@ -2768,24 +2770,56 @@
 
   /* ── start up ── */
 
-  var draft = readStore(DRAFT_KEY, null);
-  if (draft && Array.isArray(draft.items) && draft.items.length) {
-    applySettings(draft.settings);
-    items = draft.items;
-  } else {
-    items = [blankItem('q'), blankItem('q'), blankItem('q')];
+  function loadDraft() {
+    var draft = readStore(DRAFT_KEY, null);
+    if (draft && Array.isArray(draft.items) && draft.items.length) {
+      applySettings(draft.settings);
+      items = draft.items;
+    } else {
+      items = [blankItem('q'), blankItem('q'), blankItem('q')];
+    }
   }
 
   // A crest chosen on an earlier paper is still this school's crest.
-  if (!val('exCrestData')) {
-    var savedCrest = readStore(CREST_KEY, '');
-    if (savedCrest) { document.getElementById('exCrestData').value = savedCrest; }
+  function loadCrest() {
+    if (!val('exCrestData')) {
+      var savedCrest = readStore(CREST_KEY, '');
+      if (savedCrest) { document.getElementById('exCrestData').value = savedCrest; }
+    }
+    showCrest();
   }
-  showCrest();
 
+  loadDraft();
+  loadCrest();
   renderItems();
   renderSets();
   update();
+
+  // Signed in, saved papers, the paper in progress and the crest are kept in
+  // the account. The crest has a group of its own, shared with lesson plans.
+  if (window.ClassicaliaSync) {
+    window.ClassicaliaSync.connect('examBuilder', {
+      keys: [STORE_KEY, DRAFT_KEY],
+      lists: [STORE_KEY],
+      onChange: function (keys) {
+        if (keys.indexOf(STORE_KEY) > -1) renderSets();
+        if (keys.indexOf(DRAFT_KEY) > -1) {
+          loadDraft();
+          loadCrest();
+          renderItems();
+          update();
+        }
+      }
+    });
+    window.ClassicaliaSync.connect('crest', {
+      keys: [CREST_KEY],
+      onChange: function () {
+        if (val('exCrestData')) return;
+        loadCrest();
+        update();
+      }
+    });
+  }
 })();
 </script>
 <div data-shell="footer"></div>

@@ -12,6 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/version2/assets/js/supabase-client.js"></script>
+<script src="/version2/assets/js/account-sync.js"></script>
 <script src="/version2/assets/js/account-menu.js" defer></script>
 <style>
   .cw-body { max-width: 1240px; margin: 0 auto; padding: 36px 40px 90px; display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 28px; align-items: start; }
@@ -240,7 +241,7 @@
       </div>
       <div class="cw-panel-body">
         <div id="cwSets"></div>
-        <p class="cw-note">Saved lists are stored in this browser only, so they stay on this computer and are lost if you clear your browsing data.</p>
+        <p class="cw-note" data-sync-status data-sync-noun="lists" data-sync-draft="list">Saved lists are stored in this browser only, so they stay on this computer and are lost if you clear your browsing data.</p>
       </div>
     </section>
 
@@ -315,7 +316,8 @@
   }
 
   function writeStore(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* private mode, full quota */ }
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { return; /* private mode, full quota */ }
+    if (window.ClassicaliaSync) window.ClassicaliaSync.changed(key);
   }
 
   /* ── vocabulary rows ── */
@@ -725,19 +727,34 @@
 
   /* ── start up ── */
 
-  var draft = readStore(DRAFT_KEY, null);
-  if (draft && Array.isArray(draft.words) && draft.words.length) {
-    applySettings(draft.settings);
-    words = draft.words.map(function (w) { return { chapter: w.chapter || '', col1: w.col1 || '', col2: w.col2 || '' }; });
-  } else {
-    words = [];
-    for (var i = 0; i < 8; i++) { words.push({ chapter: '', col1: '', col2: '' }); }
+  function loadDraft() {
+    var draft = readStore(DRAFT_KEY, null);
+    if (draft && Array.isArray(draft.words) && draft.words.length) {
+      applySettings(draft.settings);
+      words = draft.words.map(function (w) { return { chapter: w.chapter || '', col1: w.col1 || '', col2: w.col2 || '' }; });
+    } else {
+      words = [];
+      for (var i = 0; i < 8; i++) { words.push({ chapter: '', col1: '', col2: '' }); }
+    }
   }
 
+  loadDraft();
   renderHead();
   renderRows();
   renderSets();
   update();
+
+  // Signed in, saved lists and the list in progress are kept in the account.
+  if (window.ClassicaliaSync) {
+    window.ClassicaliaSync.connect('coverWriteCheck', {
+      keys: [STORE_KEY, DRAFT_KEY],
+      lists: [STORE_KEY],
+      onChange: function (keys) {
+        if (keys.indexOf(STORE_KEY) > -1) renderSets();
+        if (keys.indexOf(DRAFT_KEY) > -1) { loadDraft(); renderHead(); renderRows(); update(); }
+      }
+    });
+  }
 })();
 </script>
 <script src="/version2/assets/js/word-docx.js"></script>
